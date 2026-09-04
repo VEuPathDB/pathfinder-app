@@ -3,7 +3,6 @@
 This script keeps the source pack neutral while producing:
 
 - importable SigNoz dashboard JSON files
-- a Terraform wrapper for dashboard provisioning
 - an alert catalog for SigNoz UI and shared environment workflows
 """
 
@@ -11,14 +10,12 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from textwrap import dedent
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
 PACK_PATH = ROOT / "pathfinder-observability-pack.json"
 DASHBOARDS_DIR = ROOT / "dashboards"
 ALERTS_DIR = ROOT / "alerts"
-TERRAFORM_DIR = ROOT / "terraform"
 FILTER_GUIDE_PATH = ROOT / "dashboard-filters.md"
 
 GRID_WIDTH = 24
@@ -287,127 +284,11 @@ def _render_alerts(pack: dict[str, Any]) -> None:
     (ALERTS_DIR / "pathfinder-alert-catalog.md").write_text("\n".join(lines) + "\n")
 
 
-def _render_terraform() -> None:
-    TERRAFORM_DIR.mkdir(parents=True, exist_ok=True)
-    (TERRAFORM_DIR / "providers.tf").write_text(
-        dedent(
-            """
-            terraform {
-              required_version = ">= 1.5.0"
-
-              required_providers {
-                signoz = {
-                  source  = "Signoz/signoz"
-                  version = "~> 0.0.4"
-                }
-              }
-            }
-
-            provider "signoz" {
-              endpoint     = var.signoz_endpoint
-              access_token = var.signoz_access_token
-            }
-            """
-        ).strip()
-        + "\n"
-    )
-    (TERRAFORM_DIR / "variables.tf").write_text(
-        dedent(
-            """
-            variable "signoz_endpoint" {
-              description = "SigNoz base URL, for example https://signoz.example.org"
-              type        = string
-            }
-
-            variable "signoz_access_token" {
-              description = "SigNoz API access token"
-              type        = string
-              sensitive   = true
-            }
-            """
-        ).strip()
-        + "\n"
-    )
-    (TERRAFORM_DIR / "dashboards.tf").write_text(
-        dedent(
-            """
-            locals {
-              dashboard_files = fileset("${path.module}/../dashboards", "*.json")
-              dashboards = {
-                for dashboard_file in local.dashboard_files :
-                trimsuffix(basename(dashboard_file), ".json") => jsondecode(
-                  file("${path.module}/../dashboards/${dashboard_file}")
-                )
-              }
-            }
-
-            resource "signoz_dashboard" "pathfinder" {
-              for_each = local.dashboards
-
-              collapsable_rows_migrated = lookup(each.value, "collapsable_rows_migrated", true)
-              description               = each.value.description
-              name                      = each.value.name
-              title                     = each.value.title
-              version                   = each.value.version
-              uploaded_grafana          = lookup(each.value, "uploaded_grafana", false)
-              tags                      = lookup(each.value, "tags", [])
-              layout                    = jsonencode(each.value.layout)
-              variables                 = jsonencode(lookup(each.value, "variables", {}))
-              widgets                   = jsonencode(each.value.widgets)
-              panel_map                 = jsonencode(lookup(each.value, "panel_map", {}))
-            }
-
-            output "pathfinder_dashboard_ids" {
-              value = {
-                for key, dashboard in signoz_dashboard.pathfinder :
-                key => dashboard.id
-              }
-            }
-            """
-        ).strip()
-        + "\n"
-    )
-    (TERRAFORM_DIR / "README.md").write_text(
-        dedent(
-            """
-            # Terraform Dashboard Apply
-
-            This directory provisions the generated PathFinder dashboards into SigNoz.
-
-            ## Prerequisites
-
-            - Terraform 1.5+
-            - SigNoz provider `Signoz/signoz`
-            - A SigNoz API token with dashboard-management permissions
-
-            ## Usage
-
-            ```bash
-            export TF_VAR_signoz_endpoint="https://signoz.example.org"
-            export TF_VAR_signoz_access_token="replace-me"
-
-            terraform init
-            terraform plan
-            terraform apply
-            ```
-
-            ## Scope
-
-            - Dashboards are applied from `../dashboards/*.json`
-            - Alerts stay source-controlled in `../alerts/pathfinder-alert-catalog.json`
-            - Alert routing remains environment-specific on purpose, because channel names and policy contracts differ across local, staging, production, and Cedar-hosted environments
-            """
-        ).strip()
-        + "\n"
-    )
-
-
 def main() -> None:
     pack = _load_pack()
     _render_dashboards(pack)
     _render_filter_guide(pack)
     _render_alerts(pack)
-    _render_terraform()
 
 
 if __name__ == "__main__":

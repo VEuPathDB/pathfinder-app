@@ -13,7 +13,6 @@ from pathfinder.transport.http.routers.evaluation import (
     BuildGoldRequest,
     FetchGeneIdsRequest,
 )
-from pathfinder.transport.http.routers.gene_sets import GeneSetImportRequest
 from pathfinder.transport.http.schemas.conversations import (
     BeginConversationRequest,
     CreateConversationRequest,
@@ -24,9 +23,9 @@ from pathfinder.transport.http.schemas.conversations import (
 from pathfinder.transport.http.schemas.experiments import CreateExperimentRequest
 from pathfinder.transport.http.schemas.gene_sets import (
     CreateGeneSetRequest,
+    GeneSetImportRequest,
     ReverseSearchRequest,
 )
-from pathfinder.transport.http.schemas.strategy_ast import StrategyAstNormalizeRequest
 
 _LONG = "s" * 51
 _AST = {"recordType": "transcript", "root": {"searchName": "GenesByTaxon"}}
@@ -64,10 +63,6 @@ _AST = {"recordType": "transcript", "root": {"searchName": "GenesByTaxon"}}
                 "controlsSearchName": "GeneByLocusTag",
                 "controlsParamName": "ds_gene_ids",
             },
-        ),
-        (
-            StrategyAstNormalizeRequest,
-            {"siteId": _LONG, "strategyAst": _AST},
         ),
         (
             GeneSetImportRequest,

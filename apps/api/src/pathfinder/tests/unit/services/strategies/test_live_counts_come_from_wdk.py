@@ -7,14 +7,17 @@ as "live" compares the cache with itself, so no edit can ever be detected.
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
 from pathfinder.integrations.veupathdb.wdk_models import WDKStrategyDetails
+from pathfinder.services.strategies import live_counts
 from pathfinder.services.strategies.live_counts import read_wdk_step_counts
 from pathfinder.services.strategies.sync_state import WDKSyncState
+
+_SITE = "plasmodb"
 
 
 def _details(sizes: dict[int, int | None]) -> WDKStrategyDetails:
@@ -37,8 +40,12 @@ def _details(sizes: dict[int, int | None]) -> WDKStrategyDetails:
     )
 
 
-def _api(details: WDKStrategyDetails) -> Any:
-    api = AsyncMock()
+def _install(monkeypatch: pytest.MonkeyPatch, api: StrategyAPI) -> None:
+    monkeypatch.setattr(live_counts, "get_strategy_api", lambda _site_id: api)
+
+
+def _api(details: WDKStrategyDetails) -> StrategyAPI:
+    api = Mock(spec=StrategyAPI)
     api.get_strategy = AsyncMock(return_value=details)
     return api
 
@@ -53,51 +60,68 @@ def _sync_state(recorded: dict[str, int]) -> WDKSyncState:
 
 class TestTheCountsComeFromTheServer:
     @pytest.mark.asyncio
-    async def test_an_edited_step_reports_its_new_size(self) -> None:
+    async def test_an_edited_step_reports_its_new_size(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _install(monkeypatch, _api(_details({11: 897, 22: 3})))
         state = _sync_state({"leaf": 3259, "root": 15})
 
-        counts = await read_wdk_step_counts(state, _api(_details({11: 897, 22: 3})))
+        counts = await read_wdk_step_counts(state, _SITE)
 
         assert counts["leaf"] == 897
 
     @pytest.mark.asyncio
-    async def test_the_root_reports_its_new_size(self) -> None:
+    async def test_the_root_reports_its_new_size(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _install(monkeypatch, _api(_details({11: 897, 22: 3})))
         state = _sync_state({"leaf": 3259, "root": 15})
 
-        counts = await read_wdk_step_counts(state, _api(_details({11: 897, 22: 3})))
+        counts = await read_wdk_step_counts(state, _SITE)
 
         assert counts["root"] == 3
 
     @pytest.mark.asyncio
-    async def test_the_recorded_counts_are_not_consulted(self) -> None:
+    async def test_the_recorded_counts_are_not_consulted(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         # Every recorded value differs from the server's, so a cache read
         # cannot produce this result by accident.
+        _install(monkeypatch, _api(_details({11: 897, 22: 3})))
         state = _sync_state({"leaf": 1, "root": 2})
 
-        counts = await read_wdk_step_counts(state, _api(_details({11: 897, 22: 3})))
+        counts = await read_wdk_step_counts(state, _SITE)
 
         assert counts == {"leaf": 897, "root": 3}
 
 
 class TestUnknownStaysUnknown:
     @pytest.mark.asyncio
-    async def test_a_step_wdk_does_not_report_is_none(self) -> None:
+    async def test_a_step_wdk_does_not_report_is_none(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _install(monkeypatch, _api(_details({11: 897})))
         state = _sync_state({"leaf": 3259, "root": 15})
 
-        counts = await read_wdk_step_counts(state, _api(_details({11: 897})))
+        counts = await read_wdk_step_counts(state, _SITE)
 
         assert counts["root"] is None
 
     @pytest.mark.asyncio
-    async def test_a_failed_read_yields_no_counts(self) -> None:
+    async def test_a_failed_read_yields_no_counts(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         # A WDK outage must not read as "every step changed".
-        api = AsyncMock()
+        api = Mock(spec=StrategyAPI)
         api.get_strategy = AsyncMock(side_effect=OSError("wdk down"))
+        _install(monkeypatch, api)
 
-        assert await read_wdk_step_counts(_sync_state({"leaf": 1}), api) == {}
+        assert await read_wdk_step_counts(_sync_state({"leaf": 1}), _SITE) == {}
 
     @pytest.mark.asyncio
-    async def test_an_unsynced_strategy_yields_no_counts(self) -> None:
-        state = WDKSyncState()
+    async def test_an_unsynced_strategy_yields_no_counts(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _install(monkeypatch, _api(_details({11: 897})))
 
-        assert await read_wdk_step_counts(state, _api(_details({11: 897}))) == {}
+        assert await read_wdk_step_counts(WDKSyncState(), _SITE) == {}

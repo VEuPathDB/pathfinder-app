@@ -70,12 +70,6 @@ htmlcov/
 .ruff_cache/
 .import_linter_cache/
 
-# SonarQube / SonarScanner
-.scannerwork/
-.sonarqube/
-.sonar/
-sonar-report.json
-
 # Playwright
 apps/web/playwright-report/
 apps/web/test-results/
@@ -115,7 +109,6 @@ quadlets/*.d/
 
 # Generated
 packages/shared-ts/dist/
-packages/shared-py/dist/
 
 # WDK - Repository cloned for local development
 WDK-master/

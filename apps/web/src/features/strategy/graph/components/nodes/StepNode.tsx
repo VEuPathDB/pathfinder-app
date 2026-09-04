@@ -1,7 +1,7 @@
 "use client";
 
 import type { Node, NodeProps } from "@xyflow/react";
-import { inferStepKind } from "@/lib/strategyGraph";
+import { inferStepKind } from "@/features/strategy/graph";
 import { SearchNode } from "./SearchNode";
 import { CombineNode } from "./CombineNode";
 import { TransformNode } from "./TransformNode";
@@ -19,7 +19,6 @@ export function StepNode({ data, selected }: NodeProps<Node<StepNodeData>>) {
     showPrimaryInputHandle: data.showPrimaryInputHandle,
     showSecondaryInputHandle: data.showSecondaryInputHandle,
     enterDelayIndex: data.enterDelayIndex,
-    onAddToChat: data.onAddToChat,
     onOpenDetails: data.onOpenDetails,
     onRename: data.onRename,
     onDuplicate: data.onDuplicate,

@@ -3,10 +3,10 @@
 import type { EdaDistributionSeries, EdaSubsetPreview } from "@pathfinder/shared";
 
 import { HistogramChart } from "@/lib/components/charts/HistogramChart";
-import { Figure } from "@/lib/components/thread/Figure";
+import { Figure } from "@/features/conversation/thread/Figure";
 import { useHydrateEdaPart } from "@/state/eda";
 
-import { useChatHelpersOptional } from "../../runtime/chatHelpersContext";
+import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { studyNameFor } from "./analysisStateParts";
 import { entityCountCaption } from "./entityCounts";
 import { figureNumberFor } from "./figureNumbers";
@@ -28,11 +28,11 @@ function variableName(series: EdaDistributionSeries): string {
 
 export function DataEdaSubsetPreview({ data }: { data: EdaSubsetPreview }) {
   useHydrateEdaPart({ kind: "subset-preview", data });
-  const chat = useChatHelpersOptional();
+  const chat = useChatHelpers();
   const note = data.distributionNote ?? "";
   const series = data.distribution;
   const counts = entityCountCaption(data.entityCounts);
-  const study = chat !== null ? studyNameFor(chat.messages, data.analysisId) : "";
+  const study = studyNameFor(chat.messages, data.analysisId);
   const base =
     series !== null
       ? `${counts}, ${series.numVarValues.toLocaleString()} values`
@@ -44,7 +44,7 @@ export function DataEdaSubsetPreview({ data }: { data: EdaSubsetPreview }) {
       title={series !== null ? variableName(series) : null}
       caption={plotCaption(data.caption ?? "", study, base)}
       numbered
-      figureNumber={chat !== null ? figureNumberFor(chat.messages, data) : null}
+      figureNumber={figureNumberFor(chat.messages, data)}
       footer={
         <div className="text-xs">
           {series !== null ? <DistributionReadouts series={series} /> : null}

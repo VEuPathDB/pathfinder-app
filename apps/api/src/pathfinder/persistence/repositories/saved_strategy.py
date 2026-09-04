@@ -7,7 +7,7 @@ from uuid import UUID
 
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.context import calling_application
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.models import ConversationStrategy
@@ -115,43 +115,3 @@ class SavedStrategyRepository:
             stmt = stmt.where(Conversation.id != exclude_conversation_id)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
-
-    async def prune_wdk_orphans(
-        self,
-        user_id: UUID,
-        site_id: str,
-        live_wdk_ids: set[int],
-    ) -> int:
-        """Delete chats whose WDK strategy id is not in the live set and
-        return how many are deleted."""
-        stmt = (
-            select(Conversation.id, ConversationStrategy.wdk_strategy_id)
-            .join(
-                ConversationStrategy,
-                ConversationStrategy.conversation_id == Conversation.id,
-            )
-            .where(
-                Conversation.user_id == user_id,
-                Conversation.application_id == calling_application(),
-                Conversation.site_id == site_id,
-                ConversationStrategy.wdk_strategy_id.is_not(None),
-                Conversation.dismissed_at.is_(None),
-            )
-        )
-        result = await self.session.execute(stmt)
-        rows = result.all()
-
-        orphan_ids = [
-            conversation_id
-            for conversation_id, wdk_id in rows
-            if wdk_id not in live_wdk_ids
-        ]
-
-        if not orphan_ids:
-            return 0
-
-        await self.session.execute(
-            delete(Conversation).where(Conversation.id.in_(orphan_ids))
-        )
-        await self.session.flush()
-        return len(orphan_ids)

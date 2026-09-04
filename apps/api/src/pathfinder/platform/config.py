@@ -106,7 +106,6 @@ class Settings(RuntimeSettings):
         default=None,
         description="Optional path to a YAML file for site list and base URLs; defaults to bundled sites.yaml if unset.",
     )
-    veupathdb_cache_ttl: int = 3600
     # Accounted megabytes of per-site catalogs and semantic indexes one process
     # holds. The least recently used site leaves when the budget is reached.
     site_catalog_budget_mb: int = 512
@@ -215,16 +214,6 @@ class Settings(RuntimeSettings):
     def is_development(self) -> bool:
         """Check if running in development mode."""
         return self.api_env == "development"
-
-    @computed_field
-    def is_production(self) -> bool:
-        """Check if running in production mode."""
-        return self.api_env == "production"
-
-    @computed_field
-    def is_test(self) -> bool:
-        """Check if running in test mode."""
-        return self.api_env == "test"
 
     @property
     def has_llm_configuration(self) -> bool:

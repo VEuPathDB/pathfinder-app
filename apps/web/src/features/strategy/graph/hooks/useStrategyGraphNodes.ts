@@ -4,14 +4,14 @@ import { useState } from "react";
 import { type Node, type Edge, useNodesState, useEdgesState } from "@xyflow/react";
 import type { Step, Strategy } from "@pathfinder/shared";
 import { useStrategyStore } from "@/state/strategy/store";
-import { useStepsById } from "@/state/strategy/selectors";
+import { stepsById } from "@/state/strategy/selectors";
 import { validateStepsForSave } from "@/features/strategy/validation/save";
 import { useSaveValidation } from "@/features/strategy/validation/useSaveValidation";
 import {
   getCombineMismatchGroups,
   inferStepKind,
   serializeStrategyAst,
-} from "@/lib/strategyGraph";
+} from "@/features/strategy/graph";
 
 interface UseStrategyGraphNodesOptions {
   strategy: Strategy | null;
@@ -54,7 +54,7 @@ export function useStrategyGraphNodes(options: UseStrategyGraphNodesOptions) {
   const applyStepValidationErrors = useStrategyStore(
     (state) => state.applyStepValidationErrors,
   );
-  const stepsById = useStepsById(strategy);
+  const stepsByIdMap = stepsById(strategy);
   const setGraphValidationStatus = useStrategyStore(
     (state) => state.setGraphValidationStatus,
   );
@@ -80,7 +80,7 @@ export function useStrategyGraphNodes(options: UseStrategyGraphNodesOptions) {
 
   const combineMismatchGroups = getCombineMismatchGroups(editableSteps);
 
-  const planResult = serializeStrategyAst(stepsById, strategy);
+  const planResult = serializeStrategyAst(stepsByIdMap, strategy);
   const planHash = planResult ? JSON.stringify(planResult.plan) : null;
   const graphIdForValidation = strategy?.id ?? null;
   const graphHasValidationIssues = useStrategyStore((state) =>

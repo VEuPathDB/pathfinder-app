@@ -332,7 +332,7 @@ test.describe("Workbench Panel Functionality", () => {
     await workbenchMainPage.expectEmptyState();
   });
 
-  // ── All 12 panels listed ──────────────────────────────────────────
+  // ── All panels listed ──────────────────────────────────────────
   test("all analysis panels are listed when a gene set is active", async ({
     page,
     seedData,
@@ -350,7 +350,6 @@ test.describe("Workbench Panel Functionality", () => {
       "Results Table",
       "Enrichment Analysis",
       "Distribution Explorer",
-      "Step Contribution",
       "Gene Confidence",
       "Ensemble Scoring",
       "Reverse Search",

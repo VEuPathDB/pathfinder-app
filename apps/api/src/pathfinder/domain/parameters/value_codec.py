@@ -205,19 +205,6 @@ def wire_map(values: dict[str, ParamValue]) -> dict[str, str]:
     return {name: to_wire(v) for name, v in values.items()}
 
 
-def from_wire_map(
-    wire: dict[str, str],
-    kinds: dict[str, ParamKind],
-) -> dict[str, ParamValue]:
-    out: dict[str, ParamValue] = {}
-    for name, raw in wire.items():
-        kind = kinds.get(name)
-        if kind is None:
-            continue
-        out[name] = from_wire(kind, raw)
-    return out
-
-
 def to_decoded(value: ParamValue) -> JsonValue:
     return value.to_decoded()
 

@@ -184,7 +184,7 @@ describe("StringParam (form-aware)", () => {
         )}
       </WidgetTestForm>,
     );
-    expect(screen.getByRole("textbox").getAttribute("aria-required")).toBeNull();
+    expect(screen.getByRole("textbox")).not.toHaveAttribute("aria-required");
   });
 
   it("renders a controlled input when the field value transitions from undefined to a string", () => {

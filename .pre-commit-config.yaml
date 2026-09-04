@@ -88,6 +88,13 @@ repos:
         language: system
         pass_filenames: false
         types: [python]
+      - id: pyright-api
+        name: pyright (api)
+        entry: bash -c "cd apps/api && $HOME/.local/bin/uv run pyright src/pathfinder"
+        language: system
+        pass_filenames: false
+        types: [python]
+        files: ^apps/api/.*
       - id: prettier-shared-ts
         name: prettier (shared-ts)
         entry: bash -c "cd packages/shared-ts && yarn format:check"
@@ -118,6 +125,18 @@ repos:
         language: system
         pass_filenames: false
         files: ^(apps/web/|packages/shared-ts/|packages/assistant-client-ts/).*
+      - id: weak-assertions-web
+        name: weak-assertion check (web, and the checker)
+        entry: bash -c "cd apps/web && yarn check:weak-assertions && node --test scripts/check-weak-assertions.test.mjs"
+        language: system
+        pass_filenames: false
+        files: ^apps/web/.*
+      - id: strict-mode-web
+        name: index-based Playwright locator check (web)
+        entry: bash -c "cd apps/web && yarn check:strict-mode"
+        language: system
+        pass_filenames: false
+        files: ^apps/web/.*
       - id: knowledge-okf
         name: check knowledge bundle (OKF v0.2)
         entry: bash -c "node scripts/check-knowledge.mjs && node --test scripts/check-knowledge.test.mjs"
@@ -152,9 +171,9 @@ repos:
         pass_filenames: false
         files: ^(apps/web/|packages/shared-ts/|packages/assistant-client-ts/).*
         stages: [pre-push]
-      - id: openapi-generate-api
-        name: openapi spec regenerate (api)
-        entry: bash -c "cd apps/api && $HOME/.local/bin/uv run python -m pathfinder.devtools.openapi generate"
+      - id: openapi-check-api
+        name: openapi spec freshness (api)
+        entry: bash -c "cd apps/api && $HOME/.local/bin/uv run python -m pathfinder.devtools.openapi check"
         language: system
         pass_filenames: false
         types: [python]
@@ -195,8 +214,8 @@ repos:
         files: ^apps/api/pyproject\.toml$
         stages: [pre-push]
       - id: shared-ts-openapi
-        name: openapi types regenerate (shared-ts)
-        entry: bash -c "cd packages/shared-ts && yarn generate"
+        name: generated types freshness (shared-ts)
+        entry: bash -c "cd packages/shared-ts && yarn check:generated"
         language: system
         pass_filenames: false
         files: ^(packages/shared-ts/|apps/api/).*

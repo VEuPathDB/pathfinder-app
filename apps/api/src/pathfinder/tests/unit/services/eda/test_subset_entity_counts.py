@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncGenerator, Generator, Sequence
+from collections.abc import AsyncGenerator, Callable, Generator, Sequence
 from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
-from shared_py.stream_parts.eda import EdaEntityCount
 
+from pathfinder.domain.eda_parts import EdaEntityCount
 from pathfinder.integrations.eda.client import EdaClient
 from pathfinder.integrations.eda.models import (
     EdaAnalysisDescriptor,
@@ -120,7 +120,6 @@ def _token() -> Generator[None]:
 @pytest.fixture
 async def count_paths(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[list[str]]:
     """The recorded wire, plus the count path of every count request."""
-    catalog.clear_study_caches()
     paths: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -143,13 +142,13 @@ async def count_paths(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[list[st
             )
         return httpx.Response(404, json={"status": "not-found"})
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(handler))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+    )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)
     yield paths
     await client.close()
-    catalog.clear_study_caches()
 
 
 def _de_filters() -> Sequence[EdaFilter]:
@@ -229,11 +228,12 @@ async def test_a_warm_cache_reads_only_the_filtered_size(
 
 async def test_clearing_the_study_caches_reads_both_sizes_again(
     count_paths: list[str],
+    drop_eda_study_caches: Callable[[], None],
 ) -> None:
     study = _study_detail("study_detail_de.json")
     await authoring.subset_entity_counts("plasmodb", study=study, filters=_de_filters())
-    catalog.clear_study_caches()
     count_paths.clear()
+    drop_eda_study_caches()
     await authoring.subset_entity_counts("plasmodb", study=study, filters=_de_filters())
     assert len(count_paths) == 4
 

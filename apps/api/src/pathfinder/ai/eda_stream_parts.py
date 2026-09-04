@@ -1,7 +1,8 @@
 """Stream parts of the EDA surface: the analysis, the subset, the plot."""
 
 from assistant_core.conversation.stream_parts.registry import StreamPartRegistry
-from shared_py.stream_parts.eda import (
+
+from pathfinder.domain.eda_parts import (
     EdaAnalysisState,
     EdaSubsetPreviewPart,
     EdaVizPart,

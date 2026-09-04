@@ -10,7 +10,6 @@ import { useAISDKRuntime } from "@assistant-ui/react-ai-sdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { Strategy } from "@pathfinder/shared";
-import { geneSetSchema } from "@pathfinder/shared/generated/zod/geneSetSchema";
 import { graphClearedSchema } from "@pathfinder/shared/generated/zod/graphClearedSchema";
 import { graphSnapshotSchema } from "@pathfinder/shared/generated/zod/graphSnapshotSchema";
 import { strategyMetaSchema } from "@pathfinder/shared/generated/zod/strategyMetaSchema";
@@ -35,7 +34,6 @@ import { useStrategyStore } from "@/state/strategy/store";
 
 import { buildChatRequestBody } from "./buildRequestBody";
 import type { ChatHelpers } from "./chatHelpersContext";
-import { createFeedbackAdapter } from "./feedbackAdapter";
 import { GeneIdAttachmentAdapter } from "./geneIdAttachmentAdapter";
 
 interface UseChatRuntimeArgs {
@@ -108,9 +106,6 @@ export function useChatRuntime({
             queryKey: listScratchpadNotesQueryOptions(conversationId).queryKey,
           });
           break;
-        case "data-gene-set":
-          useSessionStore.getState().recordGeneSet(geneSetSchema.parse(dataPart.data));
-          break;
         case "data-graph-snapshot": {
           const snapshot = graphSnapshotSchema.parse(dataPart.data);
           void queryClient.invalidateQueries({
@@ -180,7 +175,6 @@ export function useChatRuntime({
 
   const runtime = useAISDKRuntime(chatApi, {
     adapters: {
-      feedback: createFeedbackAdapter(),
       attachments: new GeneIdAttachmentAdapter(),
     },
   });

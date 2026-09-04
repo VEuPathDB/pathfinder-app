@@ -19,7 +19,10 @@ from pathfinder.platform.security import (
     limiter,
 )
 from pathfinder.services.users import get_or_create_user_id
-from pathfinder.services.wdk import password_login, password_logout
+from pathfinder.services.wdk.login import (
+    end_veupathdb_session,
+    start_veupathdb_session,
+)
 from pathfinder.services.wdk_identity import (
     WDKCurrentUser,
     fetch_wdk_user,
@@ -133,8 +136,11 @@ async def login_with_password(
             ],
         )
 
-    token = await password_login(
-        site_id, email, password, redirect_url=_pick_redirect_url(redirect_to)
+    token = await start_veupathdb_session(
+        site_id,
+        email=email,
+        password=password,
+        redirect_url=_pick_redirect_url(redirect_to),
     )
 
     if not token:
@@ -150,20 +156,6 @@ async def login_with_password(
     return _build_success_response(token, create_user_token(internal_id))
 
 
-async def logout_of_veupathdb(veupathdb_token: str | None, site_id: str) -> bool:
-    """Ask WDK to end the session the token belongs to.
-
-    WDK logs out whoever made the request, and answers an uncredentialed one as
-    a guest, so a logout without the token ends nobody's session.
-    """
-    if not veupathdb_token:
-        return False
-    ended: bool = await password_logout(site_id, veupathdb_token)
-    if not ended:
-        logger.warning("VEuPathDB did not end the session", site_id=site_id)
-    return ended
-
-
 @router.post("/logout", response_model=AuthSuccessResponse)
 async def logout(
     request: Request,
@@ -177,7 +169,7 @@ async def logout(
     veupathdb_token = request.headers.get("X-VEUPATHDB-AUTH") or request.cookies.get(
         "Authorization"
     )
-    ended = await logout_of_veupathdb(veupathdb_token, site_id)
+    ended = await end_veupathdb_session(site_id, veupathdb_token)
     response = JSONResponse({"success": ended})
     response.delete_cookie(key="Authorization", path="/")
     response.delete_cookie(key="pathfinder-auth", path="/")

@@ -40,7 +40,6 @@ const COLUMNS: ShortcutColumn[] = [
       { keys: "E", label: "Edit selected step" },
       { keys: "C", label: "Combine selected (≥2)" },
       { keys: "O", label: "Insert ortholog (1)" },
-      { keys: "@", label: "Add selection to chat" },
       { keys: "Del", label: "Delete selected" },
       { keys: "⌘A", label: "Select all" },
       { keys: "⌘Z", label: "Undo" },

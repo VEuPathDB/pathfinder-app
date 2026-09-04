@@ -6,7 +6,7 @@ import {
   parseResponseBody,
 } from "./http";
 
-export type HttpMethod =
+type HttpMethod =
   | "GET"
   | "POST"
   | "PUT"
@@ -18,7 +18,7 @@ export type HttpMethod =
   | "patch"
   | "delete";
 
-export type QueryParams = {
+type QueryParams = {
   [key: string]: unknown;
 };
 

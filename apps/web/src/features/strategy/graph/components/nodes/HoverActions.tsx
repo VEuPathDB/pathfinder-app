@@ -1,6 +1,6 @@
 "use client";
 
-import { Code2, MessageSquarePlus, MoreVertical, Pencil } from "lucide-react";
+import { Code2, MoreVertical, Pencil } from "lucide-react";
 import type { Step } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,6 @@ const isDev = process.env.NODE_ENV !== "production";
 
 export type HoverActionsProps = {
   step: Step;
-  onAddToChat?: ((stepId: string) => void) | undefined;
   onOpenDetails?: ((stepId: string) => void) | undefined;
   onDuplicate?: ((stepId: string) => void) | undefined;
   onDelete?: ((stepId: string) => void) | undefined;
@@ -23,7 +22,6 @@ export type HoverActionsProps = {
 
 export function HoverActions({
   step,
-  onAddToChat,
   onOpenDetails,
   onDuplicate,
   onDelete,
@@ -56,21 +54,6 @@ export function HoverActions({
           }}
         >
           <Pencil className="size-3" aria-hidden="true" />
-        </Button>
-      )}
-      {onAddToChat != null && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          aria-label="Add to chat"
-          data-testid={`rf-add-to-chat-${step.id}`}
-          onClick={(event) => {
-            event.stopPropagation();
-            onAddToChat(step.id);
-          }}
-        >
-          <MessageSquarePlus className="size-3" aria-hidden="true" />
         </Button>
       )}
       <DropdownMenu>

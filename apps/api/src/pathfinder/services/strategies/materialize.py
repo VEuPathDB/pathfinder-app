@@ -13,7 +13,6 @@ from uuid import UUID
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 
-from pathfinder.domain.strategy.ast import walk_step_tree
 from pathfinder.domain.strategy.revision import (
     parse_strategy_ast,
     without_wdk_ids,
@@ -22,6 +21,7 @@ from pathfinder.domain.strategy.strategy_ast import (
     PersistedStrategyGraph,
     StrategyAst,
 )
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.platform.errors import AppError
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.step_push_planner import plan_step_pushes
@@ -81,9 +81,9 @@ def _plan_only(ast: StrategyAst) -> MaterializedStrategy:
 
 
 def _step_total(ast: StrategyAst) -> int:
-    total = len(walk_step_tree(ast.root))
+    total = len(walk(ast.root))
     for detached in ast.detached_roots:
-        total += len(walk_step_tree(detached))
+        total += len(walk(detached))
     return total
 
 

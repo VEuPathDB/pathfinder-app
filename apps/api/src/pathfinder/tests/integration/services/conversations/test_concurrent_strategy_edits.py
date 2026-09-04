@@ -13,13 +13,14 @@ from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.domain.parameters.values import MultiPickValue, ParamValue, StringValue
-from pathfinder.domain.strategy.ast import StrategyStepNode, walk_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.operations import (
     UpdateCombineOperatorOp,
     UpdateStepParamsOp,
 )
 from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.integrations.veupathdb.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
@@ -367,14 +368,14 @@ def slow_clone(monkeypatch: pytest.MonkeyPatch) -> asyncio.Event:
 
 
 def _step_expression(ast: StrategyAst, step_id: str) -> str:
-    node = next(n for n in walk_step_tree(ast.root) if n.id == step_id)
+    node = next(n for n in walk(ast.root) if n.id == step_id)
     value = node.parameters["text_expression"]
     assert isinstance(value, StringValue)
     return value.value
 
 
 def _search_names(ast: StrategyAst) -> list[str]:
-    return [node.search_name for node in walk_step_tree(ast.root)]
+    return [node.search_name for node in walk(ast.root)]
 
 
 async def test_an_insert_saved_and_a_param_edit_both_land(

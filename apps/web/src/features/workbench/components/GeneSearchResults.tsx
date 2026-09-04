@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Loader2 } from "lucide-react";
 import type { GeneSearchResult } from "@pathfinder/shared";
-import { Button } from "@/lib/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 // ---------------------------------------------------------------------------
 // Gene detail hover popover

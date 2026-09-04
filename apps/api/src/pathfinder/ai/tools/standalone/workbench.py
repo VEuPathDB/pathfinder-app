@@ -8,7 +8,7 @@ Provides:
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
 from uuid import UUID, uuid4
 
 from assistant_core.graph.tool_summary import summary_chunks, with_summary
@@ -30,6 +30,10 @@ from pathfinder.ai.tools.standalone._workbench_models import (
     GeneSetListItem,
     GeneSetListResponse,
     WdkSourceSpec,
+)
+from pathfinder.services.enrichment.types import (
+    EnrichmentAnalysisType,
+    EnrichmentResult,
 )
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
@@ -111,15 +115,6 @@ async def create_workbench_gene_set(
     )
 
 
-EnrichmentType = Literal[
-    "go_function",
-    "go_process",
-    "go_component",
-    "pathway",
-    "word",
-]
-
-
 class _EnrichmentOutcome(CamelModel):
     """What a finished enrichment run reports about its terms."""
 
@@ -130,7 +125,7 @@ class _EnrichmentOutcome(CamelModel):
     gene_count: int = 0
     total_significant_terms: int = 0
     analysis_types_run: list[str] = Field(default_factory=list)
-    enrichment_results: list[dict[str, object]] = Field(default_factory=list)
+    enrichment_results: list[EnrichmentResult] = Field(default_factory=list)
     downloads: dict[str, str | int] | None = None
 
 
@@ -175,7 +170,7 @@ def _enrichment_chunks_from_result(
 async def run_gene_set_enrichment(
     ctx: RunContext[AgentDeps],
     gene_set_id: str,
-    enrichment_types: list[EnrichmentType] | None = None,
+    enrichment_types: list[EnrichmentAnalysisType] | None = None,
 ) -> dict[str, Any]:
     """Run enrichment analysis on a gene set in the Workbench.
 

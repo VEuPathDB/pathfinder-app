@@ -4,14 +4,15 @@
  */
 
 import { test, expect } from "../../fixtures/test";
-import { BUILD_ONE, VERIFIED } from "./prompts";
+import { BUILD_ONE, SITE_ID, VERIFIED } from "./prompts";
 
 test.describe("Build refusal", () => {
   test.describe.configure({ timeout: 600_000 });
 
-  test.beforeEach(async ({ chatPage }) => {
+  test.beforeEach(async ({ chatPage, sitePicker }) => {
     await chatPage.goto();
-    await chatPage.newChat();
+    await sitePicker.selectSite(SITE_ID);
+    await chatPage.newChat(SITE_ID);
   });
 
   test("a second build answers the refusal and keeps the strategy", async ({

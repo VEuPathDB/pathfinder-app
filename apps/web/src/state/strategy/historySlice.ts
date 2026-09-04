@@ -1,6 +1,5 @@
 import { enablePatches, produceWithPatches, applyPatches } from "immer";
 import type { Patch } from "immer";
-import type { Strategy } from "@pathfinder/shared";
 import type { StateCreator } from "zustand";
 import type { DevtoolsMutators } from "@/state/middleware";
 import type { HistorySlice, HistorySnapshot, StrategyState } from "./types";
@@ -85,5 +84,3 @@ export const createHistorySlice: StateCreator<
 
   clearHistory: () => set({ undoStack: [], redoStack: [] }),
 });
-
-export type { Patch, Strategy };

@@ -12,12 +12,12 @@ from uuid import UUID, uuid4
 
 import assistant_core.platform.db as session_module
 from assistant_core.persistence.models import Conversation, ConversationEvent, Message
-from shared_py.stream_parts.eda import EdaAnalysisState
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.pre_turn import pathfinder_pre_turn
 from pathfinder.ai.tools.standalone._eda_stream_parts import eda_analysis_state_chunk
+from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.domain.parameters.values import NumberValue
 from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.session import StrategySession

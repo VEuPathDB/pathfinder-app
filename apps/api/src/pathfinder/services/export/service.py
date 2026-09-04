@@ -1,4 +1,4 @@
-"""Generates CSV, TSV, TXT, JSON and markdown exports and stores them in Postgres."""
+"""Generates CSV, TSV, TXT and JSON exports and stores them in Postgres."""
 
 from __future__ import annotations
 
@@ -21,7 +21,6 @@ from pathfinder.persistence.models import Export
 from pathfinder.platform.context import request_base_url_ctx
 from pathfinder.services.enrichment.ranking import probability_cell, ratio_cell
 from pathfinder.services.enrichment.types import EnrichmentResult
-from pathfinder.services.experiment.types import Experiment
 from pathfinder.services.gene_sets.types import GeneSet
 
 logger = get_logger(__name__)
@@ -251,51 +250,3 @@ class ExportService:
         name_part = _sanitize_filename(name or "export")
         content = json.dumps(data, indent=2, default=str).encode("utf-8")
         return await self._store(content, f"{name_part}.json", "application/json")
-
-    async def export_markdown(self, markdown: str, name: str) -> ExportResult:
-        """Export a markdown string as a .md file."""
-        name_part = _sanitize_filename(name or "export")
-        content = markdown.encode("utf-8")
-        return await self._store(
-            content,
-            f"{name_part}.md",
-            "text/markdown; charset=utf-8",
-        )
-
-    async def export_experiment_results(
-        self, experiment: Experiment, output_format: Literal["csv", "tsv"]
-    ) -> ExportResult:
-        """Export experiment gene classifications as CSV or TSV."""
-        name_part = _sanitize_filename(experiment.config.name or experiment.id)
-        delimiter = "\t" if output_format == "tsv" else ","
-        ext = "tsv" if output_format == "tsv" else "csv"
-        content_type = (
-            "text/tab-separated-values" if output_format == "tsv" else "text/csv"
-        )
-
-        buf = io.StringIO()
-        writer = csv.writer(buf, delimiter=delimiter)
-        writer.writerow(
-            ["gene_id", "gene_name", "organism", "product", "classification"]
-        )
-
-        for label, genes in [
-            ("TP", experiment.true_positive_genes),
-            ("FP", experiment.false_positive_genes),
-            ("FN", experiment.false_negative_genes),
-            ("TN", experiment.true_negative_genes),
-        ]:
-            for gene in genes:
-                writer.writerow(
-                    [
-                        gene.id,
-                        gene.name or "",
-                        gene.organism or "",
-                        gene.product or "",
-                        label,
-                    ]
-                )
-
-        return await self._store(
-            buf.getvalue().encode("utf-8"), f"{name_part}_results.{ext}", content_type
-        )

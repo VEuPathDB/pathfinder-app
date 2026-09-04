@@ -5,7 +5,7 @@ import {
   type ThresholdSweepPoint,
   type ThresholdSweepResult,
   type SweepRequest,
-} from "@/lib/api/analysis";
+} from "@/features/analysis/api/compute";
 import { useParamSpecs } from "@/lib/hooks/useParamSpecs";
 import {
   isOptimizable,
@@ -14,7 +14,8 @@ import {
   flattenVocab,
 } from "../../utils/paramUtils";
 import type { SweepableParam } from "./types";
-import { fmtNum, MAX_CATEGORICAL_CHOICES } from "./types";
+import { fmtParamValue } from "../../utils/formatters";
+import { MAX_CATEGORICAL_CHOICES } from "./types";
 
 export function useSweepState(experiment: Experiment) {
   const { siteId, recordType, searchName } = experiment.config;
@@ -85,7 +86,7 @@ export function useSweepState(experiment: Experiment) {
     if (sweepType === "categorical") {
       return vocabDisplayMap.get(String(v)) ?? String(v);
     }
-    return typeof v === "number" ? fmtNum(v) : v;
+    return typeof v === "number" ? fmtParamValue(v) : v;
   };
 
   const handleParamChange = (name: string) => {

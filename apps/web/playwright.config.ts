@@ -74,7 +74,7 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   timeout: isCI ? 120_000 : 60_000,
   expect: { timeout: 15_000 },
-  retries: isCI ? 2 : 3,
+  retries: isCI ? 2 : 0,
   forbidOnly: isCI,
   fullyParallel: true,
   workers: 2,
@@ -112,27 +112,6 @@ export default defineConfig({
       // All cross-feature tests run enrichment against live VEuPathDB WDK
       // APIs.  WDK rate-limits concurrent analysis requests, so serialize
       // tests within this project to avoid parallel enrichment calls.
-      fullyParallel: false,
-    },
-    {
-      // The frozen EDA acceptance journeys. Without EDA_ACCEPTANCE the
-      // testMatch matches nothing, so a plain `playwright test` never runs it.
-      name: "eda-acceptance",
-      testDir: "./e2e/acceptance",
-      testMatch:
-        process.env["EDA_ACCEPTANCE"] === undefined ? /$^/ : /eda-journeys\.spec\.ts$/,
-      timeout: 180_000,
-      fullyParallel: false,
-    },
-    {
-      // The frozen thread acceptance journeys, gated the same way.
-      name: "thread-acceptance",
-      testDir: "./e2e/acceptance",
-      testMatch:
-        process.env["THREAD_ACCEPTANCE"] === undefined
-          ? /$^/
-          : /thread-journeys\.spec\.ts$/,
-      timeout: 180_000,
       fullyParallel: false,
     },
     {

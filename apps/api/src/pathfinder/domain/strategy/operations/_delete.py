@@ -1,6 +1,6 @@
 """Delete a step or an edge, and re-wire what the deletion leaves behind."""
 
-from pathfinder.domain.strategy.graph_model import StepKind, StrategyStep, subtree_ids
+from pathfinder.domain.strategy.graph_model import StepKind, StrategyStep
 from pathfinder.domain.strategy.operations._graph_edit import (
     ApplyError,
     ApplyResult,
@@ -17,6 +17,7 @@ from pathfinder.domain.strategy.operations.types import (
     DeleteStepOp,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.tree import subtree_ids
 
 
 def _apply_delete_step(graph: StrategyGraph, op: DeleteStepOp) -> ApplyResult:
@@ -29,7 +30,7 @@ def _apply_delete_step(graph: StrategyGraph, op: DeleteStepOp) -> ApplyResult:
         graph.last_step_id = None
         return ApplyResult(description="Deleted strategy", dropped_step_ids=dropped)
 
-    parent_info = graph.find_parent(op.step_id)
+    parent_info = graph.parent_of(op.step_id)
 
     if op.resolution == DeleteResolution.DELETE_SUBTREE:
         return _delete_subtree(graph, target, parent_info)
@@ -55,7 +56,7 @@ def _delete_subtree(
         if parent.kind is StepKind.TRANSFORM:
             # A transform needs an input, so it goes with the deleted subtree.
             to_delete.add(parent.id)
-            grandparent_info = graph.find_parent(parent.id)
+            grandparent_info = graph.parent_of(parent.id)
             if grandparent_info is not None:
                 grandparent, gp_slot = grandparent_info
                 _set_input_slot(grandparent, gp_slot, None)
@@ -105,7 +106,7 @@ def _collapse_through_transform_parent(
     parent: StrategyStep,
 ) -> ApplyResult:
     to_delete = set(subtree_ids(target.id, graph.steps)) | {parent.id}
-    grandparent_info = graph.find_parent(parent.id)
+    grandparent_info = graph.parent_of(parent.id)
     if grandparent_info is not None:
         grandparent, gp_slot = grandparent_info
         _set_input_slot(grandparent, gp_slot, None)
@@ -127,7 +128,7 @@ def _collapse_combine_parent(
         parent.secondary_input_id if slot == "primary" else parent.primary_input_id
     )
     to_delete = set(subtree_ids(target.id, graph.steps)) | {parent.id}
-    grandparent_info = graph.find_parent(parent.id)
+    grandparent_info = graph.parent_of(parent.id)
     if grandparent_info is not None:
         grandparent, gp_slot = grandparent_info
         _set_input_slot(grandparent, gp_slot, sibling_id)
@@ -158,7 +159,7 @@ def _orphan_sibling(
     _drop(graph, to_delete)
     _demote_to_single_input(parent, slot)
 
-    grandparent_info = graph.find_parent(parent.id)
+    grandparent_info = graph.parent_of(parent.id)
     if grandparent_info is not None:
         grandparent, gp_slot = grandparent_info
         _demote_to_single_input(grandparent, gp_slot)

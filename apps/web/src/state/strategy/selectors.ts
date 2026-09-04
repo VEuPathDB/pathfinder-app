@@ -2,9 +2,7 @@ import type { Step, Strategy } from "@pathfinder/shared";
 
 const EMPTY_STEPS_BY_ID: Record<string, Step> = Object.freeze({});
 
-export function useStepsById(
-  strategy: Strategy | null | undefined,
-): Record<string, Step> {
+export function stepsById(strategy: Strategy | null | undefined): Record<string, Step> {
   const steps = strategy?.steps;
   if (!steps || steps.length === 0) return EMPTY_STEPS_BY_ID;
   return getCachedStepsById(steps);

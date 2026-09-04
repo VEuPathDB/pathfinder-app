@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead import edit_dispatch, sub_agent_dispatch
+from pathfinder.ai.lead import edit_dispatch, frame_dispatch
 from pathfinder.ai.lead.deltas import EditDelta, FrameResult
 from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -54,7 +54,7 @@ from pathfinder.services.catalog.param_validation import ValidatedParams
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies import commit as commit_module
-from pathfinder.services.strategies import step_wdk_push
+from pathfinder.services.strategies import live_counts, step_wdk_push
 from pathfinder.services.strategies import sync as sync_module
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -187,7 +187,7 @@ def _params_under(context: dict[str, str]) -> list[ParameterInfo]:
 @pytest.fixture
 def wdk(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     api = _RecordingAPI()
-    for module in (commit_module, step_wdk_push, sync_module, edit_dispatch):
+    for module in (commit_module, step_wdk_push, sync_module, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
     async def _noop_validate_plan(*_a: Any, **_k: Any) -> set[str]:
@@ -406,7 +406,7 @@ def _frame_that_swaps_the_organism(monkeypatch: pytest.MonkeyPatch) -> list[str]
             ],
         )
 
-    monkeypatch.setattr(sub_agent_dispatch, "stream_sub_agent", _fake)
+    monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
     return rounds
 
 

@@ -1,9 +1,9 @@
-import type { EnrichmentResult, EnrichmentResultsChunk } from "@pathfinder/shared";
+import type { EnrichmentResultsChunk } from "@pathfinder/shared";
 import { EnrichmentSection } from "@/features/analysis";
-import { Figure } from "@/lib/components/thread/Figure";
+import { Figure } from "@/features/conversation/thread/Figure";
 
 export function DataEnrichmentResults({ data }: { data: EnrichmentResultsChunk }) {
-  const results = data.results as unknown as EnrichmentResult[];
+  const results = data.results;
   const csv = data.downloads?.["csv"];
   return (
     <Figure

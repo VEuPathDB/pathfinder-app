@@ -2,8 +2,8 @@
 
 import { motion } from "motion/react";
 import { type EdgeProps, getSmoothStepPath } from "@xyflow/react";
-import { usePrefersReducedMotion } from "@/lib/hooks/usePrefersReducedMotion";
-import { EDGE_DRAW_DURATION_MS } from "@/lib/motion/presets";
+import { usePrefersReducedMotion } from "@/features/strategy/graph/usePrefersReducedMotion";
+import { EDGE_DRAW_DURATION_MS } from "@/features/strategy/graph/motion";
 
 const STROKE_WIDTH = 1.5;
 const INTERACTION_WIDTH = 24;

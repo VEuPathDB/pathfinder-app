@@ -1,5 +1,5 @@
 import type { ConfusionMatrix } from "@pathfinder/shared";
-import { Card } from "@/lib/components/ui/Card";
+import { Card } from "@/components/ui/card";
 import { Section } from "./Section";
 
 interface ConfusionMatrixSectionProps {

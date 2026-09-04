@@ -6,7 +6,6 @@
   "compatibility": {
     "signoz": {
       "dashboardJson": true,
-      "terraformDashboards": true,
       "alertCatalog": true
     },
     "cedar": {

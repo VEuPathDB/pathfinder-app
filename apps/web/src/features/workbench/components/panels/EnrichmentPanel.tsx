@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Dna, Play, Loader2 } from "lucide-react";
-import { Button } from "@/lib/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { EnrichmentSection } from "@/features/analysis";
 import { toUserMessage } from "@/lib/api/errors";
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { useSessionStore } from "@/state/useSessionStore";
-import { useGeneSetsQuery } from "@/lib/query/hooks/useGeneSetsQuery";
-import { useInvalidateGeneSets } from "@/lib/query/hooks/useInvalidateGeneSets";
+import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
+import { useInvalidateGeneSets } from "@/features/workbench/hooks/useInvalidateGeneSets";
 import { enrichGeneSet } from "../../api/geneSets";
 
 // ---------------------------------------------------------------------------

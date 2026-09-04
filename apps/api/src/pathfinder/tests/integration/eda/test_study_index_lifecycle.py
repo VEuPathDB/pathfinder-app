@@ -15,7 +15,6 @@ from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.services.eda import catalog
 from pathfinder.services.eda.catalog import (
     NAME_MATCH_GUIDANCE,
-    clear_study_caches,
     preload_study_index,
     search_studies,
 )
@@ -93,13 +92,11 @@ async def wired(
     embedding_index_cleaner: None,
 ) -> AsyncGenerator[_Client]:
     del patch_app_db_engine, db_cleaner, embedding_index_cleaner
-    clear_study_caches()
     client = _Client()
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     token = veupathdb_auth_token_ctx.set("t")
     yield client
     veupathdb_auth_token_ctx.reset(token)
-    clear_study_caches()
 
 
 @pytest.fixture
@@ -186,7 +183,6 @@ async def test_an_unreachable_eda_service_does_not_raise(
     embedding_index_cleaner: None,
 ) -> None:
     del sync_enabled, patch_app_db_engine, db_cleaner, embedding_index_cleaner
-    clear_study_caches()
 
     class _Failing:
         async def list_studies(self) -> list[EdaStudyOverview]:
@@ -194,4 +190,3 @@ async def test_an_unreachable_eda_service_does_not_raise(
 
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: _Failing())
     await preload_study_index()
-    clear_study_caches()

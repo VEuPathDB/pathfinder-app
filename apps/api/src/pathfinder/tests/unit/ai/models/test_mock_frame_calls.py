@@ -11,7 +11,7 @@ import pytest
 from pydantic import TypeAdapter
 from pydantic_ai.messages import ToolReturnPart
 
-from pathfinder.ai.models.mock_specs import (
+from pathfinder.ai.models.mock.specs import (
     CriterionReply,
     SpecPlan,
     combined_spec,

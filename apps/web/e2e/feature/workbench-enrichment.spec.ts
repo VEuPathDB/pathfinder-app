@@ -1,5 +1,5 @@
 import { test, expect } from "../fixtures/test";
-import { loginWdkAccount, wdkAccountCreds } from "../fixtures/wdk-account";
+import { signInAsWdkAccount } from "../fixtures/wdk-account";
 
 // GO:0004672-curated P. falciparum 3D7 protein kinases (pulled from live WDK).
 const KINASE_IDS = [
@@ -103,16 +103,11 @@ test.describe("Workbench enrichment", () => {
   test("create gene set + GO enrichment returns real kinase terms (real account)", async ({
     page,
   }) => {
-    const creds = wdkAccountCreds();
-    test.skip(
-      creds == null,
-      "set WDK_TEST_EMAIL/WDK_TEST_PASSWORD to run real-account WDK tests",
-    );
     test.setTimeout(120_000);
 
     const ctx = page.context().request;
     const csrf = { "X-Requested-With": "XMLHttpRequest" };
-    await loginWdkAccount(ctx, creds as NonNullable<typeof creds>, "plasmodb");
+    await signInAsWdkAccount(ctx, "plasmodb");
 
     const created = await ctx.post("/api/v1/gene-sets", {
       data: {

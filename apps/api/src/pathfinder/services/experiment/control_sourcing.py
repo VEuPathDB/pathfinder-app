@@ -8,7 +8,6 @@ of those to validated ``list[str]`` and persists a ControlSet.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from uuid import UUID
 
@@ -19,27 +18,6 @@ from pathfinder.services.eval import get_strategy_gene_ids
 from pathfinder.services.gene_lookup.wdk import resolve_gene_ids
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
-
-_ID_SPLIT_RE = re.compile(r"[\s,;\t]+")
-
-
-def parse_gene_id_blob(raw: str) -> list[str]:
-    """Parse pasted / CSV / TSV text into a deduped list of gene IDs.
-
-    Splits on whitespace, commas, semicolons, and tabs; strips quotes; drops
-    a ``gene_id`` header token. Order-preserving dedup.
-    """
-    seen: set[str] = set()
-    out: list[str] = []
-    for tok in _ID_SPLIT_RE.split(raw):
-        cleaned = tok.strip().strip('"').strip("'")
-        if cleaned == "" or cleaned.lower() == "gene_id":
-            continue
-        if cleaned in seen:
-            continue
-        seen.add(cleaned)
-        out.append(cleaned)
-    return out
 
 
 @dataclass

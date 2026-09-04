@@ -5,9 +5,9 @@ import { Loader2, Plus, ThumbsDown, ThumbsUp } from "lucide-react";
 import { createGeneSet } from "@/features/workbench/api/geneSets";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
-import { useInvalidateGeneSets } from "@/lib/query/hooks/useInvalidateGeneSets";
-import { Button } from "@/lib/components/ui/Button";
-import { Input } from "@/lib/components/ui/Input";
+import { useInvalidateGeneSets } from "@/features/workbench/hooks/useInvalidateGeneSets";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { SaveControlSetForm } from "./SaveControlSetForm";
 
 interface GeneSearchActionsProps {

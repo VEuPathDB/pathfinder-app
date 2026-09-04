@@ -1,13 +1,10 @@
-from pathfinder.domain.strategy.graph_model import (
-    StepKind,
-    StrategyStep,
-    subtree_ids,
-)
+from pathfinder.domain.strategy.graph_model import StepKind, StrategyStep
 from pathfinder.domain.strategy.operations.types import (
     DeleteResolution,
     OperationChoice,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.tree import subtree_ids
 
 
 def compute_delete_choices(graph: StrategyGraph, step_id: str) -> list[OperationChoice]:
@@ -18,7 +15,7 @@ def compute_delete_choices(graph: StrategyGraph, step_id: str) -> list[Operation
         return _sole_step_choices(step_id)
     if target.kind is StepKind.TRANSFORM:
         return _transform_choices(step_id)
-    parent_info = graph.find_parent(step_id)
+    parent_info = graph.parent_of(step_id)
     if parent_info is None:
         return _root_choices(graph, target)
     return _child_choices(graph, target, parent_info)
@@ -130,7 +127,3 @@ def _child_choices(
             will_delete=will_delete,
         )
     ]
-
-
-def is_ambiguous_delete(graph: StrategyGraph, step_id: str) -> bool:
-    return len(compute_delete_choices(graph, step_id)) > 1

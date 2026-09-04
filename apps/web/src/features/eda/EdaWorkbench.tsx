@@ -7,7 +7,7 @@ import type { EdaAnalysisState } from "@pathfinder/shared";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { conversationEdaOptions, patchConversationEda } from "@/lib/api/eda";
+import { conversationEdaOptions, patchConversationEda } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
 import { useEdaStore } from "@/state/eda";
 

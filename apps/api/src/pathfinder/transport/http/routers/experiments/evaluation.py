@@ -1,11 +1,8 @@
-"""Evaluation endpoints: re-evaluate, threshold-sweep, export."""
+"""Threshold-sweep endpoint for experiments."""
 
-from assistant_core.platform.types import JSONObject
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
-from pathfinder.services.experiment.evaluation import re_evaluate
-from pathfinder.services.experiment.report import generate_experiment_report
 from pathfinder.services.experiment.sweep_service import (
     compute_sweep_values,
     generate_sweep_events,
@@ -23,17 +20,6 @@ from pathfinder.transport.http.sse_utils import (
 )
 
 router = APIRouter()
-
-
-@router.post(
-    "/{experiment_id}/re-evaluate",
-    dependencies=[Depends(require_registered_wdk_identity)],
-)
-async def re_evaluate_experiment(
-    exp: ExperimentDep, user_id: CurrentUser
-) -> JSONObject:
-    """Re-run control evaluation against the (possibly modified) strategy."""
-    return await re_evaluate(exp)
 
 
 @router.post(
@@ -65,28 +51,4 @@ async def threshold_sweep(
     return typed_event_stream_response(
         events,
         event_name=lambda e: e.type,
-    )
-
-
-@router.get(
-    "/{experiment_id}/export",
-    responses={
-        200: {
-            "description": "Self-contained HTML report.",
-            "content": {"text/html": {"schema": {"type": "string"}}},
-        }
-    },
-)
-async def get_experiment_report(
-    exp: ExperimentDep, user_id: CurrentUser
-) -> StreamingResponse:
-    """Generate and return a self-contained HTML report for an experiment."""
-    html_content = generate_experiment_report(exp)
-
-    return StreamingResponse(
-        iter([html_content]),
-        media_type="text/html",
-        headers={
-            "Content-Disposition": f'attachment; filename="experiment-{exp.id}-report.html"',
-        },
     )

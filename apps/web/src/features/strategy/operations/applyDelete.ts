@@ -1,8 +1,9 @@
 import type { Strategy } from "@pathfinder/shared";
-import { inferStepKind } from "@/lib/strategyGraph";
+import { inferStepKind } from "@/features/strategy/graph";
 import { findParent, walkSubtreeIds } from "./utils";
 import { patchSteps } from "./_patch";
-import type { ApplyResult, GraphOperation } from "./types";
+import type { GraphOperation } from "@/lib/types/graphOperation";
+import type { ApplyResult } from "./types";
 
 type DeleteStepOp = Extract<GraphOperation, { kind: "deleteStep" }>;
 

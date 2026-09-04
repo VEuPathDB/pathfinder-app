@@ -96,22 +96,6 @@ test.describe("User Data Purge", () => {
     apiClient,
     sitePicker,
   }) => {
-    // The shared WDK account carries strategies this test did not create.
-    // Import them first so the purge dismisses their projections; the
-    // invariant under test is that a dismissed projection is not resurrected.
-    const knownWdkIds = new Set<number>();
-    for (const siteId of ["plasmodb", "toxodb"]) {
-      const preSync = await apiClient.post(
-        `/api/v1/conversations/sync-wdk?siteId=${siteId}`,
-      );
-      if (preSync.ok()) {
-        const imported = (await preSync.json()) as { wdkStrategyId?: number }[];
-        for (const conv of imported) {
-          if (conv.wdkStrategyId) knownWdkIds.add(conv.wdkStrategyId);
-        }
-      }
-    }
-
     // Create data on two different sites
     await chatPage.goto();
 
@@ -143,26 +127,6 @@ test.describe("User Data Purge", () => {
     expect((await afterPlasmo.json()).length).toBe(0);
     const afterToxo = await apiClient.get("/api/v1/conversations?siteId=toxodb");
     expect((await afterToxo.json()).length).toBe(0);
-
-    // Sync-wdk must NOT re-import dismissed strategies into the active list.
-    // The WDK strategies still exist (deleteWdk=false), so the check is on
-    // identity, not count: no strategy imported before the purge may come
-    // back. Strategies another worker creates concurrently are not ours.
-    for (const siteId of ["plasmodb", "toxodb"]) {
-      const syncResp = await apiClient.post(
-        `/api/v1/conversations/sync-wdk?siteId=${siteId}`,
-      );
-      if (syncResp.ok()) {
-        const synced = (await syncResp.json()) as { wdkStrategyId?: number }[];
-        const resurrected = synced.filter(
-          (conv) => conv.wdkStrategyId && knownWdkIds.has(conv.wdkStrategyId),
-        );
-        expect(
-          resurrected.length,
-          `sync-wdk resurrected ${resurrected.length} dismissed strategies on ${siteId} after purge`,
-        ).toBe(0);
-      }
-    }
   });
 
   test("seed all databases then purge deletes everything on every site", async ({
@@ -205,15 +169,21 @@ test.describe("User Data Purge", () => {
     // the purge must not touch those.
     const beforeStrategies = await apiClient.get("/api/v1/conversations");
     const beforeList = (await beforeStrategies.json()) as {
+      siteId?: string;
       wdkStrategyId?: number;
     }[];
     expect(beforeList.length).toBeGreaterThan(0);
     const strategiesBefore = beforeList.length;
-    const ourWdkIds = new Set<number>();
+    const ourWdkStrategies: { siteId: string; wdkStrategyId: number }[] = [];
     for (const conv of beforeList) {
-      if (conv.wdkStrategyId) ourWdkIds.add(conv.wdkStrategyId);
+      if (conv.wdkStrategyId && conv.siteId) {
+        ourWdkStrategies.push({
+          siteId: conv.siteId,
+          wdkStrategyId: conv.wdkStrategyId,
+        });
+      }
     }
-    expect(ourWdkIds.size).toBeGreaterThan(0);
+    expect(ourWdkStrategies.length).toBeGreaterThan(0);
 
     // Verify: gene sets exist
     const beforeGs = await apiClient.get("/api/v1/gene-sets");
@@ -265,32 +235,26 @@ test.describe("User Data Purge", () => {
       expect(((await afterDismissed.json()) as unknown[]).length).toBe(0);
     }
 
-    // CRITICAL: sync-wdk on EVERY site (including portal) must not bring back
-    // any strategy this run created. The check is on identity, not count: the
-    // shared account holds other strategies, and those may import freely.
-    for (const siteId of allSiteIds) {
-      const syncResp = await apiClient.post(
-        `/api/v1/conversations/sync-wdk?siteId=${siteId}`,
-      );
-      if (syncResp.ok()) {
-        const synced = (await syncResp.json()) as { wdkStrategyId?: number }[];
-        const survivors = synced.filter(
-          (conv) => conv.wdkStrategyId && ourWdkIds.has(conv.wdkStrategyId),
-        );
-        expect(
-          survivors.length,
-          `${survivors.length} purged strategies survived on WDK for ${siteId} — WDK deletion failed for this site`,
-        ).toBe(0);
-      }
+    // CRITICAL: every strategy this run created is gone from WDK itself, so
+    // re-opening it by its WDK id is refused rather than re-imported.
+    for (const { siteId, wdkStrategyId } of ourWdkStrategies) {
+      const reopen = await apiClient.post("/api/v1/conversations/open", {
+        data: { siteId, wdkStrategyId },
+      });
+      expect(
+        reopen.ok(),
+        `purged strategy ${String(wdkStrategyId)} survived on WDK for ${siteId} - WDK deletion failed for this site`,
+      ).toBe(false);
     }
 
     // Verify per-site: none of the purged strategies is listed anywhere.
+    const purgedWdkIds = new Set(ourWdkStrategies.map((e) => e.wdkStrategyId));
     for (const siteId of allSiteIds) {
       const resp = await apiClient.get(`/api/v1/conversations?siteId=${siteId}`);
       if (resp.ok()) {
         const listed = (await resp.json()) as { wdkStrategyId?: number }[];
         const survivors = listed.filter(
-          (conv) => conv.wdkStrategyId && ourWdkIds.has(conv.wdkStrategyId),
+          (conv) => conv.wdkStrategyId && purgedWdkIds.has(conv.wdkStrategyId),
         );
         expect(
           survivors.length,

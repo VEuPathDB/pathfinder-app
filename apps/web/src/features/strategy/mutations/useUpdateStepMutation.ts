@@ -1,10 +1,6 @@
 "use client";
 
-import type { Step } from "@pathfinder/shared";
-import {
-  combineOpEnum,
-  type CombineOp,
-} from "@pathfinder/shared/generated/types/CombineOp";
+import { combineOpEnum, type CombineOp, type Step } from "@pathfinder/shared";
 import type { GraphOperation } from "@/features/strategy/operations";
 import { useApplyOperation } from "./useApplyOperation";
 
@@ -12,8 +8,6 @@ export interface UpdateStepVars {
   stepId: string;
   patch: Partial<Step>;
 }
-
-export const STEP_PATCH_MUTATION_KEY = ["strategy", "operation"] as const;
 
 function isCombineOp(value: string): value is CombineOp {
   return Object.values(combineOpEnum).includes(value as CombineOp);

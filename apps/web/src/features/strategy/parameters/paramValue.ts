@@ -1,4 +1,3 @@
-import type { Step } from "@pathfinder/shared";
 import type { FilterTermClause } from "@pathfinder/shared/generated/types/FilterTermClause";
 import type { ParamSpec } from "@/features/strategy/parameters/spec";
 import {
@@ -6,9 +5,7 @@ import {
   encodeRange,
   type RangeParts,
 } from "@/features/strategy/parameters/rangeCodec";
-
-export type ParamValue = NonNullable<Step["parameters"]>[string];
-export type ParamValueMap = NonNullable<Step["parameters"]>;
+import type { ParamValue } from "@/lib/parameters/paramValue";
 
 export function paramValueToRaw(v: ParamValue): string | string[] {
   switch (v.type) {

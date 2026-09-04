@@ -52,11 +52,7 @@ def _structure_of(
     criteria: list[Criterion],
 ) -> StructureNode:
     kind = node.infer_kind()
-    inputs = [
-        _structure_of(child, seed_id, criteria)
-        for child in (node.primary_input, node.secondary_input)
-        if child is not None
-    ]
+    inputs = [_structure_of(child, seed_id, criteria) for child in node.inputs()]
     if kind == "combine":
         return StructureNode(kind="combine", operator=node.operator, inputs=inputs)
     criteria.append(

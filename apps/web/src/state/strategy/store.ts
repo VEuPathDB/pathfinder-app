@@ -1,20 +1,44 @@
 /**
- * Composed strategy store — merges all slices into a single Zustand store.
+ * Composed strategy store. The draft and meta state lives here directly; the
+ * history and lifecycle reducers are big enough to own their own modules.
  */
 
 import { createStore } from "@/state/middleware";
 import type { StrategyState } from "./types";
-import { createDraftSlice } from "./draftSlice";
 import { createHistorySlice } from "./historySlice";
 import { createLifecycleSlice } from "./lifecycleSlice";
-import { createMetaSlice } from "./metaSlice";
 
 export const useStrategyStore = createStore<StrategyState>(
   "StrategyStore",
-  (...args) => ({
-    ...createDraftSlice(...args),
-    ...createHistorySlice(...args),
-    ...createLifecycleSlice(...args),
-    ...createMetaSlice(...args),
-  }),
+  (...args) => {
+    const [set] = args;
+    return {
+      ...createHistorySlice(...args),
+      ...createLifecycleSlice(...args),
+
+      lastFailedOperation: null,
+      graphValidationStatus: {},
+
+      setLastFailedOperation: (payload) => {
+        set({ lastFailedOperation: payload });
+      },
+
+      setGraphValidationStatus: (id, hasErrors) =>
+        set((state) => ({
+          graphValidationStatus: {
+            ...state.graphValidationStatus,
+            [id]: hasErrors,
+          },
+        })),
+
+      clear: () => {
+        set({
+          lastFailedOperation: null,
+          stepLifecycleById: {},
+          undoStack: [],
+          redoStack: [],
+        });
+      },
+    };
+  },
 );

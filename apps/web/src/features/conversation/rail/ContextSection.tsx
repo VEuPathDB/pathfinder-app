@@ -2,10 +2,11 @@
 
 import { leadUsagePayloadSchema } from "@pathfinder/shared/generated/zod/leadUsagePayloadSchema";
 import { subAgentCallPayloadSchema } from "@pathfinder/shared/generated/zod/subAgentCallPayloadSchema";
+import type { UIMessage } from "ai";
 
 import { phaseLabel } from "@/lib/models/phaseRoles";
 import { cn } from "@/lib/utils/cn";
-import { formatTokens } from "@/lib/utils/usageFormat";
+import { formatTokens } from "@/features/conversation/usageFormat";
 
 import { LedgerRow, LedgerSection } from "./LedgerPanelPrimitives";
 
@@ -13,10 +14,7 @@ const LEAD_USAGE = "data-lead-usage";
 const SUB_AGENT_CALL = "data-sub-agent-call";
 const LEAD_KEY = "lead";
 
-interface PartLike {
-  type: string;
-  data?: unknown;
-}
+type Part = UIMessage["parts"][number];
 
 interface ContextFill {
   key: string;
@@ -29,7 +27,7 @@ interface ContextFill {
  * One fill per agent that reported a request size: the Lead, plus each phase's
  * latest dispatch while it runs. A finished dispatch holds no context.
  */
-function contextFills(parts: readonly PartLike[]): ContextFill[] {
+function contextFills(parts: readonly Part[]): ContextFill[] {
   const byPhase = new Map<string, ContextFill>();
   let lead: ContextFill | null = null;
   for (const part of parts) {
@@ -99,7 +97,7 @@ function ContextFillValue({ fill }: { fill: ContextFill }) {
   );
 }
 
-export function ContextSection({ parts }: { parts: readonly PartLike[] }) {
+export function ContextSection({ parts }: { parts: readonly Part[] }) {
   const fills = contextFills(parts);
   if (fills.length === 0) return null;
   return (

@@ -9,7 +9,7 @@ import { ErrorBoundary } from "react-error-boundary";
 
 import type { Strategy } from "@pathfinder/shared";
 import { strategyQueryOptions } from "@/lib/api/strategy";
-import { conversationSnapshotOptions } from "@/lib/api/conversationSnapshot";
+import { conversationSnapshotOptions } from "@/features/conversation/api/conversationSnapshot";
 import { chatRoot } from "@/lib/routes";
 import { Spinner } from "@/components/ui/spinner";
 import { useSessionStore } from "@/state/useSessionStore";

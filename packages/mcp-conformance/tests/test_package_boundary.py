@@ -22,7 +22,7 @@ SUITE = mcp_conformance.__name__
 
 # Everything this deployment owns. A suite that reaches one of these cannot be
 # run against a server we did not write.
-FORBIDDEN_ROOTS = ("pathfinder", "assistant_core", "shared_py")
+FORBIDDEN_ROOTS = ("pathfinder", "assistant_core")
 
 # The distributions the suite declares. An import outside this set is a
 # dependency the runner was never told to install.

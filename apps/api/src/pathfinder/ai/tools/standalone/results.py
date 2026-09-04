@@ -11,18 +11,14 @@ from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._result_models import (
-    DownloadUrlResult,
-    SampleRecordsResult,
-    _extract_sample_response,
-    _fetch_download_url,
-    _fetch_step_preview,
-    _sample_attributes,
     _validate_download_url_inputs,
     _validate_sample_inputs,
 )
-from pathfinder.platform.errors import ErrorCode
+from pathfinder.platform.errors import AppError, ErrorCode
 from pathfinder.platform.tool_errors import ToolErrorPayload, tool_error
-from pathfinder.services.wdk import get_results_api, get_strategy_api
+from pathfinder.services.tool_payloads import StepDownloadUrl, gene_sample_attributes
+from pathfinder.services.wdk.step_preview import step_download_url, step_sample_records
+from pathfinder.services.wdk.step_results_models import SampleRecordsResult
 
 
 async def get_download_url(
@@ -30,7 +26,7 @@ async def get_download_url(
     wdk_step_id: int,
     output_format: str = "csv",
     attributes: list[str] | None = None,
-) -> ToolReturn[DownloadUrlResult | ToolErrorPayload]:
+) -> ToolReturn[StepDownloadUrl | ToolErrorPayload]:
     """Get a download URL for step results.
 
     The step must already be built in WDK. The returned URL is
@@ -44,15 +40,20 @@ async def get_download_url(
     _validate_download_url_inputs(wdk_step_id, output_format)
 
     site_id = ctx.deps.strategy_session.site_id
-    url_or_error = await _fetch_download_url(
-        get_results_api(site_id),
-        wdk_step_id,
-        output_format,
-        attributes,
-    )
-    if isinstance(url_or_error, ToolErrorPayload):
-        return _no_download(ctx, url_or_error, output_format)
-    if not url_or_error:
+    try:
+        url = await step_download_url(
+            site_id,
+            wdk_step_id,
+            output_format=output_format,
+            attributes=attributes,
+        )
+    except (AppError, OSError) as exc:
+        return _no_download(
+            ctx,
+            tool_error(ErrorCode.WDK_ERROR, str(exc)),
+            output_format,
+        )
+    if not url:
         return _no_download(
             ctx,
             tool_error(
@@ -66,10 +67,10 @@ async def get_download_url(
             output_format,
         )
     return with_summary(
-        DownloadUrlResult(
-            download_url=url_or_error,
-            format=output_format,
+        StepDownloadUrl(
             step_id=wdk_step_id,
+            format=output_format,
+            download_url=url,
         ),
         f"{output_format.upper()} download ready",
         ctx=ctx,
@@ -80,7 +81,7 @@ def _no_download(
     ctx: RunContext[AgentDeps],
     payload: ToolErrorPayload,
     output_format: str,
-) -> ToolReturn[DownloadUrlResult | ToolErrorPayload]:
+) -> ToolReturn[StepDownloadUrl | ToolErrorPayload]:
     """VEuPathDB refused the download this call asked for."""
     return with_summary(
         payload,
@@ -110,20 +111,20 @@ async def get_sample_records(
     session = ctx.deps.strategy_session
     graph = session.get_graph(None)
     record_type = graph.record_type if graph is not None else None
-    preview_or_error = await _fetch_step_preview(
-        get_strategy_api(session.site_id),
-        wdk_step_id,
-        limit,
-        _sample_attributes(record_type),
-    )
-    if isinstance(preview_or_error, ToolErrorPayload):
+    try:
+        sample = await step_sample_records(
+            session.site_id,
+            wdk_step_id,
+            limit=limit,
+            attributes=gene_sample_attributes(record_type),
+        )
+    except (AppError, OSError) as exc:
         return with_summary(
-            preview_or_error,
+            tool_error(ErrorCode.WDK_ERROR, str(exc)),
             f"No sample records from step {wdk_step_id}",
             ctx=ctx,
             status="warn",
         )
-    sample = _extract_sample_response(preview_or_error, wdk_step_id)
     return with_summary(
         sample,
         f"{len(sample.records)} sample records from step {wdk_step_id}",

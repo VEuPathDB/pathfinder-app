@@ -17,13 +17,20 @@ Both approaches are read-only and do not create steps or strategies.
 from .lookup import GeneSearchResult, lookup_genes_by_text
 from .organisms import list_organisms
 from .result import GeneResult
-from .wdk import GeneResolveResult, resolve_gene_ids
+from .wdk import (
+    MAX_GENE_IDS,
+    GeneResolveResult,
+    normalize_gene_ids,
+    resolve_gene_ids,
+)
 
 __all__ = [
+    "MAX_GENE_IDS",
     "GeneResolveResult",
     "GeneResult",
     "GeneSearchResult",
     "list_organisms",
     "lookup_genes_by_text",
+    "normalize_gene_ids",
     "resolve_gene_ids",
 ]

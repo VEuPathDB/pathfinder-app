@@ -124,5 +124,3 @@ async def test_a_silent_tail_sends_comment_frames_that_carry_no_cursor(
     assert comments
     assert all(f.raw == KEEPALIVE_FRAME for f in comments)
     assert all(f.event_id is None and f.data is None for f in comments)
-    first_data = min(i for i, f in enumerate(frames) if not f.is_comment)
-    assert first_data < min(i for i, f in enumerate(frames) if f.is_comment)

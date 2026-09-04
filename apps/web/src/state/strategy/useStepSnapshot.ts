@@ -1,5 +1,5 @@
 import { useShallow } from "zustand/react/shallow";
-import type { SearchValidationErrors, Step } from "@pathfinder/shared";
+import type { ValidationErrors, Step } from "@pathfinder/shared";
 import { useStrategyStore } from "./store";
 import {
   STEP_LIFECYCLE_STATE_NAMES,
@@ -14,7 +14,7 @@ export interface StepSnapshot {
   /** Cached estimatedSize — lifecycle context wins over wire field. */
   estimatedSize: number | null;
   /** Validation errors from the lifecycle machine, falling back to wire. */
-  validationErrors: SearchValidationErrors | null;
+  validationErrors: ValidationErrors | null;
   /** Last transient error (network/server) from the lifecycle machine. */
   lastError: string | null;
   /** True when the lifecycle is in validating or running. */
@@ -60,12 +60,12 @@ function resolveEstimatedSize(
   return typeof wireSize === "number" ? wireSize : null;
 }
 
-const wireErrorsCache = new WeakMap<object, SearchValidationErrors>();
+const wireErrorsCache = new WeakMap<object, ValidationErrors>();
 
 function resolveValidationErrors(
   snapshot: StepMachineSnapshot | undefined,
   wire: Step | null,
-): SearchValidationErrors | null {
+): ValidationErrors | null {
   if (snapshot?.context.validationErrors) {
     return snapshot.context.validationErrors;
   }
@@ -73,7 +73,7 @@ function resolveValidationErrors(
   if (!wireErrors) return null;
   const cached = wireErrorsCache.get(wireErrors);
   if (cached) return cached;
-  const normalized: SearchValidationErrors = {
+  const normalized: ValidationErrors = {
     general: wireErrors.general ?? [],
     byKey: wireErrors.byKey ?? {},
   };

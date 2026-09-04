@@ -5,11 +5,11 @@ import {
   getNextSnapshot,
   type SnapshotFrom,
 } from "xstate";
-import type { SearchValidationErrors } from "@pathfinder/shared";
+import type { ValidationErrors } from "@pathfinder/shared";
 
 export interface StepMachineContext {
   estimatedSize: number | null;
-  validationErrors: SearchValidationErrors | null;
+  validationErrors: ValidationErrors | null;
   lastError: string | null;
 }
 
@@ -28,7 +28,7 @@ export type StepLifecycleStateName = (typeof STEP_LIFECYCLE_STATE_NAMES)[number]
 export type StepMachineEvent =
   | { type: "VALIDATE" }
   | { type: "VALIDATION_SUCCESS"; estimatedSize?: number | null }
-  | { type: "VALIDATION_ERROR"; errors: SearchValidationErrors }
+  | { type: "VALIDATION_ERROR"; errors: ValidationErrors }
   | { type: "RUN_COUNTS" }
   | { type: "COUNTS_READY"; count: number | null }
   | { type: "RUN_ERROR"; message: string }

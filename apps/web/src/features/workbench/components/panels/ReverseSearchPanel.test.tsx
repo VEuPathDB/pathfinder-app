@@ -34,7 +34,7 @@ vi.mock("@/state/useSessionStore", () => ({
     selector(sessionState),
 }));
 
-vi.mock("@/lib/query/hooks/useGeneSetsQuery", () => ({
+vi.mock("@/features/workbench/hooks/useGeneSetsQuery", () => ({
   useGeneSetsQuery: () => ({
     data: storeState["geneSets"],
     isPending: false,

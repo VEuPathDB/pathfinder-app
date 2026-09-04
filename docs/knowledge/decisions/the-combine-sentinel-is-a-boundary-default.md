@@ -60,5 +60,5 @@ translation are pinned by a fixture round trip.
 `domain/strategy/ast.py` (`COMBINE_SEARCH_NAME`, the validator default),
 `domain/strategy/graph_model.py` (`own_search_name`, `rebuild_tree`,
 `wdk_search_name`, `runs_a_wdk_search`),
-`tests/unit/domain/strategy/test_combine_sentinel_boundary.py`,
-`tests/unit/domain/strategy/test_persisted_ast_shape.py`.
+`tests/unit/domain/strategy/test_graph_model.py`,
+`tests/unit/domain/strategy/test_ast_persistence.py`.

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { CombineOperator, type Step } from "@pathfinder/shared";
+import { combineOpEnum, type Step } from "@pathfinder/shared";
 import { useStrategyStore } from "@/state/strategy/store";
 import { CombineNode } from "./CombineNode";
 import type { StepNodeProps } from "./types";
@@ -36,7 +36,7 @@ function makeStep(overrides: Partial<Step> = {}): Step {
     searchName: "__combine__",
     recordType: "gene",
     parameters: {},
-    operator: CombineOperator.INTERSECT,
+    operator: combineOpEnum.INTERSECT,
     primaryInputStepId: "left",
     secondaryInputStepId: "right",
     estimatedSize: 2891,
@@ -68,7 +68,7 @@ describe("CombineNode", () => {
   beforeEach(reset);
 
   it("renders a mini-venn matching the operator", () => {
-    const step = makeStep({ operator: CombineOperator.INTERSECT });
+    const step = makeStep({ operator: combineOpEnum.INTERSECT });
     const { container } = render(<CombineNode {...defaultProps(step)} />);
     const lens = container.querySelector('[data-region="lens"]');
     expect(lens?.getAttribute("data-active")).toBe("true");
@@ -78,13 +78,13 @@ describe("CombineNode", () => {
   });
 
   it("re-renders the venn fill when the operator changes", () => {
-    const step = makeStep({ operator: CombineOperator.INTERSECT });
+    const step = makeStep({ operator: combineOpEnum.INTERSECT });
     const { container, rerender } = render(<CombineNode {...defaultProps(step)} />);
     expect(
       container.querySelector('[data-region="lens"]')?.getAttribute("data-active"),
     ).toBe("true");
 
-    const updated = makeStep({ operator: CombineOperator.UNION });
+    const updated = makeStep({ operator: combineOpEnum.UNION });
     rerender(<CombineNode {...defaultProps(updated)} />);
 
     expect(

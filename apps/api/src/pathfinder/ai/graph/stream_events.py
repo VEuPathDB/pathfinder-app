@@ -6,8 +6,11 @@ from __future__ import annotations
 from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BaseModel
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
+
+from pathfinder.ai.lead.ledger import InvestigationLedger
+from pathfinder.ai.stream_part_payloads import EnrichmentResultsChunk
+from pathfinder.services.enrichment.types import EnrichmentResult
 
 
 def enrichment_results_event(
@@ -16,19 +19,19 @@ def enrichment_results_event(
     gene_set_id: str,
     gene_set_name: str,
     gene_count: int,
-    results: list[dict[str, object]],
+    results: list[EnrichmentResult],
     downloads: dict[str, str | int] | None = None,
 ) -> DataChunk:
     return DataChunk(
         type="data-enrichment-results",
-        data={
-            "taskId": str(task_id),
-            "geneSetId": gene_set_id,
-            "geneSetName": gene_set_name,
-            "geneCount": gene_count,
-            "results": results,
-            "downloads": downloads,
-        },
+        data=EnrichmentResultsChunk(
+            task_id=str(task_id),
+            gene_set_id=gene_set_id,
+            gene_set_name=gene_set_name,
+            gene_count=gene_count,
+            results=results,
+            downloads=downloads,
+        ).model_dump(by_alias=True, mode="json"),
     )
 
 
@@ -50,9 +53,9 @@ def strategy_revision_event(*, revision: str) -> DataChunk:
     )
 
 
-def ledger_update_event(*, ledger: BaseModel) -> DataChunk:
+def ledger_update_event(*, ledger: InvestigationLedger) -> DataChunk:
     """Report a snapshot of the investigation ledger."""
     return DataChunk(
         type="data-ledger-update",
-        data=ledger.model_dump(by_alias=True, mode="json", exclude_none=True),
+        data=ledger.model_dump(by_alias=True, mode="json"),
     )

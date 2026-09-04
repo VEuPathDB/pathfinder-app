@@ -58,7 +58,7 @@ closed on that path.
 # Anchor
 
 `assistant_core/mcp/resolution.py`, pinned by
-`packages/assistant-core/tests/unit/mcp/test_resolution.py` and
+`packages/assistant-core/packages/assistant-core/tests/unit/mcp/test_resolution.py` and
 `tests/integration/mcp/test_in_process_server.py`: a turn measured at its own
 edges holds an open session, the session is closed once the scope ends, and a
 second turn opens one of its own.

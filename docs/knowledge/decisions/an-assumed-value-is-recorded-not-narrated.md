@@ -49,5 +49,5 @@ recorded.
 `domain/strategy/operational_spec.py`; `_refuse_bad_assumptions` in
 `ai/tools/standalone/frame_spec.py`; `assumption_constraints` in
 `ai/lead/ledger_sections.py`. Guarded by
-`tests/unit/ai/tools/test_assumed_values.py` and
-`tests/unit/ai/lead/test_assumptions_in_the_ledger.py`.
+`tests/unit/ai/tools/test_frame_spec_sheet.py` and
+`tests/unit/ai/lead/test_derive_constraints.py`.

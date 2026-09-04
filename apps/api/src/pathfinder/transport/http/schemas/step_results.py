@@ -1,15 +1,32 @@
-"""Typed response models for step-result browsing endpoints."""
+"""Typed request and response models for step-result browsing endpoints."""
 
-from typing import Literal
+from dataclasses import dataclass
+from typing import Annotated
 
 from assistant_core.platform.pydantic_base import CamelModel
+from fastapi import Query
 from pydantic import JsonValue
 
 from pathfinder.domain.wdk_values import (
     WDKHistogramBin,
     WDKHistogramStatistics,
     WDKRecordIdPart,
+    WDKSortDirection,
 )
+from pathfinder.services.experiment.types.core import Classification
+
+
+@dataclass
+class RecordQueryParams:
+    """The query parameters that the record listing endpoints take."""
+
+    offset: int = Query(0, ge=0)
+    limit: int = Query(50, ge=1, le=500)
+    sort: str | None = None
+    sort_dir: Annotated[WDKSortDirection, Query(alias="dir")] = "ASC"
+    attributes: str | None = None
+    filter_attribute: str | None = Query(None, alias="filterAttribute")
+    filter_value: str | None = Query(None, alias="filterValue")
 
 
 class ClassifiedRecord(CamelModel):
@@ -21,7 +38,7 @@ class ClassifiedRecord(CamelModel):
     attributes: dict[str, JsonValue]
     tables: dict[str, JsonValue]
     table_errors: list[str]
-    classification: Literal["TP", "FP", "FN", "TN"] | None = None
+    classification: Classification | None = None
 
 
 class RecordsPagination(CamelModel):

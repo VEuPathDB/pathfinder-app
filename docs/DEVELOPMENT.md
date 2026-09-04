@@ -1,62 +1,50 @@
 # Development Guide
 
-This document covers the full quality toolchain: local hooks, CI pipelines, security scanning, static analysis, and architectural enforcement.
+The gates are defined twice, and both definitions are executable:
+`.pre-commit-config.yaml` (local, on commit and on push) and
+`.github/workflows/ci.yml` (CI). Read those two files for the current list;
+this guide states only what a human types by hand and where the enforcement
+lives. A table here would be a third copy, and it would be the wrong one.
 
-## Pre-commit hooks
+`docs/knowledge/conventions/verification-gates.md` explains what each gate is
+for.
 
-Install hooks once after cloning:
+## Install the hooks
+
+Once after cloning:
 
 ```bash
 cd apps/api
-uv sync --extra dev
+uv sync
 cd ../..
 yarn install
 uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
 
-### On every commit (pre-commit)
+`uv run pre-commit run --all-files` runs every commit-stage hook over the whole
+tree; add `--hook-stage pre-push` for the push-stage ones.
 
-| Hook | Scope | What it does |
-|------|-------|--------------|
-| **ruff check** | `apps/api/` | Lint Python (with `--fix`) |
-| **ruff format** | `apps/api/` | Format Python |
-| **mypy** | `apps/api/` | Strict type checking |
-| **openapi spec regen** | `apps/api/` | Regenerate `openapi.json` if API code changed |
-| **file size check** | `apps/api/src/` | Fail if any Python file exceeds 300 LOC (excluding blanks/comments/tests) |
-| **import-linter** | `apps/api/` | Enforce backend layer contracts (transport → services → domain) |
-| **prettier** | `apps/web/`, `packages/shared-ts/` | Format TypeScript/CSS/JSON |
-| **eslint** | `apps/web/`, `packages/shared-ts/` | Lint TypeScript |
-| **tsc --noEmit** | `apps/web/`, `packages/shared-ts/` | Type check frontend |
-| **check boundaries** | `apps/web/`, `packages/shared-ts/` | Enforce feature isolation (no cross-feature imports) |
-| **openapi types regen** | `packages/shared-ts/`, `apps/api/` | Regenerate TypeScript types from OpenAPI spec |
-
-### On push (pre-push)
-
-| Hook | Scope | What it does |
-|------|-------|--------------|
-| **pytest** | `apps/api/` | Run API unit tests |
-| **vitest** | `apps/web/`, `packages/shared-ts/` | Run frontend unit tests |
-| **next build** | `apps/web/`, `packages/shared-ts/` | Full production build |
-| **pip-audit** | `apps/api/pyproject.toml` | Check Python dependencies for known vulnerabilities |
-
-## Testing
+## The commands
 
 ### API (Python)
 
 ```bash
 cd apps/api
 
-# Unit tests
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy src
+uv run pyright src/pathfinder
+uv run lint-imports
+uv run vulture
+uv run python scripts/check_max_lines.py
+uv run python scripts/check_weak_assertions.py
+uv run python -m pathfinder.devtools.openapi check
+uv run pip-audit
+
 uv run pytest src/pathfinder/tests/unit/ -v
-
-# All tests (unit + integration)
-uv run pytest src/pathfinder/tests/ -v
-
-# With coverage
+uv run pytest src/pathfinder/tests/ -v          # adds the integration tier; needs Docker
 uv run pytest --cov=src/pathfinder --cov-report=term-missing
-
-# Coverage as XML (for CI / SonarQube)
-uv run pytest --cov=src --cov-report=xml
 ```
 
 ### Web (TypeScript)
@@ -64,129 +52,85 @@ uv run pytest --cov=src --cov-report=xml
 ```bash
 cd apps/web
 
-# Unit / integration tests
-npx vitest run
-
-# With coverage
-yarn test:coverage
-
-# E2E (requires API + web running)
-npx playwright test
+yarn lint
+yarn format:check
+yarn typecheck
+yarn check:boundaries
+yarn check:weak-assertions
+yarn check:strict-mode
+yarn test
+NEXT_PUBLIC_API_URL=http://localhost:8000 yarn build
+yarn test:e2e              # needs the API, the worker and the web app running
 ```
+
+### Packages
+
+```bash
+cd packages/assistant-core      && uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy --strict src && uv run pytest
+cd packages/assistant-client-ts && yarn lint && yarn typecheck && yarn format:check && yarn test && yarn build
+cd packages/mcp-conformance     && uv run ruff check src tests && uv run mypy --strict src && uv run pytest
+```
+
+`assistant-core`'s suite has an integration tier that starts Postgres through
+testcontainers, so the bare `uv run pytest` needs Docker. `uv run pytest tests/unit`
+is the hermetic run. Both run with no `pathfinder` installed, which is the point:
+the runtime must not have grown a dependency on the app.
+
+### The bundle
+
+```bash
+node scripts/check-knowledge.mjs
+node scripts/check-wdk-rules.mjs
+node --test scripts/check-knowledge.test.mjs   # the checkers have their own tests
+node --test scripts/check-wdk-rules.test.mjs
+```
+
+### Types
+
+Backend Pydantic is the source of truth. After a schema change:
+
+```bash
+yarn generate:types
+```
+
+CI checks the result rather than writing it
+(`uv run python -m pathfinder.devtools.openapi check`,
+`yarn --cwd packages/shared-ts check:generated`), so a stale spec fails the
+build instead of being rewritten inside someone's commit.
 
 ### Docker
 
 ```bash
-# Run API tests inside the container
+docker compose --env-file .env.dev up -d --build --force-recreate api worker web
 docker compose exec api uv run pytest src/pathfinder/tests/ -v
-```
-
-## Linting and type checking
-
-### API
-
-```bash
-cd apps/api
-
-uv run ruff check src/                   # Lint
-uv run ruff format --check src/          # Format check (no changes)
-uv run mypy --strict src/pathfinder/ # Type check
-```
-
-### Web
-
-```bash
-cd apps/web
-
-npx eslint src/                    # Lint
-yarn format:check                  # Prettier check (no changes)
-npx tsc --noEmit                   # Type check
-node scripts/check-boundaries.mjs  # Feature isolation
 ```
 
 ## Architectural enforcement
 
-Three mechanisms enforce code structure beyond standard linting:
+Three checks enforce structure beyond linting.
 
-### File size cap
+**File size cap.** `apps/api/scripts/check_max_lines.py` fails when a Python
+source file under `apps/api/src/pathfinder` or
+`packages/assistant-core/src/assistant_core` exceeds 400 meaningful lines,
+counting neither blanks nor comments. Devtools and two declared pure-model
+modules are exempt; the exemption set is in the script. Tests obey the cap:
+`src/pathfinder/tests/.max-lines-baseline.txt` ratchets the files that were
+already over it, and a baselined file fails as soon as it grows past its
+recorded count. Run `--write-baseline` only to regenerate the whole list.
 
-`apps/api/scripts/check_max_lines.py` fails if any Python source file in `apps/api/src/` exceeds **400 meaningful lines** of code (excluding blanks, comments, tests, seeds, prompt files, and exempt pure-model modules). This prevents modules from growing too large.
+**Import linter.** `[tool.importlinter]` in `apps/api/pyproject.toml` holds the
+seven backend layer contracts. `uv run lint-imports` reports which one broke.
 
-```bash
-cd apps/api && uv run python scripts/check_max_lines.py
-```
-
-### Import linter
-
-[import-linter](https://import-linter.readthedocs.io/) enforces backend layer contracts — e.g., transport can call services but not domain directly. Configuration is in `apps/api/pyproject.toml` under `[tool.importlinter]`.
-
-```bash
-cd apps/api && uv run lint-imports
-```
-
-### Boundary checker
-
-`apps/web/scripts/check-boundaries.mjs` enforces frontend feature isolation: features may not import from other features. Exemptions are configured in the script itself.
-
-```bash
-cd apps/web && node scripts/check-boundaries.mjs
-```
-
-## CI (GitHub Actions)
-
-The CI workflow (`.github/workflows/ci.yml`) runs on push to `main`/`develop` and on PRs to `main`:
-
-| Job | What it checks |
-|-----|----------------|
-| **lint-api** | ruff, ruff format, mypy, OpenAPI spec freshness |
-| **test-api** | pytest with coverage (Postgres service container) |
-| **lint-web** | eslint, prettier, tsc, boundary check |
-| **test-web** | vitest with coverage |
-| **check-shared-ts** | OpenAPI-generated types are up to date |
-| **test-e2e** | Playwright against real API + web (mock chat provider, Postgres, Redis) |
-| **build-docs** | Sphinx docs build |
+**Boundary checker.** `apps/web/scripts/check-boundaries.mjs` refuses an import
+from one feature into another. Exemptions live in the script.
 
 ## Security scanning
 
-The security workflow (`.github/workflows/security.yml`) runs on push/PR to `main` and weekly (Monday 6 AM UTC):
+`.github/workflows/security.yml` runs on push and pull request to `main`, and
+weekly:
 
-| Job | Tool | What it catches |
-|-----|------|-----------------|
-| **dependency-scan** | [Trivy](https://trivy.dev/) | Known CVEs in dependencies (CRITICAL + HIGH) |
-| **secret-scan** | [TruffleHog](https://trufflesecurity.com/trufflehog) | Verified secrets in git history |
-| **codeql** | [CodeQL](https://codeql.github.com/) | Static analysis for Python + JavaScript (injection, XSS, etc.) |
+- Trivy for known CVEs in dependencies (CRITICAL and HIGH)
+- TruffleHog for verified secrets in history
+- CodeQL for Python and JavaScript static analysis
 
-Locally, `pip-audit` runs as a pre-push hook for Python dependency vulnerabilities.
-
-## Code quality analysis (SonarQube)
-
-A local [SonarQube Community](https://www.sonarsource.com/open-source-editions/sonarqube-community-edition/) instance provides static analysis, code smells, duplication detection, and coverage visualization.
-
-### Setup
-
-```bash
-# 1. Start SonarQube (runs under the "quality" profile)
-docker compose --profile quality up -d
-
-# 2. Wait ~2 min for startup, then log in at http://localhost:9000 (admin / admin)
-#    Generate a token: My Account → Security → Generate Token
-
-# 3. Install the CLI scanner
-brew install sonar-scanner
-```
-
-### Running a scan
-
-```bash
-export SONAR_TOKEN=<your-token>
-
-# Generate coverage + scan
-./scripts/sonar-scan.sh
-
-# Scan with existing coverage reports (skip tests)
-./scripts/sonar-scan.sh --no-test
-```
-
-Results: `http://localhost:9000/dashboard?id=pathfinder`
-
-Configuration: `sonar-project.properties` (repo root).
+`pip-audit` runs locally as a push-stage hook.

@@ -4,11 +4,22 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { LedgerCriterionPayload } from "@pathfinder/shared";
+import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
+import type { Criterion } from "@pathfinder/shared/generated/types/Criterion";
 import { FrameDetail } from "./LedgerPanelDetail";
 
-function frameWith(crit: Partial<LedgerCriterionPayload>) {
+function frameWith(crit: Partial<Criterion>): InvestigationLedger["frame"] {
   return {
+    present: true,
+    diff: null,
+    criteriaCount: 1,
+    boundCount: 1,
+    openSlotCount: 0,
+    droppedCount: 0,
+    readyToBuild: true,
+    needsUser: false,
+    contrasts: [],
+    structureRender: null,
     spec: {
       goal: "g",
       interpretedGoal: "g",
@@ -21,15 +32,19 @@ function frameWith(crit: Partial<LedgerCriterionPayload>) {
           text: "trophozoite expression",
           searchName: "GenesByMicroarray",
           role: "filter",
-          resolvedParams: { min_expression_percentile: "90", any_or_all: "any" },
+          resolvedParams: {
+            min_expression_percentile: { type: "number", value: 90 },
+            any_or_all: { type: "string", value: "any" },
+          },
           openParams: [],
           confidence: 1,
           ...crit,
         },
       ],
       dropped: [],
+      openSlots: [],
     },
-  } as never;
+  };
 }
 
 describe("a value the search chose, not the request", () => {

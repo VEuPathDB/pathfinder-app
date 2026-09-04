@@ -24,8 +24,6 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.60b0",
     "opentelemetry-instrumentation-sqlalchemy>=0.60b0",
     "opentelemetry-instrumentation-httpx>=0.60b0",
-    "opentelemetry-instrumentation-logging>=0.60b0",
-    "python-multipart>=0.0.31", # PYSEC-2026-3040
     "structlog>=25.0.0",
     "pyyaml>=6.0.3",
     "tenacity>=9.1.0",
@@ -33,15 +31,12 @@ dependencies = [
     "onnxruntime>=1.19.0",
     "tokenizers>=0.21.0",
     "rapidfuzz>=3.14.0",
-    "optuna>=4.8.0",
     "pyjwt>=2.13.0", # PYSEC-2026-175/177/178/179
     "slowapi>=0.1.9",
-    "pathfinder-shared",
     "assistant-core",
     "cachetools>=7.0.5",
     "procrastinate>=3.8.1",
     "ddgs>=9.14.1",
-    "markdown>=3.10.0",
     "pydantic-evals>=2.22.0,<3",
 ]
 
@@ -63,7 +58,6 @@ constraint-dependencies = [
 ]
 
 [tool.uv.sources]
-pathfinder-shared = { path = "../../packages/shared-py", editable = true }
 assistant-core = { path = "../../packages/assistant-core", editable = true }
 veupathdb-mcp-conformance = { path = "../../packages/mcp-conformance", editable = true }
 
@@ -79,11 +73,9 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["src/pathfinder/tests"]
-addopts = "-m 'not eda_acceptance'"
 markers = [
     "live_wdk: tests that make live HTTP calls to VEuPathDB WDK endpoints (require network)",
     "allow_network: unit tests that are allowed to open a real network connection",
-    "eda_acceptance: frozen EDA conformance suite, run at batch close (opt-in; see src/pathfinder/tests/acceptance/eda/README.md)",
 ]
 
 [tool.coverage.run]
@@ -194,7 +186,6 @@ known-first-party = ["pathfinder"]
 [tool.mypy]
 python_version = "3.14"
 strict = true
-mypy_path = "stubs"
 plugins = ["pydantic.mypy"]
 warn_return_any = true
 warn_unused_ignores = true
@@ -204,17 +195,6 @@ exclude = ["scripts/", "docs/", "src/pathfinder/tests/"]
 [tool.pydantic-mypy]
 init_typed = false
 
-[[tool.mypy.overrides]]
-module = "pathfinder.tests.*"
-disable_error_code = [
-    "no-untyped-def",
-    "arg-type",
-    "assignment",
-    "return-value",
-    "type-arg",
-    "var-annotated",
-]
-
 [tool.vulture]
 paths = ["src/pathfinder"]
 exclude = ["tests/", "*/conftest.py"]
@@ -222,11 +202,6 @@ min_confidence = 80
 # Ruff TC006 requires the type expression in cast() to be a string. Vulture does
 # not resolve string annotations, so it reads every such import as unused.
 ignore_names = ["CursorResult"]
-
-# Mutation testing config lives in apps/api/setup.cfg under [mutmut].
-# mutmut 3.x reads only setup.cfg, not pyproject.toml.
-# Run:    uv run python -m mutmut run
-# Show:   uv run python -m mutmut results
 
 [dependency-groups]
 dev = [
@@ -243,7 +218,6 @@ dev = [
     "testcontainers>=4.14.0",
     "vulture>=2.16",
     "schemathesis>=4.16.1",
-    "mutmut>=3.5.0",
     # The served endpoint's admission run composes the suite as its own process.
     "veupathdb-mcp-conformance",
 ]
@@ -256,10 +230,6 @@ docs = [
     "sphinxcontrib-mermaid>=2.0.1",
 ]
 
-
-[tool.pyright]
-pythonVersion = "3.14"
-pythonPlatform = "Linux"
 
 # ---------------------------------------------------------------------------
 # Import Linter — backend architecture enforcement
@@ -284,24 +254,28 @@ forbidden_modules = [
     "fastapi",
 ]
 
+# The WDK search definition is the vocabulary the FRAME tools are written in,
+# and it is a frozen response model that opens no connection. It sits in the
+# integration only because the whole wire-model module does. The four edges are
+# named here rather than laundered through a re-export, and the symbol each one
+# may name is pinned by a test.
 [[tool.importlinter.contracts]]
-name = "Transport never imports integrations or persistence directly"
+name = "Transport and AI never import integrations or persistence directly"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["pathfinder.transport"]
+source_modules = [
+    "pathfinder.transport",
+    "pathfinder.ai",
+]
 forbidden_modules = [
     "pathfinder.integrations",
     "pathfinder.persistence",
 ]
-
-[[tool.importlinter.contracts]]
-name = "AI tools never import integrations or persistence directly"
-type = "forbidden"
-allow_indirect_imports = true
-source_modules = ["pathfinder.ai.tools"]
-forbidden_modules = [
-    "pathfinder.integrations",
-    "pathfinder.persistence",
+ignore_imports = [
+    "pathfinder.ai.tools.standalone._catalog_models -> pathfinder.integrations.veupathdb.wdk_models",
+    "pathfinder.ai.tools.standalone._frame_proposals -> pathfinder.integrations.veupathdb.wdk_models",
+    "pathfinder.ai.tools.standalone._frame_sheet -> pathfinder.integrations.veupathdb.wdk_models",
+    "pathfinder.ai.tools.standalone.frame_spec -> pathfinder.integrations.veupathdb.wdk_models",
 ]
 
 [[tool.importlinter.contracts]]

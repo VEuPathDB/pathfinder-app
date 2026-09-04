@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from pathlib import Path
 
 import httpx
@@ -23,16 +23,15 @@ def _permissions() -> object:
     return json.loads((FIXTURES / "permissions.json").read_text())
 
 
-@pytest.fixture(autouse=True)
-def _clean_caches() -> None:
-    catalog.clear_study_caches()
+def _permissions_response(_request: httpx.Request) -> httpx.Response:
+    return httpx.Response(200, json=_permissions())
 
 
 @pytest.fixture
 def eda_client(monkeypatch: pytest.MonkeyPatch) -> EdaClient:
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(
-        httpx.MockTransport(lambda _r: httpx.Response(200, json=_permissions()))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda",
+        transport=httpx.MockTransport(_permissions_response),
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     return client
@@ -78,8 +77,9 @@ async def test_resolution_is_cached_per_site_so_one_call_serves_a_turn(
         calls.append(request.url.path)
         return httpx.Response(200, json=_permissions())
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(handler))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+    )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
 
     await catalog.resolve_dataset("plasmodb", "DS_53f554ec6a")
@@ -110,8 +110,7 @@ async def test_a_listed_dataset_reaches_a_cached_detail(
 ) -> None:
     """The detail call takes the STUDY id, and only permissions supplies it."""
     calls: list[str] = []
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(_routed(calls))
+    client = EdaClient(base_url="https://plasmodb.org/eda", transport=_routed(calls))
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
 
     entry, detail = await catalog.get_study_detail_for_dataset(
@@ -134,8 +133,7 @@ async def test_a_dataset_whose_study_is_unlisted_reads_its_detail_again(
 ) -> None:
     """A study with no /studies row reports no version, so nothing caches it."""
     calls: list[str] = []
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(_routed(calls))
+    client = EdaClient(base_url="https://plasmodb.org/eda", transport=_routed(calls))
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
 
     entry, detail = await catalog.get_study_detail_for_dataset(
@@ -170,8 +168,9 @@ async def test_a_second_account_is_not_served_the_first_account_s_datasets(
 ) -> None:
     """The permissions answer is the caller's, so a second token reads its own."""
     seen: list[str] = []
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(_per_account(seen))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=_per_account(seen)
+    )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
 
     veupathdb_auth_token_ctx.set(_SERVICE)
@@ -190,8 +189,9 @@ async def test_two_accounts_in_one_process_hold_two_permission_maps(
 ) -> None:
     """The second account's browse is empty while the first account's is not."""
     seen: list[str] = []
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(_per_account(seen))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=_per_account(seen)
+    )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     monkeypatch.setattr(catalog, "list_studies", _fixture_studies)
 
@@ -209,8 +209,9 @@ async def test_one_account_asking_twice_still_reads_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     seen: list[str] = []
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(_per_account(seen))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=_per_account(seen)
+    )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
 
     veupathdb_auth_token_ctx.set(_SERVICE)
@@ -229,6 +230,7 @@ async def _fixture_studies(site_id: str) -> list[EdaStudyOverview]:
 
 async def test_clearing_the_cache_forces_a_refetch(
     monkeypatch: pytest.MonkeyPatch,
+    drop_eda_study_caches: Callable[[], None],
 ) -> None:
     calls: list[str] = []
 
@@ -236,12 +238,13 @@ async def test_clearing_the_cache_forces_a_refetch(
         calls.append(request.url.path)
         return httpx.Response(200, json=_permissions())
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(handler))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+    )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
 
     await catalog.resolve_dataset("plasmodb", "DS_53f554ec6a")
-    catalog.clear_study_caches()
+    drop_eda_study_caches()
     await catalog.resolve_dataset("plasmodb", "DS_53f554ec6a")
     await client.close()
     assert len(calls) == 2

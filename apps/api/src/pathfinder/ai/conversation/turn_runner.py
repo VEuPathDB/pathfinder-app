@@ -21,7 +21,6 @@ from assistant_core.graph.stream_events import (
 )
 from assistant_core.graph.turn_state import DurableTaskResult
 from assistant_core.mcp.resolution import ResolvedToolSources
-from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from assistant_core.spec import (
     AssistantSpec,
@@ -43,16 +42,16 @@ from pathfinder.ai.conversation._turn_helpers import (
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.conversation.title_generator import generate_conversation_title
 from pathfinder.ai.conversation.turn_stop import (
-    latest_revision_id,
     restore_pre_turn_strategy,
     watch_for_cancel,
 )
-from pathfinder.persistence.repositories import ConversationRepository
-from pathfinder.persistence.repositories.conversation_update import (
-    ConversationUpdate,
-)
 from pathfinder.platform.context import PhaseOverrides, attach_phase_overrides
 from pathfinder.platform.tool_sources import source_credential
+from pathfinder.services.conversations.turns import (
+    load_conversation,
+    name_conversation_if_unnamed,
+    turn_start_revision_id,
+)
 
 logger = get_logger(__name__)
 
@@ -124,10 +123,7 @@ async def run_turn(
     reattaches via the events SSE endpoint in a later task.
     """
     body = request.body
-    async with async_session_factory() as session:
-        conversation = await ConversationRepository(session).get_by_id(
-            body.conversation_id,
-        )
+    conversation = await load_conversation(body.conversation_id)
     effective_site_id = resolve_site_id(
         chat_site_id=conversation.site_id if conversation is not None else None,
         body_site_id=body.site_id,
@@ -182,7 +178,7 @@ async def _run_turn_with_context(
 ) -> None:
     body = request.body
     turn_message_id = writer.turn_id
-    pre_turn_revision_id = await latest_revision_id(body.conversation_id)
+    pre_turn_revision_id = await turn_start_revision_id(body.conversation_id)
     start_event_id = await writer.write(
         StartChunk(message_id=str(turn_message_id)).model_dump(
             by_alias=True,
@@ -400,16 +396,8 @@ async def _emit_title(
         return
     if not title:
         return
-    async with async_session_factory() as session:
-        repo = ConversationRepository(session)
-        conversation = await repo.get_by_id(conversation_id)
-        if conversation is not None and conversation.name:
-            return
-        await repo.update_conversation(
-            conversation_id,
-            ConversationUpdate(name=title),
-        )
-        await session.commit()
+    if not await name_conversation_if_unnamed(conversation_id, title=title):
+        return
     yield conversation_title_event(title=title).model_dump(
         by_alias=True,
         mode="json",

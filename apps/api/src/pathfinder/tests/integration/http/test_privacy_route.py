@@ -18,6 +18,7 @@ from pathfinder.ai.graph.stream_events import ledger_update_event
 from pathfinder.ai.lead.ledger_sections import VerificationSection
 from pathfinder.persistence.repositories.eval_staging import EvalStagingRepository
 from pathfinder.services.eval_data.extraction import extract_eval_candidates
+from pathfinder.tests._support.ledger import ledger_with
 
 PRIVACY = "/api/v1/me/privacy"
 
@@ -31,13 +32,11 @@ def _ledger_chunk() -> JSONObject:
             success=True,
         ),
     )
-    payload = ledger_update_event(ledger=section).model_dump(
+    return ledger_update_event(ledger=ledger_with(section)).model_dump(
         by_alias=True,
         mode="json",
         exclude_none=True,
     )
-    payload["data"] = {"verification": payload["data"]}
-    return payload
 
 
 def _chunks() -> list[JSONObject]:

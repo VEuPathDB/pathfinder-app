@@ -12,7 +12,7 @@ import {
 } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, Copy, Pencil, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { Check, Copy, Pencil, X } from "lucide-react";
 
 import { BranchMessageAction } from "./BranchMessageAction";
 import { EditComposerBranchOrRevert } from "./EditComposerSend";
@@ -235,16 +235,6 @@ export function AssistantMessage() {
             <ActionBarPrimitive.Reload asChild>
               <RegenerateAction />
             </ActionBarPrimitive.Reload>
-            <ActionBarPrimitive.FeedbackPositive asChild>
-              <MessageAction tooltip="Good response">
-                <ThumbsUp />
-              </MessageAction>
-            </ActionBarPrimitive.FeedbackPositive>
-            <ActionBarPrimitive.FeedbackNegative asChild>
-              <MessageAction tooltip="Bad response">
-                <ThumbsDown />
-              </MessageAction>
-            </ActionBarPrimitive.FeedbackNegative>
             <BranchMessageAction />
           </MessageActions>
         </ActionBarPrimitive.Root>

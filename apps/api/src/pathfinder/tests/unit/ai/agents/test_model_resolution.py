@@ -16,4 +16,5 @@ def test_resolve_with_unknown_id_falls_back() -> None:
         model_id="unknown:fake-model",
         provider=None,
     )
-    assert entry.id  # non-empty — fallback to a smallest-of-default provider
+    # A fallback to a smallest-of-default provider still names a model.
+    assert entry.id != ""

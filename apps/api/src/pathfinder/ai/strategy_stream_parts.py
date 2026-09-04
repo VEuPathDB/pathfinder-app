@@ -1,16 +1,24 @@
-"""Stream parts of the strategy product: graph, strategy, gene sets, experiments."""
+"""Stream parts PathFinder emits: graph, strategy, gene sets, experiments,
+the ledger, the recalled memories and the scratchpad."""
 
 from assistant_core.conversation.stream_parts.registry import (
     StreamPartRegistry,
 )
-from shared_py.stream_parts.enrichment import EnrichmentResultsChunk
-from shared_py.stream_parts.gene_set import GeneSet
-from shared_py.stream_parts.graph import GraphCleared, GraphPlan, GraphSnapshot
-from shared_py.stream_parts.optimization import OptimizationSnapshot
-from shared_py.stream_parts.phase import PhaseChange
-from shared_py.stream_parts.strategy import StrategyLink, StrategyMeta, StrategyPatch
+from assistant_core.graph.stream_events import (
+    MemoryRetrievedPayload,
+    ScratchpadUpdatedPayload,
+)
 
 from pathfinder.ai.graph.stream_events import StrategyRevisionPayload
+from pathfinder.ai.lead.ledger import InvestigationLedger
+from pathfinder.ai.stream_part_payloads import (
+    EnrichmentResultsChunk,
+    GeneSet,
+    GraphCleared,
+    GraphSnapshot,
+    StrategyLink,
+    StrategyMeta,
+)
 from pathfinder.services.experiment.scored_comparison import ScoredComparison
 from pathfinder.services.experiment.variant_comparison import VariantComparison
 
@@ -25,7 +33,6 @@ def register_strategy_stream_parts(registry: StreamPartRegistry) -> None:
     registry.register("data-enrichment-results", EnrichmentResultsChunk)
     registry.register("data-variant-comparison", VariantComparison)
     registry.register("data-scored-comparison", ScoredComparison)
-    registry.register_schema_only("graph_plan", GraphPlan)
-    registry.register_schema_only("strategy_patch", StrategyPatch)
-    registry.register_schema_only("optimization_snapshot", OptimizationSnapshot)
-    registry.register_schema_only("phase_change", PhaseChange)
+    registry.register("data-ledger-update", InvestigationLedger)
+    registry.register("data-memory-retrieved", MemoryRetrievedPayload)
+    registry.register("data-scratchpad-updated", ScratchpadUpdatedPayload)

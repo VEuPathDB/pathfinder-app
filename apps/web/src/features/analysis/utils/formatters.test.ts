@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pct, fmtNum } from "./formatters";
+import { pct, fmtNum, fmtParamValue } from "./formatters";
 
 describe("pct", () => {
   it("formats a decimal as a percentage", () => {
@@ -102,5 +102,17 @@ describe("fmtNum", () => {
     expect(fmtNum(1.0005, 3)).toBe("1.000");
     // A value that rounds up unambiguously
     expect(fmtNum(1.0055, 2)).toBe("1.01");
+  });
+});
+
+describe("fmtParamValue", () => {
+  it("prints integers without decimals", () => {
+    expect(fmtParamValue(5)).toBe("5");
+    expect(fmtParamValue(0)).toBe("0");
+  });
+
+  it("prints fractions with 2 decimals", () => {
+    expect(fmtParamValue(0.05)).toBe("0.05");
+    expect(fmtParamValue(1.239)).toBe("1.24");
   });
 });

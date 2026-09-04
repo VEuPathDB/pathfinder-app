@@ -200,11 +200,3 @@ export function extractVocabTree(vocabulary: unknown): VocabNode[] | null {
 
   return null;
 }
-
-export function collectNodeValues(node: VocabNode): string[] {
-  const values = [node.value];
-  if (node.children != null) {
-    node.children.forEach((child) => values.push(...collectNodeValues(child)));
-  }
-  return values;
-}

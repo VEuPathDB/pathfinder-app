@@ -1,6 +1,6 @@
 import type { Step } from "@pathfinder/shared";
-import { inferStepKind } from "@/lib/strategyGraph";
-import { CombineOperator } from "@pathfinder/shared";
+import { inferStepKind } from "@/features/strategy/graph";
+import { combineOpEnum } from "@pathfinder/shared";
 
 export function getZeroResultSuggestions(step: Step): string[] {
   const suggestions: string[] = [];
@@ -16,20 +16,20 @@ export function getZeroResultSuggestions(step: Step): string[] {
   const kind = inferStepKind(step);
   if (kind === "combine") {
     const op = step.operator;
-    if (op === CombineOperator.INTERSECT) {
+    if (op === combineOpEnum.INTERSECT) {
       suggestions.push(
         "If you expected results from either branch, change INTERSECT (AND) to UNION (OR).",
       );
     } else if (
-      op === CombineOperator.MINUS ||
-      op === CombineOperator.LONLY ||
-      op === CombineOperator.RMINUS ||
-      op === CombineOperator.RONLY
+      op === combineOpEnum.MINUS ||
+      op === combineOpEnum.LONLY ||
+      op === combineOpEnum.RMINUS ||
+      op === combineOpEnum.RONLY
     ) {
       suggestions.push(
         "If you expected to remove the other branch, verify MINUS direction (swap MINUS vs RMINUS).",
       );
-    } else if (op === CombineOperator.COLOCATE) {
+    } else if (op === combineOpEnum.COLOCATE) {
       suggestions.push(
         "For COLOCATE/NEAR, widen the region offsets and verify feature types.",
       );

@@ -138,7 +138,6 @@ _ALLOWED: tuple[tuple[str, int, str], ...] = (
         2,
         "one SSE event dump and the docstring that names it",
     ),
-    (f"{_PACKAGE}/transport/http/routers/tasks.py", 1, "a task progress SSE event"),
     (
         f"{_PACKAGE}/integrations/veupathdb/disk_cache.py",
         1,

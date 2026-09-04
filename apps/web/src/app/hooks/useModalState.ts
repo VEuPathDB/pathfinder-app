@@ -1,8 +1,6 @@
 import { useState } from "react";
 import type { SettingsTab } from "@/features/settings/types";
 
-export type { SettingsTab };
-
 interface ModalState {
   showSettings: boolean;
   settingsTab: SettingsTab;

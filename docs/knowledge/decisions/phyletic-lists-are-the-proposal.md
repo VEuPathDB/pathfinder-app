@@ -94,8 +94,8 @@ Live on plasmodb.org, `organism` at *P. falciparum* 3D7, 2026-08-17:
 | `%pfal:Y%` | 5,389 |
 | `hsap=1T` - the published default | **0** |
 
-The resolver bench, 20 gold strategies, 70 steps, 332 scored parameters, propose
-arm (`devtools/resolver_bench.py --propose`):
+Scored by hand over 20 gold strategies, 70 steps and 332 parameters, proposing
+each value:
 
 | arm | exact | wrong | asked | unset |
 |---|---|---|---|---|
@@ -161,7 +161,7 @@ expected binding per selection, read by
 and `apps/web/src/features/strategy/editor/widgets/phyleticConformance.test.ts`,
 so the two encoders cannot drift apart without a red test on both sides.
 
-`tests/unit/services/catalog/test_phyletic_prose.py` pins the other half of this
+`tests/unit/services/catalog/test_param_phyletic.py` pins the other half of this
 decision - every phyletic string the model reads says the pattern is derived and
 must not be written - because a help text that teaches the grammar re-opens the
 rejected alternative one prompt at a time.

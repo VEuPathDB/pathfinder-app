@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { render } from "@testing-library/react";
-import { CombineOperator } from "@pathfinder/shared";
+import { render, screen } from "@testing-library/react";
+import { combineOpEnum } from "@pathfinder/shared";
 import { MiniVenn } from "./MiniVenn";
 
 describe("MiniVenn", () => {
   it("renders both circles filled for UNION", () => {
-    const { container } = render(<MiniVenn operator={CombineOperator.UNION} />);
+    const { container } = render(<MiniVenn operator={combineOpEnum.UNION} />);
     const left = container.querySelector('[data-region="left-only"]');
     const right = container.querySelector('[data-region="right-only"]');
     const lens = container.querySelector('[data-region="lens"]');
@@ -16,7 +16,7 @@ describe("MiniVenn", () => {
   });
 
   it("renders only the lens for INTERSECT", () => {
-    const { container } = render(<MiniVenn operator={CombineOperator.INTERSECT} />);
+    const { container } = render(<MiniVenn operator={combineOpEnum.INTERSECT} />);
     const left = container.querySelector('[data-region="left-only"]');
     const right = container.querySelector('[data-region="right-only"]');
     const lens = container.querySelector('[data-region="lens"]');
@@ -26,7 +26,7 @@ describe("MiniVenn", () => {
   });
 
   it("renders left circle minus lens for MINUS", () => {
-    const { container } = render(<MiniVenn operator={CombineOperator.MINUS} />);
+    const { container } = render(<MiniVenn operator={combineOpEnum.MINUS} />);
     const left = container.querySelector('[data-region="left-only"]');
     const right = container.querySelector('[data-region="right-only"]');
     const lens = container.querySelector('[data-region="lens"]');
@@ -36,7 +36,7 @@ describe("MiniVenn", () => {
   });
 
   it("renders right circle minus lens for RMINUS", () => {
-    const { container } = render(<MiniVenn operator={CombineOperator.RMINUS} />);
+    const { container } = render(<MiniVenn operator={combineOpEnum.RMINUS} />);
     const left = container.querySelector('[data-region="left-only"]');
     const right = container.querySelector('[data-region="right-only"]');
     const lens = container.querySelector('[data-region="lens"]');
@@ -46,8 +46,14 @@ describe("MiniVenn", () => {
   });
 
   it("falls back to separated circles + arrow for COLOCATE", () => {
-    const { container } = render(<MiniVenn operator={CombineOperator.COLOCATE} />);
-    expect(container.querySelector('[data-mode="colocate"]')).not.toBeNull();
-    expect(container.querySelector('[data-region="colocate-arrow"]')).not.toBeNull();
+    const { container } = render(<MiniVenn operator={combineOpEnum.COLOCATE} />);
+    expect(screen.getByRole("img", { name: "colocate operator" })).toHaveAttribute(
+      "data-mode",
+      "colocate",
+    );
+    expect(container.querySelectorAll('[data-region="colocate-arrow"]')).toHaveLength(
+      1,
+    );
+    expect(container.querySelectorAll('[data-region="lens"]')).toHaveLength(0);
   });
 });

@@ -1,16 +1,16 @@
 "use client";
 
-import type { LedgerContrastPayload } from "@pathfinder/shared";
+import type { ContrastSummary } from "@pathfinder/shared/generated/types/ContrastSummary";
 
 /**
  * Which way each differential criterion points.
  *
  * WDK computes fold change as comparator-vs-reference, so swapping the two
- * still returns a full, plausible gene set — of the opposite biology. That is
+ * still returns a full, plausible gene set of the opposite biology. That is
  * the one failure mode with nothing to notice: no error, no zero count. Stating
  * the direction in plain words is what makes it catchable.
  */
-export function LedgerContrasts({ contrasts }: { contrasts: LedgerContrastPayload[] }) {
+export function LedgerContrasts({ contrasts }: { contrasts: ContrastSummary[] }) {
   if (contrasts.length === 0) return null;
 
   return (

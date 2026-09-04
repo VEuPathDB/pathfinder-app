@@ -7,7 +7,8 @@ the FDR the analysis already reports is what the count must read.
 from __future__ import annotations
 
 import pytest
-from assistant_core.platform.types import as_json_array, as_json_object
+from assistant_core.platform.types import JSONArray, JSONObject
+from pydantic import TypeAdapter
 
 from pathfinder.services.enrichment.types import (
     EnrichmentAnalysisType,
@@ -18,6 +19,9 @@ from pathfinder.services.export.service import ExportResult
 from pathfinder.services.gene_sets import enrichment
 from pathfinder.services.gene_sets.enrichment import run_enrichment_for_gene_set
 from pathfinder.services.gene_sets.types import GeneSet
+
+_ARRAY: TypeAdapter[JSONArray] = TypeAdapter(JSONArray)
+_OBJECT: TypeAdapter[JSONObject] = TypeAdapter(JSONObject)
 
 
 def _term(term_id: str, p_value: float, fdr: float | None) -> EnrichmentTerm:
@@ -127,9 +131,9 @@ async def test_a_term_with_no_computable_fdr_is_not_significant(
     _stub_services(monkeypatch)
 
     summary = await run_enrichment_for_gene_set(_gene_set(), _TYPES)
-    results = as_json_array(summary["enrichmentResults"])
-    terms = as_json_array(as_json_object(results[0])["terms"])
-    unscored = as_json_object(terms[3])
+    results = _ARRAY.validate_python(summary["enrichmentResults"])
+    terms = _ARRAY.validate_python(_OBJECT.validate_python(results[0])["terms"])
+    unscored = _OBJECT.validate_python(terms[3])
 
     assert unscored["fdr"] is None
     assert summary["totalSignificantTerms"] == 2
@@ -143,10 +147,10 @@ async def test_the_summary_keeps_its_wire_shape(
     summary = await run_enrichment_for_gene_set(_gene_set(), _TYPES)
 
     assert summary["analysisTypesRun"] == ["go_process"]
-    results = as_json_array(summary["enrichmentResults"])
-    first = as_json_object(results[0])
+    results = _ARRAY.validate_python(summary["enrichmentResults"])
+    first = _OBJECT.validate_python(results[0])
     assert first["analysisType"] == "go_process"
-    assert len(as_json_array(first["terms"])) == 4
-    downloads = as_json_object(summary["downloads"])
+    assert len(_ARRAY.validate_python(first["terms"])) == 4
+    downloads = _OBJECT.validate_python(summary["downloads"])
     assert downloads["csv"] == "/api/v1/exports/export-csv"
     assert downloads["expiresInSeconds"] == 3600

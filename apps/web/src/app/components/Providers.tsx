@@ -1,6 +1,6 @@
 "use client";
 
-import { TooltipProvider } from "@/lib/components/ui/Tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryProvider } from "@/lib/query/QueryProvider";
 import { NuqsProvider } from "@/app/providers/NuqsProvider";
 import { SonnerProvider } from "@/app/providers/SonnerProvider";

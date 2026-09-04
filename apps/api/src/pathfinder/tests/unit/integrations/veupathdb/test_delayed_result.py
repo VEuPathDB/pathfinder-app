@@ -40,7 +40,7 @@ class TestItIsRetryable:
         error = WDKDelayedResultError()
 
         assert isinstance(error, Exception)
-        assert DELAYED_RESULT_MESSAGE in str(error)
+        assert str(error) == f"WDK returned {DELAYED_RESULT_MESSAGE}; result not ready"
 
     def test_it_can_be_raised_and_caught_by_type(self) -> None:
         with pytest.raises(WDKDelayedResultError):

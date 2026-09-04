@@ -14,13 +14,13 @@ import {
   deserializeStrategyToGraph,
   layoutStrategyGraph,
   type StepPositions,
-} from "@/lib/strategyGraph";
+} from "@/features/strategy/graph";
 import {
   useDuplicateStepMutation,
   useUpdateStepMutation,
 } from "@/features/strategy/mutations";
 import { useApplyOperation } from "@/features/strategy/mutations/useApplyOperation";
-import { serializeStrategyAst } from "@/lib/strategyGraph/serialize";
+import { serializeStrategyAst } from "@/features/strategy/graph/serialize";
 
 interface UseStrategyGraphLayoutOptions {
   strategy: Strategy | null;
@@ -29,7 +29,6 @@ interface UseStrategyGraphLayoutOptions {
   setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
   nodePositions: Map<string, { x: number; y: number }>;
-  handleAddToChat: (stepId: string) => void;
   handleOpenDetails: (stepId: string) => void;
   setSelectedNodeIds: (ids: string[]) => void;
   /** Opens the delete-resolution flow; wired into each node's kebab. */
@@ -51,7 +50,6 @@ export function useStrategyGraphLayout(options: UseStrategyGraphLayoutOptions) {
     setNodes,
     setEdges,
     nodePositions,
-    handleAddToChat,
     handleOpenDetails,
     setSelectedNodeIds,
     requestDelete,
@@ -159,7 +157,7 @@ export function useStrategyGraphLayout(options: UseStrategyGraphLayoutOptions) {
     setPrevPositions(computedPositions);
 
     if (computedPositions !== undefined) {
-      const deserializeOpts: Parameters<typeof deserializeStrategyToGraph>[5] = {
+      const deserializeOpts: Parameters<typeof deserializeStrategyToGraph>[4] = {
         computedPositions,
         existingPositions: nodePositions,
       };
@@ -172,15 +170,12 @@ export function useStrategyGraphLayout(options: UseStrategyGraphLayoutOptions) {
           const patch: Partial<Step> = { operator };
           updateStepMutation.mutate({ stepId, patch });
         },
-        handleAddToChat,
         handleOpenDetails,
         undefined,
         deserializeOpts,
       );
-      // deserialize only wires operator/add-to-chat/open-details callbacks;
-      // deserialize wires operator/add-to-chat/open-details; attach the
-      // node-level delete/duplicate/rename actions here so the kebab items +
-      // inline rename aren't dead affordances.
+      // deserialize wires operator/open-details; the node-level
+      // delete/duplicate/rename actions attach here.
       const newNodes = rawNodes.map((node) => ({
         ...node,
         data: {

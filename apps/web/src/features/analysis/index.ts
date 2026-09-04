@@ -4,7 +4,6 @@ export { ThresholdSweepSection } from "./components/ThresholdSweep";
 export { MetricsOverview } from "./components/MetricsOverview";
 export { ConfusionMatrixSection } from "./components/ConfusionMatrixSection";
 export { RobustnessSection } from "./components/RobustnessSection";
-export { RankMetricsSection } from "./components/RankMetricsSection";
 export { CustomEnrichmentSection } from "./components/CustomEnrichmentSection";
 
 export { CrossValidationSection } from "./components/CrossValidationSection";

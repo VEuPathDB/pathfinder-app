@@ -231,9 +231,7 @@ async def _validate_plan_params(
     callbacks: ValidationCallbacks = make_validation_callbacks(site_id)
 
     async def _listed_under(search_name: str) -> str | None:
-        return await callbacks.resolve_record_type_for_search(
-            None, search_name, require_match=True, allow_fallback=True
-        )
+        return await callbacks.resolve_record_type_for_search(None, search_name)
 
     await assign_step_record_classes(steps_by_id, _listed_under)
     incomplete: set[str] = set()

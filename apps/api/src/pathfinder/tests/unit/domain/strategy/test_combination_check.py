@@ -53,6 +53,26 @@ def _combine(operator: CombineOp, *inputs: StructureNode) -> StructureNode:
     return StructureNode(kind="combine", operator=operator, inputs=list(inputs))
 
 
+def _matched(terms: list[str], criteria: list[Criterion]) -> dict[str, str]:
+    """The term-to-criterion map, empty when the match abstains."""
+    return match_terms(terms, criteria) or {}
+
+
+def _meeting(structure: SpecStructure, criterion_ids: list[str]) -> str:
+    """The operator the criteria meet at, empty when they never meet."""
+    operator = meeting_operator(structure, criterion_ids)
+    return "" if operator is None else operator.value
+
+
+def _violation(
+    request: CombinationRequest,
+    criterion_ids: list[str],
+    structure: SpecStructure,
+) -> str:
+    """Why the structure breaks the request, empty when it honors it."""
+    return combination_violation(request, criterion_ids, structure) or ""
+
+
 class TestMatchTerms:
     def test_each_term_takes_the_criterion_that_shares_its_words(self) -> None:
         matched = match_terms(
@@ -70,7 +90,7 @@ class TestMatchTerms:
         assert matched == {"mass spec": "c_ms", "DeRisi": "c_derisi"}
 
     def test_a_term_that_names_nothing_abstains(self) -> None:
-        assert match_terms(["proteomics", "DeRisi expression"], _CRITERIA) is None
+        assert _matched(["proteomics", "DeRisi expression"], _CRITERIA) == {}
 
     def test_a_term_two_criteria_share_equally_abstains(self) -> None:
         criteria = [
@@ -79,13 +99,13 @@ class TestMatchTerms:
             _DERISI,
         ]
 
-        assert match_terms(["mass spectrometry", "DeRisi"], criteria) is None
+        assert _matched(["mass spectrometry", "DeRisi"], criteria) == {}
 
     def test_two_terms_that_name_one_criterion_abstain(self) -> None:
-        assert match_terms(["mass spectrometry", "mass spec"], _CRITERIA) is None
+        assert _matched(["mass spectrometry", "mass spec"], _CRITERIA) == {}
 
     def test_a_term_of_only_filler_words_abstains(self) -> None:
-        assert match_terms(["the genes", "DeRisi expression"], _CRITERIA) is None
+        assert _matched(["the genes", "DeRisi expression"], _CRITERIA) == {}
 
 
 class TestMeetingOperator:
@@ -153,7 +173,7 @@ class TestMeetingOperator:
             root=_combine(CombineOp.UNION, _leaf("c_ms"), _leaf("c_kinase"))
         )
 
-        assert meeting_operator(structure, ["c_ms", "c_derisi"]) is None
+        assert _meeting(structure, ["c_ms", "c_derisi"]) == ""
 
     def test_a_single_input_combine_passes_the_meeting_node_through(self) -> None:
         """A combine of one input builds to its input, so it decides nothing."""
@@ -174,7 +194,7 @@ class TestCombinationViolation:
             root=_combine(CombineOp.UNION, _leaf("c_ms"), _leaf("c_derisi"))
         )
 
-        assert combination_violation(request, ["c_ms", "c_derisi"], structure) is None
+        assert _violation(request, ["c_ms", "c_derisi"], structure) == ""
 
     def test_an_or_the_tree_intersects_names_both_operators(self) -> None:
         request = CombinationRequest(
@@ -197,7 +217,7 @@ class TestCombinationViolation:
             root=_combine(CombineOp.INTERSECT, _leaf("c_ms"), _leaf("c_derisi"))
         )
 
-        assert combination_violation(request, ["c_ms", "c_derisi"], structure) is None
+        assert _violation(request, ["c_ms", "c_derisi"], structure) == ""
 
     def test_criteria_that_never_meet_are_a_violation(self) -> None:
         request = CombinationRequest(operator="OR", terms=["ms", "derisi"])
@@ -222,6 +242,16 @@ def _requirement(value: str) -> Constraint:
     )
 
 
+def _breach_message(
+    requirements: list[Constraint],
+    criteria: list[Criterion],
+    structure: SpecStructure,
+) -> str:
+    """The first breach's message, empty when no requirement is breached."""
+    breach = first_combination_violation(requirements, criteria, structure)
+    return "" if breach is None else breach.message
+
+
 class TestFirstCombinationViolation:
     def test_the_breach_carries_the_operator_the_request_needs(self) -> None:
         structure = SpecStructure(
@@ -244,12 +274,12 @@ class TestFirstCombinationViolation:
         )
 
         assert (
-            first_combination_violation(
+            _breach_message(
                 [_requirement("mass spectrometry evidence OR DeRisi expression")],
                 _CRITERIA,
                 structure,
             )
-            is None
+            == ""
         )
 
     def test_a_mixed_operator_requirement_abstains(self) -> None:
@@ -258,12 +288,12 @@ class TestFirstCombinationViolation:
         )
 
         assert (
-            first_combination_violation(
+            _breach_message(
                 [_requirement("mass spectrometry OR DeRisi AND kinases")],
                 _CRITERIA,
                 structure,
             )
-            is None
+            == ""
         )
 
     def test_a_requirement_naming_no_criterion_abstains(self) -> None:
@@ -272,10 +302,10 @@ class TestFirstCombinationViolation:
         )
 
         assert (
-            first_combination_violation(
+            _breach_message(
                 [_requirement("proteomics OR microscopy")], _CRITERIA, structure
             )
-            is None
+            == ""
         )
 
     def test_a_requirement_of_another_kind_is_not_read(self) -> None:
@@ -289,7 +319,7 @@ class TestFirstCombinationViolation:
             source=ConstraintSource.USER_EXPLICIT,
         )
 
-        assert first_combination_violation([other], _CRITERIA, structure) is None
+        assert _breach_message([other], _CRITERIA, structure) == ""
 
 
 class TestDuplicateLeaves:

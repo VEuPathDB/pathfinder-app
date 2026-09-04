@@ -155,21 +155,11 @@ export class GraphPage {
     return this.page.getByTestId("validation-alert");
   }
 
-  /** Empty-state CTA when no steps exist. */
-  get emptyState(): Locator {
-    return this.page.getByTestId("strategy-empty-state");
-  }
-
   // ── Editor Sheet (right-anchored, opens on step click) ───────────
 
   /** The Sheet container (Radix Dialog) with the step editor inside. */
   get editorSheet(): Locator {
     return this.page.getByTestId("step-editor-sheet");
-  }
-
-  /** The default close button rendered by SheetContent. */
-  get editorSheetClose(): Locator {
-    return this.editorSheet.locator("[data-slot='sheet-close']");
   }
 
   /** Editor footer (sync status + result count + WDK link). */
@@ -185,31 +175,6 @@ export class GraphPage {
   /** Inline-editable step name input in the editor sheet header. */
   get editorStepNameInput(): Locator {
     return this.editorSheet.getByLabel("Step name");
-  }
-
-  // ── Venn picker (combine step editor body) ───────────────────────
-
-  /** Venn picker root (visible when editing a combine step). */
-  get vennPicker(): Locator {
-    return this.page.getByTestId("venn-picker");
-  }
-
-  /**
-   * One of the three clickable region paths inside the venn picker.
-   * Maps user-visible operator regions to the underlying CombineOperator.
-   */
-  vennRegion(op: "MINUS" | "INTERSECT" | "RMINUS"): Locator {
-    const ariaLabelByOp: Record<typeof op, string> = {
-      MINUS: "A only",
-      INTERSECT: "Intersection region",
-      RMINUS: "B only",
-    };
-    return this.vennPicker.getByLabel(ariaLabelByOp[op]);
-  }
-
-  /** Operator readout text below the venn (shows current operator). */
-  get vennReadout(): Locator {
-    return this.vennPicker.locator("[data-slot='venn-readout']");
   }
 
   // ── Edge context menu ────────────────────────────────────────────
@@ -267,11 +232,6 @@ export class GraphPage {
     });
     await this.editorSheet.getByRole("button", { name: "Close" }).click();
     await expect(this.editorSheet).toBeHidden({ timeout: 10_000 });
-  }
-
-  async askAboutNode(stepId: string) {
-    await this.node(stepId).hover();
-    await this.page.getByTestId(`rf-add-to-chat-${stepId}`).click();
   }
 
   primaryEdgeInto(targetStepId: string): Locator {

@@ -23,7 +23,7 @@ vi.mock("@/state/useSessionStore", () => ({
 }));
 
 const mockInvalidate = vi.fn().mockResolvedValue(undefined);
-vi.mock("@/lib/query/hooks/useInvalidateGeneSets", () => ({
+vi.mock("@/features/workbench/hooks/useInvalidateGeneSets", () => ({
   useInvalidateGeneSets: () => mockInvalidate,
 }));
 

@@ -13,7 +13,7 @@ from pathfinder.services.search_rerank import (
     dedup_and_sort,
 )
 
-from .enrich import enrich_sparse_gene_results
+from .hydrate import hydrate_sparse_gene_results
 from .organism import score_organism_match, suggest_organisms
 from .result import GeneResult
 from .scoring import score_gene_relevance
@@ -204,8 +204,8 @@ async def _merge_and_rank(
     query: str,
     all_raw: list[GeneResult],
 ) -> list[GeneResult]:
-    """Enrich sparse results, score, deduplicate, and sort by relevance."""
-    enriched = await enrich_sparse_gene_results(site_id, all_raw, len(all_raw))
+    """Hydrate sparse results, score, deduplicate, and sort by relevance."""
+    hydrated = await hydrate_sparse_gene_results(site_id, all_raw, len(all_raw))
 
     scored: list[ScoredResult[GeneResult]] = [
         ScoredResult(
@@ -213,7 +213,7 @@ async def _merge_and_rank(
             score=score_gene_relevance(query, r),
             source="site-search",
         )
-        for r in enriched
+        for r in hydrated
     ]
     ranked = dedup_and_sort(
         scored,

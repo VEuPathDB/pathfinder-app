@@ -2,9 +2,9 @@
 
 import { useRef, useState } from "react";
 import { FileUp, Search } from "lucide-react";
-import { Button } from "@/lib/components/ui/Button";
-import { Input } from "@/lib/components/ui/Input";
-import { Label } from "@/lib/components/ui/Label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { parseGeneCsv } from "@/lib/utils/parseGeneCsv";
 import { cn } from "@/lib/utils/cn";
 import { useGeneSetCreation } from "../hooks/useGeneSetCreation";

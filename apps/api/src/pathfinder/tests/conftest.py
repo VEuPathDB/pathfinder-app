@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 import os
-from collections.abc import AsyncGenerator, Coroutine, Generator
+from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated, Any
@@ -45,7 +45,8 @@ import pydantic_ai.models
 import pytest
 import structlog
 from assistant_core.conversation.checkpointer import to_psycopg_url
-from assistant_core.embeddings.embedder import get_embedder, reset_embedder
+from assistant_core.embeddings import embedder
+from assistant_core.embeddings.embedder import get_embedder
 from assistant_core.embeddings.fake import FakeEmbedder
 from assistant_core.persistence.models import Base
 from assistant_core.spec import AssistantSpec
@@ -66,6 +67,7 @@ from pathfinder.ai.conversation.assistant_routing import resolve_turn_assistant
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.integrations.eda.factory import close_all_eda_clients
+from pathfinder.integrations.veupathdb import auth_login
 from pathfinder.integrations.veupathdb.site_router import get_site_router
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.tasks import ensure_registered
@@ -73,7 +75,9 @@ from pathfinder.main import create_app
 from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.security import create_user_token, limiter
-from pathfinder.services.eda.catalog import clear_study_caches
+from pathfinder.services import wdk_identity
+from pathfinder.services.eda import catalog
+from pathfinder.tests._support.database import can_connect
 from pathfinder.tests._support.wdk_credentials import (
     NO_CREDENTIALS_REASON,
     registered_wdk_token,
@@ -86,23 +90,6 @@ from pathfinder.transport.http.routers.chat import resolve_chat_assistant
 
 # A test must never send a request to a real model.
 pydantic_ai.models.ALLOW_MODEL_REQUESTS = False
-
-
-async def _probe_connection(url: str) -> bool:
-    """Returns False when the database role does not exist."""
-    engine = create_async_engine(url, poolclass=NullPool)
-    try:
-        async with engine.begin() as _:
-            pass
-    except Exception as e:
-        err = str(e).lower()
-        if "does not exist" in err and "role" in err:
-            return False
-        raise
-    else:
-        return True
-    finally:
-        await engine.dispose()
 
 
 def _get_test_database_url() -> str:
@@ -140,22 +127,10 @@ def postgres_container(
     database_url: str,
 ) -> Generator[PostgresContainer | None]:
     url = database_url or os.environ.get("DATABASE_URL", "").strip()
-    if url and "postgresql" in url:
-        # A local Postgres can lack the configured role, so probe it first.
-        # Every other connection error propagates.
-        parsed = make_url(url)
-        probe_url = (
-            str(
-                parsed.set(drivername="postgresql+asyncpg").render_as_string(
-                    hide_password=False
-                )
-            )
-            if "asyncpg" not in (parsed.drivername or "")
-            else url
-        )
-        if not asyncio.run(_probe_connection(probe_url)):
-            url = ""
-            os.environ.pop("DATABASE_URL", None)
+    # Another server can hold the port, so the URL counts only when it answers.
+    if url and "postgresql" in url and not asyncio.run(can_connect(url)):
+        url = ""
+        os.environ.pop("DATABASE_URL", None)
 
     if url:
         yield None
@@ -304,11 +279,11 @@ def _restored_logger_config() -> Generator[None]:
 @pytest.fixture(autouse=True)
 def fake_embedder() -> Generator[FakeEmbedder]:
     """A fresh deterministic embedder, so one test never reads another's calls."""
-    reset_embedder()
+    embedder._holder.instance = None
     built = get_embedder()
     assert isinstance(built, FakeEmbedder)
     yield built
-    reset_embedder()
+    embedder._holder.instance = None
 
 
 @pytest.fixture
@@ -544,15 +519,44 @@ async def _close_wdk_clients_after_test() -> AsyncGenerator[None]:
         pass  # The client is closed or the event loop is gone.
 
 
+def _drop_identity_caches() -> None:
+    auth_login._signing_keys.clear()
+    wdk_identity._identities.clear()
+
+
+@pytest.fixture(autouse=True)
+def _clear_identity_caches() -> Generator[None]:
+    """Drops the OAuth signing key and token-to-user caches around a test.
+
+    Both are process-wide, so a test must not inherit one.
+    """
+    _drop_identity_caches()
+    yield
+    _drop_identity_caches()
+
+
+def _drop_eda_study_caches() -> None:
+    catalog._studies.clear()
+    catalog._permission_maps.clear()
+    catalog._details.clear()
+    catalog._entity_totals.clear()
+
+
+@pytest.fixture
+def drop_eda_study_caches() -> Callable[[], None]:
+    """Drop the process-wide EDA catalog reads part way through a test."""
+    return _drop_eda_study_caches
+
+
 @pytest.fixture(autouse=True)
 def _clear_eda_study_caches() -> Generator[None]:
     """Drops the per-site EDA catalog reads around a test.
 
     The cache is process-wide, so a test must not inherit one.
     """
-    clear_study_caches()
+    _drop_eda_study_caches()
     yield
-    clear_study_caches()
+    _drop_eda_study_caches()
 
 
 @pytest.fixture(autouse=True)

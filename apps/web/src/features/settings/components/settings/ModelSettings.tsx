@@ -1,8 +1,10 @@
 "use client";
 
-import type { ReasoningEffort } from "@pathfinder/shared";
+import { useQuery } from "@tanstack/react-query";
+import type { ModelCatalogEntry, ReasoningEffort } from "@pathfinder/shared";
+import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
+import { listTiersQueryOptions } from "@pathfinder/shared/generated/hooks/useListTiers";
 import { useSettingsStore } from "@/state/useSettingsStore";
-import { useModelCatalogQuery } from "@/lib/query/hooks/useModelCatalogQuery";
 import {
   PHASE_DESCRIPTIONS,
   PHASE_LABELS,
@@ -11,16 +13,15 @@ import {
 } from "@/lib/models/phaseRoles";
 import { ModelPicker } from "@/features/settings/components/ModelPicker";
 import { TierPicker } from "@/features/settings/components/TierPicker";
-import { ReasoningToggle } from "@/lib/components/ReasoningToggle";
-import { useTierPresetsQuery } from "@/lib/query/hooks/useTierPresetsQuery";
+import { ReasoningToggle } from "@/features/settings/components/ReasoningToggle";
 import {
   applyTierPreset,
   deriveActiveTier,
   presetsForProvider,
-} from "@/lib/models/tierPresets";
+} from "@/features/settings/tierPresets";
 
 export function ModelSettings() {
-  const { data } = useModelCatalogQuery();
+  const { data } = useQuery(listModelsQueryOptions());
   const modelCatalog = data?.models ?? [];
   const phaseDefaults = (data?.phaseDefaults ?? {}) as Partial<
     Record<PhaseRole, string>
@@ -31,7 +32,7 @@ export function ModelSettings() {
   const setPhaseReasoning = useSettingsStore((s) => s.setPhaseReasoning);
   const applyPhasePreset = useSettingsStore((s) => s.applyPhasePreset);
 
-  const { data: tierData } = useTierPresetsQuery();
+  const { data: tierData } = useQuery(listTiersQueryOptions());
   const provider = data?.defaultProvider ?? "";
   const tierPresets = presetsForProvider(tierData?.presets, provider);
   const activeTier = deriveActiveTier(
@@ -81,11 +82,7 @@ export function ModelSettings() {
 
 interface PhaseRowProps {
   role: PhaseRole;
-  models: ReturnType<typeof useModelCatalogQuery>["data"] extends infer D
-    ? D extends { models: infer M }
-      ? M
-      : never
-    : never;
+  models: ModelCatalogEntry[];
   defaultModelId: string | null;
   selectedModelId: string | null;
   onSelectModel: (id: string | null) => void;

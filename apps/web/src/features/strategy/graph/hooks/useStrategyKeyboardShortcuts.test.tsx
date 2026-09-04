@@ -65,7 +65,6 @@ interface CtxOverrides {
   selectedStep?: Step | null;
   setSelectedStep?: (step: Step | null) => void;
   handleRelayout?: () => void;
-  handleAddSelectionToChat?: () => void;
   handleStartCombineFromSelection?: () => void;
   setOrthologModalOpen?: (open: boolean) => void;
   editableSteps?: Step[];
@@ -87,7 +86,6 @@ function makeWrapper(overrides: CtxOverrides = {}) {
     setOrthologModalOpen: overrides.setOrthologModalOpen ?? vi.fn(),
     syncStatus: "idle" as const,
     selectedNodeIds: overrides.selectedNodeIds ?? [],
-    handleAddSelectionToChat: overrides.handleAddSelectionToChat ?? vi.fn(),
     handleSelectionChange: vi.fn(),
     isValidConnection: () => true,
     handleConnect: vi.fn(),

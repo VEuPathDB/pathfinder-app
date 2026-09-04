@@ -132,25 +132,6 @@ class TestListAndGet:
         assert body[0]["title"] == "t"
         assert "body" in body[0]
 
-    async def test_get_one(
-        self,
-        api_client: httpx.AsyncClient,
-        db_session_factory: async_sessionmaker[AsyncSession],
-        conv_id: UUID,
-    ) -> None:
-        async with db_session_factory() as s:
-            repo = ScratchpadRepository(s)
-            created = await repo.create(
-                conversation_id=conv_id,
-                data=NoteCreate(title="t", summary="s", body="b"),
-            )
-            await s.commit()
-        res = await api_client.get(
-            f"/api/v1/conversations/{conv_id}/scratchpad/notes/{created.id}",
-        )
-        assert res.status_code == 200
-        assert res.json()["id"] == created.id
-
 
 class TestPatchPinOnly:
     async def test_patch_pinned_true(
@@ -212,9 +193,9 @@ class TestDelete:
         )
         assert res.status_code == 204
         follow_up = await api_client.get(
-            f"/api/v1/conversations/{conv_id}/scratchpad/notes/{created.id}",
+            f"/api/v1/conversations/{conv_id}/scratchpad/notes",
         )
-        assert follow_up.status_code == 404
+        assert follow_up.json() == []
 
 
 class TestAuthz:
@@ -227,16 +208,3 @@ class TestAuthz:
             f"/api/v1/conversations/{conv_id}/scratchpad/notes",
         )
         assert res.status_code == 404
-
-
-class TestAuditLog:
-    async def test_compactions_endpoint_empty(
-        self,
-        api_client: httpx.AsyncClient,
-        conv_id: UUID,
-    ) -> None:
-        res = await api_client.get(
-            f"/api/v1/conversations/{conv_id}/scratchpad/compactions",
-        )
-        assert res.status_code == 200
-        assert res.json() == []

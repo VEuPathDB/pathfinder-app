@@ -68,8 +68,9 @@ describe("TransformNode", () => {
   it("applies the chevron clip-path to the surface", () => {
     const step = makeStep();
     const { container } = render(<TransformNode {...defaultProps(step)} />);
-    const surface = container.querySelector('[data-clip="chevron-right"]');
-    expect(surface).not.toBeNull();
+    const clipped = container.querySelectorAll("[data-clip]");
+    expect(clipped).toHaveLength(1);
+    expect(clipped[0]).toHaveAttribute("data-clip", "chevron-right");
   });
 
   it("renders one input handle on the left and one output on the right", () => {

@@ -13,7 +13,6 @@ from uuid import UUID
 
 from assistant_core.conversation.event_writer import append_chunk
 from assistant_core.memory.store import MemoryStore
-from shared_py.stream_parts.eda import EdaEffectDirection, EdaVolcanoPoint
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.tools.standalone._eda_stream_parts import (
@@ -21,6 +20,7 @@ from pathfinder.ai.tools.standalone._eda_stream_parts import (
     eda_viz_chunk,
 )
 from pathfinder.domain.eda_compute_config import validate_compute_config
+from pathfinder.domain.eda_parts import EdaEffectDirection, EdaVolcanoPoint
 from pathfinder.integrations.eda.models import (
     EdaAnalysisDetail,
     EdaComputation,

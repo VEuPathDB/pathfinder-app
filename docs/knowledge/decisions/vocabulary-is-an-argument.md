@@ -39,8 +39,8 @@ their enums, and each names the product set it validates against.
 every memory store, retrieval and tombstone signature take a plain string. The
 product's `PhaseRole` literal stays in `ai/agents/roles.py` and is imported by
 exactly the three published models plus the devtools that build a request.
-`MemoryValue.kind` keeps its literal; `MemoryTombstone.kind`, which is not
-published, does not.
+`MemoryValue.kind` keeps its literal; the tombstone kind, which is not
+published, is a plain string.
 
 The rejected alternative is widening the published enums now. It buys nothing
 until a second assistant exists to publish other values, and it costs the 422

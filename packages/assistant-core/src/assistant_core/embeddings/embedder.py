@@ -60,8 +60,3 @@ def get_embedder() -> Embedder:
 
         _holder.instance = OpenAIEmbedder(settings=settings)
     return _holder.instance
-
-
-def reset_embedder() -> None:
-    """Drop the built embedder so the next call reads the settings again."""
-    _holder.instance = None

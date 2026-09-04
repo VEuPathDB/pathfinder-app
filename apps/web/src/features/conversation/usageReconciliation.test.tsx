@@ -6,10 +6,10 @@ import type { UIMessage } from "ai";
 import { reduceSnapshot, type MessagePart } from "@pathfinder/assistant-client";
 import type { DataLeadUsagePayload, DataSubAgentCallPayload } from "@pathfinder/shared";
 
-import type { TraceUsageView } from "@/lib/components/thread/Trace";
-import { aggregateSessionUsage } from "@/lib/utils/sessionUsage";
-import { formatCost, formatTokens } from "@/lib/utils/usageFormat";
-import recordedTurn from "@/acceptance/thread/recordedTurn.json";
+import type { TraceUsageView } from "@/features/conversation/thread/Trace";
+import { aggregateSessionUsage } from "@/features/conversation/sessionUsage";
+import { formatCost, formatTokens } from "@/features/conversation/usageFormat";
+import recordedTurn from "./__fixtures__/recordedTurn.json";
 
 import { turnUsageOf } from "./thread/TraceAnchor";
 

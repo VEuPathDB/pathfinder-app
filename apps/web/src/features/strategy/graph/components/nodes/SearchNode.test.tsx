@@ -67,15 +67,18 @@ describe("SearchNode", () => {
     useStrategyStore.getState().initStepLifecycle("s1");
     useStrategyStore.getState().dispatchStepEvent("s1", { type: "VALIDATE" });
     const { container } = render(<SearchNode {...defaultProps(step)} />);
-    expect(container.querySelector('[data-slot="skeleton"]')).not.toBeNull();
+    expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(1);
   });
 
   it("shows validation error treatment with left border + corner dot", () => {
     const step = makeStep({ estimatedSize: null });
     useStrategyStore.getState().applyStepValidationErrors({ s1: "Missing organism" });
     const { container } = render(<SearchNode {...defaultProps(step)} />);
-    expect(container.querySelector('[data-validation="error"]')).not.toBeNull();
-    expect(container.querySelector('[data-corner-dot="error"]')).not.toBeNull();
+    expect(screen.getByTestId("rf-node-s1")).toHaveAttribute(
+      "data-validation",
+      "error",
+    );
+    expect(container.querySelectorAll('[data-corner-dot="error"]')).toHaveLength(1);
   });
 
   it("renders an output handle on the right when allowed", () => {

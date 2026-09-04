@@ -1,7 +1,4 @@
-interface MessageLike {
-  role: string;
-  parts: readonly { type: string }[];
-}
+import type { UIMessage } from "ai";
 
 export interface RailActivity {
   ledgerCount: number;
@@ -29,7 +26,7 @@ const PART_TO_KEY: Record<
  * Tally per-panel activity from the chat message stream so every rail icon can
  * show an "unseen update" dot consistently (not just strategy/plan).
  */
-export function computeRailActivity(messages: readonly MessageLike[]): RailActivity {
+export function computeRailActivity(messages: readonly UIMessage[]): RailActivity {
   const activity: RailActivity = {
     ledgerCount: 0,
     scratchpadCount: 0,

@@ -18,7 +18,7 @@ from sqlalchemy.pool import NullPool
 from testcontainers.postgres import PostgresContainer
 from tests._host_schema import HOST_USERS
 
-from assistant_core.embeddings.embedder import reset_embedder
+from assistant_core.embeddings import embedder
 from assistant_core.persistence.models import Base, Conversation
 from assistant_core.platform import db as session_module
 from assistant_core.platform.config import RuntimeSettings, use_settings_source
@@ -135,9 +135,9 @@ async def _truncate_embedding_index(db_engine: AsyncEngine) -> None:
 @pytest.fixture
 def use_fake_embedder() -> Generator[None]:
     """Build a fresh deterministic embedder for this test."""
-    reset_embedder()
+    embedder._holder.instance = None
     yield
-    reset_embedder()
+    embedder._holder.instance = None
 
 
 @pytest.fixture

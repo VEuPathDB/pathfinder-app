@@ -1,7 +1,7 @@
 "use client";
 
 import type { Search, StepKind } from "@pathfinder/shared";
-import type { StepParameters } from "@/lib/strategyGraph/types";
+import type { StepParameters } from "@/lib/types/stepParameters";
 import { useParamSpecs } from "@/lib/hooks/useParamSpecs";
 import { extractVocabOptions, type VocabOption } from "@/lib/utils/vocab";
 import { extractSpecVocabulary } from "../components/stepEditorUtils";

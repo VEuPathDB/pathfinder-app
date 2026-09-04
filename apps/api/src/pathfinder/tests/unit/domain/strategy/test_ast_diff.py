@@ -95,7 +95,9 @@ def test_a_step_that_changed_its_search_reports_both_names() -> None:
 
 
 def test_a_thread_with_one_revision_reports_nothing() -> None:
-    assert not diff_strategy_asts(None, _ast(_leaf("step_expr", 90))).moved
+    diff = diff_strategy_asts(None, _ast(_leaf("step_expr", 90)))
+
+    assert (diff.moved, diff.changed, diff.added, diff.removed) == (False, [], [], [])
 
 
 def test_a_combine_step_added_around_two_leaves_is_reported_once() -> None:

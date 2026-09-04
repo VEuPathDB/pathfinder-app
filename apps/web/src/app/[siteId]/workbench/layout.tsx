@@ -59,7 +59,7 @@ function WorkbenchLayoutInner({
   const veupathdbSignedIn = authStatus.signedIn;
   const { setupRequired, retry: retryConfig } = useSystemConfig();
   useSiteTheme(selectedSite);
-  useAuthRefresh();
+  useAuthRefresh(selectedSite);
 
   const handleSiteChange = (nextSite: string) => {
     router.push(`/${nextSite}/workbench`);

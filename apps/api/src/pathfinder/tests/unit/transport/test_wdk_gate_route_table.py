@@ -34,7 +34,6 @@ GATED: frozenset[tuple[str, str]] = frozenset(
         # Conversations: the subroutes that act on the user's WDK strategies.
         ("POST", "/api/v1/conversations/step-counts"),
         ("POST", "/api/v1/conversations/open"),
-        ("POST", "/api/v1/conversations/sync-wdk"),
         ("POST", "/api/v1/conversations/{strategyId:uuid}/operations"),
         ("POST", "/api/v1/conversations/{strategyId:uuid}/fork"),
         ("POST", "/api/v1/conversations/{conversation_id}/revert-to-message"),
@@ -51,17 +50,12 @@ GATED: frozenset[tuple[str, str]] = frozenset(
             "/api/v1/gene-sets/{gene_set_id}/results/distributions/{attribute_name}",
         ),
         ("POST", "/api/v1/gene-sets/{gene_set_id}/results/record"),
-        # Experiments: the routes that run, refine, read or delete a WDK strategy.
-        ("POST", "/api/v1/experiments/"),
+        # Experiments: the routes that run or read a WDK strategy.
+        ("POST", "/api/v1/experiments"),
         ("POST", "/api/v1/experiments/batch"),
         ("POST", "/api/v1/experiments/benchmark"),
         ("POST", "/api/v1/experiments/seed"),
-        ("DELETE", "/api/v1/experiments/{experiment_id}"),
-        ("POST", "/api/v1/experiments/{experiment_id}/cross-validate"),
-        ("POST", "/api/v1/experiments/{experiment_id}/enrich"),
-        ("POST", "/api/v1/experiments/{experiment_id}/re-evaluate"),
         ("POST", "/api/v1/experiments/{experiment_id}/threshold-sweep"),
-        ("POST", "/api/v1/experiments/{experiment_id}/refine"),
         ("GET", "/api/v1/experiments/{experiment_id}/results/attributes"),
         ("GET", "/api/v1/experiments/{experiment_id}/results/records"),
         (
@@ -96,10 +90,6 @@ UNGATED_BUT_REACHES_WDK: dict[tuple[str, str], str] = {
         "/api/v1/user/data",
     ): "Same shape: the WDK purge is opt-in (deleteWdk) and best-effort, and "
     "the local purge must run either way.",
-    (
-        "POST",
-        "/api/v1/conversations/strategy-ast/normalize",
-    ): "Reads parameter metadata, which is the same for every user.",
     (
         "GET",
         "/api/v1/sites/{siteId}/record-types",

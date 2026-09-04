@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import pytest
 
+from pathfinder.domain.parameters.wdk_vocab import (
+    WDKTreeBoxVocabNode,
+    WDKVocabNodeData,
+)
 from pathfinder.integrations.veupathdb.wdk_models import WDKSearch
 from pathfinder.integrations.veupathdb.wdk_parameters import (
     WDKParameter,
@@ -14,9 +18,12 @@ from pathfinder.services.catalog.eda_backed import (
     eda_backed_guidance,
     eda_backed_search,
     is_eda_backed,
+    is_upload_sentinel_vocabulary,
     list_eda_backed,
 )
 from pathfinder.services.catalog.search_inspection import inspect_search
+
+from .conftest import vocab_terms
 
 
 def _search(
@@ -344,3 +351,59 @@ async def test_inspecting_a_plain_search_carries_no_guidance(
     result = await inspect_search("plasmodb", "GenesByText")
 
     assert result.overview.eda_guidance == ""
+
+
+class TestTheUploadSentinelVocabulary:
+    """A one-term vocabulary whose display starts with 'Upload a' is an empty state."""
+
+    @pytest.mark.parametrize(
+        ("pairs", "expected"),
+        [
+            (
+                (
+                    (
+                        "EDAUD_slI5M0RwIg0Zw",
+                        "Upload a Phenotype User Dataset in My Workspace",
+                    ),
+                ),
+                True,
+            ),
+            (
+                (
+                    (
+                        "EDAUD_slI5M0RwIg0Zw",
+                        "Upload an RNA-Seq Raw Counts Dataset in My Workspace",
+                    ),
+                ),
+                True,
+            ),
+            ((("EDAUD_realid", "My RNA-Seq counts"),), False),
+            (
+                (
+                    ("EDAUD_a", "Upload a Phenotype User Dataset in My Workspace"),
+                    ("EDAUD_b", "My dataset"),
+                ),
+                False,
+            ),
+            ((), False),
+            # The article is a whole word, so 'Uploaded' names a dataset.
+            ((("EDAUD_x", "Uploaded counts"),), False),
+            # The article ends the word, so 'Upload All' names a dataset the user owns.
+            ((("EDAUD_x", "Upload All Samples"),), False),
+            ((("EDAUD_x", "Upload and merge"),), False),
+        ],
+    )
+    def test_a_flat_vocabulary(
+        self, pairs: tuple[tuple[str, str], ...], expected: bool
+    ) -> None:
+        assert is_upload_sentinel_vocabulary(vocab_terms(*pairs)) is expected
+
+    def test_none_is_not_a_sentinel(self) -> None:
+        assert is_upload_sentinel_vocabulary(None) is False
+
+    def test_a_tree_vocabulary_is_never_a_sentinel(self) -> None:
+        tree = WDKTreeBoxVocabNode(
+            data=WDKVocabNodeData(term="EDAUD_x", display="Upload a Dataset")
+        )
+
+        assert is_upload_sentinel_vocabulary(tree) is False

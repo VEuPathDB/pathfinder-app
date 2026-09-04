@@ -2,9 +2,19 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { TooltipProvider } from "@/lib/components/ui/Tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { Experiment } from "@pathfinder/shared";
 import type { ExperimentStreamEvent } from "@/features/workbench/api/streaming";
+
+// jsdom has no canvas 2d context, so the echarts instance is a double.
+vi.mock("@/lib/components/charts/echartsRegistry", () => ({
+  initChart: () => ({
+    setOption: vi.fn(),
+    resize: vi.fn(),
+    dispose: vi.fn(),
+    isDisposed: () => false,
+  }),
+}));
 
 // Confusion matrix tp=8 fp=2 tn=8 fn=2 → sensitivity=precision=F1=bal-acc=0.8,
 // MCC=(64-4)/sqrt(10*10*10*10)=0.6. Same hand-computed values the backend
@@ -27,12 +37,6 @@ const EXPERIMENT: Experiment = {
     name: "My Set (evaluation)",
     description: "",
     mode: "single",
-    optimizationBudget: 30,
-    optimizationObjective: "balanced_accuracy",
-    enableStepAnalysis: false,
-    treeOptimizationObjective: "precision_at_50",
-    treeOptimizationBudget: 50,
-    sortDirection: "ASC",
   },
   status: "completed",
   metrics: {
@@ -57,7 +61,6 @@ const EXPERIMENT: Experiment = {
   falsePositiveGenes: [{ id: "PF3D7_0220800" }],
   trueNegativeGenes: [{ id: "PF3D7_0930300" }],
   falseNegativeGenes: [{ id: "PF3D7_1343700" }],
-  optimizationResult: null,
   notes: null,
   batchId: null,
   benchmarkId: null,
@@ -69,10 +72,7 @@ const EXPERIMENT: Experiment = {
   completedAt: "2026-06-12T00:01:00Z",
   wdkStrategyId: null,
   wdkStepId: null,
-  stepAnalysis: null,
-  rankMetrics: null,
   robustness: null,
-  treeOptimization: null,
 } as unknown as Experiment;
 
 const storeState: Record<string, unknown> = {
@@ -94,7 +94,7 @@ vi.mock("@/state/useSessionStore", () => ({
   useSessionStore: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({ selectedSite: "plasmodb" }),
 }));
-vi.mock("@/lib/query/hooks/useGeneSetsQuery", () => ({
+vi.mock("@/features/workbench/hooks/useGeneSetsQuery", () => ({
   useGeneSetsQuery: () => ({
     data: [
       {

@@ -4,4 +4,4 @@
  * this ring reads. Import it only to follow a task at the worker's own rate;
  * PROTOCOL.md section 13 specifies the dialect.
  */
-export { TYPED_EVENT_DONE, readTypedEvents } from "./legacy/typedEventFrames.ts";
+export { readTypedEvents } from "./legacy/typedEventFrames.ts";

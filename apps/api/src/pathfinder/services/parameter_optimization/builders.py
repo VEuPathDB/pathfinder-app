@@ -1,16 +1,8 @@
-"""Trial result construction for parameter optimization."""
+"""Trial metric extraction for parameter sweeps."""
 
 from dataclasses import dataclass
 
-from pathfinder.domain.parameters.values import ParamValue
 from pathfinder.services.experiment.types import ControlTestResult
-from pathfinder.services.parameter_optimization.config import (
-    OptimizationConfig,
-    TrialResult,
-)
-from pathfinder.services.parameter_optimization.scoring import (
-    _compute_score,
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,62 +27,4 @@ def _extract_trial_metrics(wdk_result: ControlTestResult) -> TrialMetrics:
         estimated_size=wdk_result.target.estimated_size,
         positive_hits=pos.intersection_count if pos else None,
         negative_hits=neg.intersection_count if neg else None,
-    )
-
-
-# ---------------------------------------------------------------------------
-# Trial builders
-# ---------------------------------------------------------------------------
-
-
-def _build_failed_trial(
-    *,
-    trial_number: int,
-    params: dict[str, ParamValue],
-    n_positives: int,
-    n_negatives: int,
-) -> TrialResult:
-    """Create a TrialResult for a trial that failed (WDK error or exception)."""
-    return TrialResult(
-        trial_number=trial_number,
-        parameters=params,
-        score=0.0,
-        recall=None,
-        false_positive_rate=None,
-        estimated_size=None,
-        total_positives=n_positives,
-        total_negatives=n_negatives,
-    )
-
-
-def _build_successful_trial(
-    *,
-    trial_number: int,
-    params: dict[str, ParamValue],
-    wdk_result: ControlTestResult,
-    cfg: OptimizationConfig,
-    n_positives: int,
-    n_negatives: int,
-) -> TrialResult:
-    """Create a TrialResult from a successful WDK evaluation."""
-    metrics = _extract_trial_metrics(wdk_result)
-    score = _compute_score(
-        metrics.recall,
-        metrics.fpr,
-        cfg,
-        estimated_size=metrics.estimated_size,
-        positive_hits=metrics.positive_hits,
-        negative_hits=metrics.negative_hits,
-    )
-    return TrialResult(
-        trial_number=trial_number,
-        parameters=params,
-        score=score,
-        recall=metrics.recall,
-        false_positive_rate=metrics.fpr,
-        estimated_size=metrics.estimated_size,
-        positive_hits=metrics.positive_hits,
-        negative_hits=metrics.negative_hits,
-        total_positives=n_positives,
-        total_negatives=n_negatives,
     )

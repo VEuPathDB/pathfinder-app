@@ -7,12 +7,13 @@ including step tree materialization for multi-step and import modes.
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 
-from pathfinder.domain.strategy.ast import StrategyStepNode, walk_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.ops import (
     DEFAULT_COMBINE_OPERATOR,
     ColocationParams,
     CombineOp,
 )
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
 from pathfinder.integrations.veupathdb.value_decoding import encode_params
@@ -23,11 +24,9 @@ from pathfinder.integrations.veupathdb.wdk_models import (
     WDKStepTree,
 )
 from pathfinder.platform.errors import (
-    AppError,
     ValidationError,
 )
 from pathfinder.services.experiment.types import (
-    Experiment,
     ExperimentConfig,
 )
 
@@ -41,7 +40,7 @@ async def _materialize_step_tree(
 ) -> WDKStepTree:
     """Create the WDK steps of a :class:`StrategyStepNode` tree.
 
-    ``walk_step_tree`` yields every input before the step that consumes it, so
+    ``walk`` yields every input before the step that consumes it, so
     each node finds its inputs already created.
 
     :param api: Strategy API instance.
@@ -50,13 +49,14 @@ async def _materialize_step_tree(
     :returns: :class:`WDKStepTree` ready for strategy creation.
     """
     created: dict[str, WDKStepTree] = {}
-    for step in walk_step_tree(node):
+    for step in walk(node):
+        slots: list[WDKStepTree | None] = [
+            *(created[input_id] for input_id in step.input_ids()),
+            None,
+            None,
+        ]
         created[step.id] = await _materialize_step(
-            api,
-            step,
-            record_type,
-            created.get(step.primary_input.id) if step.primary_input else None,
-            created.get(step.secondary_input.id) if step.secondary_input else None,
+            api, step, record_type, slots[0], slots[1]
         )
     return created[node.id]
 
@@ -228,27 +228,3 @@ async def _persist_import_strategy(
         step_id=dup_tree.step_id,
     )
     return {"strategy_id": strategy_id, "step_id": dup_tree.step_id}
-
-
-async def cleanup_experiment_strategy(experiment: Experiment) -> None:
-    """Delete the persisted WDK strategy when an experiment is deleted.
-
-    :param experiment: Experiment whose WDK strategy should be cleaned up.
-    """
-    if experiment.wdk_strategy_id is None:
-        return
-    try:
-        api = get_strategy_api(experiment.config.site_id)
-        await api.delete_strategy(experiment.wdk_strategy_id)
-        logger.info(
-            "Deleted WDK strategy for experiment",
-            experiment_id=experiment.id,
-            strategy_id=experiment.wdk_strategy_id,
-        )
-    except AppError as exc:
-        logger.warning(
-            "Failed to delete WDK strategy during experiment cleanup",
-            experiment_id=experiment.id,
-            strategy_id=experiment.wdk_strategy_id,
-            error=str(exc),
-        )

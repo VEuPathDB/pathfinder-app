@@ -17,11 +17,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.integrations.veupathdb.auth_login import clear_oauth_signing_key_cache
+from pathfinder.integrations.veupathdb.factory import get_site
 from pathfinder.platform.config import get_settings
 from pathfinder.services.users import get_or_create_user_id
-from pathfinder.services.wdk import get_site
-from pathfinder.services.wdk_identity import clear_veupathdb_identity_cache
 from pathfinder.tests._support.veupathdb_tokens import (
     JWKS_URL,
     OAUTH_URL,
@@ -60,8 +58,6 @@ def stubbed_oauth(
     """Publish the test key where the app reads the OAuth signing key."""
     monkeypatch.setenv("VEUPATHDB_OAUTH_URL", OAUTH_URL)
     get_settings.cache_clear()
-    clear_oauth_signing_key_cache()
-    clear_veupathdb_identity_cache()
     service_url = get_site(get_settings().veupathdb_default_site).service_url
     with respx.mock(assert_all_called=False) as router:
         router.get(JWKS_URL).mock(
@@ -78,8 +74,6 @@ def stubbed_oauth(
         )
         yield signing_key
     get_settings.cache_clear()
-    clear_oauth_signing_key_cache()
-    clear_veupathdb_identity_cache()
 
 
 @pytest.fixture
@@ -150,9 +144,8 @@ class TestARequestWithNoVEuPathDBSessionIsRefused:
         signed_out: httpx.AsyncClient,
         owned: Owned,
     ) -> None:
-        response = await signed_out.post(
-            f"/api/v1/experiments/{owned.experiment_ids[0]}/enrich",
-            json={"enrichmentTypes": ["go_function"]},
+        response = await signed_out.get(
+            f"/api/v1/experiments/{owned.experiment_ids[0]}/results/attributes",
         )
 
         _assert_login_required(response)

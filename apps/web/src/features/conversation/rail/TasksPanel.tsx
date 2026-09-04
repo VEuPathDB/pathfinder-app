@@ -4,10 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, Loader2, Timer } from "lucide-react";
 import type { TaskListItem } from "@pathfinder/shared";
 
-import { tasksListOptions } from "@/lib/api/tasks";
-import { humanizeToolName } from "@/lib/utils/toolNames";
+import { tasksListOptions } from "@/features/conversation/api/tasks";
+import { humanizeToolName } from "@/features/conversation/toolNames";
 
-import { useChatHelpersOptional } from "../runtime/chatHelpersContext";
+import { useChatHelpers } from "../runtime/chatHelpersContext";
 import { taskResultHref } from "../thread/taskResult";
 import { traceRenderingKinds } from "../thread/traceRenderingKinds";
 import { RailEmptyState, RailPanelShell } from "./RailPanelShell";
@@ -20,8 +20,8 @@ const ACTIVE = new Set(["pending", "running", "resuming"]);
 
 export function TasksPanel({ conversationId }: TasksPanelProps) {
   const { data, isLoading } = useQuery(tasksListOptions(conversationId));
-  const chat = useChatHelpersOptional();
-  const messages = chat?.messages ?? [];
+  const chat = useChatHelpers();
+  const messages = chat.messages;
   const tasks = data?.tasks ?? [];
 
   return (

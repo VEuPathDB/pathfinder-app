@@ -20,7 +20,7 @@ from pathfinder.ai.capabilities.error_classification import (
     classify_error,
 )
 from pathfinder.ai.capabilities.resilience import ToolResilience
-from pathfinder.ai.capabilities.service_outage import ServiceOutageMemory
+from pathfinder.ai.graph.runtime import ServiceOutageMemory
 from pathfinder.platform.errors import (
     AppError,
     ErrorCode,

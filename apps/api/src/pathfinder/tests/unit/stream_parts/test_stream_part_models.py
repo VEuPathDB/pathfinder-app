@@ -2,14 +2,14 @@
 
 import pytest
 from pydantic import ValidationError
-from shared_py.stream_parts.gene_set import GeneSet
-from shared_py.stream_parts.graph import GraphEdge, GraphNode, GraphSnapshot
-from shared_py.stream_parts.optimization import OptimizationSnapshot
-from shared_py.stream_parts.phase import PhaseChange
-from shared_py.stream_parts.strategy import (
+
+from pathfinder.ai.stream_part_payloads import (
+    GeneSet,
+    GraphEdge,
+    GraphNode,
+    GraphSnapshot,
     StrategyLink,
     StrategyMeta,
-    StrategyPatch,
 )
 
 
@@ -41,20 +41,6 @@ def test_graph_snapshot_rejects_negative_gene_count():
         GraphSnapshot(strategy_id="s_x", gene_count=-1, nodes=[], edges=[])
 
 
-def test_strategy_patch_validates_add_step():
-    patch = StrategyPatch(
-        strategy_id="s_x",
-        operation="add_step",
-        step={"id": "step_1", "searchName": "ByText", "parameters": {}},
-    )
-    assert patch.operation == "add_step"
-
-
-def test_strategy_patch_rejects_unknown_operation():
-    with pytest.raises(ValidationError):
-        StrategyPatch(strategy_id="s_x", operation="teleport_step")
-
-
 def test_strategy_meta_validates():
     meta = StrategyMeta(
         strategy_id="s_x",
@@ -83,43 +69,6 @@ def test_gene_set_validates():
         site_id="plasmodb",
     )
     assert gs.gene_count == 87
-
-
-def test_optimization_snapshot_validates():
-    snap = OptimizationSnapshot(
-        trial_index=14,
-        total_trials=100,
-        best_score=0.82,
-        current_score=0.78,
-        is_pareto=False,
-    )
-    assert snap.trial_index == 14
-
-
-def test_phase_change_validates():
-    pc = PhaseChange(
-        phase="frame",
-        status="started",
-        duration_ms=None,
-    )
-    assert pc.phase == "frame"
-
-
-def test_phase_change_carries_reason():
-    pc = PhaseChange(
-        phase="build",
-        status="started",
-        reason="user answered a design question",
-    )
-    assert pc.reason == "user answered a design question"
-    dumped = pc.model_dump(by_alias=True, exclude_none=True)
-    assert dumped["reason"] == "user answered a design question"
-
-
-def test_phase_change_reason_optional():
-    pc = PhaseChange(phase="completed", status="completed")
-    dumped = pc.model_dump(by_alias=True, exclude_none=True)
-    assert "reason" not in dumped
 
 
 # ── Wire-contract tests ─────────────────────────────────────────────────────

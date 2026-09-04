@@ -1,4 +1,4 @@
-import type { ThresholdSweepPoint } from "@/lib/api/analysis";
+import type { ThresholdSweepPoint } from "@/features/analysis/api/compute";
 import { pct } from "../../utils/formatters";
 
 export function SweepTable({

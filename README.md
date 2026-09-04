@@ -29,63 +29,71 @@
 
 </div>
 
-PathFinder’s goal is to make complex query/strategy construction **easier, faster, and more reliable** by combining:
+PathFinder's goal is to make complex query/strategy construction **easier, faster, and more reliable** by combining:
 
-- **Unified agent** (a single agent that researches, plans, and executes as needed per turn)
+- **A Lead agent with specialist sub-agents** (the Lead is the only voice the user hears; it frames the problem, builds, and verifies through sub-agents it invokes as tools)
 - **Execution with real tools** (build/edit a real strategy graph via validated tool calls)
 - **Catalog grounding** (live WDK catalog for discovery and examples)
 
 This project is intended to be integrated with **VEuPathDB systems** in the future once the research prototype is sufficiently mature.
 
-## What’s in this repo
+## What's in this repo
 
 This repo is organized as:
 
-- **`apps/api/`**: FastAPI backend (“Pathfinder API”)
-  - SSE chat endpoint (`/api/v1/chat`) streams agent output and tool events.
-  - A single **unified agent** that can research, plan, and execute tool calls -- the model decides which capability to use on each turn.
+- **`apps/api/`**: FastAPI backend ("Pathfinder API")
+  - Chat endpoint (`/api/v1/chat`) that defers the turn to the worker and returns an SSE tail of the durable event log.
+  - The agents themselves, the WDK client, the services, and the procrastinate worker.
 - **`apps/web/`**: Next.js UI
   - Chat UI with strategy graph visualization, step editing, and result panes.
   - **Workbench** for gene set management and multi-panel analysis (enrichment, distributions, cross-validation).
-  - Proxies API routes via Next rewrites (see `apps/web/next.config.js`).
-- **`packages/shared-ts/`**: shared TypeScript types (and OpenAPI tooling)
+  - Proxies API routes via Next rewrites (see `apps/web/next.config.ts`).
+- **`packages/assistant-core/`**: the assistant runtime (`assistant_core`), a distribution of its own that knows nothing about genes or strategies. `PROTOCOL.md` here is the wire protocol.
+- **`packages/assistant-client-ts/`**: the headless TypeScript consumer of that protocol (`@pathfinder/assistant-client`). No React.
+- **`packages/shared-ts/`**: shared TypeScript types (`@pathfinder/shared`) plus the Kubb-generated `src/generated/{types,zod,hooks}`.
   - The web app imports types via TS path mapping to `packages/shared-ts/src` (see `apps/web/tsconfig.json`).
-- **`packages/shared-py/`**: shared Pydantic models (Python)
-- **`packages/spec/`**: OpenAPI spec (`packages/spec/openapi.yaml`)
+- **`packages/mcp-conformance/`**: the conformance suite an MCP tool server passes before a deployment admits it.
+- **`packages/spec/`**: OpenAPI spec (`packages/spec/openapi.json` and `.yaml`)
 
-The API also includes: gene set management, evaluation engine (metrics, cross-validation, enrichment), export tools, model catalog with token metrics, and workbench chat.
+The API also includes: gene set management, an experiment engine (metrics, cross-validation, enrichment), export tools, a model catalog with token metrics, cross-thread memory, and an MCP server.
 
 ## How it works
 
-### Unified agent
+### The Lead and its sub-agents
 
-PathFinder uses a **single unified agent** that has access to all tools (research, planning, and execution) and decides which to invoke on each turn. The model uses its judgment to:
+A turn runs a two-node LangGraph graph. The **Lead** agent is the only voice the user hears; it
+invokes the specialists as tools and reads a typed ledger they write:
 
-- **Research**: explore the catalog, clarify ambiguous goals, discover record types / searches / parameters
-- **Plan**: save planning artifacts (markdown summaries, assumptions, parameter choices), reason about strategy structure
-- **Execute**: create/update **strategy graph steps** via tool calls, validate parameters against WDK search specs, run multi-step builds using **delegation** (sub-agent orchestration)
+- **FRAME**: turn an underspecified request into a bound specification, using the live catalog and past cases
+- **BUILD**: create and edit **strategy graph steps** through validated tool calls, against real WDK searches
+- **VERIFY**: check what was built against what was asked, and report the difference
 
-### Streaming + tool events
+A second assistant, `site_help`, runs a single agent with two catalog tools and no ledger. Which
+one a thread uses is fixed when the thread is created.
 
-The API streams **Server-Sent Events (SSE)** for:
+### Turns, the worker, and streaming
 
-- assistant deltas and final messages
-- tool call start/end (including tool results)
-- “derived” UI events emitted from tool results (e.g., planning artifacts, citations, graph snapshots)
+The API process never runs an agent. `POST /api/v1/chat` persists the user message, defers a
+`chat_turn` job to the worker, and returns an SSE tail of the durable event log. The worker drives
+the graph and writes every chunk to `conversation_events`; readers tail it over SSE, and a client
+that disconnects resumes from its cursor. The wire format is the Vercel AI SDK v6 UI Message Stream.
+Long-running tools (enrichment, control tests, parameter optimization, EDA compute) are deferred to
+the worker as background tasks and answered on a later turn of the same thread.
 
 Key entrypoints:
 
 - API app: `apps/api/src/pathfinder/main.py`
-- Chat orchestration: `apps/api/src/pathfinder/services/chat/orchestrator.py`
-- SSE streaming: `apps/api/src/pathfinder/transport/http/streaming.py`
-- Unified tool registry: `apps/api/src/pathfinder/ai/tools/unified_registry.py`
-- Graph step creation + validation: `apps/api/src/pathfinder/ai/tools/strategy_tools/step_ops.py`
+- Chat route and dispatcher: `apps/api/src/pathfinder/transport/http/routers/chat.py`, `ai/conversation/dispatcher.py`
+- Turn runner (worker side): `apps/api/src/pathfinder/jobs/impls/chat_turn_impl.py`, `ai/conversation/turn_runner.py`
+- Graph and Lead: `apps/api/src/pathfinder/ai/graph/builder.py`, `ai/lead/lead_agent.py`
+- Tools: `apps/api/src/pathfinder/ai/tools/` (`standalone/` definitions, `toolsets/` per role)
+- Event log and SSE: `packages/assistant-core/src/assistant_core/conversation/{event_writer,event_stream}.py`
 
 ## Running locally
 
 ### Prerequisites
 
-- **Docker** (recommended for Postgres, Redis, and the full stack)
+- **Docker** (recommended for Postgres and the full stack)
 - **Python 3.14+**
 - **Node.js 24+**
 
@@ -95,7 +103,7 @@ Enable local formatting/linting hooks so issues are caught before push:
 
 ```bash
 cd apps/api
-uv sync --extra dev
+uv sync
 cd ../..
 yarn install
 uv run pre-commit install --hook-type pre-commit --hook-type pre-push
@@ -111,13 +119,13 @@ There are still two configuration sources for the API:
 The repo now ships with two explicit profiles:
 
 - **Strict / production-style**
-  - root env: [`/.env.example`](/Users/ahmedmuharram/repos/pathfinder/.env.example)
-  - compose: [`docker-compose.yml`](/Users/ahmedmuharram/repos/pathfinder/docker-compose.yml)
-  - observability wiring: [`docker-compose.observability.yml`](/Users/ahmedmuharram/repos/pathfinder/docker-compose.observability.yml)
+  - root env: [`.env.example`](.env.example)
+  - compose: [`docker-compose.yml`](docker-compose.yml)
+  - observability wiring: [`docker-compose.observability.yml`](docker-compose.observability.yml)
 - **Local development**
-  - root env: [`/.env.dev.example`](/Users/ahmedmuharram/repos/pathfinder/.env.dev.example)
-  - compose: [`docker-compose.dev.yml`](/Users/ahmedmuharram/repos/pathfinder/docker-compose.dev.yml)
-  - observability stack: [`docker-compose.observability.dev.yml`](/Users/ahmedmuharram/repos/pathfinder/docker-compose.observability.dev.yml)
+  - root env: [`.env.dev.example`](.env.dev.example)
+  - compose: [`docker-compose.dev.yml`](docker-compose.dev.yml)
+  - observability stack: [`docker-compose.observability.dev.yml`](docker-compose.observability.dev.yml)
 
 The base profile is intentionally fail-closed. PathFinder will not boot until you explicitly provide:
 
@@ -127,11 +135,10 @@ The base profile is intentionally fail-closed. PathFinder will not boot until yo
 - `PATHFINDER_CHAT_PROVIDER=default`
 - a real model backend (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `OLLAMA_BASE_URL`)
 
-Direct app runs have matching examples too:
-
-- API strict/dev: [`apps/api/.env.example`](/Users/ahmedmuharram/repos/pathfinder/apps/api/.env.example), [`apps/api/.env.dev.example`](/Users/ahmedmuharram/repos/pathfinder/apps/api/.env.dev.example)
-- Web strict/dev: [`apps/web/.env.example`](/Users/ahmedmuharram/repos/pathfinder/apps/web/.env.example), [`apps/web/.env.dev.example`](/Users/ahmedmuharram/repos/pathfinder/apps/web/.env.dev.example)
-- Test profile: generated on demand (see [Option C](#option-c-test--e2e-profile))
+Those two files are the only env templates. A direct app run copies one of
+them into the `.env` its process reads: the API reads `<repo>/.env` and
+`apps/api/.env`, the web app reads `apps/web/.env`. The test profile is
+generated on demand (see [Option C](#option-c-test--e2e-profile)).
 
 ### Local models (Ollama)
 
@@ -187,7 +194,7 @@ docker compose up --build
 Notes:
 
 - This profile assumes you configured real infrastructure endpoints and a real model backend.
-- The base compose file does not spin up local Postgres or Redis for you.
+- The base compose file runs Postgres as the `db` service; there is no Redis in this stack.
 
 ### Option B: local development profile
 
@@ -202,9 +209,8 @@ docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.y
 - Web: `http://localhost:3000`
 - API: `http://localhost:8000`
 - Postgres: `localhost:5432`
-- Redis: `localhost:6379`
 
-This is where local-only behavior lives: watch mode and local Postgres/Redis containers. Mock mode is not enabled here.
+This is where local-only behavior lives: watch mode and the local Postgres container. Mock mode is not enabled here.
 
 ### Option C: test / E2E profile
 
@@ -232,14 +238,14 @@ controls a spec clicks, and no per-route compile to grow the server's heap.
 
 PathFinder supports two observability modes:
 
-- **SigNoz** — full-stack APM (distributed traces, metrics, logs). UI at `http://localhost:3301`
-- **Langfuse** — LLM observability (prompt traces, token usage, cost tracking). UI at `http://localhost:3100`
+- **SigNoz** - full-stack APM (distributed traces, metrics, logs). UI at `http://localhost:3301`
+- **Langfuse** - LLM observability (prompt traces, token usage, cost tracking). UI at `http://localhost:3100`
 
 PathFinder also ships a SigNoz pack for dashboards and alert intent:
 
-- pack source: [`ops/observability/signoz/pathfinder-observability-pack.json`](/Users/ahmedmuharram/repos/pathfinder/ops/observability/signoz/pathfinder-observability-pack.json)
-- generated dashboards and alert catalog: [`ops/observability/signoz/`](/Users/ahmedmuharram/repos/pathfinder/ops/observability/signoz)
-- dashboard filter glossary: [`ops/observability/signoz/dashboard-filters.md`](/Users/ahmedmuharram/repos/pathfinder/ops/observability/signoz/dashboard-filters.md)
+- pack source: [`ops/observability/signoz/pathfinder-observability-pack.json`](ops/observability/signoz/pathfinder-observability-pack.json)
+- generated dashboards and alert catalog: [`ops/observability/signoz/`](ops/observability/signoz)
+- dashboard filter glossary: [`ops/observability/signoz/dashboard-filters.md`](ops/observability/signoz/dashboard-filters.md)
 
 Refresh the generated artifacts with:
 
@@ -247,7 +253,7 @@ Refresh the generated artifacts with:
 python3 ops/observability/signoz/render_pack.py
 ```
 
-Use the generated dashboard JSON files for direct SigNoz UI import, or the Terraform wrapper in [`ops/observability/signoz/terraform/`](/Users/ahmedmuharram/repos/pathfinder/ops/observability/signoz/terraform) for dashboard provisioning. The alert catalog stays environment-neutral so the same thresholds, labels, and runbooks can be used in local, staging, production, or Cedar-hosted workflows without depending on SigNoz-only routing details.
+Import the generated dashboard JSON files into the SigNoz UI. The alert catalog stays environment-neutral so the same thresholds, labels, and runbooks can be used in local, staging, production, or Cedar-hosted workflows without depending on SigNoz-only routing details.
 
 The local observability profile also provisions explicit UI credentials instead
 of relying on ad hoc first-run setup:
@@ -281,10 +287,10 @@ Set these explicitly in `.env` when using that overlay:
 
 ```bash
 docker compose --env-file .env.dev \
-  -f docker-compose.yml \
-  -f docker-compose.dev.yml \
-  -f docker-compose.observability.yml \
-  -f docker-compose.observability.dev.yml \
+ -f docker-compose.yml \
+ -f docker-compose.dev.yml \
+ -f docker-compose.observability.yml \
+ -f docker-compose.observability.dev.yml \
   up -d
 ```
 
@@ -295,54 +301,55 @@ email:    dev@pathfinder.local
 password: pathfinder-local-dev
 ```
 
-### Option C: run API + Web directly (no Docker)
+### Option D: run API + Web directly (no Docker)
 
 API:
 
 ```bash
 cd apps/api
-cp .env.dev.example .env
-uv sync --extra dev
+cp ../../.env.dev.example .env
+uv sync
 uv run uvicorn pathfinder.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-If you’re not running the full stack via Docker Compose, start local services with the explicit dev overlay:
+If you're not running the full stack via Docker Compose, start local services with the explicit dev overlay:
 
 ```bash
-docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up -d db redis
+docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up -d db
 ```
 
 Web:
 
 ```bash
 cd apps/web
-cp .env.dev.example .env
+cp ../../.env.dev.example .env
 yarn install
 yarn dev
 ```
 
 ## Testing, linting, and code quality
 
-Quick reference — see **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for the full guide (pre-commit hooks, CI pipelines, security scanning, SonarQube, architectural enforcement).
+Quick reference - see **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for the hooks, the CI pipelines, security scanning and architectural enforcement.
 
 ```bash
 # API
 cd apps/api
-uv run ruff check src/                              # Lint
-uv run mypy --strict src/pathfinder/            # Type check
-uv run pytest src/pathfinder/tests/ -v          # Tests
-uv run pytest --cov=src --cov-report=term-missing    # Coverage
+uv run ruff check .                  # Lint
+uv run mypy src                      # Type check (mypy)
+uv run pyright src/pathfinder        # Type check (pyright)
+uv run lint-imports                  # Layering contracts
+uv run pytest src/pathfinder/tests/ -v   # Tests
 
 # Web
 cd apps/web
-npx tsc --noEmit                     # Type check
-npx eslint src/                      # Lint
-node scripts/check-boundaries.mjs    # Feature isolation
-npx vitest run                       # Unit tests
-npx playwright test                  # E2E tests
+yarn typecheck                       # tsc --noEmit
+yarn lint                            # eslint
+yarn check:boundaries                # Feature isolation
+yarn test                            # Unit tests
+yarn test:e2e                        # E2E tests
 ```
 
-Pre-commit hooks enforce all of the above automatically — install with:
+Pre-commit hooks enforce all of the above automatically - install with:
 
 ```bash
 uv run pre-commit install --hook-type pre-commit --hook-type pre-push
@@ -358,7 +365,7 @@ API documentation is built with **Sphinx** and covers architecture, agents, tool
 
 ```bash
 cd apps/api
-uv sync --extra dev
+uv sync --group docs
 uv run sphinx-build -b html docs docs/_build/html
 ```
 
@@ -374,23 +381,25 @@ Open `apps/api/docs/_build/html/index.html` in a browser.
 yarn generate:types
 ```
 
-The web app also uses path-based imports for shared TS types (see `apps/web/tsconfig.json`) and Next transpilation settings (`apps/web/next.config.js`).
+The web app also uses path-based imports for shared TS types (see `apps/web/tsconfig.json`) and Next transpilation settings (`apps/web/next.config.ts`).
 
-## Roadmap / what’s missing
+CI and the pre-commit hooks check the result rather than writing it, so a stale spec fails the build instead of being rewritten inside a commit.
+
+## Roadmap / what's missing
 
 PathFinder is a research-driven prototype. These are the biggest gaps you should expect today:
 
 - **CD (deployment pipelines)**: CI (`.github/workflows/ci.yml`) and a security scan workflow exist, but there is no continuous deployment pipeline yet.
 - **Contribution docs**: no `CONTRIBUTING.md`, no governance/release process.
 - **Production hardening**: no documented deployment path (containers, reverse proxy, secrets management)
-- **Database migrations**: Alembic is set up with 4 migrations, but schema creation still relies on SQLAlchemy `create_all`; Alembic is not yet used as the primary migration workflow.
+- **Database migrations**: Alembic is the only path to the schema, and the API migrates to `head` at startup (`platform/migrations.py`). There is no rollback story and no data-migration convention.
 - **Evaluation** (thesis): an evaluation framework exists in `thesis/eval/` (gold strategies, prompts, analysis scripts), but reproducible experiment packaging and benchmarks are still in progress.
 
-## Thesis context: “How Underspecified Prompts Shape Tool-Calling LLM Agents in Scientific Workflows”
+## Thesis context: "How Underspecified Prompts Shape Tool-Calling LLM Agents in Scientific Workflows"
 
 PathFinder is built around the idea that ambiguous or underspecified requests are normal when humans describe complex strategies. The system therefore emphasizes:
 
-- **integrated planning** (artifacts, structured reasoning, and delegation -- all within a single agent rather than a separate mode)
+- **integrated framing** (the Lead binds an underspecified request to a real specification before anything is built, and says what it assumed)
 - **catalog grounding** (reduce hallucinated tool names/parameters)
 - **validation and error shaping** (turn tool failures into actionable, structured feedback)
 - **decomposition + delegation** (break complex goals into smaller strategy subproblems)
@@ -401,4 +410,4 @@ PathFinder builds on:
 
 - **VEuPathDB / WDK** concepts and APIs (strategy graphs, searches, parameter specs)
 - **FastAPI** (API) and **Next.js** (web UI)
-- **Kani** for tool-calling agent orchestration
+- **pydantic-ai** for tool-calling agents and **LangGraph** for the durable turn graph

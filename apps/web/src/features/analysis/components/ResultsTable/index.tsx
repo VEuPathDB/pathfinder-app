@@ -11,7 +11,7 @@ import {
   type PaginationState,
   type ExpandedState,
 } from "@tanstack/react-table";
-import { Button } from "@/lib/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { getAttributes, type EntityRef } from "@/features/analysis/api/stepResults";
 import { useResultsTableRecords } from "@/features/analysis/hooks/useResultsTableRecords";
 import { useResultsTableDetail } from "@/features/analysis/hooks/useResultsTableDetail";

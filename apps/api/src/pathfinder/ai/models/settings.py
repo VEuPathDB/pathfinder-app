@@ -6,14 +6,19 @@ so no name rewriting happens anywhere.
 
 ``build_model_settings`` returns the provider-correct ``ModelSettings`` (prompt
 caching + reasoning effort + request timeout), composed so caching is never
-clobbered by the per-request thinking effort.
+clobbered by the per-request thinking effort. A provider the table does not
+name is refused rather than served another provider's flags.
 """
 
 from typing import Any
 
 from assistant_core.platform.types import ReasoningEffort
 from pydantic_ai.models.anthropic import AnthropicModelSettings
-from pydantic_ai.models.openai import OpenAIResponsesModelSettings
+from pydantic_ai.models.google import GoogleModelSettings
+from pydantic_ai.models.openai import (
+    OpenAIChatModelSettings,
+    OpenAIResponsesModelSettings,
+)
 from pydantic_ai.settings import ModelSettings
 
 # A hung provider request must fail, and a reasoning model can need minutes.
@@ -43,6 +48,31 @@ def baked_model_id(agent: Any) -> str:
     return str(raw)
 
 
+def _provider_settings(provider: str) -> ModelSettings:
+    """The provider-specific flags, before the shared timeout and effort."""
+    if provider == "anthropic":
+        # Anthropic prompt caching is opt-in.
+        return AnthropicModelSettings(
+            anthropic_cache_instructions=True,
+            anthropic_cache_tool_definitions=True,
+            anthropic_cache_messages=True,
+        )
+    if provider == "openai":
+        # History processors rewrite the turn, so each request must be self
+        # contained. The Responses API rejects item IDs it did not store.
+        return OpenAIResponsesModelSettings(openai_send_reasoning_ids=False)
+    if provider == "google":
+        # Gemini caches implicitly and reads the cross-provider effort.
+        return GoogleModelSettings()
+    if provider == "ollama":
+        # Ollama speaks the Chat Completions API, not the Responses API.
+        return OpenAIChatModelSettings()
+    if provider == "mock":
+        return ModelSettings()
+    msg = f"no model settings for provider {provider!r}"
+    raise ValueError(msg)
+
+
 def build_model_settings(
     model_id: str,
     *,
@@ -50,36 +80,11 @@ def build_model_settings(
 ) -> ModelSettings:
     """Provider-correct settings for ``model_id``.
 
-    Anthropic prompt caching is opt-in, so we enable instruction, tool, and
-    message caching. OpenAI and Google cache automatically, so they only carry
-    the reasoning effort. ``thinking`` is the cross-provider reasoning setting
-    and is applied for ``low``/``medium``/``high`` (``none`` and ``None`` omit
-    it so the model uses its default).
+    ``thinking`` is the cross-provider reasoning setting and is applied for
+    ``low``/``medium``/``high``; ``none`` and ``None`` omit it so the model
+    uses its default.
     """
-    settings: ModelSettings
-    if model_provider(model_id) == "anthropic":
-        settings = AnthropicModelSettings(
-            anthropic_cache_instructions=True,
-            anthropic_cache_tool_definitions=True,
-            anthropic_cache_messages=True,
-        )
-    else:
-        settings = OpenAIResponsesModelSettings(
-            # The Responses API validates every item ID we echo back against
-            # what it stored. ``openai_send_reasoning_ids`` defaults to True
-            # for reasoning models and sends the IDs of reasoning, text and
-            # function-call parts from history -- but every agent here runs
-            # history processors (pair_tool_calls, elide_consumed_tool_results),
-            # so our history never matches byte for byte. OpenAI then rejects
-            # the request with "No tool invocation found for tool call ID ...".
-            #
-            # That is the crash seen on branching, reverting to a message,
-            # cancel-then-send, and long tool loops: all of them hand OpenAI a
-            # history it did not produce. Sending content without item IDs
-            # makes each request self-contained, which is what a rewritten
-            # history needs.
-            openai_send_reasoning_ids=False,
-        )
+    settings = _provider_settings(model_provider(model_id))
     settings["timeout"] = _REQUEST_TIMEOUT_SECONDS
     if thinking is not None and thinking != "none":
         settings["thinking"] = thinking

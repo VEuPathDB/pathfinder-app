@@ -3,8 +3,10 @@ import { describe, it, expect } from "vitest";
 import { fuzzyPrefix, matchCommandName, parseSlashInput } from "./parser";
 
 describe("parseSlashInput", () => {
-  it("returns null for non-slash input", () => {
-    expect(parseSlashInput("hello")).toBeNull();
+  it("returns null unless the slash opens the input", () => {
+    expect(parseSlashInput("hello")).toEqual(null);
+    expect(parseSlashInput("say /export")).toEqual(null);
+    expect(parseSlashInput("")).toEqual(null);
   });
 
   it("parses bare command", () => {

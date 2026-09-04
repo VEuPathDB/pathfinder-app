@@ -1,20 +1,20 @@
 "use client";
 
 import { Handle, Position } from "@xyflow/react";
-import { CombineOperatorBadgeLabels, type CombineOperator } from "@pathfinder/shared";
+import { CombineOpBadgeLabels, type CombineOp } from "@pathfinder/shared";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { NodeShell } from "./NodeShell";
 import { MiniVenn } from "./MiniVenn";
 import type { StepNodeProps } from "./types";
 
-export const COMBINE_NODE_WIDTH = 168;
-export const COMBINE_NODE_HEIGHT = 112;
+const COMBINE_NODE_WIDTH = 168;
+const COMBINE_NODE_HEIGHT = 112;
 
 const VENN_WIDTH = 144;
 const VENN_HEIGHT = 48;
 
 function operatorBadgeLabel(operator: string): string {
-  return (CombineOperatorBadgeLabels as Record<string, string>)[operator] ?? operator;
+  return (CombineOpBadgeLabels as Record<string, string>)[operator] ?? operator;
 }
 
 export function CombineNode(props: StepNodeProps) {
@@ -27,14 +27,13 @@ export function CombineNode(props: StepNodeProps) {
     showPrimaryInputHandle = false,
     showSecondaryInputHandle = false,
     enterDelayIndex,
-    onAddToChat,
     onOpenDetails,
     onRename,
     onDuplicate,
     onDelete,
   } = props;
   const snapshot = useStepSnapshot(step);
-  const operator: CombineOperator | string = step.operator ?? "";
+  const operator: CombineOp | string = step.operator ?? "";
 
   return (
     <NodeShell
@@ -47,7 +46,6 @@ export function CombineNode(props: StepNodeProps) {
       height={COMBINE_NODE_HEIGHT}
       snapshot={snapshot}
       enterDelayIndex={enterDelayIndex}
-      onAddToChat={onAddToChat}
       onOpenDetails={onOpenDetails}
       onRename={onRename}
       onDuplicate={onDuplicate}

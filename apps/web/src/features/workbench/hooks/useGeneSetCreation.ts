@@ -6,7 +6,7 @@ import type { ResolvedGene } from "@pathfinder/shared";
 import { resolveGenes } from "@pathfinder/shared/generated/hooks/useResolveGenes";
 import { createGeneSet } from "../api/geneSets";
 import { useSessionStore } from "@/state/useSessionStore";
-import { useInvalidateGeneSets } from "@/lib/query/hooks/useInvalidateGeneSets";
+import { useInvalidateGeneSets } from "@/features/workbench/hooks/useInvalidateGeneSets";
 
 interface UseGeneSetCreationOptions {
   onCreated: () => void;

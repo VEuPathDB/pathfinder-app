@@ -98,13 +98,6 @@ class EvalStagingRepository:
             )
             await session.commit()
 
-    async def clear_for_user(self, *, user_id: UUID) -> int:
-        """Delete the user's staged candidates. Promoted cases name nobody."""
-        async with self._session_factory() as session:
-            cleared = await delete_staged_for_user(session, user_id=user_id)
-            await session.commit()
-            return cleared
-
 
 async def delete_staged_for_user(session: AsyncSession, *, user_id: UUID) -> int:
     """Delete one user's staged candidates in the caller's transaction.

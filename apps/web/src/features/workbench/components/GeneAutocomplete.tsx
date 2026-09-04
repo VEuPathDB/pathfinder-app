@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2, Search } from "lucide-react";
 import type { GeneSearchResult } from "@pathfinder/shared";
 import { searchGenes } from "@pathfinder/shared/generated/hooks/useSearchGenes";
-import { Input } from "@/lib/components/ui/Input";
+import { Input } from "@/components/ui/input";
 
 interface GeneAutocompleteProps {
   siteId: string;

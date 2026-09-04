@@ -53,7 +53,7 @@ config entry is a boundary that has to be discovered again every time.
 
 Three modules had to be split along the line batch A already drew, because each
 held both halves in one file: `ai/graph/runtime.py` (`TurnContext` and
-`AssistantDeps` to core, `Context`, `AgentDeps` and `build_node_deps` product),
+`AssistantDeps` to core, `Context` and `AgentDeps` product),
 `ai/graph/stream_events.py` (the runtime chunk builders to core, enrichment,
 strategy revision and ledger to product), and
 `integrations/embeddings/semantic_index.py`, whose embedding model was the

@@ -9,7 +9,6 @@ from uuid import UUID, uuid4
 
 import httpx
 import pytest
-from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -45,9 +44,10 @@ async def make_user(session: AsyncSession) -> User:
     return user
 
 
-def _client(
+def client_for(
     app: ASGIApp, user_id: UUID, wdk_token: str | None = None
 ) -> httpx.AsyncClient:
+    """A client that acts as ``user_id``; ``wdk_token`` names the WDK account."""
     headers = {"X-Requested-With": "XMLHttpRequest"}
     if wdk_token is not None:
         # The header the request resolver reads into veupathdb_auth_token_ctx.
@@ -58,10 +58,6 @@ def _client(
         headers=headers,
         cookies={"pathfinder-auth": create_user_token(user_id)},
     )
-
-
-def client_for(app: FastAPI, user_id: UUID) -> httpx.AsyncClient:
-    return _client(app, user_id)
 
 
 @pytest.fixture
@@ -76,9 +72,9 @@ def other_application(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
     get_settings.cache_clear()
 
 
-def other_application_client_for(app: FastAPI, user_id: UUID) -> httpx.AsyncClient:
+def other_application_client_for(app: ASGIApp, user_id: UUID) -> httpx.AsyncClient:
     """The same user, calling from the application the service token names."""
-    client = _client(app, user_id)
+    client = client_for(app, user_id)
     client.headers[SERVICE_AUTH_HEADER] = OTHER_APPLICATION_SECRET
     return client
 
@@ -90,7 +86,7 @@ def _is_event_stream(headers: Iterable[tuple[bytes, bytes]]) -> bool:
     )
 
 
-def _ends_at_first_frame(app: ASGIApp) -> ASGIApp:
+def ends_at_first_frame(app: ASGIApp) -> ASGIApp:
     """Close a ``text/event-stream`` response as soon as it sets its status.
 
     ``httpx.ASGITransport`` runs the app to completion first, so a caller that
@@ -128,13 +124,10 @@ def _ends_at_first_frame(app: ASGIApp) -> ASGIApp:
 
 
 def first_frame_client_for(
-    app: FastAPI, user_id: UUID, wdk_token: str | None = None
+    app: ASGIApp, user_id: UUID, wdk_token: str | None = None
 ) -> httpx.AsyncClient:
-    """Like :func:`client_for`, but a streamed response ends at its status line.
-
-    ``wdk_token`` makes the request act on WDK as the account it names.
-    """
-    return _client(_ends_at_first_frame(app), user_id, wdk_token)
+    """Like :func:`client_for`, but a streamed response ends at its status line."""
+    return client_for(ends_at_first_frame(app), user_id, wdk_token)
 
 
 def chat_body(

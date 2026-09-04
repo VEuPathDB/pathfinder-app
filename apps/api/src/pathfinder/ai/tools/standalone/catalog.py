@@ -3,7 +3,6 @@ transforms, phyletic codes, and example public strategies."""
 
 from typing import cast
 
-from assistant_core.embeddings.embedder import EmbeddingUnavailableError
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
@@ -16,13 +15,8 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._catalog_models import _UNIVERSAL_SEARCHES
 from pathfinder.platform.errors import AppError
 from pathfinder.platform.tool_errors import ToolErrorPayload
-from pathfinder.services import catalog
-from pathfinder.services.catalog.public_strategy_search import (
-    rank_public_strategies,
-    rank_public_strategies_semantic,
-)
+from pathfinder.services import catalog, tool_payloads
 from pathfinder.services.catalog.searches import VagueSearchQueryError
-from pathfinder.services.wdk import get_strategy_api
 
 logger = get_logger(__name__)
 
@@ -128,7 +122,7 @@ async def search_for_searches(
 async def browse_search_categories(
     ctx: RunContext[AgentDeps],
     record_type: str = "transcript",
-) -> ToolReturn[list[dict[str, str | int | list[str]]]]:
+) -> ToolReturn[list[JSONObject]]:
     """Browse available search categories and their example searches.
 
     Call this BEFORE search_for_searches to see what categories and search
@@ -142,14 +136,20 @@ async def browse_search_categories(
         record_type: Record type. Defaults to 'transcript' (gene searches).
             Use 'snp', 'pathway', etc. for non-gene searches.
     """
-    categories = await catalog.browse_search_categories(ctx.deps.site_id, record_type)
-    return with_summary(categories, f"{len(categories)} categories", ctx=ctx)
+    categories = await tool_payloads.list_search_categories(
+        ctx.deps.site_id, record_type
+    )
+    return with_summary(
+        [category.model_dump(by_alias=True) for category in categories],
+        f"{len(categories)} categories",
+        ctx=ctx,
+    )
 
 
 async def list_searches(
     ctx: RunContext[AgentDeps],
     record_type: str = "transcript",
-) -> ToolReturn[list[dict[str, str]]]:
+) -> ToolReturn[list[JSONObject]]:
     """List all search names (names only, no descriptions).
 
     Use search_for_searches first for targeted discovery with descriptions.
@@ -158,13 +158,13 @@ async def list_searches(
         ctx: Agent run context.
         record_type: Record type. Defaults to 'transcript' (gene searches).
     """
-    rows = await catalog.list_searches(ctx.deps.site_id, record_type)
+    listings = await tool_payloads.list_search_listings(ctx.deps.site_id, record_type)
     ctx.deps.agent_state.record_catalog_searches(
-        [str(r["name"]) for r in rows if r.get("name")]
+        [listing.name for listing in listings if listing.name]
     )
     return with_summary(
-        rows,
-        f"{len(rows)} searches on {record_type}",
+        [listing.model_dump(by_alias=True) for listing in listings],
+        f"{len(listings)} searches on {record_type}",
         ctx=ctx,
     )
 
@@ -172,7 +172,7 @@ async def list_searches(
 async def list_transforms(
     ctx: RunContext[AgentDeps],
     record_type: str = "transcript",
-) -> ToolReturn[list[dict[str, str]]]:
+) -> ToolReturn[list[JSONObject]]:
     """List available transform and combine operations (with descriptions).
 
     Returns searches that chain onto a previous step's results -- such as
@@ -182,9 +182,11 @@ async def list_transforms(
         ctx: Agent run context.
         record_type: Record type. Defaults to 'transcript'.
     """
-    transforms = await catalog.list_transforms(ctx.deps.site_id, record_type)
+    transforms = await tool_payloads.list_transform_listings(
+        ctx.deps.site_id, record_type
+    )
     return with_summary(
-        transforms,
+        [transform.model_dump(by_alias=True) for transform in transforms],
         f"{len(transforms)} transforms on {record_type}",
         ctx=ctx,
     )
@@ -231,19 +233,8 @@ async def search_example_plans(
         limit: Max number of results to return.
     """
     try:
-        api = get_strategy_api(ctx.deps.site_id)
-        public_strategies = await api.list_public_strategies()
+        plans = await tool_payloads.rank_example_plans(ctx.deps.site_id, query, limit)
     except (AppError, OSError) as exc:
         logger.warning("Failed to fetch public strategies", error=str(exc))
         return with_summary([], "0 example plans", ctx=ctx, status="warn")
-    try:
-        plans = await rank_public_strategies_semantic(
-            public_strategies, query, site_id=ctx.deps.site_id, limit=limit
-        )
-    except EmbeddingUnavailableError as exc:
-        logger.warning(
-            "Semantic strategy ranking unavailable; using lexical fallback",
-            error=str(exc),
-        )
-        plans = rank_public_strategies(public_strategies, query=query, limit=limit)
     return with_summary(plans, f"{len(plans)} example plans", ctx=ctx)

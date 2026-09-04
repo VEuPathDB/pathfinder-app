@@ -22,7 +22,7 @@ const CHUNK: EnrichmentResultsChunk = {
   geneSetName: "Erythrocytic kinases",
   geneCount: 1342,
   results: [
-    { analysisType: "go", terms: [], error: null },
+    { analysisType: "go_function", terms: [], error: null },
     { analysisType: "pathway", terms: [], error: null },
   ],
   downloads: { csv: "https://plasmodb.org/enrichment.csv" },

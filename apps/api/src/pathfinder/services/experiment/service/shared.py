@@ -9,7 +9,7 @@ from pathfinder.services.control_tests import (
     IntersectionConfig,
     run_positive_negative_controls,
 )
-from pathfinder.services.experiment.helpers import extract_and_enrich_genes
+from pathfinder.services.experiment.helpers import extract_and_hydrate_genes
 from pathfinder.services.experiment.metrics import metrics_from_control_result
 from pathfinder.services.experiment.types import (
     ControlTestResult,
@@ -44,7 +44,7 @@ async def apply_control_result(
         experiment.false_negative_genes,
         experiment.false_positive_genes,
         experiment.true_negative_genes,
-    ) = await extract_and_enrich_genes(
+    ) = await extract_and_hydrate_genes(
         site_id=config.site_id,
         result=result,
         negative_controls=config.negative_controls,

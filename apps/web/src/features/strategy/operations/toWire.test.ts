@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Step } from "@pathfinder/shared";
 import { toWireOperation } from "./toWire";
-import type { GraphOperation } from "./types";
+import type { GraphOperation } from "@/lib/types/graphOperation";
 
 /**
  * The canvas reducer works on flat `Step`s so it can splice `Strategy.steps`;

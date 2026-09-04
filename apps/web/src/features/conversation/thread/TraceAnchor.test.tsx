@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import type { UIMessage } from "ai";
 import { reduceSnapshot, type MessagePart } from "@pathfinder/assistant-client";
 import type { DataSubAgentCallPayload } from "@pathfinder/shared";
@@ -11,7 +11,7 @@ import { useSettingsStore } from "@/state/useSettingsStore";
 
 import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersContext";
 import { SubAgentTraceAnchor, TraceAnchor } from "./TraceAnchor";
-import recordedTurn from "@/acceptance/thread/recordedTurn.json";
+import recordedTurn from "../__fixtures__/recordedTurn.json";
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn(), message: vi.fn() },
@@ -246,45 +246,15 @@ describe("TraceAnchor", () => {
     expect(view.container.textContent).not.toContain("datasetId");
   });
 
-  it("draws its own single row when no chat runtime is around it", () => {
-    useSettingsStore.setState({ showRawToolCalls: false, showTokenUsage: true });
-    render(
-      <TraceAnchor
-        toolName="set_criterion"
-        toolCallId="call_9"
-        args={{ criterionId: "c1" }}
-        result={undefined}
-        status={{ type: "running" }}
-      />,
-    );
-    const rows = screen.getAllByTestId("trace-row");
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toHaveTextContent("Choose a search");
-    expect(screen.getByTestId("tool-call-part")).toBeInTheDocument();
-    expect(screen.getByTestId("turn-trace-summary")).toHaveTextContent("Working...");
-  });
-
-  it("draws the sub-agent's own group when no chat runtime is around it", () => {
-    useSettingsStore.setState({ showRawToolCalls: false, showTokenUsage: true });
-    render(
-      <SubAgentTraceAnchor
-        data={{
-          toolCallId: "sa_9",
-          subAgent: "frame_problem",
-          phase: "frame",
-          state: "started",
-        }}
-      />,
-    );
-    expect(screen.getByTestId("data-sub-agent-call")).toBeInTheDocument();
-    expect(screen.getByTestId("trace-group-label")).toHaveTextContent("Planning");
-  });
-
   it("draws no group for a dispatch payload the wire's schema refuses", () => {
     const view = render(
-      <SubAgentTraceAnchor
-        data={{ subAgent: "frame_problem", phase: "frame", state: "started" } as never}
-      />,
+      <ChatHelpersProvider value={chatWith(openDispatch())}>
+        <SubAgentTraceAnchor
+          data={
+            { subAgent: "frame_problem", phase: "frame", state: "started" } as never
+          }
+        />
+      </ChatHelpersProvider>,
     );
     expect(view.container.innerHTML).toBe("");
   });

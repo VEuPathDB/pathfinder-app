@@ -4,7 +4,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render as renderBare, screen, waitFor } from "@testing-library/react";
 
 vi.mock("@/lib/components/charts/echartsRegistry", () => ({
   initChart: () => ({
@@ -15,7 +15,13 @@ vi.mock("@/lib/components/charts/echartsRegistry", () => ({
   }),
 }));
 
+import type { ReactElement, ReactNode } from "react";
+
 import { useEdaStore } from "@/state/eda";
+import {
+  ChatHelpersProvider,
+  type ChatHelpers,
+} from "../../runtime/chatHelpersContext";
 import { DataEdaSubsetPreview } from "./DataEdaSubsetPreview";
 import {
   EDA_ANALYSIS_STATE_FIXTURE,
@@ -24,6 +30,16 @@ import {
 
 const DISTRIBUTION = EDA_SUBSET_PREVIEW_FIXTURE.distribution;
 if (DISTRIBUTION === null) throw new Error("the fixture carries a distribution");
+
+const STUB_CHAT = { messages: [], status: "ready" } as unknown as ChatHelpers;
+
+function ChatWrapper({ children }: { children: ReactNode }) {
+  return <ChatHelpersProvider value={STUB_CHAT}>{children}</ChatHelpersProvider>;
+}
+
+function render(ui: ReactElement) {
+  return renderBare(ui, { wrapper: ChatWrapper });
+}
 
 beforeEach(() => {
   useEdaStore.getState().reset();

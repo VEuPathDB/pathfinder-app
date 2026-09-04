@@ -2,26 +2,21 @@
 
 from __future__ import annotations
 
-from assistant_core.embeddings.embedder import EmbeddingUnavailableError
-from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from fastmcp.exceptions import ToolError
 
-from pathfinder.mcp.schemas import (
-    SearchCategory,
-    SearchListing,
-    TransformListing,
-)
 from pathfinder.platform.tool_errors import ToolErrorPayload
-from pathfinder.services import catalog, wdk
-from pathfinder.services.catalog import public_strategy_search
+from pathfinder.services import catalog, tool_payloads
 from pathfinder.services.catalog.models import RecordTypeInfo, SearchMatch
 from pathfinder.services.catalog.overview_formatting import SearchOverviewResult
 from pathfinder.services.catalog.param_formatting import GetParameterOptionsResult
 from pathfinder.services.catalog.search_inspection import UnknownSearchError
 from pathfinder.services.catalog.searches import VagueSearchQueryError
-
-logger = get_logger(__name__)
+from pathfinder.services.tool_payloads import (
+    SearchCategory,
+    SearchListing,
+    TransformListing,
+)
 
 
 def _payload_or_error(result: JSONObject | ToolErrorPayload) -> JSONObject:
@@ -84,8 +79,7 @@ async def browse_search_categories(
         site_id: VEuPathDB site, for example 'plasmodb'.
         record_type: Record type. Gene searches are 'transcript'.
     """
-    rows = await catalog.browse_search_categories(site_id, record_type)
-    return [SearchCategory.model_validate(row) for row in rows]
+    return await tool_payloads.list_search_categories(site_id, record_type)
 
 
 async def list_searches(
@@ -98,8 +92,7 @@ async def list_searches(
         site_id: VEuPathDB site, for example 'plasmodb'.
         record_type: Record type. Gene searches are 'transcript'.
     """
-    rows = await catalog.list_searches(site_id, record_type)
-    return [SearchListing.model_validate(row) for row in rows]
+    return await tool_payloads.list_search_listings(site_id, record_type)
 
 
 async def list_transforms(
@@ -112,8 +105,7 @@ async def list_transforms(
         site_id: VEuPathDB site, for example 'plasmodb'.
         record_type: Record type. Gene searches are 'transcript'.
     """
-    rows = await catalog.list_transforms(site_id, record_type)
-    return [TransformListing.model_validate(row) for row in rows]
+    return await tool_payloads.list_transform_listings(site_id, record_type)
 
 
 async def lookup_phyletic_codes(
@@ -145,16 +137,7 @@ async def search_example_plans(
         query: The research goal to match public strategies against.
         limit: Largest number of strategies to return.
     """
-    strategies = await wdk.get_strategy_api(site_id).list_public_strategies()
-    try:
-        return await public_strategy_search.rank_public_strategies_semantic(
-            strategies, query, site_id=site_id, limit=limit
-        )
-    except EmbeddingUnavailableError as exc:
-        logger.warning("Semantic strategy ranking unavailable", error=str(exc))
-        return public_strategy_search.rank_public_strategies(
-            strategies, query=query, limit=limit
-        )
+    return await tool_payloads.rank_example_plans(site_id, query, limit)
 
 
 async def get_search_overview(

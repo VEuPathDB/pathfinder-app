@@ -47,14 +47,6 @@ export class WorkbenchMainPage {
     ).toBeVisible();
   }
 
-  async expectPanelDisabled(title: string, reason: RegExp) {
-    const panel = this.page
-      .getByRole("button", { expanded: false })
-      .filter({ hasText: title })
-      .locator("..");
-    await expect(panel.getByText(reason)).toBeVisible();
-  }
-
   // ── Enrichment Analysis ────────────────────────────────────────
 
   /**
@@ -189,16 +181,6 @@ export class WorkbenchMainPage {
         { timeout: 10_000 },
       )
       .toBeGreaterThan(0);
-  }
-
-  // ── Panel Content Assertions ───────────────────────────────────
-
-  async expectPanelContent(title: string, contentPattern: RegExp) {
-    const panel = this.page
-      .getByRole("button", { expanded: true })
-      .filter({ hasText: title })
-      .locator("..");
-    await expect(panel).toContainText(contentPattern);
   }
 
   async expectEmptyState() {

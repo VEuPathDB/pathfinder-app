@@ -1,12 +1,10 @@
 import { useId, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import type { ParamSpec } from "@pathfinder/shared";
-import type { StepParameters } from "@/lib/strategyGraph/types";
+import type { StepParameters } from "@/lib/types/stepParameters";
 import { isMultiParam } from "@/features/strategy/parameters/spec";
-import {
-  type ParamValue,
-  paramValueToRaw,
-} from "@/features/strategy/parameters/paramValue";
+import { paramValueToRaw } from "@/features/strategy/parameters/paramValue";
+import type { ParamValue } from "@/lib/parameters/paramValue";
 
 export type ParamFormValues = Record<string, string | string[]>;
 

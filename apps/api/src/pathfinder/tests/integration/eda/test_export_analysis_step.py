@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncGenerator, Iterator
-from pathlib import Path
+from collections.abc import AsyncGenerator, Callable, Iterator
 from typing import Any
 from uuid import UUID, uuid4
 
-import httpx
 import pytest
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
@@ -17,7 +15,6 @@ from sqlalchemy import select
 from pathfinder.domain.parameters.values import SinglePickValue
 from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.integrations.eda.client import EdaClient
 from pathfinder.integrations.eda.models import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
@@ -33,18 +30,19 @@ from pathfinder.integrations.eda.models import (
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.services.catalog.eda_backed import COMPUTE_QUERY, SUBSET_QUERY
-from pathfinder.services.eda import authoring, binding, catalog
+from pathfinder.services.eda import binding
 from pathfinder.services.eda.binding import mutated_analysis_state
 from pathfinder.services.eda.compute import VolcanoThresholds
 from pathfinder.services.eda.steps import export_analysis_step
 from pathfinder.services.strategies import commit
 from pathfinder.services.strategies.commit import _WDKCommitOutcome
+from pathfinder.tests._support.eda_wire import (
+    AnalysisStore,
+    eda_transport,
+    wire_eda,
+)
 
 pytestmark = pytest.mark.asyncio
-
-FIXTURES = (
-    Path(__file__).resolve().parents[2] / "unit" / "integrations" / "eda" / "fixtures"
-)
 
 _DATASET = "DS_53f554ec6a"
 _STUDY = "STUDY_53f554ec6a"
@@ -52,25 +50,6 @@ _ENTITY = "GENE_PHENOTYPE_DATA_ENTITY"
 _SPECIES = "VAR_035294d0"
 _ANALYSIS = "t4fszEJ"
 _ROOT = "root"
-
-
-def _fixture(name: str) -> Any:
-    return json.loads((FIXTURES / name).read_text())
-
-
-def _route(request: httpx.Request) -> httpx.Response:
-    path = request.url.path
-    if path.endswith("/permissions"):
-        return httpx.Response(200, json=_fixture("permissions.json"))
-    if path == "/eda/studies":
-        return httpx.Response(200, json=_fixture("studies_list.json"))
-    if path == f"/eda/studies/{_STUDY}/entities/{_ENTITY}/count":
-        filtered = json.loads(request.content)["filters"]
-        name = "count_filtered.json" if filtered else "count_unfiltered.json"
-        return httpx.Response(200, json=_fixture(name))
-    if path == f"/eda/studies/{_STUDY}":
-        return httpx.Response(200, json=_fixture("study_detail_phenotype.json"))
-    return httpx.Response(404, json={"status": "not-found"})
 
 
 def _computation() -> EdaComputation:
@@ -129,17 +108,24 @@ def _strategy_ast() -> dict[str, Any]:
 
 
 @pytest.fixture
-def eda_wired(monkeypatch: pytest.MonkeyPatch) -> Iterator[EdaClient]:
-    """The phenotype study over the recorded wire, as this account sees it."""
-    catalog.clear_study_caches()
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(_route))
-    monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
-    monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)
+def open_analysis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[Callable[..., AnalysisStore]]:
+    """Serve the phenotype study and one analysis document over the wire."""
     token = veupathdb_auth_token_ctx.set("t")
-    yield client
+
+    def opened(*, with_computation: bool = False) -> AnalysisStore:
+        store = AnalysisStore(detail=_detail(with_computation=with_computation))
+        wire_eda(
+            monkeypatch,
+            eda_transport(
+                study_id=_STUDY, study_fixture="study_detail_phenotype", store=store
+            ),
+        )
+        return store
+
+    yield opened
     veupathdb_auth_token_ctx.reset(token)
-    catalog.clear_study_caches()
 
 
 @pytest.fixture
@@ -229,18 +215,12 @@ async def _added_step(conversation_id: UUID) -> StrategyStepNode:
 
 async def test_a_subset_export_adds_the_generic_subset_step(
     thread: tuple[UUID, UUID],
-    eda_wired: EdaClient,
+    open_analysis: Callable[..., AnalysisStore],
     hermetic_wdk: list[Any],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """No thresholds means the subset's genes, carried by the two parameters."""
     conversation_id, user_id = thread
-
-    async def read(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
-        assert analysis_id == _ANALYSIS
-        return _detail(with_computation=False)
-
-    monkeypatch.setattr(binding, "read_analysis", read)
+    open_analysis()
 
     async with async_session_factory() as session:
         refreshed = await export_analysis_step(
@@ -248,7 +228,6 @@ async def test_a_subset_export_adds_the_generic_subset_step(
             conversation_id=conversation_id,
             user_id=user_id,
         )
-    await eda_wired.close()
 
     step = await _added_step(conversation_id)
     assert step.search_name == SUBSET_QUERY
@@ -262,18 +241,12 @@ async def test_a_subset_export_adds_the_generic_subset_step(
 
 async def test_a_volcano_export_adds_the_compute_step_with_the_thresholds(
     thread: tuple[UUID, UUID],
-    eda_wired: EdaClient,
+    open_analysis: Callable[..., AnalysisStore],
     hermetic_wdk: list[Any],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The thresholds the researcher chose ride in the analysis spec."""
     conversation_id, user_id = thread
-
-    async def read(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
-        del analysis_id
-        return _detail(with_computation=True)
-
-    monkeypatch.setattr(binding, "read_analysis", read)
+    open_analysis(with_computation=True)
 
     async with async_session_factory() as session:
         await export_analysis_step(
@@ -286,7 +259,6 @@ async def test_a_volcano_export_adds_the_compute_step_with_the_thresholds(
                 effect_direction="upOnly",
             ),
         )
-    await eda_wired.close()
 
     step = await _added_step(conversation_id)
     assert step.search_name == COMPUTE_QUERY
@@ -302,19 +274,13 @@ async def test_a_volcano_export_adds_the_compute_step_with_the_thresholds(
 
 async def test_the_exported_step_is_persisted_on_the_thread(
     thread: tuple[UUID, UUID],
-    eda_wired: EdaClient,
+    open_analysis: Callable[..., AnalysisStore],
     hermetic_wdk: list[Any],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The refreshed payload is read back from the row the commit wrote."""
     del hermetic_wdk
     conversation_id, user_id = thread
-
-    async def read(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
-        del analysis_id
-        return _detail(with_computation=False)
-
-    monkeypatch.setattr(binding, "read_analysis", read)
+    open_analysis()
 
     async with async_session_factory() as session:
         await export_analysis_step(
@@ -322,7 +288,6 @@ async def test_the_exported_step_is_persisted_on_the_thread(
             conversation_id=conversation_id,
             user_id=user_id,
         )
-    await eda_wired.close()
 
     async with async_session_factory() as session:
         stored = await session.scalar(
@@ -359,21 +324,14 @@ async def test_an_export_on_an_unbound_thread_is_refused(
 
 async def test_the_mutated_state_counts_the_write_and_names_the_study(
     thread: tuple[UUID, UUID],
-    eda_wired: EdaClient,
-    monkeypatch: pytest.MonkeyPatch,
+    open_analysis: Callable[..., AnalysisStore],
 ) -> None:
     """Two surfaces edit one analysis, so each answer says which write it is."""
     conversation_id, _user_id = thread
-
-    async def read(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
-        del analysis_id
-        return _detail(with_computation=False)
-
-    monkeypatch.setattr(binding, "read_analysis", read)
+    open_analysis()
 
     first = await mutated_analysis_state(conversation_id=conversation_id)
     second = await mutated_analysis_state(conversation_id=conversation_id)
-    await eda_wired.close()
 
     assert first.revision == 1
     assert second.revision == 2
@@ -397,9 +355,8 @@ async def test_the_mutated_state_on_an_unbound_thread_is_refused(
 
 async def test_an_export_beside_an_existing_strategy_is_a_detached_root_and_is_not_pushed(
     thread: tuple[UUID, UUID],
-    eda_wired: EdaClient,
+    open_analysis: Callable[..., AnalysisStore],
     hermetic_wdk: list[Any],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A thread that already holds a strategy gains a SECOND root.
 
@@ -407,12 +364,7 @@ async def test_an_export_beside_an_existing_strategy_is_a_detached_root_and_is_n
     branch is still the old root and the EDA step does not reach WDK here.
     """
     conversation_id, user_id = thread
-
-    async def read(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
-        del analysis_id
-        return _detail(with_computation=False)
-
-    monkeypatch.setattr(binding, "read_analysis", read)
+    open_analysis()
 
     async with async_session_factory() as session:
         await export_analysis_step(
@@ -420,7 +372,6 @@ async def test_an_export_beside_an_existing_strategy_is_a_detached_root_and_is_n
             conversation_id=conversation_id,
             user_id=user_id,
         )
-    await eda_wired.close()
 
     ast = await _persisted_ast(conversation_id)
     assert ast.root.search_name == "GenesByTaxon"
@@ -455,8 +406,7 @@ async def _thread_without_a_strategy(*, with_empty_row: bool) -> tuple[UUID, UUI
 async def test_an_export_on_a_thread_with_no_strategy_begins_it(
     patch_app_db_engine: None,
     db_cleaner: None,
-    monkeypatch: pytest.MonkeyPatch,
-    eda_wired: EdaClient,
+    open_analysis: Callable[..., AnalysisStore],
     hermetic_wdk: list[Any],
     with_empty_row: bool,
 ) -> None:
@@ -465,12 +415,7 @@ async def test_an_export_on_a_thread_with_no_strategy_begins_it(
     conversation_id, user_id = await _thread_without_a_strategy(
         with_empty_row=with_empty_row
     )
-
-    async def read(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
-        del analysis_id
-        return _detail(with_computation=False)
-
-    monkeypatch.setattr(binding, "read_analysis", read)
+    open_analysis()
 
     async with async_session_factory() as session:
         refreshed = await export_analysis_step(
@@ -478,7 +423,6 @@ async def test_an_export_on_a_thread_with_no_strategy_begins_it(
             conversation_id=conversation_id,
             user_id=user_id,
         )
-    await eda_wired.close()
 
     ast = await _persisted_ast(conversation_id)
     assert ast.root.search_name == SUBSET_QUERY

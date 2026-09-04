@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /** Directories whose components draw inside a message, relative to this file. */
-const THREAD_CONTENT = ["./content", "../../lib/components/thread"];
+const THREAD_CONTENT = ["./content", "./thread"];
 
 const SYMMETRIC_MARGIN = /\bmy-[\d.]+\b/g;
 const DIVIDER = /\bborder-[tb]\b/g;

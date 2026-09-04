@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pytest
 
-from pathfinder.ai.tools.standalone._experiment_models import _run_step_control_tests
 from pathfinder.domain.parameters.values import (
     MultiPickValue,
     SinglePickValue,
@@ -10,6 +9,7 @@ from pathfinder.domain.parameters.values import (
 )
 from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.integrations.veupathdb.factory import get_results_api
+from pathfinder.services.control_tests import run_step_control_tests
 from pathfinder.services.enrichment.service import EnrichmentService
 from pathfinder.tests.integration.strategies.conftest import BuildAndRead, RoundTrip
 
@@ -94,7 +94,7 @@ async def test_control_tests_recall_and_fpr_on_curated_kinase_set(
     assert len(go_kinases) >= 90, len(go_kinases)
     assert len(phosphatases) >= 40, len(phosphatases)
 
-    result = await _run_step_control_tests(
+    result = await run_step_control_tests(
         site_id="plasmodb",
         wdk_step_id=kinase_step,
         positive_controls=sorted(go_kinases),

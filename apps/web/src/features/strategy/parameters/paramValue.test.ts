@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { ParamSpec } from "@pathfinder/shared";
 
-import { paramValueToRaw, rawToParamValue, type ParamValue } from "./paramValue";
+import { paramValueToRaw, rawToParamValue } from "./paramValue";
+import type { ParamValue } from "@/lib/parameters/paramValue";
 
 const spec = (type: string): ParamSpec => ({ type }) as unknown as ParamSpec;
 

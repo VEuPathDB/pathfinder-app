@@ -28,7 +28,8 @@ export type CoreDataPartKind =
   | "data-turn-stopped"
   | "data-turn-failed"
   | "data-lead-usage"
-  | "data-tool-summary";
+  | "data-tool-summary"
+  | "data-user-question-answers";
 
 export const coreDataPartComponents: DataPartComponentMap<CoreDataPartKind> = {
   "data-sub-agent-call": SubAgentTraceAnchor,
@@ -47,4 +48,6 @@ export const coreDataPartComponents: DataPartComponentMap<CoreDataPartKind> = {
   "data-lead-usage": noRender,
   // The trace reads the line; the thread never draws it as a part of its own.
   "data-tool-summary": noRender,
+  // The consult answers travel back to the backend and draw nothing.
+  "data-user-question-answers": noRender,
 };

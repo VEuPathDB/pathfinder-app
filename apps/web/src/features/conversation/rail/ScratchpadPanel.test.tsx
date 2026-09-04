@@ -25,7 +25,10 @@ vi.mock("@pathfinder/shared/generated/hooks/useDeleteScratchpadNote", () => ({
   deleteScratchpadNote: vi.fn(),
 }));
 
-import { listScratchpadNotes } from "@pathfinder/shared/generated/hooks/useListScratchpadNotes";
+import {
+  listScratchpadNotes,
+  listScratchpadNotesQueryOptions,
+} from "@pathfinder/shared/generated/hooks/useListScratchpadNotes";
 import { patchScratchpadNote } from "@pathfinder/shared/generated/hooks/usePatchScratchpadNote";
 import { deleteScratchpadNote } from "@pathfinder/shared/generated/hooks/useDeleteScratchpadNote";
 import type { Note } from "@pathfinder/shared/generated/types/Note";
@@ -36,10 +39,13 @@ const mockedList = vi.mocked(listScratchpadNotes);
 const mockedPatch = vi.mocked(patchScratchpadNote);
 const mockedDelete = vi.mocked(deleteScratchpadNote);
 
-function wrap(ui: React.ReactNode) {
+function wrap(ui: React.ReactNode, seed?: Note[]) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  if (seed !== undefined) {
+    qc.setQueryData(listScratchpadNotesQueryOptions("c1").queryKey, seed);
+  }
   return <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
 }
 
@@ -98,14 +104,12 @@ describe("ScratchpadPanel", () => {
   });
 
   it("pin toggle calls PATCH", async () => {
-    mockedList.mockResolvedValue([
-      buildNote({ id: "n-xyz", title: "T", pinned: false }),
-    ]);
+    const note = buildNote({ id: "n-xyz", title: "T", pinned: false });
+    mockedList.mockResolvedValue([note]);
     mockedPatch.mockResolvedValue(buildNote({ id: "n-xyz", title: "T", pinned: true }));
 
-    render(wrap(<ScratchpadPanel conversationId="c1" />));
-    const pinBtn = await screen.findByRole("button", { name: /^pin$/i });
-    await userEvent.click(pinBtn);
+    render(wrap(<ScratchpadPanel conversationId="c1" />, [note]));
+    await userEvent.click(screen.getByRole("button", { name: /^pin$/i }));
     // (conversation_id, note_id, data) — matches the generated client signature.
     expect(mockedPatch).toHaveBeenCalledWith("c1", "n-xyz", { pinned: true });
   });

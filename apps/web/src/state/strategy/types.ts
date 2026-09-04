@@ -1,17 +1,17 @@
 import type { Patch } from "immer";
 import type { Strategy } from "@pathfinder/shared";
-import type { GraphOperation } from "@/features/strategy/operations";
+import type { GraphOperation } from "@/lib/types/graphOperation";
 import type {
   StepLifecycleSeed,
   StepMachineEvent,
   StepMachineSnapshot,
 } from "./stepMachine";
 
-export interface FailedOperationPayload {
+interface FailedOperationPayload {
   op: GraphOperation;
 }
 
-export interface DraftSlice {
+interface DraftState {
   lastFailedOperation: FailedOperationPayload | null;
   setLastFailedOperation: (payload: FailedOperationPayload | null) => void;
   clear: () => void;
@@ -56,7 +56,7 @@ export interface HistorySlice {
   clearHistory: () => void;
 }
 
-export interface MetaSlice {
+interface MetaState {
   graphValidationStatus: Record<string, boolean>;
 
   setGraphValidationStatus: (id: string, hasErrors: boolean) => void;
@@ -66,4 +66,4 @@ export interface MetaSlice {
 // Combined store type
 // ---------------------------------------------------------------------------
 
-export type StrategyState = DraftSlice & HistorySlice & MetaSlice & LifecycleSlice;
+export type StrategyState = DraftState & HistorySlice & MetaState & LifecycleSlice;

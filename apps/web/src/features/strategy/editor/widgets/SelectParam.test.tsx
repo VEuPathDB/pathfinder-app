@@ -164,7 +164,8 @@ describe("SelectParam (multi-pick, shadcn Checkbox stack)", () => {
         )}
       </WidgetTestForm>,
     );
-    expect(screen.queryByText(/Select all/)).toBeNull();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(3);
+    expect(screen.queryAllByText(/Select all/)).toHaveLength(0);
   });
 
   it("toggles a value via the checkbox", async () => {

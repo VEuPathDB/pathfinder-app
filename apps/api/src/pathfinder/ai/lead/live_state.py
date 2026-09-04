@@ -13,10 +13,7 @@ from pydantic import Field
 from pathfinder.ai.tools.standalone._graph_helpers import build_step_response
 from pathfinder.domain.parameters.value_codec import wire_map
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.services.strategies.live_counts import (
-    StrategyReader,
-    read_wdk_step_counts,
-)
+from pathfinder.services.strategies.live_counts import read_wdk_step_counts
 
 __all__ = ["LiveStepState", "LiveStrategyState", "read_live_state"]
 
@@ -45,7 +42,7 @@ class LiveStrategyState(CamelModel):
 
 async def read_live_state(
     session: StrategySession,
-    api: StrategyReader,
+    site_id: str,
 ) -> LiveStrategyState:
     """Snapshot the live strategy for the Lead.
 
@@ -58,7 +55,7 @@ async def read_live_state(
         return LiveStrategyState()
 
     sync_state = session.sync_state
-    counts = await read_wdk_step_counts(sync_state, api) if sync_state else {}
+    counts = await read_wdk_step_counts(sync_state, site_id) if sync_state else {}
     steps = [
         LiveStepState(
             step_id=step.id,

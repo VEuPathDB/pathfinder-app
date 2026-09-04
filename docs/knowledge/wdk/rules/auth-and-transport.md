@@ -15,7 +15,7 @@ status: stable
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/UserBundle.java#L34-L52
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/base.py:_ensure_session
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_call_sites.py::test_wdk_http_001_only_the_resolvers_name_the_current_alias
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_call_sites.py::test_wdk_http_001_only_the_resolvers_name_the_current_alias
 
 `current` is a magic string. `UserBundle.createFromTargetId` rewrites it to whichever
 identity the request authenticated as, for every verb alike, and returns a bundle whose
@@ -47,7 +47,7 @@ alike, and it did not reproduce on either verification site. See
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/provider/ExceptionMapper.java#L60-L125
 - anchor: apps/api/src/pathfinder/platform/errors.py:WDKError
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_error_contract.py::test_wdk_http_002_a_422_serves_json_under_text_plain
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_failures.py::test_wdk_http_002_a_422_serves_json_under_text_plain
 
 One mapper converts the exceptions WDK raises deliberately into responses, so for those
 the status code is the whole diagnosis:
@@ -112,7 +112,7 @@ has neither guard.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/filter/CheckLoginFilter.java#L135-L148
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/_http.py:_effective_token
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_user_scoped_needs_request_token.py::TestAUserResourceNeedsTheUsersOwnToken::test_a_step_read_is_refused_and_never_leaves
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_http.py::TestAUserResourceNeedsTheUsersOwnToken::test_a_step_read_is_refused_and_never_leaves
 
 `CheckLoginFilter` runs before every endpoint. With no bearer token it does not return
 401: `isValidTokenRequired` is false and `isGuestUserAllowed` is true by default, so it
@@ -144,7 +144,7 @@ leaves the process, which is what the anchor pins
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/filter/CheckLoginFilter.java#L208-L218
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/_http.py:_inject_auth_cookie
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_auth_cookie_injection.py::test_replaces_jar_authorization_cookie
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_http.py::test_replaces_jar_authorization_cookie
 
 `findRawBearerToken` prefers the `Authorization` header and otherwise reads
 `requestContext.getCookies().get(AUTHORIZATION)` - a lookup into a map keyed by cookie
@@ -172,7 +172,7 @@ and it carries no credential.
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/cache/TemporaryUserDataStore.java#L16-L23
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/_http.py:_init_wdk_session
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_http_session_reinit.py::test_clears_jsessionid_cookie_on_reinit
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_http.py::test_clears_jsessionid_cookie_on_reinit
 
 PathFinder shares one httpx client per site across every user, so it shares one cookie
 jar. A `JSESSIONID` set while acting as user A is still in that jar when the next request

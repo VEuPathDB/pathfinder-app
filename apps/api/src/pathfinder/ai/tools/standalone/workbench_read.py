@@ -13,12 +13,10 @@ from pathfinder.ai.tools.standalone._workbench_models import (
     ClassificationCounts,
     ConfidenceScoresResult,
     EnrichmentResultsResponse,
-    EnsembleAnalysisResult,
     EvaluationSummaryResult,
     ExperimentConfigResult,
     GeneListResult,
     SampleGeneIds,
-    StepContributionsResult,
     WorkbenchError,
 )
 from pathfinder.services.experiment.store import get_experiment_store
@@ -127,28 +125,6 @@ async def get_confidence_scores(
     )
 
 
-async def get_step_contributions(
-    ctx: RunContext[AgentDeps],
-) -> WorkbenchRead[StepContributionsResult]:
-    """Per-step recall/FPR deltas and verdict for the current experiment."""
-    exp = await _get_experiment(ctx)
-    if not exp:
-        return _unavailable(ctx, "Conversation has no associated experiment")
-    if not exp.step_analysis:
-        return _unavailable(ctx, "No step analysis available for this experiment")
-
-    contributions = exp.step_analysis.step_contributions
-    return with_summary(
-        StepContributionsResult(
-            step_contributions=contributions,
-            count=len(contributions),
-        ),
-        f"{len(contributions)} step contributions",
-        ctx=ctx,
-        status="ok" if contributions else "empty",
-    )
-
-
 async def get_experiment_config(
     ctx: RunContext[AgentDeps],
 ) -> WorkbenchRead[ExperimentConfigResult]:
@@ -169,25 +145,6 @@ async def get_experiment_config(
         ),
         f"Experiment is {exp.status}",
         ctx=ctx,
-    )
-
-
-async def get_ensemble_analysis(
-    ctx: RunContext[AgentDeps],
-) -> WorkbenchRead[EnsembleAnalysisResult]:
-    """Full ensemble step analysis for the current experiment."""
-    exp = await _get_experiment(ctx)
-    if not exp:
-        return _unavailable(ctx, "Conversation has no associated experiment")
-    if not exp.step_analysis:
-        return _unavailable(ctx, "No step analysis available for this experiment")
-
-    evaluations = exp.step_analysis.step_evaluations
-    return with_summary(
-        EnsembleAnalysisResult(step_analysis=exp.step_analysis),
-        f"{len(evaluations)} steps evaluated",
-        ctx=ctx,
-        status="ok" if evaluations else "empty",
     )
 
 

@@ -20,8 +20,9 @@ from dataclasses import dataclass
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 
-from pathfinder.domain.strategy.ast import StrategyStepNode, fold_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import fold
 
 COMBINE_LABEL = "COMBINE"
 _ANY_LABEL = "*"
@@ -71,7 +72,7 @@ def _rounded(value: float) -> float:
 
 def tree_from_ast(ast: StrategyAst) -> ComparisonNode:
     """The comparison tree of a built strategy, parameters included."""
-    return fold_step_tree(ast.root, _node_from_step)
+    return fold(ast.root, _node_from_step)
 
 
 def _node_from_step(
@@ -265,10 +266,6 @@ def _normalized(
 def _topology_cost(left: ComparisonNode, right: ComparisonNode) -> float:
     del left, right
     return 0.0
-
-
-def _search_cost(left: ComparisonNode, right: ComparisonNode) -> float:
-    return 0.0 if left.search_name == right.search_name else 1.0
 
 
 def _labelled_cost(left: ComparisonNode, right: ComparisonNode) -> float:

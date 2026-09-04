@@ -6,7 +6,7 @@ import { authStatusOptions, logoutVeupathdb } from "@/lib/api/veupathdb-auth";
 import { Modal } from "@/lib/components/Modal";
 import { SignInForm } from "@/features/sites/components/SignInForm";
 import type { HeaderTextVariant } from "@/features/sites/siteBanners";
-import { useHasHydrated } from "@/lib/hooks/useHasHydrated";
+import { useHasHydrated } from "@/features/sites/useHasHydrated";
 import { invalidateUserScopedQueries } from "@/lib/query/invalidateUserScoped";
 import { cn } from "@/lib/utils/cn";
 

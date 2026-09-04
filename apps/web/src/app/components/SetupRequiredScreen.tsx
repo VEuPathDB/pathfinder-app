@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { RefreshCw, ServerOff } from "lucide-react";
-import { Button } from "@/lib/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 interface SetupRequiredScreenProps {
   onRetry: () => void;

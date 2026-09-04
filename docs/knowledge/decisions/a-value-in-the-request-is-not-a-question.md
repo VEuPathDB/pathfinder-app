@@ -119,4 +119,4 @@ refuses the call rather than defaulting quietly.
 # Anchor
 
 `services/catalog/param_dag.py:_states_a_quantity`, guarded by
-`tests/unit/services/catalog/test_stated_quantity_never_defaults.py`.
+`tests/unit/services/catalog/test_param_dag_defaults.py`.

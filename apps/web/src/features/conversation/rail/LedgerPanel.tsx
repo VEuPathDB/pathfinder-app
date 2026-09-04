@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { DataLedgerUpdatePayload } from "@pathfinder/shared";
+import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
+import type { UIMessage } from "ai";
 import { normalizeLedgerPayload } from "./normalizeLedger";
 
 import { phaseLabel } from "@/lib/models/phaseRoles";
@@ -9,7 +10,7 @@ import { cn } from "@/lib/utils/cn";
 import { useRightRailStore } from "@/state/useRightRailStore";
 
 import { runningPhase } from "../thread/runningPhase";
-import { useChatHelpersOptional } from "../runtime/chatHelpersContext";
+import { useChatHelpers } from "../runtime/chatHelpersContext";
 import { ConstraintsSection } from "./ConstraintsSection";
 import { ContextSection } from "./ContextSection";
 import {
@@ -30,7 +31,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export function ledgerTabSignatures(
-  ledger: DataLedgerUpdatePayload,
+  ledger: InvestigationLedger,
 ): Record<DetailTab, string> {
   return {
     frame: JSON.stringify([ledger.userIntent, ledger.frame]),
@@ -40,30 +41,30 @@ export function ledgerTabSignatures(
 }
 
 /** Whether each detail tab has anything behind it yet. An empty one raises no dot. */
-export function ledgerTabHasContent(
-  ledger: DataLedgerUpdatePayload,
-): Record<DetailTab, boolean> {
+function ledgerTabHasContent(ledger: InvestigationLedger): Record<DetailTab, boolean> {
   const { frame, build, verification } = ledger;
+  const {
+    pushedCount = 0,
+    failedCount = 0,
+    skippedCount = 0,
+    zeroResultSteps = [],
+    needsRecovery = false,
+  } = build;
   return {
     frame: ledger.userIntent !== null || frame.present || frame.criteriaCount > 0,
     build:
-      build.pushedCount > 0 ||
-      build.failedCount > 0 ||
-      build.skippedCount > 0 ||
-      build.zeroResultSteps.length > 0 ||
-      build.needsRecovery ||
+      pushedCount > 0 ||
+      failedCount > 0 ||
+      skippedCount > 0 ||
+      zeroResultSteps.length > 0 ||
+      needsRecovery ||
       build.succeeded,
     verification:
       verification.complete || verification.successful || verification.digest != null,
   };
 }
 
-function latestLedger(
-  messages: readonly {
-    role?: string;
-    parts?: readonly { type?: string; data?: unknown }[];
-  }[],
-): DataLedgerUpdatePayload | null {
+function latestLedger(messages: readonly UIMessage[]): InvestigationLedger | null {
   for (let i = messages.length - 1; i >= 0; i--) {
     const parts = messages[i]?.parts;
     if (parts === undefined) continue;
@@ -78,8 +79,8 @@ function latestLedger(
 }
 
 export function LedgerPanel({ conversationId }: { conversationId: string }) {
-  const chat = useChatHelpersOptional();
-  const ledger = chat !== null ? latestLedger(chat.messages) : null;
+  const chat = useChatHelpers();
+  const ledger = latestLedger(chat.messages);
   const [tab, setTab] = useState<Tab>("summary");
   const ledgerSeen = useRightRailStore((s) => s.ledgerSeen);
   const markLedgerTabSeen = useRightRailStore((s) => s.markLedgerTabSeen);
@@ -87,7 +88,7 @@ export function LedgerPanel({ conversationId }: { conversationId: string }) {
   const signatures = ledger !== null ? ledgerTabSignatures(ledger) : null;
   const hasContent = ledger !== null ? ledgerTabHasContent(ledger) : null;
   const seen = ledgerSeen[conversationId] ?? {};
-  const parts = chat?.messages.flatMap((m) => m.parts) ?? [];
+  const parts = chat.messages.flatMap((m) => m.parts);
   const phase = runningPhase(parts);
 
   // Keep the active detail tab marked seen as it updates live (render-time
@@ -178,8 +179,8 @@ function LedgerTabContent({
   parts,
 }: {
   tab: Tab;
-  ledger: DataLedgerUpdatePayload;
-  parts: readonly { type: string; data?: unknown }[];
+  ledger: InvestigationLedger;
+  parts: readonly UIMessage["parts"][number][];
 }) {
   if (tab === "summary") {
     return (

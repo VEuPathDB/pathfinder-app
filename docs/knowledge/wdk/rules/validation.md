@@ -15,7 +15,7 @@ status: stable
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/ValidationFormatter.java#L10-L22
 - anchor: apps/api/src/pathfinder/domain/strategy/validation.py:StepValidationErrors
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_wdk_validation_bundle.py::test_wdk_valid_001_a_bundle_without_is_valid_is_refused
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_validation.py::test_wdk_valid_001_a_bundle_without_is_valid_is_refused
 
 `getValidationBundleJson` puts `level` and `isValid` unconditionally and adds
 `errors` inside `if (!isValid)`. `errors` is exactly
@@ -62,7 +62,7 @@ until the defaults are removed none usefully could.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/user/StepService.java#L116-L129
 - anchor: apps/api/src/pathfinder/domain/strategy/validation.py:StepValidation
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_validation_claims.py::TestAVerdictNeedsALevel::test_invalid_at_level_none_is_not_a_rejection
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_validation.py::TestAVerdictNeedsALevel::test_invalid_at_level_none_is_not_a_rejection
 `GET /users/{id}/steps/{stepId}` takes a `validationLevel` query parameter.
 Asked at `NONE`, both plasmodb.org and toxodb.org returned, on 2026-08-10, for a
 step that is correct by every other measure:
@@ -98,7 +98,7 @@ that asserted nothing.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/user/StrategyService.java#L149-L170
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKStrategyDetails
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_validation_claims.py::TestWhetherAnyoneChecked::test_level_none_means_unchecked
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_validation.py::TestWhetherAnyoneChecked::test_level_none_means_unchecked
 `getStrategy` builds the strategy at `RUNNABLE`, calls
 `updateStaleResultSizesOnRunnableSteps` on it, then **builds a second strategy
 at `SEMANTIC`** to stamp the last-view time and hands *that* one to the
@@ -154,7 +154,7 @@ clean - which is exactly the pairing measured above.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AnswerParam.java#L110-L159
 - anchor: apps/api/src/pathfinder/domain/strategy/graph_model.py:step_status
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_wdk_input_validity_at_runnable.py::test_wdk_valid_004_a_runnable_refusal_makes_the_consumer_invalid
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_graph_model_status.py::test_wdk_valid_004_a_runnable_refusal_makes_the_consumer_invalid
 
 `AnswerParam.validateValue` does two different jobs. Below `RUNNABLE` it checks
 that the stable value is an integer or the empty string and returns valid
@@ -205,7 +205,7 @@ The consequence for a client is that "this step is fine" and "this step's
 inputs are fine" are two different questions, and only the second requires
 asking at `RUNNABLE`.
 
-Nothing enforces it. `tests/unit/domain/strategy/test_step_status.py` exercises
+Nothing enforces it. `tests/unit/domain/strategy/test_graph_model_status.py` exercises
 PathFinder's own four-state derivation from a `StepValidation` it constructs by
 hand; it never touches a level and would pass if WDK propagated at every level
 or at none.
@@ -215,7 +215,7 @@ or at none.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/StepFormatter.java#L106-L121
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:estimated_size
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_estimated_size_states.py::TestANegativeSizeIsNotACount::test_minus_one_reads_as_no_count
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models.py::TestANegativeSizeIsNotACount::test_minus_one_reads_as_no_count
 This is the rule that matters most in this file, because collapsing these four
 is how a genuine scientific negative and a bug stop being distinguishable to the
 person reading the screen.
@@ -347,7 +347,7 @@ captured in - the whole rule is that they look alike.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/ValidationFormatter.java#L24-L31
 - anchor: apps/api/src/pathfinder/platform/errors.py:WDKError
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_error_contract.py::test_wdk_valid_006_by_key_names_the_parameter
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_failures.py::test_wdk_valid_006_by_key_names_the_parameter
 
 A validation bundle is not only a field on a resource. It is also what the
 write endpoints return in the body of a 422, served as `text/plain` like every
@@ -394,7 +394,7 @@ was pulled with.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/user/StepAnalysisFormService.java#L108-L130
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKStepAnalysisTypeResponse
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_filter_and_level_contract.py::test_wdk_valid_007_a_displayable_bundle_parses
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models_searches.py::test_wdk_valid_007_a_displayable_bundle_parses
 
 [The schema include](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/doc/schema/wdk/includes/validation-bundle.json#L5-L47)
 enumerates five levels and `DISPLAYABLE` is not among them.
@@ -452,7 +452,7 @@ way out.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/user/StepAnalysisInstanceService.java#L258-L285
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/_analyses.py:get_analysis_result
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_analysis_result_not_ready.py::TestTheResultEndpoint::test_no_content_is_not_a_result
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_analyses.py::TestTheResultEndpoint::test_no_content_is_not_a_result
 
 `getStepAnalysisResult` returns `Response.noContent()` when the factory has no
 execution result for the instance. Confirmed on both sites on 2026-08-10:
@@ -482,7 +482,7 @@ answers whether the run finished.
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/analysis/ExecutionStatus.java#L3-L14
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/analyses.py:_RETRIABLE_STATUSES
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_analysis_rerun_statuses.py::TestEveryRerunStatusIsRerun::test_expired_is_rerun
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_analyses.py::TestEveryRerunStatusIsRerun::test_expired_is_rerun
 `ExecutionStatus` declares eleven constants, each with `requiresRerun` and
 `isTerminal`. `requiresRerun` is true for `CREATED`, `STEP_REVISED`,
 `INTERRUPTED`, `ERROR`, `EXPIRED` and `OUT_OF_DATE`. `isTerminal` is true for
@@ -534,7 +534,7 @@ claim than the rest of this file makes.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/StepAnalysisFormatter.java#L84-L95
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/_analyses.py:list_step_analyses
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_step_analyses_list_shape.py::TestTheLiveShapeParses::test_an_entry_is_returned
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_analyses.py::TestTheLiveShapeParses::test_an_entry_is_returned
 `instanceSummaryJson` puts `analysisId` and `displayName` and stops. The service
 [builds the instances at `ValidationLevel.NONE`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/user/StepAnalysisInstanceService.java#L172-L181)
 for that call, consistently: nothing in a two-field summary could carry a

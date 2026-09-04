@@ -2,15 +2,18 @@
  * Boundary enforcement script for the web app.
  *
  * Rules:
- *   1. No cross-feature imports — files in src/features/X/ must NOT import
- *      from src/features/Y/ (X != Y).
- *      Exception: src/features/workbench/ may import from src/features/analysis/.
+ *   1. No cross-feature imports - files in src/features/X/ must NOT import
+ *      from src/features/Y/ (X != Y), unless CROSS_FEATURE_EXCEPTIONS says so.
  *
- *   2. No `as any` in production code — files in src/ (excluding .test. files
+ *   2. No `as any` in production code - files in src/ (excluding .test. files
  *      and __fixtures__/) must not contain `as any`.
  *
  *   3. Features may only import from: @/lib/, @/state/, @pathfinder/shared,
  *      third-party packages, and their own feature directory.
+ *
+ *   4. src/lib/ is pure: it may not import @/features/, @/state/ or @/app/.
+ *
+ *   5. src/state/ owns global stores: it may not import @/features/ or @/app/.
  *
  * Exit code 1 on violations, 0 if clean.
  */
@@ -77,8 +80,6 @@ function addViolation(rule, filePath, lineNum, message) {
 // Rule checks
 // ---------------------------------------------------------------------------
 
-const IMPORT_RE = /(?:^|\n)\s*import\s[\s\S]*?from\s+["']([^"']+)["']/g;
-const REEXPORT_RE = /(?:^|\n)\s*export\s[\s\S]*?from\s+["']([^"']+)["']/g;
 const AS_ANY_RE = /\bas\s+any\b/g;
 
 /**
@@ -152,23 +153,27 @@ function isAllowedFeatureImport(specifier, selfFeature) {
   return true;
 }
 
+// `conversation` is the app shell: it owns the rail, the thread, the composer
+// and the slash commands, so it reaches into the surfaces it hosts. Rule 1 does
+// not constrain it, and this map says so.
 const CROSS_FEATURE_EXCEPTIONS = new Map([
-  // workbench may import from analysis (ResultsTable) and conversation
-  // (ChatView is the single chat surface — used in both strategy and
-  // experiment modes)
+  // workbench renders the analysis ResultsTable and the conversation ChatView.
   ["workbench", new Set(["analysis", "conversation"])],
-  // conversation may import from settings, engine, strategy (PlanParameterEditor,
-  // WdkQuestionInput, StepParamFields, plus StrategyGraph rendered alongside
-  // the chat thread), and workbench (slash commands targeting gene sets)
-  [
-    "conversation",
-    new Set(["settings", "engine", "strategy", "workbench", "saved", "analysis"]),
-  ],
-  // sidebar uses StrategyLifecycleBadge from conversation, and the
-  // useFlushBeforeNav hook from strategy to await pending pushes before
-  // switching conversations.
-  ["sidebar", new Set(["conversation", "strategy"])],
+  ["conversation", new Set(["settings", "strategy", "workbench", "saved", "analysis"])],
+  // sidebar awaits pending strategy pushes before it switches conversations.
+  ["sidebar", new Set(["strategy"])],
 ]);
+
+/** Layers that may not import a higher layer, keyed by src/ subdirectory. */
+const LAYER_BANS = new Map([
+  ["lib", { rule: 4, banned: ["@/features/", "@/state/", "@/app/"] }],
+  ["state", { rule: 5, banned: ["@/features/", "@/app/"] }],
+]);
+
+function layerOf(filePath) {
+  const rel = path.relative(SRC, filePath);
+  return rel.split(path.sep)[0];
+}
 
 function checkFile(filePath) {
   const source = fs.readFileSync(filePath, "utf8");
@@ -206,6 +211,22 @@ function checkFile(filePath) {
             `Disallowed import source: "${specifier}" (features may only import from @/lib/, @/state/, @pathfinder/shared, own feature, or third-party)`,
           );
         }
+      }
+    }
+  }
+
+  // ------ Rules 4 & 5: layer purity ------
+  const ban = LAYER_BANS.get(layerOf(filePath));
+  if (ban) {
+    for (const { specifier, lineNum } of imports) {
+      const hit = ban.banned.find((p) => specifier.startsWith(p));
+      if (hit) {
+        addViolation(
+          ban.rule,
+          filePath,
+          lineNum,
+          `src/${layerOf(filePath)}/ may not import ${hit} ("${specifier}")`,
+        );
       }
     }
   }
@@ -251,6 +272,8 @@ if (violations.length > 0) {
     1: "No cross-feature imports",
     2: 'No "as any" in production code',
     3: "Features: allowed import sources only",
+    4: "lib/ is pure (no features, state or app)",
+    5: "state/ may not import features or app",
   };
 
   for (const [rule, items] of [...byRule.entries()].sort((a, b) => a[0] - b[0])) {

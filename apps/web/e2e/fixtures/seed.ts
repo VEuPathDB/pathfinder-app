@@ -12,7 +12,7 @@ import { wdkTestToken } from "./wdk-account";
  */
 
 /** Per-site gene data used by journey tests. */
-export interface SiteGeneData {
+interface SiteGeneData {
   /** Known gene IDs verified against the live VEuPathDB site. */
   geneIds: string[];
   /** Default organism for GenesByTaxon search on this site. */

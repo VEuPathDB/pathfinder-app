@@ -5,9 +5,13 @@ both the integration response models and the transport DTOs, so they live in
 the domain layer (no I/O) to avoid a transport→integration dependency.
 """
 
+from typing import Literal
+
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 from pydantic.alias_generators import to_camel
+
+WDKSortDirection = Literal["ASC", "DESC"]
 
 
 class _WDKValue(CamelModel):

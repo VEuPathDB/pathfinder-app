@@ -4,10 +4,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { LedgerBuildPayload } from "@pathfinder/shared";
+import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
 import { BuildDetail } from "./LedgerPanelDetail";
 
-function buildWith(count: number): LedgerBuildPayload {
+function buildWith(count: number): InvestigationLedger["build"] {
   return {
     pushedCount: 1,
     failedCount: 0,
@@ -16,6 +16,8 @@ function buildWith(count: number): LedgerBuildPayload {
     needsRecovery: false,
     recoveryKind: "none",
     succeeded: true,
+    wdkStrategyId: null,
+    wdkUrl: null,
     nodeResults: [{ nodeId: "n1", searchName: "GenesByText", count, status: "ok" }],
   };
 }

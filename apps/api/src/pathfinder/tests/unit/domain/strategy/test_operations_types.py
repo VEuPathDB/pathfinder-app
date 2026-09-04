@@ -1,4 +1,5 @@
-from pydantic import TypeAdapter
+import pytest
+from pydantic import TypeAdapter, ValidationError
 
 from pathfinder.domain.parameters.values import StringValue
 from pathfinder.domain.strategy.operations import (
@@ -17,7 +18,7 @@ from pathfinder.domain.strategy.operations import (
 _ADAPTER: TypeAdapter[GraphOperation] = TypeAdapter(GraphOperation)
 
 
-def _step_payload(step_id: str = "a") -> dict:
+def _step_payload(step_id: str = "a") -> dict[str, str]:
     return {"id": step_id, "searchName": "geneById"}
 
 
@@ -88,14 +89,10 @@ class TestDiscriminatorParsing:
         assert op.resolution == DeleteResolution.PROMOTE_PRIMARY
 
     def test_delete_step_rejects_unknown_resolution(self) -> None:
-        try:
+        with pytest.raises(ValidationError):
             _ADAPTER.validate_python(
                 {"kind": "deleteStep", "stepId": "a", "resolution": "vaporize"}
             )
-        except ValueError:
-            return
-        msg = "expected ValueError on unknown resolution"
-        raise AssertionError(msg)
 
     def test_delete_step_accepts_every_resolution_the_delete_dialog_offers(
         self,

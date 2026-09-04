@@ -274,13 +274,3 @@ ramp a phase takes when its toolset cannot express what the turn needs.
    :undoc-members:
    :show-inheritance:
 
-WDK Error Handler
------------------
-
-**Purpose:** Shared WDK step error handling for the result-fetching tools.
-Turns a WDK failure into a typed tool-error payload the model can act on.
-
-.. automodule:: pathfinder.ai.tools.wdk_error_handler
-   :members:
-   :undoc-members:
-   :show-inheritance:

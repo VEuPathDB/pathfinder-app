@@ -57,8 +57,9 @@ scoping in shared tables gives the same isolation for the resources that have
 an owner.
 
 **Widening the wire.** Responses do not carry `applicationId`. Tenancy is a
-server-side scope, and `GET /api/v1/me/principal` already tells a caller which
-application it is.
+server-side scope, and a caller already knows its application: it is the one
+the service token it presents declares. No endpoint reports the resolved
+principal.
 
 # What this does not do
 

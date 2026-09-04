@@ -8,13 +8,13 @@ import type {
 
 export type VolcanoPoint = [number, number, string];
 
-export interface VolcanoSeries {
+interface VolcanoSeries {
   name: string;
   data: VolcanoPoint[];
   itemStyle: { color: string; opacity: number };
 }
 
-export interface VolcanoThresholdLine {
+interface VolcanoThresholdLine {
   axis: "x" | "y";
   value: number;
 }

@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
-import { CUSTOM_TIER } from "@/lib/models/tierPresets";
+import { CUSTOM_TIER } from "@/features/settings/tierPresets";
 import { TierPicker } from "./TierPicker";
 
 afterEach(cleanup);

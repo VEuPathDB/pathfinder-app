@@ -56,9 +56,7 @@ async def test_stop_on_a_dead_worker_ends_the_turn_and_finishes_the_job(
     )
 
     async with client_for(app, owner.id) as client:
-        response = await client.post(
-            f"/api/v1/conversations/{conversation_id}/turns/{turn_id}/cancel",
-        )
+        response = await client.post(f"/api/v1/conversations/{conversation_id}/cancel")
 
     assert response.status_code == _NO_CONTENT
     assert in_memory_jobs.jobs[job_id]["status"] == "failed"
@@ -93,9 +91,7 @@ async def test_stop_on_a_live_worker_only_asks(
     )
 
     async with client_for(app, owner.id) as client:
-        response = await client.post(
-            f"/api/v1/conversations/{conversation_id}/turns/{turn_id}/cancel",
-        )
+        response = await client.post(f"/api/v1/conversations/{conversation_id}/cancel")
 
     assert response.status_code == _NO_CONTENT
     assert in_memory_jobs.jobs[job_id]["status"] == "doing"
@@ -129,9 +125,7 @@ async def test_stop_on_a_starved_but_live_worker_only_asks(
     )
 
     async with client_for(app, owner.id) as client:
-        response = await client.post(
-            f"/api/v1/conversations/{conversation_id}/turns/{turn_id}/cancel",
-        )
+        response = await client.post(f"/api/v1/conversations/{conversation_id}/cancel")
 
     assert response.status_code == _NO_CONTENT
     assert in_memory_jobs.jobs[job_id]["status"] == "doing"
@@ -140,30 +134,3 @@ async def test_stop_on_a_starved_but_live_worker_only_asks(
         "tool-input-start",
         "tool-input-available",
     ]
-
-
-async def test_stopping_the_active_turn_of_a_dead_worker_ends_it(
-    app: FastAPI,
-    patch_app_db_engine: None,
-    db_session: AsyncSession,
-    in_memory_jobs: InMemoryConnector,
-) -> None:
-    del patch_app_db_engine
-    owner = await make_user(db_session)
-    conversation_id = await _make_conversation(db_session, owner.id)
-    turn_id = uuid4()
-    await open_a_tool_call(conversation_id, turn_id)
-    job_id = await stage_chat_turn_job(
-        in_memory_jobs,
-        user_id=owner.id,
-        conversation_id=conversation_id,
-        turn_id=turn_id,
-        heartbeat_age_seconds=dead_age(),
-    )
-
-    async with client_for(app, owner.id) as client:
-        response = await client.post(f"/api/v1/conversations/{conversation_id}/cancel")
-
-    assert response.status_code == _NO_CONTENT
-    assert in_memory_jobs.jobs[job_id]["status"] == "failed"
-    assert [chunk["type"] for chunk in await turn_chunks(conversation_id)][-1] == "done"

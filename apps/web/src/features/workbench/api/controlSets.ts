@@ -3,7 +3,7 @@ import type { ControlSet } from "@pathfinder/shared";
 import { controlSetResponseSchema } from "@pathfinder/shared/generated/zod/controlSetResponseSchema";
 import { z } from "zod";
 
-import { requestBlob, requestJson, requestVoid } from "@/lib/api/http";
+import { requestJson } from "@/lib/api/http";
 
 const ControlSetListSchema = z.array(controlSetResponseSchema);
 
@@ -22,10 +22,6 @@ export function controlSetsOptions(siteId: string) {
   });
 }
 
-export async function getControlSet(id: string): Promise<ControlSet> {
-  return await requestJson(controlSetResponseSchema, `/api/v1/control-sets/${id}`);
-}
-
 export async function createControlSet(body: {
   name: string;
   siteId: string;
@@ -41,17 +37,4 @@ export async function createControlSet(body: {
     method: "POST",
     body,
   });
-}
-
-export async function deleteControlSet(id: string): Promise<void> {
-  await requestVoid(`/api/v1/control-sets/${id}`, { method: "DELETE" });
-}
-
-export async function getExperimentReport(experimentId: string): Promise<void> {
-  const blob = await requestBlob(`/api/v1/experiments/${experimentId}/export`);
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `experiment-report.html`;
-  a.click();
-  URL.revokeObjectURL(a.href);
 }

@@ -19,7 +19,6 @@ export class ChatPage {
   readonly newChatButton: Locator;
   readonly refreshConversationsButton: Locator;
   readonly variantComparison: Locator;
-  readonly scoredComparison: Locator;
 
   constructor(private page: Page) {
     this.composer = page.getByTestId("message-composer");
@@ -29,7 +28,6 @@ export class ChatPage {
     this.newChatButton = page.getByRole("button", { name: "New chat" });
     this.refreshConversationsButton = page.getByTestId("conversations-refresh-button");
     this.variantComparison = page.getByTestId("data-variant-comparison");
-    this.scoredComparison = page.getByTestId("data-scored-comparison");
   }
 
   async goto() {
@@ -232,11 +230,6 @@ export class ChatPage {
     await expect(this.messageInput).toBeEditable({ timeout });
   }
 
-  async expectStreaming() {
-    // While streaming the Send button is disabled.
-    await expect(this.sendButton).toBeDisabled({ timeout: 10_000 });
-  }
-
   /**
    * Assert that an assistant message matching `pattern` is on the thread.
    *
@@ -252,10 +245,6 @@ export class ChatPage {
     await expect(matching).not.toHaveCount(0, {
       timeout: options?.timeout ?? 90_000,
     });
-  }
-
-  async expectAssistantMessageCount(count: number) {
-    await expect(this.assistantMessages).toHaveCount(count);
   }
 
   /** Text content of the most recently rendered assistant message. */
@@ -327,25 +316,11 @@ export class ChatPage {
     await expect(this.composer.getByText(name)).toBeVisible({ timeout: 10_000 });
   }
 
-  async expectScoredComparison() {
-    await expect(this.scoredComparison).toBeVisible({ timeout: 60_000 });
-  }
-
-  /** The winner row inside the scored-comparison card. */
-  scoredWinnerBadge(): Locator {
-    return this.scoredComparison.getByText("winner", { exact: true });
-  }
-
   /** Assert at least one user-blocking question (from a scoping AWAITING_USER outcome). */
   async expectClarifyingQuestions(
     pattern: RegExp = /clarify|which|what evidence|how strict/i,
   ) {
     await this.expectAssistantMessage(pattern, { timeout: 60_000 });
-  }
-
-  /** Assert the turn ended waiting on the user (composer idle, no streaming). */
-  async expectAwaitingUser() {
-    await this.expectIdle();
   }
 
   /** Assert a verification success digest is visible (typed by characteristic phrases). */
@@ -362,24 +337,7 @@ export class ChatPage {
     await this.expectAssistantMessage(pattern, { timeout: 90_000 });
   }
 
-  /** Compatibility alias for the rail-based step list (replaces compact view). */
-  async expectCompactStrategyView() {
-    await expect(this.page.getByTestId("compact-strategy-view")).toBeVisible({
-      timeout: 30_000,
-    });
-  }
-
   async expectSendDisabled() {
     await expect(this.sendButton).toBeDisabled();
-  }
-
-  async expectConversationTitleUpdated(pattern: RegExp) {
-    const strategyId = this.lastStrategyId;
-    if (strategyId === null) {
-      throw new Error("expectConversationTitleUpdated needs a newChat() first");
-    }
-    await expect(this.conversationRow(strategyId)).toContainText(pattern, {
-      timeout: 15_000,
-    });
   }
 }

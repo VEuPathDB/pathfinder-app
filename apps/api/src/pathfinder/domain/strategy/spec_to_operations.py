@@ -14,11 +14,7 @@ from pathfinder.domain.strategy.ast import (
     StrategyStepNode,
     generate_step_id,
 )
-from pathfinder.domain.strategy.graph_model import (
-    StepKind,
-    rebuild_tree,
-    subtree_ids,
-)
+from pathfinder.domain.strategy.graph_model import StepKind, rebuild_tree
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -41,6 +37,7 @@ from pathfinder.domain.strategy.operations.resolutions import compute_delete_cho
 from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_diff import SpecDiff
+from pathfinder.domain.strategy.tree import subtree_ids
 
 __all__ = ["UnsupportedEditError", "operations_for"]
 
@@ -257,7 +254,7 @@ def _resolve_transform(node: StructureNode, plan: _Plan) -> str:
     if criterion.id not in plan.added:
         msg = f"criterion {criterion.id!r} names no step in the strategy"
         raise UnsupportedEditError(msg)
-    consumer = plan.graph.find_parent(input_id)
+    consumer = plan.graph.parent_of(input_id)
     plan.emit(
         AddTransformOp(
             step=_node_for(criterion),
@@ -288,7 +285,7 @@ def _join(plan: _Plan, left_id: str, right_id: str, operator: CombineOp) -> str:
         if plan.graph.steps[existing].operator is not operator:
             plan.emit(UpdateCombineOperatorOp(step_id=existing, operator=operator))
         return existing
-    consumer = plan.graph.find_parent(left_id)
+    consumer = plan.graph.parent_of(left_id)
     new_id = generate_step_id()
     plan.emit(
         AddCombineOp(

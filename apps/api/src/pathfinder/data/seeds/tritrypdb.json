@@ -1,0 +1,817 @@
+[
+  {
+    "control_set": {
+      "name": "L. major Drug Targets (curated)",
+      "negative_ids": [
+        "LmjF.02.0710",
+        "LmjF.04.0780",
+        "LmjF.18.0700",
+        "LmjF.18.1370",
+        "LmjF.22.0080",
+        "LmjF.26.0620",
+        "LmjF.26.0640",
+        "LmjF.26.0900",
+        "LmjF.26.1240",
+        "LmjF.27.0410",
+        "LmjF.27.2400",
+        "LmjF.27.2630",
+        "LmjF.28.2770",
+        "LmjF.28.2780",
+        "LmjF.28.2820"
+      ],
+      "positive_ids": [
+        "LmjF.10.0460",
+        "LmjF.10.0465",
+        "LmjF.10.0470",
+        "LmjF.10.0480",
+        "LmjF.31.2000",
+        "LmjF.15.0240",
+        "LmjF.29.2140",
+        "LmjF.31.0590",
+        "LmjF.32.2320",
+        "LmjF.01.0750",
+        "LmjF.02.0120",
+        "LmjF.02.0290",
+        "LmjF.02.0360",
+        "LmjF.02.0570",
+        "LmjF.03.0210"
+      ],
+      "provenance_notes": "Positives: leishmanolysin GP63, sterol biosynthesis enzymes, and protein kinases \u2014 validated drug targets in L. major. Negatives: heat shock proteins \u2014 ubiquitous chaperones not suitable as drug targets.",
+      "tags": [
+        "drug-target",
+        "leishmania",
+        "seed"
+      ]
+    },
+    "description": "10-node strategy identifying L. major drug target candidates. UNION of kinases, oxidoreductases, and proteases; INTERSECT with secreted or transmembrane proteins; MINUS heat shock proteins (housekeeping exclusion). Models a real anti-leishmanial drug discovery pipeline targeting enzymes accessible to compounds.",
+    "name": "LmjF Drug Target Candidates",
+    "record_type": "transcript",
+    "site_id": "tritrypdb",
+    "step_tree": {
+      "displayName": "Drug Targets (no HSP)",
+      "id": "root_minus_hsp",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Accessible Enzymes",
+        "id": "accessible_enzymes",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "All Enzymes",
+          "id": "all_enzymes_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Kinases + Oxidoreductases",
+            "id": "kinase_oxido_union",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Protein Kinases (GO:0004672)",
+              "id": "leaf_kinases",
+              "parameters": {
+                "go_term": "GO:0004672",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0004672\"]",
+                "organism": "[\"Leishmania major strain Friedlin\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            },
+            "secondaryInput": {
+              "displayName": "Oxidoreductases (GO:0016491)",
+              "id": "leaf_oxidoreductases",
+              "parameters": {
+                "go_term": "GO:0016491",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0016491\"]",
+                "organism": "[\"Leishmania major strain Friedlin\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Peptidases (GO:0008233)",
+            "id": "leaf_proteases",
+            "parameters": {
+              "go_term": "GO:0008233",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0008233\"]",
+              "organism": "[\"Leishmania major strain Friedlin\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Secreted or Membrane",
+          "id": "accessible_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_signal_peptide",
+            "parameters": {
+              "organism": "[\"Leishmania major strain Friedlin\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          },
+          "secondaryInput": {
+            "displayName": "Transmembrane (3-20 TM)",
+            "id": "leaf_transmembrane",
+            "parameters": {
+              "max_tm": "20",
+              "min_tm": "3",
+              "organism": "[\"Leishmania major strain Friedlin\"]"
+            },
+            "searchName": "GenesByTransmembraneDomains"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Heat Shock Proteins",
+        "id": "leaf_heat_shock",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "heat shock",
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Leishmania major strain Friedlin\"]"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "T. brucei VSG Surface Coat (curated)",
+      "negative_ids": [
+        "Tb927.1.3220",
+        "Tb927.1.3830",
+        "Tb927.1.4490",
+        "Tb927.1.5000",
+        "Tb927.1.720",
+        "Tb927.10.10390",
+        "Tb927.10.10610",
+        "Tb927.10.11810",
+        "Tb927.10.1280",
+        "Tb927.10.12810",
+        "Tb927.10.13130",
+        "Tb927.10.13240",
+        "Tb927.10.1390",
+        "Tb927.10.1400",
+        "Tb927.10.14020"
+      ],
+      "positive_ids": [
+        "Tb05.5K5.260",
+        "Tb05.5K5.300",
+        "Tb05.5K5.320",
+        "Tb05.5K5.330",
+        "Tb05.5K5.340",
+        "Tb05.5K5.360",
+        "Tb05.5K5.370",
+        "Tb05.5K5.380",
+        "Tb05.5K5.390",
+        "Tb05.5K5.400",
+        "Tb05.5K5.410",
+        "Tb05.5K5.420",
+        "Tb05.5K5.430",
+        "Tb05.5K5.440",
+        "Tb05.5K5.450",
+        "Tb11.v5.0338",
+        "Tb11.v5.0345",
+        "Tb11.v5.0543",
+        "Tb927.10.10250",
+        "Tb927.10.10260"
+      ],
+      "provenance_notes": "Positives: VSG genes and cell surface proteins \u2014 core surface coat components of T. brucei antigenic variation. Negatives: glycosome proteome genes \u2014 metabolic compartment, not surface-associated.",
+      "tags": [
+        "surface-coat",
+        "vsg",
+        "trypanosome",
+        "seed"
+      ]
+    },
+    "description": "8-node strategy for T. brucei surface coat analysis. UNION of VSGs, cell surface proteins, and GPI anchor biosynthesis genes; INTERSECT with signal peptide for confirmed secretory pathway targeting. MINUS transporters (not surface coat). Models antigenic variation research in African trypanosomiasis.",
+    "name": "TbTREU927 VSG Surface Coat",
+    "record_type": "transcript",
+    "site_id": "tritrypdb",
+    "step_tree": {
+      "displayName": "Surface Coat (no transporters)",
+      "id": "root_minus_transport",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Surface with Signal Peptide",
+        "id": "surface_confirmed",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "All Surface Genes",
+          "id": "all_surface_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "VSG + Cell Surface",
+            "id": "vsg_surface_union",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Variant Surface Glycoprotein",
+              "id": "leaf_vsg",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "variant surface glycoprotein",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Cell Surface (GO:0009986)",
+              "id": "leaf_cell_surface",
+              "parameters": {
+                "go_term": "GO:0009986",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0009986\"]",
+                "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "GPI Anchor Biosynthesis (GO:0006506)",
+            "id": "leaf_gpi_bio",
+            "parameters": {
+              "go_term": "GO:0006506",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0006506\"]",
+              "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Signal Peptide",
+          "id": "leaf_signal_tb",
+          "parameters": {
+            "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+          },
+          "searchName": "GenesWithSignalPeptide"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Transporters (GO:0005215)",
+        "id": "leaf_transporters_tb",
+        "parameters": {
+          "go_term": "GO:0005215",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0005215\"]",
+          "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "L. major Invasion & Survival (curated)",
+      "negative_ids": [
+        "LmjF.01.0030",
+        "LmjF.01.0220",
+        "LmjF.01.0260",
+        "LmjF.02.0600",
+        "LmjF.02.0690",
+        "LmjF.02.0700",
+        "LmjF.03.0120",
+        "LmjF.03.0970",
+        "LmjF.04.0030",
+        "LmjF.04.0050",
+        "LmjF.04.0800",
+        "LmjF.04.1180",
+        "LmjF.05.0010",
+        "LmjF.05.0070",
+        "LmjF.05.0150"
+      ],
+      "positive_ids": [
+        "LmjF.10.0460",
+        "LmjF.10.0465",
+        "LmjF.10.0470",
+        "LmjF.10.0480",
+        "LmjF.31.2000",
+        "LmjF.08.0640",
+        "LmjF.08.0670",
+        "LmjF.08.0680",
+        "LmjF.08.0690",
+        "LmjF.08.0700",
+        "LmjF.08.0710",
+        "LmjF.08.0720",
+        "LmjF.08.0730",
+        "LmjF.08.0740",
+        "LmjF.08.0750"
+      ],
+      "provenance_notes": "Positives: leishmanolysin GP63 metalloprotease family and amastin surface antigens \u2014 key invasion and intracellular survival factors. Negatives: cytoskeletal proteins \u2014 structural genes not involved in host-parasite interaction.",
+      "tags": [
+        "invasion",
+        "virulence",
+        "leishmania",
+        "seed"
+      ]
+    },
+    "description": "8-node strategy for L. major host-cell invasion and intracellular survival. UNION of secreted proteases (GP63/leishmanolysin), amastin surface antigens, and cell surface genes; INTERSECT with transmembrane or signal peptide for membrane-associated proteins. MINUS cytoskeleton (structural exclusion). Models phagolysosome survival research.",
+    "name": "LmjF Invasion and Survival",
+    "record_type": "transcript",
+    "site_id": "tritrypdb",
+    "step_tree": {
+      "displayName": "Invasion Genes (no cytoskeleton)",
+      "id": "root_minus_cyto",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Membrane-Associated Virulence",
+        "id": "invasion_surface",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Virulence Factors",
+          "id": "virulence_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Proteases + GP63",
+            "id": "protease_gp63_union",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Peptidases (GO:0008233)",
+              "id": "leaf_proteases_lm",
+              "parameters": {
+                "go_term": "GO:0008233",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0008233\"]",
+                "organism": "[\"Leishmania major strain Friedlin\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            },
+            "secondaryInput": {
+              "displayName": "Leishmanolysin GP63",
+              "id": "leaf_leishmanolysin",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "leishmanolysin",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Leishmania major strain Friedlin\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Amastin Surface Antigens",
+            "id": "leaf_amastin",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "amastin",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Leishmania major strain Friedlin\"]"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Signal Peptide or TM",
+          "id": "membrane_accessible",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_sp_lm2",
+            "parameters": {
+              "organism": "[\"Leishmania major strain Friedlin\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          },
+          "secondaryInput": {
+            "displayName": "Transmembrane (3-20 TM)",
+            "id": "leaf_tm_lm2",
+            "parameters": {
+              "max_tm": "20",
+              "min_tm": "3",
+              "organism": "[\"Leishmania major strain Friedlin\"]"
+            },
+            "searchName": "GenesByTransmembraneDomains"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Cytoskeleton (GO:0005856)",
+        "id": "leaf_cytoskeleton_lm",
+        "parameters": {
+          "go_term": "GO:0005856",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0005856\"]",
+          "organism": "[\"Leishmania major strain Friedlin\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "T. brucei Flagellar Assembly (curated)",
+      "negative_ids": [
+        "Tb927.1.3220",
+        "Tb927.1.3830",
+        "Tb927.1.4490",
+        "Tb927.1.5000",
+        "Tb927.1.720",
+        "Tb927.10.10390",
+        "Tb927.10.10610",
+        "Tb927.10.11810",
+        "Tb927.10.1280",
+        "Tb927.10.12810",
+        "Tb927.10.13130",
+        "Tb927.10.13240",
+        "Tb927.10.1390",
+        "Tb927.10.1400",
+        "Tb927.10.14020"
+      ],
+      "positive_ids": [
+        "Tb05.5K5.130",
+        "Tb11.v5.0538",
+        "Tb11.v5.0616",
+        "Tb11.v5.0777",
+        "Tb11.v5.1055",
+        "Tb927.10.10140",
+        "Tb927.10.11080",
+        "Tb927.10.11300",
+        "Tb927.10.13330",
+        "Tb927.10.15250",
+        "Tb927.10.8870",
+        "Tb927.10.8930",
+        "Tb927.10.9570",
+        "Tb927.11.11210",
+        "Tb927.11.14880"
+      ],
+      "provenance_notes": "Positives: paraflagellar rod proteins \u2014 confirmed flagellar structural components essential for T. brucei motility. Negatives: glycosome proteome \u2014 metabolic compartment genes with no flagellar function.",
+      "tags": [
+        "flagellum",
+        "motility",
+        "trypanosome",
+        "seed"
+      ]
+    },
+    "description": "7-node strategy for T. brucei flagellar assembly and motility. UNION of cilium, paraflagellar rod, and cytoskeleton genes; INTERSECT with cilium compartment for confirmed flagellar localization. MINUS mitochondrial genes (compartment exclusion). Models flagellum biology critical for parasite transmission.",
+    "name": "TbTREU927 Flagellar Assembly",
+    "record_type": "transcript",
+    "site_id": "tritrypdb",
+    "step_tree": {
+      "displayName": "Flagellar (no mitochondrial)",
+      "id": "root_minus_mito",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Confirmed Flagellar",
+        "id": "flagellar_confirmed",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Flagellar Candidates",
+          "id": "flagellar_candidates",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "PFR + Cytoskeleton",
+            "id": "pfr_cyto_union",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Paraflagellar Rod",
+              "id": "leaf_pfr",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "paraflagellar rod",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Cytoskeleton (GO:0005856)",
+              "id": "leaf_cyto_tb",
+              "parameters": {
+                "go_term": "GO:0005856",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0005856\"]",
+                "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Transporters (GO:0005215)",
+            "id": "leaf_transport_flag",
+            "parameters": {
+              "go_term": "GO:0005215",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0005215\"]",
+              "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Cilium (GO:0005929)",
+          "id": "leaf_cilium_tb",
+          "parameters": {
+            "go_term": "GO:0005929",
+            "go_term_evidence": "[\"Curated\", \"Computed\"]",
+            "go_term_slim": "No",
+            "go_typeahead": "[\"GO:0005929\"]",
+            "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+          },
+          "searchName": "GenesByGoTerm"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Mitochondrion (GO:0005739)",
+        "id": "leaf_mito_tb",
+        "parameters": {
+          "go_term": "GO:0005739",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0005739\"]",
+          "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Kinetoplastid Metabolic Enzymes (curated)",
+      "negative_ids": [
+        "Tb11.v5.0152",
+        "Tb11.v5.0156",
+        "Tb11.v5.0168",
+        "Tb11.v5.0171",
+        "Tb11.v5.0179",
+        "Tb11.v5.0181",
+        "Tb11.v5.0182",
+        "Tb11.v5.0199",
+        "Tb11.v5.0201",
+        "Tb11.v5.0243",
+        "Tb11.v5.0543",
+        "Tb11.v5.1034",
+        "Tb11.v5.1035",
+        "Tb927.10.10890",
+        "Tb927.10.10900"
+      ],
+      "positive_ids": [
+        "Tb11.v5.0516",
+        "Tb11.v5.0531",
+        "Tb11.v5.0605",
+        "Tb11.v5.0650",
+        "Tb11.v5.0732",
+        "Tb11.v5.0818",
+        "Tb927.1.3830",
+        "Tb927.1.700",
+        "Tb927.1.710",
+        "Tb927.1.720",
+        "LmjF.12.0530",
+        "LmjF.14.1160",
+        "LmjF.20.0100",
+        "LmjF.20.0110",
+        "LmjF.21.0240",
+        "LmjF.21.0250",
+        "LmjF.24.0850",
+        "LmjF.25.2230",
+        "LmjF.29.2510",
+        "LmjF.30.3380"
+      ],
+      "provenance_notes": "Positives: glycolytic enzymes from both T. brucei and L. major \u2014 conserved metabolic pathway genes. Negatives: RNA binding proteins and heat shock \u2014 non-metabolic housekeeping genes.",
+      "tags": [
+        "metabolic",
+        "glycosome",
+        "cross-species",
+        "seed"
+      ]
+    },
+    "description": "12-node cross-species metabolic comparison strategy. For each organism (L. major, T. brucei), builds UNION of glycolytic enzymes and oxidoreductases. Then UNION of both organism sets. INTERSECT with glycosome proteome to identify glycosomal metabolic enzymes. MINUS RNA binding (non-metabolic exclusion). Models comparative kinetoplastid metabolomics.",
+    "name": "Kinetoplastid Metabolic Enzymes",
+    "record_type": "transcript",
+    "site_id": "tritrypdb",
+    "step_tree": {
+      "displayName": "Glycosomal Metabolic (no RNA binding)",
+      "id": "root_minus_rna",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Glycosomal Metabolic",
+        "id": "glycosomal_metabolic",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Both Species Metabolic",
+          "id": "all_species_metabolic",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "L. major Metabolic",
+            "id": "lm_metabolic",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "LmjF Glycolysis (GO:0006096)",
+              "id": "leaf_lm_glycolysis",
+              "parameters": {
+                "go_term": "GO:0006096",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0006096\"]",
+                "organism": "[\"Leishmania major strain Friedlin\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            },
+            "secondaryInput": {
+              "displayName": "LmjF Oxidoreductases (GO:0016491)",
+              "id": "leaf_lm_oxidored",
+              "parameters": {
+                "go_term": "GO:0016491",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0016491\"]",
+                "organism": "[\"Leishmania major strain Friedlin\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "T. brucei Metabolic",
+            "id": "tb_metabolic",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Tb927 Glycolysis (GO:0006096)",
+              "id": "leaf_tb_glycolysis",
+              "parameters": {
+                "go_term": "GO:0006096",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0006096\"]",
+                "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            },
+            "secondaryInput": {
+              "displayName": "Tb927 Oxidoreductases (GO:0016491)",
+              "id": "leaf_tb_oxidored",
+              "parameters": {
+                "go_term": "GO:0016491",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0016491\"]",
+                "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            }
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Glycosome + Glycolytic",
+          "id": "glycosome_expanded",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Glycosome Proteome",
+            "id": "leaf_glycosome",
+            "parameters": {
+              "glycosome_confidence": "High",
+              "min_glycosome_score": "1.0"
+            },
+            "searchName": "GenesInGlycosomeProteome"
+          },
+          "secondaryInput": {
+            "displayName": "LmjF Glycolysis (GO:0006096)",
+            "id": "leaf_lm_glycolysis2",
+            "parameters": {
+              "go_term": "GO:0006096",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0006096\"]",
+              "organism": "[\"Leishmania major strain Friedlin\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "RNA Binding (GO:0003723)",
+        "id": "leaf_rna_binding_exclude",
+        "parameters": {
+          "go_term": "GO:0003723",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0003723\"]",
+          "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "T. brucei Kinetoplast RNA Editing (curated)",
+      "negative_ids": [
+        "Tb927.1.1000",
+        "Tb927.1.1530",
+        "Tb927.1.1930",
+        "Tb927.1.3130",
+        "Tb927.10.10350",
+        "Tb927.10.1070",
+        "Tb927.10.10870",
+        "Tb927.10.12040",
+        "Tb927.10.13010",
+        "Tb927.10.1320",
+        "Tb927.10.13480",
+        "Tb927.10.13490",
+        "Tb927.10.13780",
+        "Tb927.10.1380",
+        "Tb927.10.14300"
+      ],
+      "positive_ids": [
+        "Tb11.v5.0653",
+        "Tb927.10.10390",
+        "Tb927.2.4370",
+        "Tb927.7.1120",
+        "Tb927.7.1130",
+        "Tb927.7.1140",
+        "Tb11.v5.0152",
+        "Tb11.v5.0156",
+        "Tb11.v5.0168",
+        "Tb11.v5.0171",
+        "Tb11.v5.0179",
+        "Tb11.v5.0181",
+        "Tb11.v5.0182",
+        "Tb11.v5.0199",
+        "Tb11.v5.0201"
+      ],
+      "provenance_notes": "Positives: trypanothione redox system and mitochondrial RNA-binding proteins \u2014 core kinetoplast and editosome components. Negatives: protein kinases \u2014 signaling genes with no direct role in RNA editing.",
+      "tags": [
+        "kinetoplast",
+        "rna-editing",
+        "trypanosome",
+        "seed"
+      ]
+    },
+    "description": "6-node strategy for T. brucei kinetoplast biology and RNA editing. INTERSECT of mitochondrial (GO:0005739) and RNA binding (GO:0003723) genes to find mitochondrial RNA-processing machinery. UNION with trypanothione system genes (redox protection). MINUS kinases (signaling exclusion). Models editosome and kinetoplast DNA research.",
+    "name": "TbTREU927 Kinetoplast RNA Editing",
+    "record_type": "transcript",
+    "site_id": "tritrypdb",
+    "step_tree": {
+      "displayName": "Kinetoplast Machinery (no kinases)",
+      "id": "root_minus_kinase",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Kinetoplast + Redox",
+        "id": "kinetoplast_redox",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Mitochondrial RNA Processing",
+          "id": "mito_rna_editing",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Mitochondrion (GO:0005739)",
+            "id": "leaf_mito_tb2",
+            "parameters": {
+              "go_term": "GO:0005739",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0005739\"]",
+              "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          },
+          "secondaryInput": {
+            "displayName": "RNA Binding (GO:0003723)",
+            "id": "leaf_rna_binding_tb",
+            "parameters": {
+              "go_term": "GO:0003723",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0003723\"]",
+              "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Trypanothione System",
+          "id": "leaf_trypanothione",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "trypanothione",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Kinases (GO:0004672)",
+        "id": "leaf_kinases_exclude",
+        "parameters": {
+          "go_term": "GO:0004672",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0004672\"]",
+          "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  }
+]

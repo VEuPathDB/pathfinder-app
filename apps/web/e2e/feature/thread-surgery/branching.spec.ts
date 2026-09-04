@@ -18,6 +18,7 @@ import {
   EDIT_ORGANISM,
   RECALL,
   RECALLED,
+  SITE_ID,
   SUBSTITUTED,
   VERIFIED,
   echoOf,
@@ -47,9 +48,10 @@ test.describe("Thread branching", () => {
   // behind another suite's build waits minutes.
   test.describe.configure({ timeout: 600_000 });
 
-  test.beforeEach(async ({ chatPage }) => {
+  test.beforeEach(async ({ chatPage, sitePicker }) => {
     await chatPage.goto();
-    await chatPage.newChat();
+    await sitePicker.selectSite(SITE_ID);
+    await chatPage.newChat(SITE_ID);
   });
 
   test("a branch taken at the first turn holds exactly the pre-anchor turns", async ({

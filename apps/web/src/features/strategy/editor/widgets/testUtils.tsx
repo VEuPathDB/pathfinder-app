@@ -30,11 +30,7 @@ export function WidgetTestForm({
     onSubmit: () => {},
   });
 
-  return (
-    <form.Field name={name}>
-      {(field) => children(field as unknown as ParamWidgetProps["field"])}
-    </form.Field>
-  );
+  return <form.Field name={name}>{(field) => children(field)}</form.Field>;
 }
 
 export function WidgetTestFormWithValidation({
@@ -60,7 +56,7 @@ export function WidgetTestFormWithValidation({
         onBlur: ({ value }: { value: string | string[] }) => validator(value),
       }}
     >
-      {(field) => children(field as unknown as ParamWidgetProps["field"])}
+      {(field) => children(field)}
     </form.Field>
   );
 }

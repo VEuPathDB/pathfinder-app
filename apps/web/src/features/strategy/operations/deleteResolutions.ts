@@ -1,7 +1,8 @@
 import type { Step } from "@pathfinder/shared";
-import { inferStepKind } from "@/lib/strategyGraph";
+import { inferStepKind } from "@/features/strategy/graph";
 import { findParent, walkSubtreeIds } from "./utils";
-import type { DeleteResolution, OperationChoice } from "./types";
+import type { DeleteResolution } from "@/lib/types/graphOperation";
+import type { OperationChoice } from "./types";
 
 export function computeDeleteChoices(
   steps: Step[],

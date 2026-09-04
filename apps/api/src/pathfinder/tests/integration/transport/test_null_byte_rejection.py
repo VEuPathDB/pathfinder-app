@@ -4,7 +4,6 @@ import pytest
 _SITE_ID_LIST_PATHS = [
     "/api/v1/conversations",
     "/api/v1/conversations/dismissed",
-    "/api/v1/experiments/",
     "/api/v1/gene-sets",
 ]
 

@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 
 vi.mock("@/features/settings/api/memories", () => ({
   listMemories: vi.fn(),
@@ -60,11 +62,22 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/** Render with the first page already cached, so the accordions paint at once. */
+function renderWith(list: MemoryListResponse): void {
+  mockedList.mockResolvedValue(list);
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  });
+  qc.setQueryData(["memories", "list", 0], list);
+  function Wrapper({ children }: { children: ReactNode }) {
+    return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+  }
+  render(<MemorySettings />, { wrapper: Wrapper });
+}
+
 describe("MemorySettings", () => {
-  it("renders five MemorySection accordions", async () => {
-    mockedList.mockResolvedValue(emptyList());
-    render(<MemorySettings />);
-    await screen.findByRole("button", { name: /Gene Sets/i });
+  it("renders five MemorySection accordions", () => {
+    renderWith(emptyList());
     expect(screen.getByRole("button", { name: /Gene Sets/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Strategies/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Preferences/i })).toBeInTheDocument();
@@ -73,14 +86,9 @@ describe("MemorySettings", () => {
   });
 
   it("deletes a case like any other kind", async () => {
-    mockedList.mockResolvedValue({
-      ...emptyList(),
-      cases: [item("kinase_hunt", "case")],
-    });
     mockedDelete.mockResolvedValue(undefined);
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<MemorySettings />);
-    await screen.findByRole("button", { name: /Cases/i });
+    renderWith({ ...emptyList(), cases: [item("kinase_hunt", "case")] });
     fireEvent.click(screen.getByRole("button", { name: /Cases/i }));
     fireEvent.click(screen.getByLabelText(/delete kinase_hunt/i));
     await waitFor(() => {
@@ -97,21 +105,9 @@ describe("MemorySettings", () => {
   });
 
   it("deletes memory on confirmed delete", async () => {
-    const gs = item("drug_targets", "gene_set");
-    mockedList.mockResolvedValue({
-      geneSets: [gs],
-      strategies: [],
-      preferences: [],
-      knowledge: [],
-      cases: [],
-      pageSize: 50,
-      offset: 0,
-      hasMore: false,
-    });
     mockedDelete.mockResolvedValue(undefined);
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<MemorySettings />);
-    await screen.findByRole("button", { name: /Gene Sets/i });
+    renderWith({ ...emptyList(), geneSets: [item("drug_targets", "gene_set")] });
     fireEvent.click(screen.getByRole("button", { name: /Gene Sets/i }));
     fireEvent.click(screen.getByLabelText(/delete drug_targets/i));
     expect(confirmSpy).toHaveBeenCalled();
@@ -120,21 +116,9 @@ describe("MemorySettings", () => {
     });
   });
 
-  it("skips delete when user cancels confirm", async () => {
-    const gs = item("drug_targets", "gene_set");
-    mockedList.mockResolvedValue({
-      geneSets: [gs],
-      strategies: [],
-      preferences: [],
-      knowledge: [],
-      cases: [],
-      pageSize: 50,
-      offset: 0,
-      hasMore: false,
-    });
+  it("skips delete when user cancels confirm", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
-    render(<MemorySettings />);
-    await screen.findByRole("button", { name: /Gene Sets/i });
+    renderWith({ ...emptyList(), geneSets: [item("drug_targets", "gene_set")] });
     fireEvent.click(screen.getByRole("button", { name: /Gene Sets/i }));
     fireEvent.click(screen.getByLabelText(/delete drug_targets/i));
     expect(mockedDelete).not.toHaveBeenCalled();
@@ -142,19 +126,8 @@ describe("MemorySettings", () => {
 
   it("calls editMemory on auto-retrieve toggle", async () => {
     const k = item("my_knowledge", "knowledge");
-    mockedList.mockResolvedValue({
-      geneSets: [],
-      strategies: [],
-      preferences: [],
-      knowledge: [k],
-      cases: [],
-      pageSize: 50,
-      offset: 0,
-      hasMore: false,
-    });
     mockedEdit.mockResolvedValue(k);
-    render(<MemorySettings />);
-    await screen.findByRole("button", { name: /Gene Sets/i });
+    renderWith({ ...emptyList(), knowledge: [k] });
     fireEvent.click(screen.getByRole("button", { name: /Knowledge/i }));
     fireEvent.click(screen.getByRole("checkbox"));
     await waitFor(() => {
@@ -166,19 +139,8 @@ describe("MemorySettings", () => {
 
   it("opens editor on row click and saves edits", async () => {
     const k = item("my_knowledge", "knowledge");
-    mockedList.mockResolvedValue({
-      geneSets: [],
-      strategies: [],
-      preferences: [],
-      knowledge: [k],
-      cases: [],
-      pageSize: 50,
-      offset: 0,
-      hasMore: false,
-    });
     mockedEdit.mockResolvedValue(k);
-    render(<MemorySettings />);
-    await screen.findByRole("button", { name: /Gene Sets/i });
+    renderWith({ ...emptyList(), knowledge: [k] });
     fireEvent.click(screen.getByRole("button", { name: /Knowledge/i }));
     fireEvent.click(screen.getByTestId("memory-row-body"));
     expect(screen.getByRole("dialog", { name: /edit memory/i })).toBeInTheDocument();
@@ -195,33 +157,23 @@ describe("MemorySettings", () => {
   });
 
   it("requests next page when Load more clicked", async () => {
-    const gs = item("first_page", "gene_set");
-    mockedList.mockResolvedValue({
-      geneSets: [gs],
-      strategies: [],
-      preferences: [],
-      knowledge: [],
-      cases: [],
-      pageSize: 50,
-      offset: 0,
+    renderWith({
+      ...emptyList(),
+      geneSets: [item("first_page", "gene_set")],
       hasMore: true,
     });
-    render(<MemorySettings />);
-    await screen.findByRole("button", { name: /Gene Sets/i });
-    const loadMore = screen.getByRole("button", { name: /load more/i });
-    const callsBefore = mockedList.mock.calls.length;
-    fireEvent.click(loadMore);
+    fireEvent.click(screen.getByRole("button", { name: /load more/i }));
     await waitFor(() => {
-      expect(mockedList.mock.calls.length).toBeGreaterThan(callsBefore);
+      expect(mockedList).toHaveBeenCalled();
     });
-    const lastCall = mockedList.mock.calls.at(-1)?.[0];
-    expect(lastCall).toMatchObject({ limit: 50, offset: 50 });
+    expect(mockedList.mock.calls.at(-1)?.[0]).toMatchObject({
+      limit: 50,
+      offset: 50,
+    });
   });
 
-  it("hides Load more when hasMore is false", async () => {
-    mockedList.mockResolvedValue(emptyList());
-    render(<MemorySettings />);
-    await screen.findByRole("button", { name: /Gene Sets/i });
+  it("hides Load more when hasMore is false", () => {
+    renderWith(emptyList());
     expect(
       screen.queryByRole("button", { name: /load more/i }),
     ).not.toBeInTheDocument();

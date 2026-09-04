@@ -64,9 +64,6 @@ class SpecDiff(CamelModel):
         touched = sum(1 for c in self.changes if c.disposition != "kept")
         return touched + (1 if self.structure_changed else 0)
 
-    def dropped_ids(self) -> list[str]:
-        return [c.criterion_id for c in self.changes if c.disposition == "dropped"]
-
     def render(self) -> str:
         counts = (
             f"kept {self.kept_count}, changed {self.changed_count}, "

@@ -316,18 +316,15 @@ async def seam(
     """The EDA assistant under site help's id, over the recorded EDA wire."""
     del patch_app_db_engine, db_cleaner
     store = _AnalysesStore()
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(_wire(store))
+    client = EdaClient(base_url="https://plasmodb.org/eda", transport=_wire(store))
     monkeypatch.setitem(factory._clients, "plasmodb", client)
     monkeypatch.setattr(registry_mod, "build_site_help_spec", _build_spec)
     get_assistant_registry.cache_clear()
     # The api syncs the study index at warm-up; the turn only searches it.
-    catalog.clear_study_caches()
     token = veupathdb_auth_token_ctx.set("t")
     await sync_study_index(await catalog.list_studies("plasmodb"))
     veupathdb_auth_token_ctx.reset(token)
     yield _Seam(app=app, jobs=in_memory_jobs, store=store)
-    catalog.clear_study_caches()
     get_assistant_registry.cache_clear()
 
 

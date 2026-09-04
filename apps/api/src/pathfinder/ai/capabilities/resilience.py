@@ -20,8 +20,7 @@ from pathfinder.ai.capabilities.error_classification import (
     build_error_directive,
     classify_error,
 )
-from pathfinder.ai.capabilities.service_outage import OUTAGE_GIVE_UP_THRESHOLD
-from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.runtime import OUTAGE_GIVE_UP_THRESHOLD, AgentDeps
 from pathfinder.platform.errors import WDKError
 
 _WDK_STATUS_NOT_FOUND = 404

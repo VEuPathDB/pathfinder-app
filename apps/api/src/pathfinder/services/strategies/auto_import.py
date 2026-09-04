@@ -133,38 +133,6 @@ async def auto_import_gene_sets(
     return created
 
 
-async def background_auto_import_gene_sets(
-    *,
-    site_id: str,
-    user_id: UUID,
-) -> None:
-    """Run gene-set auto-import in a background task with its own DB session.
-
-    This avoids blocking the sync-wdk response while WDK API calls
-    resolve gene IDs for each eligible strategy.
-    """
-    async with async_session_factory() as session:
-        try:
-            repo = ConversationRepository(session)
-            conversations = await repo.list_conversations(user_id, site_id)
-            gene_set_svc = GeneSetService(get_gene_set_store())
-            await auto_import_gene_sets(
-                conversations,
-                conv_repo=repo,
-                gene_set_service=gene_set_svc,
-                site_id=site_id,
-                user_id=user_id,
-            )
-            await session.commit()
-        except (AppError, RuntimeError) as e:
-            await session.rollback()
-            logger.warning(
-                "Background gene set auto-import failed",
-                site_id=site_id,
-                error=str(e),
-            )
-
-
 async def import_gene_set_for_conversation(
     *,
     conversation_id: UUID,

@@ -66,10 +66,10 @@ that a tool is unavailable this turn and asking the user to retry the request.
 `classify_user_intent` states that such an imperative - a bare "yes, do it"
 that accepts the assistant's own offer, and a retry after a failed task,
 included - is a building classification and never a `follow_up_question`.
-`tests/unit/ai/lead/test_intent_gates_building_tools.py::test_a_corrected_classification_unhides_the_building_tools`
+`tests/unit/ai/lead/test_intent_gate.py::test_a_corrected_classification_unhides_the_building_tools`
 pins the unhiding,
-`tests/unit/ai/lead/test_tool_preconditions.py` pins one predicate per test,
-and `tests/unit/ai/lead/test_imperatives_are_building_intents.py` pins the
+`tests/unit/ai/lead/test_intent_gate_preconditions.py` pins one predicate per test,
+and `tests/unit/ai/lead/test_lead_instructions.py` pins the
 guidance.
 
 `ai/lead/memory_candidates.py` follows the same rule: a turn whose recorded
@@ -99,6 +99,6 @@ the list: `classify_user_intent` before a classification, `edit_strategy` when
 built left the building tools unlocked at the next turn's entry and "classify
 first, every turn" was unenforced. It was kept while the deterministic provider
 might not re-classify; its arcs classify once per turn now
-(`ai/models/mock_arcs.py::lead_script`), and a turn that resumes a parked call
+(`ai/models/mock/arcs.py::lead_script`), and a turn that resumes a parked call
 is the same turn by message id, so the turn-scoped marker costs no run a
 duplicate classification.

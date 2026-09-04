@@ -21,7 +21,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils/cn";
-import { useChatHelpersOptional } from "../runtime/chatHelpersContext";
+import { useChatHelpers } from "../runtime/chatHelpersContext";
 import {
   lastSeenFor,
   useRightRailStore,
@@ -72,8 +72,8 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
   const autoOpen = useRightRailStore((s) => s.autoOpen);
 
   const strategyStepCount = strategy?.steps.length ?? 0;
-  const chat = useChatHelpersOptional();
-  const activity = computeRailActivity(chat?.messages ?? []);
+  const chat = useChatHelpers();
+  const activity = computeRailActivity(chat.messages);
 
   const [autoOpenChecked, setAutoOpenChecked] = useState<string | null>(null);
   if (

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { Strategy } from "@pathfinder/shared";
 
 import { Button } from "@/components/ui/button";
-import { patchConversationEda } from "@/lib/api/eda";
+import { patchConversationEda } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
 import { strategyQueryKey } from "@/lib/api/strategy";
 import { strategyCanvasUrl } from "@/lib/routes";

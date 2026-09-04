@@ -1,18 +1,14 @@
 import { z } from "zod";
 
+import type { StructuralPart } from "@/features/conversation/parts";
+
 const dispatchSchema = z.object({
   toolCallId: z.string().min(1),
   phase: z.string().min(1),
   state: z.string().min(1),
 });
 
-interface PartLike {
-  type: string;
-  name?: string | undefined;
-  data?: unknown;
-}
-
-function isDispatch(part: PartLike): boolean {
+function isDispatch(part: StructuralPart): boolean {
   return (
     part.type === "data-sub-agent-call" ||
     (part.type === "data" && part.name === "sub-agent-call")
@@ -24,7 +20,7 @@ function isDispatch(part: PartLike): boolean {
  * Read from the same chunks the trace reads, so a status line and a trace
  * group can never name different phases.
  */
-export function runningPhase(parts: readonly PartLike[]): string | null {
+export function runningPhase(parts: readonly StructuralPart[]): string | null {
   const open = new Map<string, string>();
   for (const part of parts) {
     if (!isDispatch(part)) continue;

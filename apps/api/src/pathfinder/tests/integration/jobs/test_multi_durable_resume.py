@@ -40,7 +40,6 @@ import pathfinder.assistants.registry as registry_mod
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone._experiment_models import StepControlTestResult
 from pathfinder.ai.tools.standalone.experiment import run_control_tests_on_step
 from pathfinder.assistants.pathfinder_spec import build_turn_context
 from pathfinder.assistants.registry import get_assistant_registry
@@ -52,6 +51,7 @@ from pathfinder.assistants.site_help.spec import (
 from pathfinder.jobs.impls import control_tests_impl, register_all_tools
 from pathfinder.jobs.runner import run_durable_task
 from pathfinder.persistence.models import BackgroundTask, User
+from pathfinder.services.tool_payloads import ControlOutcome
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -227,13 +227,13 @@ def failing_second_step(monkeypatch: pytest.MonkeyPatch) -> None:
         wdk_step_id: int,
         positive_controls: list[str] | None = None,
         negative_controls: list[str] | None = None,
-    ) -> StepControlTestResult:
+    ) -> ControlOutcome:
         del site_id, negative_controls
         if wdk_step_id == _STEP_B:
             msg = "WDK rejected step 440230653"
             raise RuntimeError(msg)
         found = positive_controls or []
-        return StepControlTestResult(
+        return ControlOutcome(
             step_id=wdk_step_id,
             estimated_size=132,
             positive_intersection=len(found),
@@ -247,7 +247,7 @@ def failing_second_step(monkeypatch: pytest.MonkeyPatch) -> None:
             negative_intersection_ids=[],
         )
 
-    monkeypatch.setattr(control_tests_impl, "_run_step_control_tests", _run_step)
+    monkeypatch.setattr(control_tests_impl, "run_step_control_tests", _run_step)
 
 
 @pytest.fixture
@@ -258,10 +258,10 @@ def controls_wire(monkeypatch: pytest.MonkeyPatch) -> None:
         wdk_step_id: int,
         positive_controls: list[str] | None = None,
         negative_controls: list[str] | None = None,
-    ) -> StepControlTestResult:
+    ) -> ControlOutcome:
         del site_id
         found = positive_controls or []
-        return StepControlTestResult(
+        return ControlOutcome(
             step_id=wdk_step_id,
             estimated_size=132,
             positive_intersection=len(found),
@@ -276,14 +276,14 @@ def controls_wire(monkeypatch: pytest.MonkeyPatch) -> None:
         )
 
     async def _export(
-        result: StepControlTestResult,
+        result: ControlOutcome,
         name: str,
-    ) -> StepControlTestResult:
+    ) -> ControlOutcome:
         del name
         return result
 
-    monkeypatch.setattr(control_tests_impl, "_run_step_control_tests", _run_step)
-    monkeypatch.setattr(control_tests_impl, "_export_step_control_result", _export)
+    monkeypatch.setattr(control_tests_impl, "run_step_control_tests", _run_step)
+    monkeypatch.setattr(control_tests_impl, "attach_control_downloads", _export)
 
 
 async def _make_user() -> UUID:

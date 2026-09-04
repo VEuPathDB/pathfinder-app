@@ -158,12 +158,6 @@ class SiteRouter:
         """Returns every available site."""
         return list(self._sites.values())
 
-    def get_default_site(self) -> SiteInfo:
-        """Returns the default site."""
-        settings = get_settings()
-        default_id = self._config.default_site or settings.veupathdb_default_site
-        return self.get_site(default_id)
-
     def get_client(self, site_id: str) -> VEuPathDBClient:
         """Returns the HTTP client for a site and creates it on first use."""
         if site_id in self._clients:
@@ -184,10 +178,6 @@ class SiteRouter:
                     auth_token=settings.veupathdb_auth_token,
                 )
             return self._clients[site_id]
-
-    def get_portal_client(self) -> VEuPathDBClient:
-        """Returns the client for the portal site."""
-        return self.get_client("veupathdb")
 
     def get_site_search_client(self, site_id: str) -> SiteSearchClient:
         """Returns the site search client for a site and creates it on first use.

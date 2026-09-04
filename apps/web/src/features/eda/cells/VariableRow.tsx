@@ -19,7 +19,7 @@ export interface VariableRowProps {
 }
 
 /** One line of context under the variable name, from what the wire declares. */
-export function variableHint(variable: EdaVariableResponse): string {
+function variableHint(variable: EdaVariableResponse): string {
   const vocabulary = variable.vocabulary;
   if (vocabulary.length > 0) {
     const total = variable.vocabularyTotal;

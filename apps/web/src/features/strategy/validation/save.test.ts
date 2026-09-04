@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SearchValidationResponse, Step, Strategy } from "@pathfinder/shared";
+import type { ValidationResponse, Step, Strategy } from "@pathfinder/shared";
 import { validateStepsForSave } from "./save";
 
 // ---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ function makeStrategy(overrides?: Partial<Strategy>): Strategy {
   };
 }
 
-function validResponse(): SearchValidationResponse {
+function validResponse(): ValidationResponse {
   return {
     validation: {
       isValid: true,
@@ -92,7 +92,7 @@ function validResponse(): SearchValidationResponse {
 function invalidResponse(
   general: string[] = [],
   byKey: Record<string, string[]> = {},
-): SearchValidationResponse {
+): ValidationResponse {
   return {
     validation: {
       isValid: false,

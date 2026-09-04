@@ -22,7 +22,7 @@ from pathfinder.services.experiment.metrics import (
     compute_metrics,
     metrics_from_control_result,
 )
-from pathfinder.services.experiment.step_analysis import (
+from pathfinder.services.experiment.tree_evaluation import (
     run_controls_against_tree,
 )
 from pathfinder.services.experiment.types import (

@@ -3,7 +3,7 @@
 The vectors move from per-site files to two tables, and the memory store's
 column widens to the new model's dimension. The store's rows are dropped
 because a 512-wide vector cannot be read as a 1024-wide one; the operator
-re-embeds them with ``pathfinder.devtools.reembed_memories``.
+re-embeds them.
 
 Revision ID: 2026_08_29_0001
 Revises: 2026_08_28_0002

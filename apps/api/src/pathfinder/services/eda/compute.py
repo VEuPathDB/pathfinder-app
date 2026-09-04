@@ -7,8 +7,8 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 
 from assistant_core.platform.pydantic_base import CamelModel
-from shared_py.stream_parts.eda import EdaEffectDirection
 
+from pathfinder.domain.eda_parts import EdaEffectDirection
 from pathfinder.integrations.eda.errors import EdaError
 from pathfinder.integrations.eda.factory import get_eda_client
 from pathfinder.integrations.eda.models import (

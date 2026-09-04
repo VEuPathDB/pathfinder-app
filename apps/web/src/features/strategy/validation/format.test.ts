@@ -1,17 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type {
-  SearchValidationPayload,
-  SearchValidationResponse,
-} from "@pathfinder/shared";
+import type { ValidationResult, ValidationResponse } from "@pathfinder/shared";
 import { formatSearchValidationResponse } from "./format";
 
 // ---------------------------------------------------------------------------
 // Helpers to build valid test data without `as any`
 // ---------------------------------------------------------------------------
 
-function makePayload(
-  overrides: Partial<SearchValidationPayload>,
-): SearchValidationPayload {
+function makePayload(overrides: Partial<ValidationResult>): ValidationResult {
   return {
     isValid: true,
     normalizedContextValues: {},
@@ -20,7 +15,7 @@ function makePayload(
   };
 }
 
-function makeResponse(payload: SearchValidationPayload): SearchValidationResponse {
+function makeResponse(payload: ValidationResult): ValidationResponse {
   return { validation: payload };
 }
 
@@ -48,7 +43,7 @@ describe("formatSearchValidationResponse", () => {
 
     it("returns null when validation payload is undefined", () => {
       // Simulate a response where the `validation` field is missing entirely.
-      const response = { validation: undefined } as unknown as SearchValidationResponse;
+      const response = { validation: undefined } as unknown as ValidationResponse;
       const result = formatSearchValidationResponse(response);
       expect(result).toEqual({ message: null, keys: new Set() });
     });

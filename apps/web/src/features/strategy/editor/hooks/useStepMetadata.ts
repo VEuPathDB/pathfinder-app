@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Step } from "@pathfinder/shared";
-import { inferStepKind } from "@/lib/strategyGraph";
+import { inferStepKind } from "@/features/strategy/graph";
 
 interface UseStepMetadataArgs {
   step: Step;

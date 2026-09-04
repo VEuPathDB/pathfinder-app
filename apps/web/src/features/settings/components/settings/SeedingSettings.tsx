@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { seedExperiments } from "@/lib/api/experiments";
+import { seedExperiments } from "@/features/settings/api/experiments";
 import { invalidateUserScopedQueries } from "@/lib/query/invalidateUserScoped";
 import Image from "next/image";
 import { Loader2, FlaskConical } from "lucide-react";

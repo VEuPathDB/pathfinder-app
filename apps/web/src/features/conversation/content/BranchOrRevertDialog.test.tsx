@@ -20,7 +20,7 @@ describe("BranchOrRevertDialog", () => {
       />,
     );
     await userEvent.click(screen.getByTestId("edit-branch-button"));
-    expect(onBranch).toHaveBeenCalledOnce();
+    expect(onBranch).toHaveBeenCalledTimes(1);
   });
 
   it("fires onRevert when revert clicked", async () => {
@@ -37,7 +37,7 @@ describe("BranchOrRevertDialog", () => {
       />,
     );
     await userEvent.click(screen.getByTestId("edit-revert-button"));
-    expect(onRevert).toHaveBeenCalledOnce();
+    expect(onRevert).toHaveBeenCalledTimes(1);
   });
 
   it("disables branch when canBranch is false", () => {

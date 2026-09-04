@@ -4,20 +4,16 @@ distributions, and step analyses."""
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 
-from pathfinder.integrations.veupathdb.factory import get_site
+from pathfinder.domain.wdk_values import WDKSortDirection
+from pathfinder.integrations.veupathdb.factory import get_site, get_strategy_api
 from pathfinder.integrations.veupathdb.strategy_api.api import StrategyAPI
 from pathfinder.integrations.veupathdb.wdk_models import (
     WDKAnswer,
     WDKColumnDistribution,
-    WDKSortDirection,
     WDKSortSpec,
     WDKStrategyDetails,
 )
 from pathfinder.platform.errors import AppError
-from pathfinder.services.enrichment.parser import (
-    is_enrichment_analysis,
-    parse_enrichment_from_raw,
-)
 from pathfinder.services.wdk.helpers import (
     build_attribute_list,
     extract_detail_attributes,
@@ -119,26 +115,6 @@ class StepResultsService:
 
         return result, params
 
-    async def run_analysis(
-        self,
-        analysis_name: str,
-        parameters: JSONObject,
-    ) -> JSONObject:
-        """Run a WDK step analysis, auto-parsing enrichment results."""
-        result, params = await self.run_analysis_raw(analysis_name, parameters)
-
-        if is_enrichment_analysis(analysis_name):
-            analyzed = await self._api.get_step_count(self._step_id)
-            er = parse_enrichment_from_raw(
-                analysis_name, params, result, analyzed_gene_count=analyzed
-            )
-            return {
-                "_resultType": "enrichment",
-                "enrichmentResults": [er.model_dump(by_alias=True)],
-            }
-
-        return result
-
     async def get_record_detail(
         self,
         primary_key: list[dict[str, str]],
@@ -184,3 +160,17 @@ class StepResultsService:
             tables=record_instance.tables,
             table_errors=record_instance.table_errors,
         )
+
+
+def step_results_service(
+    *,
+    site_id: str,
+    step_id: int,
+    record_type: str,
+) -> StepResultsService:
+    """The reader for one built step of a site."""
+    return StepResultsService(
+        get_strategy_api(site_id),
+        step_id=step_id,
+        record_type=record_type,
+    )

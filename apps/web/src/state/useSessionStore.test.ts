@@ -1,58 +1,38 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+
 import { useSessionStore } from "./useSessionStore";
 
 beforeEach(() => {
   useSessionStore.setState({
     selectedSite: "veupathdb",
-    strategyId: null,
-    strategyBySite: {},
-    chatIsStreaming: false,
-    chatPreviewVersion: 0,
-    pendingAskNode: null,
-    composerPrefill: null,
+    pendingUserSubmission: null,
+    chatResetCounter: 0,
   });
 });
 
 describe("state/useSessionStore", () => {
-  it("setSelectedSite updates selected site", () => {
+  it("setSelectedSite updates the selected site", () => {
     useSessionStore.getState().setSelectedSite("tritrypdb");
     expect(useSessionStore.getState().selectedSite).toBe("tritrypdb");
   });
 
-  it("setStrategyId updates strategyId and strategyBySite atomically", () => {
-    useSessionStore.getState().setStrategyId("s-123");
-    const s = useSessionStore.getState();
-    expect(s.strategyId).toBe("s-123");
-    expect(s.strategyBySite).toEqual({ veupathdb: "s-123" });
+  it("setSelectedSite is a no-op for the current site", () => {
+    const before = useSessionStore.getState();
+    before.setSelectedSite("veupathdb");
+    expect(useSessionStore.getState()).toBe(before);
   });
 
-  it("setStrategyId(null) removes entry from strategyBySite", () => {
-    useSessionStore.getState().setStrategyId("s-123");
-    useSessionStore.getState().setStrategyId(null);
-    const s = useSessionStore.getState();
-    expect(s.strategyId).toBeNull();
-    expect(s.strategyBySite).toEqual({});
+  it("setPendingUserSubmission carries the conversation and the text", () => {
+    useSessionStore
+      .getState()
+      .setPendingUserSubmission({ conversationId: "c1", content: "go" });
+    const pending = useSessionStore.getState().pendingUserSubmission;
+    expect(pending).toEqual({ conversationId: "c1", content: "go" });
   });
 
-  it("switching site restores strategyId from strategyBySite", () => {
-    useSessionStore.getState().setStrategyId("s-veu");
-    useSessionStore.getState().setSelectedSite("toxodb");
-    expect(useSessionStore.getState().strategyId).toBeNull();
-    useSessionStore.getState().setStrategyId("s-toxo");
-    useSessionStore.getState().setSelectedSite("veupathdb");
-    expect(useSessionStore.getState().strategyId).toBe("s-veu");
-    useSessionStore.getState().setSelectedSite("toxodb");
-    expect(useSessionStore.getState().strategyId).toBe("s-toxo");
-  });
-
-  it("setChatIsStreaming updates streaming state", () => {
-    useSessionStore.getState().setChatIsStreaming(true);
-    expect(useSessionStore.getState().chatIsStreaming).toBe(true);
-  });
-
-  it("bumpChatPreviewVersion increments monotonically", () => {
-    const v0 = useSessionStore.getState().chatPreviewVersion;
-    useSessionStore.getState().bumpChatPreviewVersion();
-    expect(useSessionStore.getState().chatPreviewVersion).toBe(v0 + 1);
+  it("bumpChatResetCounter increments monotonically", () => {
+    useSessionStore.getState().bumpChatResetCounter();
+    useSessionStore.getState().bumpChatResetCounter();
+    expect(useSessionStore.getState().chatResetCounter).toBe(2);
   });
 });

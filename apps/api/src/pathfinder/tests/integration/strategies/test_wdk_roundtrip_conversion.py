@@ -14,8 +14,9 @@ from assistant_core.platform.db import async_session_factory
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.domain.parameters.values import MultiPickValue
-from pathfinder.domain.strategy.ast import StrategyStepNode, walk_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.strategy_ast import PersistedStrategyGraph
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.persistence.models import User
 from pathfinder.platform.context import veupathdb_auth_token_ctx
@@ -97,9 +98,7 @@ async def test_organism_multipick_survives_wdk_roundtrip(
         )
 
         await canonicalize_synced_parameters(ast, api, wire_by_step_id)
-        leaf = next(
-            s for s in walk_step_tree(ast.root) if s.search_name == "GenesByTaxon"
-        )
+        leaf = next(s for s in walk(ast.root) if s.search_name == "GenesByTaxon")
         assert leaf.parameters.get("organism") == MultiPickValue(values=[_ORGANISM])
     finally:
         if wdk_strategy_id is not None:

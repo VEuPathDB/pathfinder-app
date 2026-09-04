@@ -10,7 +10,6 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from shared_py.stream_parts.eda import EdaEffectDirection
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._stream_parts import (
@@ -18,6 +17,7 @@ from pathfinder.ai.tools.standalone._stream_parts import (
     strategy_link_chunk,
 )
 from pathfinder.ai.tools.standalone._validation_helpers import get_graph
+from pathfinder.domain.eda_parts import EdaEffectDirection
 from pathfinder.domain.eda_thread import EdaExport
 from pathfinder.domain.strategy.operations import AddLeafOp
 from pathfinder.domain.strategy.operations.types import (

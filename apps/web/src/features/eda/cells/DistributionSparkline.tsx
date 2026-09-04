@@ -6,7 +6,7 @@ import type { EdaVariableResponse } from "@pathfinder/shared/generated/types/Eda
 
 import { BarChart } from "@/lib/components/charts/BarChart";
 import { HistogramChart } from "@/lib/components/charts/HistogramChart";
-import { edaDistribution } from "@/lib/api/eda";
+import { edaDistribution } from "@/features/eda/api";
 
 const HEIGHT = 96;
 const SERIES_NAME = "Subset";

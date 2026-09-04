@@ -1,0 +1,1364 @@
+[
+  {
+    "control_set": {
+      "name": "Innate Immunity Panel (curated)",
+      "negative_ids": [
+        "ENSG00000204388",
+        "ENSG00000204389",
+        "ENSG00000204390",
+        "ENSG00000120694",
+        "ENSG00000126803",
+        "ENSG00000132622",
+        "ENSG00000133265",
+        "ENSG00000142798",
+        "ENSG00000144381",
+        "ENSG00000080824",
+        "ENSG00000096384",
+        "ENSG00000166598",
+        "ENSG00000155304",
+        "ENSG00000113013",
+        "ENSG00000115541",
+        "ENSG00000152137",
+        "ENSG00000164070",
+        "ENSG00000169087",
+        "ENSG00000109971",
+        "ENSG00000106211"
+      ],
+      "positive_ids": [
+        "ENSG00000174125",
+        "ENSG00000137462",
+        "ENSG00000164342",
+        "ENSG00000136869",
+        "ENSG00000187554",
+        "ENSG00000174130",
+        "ENSG00000196664",
+        "ENSG00000101916",
+        "ENSG00000091592",
+        "ENSG00000162711",
+        "ENSG00000179709",
+        "ENSG00000160505",
+        "ENSG00000171487",
+        "ENSG00000174885",
+        "ENSG00000172936",
+        "ENSG00000090376",
+        "ENSG00000134070",
+        "ENSG00000146243",
+        "ENSG00000184216",
+        "ENSG00000198001",
+        "ENSG00000109320",
+        "ENSG00000077150",
+        "ENSG00000100906",
+        "ENSG00000104825",
+        "ENSG00000162434",
+        "ENSG00000096968",
+        "ENSG00000105639",
+        "ENSG00000152969",
+        "ENSG00000115415",
+        "ENSG00000170581",
+        "ENSG00000137752",
+        "ENSG00000106144",
+        "ENSG00000164305",
+        "ENSG00000196954",
+        "ENSG00000137757"
+      ],
+      "provenance_notes": "Positives: TLRs, NLRPs, MYD88/IRAK/TRAF adaptors, NF-kB subunits, JAK-STAT, and inflammasome caspases \u2014 all innate immunity signaling. Negatives: heat shock proteins \u2014 housekeeping chaperones with no direct innate immune signaling role.",
+      "tags": [
+        "innate-immunity",
+        "signaling",
+        "hostdb",
+        "seed"
+      ]
+    },
+    "description": "Comprehensive innate immune signaling: TLR/NLR/NOD pattern recognition receptors INTERSECTED with downstream signaling adaptors (MYD88, IRAK, TRAF, NF-kB, IRF), UNIONED with JAK-STAT pathway and inflammasome caspases. Models the complete signaling cascade from pathogen recognition to transcriptional response.",
+    "name": "Hs Innate Immunity Signaling Network",
+    "record_type": "transcript",
+    "site_id": "hostdb",
+    "step_tree": {
+      "displayName": "Innate Immunity Network",
+      "id": "root_union",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "PRR-Signaling Crosstalk",
+        "id": "prr_intersect_signaling",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "All PRRs (TLR+NLR+NOD)",
+          "id": "all_prrs",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Toll-like Receptors (TLR*)",
+            "id": "leaf_tlr",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "TLR*",
+              "text_fields": "[\"name\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "NLR + NOD receptors",
+            "id": "nlr_nod_union",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "NLRP Family",
+              "id": "leaf_nlrp",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "NLRP*",
+                "text_fields": "[\"name\"]",
+                "text_search_organism": "[\"Homo sapiens REF\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "NOD Receptors",
+              "id": "leaf_nod",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "NOD*",
+                "text_fields": "[\"name\"]",
+                "text_search_organism": "[\"Homo sapiens REF\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Signaling Cascades",
+          "id": "all_signaling",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "MYD88/IRAK/TRAF Adaptors",
+            "id": "leaf_adaptors",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "MYD88 OR IRAK OR TRAF",
+              "text_fields": "[\"name\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Transcription Factors",
+            "id": "tf_union",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "NF-kB Subunits",
+              "id": "leaf_nfkb",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "NFKB*",
+                "text_fields": "[\"name\"]",
+                "text_search_organism": "[\"Homo sapiens REF\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "IRF Factors",
+              "id": "leaf_irf",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "IRF*",
+                "text_fields": "[\"name\"]",
+                "text_search_organism": "[\"Homo sapiens REF\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "JAK-STAT + Inflammasome",
+        "id": "jakstat_casp_union",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "JAK-STAT Pathway",
+          "id": "leaf_jakstat",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "JAK OR STAT",
+            "text_fields": "[\"name\"]",
+            "text_search_organism": "[\"Homo sapiens REF\"]"
+          },
+          "searchName": "GenesByText"
+        },
+        "secondaryInput": {
+          "displayName": "Inflammasome Caspases",
+          "id": "leaf_caspases",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "CASP*",
+            "text_fields": "[\"name\"]",
+            "text_search_organism": "[\"Homo sapiens REF\"]"
+          },
+          "searchName": "GenesByText"
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Pathogen Defense Panel (curated)",
+      "negative_ids": [
+        "ENSG00000101844",
+        "ENSG00000168010",
+        "ENSG00000066739",
+        "ENSG00000175224",
+        "ENSG00000168397",
+        "ENSG00000057663",
+        "ENSG00000152348",
+        "ENSG00000085978",
+        "ENSG00000123395",
+        "ENSG00000144848",
+        "ENSG00000006062",
+        "ENSG00000006432",
+        "ENSG00000073803",
+        "ENSG00000085511",
+        "ENSG00000091436",
+        "ENSG00000095015",
+        "ENSG00000107968",
+        "ENSG00000130758",
+        "ENSG00000135341",
+        "ENSG00000139625"
+      ],
+      "positive_ids": [
+        "ENSG00000164816",
+        "ENSG00000164821",
+        "ENSG00000164822",
+        "ENSG00000206042",
+        "ENSG00000206047",
+        "ENSG00000223629",
+        "ENSG00000233238",
+        "ENSG00000233531",
+        "ENSG00000234178",
+        "ENSG00000239839",
+        "ENSG00000240247",
+        "ENSG00000088782",
+        "ENSG00000125788",
+        "ENSG00000125903",
+        "ENSG00000131068",
+        "ENSG00000173369",
+        "ENSG00000173372",
+        "ENSG00000159189",
+        "ENSG00000144119",
+        "ENSG00000165985",
+        "ENSG00000108561",
+        "ENSG00000131094",
+        "ENSG00000000971",
+        "ENSG00000243649",
+        "ENSG00000125730",
+        "ENSG00000106804",
+        "ENSG00000021852",
+        "ENSG00000157131",
+        "ENSG00000176919",
+        "ENSG00000113600",
+        "ENSG00000038532",
+        "ENSG00000069493",
+        "ENSG00000104938",
+        "ENSG00000105472",
+        "ENSG00000110852",
+        "ENSG00000111729",
+        "ENSG00000132514",
+        "ENSG00000140839",
+        "ENSG00000132185",
+        "ENSG00000132704",
+        "ENSG00000143297",
+        "ENSG00000160856",
+        "ENSG00000162746",
+        "ENSG00000163518"
+      ],
+      "provenance_notes": "Positives: defensins, complement factors, C-type lectins, Fc/phagocytic receptors \u2014 direct pathogen killing and engulfment. Negatives: autophagy machinery and MAPK cascade \u2014 intracellular processes without direct antimicrobial effector function.",
+      "tags": [
+        "defense",
+        "antimicrobial",
+        "hostdb",
+        "seed"
+      ]
+    },
+    "description": "Multi-layered pathogen defense: secreted antimicrobial peptides (defensins + cathelicidins with signal peptides), complement system components, phagocytic receptors (Fc receptors, CR3), and surface C-type lectin receptors. Models effector mechanisms that directly kill or engulf pathogens.",
+    "name": "Hs Pathogen Defense Arsenal",
+    "record_type": "transcript",
+    "site_id": "hostdb",
+    "step_tree": {
+      "displayName": "Pathogen Defense Arsenal",
+      "id": "root_defense",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Secreted Antimicrobials",
+        "id": "secreted_amps",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Antimicrobial Peptides",
+          "id": "amp_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Defensins",
+            "id": "leaf_defensins",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "defensin",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Cathelicidins",
+            "id": "leaf_cathelicidin",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "cathelicidin",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Signal Peptide (Secreted)",
+          "id": "leaf_signal_pep",
+          "parameters": {
+            "organism": "[\"Homo sapiens REF\"]"
+          },
+          "searchName": "GenesWithSignalPeptide"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Complement + Phagocytosis",
+        "id": "complement_phago",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Complement System",
+          "id": "complement_filtered",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Complement Genes",
+            "id": "leaf_complement_all",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "complement",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Complement - Large MW",
+            "id": "complement_minus_large",
+            "operator": "MINUS",
+            "primaryInput": {
+              "displayName": "All Complement",
+              "id": "leaf_complement_dup",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "complement",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Homo sapiens REF\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Very Large Proteins (>500kDa)",
+              "id": "leaf_large_mw",
+              "parameters": {
+                "max_molecular_weight": "99999999",
+                "min_molecular_weight": "500000",
+                "organism": "[\"Homo sapiens REF\"]"
+              },
+              "searchName": "GenesByMolecularWeight"
+            }
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Phagocytic + Lectin Receptors",
+          "id": "phago_lectin_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Phagocytic Receptors",
+            "id": "leaf_phago_receptors",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "Fc receptor OR phagocyt*",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Surface C-type Lectins",
+            "id": "clec_surface",
+            "operator": "INTERSECT",
+            "primaryInput": {
+              "displayName": "C-type Lectin Receptors",
+              "id": "leaf_clec",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "CLEC*",
+                "text_fields": "[\"name\"]",
+                "text_search_organism": "[\"Homo sapiens REF\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Transmembrane (>=1 domain)",
+              "id": "leaf_tm_domains",
+              "parameters": {
+                "max_tm": "99",
+                "min_tm": "1",
+                "organism": "[\"Homo sapiens REF\"]"
+              },
+              "searchName": "GenesByTransmembraneDomains"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Cytokine Panel (curated)",
+      "negative_ids": [
+        "ENSG00000204388",
+        "ENSG00000204389",
+        "ENSG00000204390",
+        "ENSG00000120694",
+        "ENSG00000126803",
+        "ENSG00000132622",
+        "ENSG00000133265",
+        "ENSG00000142798",
+        "ENSG00000144381",
+        "ENSG00000080824",
+        "ENSG00000164816",
+        "ENSG00000164821",
+        "ENSG00000164822",
+        "ENSG00000206042",
+        "ENSG00000206047",
+        "ENSG00000223629",
+        "ENSG00000233238",
+        "ENSG00000233531",
+        "ENSG00000234178",
+        "ENSG00000239839"
+      ],
+      "positive_ids": [
+        "ENSG00000111537",
+        "ENSG00000147873",
+        "ENSG00000147896",
+        "ENSG00000147885",
+        "ENSG00000159110",
+        "ENSG00000159128",
+        "ENSG00000182393",
+        "ENSG00000120235",
+        "ENSG00000137959",
+        "ENSG00000185885",
+        "ENSG00000137965",
+        "ENSG00000185745",
+        "ENSG00000171855",
+        "ENSG00000172183",
+        "ENSG00000186803",
+        "ENSG00000115008",
+        "ENSG00000125538",
+        "ENSG00000136689",
+        "ENSG00000115594",
+        "ENSG00000115590",
+        "ENSG00000112115",
+        "ENSG00000112116",
+        "ENSG00000096996",
+        "ENSG00000113302",
+        "ENSG00000081985",
+        "ENSG00000168811",
+        "ENSG00000110324",
+        "ENSG00000136634",
+        "ENSG00000115602",
+        "ENSG00000115598",
+        "ENSG00000232810",
+        "ENSG00000120337",
+        "ENSG00000125657",
+        "ENSG00000120949",
+        "ENSG00000141655",
+        "ENSG00000157873",
+        "ENSG00000048462",
+        "ENSG00000117586",
+        "ENSG00000067182",
+        "ENSG00000028137",
+        "ENSG00000049249",
+        "ENSG00000102524",
+        "ENSG00000104689",
+        "ENSG00000106952",
+        "ENSG00000109079"
+      ],
+      "provenance_notes": "Positives: interferons, interleukins, TNF superfamily \u2014 secreted immune signaling molecules. Negatives: HSPs (chaperones) and defensins (antimicrobial peptides) \u2014 not cytokine signaling.",
+      "tags": [
+        "cytokine",
+        "interferon",
+        "interleukin",
+        "hostdb",
+        "seed"
+      ]
+    },
+    "description": "Complete cytokine signaling network: interferons (alpha/beta/gamma/lambda) filtered to protein-coding, secreted interleukins (IL-1/IL-6/IL-10/IL-12 families), TNF superfamily members (minus ribosomal noise), and secreted chemokines. Captures the full communication network of immune cells.",
+    "name": "Hs Cytokine Network",
+    "record_type": "transcript",
+    "site_id": "hostdb",
+    "step_tree": {
+      "displayName": "Cytokine Network",
+      "id": "root_cytokine",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Interferons + Interleukins",
+        "id": "ifn_il_union",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Protein-Coding Interferons",
+          "id": "ifn_coding",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Interferons",
+            "id": "leaf_ifn",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "interferon",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Protein Coding Genes",
+            "id": "leaf_protein_coding",
+            "parameters": {
+              "geneType": "[\"protein coding\"]",
+              "includePseudogenes": "No",
+              "organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByGeneType"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Secreted Interleukins",
+          "id": "il_secreted",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Interleukins",
+            "id": "leaf_il",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "interleukin",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_il_signal",
+            "parameters": {
+              "organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "TNF + Chemokines",
+        "id": "tnf_chemo_union",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "TNF Superfamily (clean)",
+          "id": "tnf_clean",
+          "operator": "MINUS",
+          "primaryInput": {
+            "displayName": "TNF Superfamily",
+            "id": "leaf_tnf",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "TNF*",
+              "text_fields": "[\"name\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Ribosomal (noise filter)",
+            "id": "leaf_ribosomal",
+            "parameters": {
+              "go_term": "GO:0003735",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0003735\"]",
+              "organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Secreted Chemokines",
+          "id": "chemokine_secreted",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Chemokines",
+            "id": "leaf_chemokine",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "chemokine",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_chemo_signal",
+            "parameters": {
+              "organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          }
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Autophagy Panel (curated)",
+      "negative_ids": [
+        "ENSG00000173369",
+        "ENSG00000173372",
+        "ENSG00000159189",
+        "ENSG00000144119",
+        "ENSG00000165985",
+        "ENSG00000108561",
+        "ENSG00000131094",
+        "ENSG00000000971",
+        "ENSG00000243649",
+        "ENSG00000125730",
+        "ENSG00000106804",
+        "ENSG00000021852",
+        "ENSG00000157131",
+        "ENSG00000176919",
+        "ENSG00000113600",
+        "ENSG00000115008",
+        "ENSG00000125538",
+        "ENSG00000136689",
+        "ENSG00000115594",
+        "ENSG00000115590",
+        "ENSG00000112115",
+        "ENSG00000112116",
+        "ENSG00000096996",
+        "ENSG00000113302",
+        "ENSG00000081985"
+      ],
+      "positive_ids": [
+        "ENSG00000101844",
+        "ENSG00000168010",
+        "ENSG00000066739",
+        "ENSG00000175224",
+        "ENSG00000168397",
+        "ENSG00000057663",
+        "ENSG00000152348",
+        "ENSG00000085978",
+        "ENSG00000123395",
+        "ENSG00000144848",
+        "ENSG00000130734",
+        "ENSG00000152223",
+        "ENSG00000110046",
+        "ENSG00000125703",
+        "ENSG00000145782",
+        "ENSG00000126775",
+        "ENSG00000126581",
+        "ENSG00000196289",
+        "ENSG00000005893",
+        "ENSG00000078081",
+        "ENSG00000125869",
+        "ENSG00000185896",
+        "ENSG00000083290",
+        "ENSG00000116299",
+        "ENSG00000149547"
+      ],
+      "provenance_notes": "Positives: ATG core genes, beclin, LAMP, ULK1, WIPI, DRAM \u2014 autophagy/xenophagy machinery. Negatives: complement factors and interleukins \u2014 extracellular immune effectors, not autophagy.",
+      "tags": [
+        "autophagy",
+        "xenophagy",
+        "hostdb",
+        "seed"
+      ]
+    },
+    "description": "Autophagy pathway for intracellular pathogen defense (xenophagy): ATG core genes (ATG2-ATG16), beclin complex, ubiquitin-autophagy crosstalk (ubiquitin genes with GO:autophagy annotation), all filtered to protein-coding. Critical for clearing intracellular Toxoplasma, Mycobacteria, and Salmonella.",
+    "name": "Hs Autophagy & Xenophagy Machinery",
+    "record_type": "transcript",
+    "site_id": "hostdb",
+    "step_tree": {
+      "displayName": "Autophagy Machinery",
+      "id": "root_autophagy",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Autophagy Protein-Coding",
+        "id": "autophagy_coding",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Autophagy Genes",
+          "id": "leaf_autophagy_text",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "autophagy",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Homo sapiens REF\"]"
+          },
+          "searchName": "GenesByText"
+        },
+        "secondaryInput": {
+          "displayName": "Protein Coding",
+          "id": "leaf_coding_auto",
+          "parameters": {
+            "geneType": "[\"protein coding\"]",
+            "includePseudogenes": "No",
+            "organism": "[\"Homo sapiens REF\"]"
+          },
+          "searchName": "GenesByGeneType"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ubiquitin-Autophagy + Core ATGs",
+        "id": "ub_atg_union",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Ubiquitin x Autophagy",
+          "id": "ub_autophagy_intersect",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Ubiquitin System",
+            "id": "leaf_ubiquitin",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "ubiquitin",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "GO: Autophagy",
+            "id": "leaf_go_autophagy",
+            "parameters": {
+              "go_term": "GO:0006914",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0006914\"]",
+              "organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "ATG + Beclin",
+          "id": "atg_becn_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "ATG Gene Family",
+            "id": "leaf_atg_core",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "ATG*",
+              "text_fields": "[\"name\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Beclin Complex",
+            "id": "leaf_beclin",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "BECN*",
+              "text_fields": "[\"name\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          }
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Malaria Host Response Panel (curated)",
+      "negative_ids": [
+        "ENSG00000204388",
+        "ENSG00000204389",
+        "ENSG00000204390",
+        "ENSG00000120694",
+        "ENSG00000126803",
+        "ENSG00000132622",
+        "ENSG00000133265",
+        "ENSG00000142798",
+        "ENSG00000144381",
+        "ENSG00000080824",
+        "ENSG00000164816",
+        "ENSG00000164821",
+        "ENSG00000164822",
+        "ENSG00000206042",
+        "ENSG00000206047",
+        "ENSG00000223629",
+        "ENSG00000233238",
+        "ENSG00000233531",
+        "ENSG00000234178",
+        "ENSG00000239839"
+      ],
+      "positive_ids": [
+        "ENSG00000174125",
+        "ENSG00000137462",
+        "ENSG00000164342",
+        "ENSG00000136869",
+        "ENSG00000187554",
+        "ENSG00000174130",
+        "ENSG00000111537",
+        "ENSG00000147873",
+        "ENSG00000147896",
+        "ENSG00000147885",
+        "ENSG00000159110",
+        "ENSG00000159128",
+        "ENSG00000182393",
+        "ENSG00000120235",
+        "ENSG00000137959",
+        "ENSG00000185885",
+        "ENSG00000173369",
+        "ENSG00000173372",
+        "ENSG00000159189",
+        "ENSG00000144119",
+        "ENSG00000165985",
+        "ENSG00000108561",
+        "ENSG00000131094",
+        "ENSG00000000971",
+        "ENSG00000243649",
+        "ENSG00000125730",
+        "ENSG00000115008",
+        "ENSG00000125538",
+        "ENSG00000136689",
+        "ENSG00000115594",
+        "ENSG00000115590",
+        "ENSG00000112115",
+        "ENSG00000112116",
+        "ENSG00000096996",
+        "ENSG00000109320",
+        "ENSG00000077150",
+        "ENSG00000100906",
+        "ENSG00000104825"
+      ],
+      "provenance_notes": "Positives: TLRs, interferons, complement, interleukins, NF-kB \u2014 genes known to be activated during malaria infection. Negatives: HSPs and defensins \u2014 not specifically malaria-responsive.",
+      "tags": [
+        "malaria",
+        "transcriptomic",
+        "hostdb",
+        "seed"
+      ]
+    },
+    "description": "Human host response to Plasmodium infection combining RNA-Seq data from malaria-infected Gambian children (upregulated genes 2-fold) INTERSECTED with GO immune/defense response, UNIONED with hemozoin-stimulated interferon pathway genes. Also includes complement + TLR genes MINUS those downregulated during malaria. Models the complete human transcriptomic response to malaria infection.",
+    "name": "Hs Malaria Host Response",
+    "record_type": "transcript",
+    "site_id": "hostdb",
+    "step_tree": {
+      "displayName": "Malaria Host Response",
+      "id": "root_malaria",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Malaria Upregulated Immune",
+        "id": "malaria_up_immune",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Malaria Upregulated (2x)",
+          "id": "leaf_malaria_up",
+          "parameters": {
+            "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_8b52ce9c69",
+            "fold_change": "2",
+            "hard_floor": "341.56301580548894009348229757942445722",
+            "min_max_avg_comp": "average1",
+            "min_max_avg_ref": "average1",
+            "profileset_generic": "Transcriptome analysis of blood from Gambian children with malaria. -   - Sense",
+            "protein_coding_only": "yes",
+            "regulated_dir": "up-regulated",
+            "samples_fc_comp_generic": "[\"CM_149\", \"CM_207\", \"CM_497\", \"CM_503\", \"CM_88\"]",
+            "samples_fc_ref_generic": "[\"UM_301\", \"UM_302\", \"UM_309\", \"UM_314\", \"UM_326\"]"
+          },
+          "searchName": "GenesByRNASeqhsapREF_Lee_Gambian_ebi_rnaSeq_RSRC"
+        },
+        "secondaryInput": {
+          "displayName": "Immune + Defense Response",
+          "id": "immune_defense_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "GO: Immune Response",
+            "id": "leaf_go_immune",
+            "parameters": {
+              "go_term": "GO:0006955",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0006955\"]",
+              "organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          },
+          "secondaryInput": {
+            "displayName": "GO: Defense Response",
+            "id": "leaf_go_defense",
+            "parameters": {
+              "go_term": "GO:0006952",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0006952\"]",
+              "organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Hemozoin + Complement/TLR",
+        "id": "hemozoin_complement_union",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Hemozoin-IFN Crosstalk",
+          "id": "hemozoin_ifn",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Hemozoin Upregulated",
+            "id": "leaf_hemozoin_up",
+            "parameters": {
+              "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_f1c4acdfd2",
+              "fold_change": "2",
+              "hard_floor": "272.147788084374446425317223213838784148",
+              "min_max_avg_comp": "average1",
+              "min_max_avg_ref": "average1",
+              "profileset_generic": "Transcriptome of lung epithelial cells stimulated by hemozoin -   - Sense",
+              "protein_coding_only": "yes",
+              "regulated_dir": "up-regulated",
+              "samples_fc_comp_generic": "[\"200 ug_ml hemazoin\"]",
+              "samples_fc_ref_generic": "[\"no hemazoin\"]"
+            },
+            "searchName": "GenesByRNASeqhsapREF_hsap_hemazoin_shah_RNASeq_ebi_rnaSeq_RSRC"
+          },
+          "secondaryInput": {
+            "displayName": "Interferon Pathway",
+            "id": "leaf_ifn_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "interferon",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Homo sapiens REF\"]"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Complement+TLR Active in Malaria",
+          "id": "complement_tlr_clean",
+          "operator": "MINUS",
+          "primaryInput": {
+            "displayName": "Complement + TLR",
+            "id": "complement_tlr_union",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Complement System",
+              "id": "leaf_complement_mal",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "complement",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Homo sapiens REF\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Toll-like Receptors",
+              "id": "leaf_tlr_mal",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "toll-like receptor",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Homo sapiens REF\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Malaria Downregulated",
+            "id": "leaf_malaria_down",
+            "parameters": {
+              "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_8b52ce9c69",
+              "fold_change": "2",
+              "hard_floor": "341.56301580548894009348229757942445722",
+              "min_max_avg_comp": "average1",
+              "min_max_avg_ref": "average1",
+              "profileset_generic": "Transcriptome analysis of blood from Gambian children with malaria. -   - Sense",
+              "protein_coding_only": "yes",
+              "regulated_dir": "down-regulated",
+              "samples_fc_comp_generic": "[\"CM_149\", \"CM_207\", \"CM_497\", \"CM_503\", \"CM_88\"]",
+              "samples_fc_ref_generic": "[\"UM_301\", \"UM_302\", \"UM_309\", \"UM_314\", \"UM_326\"]"
+            },
+            "searchName": "GenesByRNASeqhsapREF_Lee_Gambian_ebi_rnaSeq_RSRC"
+          }
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Multi-Pathogen Response Panel (curated)",
+      "negative_ids": [
+        "ENSG00000204388",
+        "ENSG00000204389",
+        "ENSG00000204390",
+        "ENSG00000120694",
+        "ENSG00000126803",
+        "ENSG00000132622",
+        "ENSG00000133265",
+        "ENSG00000142798",
+        "ENSG00000144381",
+        "ENSG00000080824",
+        "ENSG00000096384",
+        "ENSG00000166598",
+        "ENSG00000155304",
+        "ENSG00000113013",
+        "ENSG00000115541",
+        "ENSG00000164816",
+        "ENSG00000164821",
+        "ENSG00000164822",
+        "ENSG00000206042",
+        "ENSG00000206047",
+        "ENSG00000223629",
+        "ENSG00000233238",
+        "ENSG00000233531",
+        "ENSG00000234178",
+        "ENSG00000239839"
+      ],
+      "positive_ids": [
+        "ENSG00000111537",
+        "ENSG00000147873",
+        "ENSG00000147896",
+        "ENSG00000147885",
+        "ENSG00000159110",
+        "ENSG00000159128",
+        "ENSG00000182393",
+        "ENSG00000120235",
+        "ENSG00000109320",
+        "ENSG00000077150",
+        "ENSG00000100906",
+        "ENSG00000104825",
+        "ENSG00000137752",
+        "ENSG00000106144",
+        "ENSG00000164305",
+        "ENSG00000196954",
+        "ENSG00000137757",
+        "ENSG00000138794",
+        "ENSG00000174125",
+        "ENSG00000137462",
+        "ENSG00000164342",
+        "ENSG00000136869",
+        "ENSG00000187554",
+        "ENSG00000174130",
+        "ENSG00000162434",
+        "ENSG00000096968",
+        "ENSG00000105639",
+        "ENSG00000152969",
+        "ENSG00000115415",
+        "ENSG00000170581",
+        "ENSG00000172936",
+        "ENSG00000090376",
+        "ENSG00000134070",
+        "ENSG00000146243",
+        "ENSG00000184216",
+        "ENSG00000232810",
+        "ENSG00000120337",
+        "ENSG00000125657",
+        "ENSG00000120949",
+        "ENSG00000141655",
+        "ENSG00000157873",
+        "ENSG00000048462",
+        "ENSG00000117586",
+        "ENSG00000115008",
+        "ENSG00000125538",
+        "ENSG00000136689",
+        "ENSG00000115594",
+        "ENSG00000115590",
+        "ENSG00000112115",
+        "ENSG00000112116",
+        "ENSG00000096996"
+      ],
+      "provenance_notes": "Positives: interferons, NF-kB, caspases, TLRs, JAK-STAT, MYD88/IRAK/TRAF, TNF, interleukins \u2014 genes activated across multiple pathogen infections (T. gondii, T. cruzi, Candida). Negatives: HSPs and defensins \u2014 not transcriptomically responsive to these pathogens.",
+      "tags": [
+        "multi-pathogen",
+        "transcriptomic",
+        "hostdb",
+        "seed"
+      ]
+    },
+    "description": "Cross-pathogen comparison of human transcriptomic responses: core shared response (T. gondii AND T. cruzi upregulated), Candida-specific response (MINUS shared protozoan response), innate immune genes upregulated by any protozoan, NF-kB pathway in Candida, and apoptosis genes in T. gondii + Candida. 15-node strategy covering 3 major pathogen classes: apicomplexa, kinetoplastid, and fungal.",
+    "name": "Hs Multi-Pathogen Transcriptomic Response",
+    "record_type": "transcript",
+    "site_id": "hostdb",
+    "step_tree": {
+      "displayName": "Multi-Pathogen Response",
+      "id": "root_multi",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Shared Protozoan Response",
+        "id": "shared_protozoan",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "T. gondii Upregulated",
+          "id": "leaf_tgondii_up",
+          "parameters": {
+            "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_65d43ce7fa",
+            "fold_change": "2",
+            "hard_floor": "2314.203852657671445273494538137698139906",
+            "min_max_avg_comp": "average1",
+            "min_max_avg_ref": "average1",
+            "profileset_generic": "T gondii infected human host cells vs control -   - Sense",
+            "protein_coding_only": "yes",
+            "regulated_dir": "up-regulated",
+            "samples_fc_comp_generic": "[\"Tgondii infected\"]",
+            "samples_fc_ref_generic": "[\"uninfected\"]"
+          },
+          "searchName": "GenesByRNASeqhsapREF_hsapREF_RNASeq_Greally_RSRC_ebi_rnaSeq_RSRC"
+        },
+        "secondaryInput": {
+          "displayName": "T. cruzi Upregulated (72h)",
+          "id": "leaf_tcruzi_up",
+          "parameters": {
+            "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_d8246ca26a",
+            "fold_change": "2",
+            "hard_floor": "226.109700380694103271368368225039972615",
+            "min_max_avg_comp": "average1",
+            "min_max_avg_ref": "average1",
+            "profileset_generic": "Transcriptome Remodeling during Intracellular Infection -   unstranded",
+            "protein_coding_only": "yes",
+            "regulated_dir": "up-regulated",
+            "samples_fc_comp_generic": "[\"amas 72hpi\"]",
+            "samples_fc_ref_generic": "[\"uninf 72hpi\"]"
+          },
+          "searchName": "GenesByRNASeqhsapREF_Li_Transcriptome_Remodeling_ebi_rnaSeq_RSRC"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Candida-Specific + Innate Immune",
+        "id": "candida_innate_union",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Candida-Specific Response",
+          "id": "candida_specific",
+          "operator": "MINUS",
+          "primaryInput": {
+            "displayName": "Candida Upregulated (24h)",
+            "id": "leaf_candida_up",
+            "parameters": {
+              "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_410d99350c",
+              "fold_change": "2",
+              "hard_floor": "3728.599876329304064755953644508884817863",
+              "min_max_avg_comp": "average1",
+              "min_max_avg_ref": "average1",
+              "profileset_generic": "Host immune response against Candida auris -   - Sense",
+              "protein_coding_only": "yes",
+              "regulated_dir": "up-regulated",
+              "samples_fc_comp_generic": "[\"calb_live_24hr\"]",
+              "samples_fc_ref_generic": "[\"RPMI_24hr\"]"
+            },
+            "searchName": "GenesByRNASeqhsapREF_Bruno_Immune_Response_ebi_rnaSeq_RSRC"
+          },
+          "secondaryInput": {
+            "displayName": "Shared Protozoan (filter)",
+            "id": "shared_protozoan_dup",
+            "operator": "INTERSECT",
+            "primaryInput": {
+              "displayName": "T. gondii Up (dup)",
+              "id": "leaf_tgondii_up2",
+              "parameters": {
+                "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_65d43ce7fa",
+                "fold_change": "2",
+                "hard_floor": "2314.203852657671445273494538137698139906",
+                "min_max_avg_comp": "average1",
+                "min_max_avg_ref": "average1",
+                "profileset_generic": "T gondii infected human host cells vs control -   - Sense",
+                "protein_coding_only": "yes",
+                "regulated_dir": "up-regulated",
+                "samples_fc_comp_generic": "[\"Tgondii infected\"]",
+                "samples_fc_ref_generic": "[\"uninfected\"]"
+              },
+              "searchName": "GenesByRNASeqhsapREF_hsapREF_RNASeq_Greally_RSRC_ebi_rnaSeq_RSRC"
+            },
+            "secondaryInput": {
+              "displayName": "T. cruzi Up (dup)",
+              "id": "leaf_tcruzi_up2",
+              "parameters": {
+                "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_d8246ca26a",
+                "fold_change": "2",
+                "hard_floor": "226.109700380694103271368368225039972615",
+                "min_max_avg_comp": "average1",
+                "min_max_avg_ref": "average1",
+                "profileset_generic": "Transcriptome Remodeling during Intracellular Infection -   unstranded",
+                "protein_coding_only": "yes",
+                "regulated_dir": "up-regulated",
+                "samples_fc_comp_generic": "[\"amas 72hpi\"]",
+                "samples_fc_ref_generic": "[\"uninf 72hpi\"]"
+              },
+              "searchName": "GenesByRNASeqhsapREF_Li_Transcriptome_Remodeling_ebi_rnaSeq_RSRC"
+            }
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Innate Immune + Apoptosis",
+          "id": "innate_apoptosis_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Protozoan-Innate Crosstalk",
+            "id": "protozoan_innate",
+            "operator": "INTERSECT",
+            "primaryInput": {
+              "displayName": "Any Protozoan Upregulated",
+              "id": "any_protozoan_up",
+              "operator": "UNION",
+              "primaryInput": {
+                "displayName": "T. gondii Up",
+                "id": "leaf_tg_up3",
+                "parameters": {
+                  "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_65d43ce7fa",
+                  "fold_change": "2",
+                  "hard_floor": "2314.203852657671445273494538137698139906",
+                  "min_max_avg_comp": "average1",
+                  "min_max_avg_ref": "average1",
+                  "profileset_generic": "T gondii infected human host cells vs control -   - Sense",
+                  "protein_coding_only": "yes",
+                  "regulated_dir": "up-regulated",
+                  "samples_fc_comp_generic": "[\"Tgondii infected\"]",
+                  "samples_fc_ref_generic": "[\"uninfected\"]"
+                },
+                "searchName": "GenesByRNASeqhsapREF_hsapREF_RNASeq_Greally_RSRC_ebi_rnaSeq_RSRC"
+              },
+              "secondaryInput": {
+                "displayName": "T. cruzi Up",
+                "id": "leaf_tc_up3",
+                "parameters": {
+                  "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_d8246ca26a",
+                  "fold_change": "2",
+                  "hard_floor": "226.109700380694103271368368225039972615",
+                  "min_max_avg_comp": "average1",
+                  "min_max_avg_ref": "average1",
+                  "profileset_generic": "Transcriptome Remodeling during Intracellular Infection -   unstranded",
+                  "protein_coding_only": "yes",
+                  "regulated_dir": "up-regulated",
+                  "samples_fc_comp_generic": "[\"amas 72hpi\"]",
+                  "samples_fc_ref_generic": "[\"uninf 72hpi\"]"
+                },
+                "searchName": "GenesByRNASeqhsapREF_Li_Transcriptome_Remodeling_ebi_rnaSeq_RSRC"
+              }
+            },
+            "secondaryInput": {
+              "displayName": "GO: Innate Immune Response",
+              "id": "leaf_go_innate",
+              "parameters": {
+                "go_term": "GO:0045087",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0045087\"]",
+                "organism": "[\"Homo sapiens REF\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "NF-kB + Apoptosis",
+            "id": "nfkb_apoptosis_union",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Candida NF-kB Response",
+              "id": "candida_nfkb",
+              "operator": "INTERSECT",
+              "primaryInput": {
+                "displayName": "Candida Upregulated",
+                "id": "leaf_candida_up2",
+                "parameters": {
+                  "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_410d99350c",
+                  "fold_change": "2",
+                  "hard_floor": "3728.599876329304064755953644508884817863",
+                  "min_max_avg_comp": "average1",
+                  "min_max_avg_ref": "average1",
+                  "profileset_generic": "Host immune response against Candida auris -   - Sense",
+                  "protein_coding_only": "yes",
+                  "regulated_dir": "up-regulated",
+                  "samples_fc_comp_generic": "[\"calb_live_24hr\"]",
+                  "samples_fc_ref_generic": "[\"RPMI_24hr\"]"
+                },
+                "searchName": "GenesByRNASeqhsapREF_Bruno_Immune_Response_ebi_rnaSeq_RSRC"
+              },
+              "secondaryInput": {
+                "displayName": "NF-kB Pathway",
+                "id": "leaf_nfkb_text",
+                "parameters": {
+                  "document_type": "gene",
+                  "text_expression": "NF-kappa",
+                  "text_fields": "[\"product\"]",
+                  "text_search_organism": "[\"Homo sapiens REF\"]"
+                },
+                "searchName": "GenesByText"
+              }
+            },
+            "secondaryInput": {
+              "displayName": "Apoptosis in T.gondii+Candida",
+              "id": "tg_candida_apoptosis",
+              "operator": "INTERSECT",
+              "primaryInput": {
+                "displayName": "T.gondii OR Candida Up",
+                "id": "tg_candida_union",
+                "operator": "UNION",
+                "primaryInput": {
+                  "displayName": "T. gondii Up",
+                  "id": "leaf_tg_up4",
+                  "parameters": {
+                    "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_65d43ce7fa",
+                    "fold_change": "2",
+                    "hard_floor": "2314.203852657671445273494538137698139906",
+                    "min_max_avg_comp": "average1",
+                    "min_max_avg_ref": "average1",
+                    "profileset_generic": "T gondii infected human host cells vs control -   - Sense",
+                    "protein_coding_only": "yes",
+                    "regulated_dir": "up-regulated",
+                    "samples_fc_comp_generic": "[\"Tgondii infected\"]",
+                    "samples_fc_ref_generic": "[\"uninfected\"]"
+                  },
+                  "searchName": "GenesByRNASeqhsapREF_hsapREF_RNASeq_Greally_RSRC_ebi_rnaSeq_RSRC"
+                },
+                "secondaryInput": {
+                  "displayName": "Candida Up",
+                  "id": "leaf_calb_up3",
+                  "parameters": {
+                    "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_410d99350c",
+                    "fold_change": "2",
+                    "hard_floor": "3728.599876329304064755953644508884817863",
+                    "min_max_avg_comp": "average1",
+                    "min_max_avg_ref": "average1",
+                    "profileset_generic": "Host immune response against Candida auris -   - Sense",
+                    "protein_coding_only": "yes",
+                    "regulated_dir": "up-regulated",
+                    "samples_fc_comp_generic": "[\"calb_live_24hr\"]",
+                    "samples_fc_ref_generic": "[\"RPMI_24hr\"]"
+                  },
+                  "searchName": "GenesByRNASeqhsapREF_Bruno_Immune_Response_ebi_rnaSeq_RSRC"
+                }
+              },
+              "secondaryInput": {
+                "displayName": "GO: Apoptotic Process",
+                "id": "leaf_go_apoptosis",
+                "parameters": {
+                  "go_term": "GO:0006915",
+                  "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                  "go_term_slim": "No",
+                  "go_typeahead": "[\"GO:0006915\"]",
+                  "organism": "[\"Homo sapiens REF\"]"
+                },
+                "searchName": "GenesByGoTerm"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]

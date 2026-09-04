@@ -1,51 +1,48 @@
-"""Tests for prompt bundle helpers used by tracing and agents."""
+"""The unified system prompt is the three components joined in order."""
 
-from hashlib import sha256
 from unittest.mock import patch
 
-from pathfinder.ai.prompts.loader import load_system_prompt_bundle
+from pathfinder.ai.prompts.loader import load_system_prompt
 from pathfinder.platform.langfuse.prompts import LoadedPrompt
 
+_PROMPTS = {
+    "system": LoadedPrompt(
+        name="system",
+        text="system prompt",
+        label="production",
+        source="langfuse",
+        version=2,
+    ),
+    "safety": LoadedPrompt(
+        name="safety",
+        text="safety prompt",
+        label="production",
+        source="local",
+    ),
+    "site-hints": LoadedPrompt(
+        name="site-hints",
+        text="site hints",
+        label="production",
+        source="langfuse",
+        version=4,
+    ),
+}
 
-def test_load_system_prompt_bundle_metadata() -> None:
-    load_system_prompt_bundle.cache_clear()
-    prompts = {
-        "system": LoadedPrompt(
-            name="system",
-            text="system prompt",
-            label="production",
-            source="langfuse",
-            version=2,
-        ),
-        "safety": LoadedPrompt(
-            name="safety",
-            text="safety prompt",
-            label="production",
-            source="local",
-        ),
-        "site-hints": LoadedPrompt(
-            name="site-hints",
-            text="site hints",
-            label="production",
-            source="langfuse",
-            version=4,
-        ),
-    }
 
+def _load(*, include_site_hints: bool) -> str:
+    load_system_prompt.cache_clear()
     with patch(
         "pathfinder.ai.prompts.loader.load_prompt_result",
-        side_effect=lambda name: prompts[name],
+        side_effect=lambda name: _PROMPTS[name],
     ):
-        bundle = load_system_prompt_bundle()
+        return load_system_prompt(include_site_hints=include_site_hints)
 
-    assert bundle.text == "system prompt\n\n---\n\nsafety prompt\n\n---\n\nsite hints"
-    assert (
-        bundle.langfuse_metadata()["prompt_bundle"]
-        == "system@2,safety@local,site-hints@4"
+
+def test_the_bundle_joins_system_safety_and_site_hints() -> None:
+    assert _load(include_site_hints=True) == (
+        "system prompt\n\n---\n\nsafety prompt\n\n---\n\nsite hints"
     )
-    assert (
-        bundle.langfuse_metadata()["prompt_bundle_hash"]
-        == sha256(bundle.text.encode("utf-8")).hexdigest()
-    )
-    assert bundle.langfuse_metadata()["system_prompt_version"] == "2"
-    assert bundle.langfuse_metadata()["site_hints_prompt_version"] == "4"
+
+
+def test_a_continuation_turn_drops_the_site_hints() -> None:
+    assert _load(include_site_hints=False) == "system prompt\n\n---\n\nsafety prompt"

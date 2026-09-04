@@ -60,8 +60,6 @@ _STREAMING_PATHS: frozenset[str] = frozenset(
     {
         "/api/v1/chat",
         "/api/v1/conversations/{conversation_id}/events",
-        "/api/v1/conversations/{conversation_id}/tasks/{task_id}/events",
-        "/internal/schema/stream-event",
     }
 )
 

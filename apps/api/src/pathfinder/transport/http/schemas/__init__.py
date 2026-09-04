@@ -24,11 +24,6 @@ from .conversations import (
     UpdateConversationRequest,
 )
 from .health import HealthResponse, SystemConfigResponse
-from .optimization import (
-    OptimizationParameterSpecData,
-    OptimizationProgressEventData,
-    OptimizationTrialData,
-)
 from .product_actions import ProductActionRequest
 from .sites import (
     DependentParamsRequest,
@@ -41,10 +36,6 @@ from .sites import (
 )
 from .steps import (
     RecordDetailRequest,
-)
-from .strategy_ast import (
-    StrategyAstNormalizeRequest,
-    StrategyAstNormalizeResponse,
 )
 from .veupathdb_auth import AuthStatusResponse, AuthSuccessResponse
 
@@ -60,9 +51,6 @@ __all__ = [
     "HealthResponse",
     "OpenConversationRequest",
     "OpenConversationResponse",
-    "OptimizationParameterSpecData",
-    "OptimizationProgressEventData",
-    "OptimizationTrialData",
     "ParamSpecsRequest",
     "ProductActionRequest",
     "PushConversationRequest",
@@ -78,8 +66,6 @@ __all__ = [
     "StepCountsResponse",
     "StepResponse",
     "StrategyAst",
-    "StrategyAstNormalizeRequest",
-    "StrategyAstNormalizeResponse",
     "SystemConfigResponse",
     "UpdateConversationRequest",
     "ValidationResponse",

@@ -112,10 +112,10 @@ describe("RecordRow", () => {
   it("calls onToggle when the data row is clicked", () => {
     const onToggle = vi.fn();
     const { container } = render(<Harness onToggle={onToggle} />);
-    const dataRow = container.querySelector("tr[data-expanded]");
-    expect(dataRow).not.toBeNull();
-    fireEvent.click(dataRow!);
-    expect(onToggle).toHaveBeenCalledOnce();
+    const dataRows = container.querySelectorAll("tr[data-expanded]");
+    expect(dataRows).toHaveLength(1);
+    fireEvent.click(dataRows[0]!);
+    expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
   it("shows classification badge when the classification column is present", () => {

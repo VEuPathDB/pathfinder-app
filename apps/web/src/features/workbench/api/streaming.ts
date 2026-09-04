@@ -6,10 +6,10 @@
  * SSE (one long-running request), consumed via `streamTypedEvents`.
  */
 
-import type { Experiment, ExperimentProgressData } from "@pathfinder/shared";
+import type { Experiment } from "@pathfinder/shared";
 import type { CreateExperimentRequestControlsValueFormatEnumKey } from "@pathfinder/shared/generated/types/CreateExperimentRequest";
 import { streamTypedEvents } from "@/lib/sse/typedEventStream";
-import type { StepParameters } from "@/lib/strategyGraph/types";
+import type { StepParameters } from "@/lib/types/stepParameters";
 
 export type ExperimentRunConfig = {
   siteId: string;
@@ -47,7 +47,7 @@ export interface BenchmarkControlSetInput {
 
 interface ExperimentProgressEvent {
   type: "experiment_progress";
-  data: ExperimentProgressData | Record<string, unknown>;
+  data: Record<string, unknown>;
 }
 
 interface ExperimentCompleteEvent {
@@ -145,7 +145,7 @@ export async function* createExperimentStream(
   options: RunOptions = {},
 ): AsyncGenerator<ExperimentStreamEvent> {
   yield* streamTypedEvents<ExperimentStreamEvent>(
-    "/api/v1/experiments/",
+    "/api/v1/experiments",
     buildRunOptions("POST", serializeConfig(config), options.signal),
   );
 }

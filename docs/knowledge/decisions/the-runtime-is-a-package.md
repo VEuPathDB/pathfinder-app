@@ -13,7 +13,7 @@ status: stable
 The assistant runtime is `packages/assistant-core`: its own `pyproject.toml`,
 its own lock file, a `src/assistant_core` layout importable with no
 `pathfinder.` prefix, its own test tree, and `apps/api` consuming it as an
-editable path dependency, as it does `pathfinder-shared`. A module under
+editable path dependency. A module under
 `assistant_core/` cannot import `pathfinder` because the distribution it
 belongs to does not depend on it. The boundary stopped being a rule a linter
 applies and became a fact about what is installed.
@@ -97,10 +97,10 @@ carry its weight:
 
 1. `packages/assistant-core/pyproject.toml` declares no dependency on this
    application. This is the enforcement; the rest is instrumentation.
-2. `packages/assistant-core/tests/unit/test_package_boundary.py` walks every
-   module in the package and fails on an import naming `pathfinder` or
-   `shared_py`. The two wire-type modules it once read are now the package's
-   own; see [the runtime's part payloads live in the runtime](runtime-part-payloads-live-in-the-runtime.md).
+2. `packages/assistant-core/packages/assistant-core/tests/unit/test_package_boundary.py` walks every
+   module in the package and fails on an import naming `pathfinder`. The two
+   wire-type modules it once read are now the package's own; see [the runtime's
+   part payloads live in the runtime](runtime-part-payloads-live-in-the-runtime.md).
 3. A seventh contract still exists in `apps/api`, asserting something that is
    still true in-repo: the science never imports an assistant's composition
    root. An assistant is assembled from `ai/`, `domain/` and `services/`; a

@@ -8,8 +8,6 @@ import { WorkbenchMainPage } from "../pages/workbench-main.page";
 import { GraphPage } from "../pages/graph.page";
 import { SitePickerComponent } from "../pages/site-picker.page";
 import { SettingsPage } from "../pages/settings.page";
-import { AuthPage } from "../pages/auth.page";
-import { GeneSearchSidebar } from "../pages/gene-search.page";
 import { wdkTestToken } from "./wdk-account";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -24,8 +22,6 @@ type TestFixtures = {
   graphPage: GraphPage;
   sitePicker: SitePickerComponent;
   settingsPage: SettingsPage;
-  authPage: AuthPage;
-  geneSearch: GeneSearchSidebar;
   apiClient: ApiClient;
 };
 
@@ -251,14 +247,6 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
   settingsPage: async ({ page }, use) => {
     await use(new SettingsPage(page));
-  },
-
-  authPage: async ({ page }, use) => {
-    await use(new AuthPage(page));
-  },
-
-  geneSearch: async ({ page }, use) => {
-    await use(new GeneSearchSidebar(page));
   },
 
   // ── Test-scoped: API client for postcondition verification ─────

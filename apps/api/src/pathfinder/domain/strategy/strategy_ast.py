@@ -7,7 +7,8 @@ from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import ConfigDict, Field, model_validator
 
-from pathfinder.domain.strategy.ast import StrategyStepNode, walk_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.domain.strategy.validation import StepValidation
 
 
@@ -36,9 +37,9 @@ class StrategyAst(CamelModel):
 
         A step belongs to one position only, so the detached components count too.
         """
-        nodes = list(walk_step_tree(self.root))
+        nodes = list(walk(self.root))
         for detached in self.detached_roots:
-            nodes.extend(walk_step_tree(detached))
+            nodes.extend(walk(detached))
         seen: set[str] = set()
         duplicates: set[str] = set()
         for node in nodes:
@@ -60,15 +61,6 @@ class PersistedStrategyGraph(CamelModel):
     model_config = ConfigDict(extra="ignore")
 
     id: str | None = None
-    graph_id: str | None = None
     name: str | None = None
     strategy_ast: StrategyAst | None = None
-    record_type: str | None = None
     wdk_strategy_id: int | None = None
-
-
-class _HistoryEntry(CamelModel):
-    """One undo history entry. The history is transient and rebuilds on load."""
-
-    description: str
-    strategy_ast: StrategyAst

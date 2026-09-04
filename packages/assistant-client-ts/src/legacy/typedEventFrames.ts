@@ -1,4 +1,4 @@
-export const TYPED_EVENT_DONE = "[DONE]";
+const TYPED_EVENT_DONE = "[DONE]";
 
 const FRAME_TERMINATOR = "\n\n";
 const DATA_FIELD = "data: ";

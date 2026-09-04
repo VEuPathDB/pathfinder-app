@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { Step, Strategy } from "@pathfinder/shared";
 import { applyOperation } from "./apply";
-import type { GraphOperation } from "./types";
+import type { GraphOperation } from "@/lib/types/graphOperation";
 
 import fixture from "../../../../../../packages/spec/operations_parity.json";
 

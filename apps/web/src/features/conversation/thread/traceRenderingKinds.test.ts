@@ -12,7 +12,6 @@ describe("traceRenderingKinds", () => {
       "data-enrichment-results",
       "data-strategy-link",
       "data-gene-set",
-      "data-verification-summary",
     ]) {
       expect(kinds.has(kind)).toBe(true);
     }
@@ -37,6 +36,8 @@ describe("traceRenderingKinds", () => {
       "data-lead-usage",
       "data-scratchpad-updated",
       "data-ledger-update",
+      "data-strategy-revision",
+      "data-user-question-answers",
     ]) {
       expect(kinds.has(kind)).toBe(false);
     }

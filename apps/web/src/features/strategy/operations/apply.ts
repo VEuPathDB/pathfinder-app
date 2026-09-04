@@ -15,7 +15,8 @@ import {
   applyUpdateStrategyMeta,
   applyWireInput,
 } from "./applyUpdate";
-import type { ApplyResult, GraphOperation } from "./types";
+import type { GraphOperation } from "@/lib/types/graphOperation";
+import type { ApplyResult } from "./types";
 
 export function applyOperation(strategy: Strategy, op: GraphOperation): ApplyResult {
   switch (op.kind) {

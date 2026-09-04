@@ -1,6 +1,6 @@
 import type { VariantComparison } from "@pathfinder/shared";
 
-import { Figure } from "@/lib/components/thread/Figure";
+import { Figure } from "@/features/conversation/thread/Figure";
 
 const TRUNCATED_NOTE = "large result sets, overlap is a lower bound";
 

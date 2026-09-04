@@ -102,7 +102,7 @@ naming the repeated code, because one species has one state in the census; both 
 the wire raise it, the expansion above and `_sort_profile_pattern` under
 `_normalize_parameters`. A code the phyletic tree does not carry is
 a second 422, raised by `_validate_phyletic_codes` from inside that same function. Guarded
-by `apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_profile_pattern_shape.py`
+by `apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_base.py`
 and `test_phyletic_state_token.py`.
 
 That narrows the ways in rather than closing them. A pattern built from real codes in the
@@ -186,7 +186,7 @@ cannot.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/ApiCommonModel/blob/301b2be012af713411e9b0e216ed93c51d04c239/Model/lib/wdk/model/questions/params/geneParams.xml#L4873-L4879
 - anchor: apps/api/src/pathfinder/domain/parameters/specs.py:fill_hidden_required_defaults
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_hidden_fill_is_reported.py::TestTheFillIsNamed::test_a_hidden_default_is_reported
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_specs.py::TestTheFillIsNamed::test_a_hidden_default_is_reported
 The declaration is six lines and it contains the same string twice:
 
 ```xml
@@ -312,7 +312,7 @@ pushes each selection down to the species the census holds: the authoring path r
 through `derive_binding`, and the wire guard through `_expand_profile_pattern_groups`. The
 code check runs inside that guard, before the expansion, so a code the tree does not carry
 is a 422 rather than a token that matches nothing
-(`tests/unit/integrations/veupathdb/test_profile_pattern_expansion.py`). The editor widget
+(`tests/unit/integrations/veupathdb/test_strategy_api_base.py`). The editor widget
 keeps its own copy of the same rule, tested at
 `apps/web/src/features/strategy/editor/widgets/PhyleticProfileParam.test.tsx`.
 
@@ -420,7 +420,7 @@ its stored value, and the pattern is then regenerated from the reduced set.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/ApiCommonModel/blob/53de242dfce4e2be81ad28ad8a608c87af3e0b7c/Model/lib/wdk/model/questions/queries/geneQueries.xml#L1807-L1814
 - anchor: apps/api/src/pathfinder/services/catalog/radio_pairs.py:check_radio_pairs
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/ai/agents/test_frame_toolset.py::TestOneCriterionOfferedTwiceIsStatedOnce::test_a_free_text_wildcard_is_a_retry_naming_the_entries
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/ai/tools/test_frame_proposals.py::test_a_refused_proposal_names_what_is_wrong
 
 Some searches offer the same criterion twice: once as a vocabulary the user picks
 from, once as free text with wildcards. ApiCommonModel declares the pair in a

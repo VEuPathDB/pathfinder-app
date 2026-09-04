@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Search } from "lucide-react";
-import { Button } from "@/lib/components/ui/Button";
-import { Input } from "@/lib/components/ui/Input";
-import { Label } from "@/lib/components/ui/Label";
-import { parseGeneIds } from "@/lib/utils/parseGeneIds";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { parseGeneIds } from "@/features/workbench/utils/parseGeneIds";
 import { useGeneSetCreation } from "../hooks/useGeneSetCreation";
 import { VerificationResults } from "./VerificationResults";
 

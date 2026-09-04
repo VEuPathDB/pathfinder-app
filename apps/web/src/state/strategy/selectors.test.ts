@@ -1,113 +1,78 @@
-/**
- * @vitest-environment jsdom
- */
 import { describe, expect, it } from "vitest";
-import { renderHook } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createElement, type ReactNode } from "react";
 import type { Step, Strategy } from "@pathfinder/shared";
-import {
-  useStrategyHistory,
-  useStrategyListActions,
-} from "@/state/useStrategySelectors";
-import { useStepsById } from "./selectors";
+import { stepsById } from "./selectors";
 
-function makeWrapper() {
-  const client = new QueryClient({
-    defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
-  });
-  function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client }, children);
-  }
-  return Wrapper;
+// The WeakMap cache keys on the steps ARRAY identity: the same array must not
+// rebuild the map, or every memoized consumer re-renders.
+
+function step(id: string): Step {
+  return { id, searchName: "GenesByTaxon", isFiltered: false };
 }
 
-describe("state/useStrategySelectors", () => {
-  it("useStrategyHistory returns undo/redo functions and pushSnapshot", () => {
-    const { result } = renderHook(() => useStrategyHistory("strategy-1"), {
-      wrapper: makeWrapper(),
-    });
-    expect(typeof result.current.undo).toBe("function");
-    expect(typeof result.current.redo).toBe("function");
-    expect(typeof result.current.canUndo).toBe("function");
-    expect(typeof result.current.canRedo).toBe("function");
-    expect(typeof result.current.pushSnapshot).toBe("function");
-  });
-
-  it("useStrategyListActions returns setGraphValidationStatus", () => {
-    const { result } = renderHook(() => useStrategyListActions());
-    expect(typeof result.current.setGraphValidationStatus).toBe("function");
-  });
-});
-
-function makeStep(id: string): Step {
+function strategy(steps: Step[]): Strategy {
   return {
-    id,
-    displayName: `Step ${id}`,
-    searchName: "GenesByTaxon",
-    recordType: "gene",
-    isFiltered: false,
-  };
-}
-
-function makeStrategy(steps: Step[]): Strategy {
-  return {
-    id: "strategy-1",
-    name: "Test",
+    id: "s",
+    name: "T",
     siteId: "plasmodb",
+    isSaved: false,
     recordType: "gene",
     steps,
-    rootStepId: steps[steps.length - 1]?.id ?? null,
-    isSaved: false,
-    description: null,
-    wdkStrategyId: null,
-    wdkUrl: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
   };
 }
 
-function stepsById(strategy: Strategy | null | undefined): Record<string, Step> {
-  return renderHook(() => useStepsById(strategy)).result.current;
-}
+describe("state/strategy/selectors - stepsById", () => {
+  it("indexes steps by id", () => {
+    const result = stepsById(strategy([step("a"), step("b")]));
 
-describe("state/strategy/selectors — useStepsById", () => {
-  it("indexes every step under its own id", () => {
-    const s1 = makeStep("s1");
-    const s2 = makeStep("s2");
-    const map = stepsById(makeStrategy([s1, s2]));
-    expect(Object.keys(map).sort()).toEqual(["s1", "s2"]);
-    expect(map["s1"]).toBe(s1);
-    expect(map["s2"]).toBe(s2);
+    expect(Object.keys(result).sort()).toEqual(["a", "b"]);
+    expect(result["a"]?.id).toBe("a");
   });
 
-  it("keeps the last step when two steps share an id", () => {
-    const first = makeStep("dup");
-    const second = { ...makeStep("dup"), displayName: "Later" };
-    const map = stepsById(makeStrategy([first, second]));
-    expect(Object.keys(map)).toEqual(["dup"]);
-    expect(map["dup"]).toBe(second);
+  it("returns the same object for the same steps array", () => {
+    const s = strategy([step("a")]);
+
+    expect(stepsById(s)).toBe(stepsById(s));
   });
 
-  it("returns one shared empty map for null, undefined and step-less strategies", () => {
-    const forNull = stepsById(null);
-    expect(forNull).toEqual({});
-    expect(stepsById(undefined)).toBe(forNull);
-    expect(stepsById(makeStrategy([]))).toBe(forNull);
-    expect(stepsById(makeStrategy([]))).toBe(forNull);
-  });
+  it("rebuilds when the steps array identity changes", () => {
+    const first = stepsById(strategy([step("a")]));
+    const second = stepsById(strategy([step("a")]));
 
-  it("returns the identical map for repeated reads of the same steps array", () => {
-    const strategy = makeStrategy([makeStep("s1")]);
-    const first = stepsById(strategy);
-    expect(stepsById(strategy)).toBe(first);
-    expect(stepsById({ ...strategy, name: "Renamed" })).toBe(first);
-  });
-
-  it("returns a fresh map once the steps array itself is replaced", () => {
-    const first = stepsById(makeStrategy([makeStep("s1")]));
-    const second = stepsById(makeStrategy([makeStep("s1")]));
     expect(second).not.toBe(first);
     expect(second).toEqual(first);
+  });
+
+  it("returns the shared empty map for a strategy with no steps", () => {
+    expect(stepsById(strategy([]))).toBe(stepsById(strategy([])));
+    expect(stepsById(strategy([]))).toEqual({});
+  });
+
+  it("returns the shared empty map for null and undefined", () => {
+    expect(stepsById(null)).toEqual({});
+    expect(stepsById(undefined)).toEqual({});
+    expect(stepsById(null)).toBe(stepsById(undefined));
+  });
+
+  it("the empty map is frozen so a caller cannot poison the shared value", () => {
+    const empty = stepsById(null);
+
+    expect(Object.isFrozen(empty)).toBe(true);
+  });
+
+  it("a later step with a duplicate id wins", () => {
+    const first = step("a");
+    const second = { ...step("a"), searchName: "GenesByText" };
+
+    const result = stepsById(strategy([first, second]));
+
+    expect(result["a"]?.searchName).toBe("GenesByText");
+  });
+
+  it("keeps every step when ids are distinct", () => {
+    const result = stepsById(strategy([step("a"), step("b"), step("c")]));
+
+    expect(Object.keys(result)).toHaveLength(3);
   });
 });

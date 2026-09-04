@@ -2,15 +2,6 @@
 
 import { useState } from "react";
 
-export type VennOperator =
-  | "INTERSECT"
-  | "UNION"
-  | "MINUS"
-  | "RMINUS"
-  | "LONLY"
-  | "RONLY"
-  | "COLOCATE";
-
 interface VennState {
   operator: string;
   swappedLabels: boolean;

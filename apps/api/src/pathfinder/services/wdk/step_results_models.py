@@ -1,13 +1,23 @@
-"""Service-layer response models produced by ``StepResultsService``.
+"""Service-layer response models the WDK step services produce.
 
-Owned by the service (the producer) so transport returns them without the
-service importing transport.
+Owned by the service (the producer) so a caller returns them without
+importing the wire models.
 """
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import JsonValue
+from assistant_core.platform.types import JSONObject
+from pydantic import Field, JsonValue
 
 from pathfinder.domain.wdk_values import WDKRecordIdPart
+
+
+class SampleRecordsResult(CamelModel):
+    """The first records of one built step, ready to render."""
+
+    step_id: int
+    total_count: int
+    records: list[JSONObject] = Field(default_factory=list)
+    attributes: list[str] = Field(default_factory=list)
 
 
 class RecordAttribute(CamelModel):

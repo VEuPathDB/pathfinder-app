@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from pydantic import TypeAdapter
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from shared_py.stream_parts.eda import (
+
+from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.domain.eda_parts import (
     EdaAnalysisState,
     EdaEffectDirection,
     EdaEntityCount,
@@ -12,8 +14,6 @@ from shared_py.stream_parts.eda import (
     EdaVizPart,
     EdaVolcanoPoint,
 )
-
-from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.domain.eda_thread import EdaAnalysisFacts
 from pathfinder.services.eda.authoring import SubsetPreview, distribution_series
 from pathfinder.services.eda.compute import RetainedSummary

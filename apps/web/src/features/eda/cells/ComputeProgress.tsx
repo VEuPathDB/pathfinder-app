@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { EdaComputationDescriptor } from "@pathfinder/shared/generated/types/EdaComputationDescriptor";
 
 import { Button } from "@/components/ui/button";
-import { patchConversationEda } from "@/lib/api/eda";
+import { patchConversationEda } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
 import { isEdaJobRunning, useEdaStore, type EdaJobSnapshot } from "@/state/eda";
 

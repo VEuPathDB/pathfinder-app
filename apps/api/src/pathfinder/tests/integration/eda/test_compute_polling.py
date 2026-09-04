@@ -72,8 +72,9 @@ async def test_a_lookup_never_starts_a_job(
         seen.append(request)
         return httpx.Response(200, json={"jobID": "a" * 32, "status": "no-such-job"})
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(handler))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+    )
     monkeypatch.setattr(compute, "get_eda_client", lambda _s: client)
 
     job = await compute.lookup_job(
@@ -97,8 +98,9 @@ async def test_a_submit_starts_a_job(
         seen.append(request)
         return httpx.Response(200, json={"jobID": "a" * 32, "status": "queued"})
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(handler))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+    )
     monkeypatch.setattr(compute, "get_eda_client", lambda _s: client)
 
     job = await compute.submit_compute(
@@ -124,8 +126,9 @@ async def test_poll_job_reads_the_status_by_job_id(
             200, json={"jobID": "a" * 32, "status": "in-progress", "queuePosition": 3}
         )
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(handler))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+    )
     monkeypatch.setattr(compute, "get_eda_client", lambda _s: client)
 
     job = await compute.poll_job("plasmodb", job_id="a" * 32)
@@ -146,8 +149,9 @@ async def test_the_lookup_and_the_submit_address_the_same_job_id(
         bodies.append(request.content.decode())
         return httpx.Response(200, json={"jobID": "a" * 32, "status": "complete"})
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(handler))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+    )
     monkeypatch.setattr(compute, "get_eda_client", lambda _s: client)
 
     await compute.lookup_job(
@@ -201,8 +205,9 @@ async def test_read_statistics_retries_a_502_right_after_completion(
             return httpx.Response(502, text="<html>Bad Gateway</html>")
         return httpx.Response(200, json=_fixture_stats())
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(handler))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+    )
     monkeypatch.setattr(compute, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(compute, "_READ_BACKOFF_SECONDS", 0.0)
 
@@ -227,8 +232,9 @@ async def test_read_statistics_gives_up_after_the_last_attempt(
         attempts.append(1)
         return httpx.Response(502, text="<html>Bad Gateway</html>")
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(handler))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+    )
     monkeypatch.setattr(compute, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(compute, "_READ_BACKOFF_SECONDS", 0.0)
 
@@ -260,8 +266,9 @@ async def test_a_not_ready_compute_is_raised_at_once_and_never_retried(
             },
         )
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(handler))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+    )
     monkeypatch.setattr(compute, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(compute, "_READ_BACKOFF_SECONDS", 0.0)
 

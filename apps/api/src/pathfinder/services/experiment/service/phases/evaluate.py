@@ -1,12 +1,6 @@
-"""Evaluation phases: control-test evaluation, step analysis, strategy
-persistence, and rank-based metrics.
-
-These phases run early in the experiment lifecycle to establish baseline
-metrics and persist WDK artifacts.
-"""
+"""Evaluation phases: control-test evaluation and strategy persistence."""
 
 from assistant_core.platform.logging import get_logger
-from assistant_core.platform.types import JSONObject
 
 from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.platform.errors import AppError
@@ -17,34 +11,20 @@ from pathfinder.services.experiment.materialization import (
 from pathfinder.services.experiment.metrics import (
     evaluate_gene_ids_against_controls,
 )
-from pathfinder.services.experiment.rank_metrics import (
-    compute_rank_metrics,
-    fetch_ordered_result_ids,
-)
 from pathfinder.services.experiment.service.context import PhaseContext
 from pathfinder.services.experiment.service.shared import (
     apply_control_result,
     run_single_step_controls,
 )
-from pathfinder.services.experiment.step_analysis import (
+from pathfinder.services.experiment.tree_evaluation import (
     run_controls_against_tree,
-    run_step_analysis,
-)
-from pathfinder.services.experiment.types import (
-    ControlTestResult,
-    ExperimentMetrics,
 )
 
 logger = get_logger(__name__)
 
 
-async def phase_evaluate(
-    pctx: PhaseContext,
-) -> tuple[ControlTestResult, ExperimentMetrics]:
-    """Run control-test evaluation, compute metrics, and enrich gene lists.
-
-    :returns: ``(control_result, metrics)`` for downstream phases.
-    """
+async def phase_evaluate(pctx: PhaseContext) -> None:
+    """Run control-test evaluation, compute metrics, and enrich gene lists."""
     config, experiment = pctx.config, pctx.experiment
     await pctx.emit("evaluating", message="Running control tests...")
 
@@ -75,41 +55,6 @@ async def phase_evaluate(
     )
     pctx.store.save(experiment)
 
-    return result, metrics
-
-
-async def phase_step_analysis(
-    pctx: PhaseContext,
-    tree: StrategyStepNode,
-    baseline_result: ControlTestResult,
-) -> None:
-    """Run step-decomposition analysis for multi-step experiments."""
-    config, experiment = pctx.config, pctx.experiment
-
-    await pctx.emit("step_analysis", message="Running step decomposition analysis...")
-
-    async def _progress(event: JSONObject) -> None:
-        data = event.get("data", {})
-        msg = data.get("message", "") if isinstance(data, dict) else ""
-        await pctx.emit("step_analysis", message=str(msg), stepAnalysisProgress=data)
-
-    ctx = ControlsContext.from_config(config)
-    experiment.step_analysis = await run_step_analysis(
-        ctx,
-        tree,
-        baseline_result,
-        phases=config.step_analysis_phases,
-        progress_callback=_progress,
-    )
-    pctx.store.save(experiment)
-
-    metrics_json = (
-        experiment.metrics.model_dump(by_alias=True) if experiment.metrics else {}
-    )
-    await pctx.emit(
-        "step_analysis", message="Step analysis complete", metrics=metrics_json
-    )
-
 
 async def phase_persist_strategy(
     pctx: PhaseContext,
@@ -134,44 +79,3 @@ async def phase_persist_strategy(
             experiment_id=experiment.id,
             error=str(exc),
         )
-
-
-async def phase_rank_metrics(
-    pctx: PhaseContext,
-) -> list[str]:
-    """Compute rank-based metrics when a sort attribute is configured.
-
-    :returns: Ordered result IDs (for downstream robustness phase).
-    """
-    config, experiment = pctx.config, pctx.experiment
-    is_ranked = config.sort_attribute is not None
-    if not is_ranked or experiment.wdk_step_id is None:
-        return []
-
-    try:
-        await pctx.emit("evaluating", message="Computing rank-based metrics...")
-
-        ordered_ids = await fetch_ordered_result_ids(
-            site_id=config.site_id,
-            step_id=experiment.wdk_step_id,
-            sort_attribute=config.sort_attribute,
-            sort_direction=config.sort_direction,
-        )
-        if ordered_ids:
-            pos_set = set(config.positive_controls or [])
-            neg_set = set(config.negative_controls or [])
-            experiment.rank_metrics = compute_rank_metrics(
-                result_ids=ordered_ids,
-                positive_ids=pos_set,
-                negative_ids=neg_set,
-            )
-            pctx.store.save(experiment)
-    except (AppError, ZeroDivisionError) as exc:
-        logger.warning(
-            "Rank metrics computation failed",
-            experiment_id=experiment.id,
-            error=str(exc),
-        )
-        return []
-    else:
-        return ordered_ids

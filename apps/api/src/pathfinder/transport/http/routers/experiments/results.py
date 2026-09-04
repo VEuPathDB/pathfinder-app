@@ -1,27 +1,15 @@
-"""HTTP endpoints for experiment results: records, attributes, distributions, refine."""
+"""HTTP endpoints for experiment results: records, attributes, distributions."""
 
-from dataclasses import dataclass
 from typing import Annotated
 
-from assistant_core.platform.logging import get_logger
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 
-from pathfinder.platform.errors import (
-    NotFoundError,
-    ValidationError,
-)
+from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.experiment.classification import classify_records
-from pathfinder.services.experiment.refine import (
-    apply_transform,
-    combine_with_search,
+from pathfinder.services.wdk.step_results import (
+    StepResultsService,
+    step_results_service,
 )
-from pathfinder.services.experiment.store import get_experiment_store
-from pathfinder.services.wdk import (
-    WDKSortDirection,
-    encode_wdk_params,
-    get_strategy_api,
-)
-from pathfinder.services.wdk.step_results import StepResultsService
 from pathfinder.services.wdk.step_results_models import (
     AttributesResponse,
     RecordDetailResponse,
@@ -31,42 +19,28 @@ from pathfinder.transport.http.deps import (
     ExperimentDep,
     require_registered_wdk_identity,
 )
-from pathfinder.transport.http.schemas.experiments import RefineRequest, RefineResponse
 from pathfinder.transport.http.schemas.step_results import (
     ClassifiedRecord,
     DistributionResponse,
+    RecordQueryParams,
     RecordsMeta,
     RecordsPagination,
     RecordsResponse,
 )
 from pathfinder.transport.http.schemas.steps import RecordDetailRequest
 
-logger = get_logger(__name__)
-
 # Every route here reads or writes the experiment's WDK strategy.
 router = APIRouter(dependencies=[Depends(require_registered_wdk_identity)])
-
-
-@dataclass
-class RecordQueryParams:
-    """The query parameters that the record listing endpoints take."""
-
-    offset: int = Query(0, ge=0)
-    limit: int = Query(50, ge=1, le=500)
-    sort: str | None = None
-    sort_dir: Annotated[WDKSortDirection, Query(alias="dir")] = "ASC"
-    attributes: str | None = None
-    filter_attribute: str | None = Query(None, alias="filterAttribute")
-    filter_value: str | None = Query(None, alias="filterValue")
 
 
 def _require_step(exp: ExperimentDep) -> StepResultsService:
     """Builds a StepResultsService. An experiment with no WDK step raises not found."""
     if not exp.wdk_step_id:
         raise NotFoundError(title="No WDK strategy for this experiment")
-    api = get_strategy_api(exp.config.site_id)
-    return StepResultsService(
-        api, step_id=exp.wdk_step_id, record_type=exp.config.record_type
+    return step_results_service(
+        site_id=exp.config.site_id,
+        step_id=exp.wdk_step_id,
+        record_type=exp.config.record_type,
     )
 
 
@@ -76,9 +50,8 @@ async def get_experiment_attributes(
     user_id: CurrentUser,
 ) -> AttributesResponse:
     """Returns the available attributes for the experiment record type."""
-    api = get_strategy_api(exp.config.site_id)
-    svc = StepResultsService(
-        api,
+    svc = step_results_service(
+        site_id=exp.config.site_id,
         step_id=exp.wdk_step_id or 0,
         record_type=exp.config.record_type,
     )
@@ -183,9 +156,8 @@ async def get_experiment_record_detail(
         {"name": part.name, "value": part.value} for part in body.primary_key
     ]
 
-    api = get_strategy_api(exp.config.site_id)
-    svc = StepResultsService(
-        api,
+    svc = step_results_service(
+        site_id=exp.config.site_id,
         step_id=exp.wdk_step_id or 0,
         record_type=exp.config.record_type,
     )
@@ -205,48 +177,3 @@ async def get_experiment_distribution(
     svc = _require_step(exp)
     dist = await svc.get_distribution(attribute_name)
     return DistributionResponse(histogram=dist.histogram, statistics=dist.statistics)
-
-
-@router.post("/{experiment_id}/refine", response_model=RefineResponse)
-async def refine_experiment(
-    exp: ExperimentDep,
-    request: RefineRequest,
-    user_id: CurrentUser,
-) -> RefineResponse:
-    """Adds a combine or transform step to the experiment strategy."""
-    api = get_strategy_api(exp.config.site_id)
-    store = get_experiment_store()
-
-    params = encode_wdk_params(request.parameters)
-
-    if request.action == "combine":
-        result = await combine_with_search(
-            api=api,
-            exp=exp,
-            search_name=request.search_name,
-            parameters=params,
-            operator=request.operator,
-            store=store,
-        )
-        return RefineResponse(success=True, new_step_id=result.new_step_id)
-
-    if request.action == "transform":
-        result = await apply_transform(
-            api=api,
-            exp=exp,
-            transform_name=request.transform_name,
-            parameters=params,
-            store=store,
-        )
-        return RefineResponse(success=True, new_step_id=result.new_step_id)
-
-    raise ValidationError(
-        title=f"Unknown refine action: {request.action}",
-        errors=[
-            {
-                "path": "action",
-                "message": f"Unknown action: {request.action}",
-                "code": "INVALID_ACTION",
-            }
-        ],
-    )

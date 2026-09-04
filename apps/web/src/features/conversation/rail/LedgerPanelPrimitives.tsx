@@ -3,7 +3,7 @@
 import { Check, X } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { type Tone, toneBadge } from "@/lib/utils/statusTone";
+import { type Tone, toneBadge } from "@/features/conversation/rail/statusTone";
 
 export function LedgerSection({
   title,
@@ -53,7 +53,14 @@ export function CountChip({ value, tone = "neutral" }: { value: number; tone?: T
   );
 }
 
-export function StatusPill({ text, tone = "neutral" }: { text: string; tone?: Tone }) {
+export function StatusPill({
+  text,
+  tone = "neutral",
+}: {
+  text: string | undefined;
+  tone?: Tone;
+}) {
+  if (text === undefined) return null;
   return (
     <span
       className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-medium ${toneBadge(tone)}`}

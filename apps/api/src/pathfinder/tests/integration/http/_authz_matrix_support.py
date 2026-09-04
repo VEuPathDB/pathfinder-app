@@ -6,7 +6,6 @@ matrix case. The requests themselves live in ``_authz_matrix_cases``.
 
 from __future__ import annotations
 
-import asyncio
 import re
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
@@ -22,7 +21,6 @@ MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 REFUSAL_STATUSES = frozenset({403, 404})
 # A route that refuses its own owner cannot prove anything about a non-owner.
 OWNER_REFUSAL_STATUSES = frozenset({401, 403, 404})
-STREAM_TIMEOUT_SECONDS = 15.0
 
 ROOT_STEP_ID = "root"
 SITE_ID = "plasmodb"
@@ -99,7 +97,7 @@ NOT_RESOURCE_SCOPED: dict[tuple[str, str, str], str] = {
     (
         CONTROL_SET.name,
         "POST",
-        "/api/v1/experiments/",
+        "/api/v1/experiments",
     ): "controlSetId is provenance on the experiment config. The controls come "
     "from the request body, and no code path loads the control set by that id.",
     (
@@ -116,7 +114,7 @@ NOT_RESOURCE_SCOPED: dict[tuple[str, str, str], str] = {
     (
         EXPERIMENT.name,
         "POST",
-        "/api/v1/experiments/",
+        "/api/v1/experiments",
     ): "parentExperimentId is provenance on the experiment config. Nothing loads "
     "an experiment by it; it is only stored and serialized.",
     (
@@ -134,14 +132,6 @@ NOT_RESOURCE_SCOPED: dict[tuple[str, str, str], str] = {
 # Routes whose owner request is answered by WDK, which VEuPathDB serves to
 # registered users only. Their owner contrast carries the test account's token.
 WDK_BACKED: dict[tuple[str, str], str] = {
-    (
-        "POST",
-        "/api/v1/experiments/{experiment_id}/enrich",
-    ): "the enrichment runs on WDK",
-    (
-        "POST",
-        "/api/v1/experiments/{experiment_id}/re-evaluate",
-    ): "the experiment's search runs again on WDK",
     (
         "POST",
         "/api/v1/experiments/{experiment_id}/results/record",
@@ -163,11 +153,6 @@ NO_OWNER_CONTRAST: dict[tuple[str, str], str] = {
         "/api/v1/conversations/{conversation_id:uuid}/insert-saved",
     ): "The owner needs a saved WDK strategy id, which only a live WDK write "
     "produces. WDK answers 404 for the placeholder id.",
-    (
-        "POST",
-        "/api/v1/experiments/{experiment_id}/refine",
-    ): "The owner needs an experiment with a materialized WDK strategy, which "
-    "only a live experiment run produces.",
 }
 
 
@@ -191,7 +176,6 @@ class Owned:
     unclaimed_conversation_id: UUID
     note_id: str
     message_id: UUID
-    turn_id: UUID
     experiment_ids: tuple[str, str]
     gene_set_ids: tuple[str, str]
     control_set_id: UUID
@@ -295,18 +279,7 @@ def wdk_backed_indexes(blueprints: Sequence[Case]) -> tuple[int, ...]:
     )
 
 
-async def status_for(client: httpx.AsyncClient, case: Case) -> int | None:
-    """Return the status code, or None when the route streams instead."""
-    call = asyncio.create_task(
-        client.request(case.method, case.url, json=case.body, timeout=60.0),
-    )
-    try:
-        response = await asyncio.wait_for(
-            asyncio.shield(call),
-            timeout=STREAM_TIMEOUT_SECONDS,
-        )
-    except TimeoutError:
-        call.cancel()
-        await asyncio.gather(call, return_exceptions=True)
-        return None
+async def status_for(client: httpx.AsyncClient, case: Case) -> int:
+    """The status the route answers with. A stream answers at its status line."""
+    response = await client.request(case.method, case.url, json=case.body, timeout=60.0)
     return response.status_code

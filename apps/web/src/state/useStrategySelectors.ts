@@ -31,11 +31,3 @@ export function useStrategyHistory(conversationId: string) {
     canRedo,
   };
 }
-
-export function useStrategyListActions() {
-  return useStrategyStore(
-    useShallow((s) => ({
-      setGraphValidationStatus: s.setGraphValidationStatus,
-    })),
-  );
-}

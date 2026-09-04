@@ -10,19 +10,17 @@ from pydantic_ai.ui.vercel_ai.response_types import (
     DataChunk,
     SourceUrlChunk,
 )
-from shared_py.stream_parts.gene_set import GeneSet as GeneSetPart
-from shared_py.stream_parts.graph import (
+
+from pathfinder.ai.stream_part_payloads import (
+    GeneSet,
     GraphCleared,
     GraphEdge,
     GraphEdgeOperator,
     GraphNode,
     GraphSnapshot,
-)
-from shared_py.stream_parts.strategy import (
     StrategyLink,
     StrategyMeta,
 )
-
 from pathfinder.domain.strategy.graph_model import wdk_search_name
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.types import SyncStateProtocol
@@ -58,18 +56,6 @@ def _count_for_step(step_id: str, sync_state: SyncStateProtocol | None) -> int:
         return 0
     count = sync_state.step_counts.get(step_id)
     return count if isinstance(count, int) else 0
-
-
-def _snapshot_nodes(graph: StrategyGraph) -> list[GraphNode]:
-    sync_state = None
-    return [
-        GraphNode(
-            id=step.id,
-            search_name=wdk_search_name(step),
-            estimated_size=_count_for_step(step.id, sync_state),
-        )
-        for step in graph.steps.values()
-    ]
 
 
 def _snapshot_edges(graph: StrategyGraph) -> list[GraphEdge]:
@@ -194,7 +180,7 @@ def gene_set_chunk(
     site_id: str,
 ) -> DataChunk:
     """Build the gene set chunk for a workbench gene set."""
-    payload = GeneSetPart(
+    payload = GeneSet(
         gene_set_id=gene_set_id,
         name=name,
         gene_count=gene_count,

@@ -124,12 +124,27 @@ specific domain area.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.gene_sets
+.. automodule:: pathfinder.transport.http.routers.gene_sets.crud
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.internal
+.. automodule:: pathfinder.transport.http.routers.gene_sets.operations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pathfinder.transport.http.routers.gene_sets.enrichment
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pathfinder.transport.http.routers.gene_sets.records
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pathfinder.transport.http.routers.gene_sets.confidence
    :members:
    :undoc-members:
    :show-inheritance:
@@ -149,22 +164,12 @@ specific domain area.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.conversations.strategy_ast
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 .. automodule:: pathfinder.transport.http.routers.conversations.counts
    :members:
    :undoc-members:
    :show-inheritance:
 
 .. automodule:: pathfinder.transport.http.routers.conversations.wdk_import
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.experiments.crud
    :members:
    :undoc-members:
    :show-inheritance:
@@ -179,22 +184,7 @@ specific domain area.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.experiments.analysis
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.experiments.cross_validation
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 .. automodule:: pathfinder.transport.http.routers.experiments.enrichment
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.experiments.comparison
    :members:
    :undoc-members:
    :show-inheritance:
@@ -210,11 +200,6 @@ Schemas
 Pydantic request/response models (DTOs) for the HTTP API.
 
 .. automodule:: pathfinder.transport.http.schemas.conversations
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.schemas.strategy_ast
    :members:
    :undoc-members:
    :show-inheritance:
@@ -249,12 +234,3 @@ Pydantic request/response models (DTOs) for the HTTP API.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.schemas.optimization
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.schemas.experiment_responses
-   :members:
-   :undoc-members:
-   :show-inheritance:

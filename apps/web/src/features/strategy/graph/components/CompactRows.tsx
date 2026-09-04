@@ -1,7 +1,7 @@
 "use client";
 
 import { CompactRowKebab } from "@/features/strategy/graph/components/CompactRowKebab";
-import { VennIcon } from "@/features/strategy/graph/components/OpBadge";
+import { VennIcon } from "@/features/strategy/graph/components/VennIcon";
 import type { CompactStep } from "@/features/strategy/graph/utils/compactLayout";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { cn } from "@/lib/utils/cn";
@@ -48,11 +48,7 @@ export function CompactStepRow({
   );
 }
 
-export function StepRowButton({
-  step,
-  onStepClick,
-  selectedStepId = null,
-}: StepRowProps) {
+function StepRowButton({ step, onStepClick, selectedStepId = null }: StepRowProps) {
   const snapshot = useStepSnapshot(step.source);
   const liveCount = snapshot.estimatedSize;
   const isSelected = step.id === selectedStepId;
@@ -112,14 +108,11 @@ const OPERATOR_NAME: Record<string, string> = {
   COLOCATE: "Colocated",
 };
 
-export function operatorName(operator: string): string {
+function operatorName(operator: string): string {
   return OPERATOR_NAME[operator] ?? operator;
 }
 
-export function combineOperatorLabel(
-  operator: string,
-  operands?: [string, string],
-): string {
+function combineOperatorLabel(operator: string, operands?: [string, string]): string {
   const [a, b] = operands ?? ["A", "B"];
   switch (operator) {
     case "INTERSECT":

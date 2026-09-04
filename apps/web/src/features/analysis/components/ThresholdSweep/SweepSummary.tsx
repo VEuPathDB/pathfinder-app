@@ -1,6 +1,6 @@
 import { TrendingUp, Target, AlertTriangle } from "lucide-react";
-import type { ThresholdSweepPoint } from "@/lib/api/analysis";
-import { Card } from "@/lib/components/ui/Card";
+import type { ThresholdSweepPoint } from "@/features/analysis/api/compute";
+import { Card } from "@/components/ui/card";
 import { pct } from "../../utils/formatters";
 
 export function SweepSummary({

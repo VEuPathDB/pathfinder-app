@@ -14,8 +14,6 @@ from assistant_core.platform.types import JSONObject
 
 from pathfinder.services.enrichment.html import parse_result_genes_html
 from pathfinder.services.enrichment.parser import (
-    infer_enrichment_type,
-    parse_enrichment_from_raw,
     parse_enrichment_response,
     parse_enrichment_terms,
 )
@@ -100,51 +98,6 @@ def test_result_genes_html_extracts_count_and_ids() -> None:
     )
     assert count == 2
     assert genes == ["PF3D7_0100100", "PF3D7_0200200"]
-
-
-def test_parse_from_raw_infers_type_and_parses_terms_end_to_end() -> None:
-    result: JSONObject = {
-        "resultData": [
-            {
-                "pathwayId": "kegg_pfa03030",
-                "pathwayName": "DNA replication",
-                "bgdGenes": "35",
-                "resultGenes": "<a href='?param.ds_gene_ids.idList=PF3D7_1361900&autoRun=1'>1</a>",
-                "foldEnrich": "5.0",
-                "pValue": "0.0008",
-                "benjamini": "0.01",
-                "bonferroni": "0.03",
-            }
-        ],
-        "downloadPath": "/a/b",
-        "pvalueCutoff": "0.05",
-    }
-    res = parse_enrichment_from_raw(
-        "pathway-enrichment", {}, result, analyzed_gene_count=24
-    )
-    assert res.analysis_type == "pathway"
-    assert [t.term_id for t in res.terms] == ["kegg_pfa03030"]
-    assert res.terms[0].term_name == "DNA replication"
-
-
-def test_infer_go_ontology_from_param() -> None:
-    # WDK vocab params arrive as JSON array strings.
-    assert (
-        infer_enrichment_type(
-            "go-enrichment",
-            {"goAssociationsOntologies": '["Molecular Function"]'},
-            {},
-        )
-        == "go_function"
-    )
-    assert (
-        infer_enrichment_type(
-            "go-enrichment",
-            {"goAssociationsOntologies": '["Cellular Component"]'},
-            {},
-        )
-        == "go_component"
-    )
 
 
 def test_malformed_row_missing_go_id_is_skipped() -> None:

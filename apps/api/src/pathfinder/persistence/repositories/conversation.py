@@ -9,11 +9,11 @@ from uuid import UUID, uuid4
 
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.context import calling_application
-from shared_py.defaults import DEFAULT_STREAM_NAME
 from sqlalchemy import delete, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pathfinder.domain.conversation import DEFAULT_STREAM_NAME
 from pathfinder.persistence.models import ConversationStrategy, ConversationStrategyView
 from pathfinder.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,

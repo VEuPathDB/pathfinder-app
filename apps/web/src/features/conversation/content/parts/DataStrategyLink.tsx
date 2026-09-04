@@ -1,6 +1,6 @@
 import type { StrategyLink } from "@pathfinder/shared";
 
-import { Figure } from "@/lib/components/thread/Figure";
+import { Figure } from "@/features/conversation/thread/Figure";
 
 export function DataStrategyLink({ data }: { data: StrategyLink }) {
   const name = data.title ?? `Strategy ${data.strategyId}`;

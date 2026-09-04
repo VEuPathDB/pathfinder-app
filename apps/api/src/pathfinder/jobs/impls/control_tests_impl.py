@@ -1,9 +1,4 @@
-"""Worker-side impl for ``run_control_tests_on_step``.
-
-Moved from ``ai/tools/standalone/experiment.py``: the agent-side wrapper is
-now a thin durable stub that submits this job and defers its call. All WDK
-I/O, validation, and result shaping happens here.
-"""
+"""Worker-side impl for ``run_control_tests_on_step``."""
 
 from __future__ import annotations
 
@@ -13,13 +8,9 @@ from uuid import UUID
 from assistant_core.memory.store import MemoryStore
 
 from pathfinder.ai.graph.runtime import Context
-from pathfinder.ai.tools.standalone._experiment_models import (
-    _run_step_control_tests,
-)
-from pathfinder.ai.tools.standalone.experiment import (
-    _export_step_control_result,
-)
 from pathfinder.jobs.progress import TaskProgressEmitter
+from pathfinder.services.control_tests import run_step_control_tests
+from pathfinder.services.tool_payloads import attach_control_downloads
 
 
 async def run_control_tests_on_step_impl(
@@ -50,7 +41,7 @@ async def run_control_tests_on_step_impl(
         data={"wdk_step_id": wdk_step_id, "total_sets": total_sets},
     )
 
-    result = await _run_step_control_tests(
+    result = await run_step_control_tests(
         site_id=context.site_id,
         wdk_step_id=wdk_step_id,
         positive_controls=positive_controls,
@@ -80,7 +71,7 @@ async def run_control_tests_on_step_impl(
         )
 
     await progress.update(percent=0.9, message="Exporting results", data=None)
-    exported = await _export_step_control_result(
+    exported = await attach_control_downloads(
         result, f"step_{wdk_step_id}_control_tests"
     )
     await progress.update(percent=1.0, message="Control tests complete", data=None)

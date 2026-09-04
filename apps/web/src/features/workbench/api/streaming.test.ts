@@ -37,7 +37,7 @@ describe("createExperimentStream serialization", () => {
     await drain(createExperimentStream(config));
 
     expect(calls).toHaveLength(1);
-    expect(calls[0]?.url).toBe("/api/v1/experiments/");
+    expect(calls[0]?.url).toBe("/api/v1/experiments");
     const body = calls[0]?.opts.body as Record<string, unknown>;
     expect(body["siteId"]).toBe("plasmodb");
     expect(body["mode"]).toBe("single"); // defaulted, not undefined

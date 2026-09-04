@@ -28,8 +28,8 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead import sub_agent_stream, sub_agent_tools
 from pathfinder.ai.lead.deltas import VerificationDelta
-from pathfinder.ai.lead.sub_agent_dispatch import run_verification
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.verify_dispatch import run_verification
 from pathfinder.ai.tools.standalone.strategy_graph import StudyStepCheck
 from pathfinder.ai.tools.toolsets import verification
 from pathfinder.domain.parameters.values import StringValue
@@ -39,6 +39,7 @@ from pathfinder.services.research.literature_search import LiteratureSearchServi
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
+from pathfinder.tests.fixtures.builders import add_step_to_graph
 
 _STEP_ID = "step_637b66c6"
 _WDK_STEP_ID = 440186113
@@ -109,7 +110,8 @@ def _session() -> StrategySession:
     session = StrategySession(site_id="plasmodb")
     graph = StrategyGraph("graph-1", "Heat shock", "plasmodb")
     graph.record_type = "transcript"
-    graph.add_step(
+    add_step_to_graph(
+        graph,
         StrategyStep(
             id=_STEP_ID,
             kind=StepKind.SEARCH,

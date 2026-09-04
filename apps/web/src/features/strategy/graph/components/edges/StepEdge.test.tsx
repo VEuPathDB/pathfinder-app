@@ -50,9 +50,9 @@ describe("StepEdge", () => {
 
   it("renders an SVG path with a generated d attribute", () => {
     const { container } = renderEdge();
-    const path = container.querySelector('[data-testid="step-edge-e1"]');
-    expect(path).not.toBeNull();
-    expect(path?.getAttribute("d")).toBeTruthy();
+    const paths = container.querySelectorAll('[data-testid="step-edge-e1"]');
+    expect(paths).toHaveLength(1);
+    expect(paths[0]).toHaveAttribute("d", expect.stringMatching(/^M[\d.,\s-]/));
   });
 
   it("animates pathLength from 0 to 1 when reduced-motion is off", () => {

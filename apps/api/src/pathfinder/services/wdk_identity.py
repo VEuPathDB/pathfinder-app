@@ -97,11 +97,6 @@ async def resolve_veupathdb_email(token: str, site_id: str) -> str | None:
 _identities: dict[str, tuple[float, UUID]] = {}
 
 
-def clear_veupathdb_identity_cache() -> None:
-    """Drop every remembered token-to-user mapping."""
-    _identities.clear()
-
-
 async def resolve_veupathdb_user_id(token: str, site_id: str) -> UUID | None:
     """Map a VEuPathDB token to the internal user, by the email WDK reports.
 

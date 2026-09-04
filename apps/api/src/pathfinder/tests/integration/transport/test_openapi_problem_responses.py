@@ -18,8 +18,6 @@ async def test_route_miss_404_is_problem_json(app: FastAPI) -> None:
 
 def test_download_routes_declare_real_content_types(app: FastAPI) -> None:
     spec = app.openapi()
-    report = _op(spec, "/api/v1/experiments/{experiment_id}/export", "get")
-    assert "text/html" in report["responses"]["200"]["content"]
     download = _op(spec, "/api/v1/exports/{export_id}", "get")
     download_types = download["responses"]["200"]["content"]
     assert "text/csv" in download_types, download_types
@@ -54,7 +52,7 @@ def test_validation_response_declares_problem_json(app: FastAPI) -> None:
 
 def test_resource_ops_declare_404_problem_json(app: FastAPI) -> None:
     spec = app.openapi()
-    responses = _op(spec, "/api/v1/control-sets/{control_set_id}", "get")["responses"]
+    responses = _op(spec, "/api/v1/conversations/{strategyId}", "get")["responses"]
     assert "404" in responses, responses
     ref = responses["404"]["content"]["application/problem+json"]["schema"]["$ref"]
     assert ref.endswith("/ProblemDetail"), ref

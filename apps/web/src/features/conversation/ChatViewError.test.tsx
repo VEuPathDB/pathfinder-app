@@ -4,6 +4,7 @@
 import type * as ReactQueryModule from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 
 import { chatRoot } from "@/lib/routes";
 import { ChatViewError } from "./ChatViewError";
@@ -11,9 +12,7 @@ import { ChatViewError } from "./ChatViewError";
 type ReactQueryExports = typeof ReactQueryModule;
 
 describe("ChatViewError", () => {
-  it("names the error and points back to the conversation list", async () => {
-    const { render, screen } = await import("@testing-library/react");
-
+  it("names the error and points back to the conversation list", () => {
     render(
       <ChatViewError
         error={new Error("A message with the same id already exists")}
@@ -26,9 +25,7 @@ describe("ChatViewError", () => {
     expect(back.getAttribute("href")).toBe("/plasmodb/conversation");
   });
 
-  it("names a thrown non-error too", async () => {
-    const { render, screen } = await import("@testing-library/react");
-
+  it("names a thrown non-error too", () => {
     render(
       <ChatViewError error="plain string" conversationsHref="/toxodb/conversation" />,
     );
@@ -109,12 +106,14 @@ describe("ChatView error boundary", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
 
     const { ChatView } = await import("./ChatView");
-    const { render, screen } = await import("@testing-library/react");
+    const tl = await import("@testing-library/react");
 
-    render(<ChatView conversationId="conv-1" allowMissing={false} />);
+    tl.render(<ChatView conversationId="conv-1" allowMissing={false} />);
 
-    expect(screen.getByText(/A message with the same id already exists/)).toBeTruthy();
-    const back = screen.getByRole("link", { name: /back to conversations/i });
+    expect(
+      tl.screen.getByText(/A message with the same id already exists/),
+    ).toBeTruthy();
+    const back = tl.screen.getByRole("link", { name: /back to conversations/i });
     expect(back.getAttribute("href")).toBe(chatRoot("plasmodb"));
   });
 
@@ -125,11 +124,13 @@ describe("ChatView error boundary", () => {
     }));
 
     const { ChatView } = await import("./ChatView");
-    const { render, screen } = await import("@testing-library/react");
+    const tl = await import("@testing-library/react");
 
-    render(<ChatView conversationId="conv-1" allowMissing={false} />);
+    tl.render(<ChatView conversationId="conv-1" allowMissing={false} />);
 
-    expect(screen.getAllByTestId("thread")).toHaveLength(1);
-    expect(screen.queryByRole("link", { name: /back to conversations/i })).toBeNull();
+    expect(tl.screen.getAllByTestId("thread")).toHaveLength(1);
+    expect(
+      tl.screen.queryAllByRole("link", { name: /back to conversations/i }),
+    ).toHaveLength(0);
   });
 });

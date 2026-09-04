@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuiState } from "@assistant-ui/react";
+import type { TurnStatusPayload } from "@pathfinder/shared/generated/types/TurnStatusPayload";
+import { turnStatusPayloadSchema } from "@pathfinder/shared/generated/zod/turnStatusPayloadSchema";
 import { useState } from "react";
 
 import { Shimmer } from "@/components/ai-elements/shimmer";
@@ -8,36 +10,24 @@ import { ProviderIcon } from "@/lib/components/ProviderIcon";
 import { phaseLabel } from "@/lib/models/phaseRoles";
 import { isLocalProvider, parseModelString } from "@/lib/models/providerMeta";
 
+import type { StructuralPart } from "../parts";
 import { runningPhase } from "../thread/runningPhase";
 import { currentSeconds, statusLineWith, useNowSeconds } from "./statusClock";
 
 const DEFAULT_LABEL = "Thinking...";
 
-interface TurnStatusData {
-  label?: unknown;
-  model?: unknown;
-}
-
-interface StatusPart {
-  type: string;
-  name?: string | undefined;
-  data?: unknown;
-}
-
 interface StatusCarrier {
   status?: { type: string } | undefined;
-  content: readonly StatusPart[];
+  content: readonly StructuralPart[];
 }
 
-function turnStatusData(part: StatusPart): TurnStatusData | null {
+function turnStatusData(part: StructuralPart): TurnStatusPayload | null {
   const isTurnStatus =
     part.type === "data-turn-status" ||
     (part.type === "data" &&
       (part.name === "turn-status" || part.name === "data-turn-status"));
   if (!isTurnStatus) return null;
-  const data = part.data;
-  if (data == null || typeof data !== "object") return null;
-  return data as TurnStatusData;
+  return turnStatusPayloadSchema.safeParse(part.data).data ?? null;
 }
 
 // Selectors return primitives so useAuiState's identity check doesn't loop
@@ -50,7 +40,7 @@ export function selectStatusLabel(m: StatusCarrier | undefined): string | null {
   let label = DEFAULT_LABEL;
   for (const part of m.content) {
     const data = turnStatusData(part);
-    if (data !== null && typeof data.label === "string" && data.label.length > 0) {
+    if (data !== null && data.label.length > 0) {
       label = data.label;
     }
   }
@@ -62,7 +52,7 @@ function selectStatusModel(m: StatusCarrier | undefined): string | null {
   let model: string | null = null;
   for (const part of m.content) {
     const data = turnStatusData(part);
-    if (data !== null && typeof data.model === "string" && data.model.length > 0) {
+    if (data?.model != null && data.model.length > 0) {
       model = data.model;
     }
   }

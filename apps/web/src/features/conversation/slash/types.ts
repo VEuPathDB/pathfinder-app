@@ -51,19 +51,19 @@ export interface CommandContext {
   stepCount: number;
 }
 
-export interface DeterministicHandlerResult {
+interface DeterministicHandlerResult {
   kind: "toast";
   type: "success" | "error" | "info";
   message: string;
 }
 
-export interface DeterministicDownloadResult {
+interface DeterministicDownloadResult {
   kind: "download";
   url: string;
   filename: string;
 }
 
-export interface PrefillResult {
+interface PrefillResult {
   kind: "prefill";
   text: string;
   submit?: boolean;
@@ -75,9 +75,9 @@ export type CommandResult =
   | PrefillResult
   | { kind: "noop" };
 
-export type DisabledReasonResolver = (ctx: CommandContext) => string | null;
+type DisabledReasonResolver = (ctx: CommandContext) => string | null;
 
-export interface DeterministicCommand {
+interface DeterministicCommand {
   kind: "deterministic";
   name: string;
   aliases?: string[];
@@ -91,7 +91,7 @@ export interface DeterministicCommand {
   ) => Promise<CommandResult> | CommandResult;
 }
 
-export interface LlmPrefillCommand {
+interface LlmPrefillCommand {
   kind: "llm-prefill";
   name: string;
   aliases?: string[];

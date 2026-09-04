@@ -235,7 +235,7 @@ describe("streamTypedEvents", () => {
   it("sends the CSRF header the API demands on state-changing requests", async () => {
     const fetchSpy = stubFetchWithStream(streamFromChunks(["data: [DONE]\n\n"]));
 
-    for await (const _ of streamTypedEvents("/api/v1/experiments/", {
+    for await (const _ of streamTypedEvents("/api/v1/experiments", {
       method: "POST",
       body: { siteId: "plasmodb" },
     })) {

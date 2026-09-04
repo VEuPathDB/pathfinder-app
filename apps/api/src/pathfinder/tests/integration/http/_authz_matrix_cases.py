@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathfinder.tests.integration.http._authz_matrix_support import (
-    CONTROL_SET,
     CONVERSATION,
     EXPERIMENT,
     GENE_IDS,
@@ -20,7 +19,6 @@ from pathfinder.tests.integration.http.conftest import chat_body
 _CONV = frozenset({CONVERSATION.name})
 _EXP = frozenset({EXPERIMENT.name})
 _GS = frozenset({GENE_SET.name})
-_CS = frozenset({CONTROL_SET.name})
 _MEM = frozenset({MEMORY.name})
 _PRIMARY_KEY = {"primaryKey": [{"name": "source_id", "value": GENE_IDS[0]}]}
 
@@ -135,12 +133,6 @@ def _conversation_cases(owned: Owned) -> tuple[Case, ...]:
         ),
         Case(
             "POST",
-            "/api/v1/conversations/{conversation_id}/turns/{turn_id}/cancel",
-            f"{base}/turns/{owned.turn_id}/cancel",
-            _CONV,
-        ),
-        Case(
-            "POST",
             "/api/v1/conversations/{conversation_id}/cancel",
             f"{base}/cancel",
             _CONV,
@@ -156,9 +148,8 @@ def _conversation_cases(owned: Owned) -> tuple[Case, ...]:
 
 
 def _experiment_cases(owned: Owned) -> tuple[Case, ...]:
-    first, second = owned.experiment_ids
+    first, _second = owned.experiment_ids
     base = f"/api/v1/experiments/{first}"
-    both = [first, second]
     # A conversation id nobody holds yet, so the experiment is the only
     # foreign resource in the request.
     fresh = str(owned.unclaimed_conversation_id)
@@ -172,47 +163,12 @@ def _experiment_cases(owned: Owned) -> tuple[Case, ...]:
             _EXP,
             {"siteId": SITE_ID, "experimentId": first},
         ),
-        Case("DELETE", "/api/v1/experiments/{experiment_id}", base, _EXP),
-        Case(
-            "PATCH",
-            "/api/v1/experiments/{experiment_id}",
-            base,
-            _EXP,
-            {"notes": "annotated by an intruder"},
-        ),
-        Case(
-            "POST",
-            "/api/v1/experiments/{experiment_id}/cross-validate",
-            f"{base}/cross-validate",
-            _EXP,
-            {"kFolds": 2},
-        ),
         Case(
             "POST",
             "/api/v1/experiments/{experiment_id}/custom-enrich",
             f"{base}/custom-enrich",
             _EXP,
             {"geneIds": list(GENE_IDS), "geneSetName": "intruder set"},
-        ),
-        Case(
-            "POST",
-            "/api/v1/experiments/{experiment_id}/enrich",
-            f"{base}/enrich",
-            _EXP,
-            {"enrichmentTypes": ["go_function"]},
-        ),
-        Case(
-            "POST",
-            "/api/v1/experiments/{experiment_id}/re-evaluate",
-            f"{base}/re-evaluate",
-            _EXP,
-        ),
-        Case(
-            "POST",
-            "/api/v1/experiments/{experiment_id}/refine",
-            f"{base}/refine",
-            _EXP,
-            {"action": "transform", "transformName": "GeneTranscript"},
         ),
         Case(
             "POST",
@@ -227,20 +183,6 @@ def _experiment_cases(owned: Owned) -> tuple[Case, ...]:
             f"{base}/threshold-sweep",
             _EXP,
             {"parameterName": "organism", "sweepType": "numeric", "values": ["1"]},
-        ),
-        Case(
-            "POST",
-            "/api/v1/experiments/overlap",
-            "/api/v1/experiments/overlap",
-            _EXP,
-            {"experimentIds": both},
-        ),
-        Case(
-            "POST",
-            "/api/v1/experiments/enrichment-compare",
-            "/api/v1/experiments/enrichment-compare",
-            _EXP,
-            {"experimentIds": both, "analysisType": "go_function"},
         ),
     )
 
@@ -304,12 +246,6 @@ def cases(owned: Owned) -> tuple[Case, ...]:
         *_conversation_cases(owned),
         *_experiment_cases(owned),
         *_gene_set_cases(owned),
-        Case(
-            "DELETE",
-            "/api/v1/control-sets/{control_set_id}",
-            f"/api/v1/control-sets/{owned.control_set_id}",
-            _CS,
-        ),
         Case(
             "PATCH",
             "/api/v1/memories/{key}",

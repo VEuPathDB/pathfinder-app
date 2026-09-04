@@ -36,7 +36,6 @@ from pathfinder.ai.models.mock import PATHFINDER_SCRIPT, get_mock_model
 
 PRODUCT_PACKAGES = (
     "pathfinder.ai.models.mock",
-    "pathfinder.ai.models.mock_specs",
     "pathfinder.domain",
     "pathfinder.ai.lead",
     "pathfinder.ai.agents",

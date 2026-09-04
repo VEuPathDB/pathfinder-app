@@ -9,12 +9,12 @@ import {
   CheckSquare,
   Square,
 } from "lucide-react";
-import { Button } from "@/lib/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { deleteGeneSet } from "../api/geneSets";
 import { exportAsTxt, exportAsCsv, exportMultipleAsCsv } from "../utils/export";
 import { useShallow } from "zustand/react/shallow";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
-import { useInvalidateGeneSets } from "@/lib/query/hooks/useInvalidateGeneSets";
+import { useInvalidateGeneSets } from "@/features/workbench/hooks/useInvalidateGeneSets";
 import type { GeneSet } from "@pathfinder/shared";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import {
@@ -22,7 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/lib/components/ui/DropdownMenu";
+} from "@/components/ui/dropdown-menu";
 
 interface SelectionToolbarProps {
   activeSet: GeneSet | null;

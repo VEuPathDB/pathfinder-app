@@ -1,13 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { Step } from "@pathfinder/shared";
-import {
-  buildIndex,
-  findParent,
-  walkSubtreeIds,
-  getRootIds,
-  isReachableFromAnyRoot,
-  subtreeSize,
-} from "./utils";
+import { buildIndex, findParent, walkSubtreeIds } from "./utils";
 
 const step = (
   id: string,
@@ -77,38 +70,5 @@ describe("walkSubtreeIds", () => {
   });
   test("empty for unknown id", () => {
     expect(walkSubtreeIds([step("a")], "missing")).toEqual([]);
-  });
-});
-
-describe("getRootIds", () => {
-  test("returns the unique root", () => {
-    const steps = [step("a"), step("b"), step("c", "a", "b", "combine")];
-    expect(getRootIds(steps)).toEqual(["c"]);
-  });
-  test("returns multiple roots when graph is disconnected", () => {
-    const steps = [step("a"), step("b")];
-    expect(getRootIds(steps).sort()).toEqual(["a", "b"]);
-  });
-  test("returns [] for empty steps", () => {
-    expect(getRootIds([])).toEqual([]);
-  });
-});
-
-describe("subtreeSize", () => {
-  test("counts unique ids reachable upstream from id", () => {
-    const steps = [step("a"), step("b"), step("c", "a", "b", "combine")];
-    expect(subtreeSize(steps, "c")).toBe(3);
-    expect(subtreeSize(steps, "a")).toBe(1);
-  });
-});
-
-describe("isReachableFromAnyRoot", () => {
-  test("true for connected component members", () => {
-    const steps = [step("a"), step("b"), step("c", "a", "b", "combine")];
-    expect(isReachableFromAnyRoot(steps, "a", new Set(["c"]))).toBe(true);
-  });
-  test("false for orphan when given empty root set", () => {
-    const steps = [step("a"), step("b")];
-    expect(isReachableFromAnyRoot(steps, "a", new Set())).toBe(false);
   });
 });

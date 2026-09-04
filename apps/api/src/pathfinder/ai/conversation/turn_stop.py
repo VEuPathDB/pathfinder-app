@@ -6,10 +6,7 @@ from uuid import UUID
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 
-from pathfinder.persistence.repositories import ChatTurnCancellationRepository
-from pathfinder.persistence.repositories.strategy_revision import (
-    StrategyRevisionRepository,
-)
+from pathfinder.services.conversations.cancellation import turn_is_cancelled
 from pathfinder.services.strategies.revision_ops import discard_turn_strategy_writes
 
 CANCEL_POLL_INTERVAL_SECONDS = 1.0
@@ -23,10 +20,9 @@ async def watch_for_cancel(
     turn_id: UUID,
     cancel_event: asyncio.Event,
 ) -> None:
-    repo = ChatTurnCancellationRepository(session_factory=async_session_factory)
     while not cancel_event.is_set():
         try:
-            cancelled = await repo.is_cancelled(
+            cancelled = await turn_is_cancelled(
                 conversation_id=conversation_id,
                 turn_id=turn_id,
             )
@@ -44,13 +40,6 @@ async def watch_for_cancel(
             await asyncio.sleep(CANCEL_POLL_INTERVAL_SECONDS)
         except asyncio.CancelledError:
             return
-
-
-async def latest_revision_id(conversation_id: UUID) -> int | None:
-    """The strategy snapshot the thread holds as the turn opens."""
-    async with async_session_factory() as session:
-        latest = await StrategyRevisionRepository(session).latest(conversation_id)
-    return None if latest is None else latest.id
 
 
 async def restore_pre_turn_strategy(

@@ -21,12 +21,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "include": [
-    "src/**/*",
-    "tests/**/*",
-    "vitest.config.ts",
-    "vitest.acceptance.config.ts",
-    "eslint.config.mjs"
-  ],
+  "include": ["src/**/*", "tests/**/*", "vitest.config.ts", "eslint.config.mjs"],
   "exclude": ["node_modules"]
 }

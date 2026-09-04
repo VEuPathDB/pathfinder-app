@@ -18,6 +18,7 @@ from pathfinder.services.eval_data.chunk_reader import (
     read_turns,
     read_verification,
 )
+from pathfinder.tests._support.ledger import ledger_with
 
 
 def _log(*chunks: JSONObject) -> list[LoggedChunk]:
@@ -59,10 +60,8 @@ def _digest(*, success: bool, reason: str) -> VerificationDigest:
 def _ledger(*, success: bool, reason: str = "checked") -> JSONObject:
     """The ledger chunk, carrying the one section the reader looks at."""
     section = VerificationSection(digest=_digest(success=success, reason=reason))
-    chunk = ledger_update_event(ledger=section)
-    payload = chunk.model_dump(by_alias=True, mode="json", exclude_none=True)
-    payload["data"] = {"verification": payload["data"]}
-    return payload
+    chunk = ledger_update_event(ledger=ledger_with(section))
+    return chunk.model_dump(by_alias=True, mode="json", exclude_none=True)
 
 
 def test_a_user_message_opens_a_turn() -> None:

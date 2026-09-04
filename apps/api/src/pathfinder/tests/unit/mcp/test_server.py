@@ -18,10 +18,11 @@ from mcp.types import TextContent, Tool
 from pathfinder.mcp import server
 from pathfinder.mcp.auth import CredentialMode, McpCredential
 from pathfinder.platform.context import veupathdb_auth_token_ctx
-from pathfinder.services import catalog, control_tests, gene_lookup, wdk
+from pathfinder.services import catalog, control_tests, gene_lookup
 from pathfinder.services.catalog.models import RecordTypeInfo
 from pathfinder.services.experiment.types.control_result import ControlTestResult
 from pathfinder.services.gene_lookup import GeneResolveResult
+from pathfinder.services.wdk import step_preview
 
 SITE = "plasmodb"
 
@@ -268,7 +269,7 @@ async def test_a_step_call_answers_from_the_results_service(
             del attributes
             return f"https://plasmodb.org/temporary-results/{step_id}.{output_format}"
 
-    monkeypatch.setattr(wdk, "get_results_api", lambda site_id: _Results())
+    monkeypatch.setattr(step_preview, "get_results_api", lambda site_id: _Results())
 
     async with _served(_user_credential("user-bearer")) as client:
         result = await client.call_tool(

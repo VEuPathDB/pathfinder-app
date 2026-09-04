@@ -2,39 +2,25 @@
 
 from assistant_core.platform.context import calling_application
 from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat2
-from assistant_core.platform.types import JSONObject
 from pydantic import Field
 
 from pathfinder.domain.parameters.values import ParamValue
 from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.integrations.veupathdb.wdk_models import WDKSortDirection
 from pathfinder.services.enrichment.types import (
     EnrichmentAnalysisType,
     EnrichmentResult,
 )
 from pathfinder.services.experiment.types.core import (
-    DEFAULT_STEP_ANALYSIS_PHASES,
     ControlValueFormat,
     ExperimentMode,
     ExperimentStatus,
-    OptimizationObjective,
 )
 from pathfinder.services.experiment.types.metrics import (
     CrossValidationResult,
     ExperimentMetrics,
     GeneInfo,
 )
-from pathfinder.services.experiment.types.optimization import (
-    OperatorKnob,
-    OptimizationSpec,
-    ThresholdKnob,
-    TreeOptimizationResult,
-)
-from pathfinder.services.experiment.types.rank import (
-    BootstrapResult,
-    RankMetrics,
-)
-from pathfinder.services.experiment.types.step_analysis import StepAnalysisResult
+from pathfinder.services.experiment.types.robustness import BootstrapResult
 
 
 class ExperimentConfig(CamelModel):
@@ -61,26 +47,12 @@ class ExperimentConfig(CamelModel):
     enrichment_types: list[EnrichmentAnalysisType] = Field(default_factory=list)
     name: str = ""
     description: str = ""
-    optimization_specs: list[OptimizationSpec] | None = None
-    optimization_budget: int = 30
-    optimization_objective: OptimizationObjective = "balanced_accuracy"
     parameter_display_values: dict[str, str] | None = None
     mode: ExperimentMode = "single"
     step_tree: StrategyStepNode | None = None
     source_strategy_id: str | None = None
-    optimization_target_step: str | None = None
-    enable_step_analysis: bool = False
-    step_analysis_phases: list[str] = Field(
-        default_factory=lambda: list(DEFAULT_STEP_ANALYSIS_PHASES)
-    )
     control_set_id: str | None = None
-    threshold_knobs: list[ThresholdKnob] | None = None
-    operator_knobs: list[OperatorKnob] | None = None
-    tree_optimization_objective: str = "precision_at_50"
-    tree_optimization_budget: int = 50
     max_list_size: int | None = None
-    sort_attribute: str | None = None
-    sort_direction: WDKSortDirection = "ASC"
     parent_experiment_id: str | None = None
     target_gene_ids: list[str] | None = None
 
@@ -131,14 +103,10 @@ class Experiment(CamelModel):
     benchmark_id: str | None = None
     control_set_label: str | None = None
     is_primary_benchmark: bool = False
-    optimization_result: JSONObject | None = None
     wdk_strategy_id: int | None = None
     wdk_step_id: int | None = None
     notes: str | None = None
-    step_analysis: StepAnalysisResult | None = None
-    rank_metrics: RankMetrics | None = None
     robustness: BootstrapResult | None = None
-    tree_optimization: TreeOptimizationResult | None = None
 
     def classification_id_sets(
         self,

@@ -53,9 +53,7 @@ def _fixture(name: str) -> object:
 
 
 def _client(handler: httpx.MockTransport) -> EdaClient:
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(handler)
-    return client
+    return EdaClient(base_url="https://plasmodb.org/eda", transport=handler)
 
 
 def _species_filter() -> EdaStringSetFilter:
@@ -187,50 +185,6 @@ async def test_count_posts_the_filter_array_and_returns_an_int() -> None:
     }
 
 
-async def test_tabular_sends_the_accept_header_verbatim() -> None:
-    seen: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen.append(request)
-        return httpx.Response(200, json=_fixture("tabular_json.json"))
-
-    client = _client(httpx.MockTransport(handler))
-    rows = await client.tabular(
-        study_id="STUDY_53f554ec6a",
-        entity_id="GENE_PHENOTYPE_DATA_ENTITY",
-        filters=[],
-        output_variable_ids=["VEUPATHDB_GENE_ID"],
-        num_rows=5,
-    )
-    await client.close()
-    assert seen[0].headers["accept"] == "application/json"
-    assert rows[0][0].endswith("_stable_id")
-
-
-async def test_tabular_sends_both_paging_keys_or_neither() -> None:
-    seen: list[dict[str, object]] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen.append(json.loads(request.content))
-        return httpx.Response(200, json=[["a"]])
-
-    client = _client(httpx.MockTransport(handler))
-    await client.tabular(
-        study_id="S", entity_id="E", filters=[], output_variable_ids=[]
-    )
-    await client.tabular(
-        study_id="S",
-        entity_id="E",
-        filters=[],
-        output_variable_ids=[],
-        num_rows=20,
-        offset=40,
-    )
-    await client.close()
-    assert "reportConfig" not in seen[0]
-    assert seen[1]["reportConfig"] == {"paging": {"numRows": 20, "offset": 40}}
-
-
 async def test_a_distribution_omits_the_bin_spec_for_a_categorical_variable() -> None:
     seen: list[httpx.Request] = []
 
@@ -273,25 +227,6 @@ async def test_a_distribution_sends_a_bin_spec_when_one_is_given() -> None:
     )
     await client.close()
     assert seen[0]["binSpec"] == {"binWidth": 7.0, "binUnits": "day"}
-
-
-async def test_list_apps_parses_the_recorded_catalog() -> None:
-    seen: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen.append(request)
-        return httpx.Response(200, json=_fixture("apps.json"))
-
-    client = _client(httpx.MockTransport(handler))
-    apps = await client.list_apps()
-    await client.close()
-    assert seen[0].url.path == "/eda/apps"
-    by_name = {app.name: app for app in apps}
-    assert by_name["differentialexpression"].compute_name == "differentialexpression"
-    assert any(
-        viz.name == "volcanoplot"
-        for viz in by_name["differentialexpression"].visualizations
-    )
 
 
 async def test_submit_compute_sends_autostart_and_the_study_id() -> None:
@@ -370,36 +305,6 @@ async def test_get_job_addresses_the_job_by_its_derivable_id() -> None:
     await client.close()
     assert seen[0].url.path == "/eda/jobs/db04204e5386396e1ca2cb78469ab6fb"
     assert job.status == "complete"
-
-
-async def test_visualization_data_posts_compute_config_and_an_empty_config() -> None:
-    seen: list[dict[str, object]] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen.append(json.loads(request.content))
-        return httpx.Response(200, json=_fixture("volcano_statistics.json"))
-
-    client = _client(httpx.MockTransport(handler))
-    stats = await client.visualization_data(
-        app="differentialexpression",
-        viz="volcanoplot",
-        study_id="STUDY_e973eadd57",
-        compute_config=_de_config(),
-        filters=[_species_filter()],
-    )
-    await client.close()
-    assert seen[0]["config"] == {}
-    assert "computeConfig" in seen[0]
-    assert seen[0]["studyId"] == "STUDY_e973eadd57"
-    assert seen[0]["filters"] == [
-        {
-            "entityId": "GENE_PHENOTYPE_DATA_ENTITY",
-            "variableId": "VAR_035294d0",
-            "type": "stringSet",
-            "stringSet": ["P. berghei"],
-        }
-    ]
-    assert stats.statistics
 
 
 async def test_a_400_becomes_a_bad_request_error() -> None:
@@ -498,20 +403,6 @@ async def test_patch_descriptor_sends_only_the_descriptor() -> None:
     assert seen[0].method == "PATCH"
     assert seen[0].url.path == "/eda/users/1/analyses/PlasmoDB/t4fszEJ"
     assert set(json.loads(seen[0].content)) == {"descriptor"}
-
-
-async def test_rename_sends_only_the_display_name() -> None:
-    seen: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen.append(request)
-        return httpx.Response(204)
-
-    client = _client(httpx.MockTransport(handler))
-    analyses = EdaAnalysesClient(client=client, project_id="PlasmoDB")
-    await analyses.rename(user_id="1", analysis_id="t4fszEJ", display_name="renamed")
-    await client.close()
-    assert json.loads(seen[0].content) == {"displayName": "renamed"}
 
 
 async def test_get_analysis_parses_the_stored_descriptor() -> None:

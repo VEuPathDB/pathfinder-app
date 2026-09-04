@@ -36,7 +36,9 @@ describe("ZeroResultHoverCard", () => {
     const { container } = render(
       <ZeroResultHoverCard step={makeStep({ estimatedSize: 5 })} count={5} />,
     );
-    expect(container.querySelector('[data-testid="zero-result-trigger"]')).toBeNull();
+    expect(
+      container.querySelectorAll('[data-testid="zero-result-trigger"]'),
+    ).toHaveLength(0);
   });
 
   it("renders suggestion list on hover when count is 0", async () => {

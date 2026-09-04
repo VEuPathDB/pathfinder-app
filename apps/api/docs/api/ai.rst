@@ -88,13 +88,7 @@ run for real, which is what makes the mock useful for integration coverage.
 Model Pricing
 -------------
 
-**Purpose:** Cost estimation for LLM calls. Computes USD per run from prompt
-tokens, completion tokens, and cached-token discounts.
-
-.. automodule:: pathfinder.ai.models.pricing
-   :members:
-   :undoc-members:
-   :show-inheritance:
+**Purpose:** Cost per run in USD, looked up from the live price snapshot.
 
 .. automodule:: pathfinder.ai.pricing
    :members:

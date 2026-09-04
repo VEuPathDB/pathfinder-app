@@ -11,8 +11,9 @@ from __future__ import annotations
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 
-from pathfinder.domain.strategy.ast import StrategyStepNode, fold_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import fold
 from pathfinder.evals.case import EvalCase
 from pathfinder.evals.distance import (
     ComparisonNode,
@@ -37,7 +38,7 @@ def _node_signature(node: StrategyStepNode, inputs: list[str]) -> str:
 
 def structure_signature(ast: StrategyAst) -> str:
     """The shape of *ast* as one string: search names and operators, no ids."""
-    return fold_step_tree(ast.root, _node_signature)
+    return fold(ast.root, _node_signature)
 
 
 class ObservedOutcome(CamelModel):

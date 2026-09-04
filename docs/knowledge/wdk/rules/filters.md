@@ -15,7 +15,7 @@ status: stable
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L377-L385
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKSearchConfig
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_filter_and_level_contract.py::test_wdk_filter_001_the_search_config_keeps_them_apart
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models_searches.py::test_wdk_filter_001_the_search_config_keeps_them_apart
 
 A `filter` parameter is an entry in `searchConfig.parameters` whose stable value
 is a JSON object of faceted clauses; its format is
@@ -55,7 +55,7 @@ The fourth name, `viewFilters`, is in none of these places -
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/filter/FilterDefinition.java#L120-L136
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/filters.py:set_step_filter
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_always_applied_filter.py::TestAWriteKeepsTheFiltersItDidNotSet::test_a_disabled_filter_stays_disabled
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_steps.py::TestAWriteKeepsTheFiltersItDidNotSet::test_a_disabled_filter_stays_disabled
 
 `FilterDefinition` carries an `isAlwaysApplied` flag onto every `Filter` it
 builds, documented on the interface as
@@ -84,8 +84,8 @@ so the step above reports `isFiltered: false` while carrying the filter.
 
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/request/answer/AnswerSpecServiceFormat.java#L85-L98
-- anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/filters.py:list_step_filters
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_search_config_write_is_lossless.py::TestTheFiltersAreReplaced::test_view_filters_are_not_sent
+- anchor: apps/api/src/pathfinder/integrations/veupathdb/_analyses.py:update_step_filters
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_analyses.py::TestTheFiltersAreReplaced::test_view_filters_are_not_sent
 `parseViewFilters` reads `viewFilters` from whatever object it is handed, and it
 is handed the **request body** - by
 [`AnswerService.parseAnswerRequest`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/AnswerService.java#L282-L304)
@@ -126,7 +126,7 @@ describe something else - and something that would 400 if it were attempted.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/report/reporter/DefaultJsonReporter.java#L123-L143
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/reports.py:get_step_count
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_result_counts.py::TestTheCountMatchesTheRecords::test_the_view_filtered_display_count_wins
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models.py::TestTheCountMatchesTheRecords::test_the_view_filtered_display_count_wins
 `getMetaData` emits four counts and computes two of them from a
 [clone of the answer with the view filters stripped out](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/report/reporter/DefaultJsonReporter.java#L145-L152).
 `totalCount` and `displayTotalCount` are the unfiltered pair; `viewTotalCount`
@@ -160,7 +160,7 @@ costs nothing.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/user/StepService.java#L239-L282
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKStep
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_result_counts.py::TestAbsenceIsNotZero::test_all_absent_raises_rather_than_reporting_zero
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models.py::TestAbsenceIsNotZero::test_all_absent_raises_rather_than_reporting_zero
 Running a step report writes `getResultSizeFactory().getDisplayResultSize()` back
 onto the step, and `getDisplayResultSize`
 [delegates to the record class's own result-size plugin](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/answer/ResultSizeFactory.java#L44-L58)
@@ -239,7 +239,7 @@ so absence is not zero and is not staleness - see
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/request/filter/ColumnFilterServiceFormat.java#L11-L37
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKSearchConfig
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_filter_and_level_contract.py::test_wdk_filter_006_a_refusal_is_not_treated_as_a_broken_request
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_records.py::test_wdk_filter_006_a_refusal_is_not_treated_as_a_broken_request
 
 The parse method's contract lists four rejection reasons and two of them are
 about the column: unknown, and not filterable.

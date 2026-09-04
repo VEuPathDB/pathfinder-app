@@ -138,7 +138,6 @@ async def optimize_search_parameters_impl(
         id_field=controls_m.id_field,
     )
     score_cfg = OptimizationConfig(
-        budget=settings_m.budget,
         objective=cast("OptimizationObjective", settings_m.objective),
         beta=settings_m.beta,
         estimated_size_penalty=max(0.0, settings_m.estimated_size_penalty),

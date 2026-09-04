@@ -44,10 +44,6 @@ function awaitingApproval(name: string, id: string): MessagePart {
   };
 }
 
-function text(body: string): MessagePart {
-  return { type: "text", text: body, state: "done" };
-}
-
 function dispatch(key: string, done: boolean): MessagePart {
   return {
     type: "data-sub-agent-call",
@@ -76,63 +72,6 @@ function step(payload: Partial<SubAgentStepPayload>): MessagePart {
     data: { parentToolCallId: "sa_9", kind: "tool", state: "started", ...payload },
   };
 }
-
-describe("buildTrace run boundaries", () => {
-  it("closes the open run on a text part", () => {
-    const traces = runs([
-      call("get_strategy", "c1"),
-      text("Done."),
-      call("think", "c2"),
-    ]);
-
-    expect(traces).toHaveLength(2);
-    expect(traces.map((run) => run.rowCount)).toEqual([1, 1]);
-  });
-
-  it("keeps the run open across a reasoning part", () => {
-    const traces = runs([
-      call("get_strategy", "c1"),
-      { type: "reasoning", text: "weighing it", state: "done" },
-      call("think", "c2"),
-    ]);
-
-    expect(traces).toHaveLength(1);
-    expect(traces.map((run) => run.rowCount)).toEqual([2]);
-  });
-
-  it("keeps the run open across a text part that carries nothing", () => {
-    const traces = runs([
-      call("get_strategy", "c1"),
-      { type: "text", text: "", state: "done" },
-      call("think", "c2"),
-    ]);
-
-    expect(traces).toHaveLength(1);
-    expect(traces.map((run) => run.rowCount)).toEqual([2]);
-  });
-
-  it("closes nothing on a step-start part", () => {
-    const traces = runs([
-      call("get_strategy", "c1"),
-      { type: "step-start" },
-      call("think", "c2"),
-    ]);
-
-    expect(traces).toHaveLength(1);
-    expect(at(traces, 0).rowCount).toBe(2);
-  });
-
-  it("emits no run for a text part that closes an empty one", () => {
-    expect(runs([text("Hello."), text("Still here.")])).toEqual([]);
-  });
-
-  it("opens no run for a trailing text part after the last run", () => {
-    const traces = runs([call("get_strategy", "c1"), text("That is all.")]);
-
-    expect(traces).toHaveLength(1);
-    expect(at(traces, 0).rowCount).toBe(1);
-  });
-});
 
 describe("buildTrace grouping", () => {
   it("puts a tool part with no group open into the implicit lead group", () => {

@@ -43,7 +43,7 @@ export type DevtoolsMutators = [
 ];
 
 /** Middleware mutator tuple for stores wrapped with devtools + persist. */
-export type PersistMutators = [
+type PersistMutators = [
   ["zustand/subscribeWithSelector", never],
   ["zustand/devtools", never],
   ["zustand/persist", unknown],

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { EnrichmentResult } from "@pathfinder/shared";
 import { AlertCircle } from "lucide-react";
-import { Card } from "@/lib/components/ui/Card";
+import { Card } from "@/components/ui/card";
 import { Section } from "./Section";
 import { EnrichmentTabs } from "./EnrichmentTabs";
 import { PThresholdFilter } from "./PThresholdFilter";

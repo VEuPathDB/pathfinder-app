@@ -3,8 +3,9 @@ from __future__ import annotations
 import pytest
 
 from pathfinder.domain.parameters.values import MultiPickValue, ParamValue, StringValue
-from pathfinder.domain.strategy.ast import StrategyStepNode, walk_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.ops import CombineOp
+from pathfinder.domain.strategy.tree import leaves, walk
 from pathfinder.tests.integration.strategies.conftest import BuildAndRead
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
@@ -40,10 +41,6 @@ def _combine(
     )
 
 
-def _leaves(root: StrategyStepNode) -> list[StrategyStepNode]:
-    return [s for s in walk_step_tree(root) if s.search_name == "GenesByText"]
-
-
 def _text_of(step: StrategyStepNode) -> str:
     value: ParamValue | None = step.parameters.get("text_expression")
     assert isinstance(value, StringValue)
@@ -61,13 +58,13 @@ async def test_union_combine_roundtrips_operator_and_leaf_params(
     rt = await wdk_builder(root)
 
     assert rt.decoded.root.operator == CombineOp.UNION
-    assert {_text_of(leaf) for leaf in _leaves(rt.decoded.root)} == {
+    assert {_text_of(leaf) for leaf in leaves(rt.decoded.root)} == {
         "kinase",
         "phosphatase",
     }
     organisms = {
         tuple(v.values)
-        for leaf in _leaves(rt.decoded.root)
+        for leaf in leaves(rt.decoded.root)
         if isinstance((v := leaf.parameters["text_search_organism"]), MultiPickValue)
     }
     assert organisms == {(_ORGANISM,)}
@@ -102,12 +99,10 @@ async def test_three_leaf_nested_topology_survives(
     )
     rt = await wdk_builder(root)
 
-    all_steps = list(walk_step_tree(rt.decoded.root))
-    combines = [s for s in all_steps if s.infer_kind() == "combine"]
-    leaves = _leaves(rt.decoded.root)
-    assert len(combines) == 2
-    assert len(leaves) == 3
-    assert {_text_of(leaf) for leaf in leaves} == {
+    text_leaves = leaves(rt.decoded.root)
+    assert len([n for n in walk(rt.decoded.root) if len(n.inputs()) == 2]) == 2
+    assert len(text_leaves) == 3
+    assert {_text_of(leaf) for leaf in text_leaves} == {
         "kinase",
         "protease",
         "transporter",

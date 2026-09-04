@@ -28,7 +28,7 @@ see is in [layer-ownership](../pathfinder/layer-ownership.md).
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/param/ParamFormatterFactory.java#L18-L55
 - anchor: apps/api/src/pathfinder/domain/parameters/value_codec.py:_WIRE_BUILDERS
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_wdk_param_kinds.py::test_wdk_map_001_a_twelfth_kind_has_no_wire_form
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_value_codec_wire.py::test_wdk_map_001_a_twelfth_kind_has_no_wire_form
 
 That there are eleven types, and that `ParamKind` is exactly those eleven, is
 [WDK-PARAM-001](parameters-and-vocabularies.md#wdk-param-001---there-are-eleven-parameter-types-displaytype-is-a-fifth-and-later-axis-and-never-changes-the-value-shape).
@@ -48,7 +48,7 @@ stop matching its own type.
 **Adding a twelfth is caught by nothing at all.** `_wire_payload` falls through to
 `{"type": kind, "value": wire}` for any kind without a builder, and the union
 rejects it at runtime with no test watching.
-`tests/unit/domain/parameters/test_value_round_trip.py` looks like the test that
+`tests/unit/domain/parameters/test_values.py` looks like the test that
 would notice and is not: every case is `decode(encode(x)) == x`, which constrains
 the codec rather than the enumeration, and `[tool.mypy]` in
 `apps/api/pyproject.toml` excludes `src/pathfinder/tests/`, so its literals are
@@ -91,7 +91,7 @@ above is a fact about today, not a gate.
 *The other side of the split.* The contract stops `domain/` from **importing** a
 declaration model. It cannot stop one from being **written** there. A new
 `WDKFilterParam`-shaped model defined in `domain/parameters/` would collapse the
-split entirely with all six contracts green, because nothing about it would be an
+split entirely with every contract green, because nothing about it would be an
 import at all. What guards the split today is that the declaration models happen to
 live in `integrations/`, which is a fact about the file tree rather than a check.
 
@@ -127,12 +127,12 @@ reaches WDK is `{stepId, primaryInput, secondaryInput}`. The closest is
 branch survives onto the *secondary input* of a `StrategyStepNode`
 ([WDK-STRAT-006](strategies-and-steps.md)), one representation short of the wire.
 
-### WDK-MAP-004 - An AI tool reaches WDK through `services.wdk` and never imports `pathfinder.integrations`
+### WDK-MAP-004 - An AI tool reaches WDK through a service function and never imports `pathfinder.integrations`
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/filter/CheckLoginFilter.java#L135-L148
-- anchor: apps/api/src/pathfinder/services/wdk/__init__.py:get_strategy_api
-- status: ENFORCED by apps/api/pyproject.toml::AI tools never import integrations or persistence directly
+- anchor: apps/api/src/pathfinder/services/wdk/step_preview.py:step_sample_records
+- status: ENFORCED by apps/api/pyproject.toml::Transport and AI never import integrations or persistence directly
 
 The reason is WDK's, not ours. Identity travels on a cookie the *client object*
 holds, and a request without one is not refused - a new guest is minted for it
@@ -152,19 +152,27 @@ process query return zero; that belief did not reproduce, and
 reason. A cookie-less `GenesByOrthologPattern` returned `totalCount` a large result on
 plasmodb.org on 2026-08-10 ([transport-quirks](../rest/transport-quirks.md)).
 
-So the client comes from `services.wdk`, which re-exports `get_strategy_api`,
-`get_wdk_client` and the WDK types a tool legitimately holds. The contract is
-enforcement in the strict sense - it fails the build on the import - and it has
-been red: one edge ran from `catalog_discovery` into a WDK client wrapper that
-belonged in the service layer, and moving the wrapper cleared it. A gate that has
-never been red is a gate nobody has tested; this one has been.
+So a tool never holds a client. It calls a function in `services/wdk/`, which
+holds the client for the length of one call: `step_sample_records` and
+`step_download_url` read a built step, and `step_results_service` hands back the
+reader for one. `services/wdk/__init__.py` exports nothing at all - it used to
+re-export two dozen integration names, which satisfied the contract by aliasing
+it ([the service-layer decision](../../decisions/the-wdk-service-layer-holds-functions-not-re-exports.md)).
+The contract is enforcement in the strict sense - it fails the build on the
+import - and it has been red: one edge ran from `catalog_discovery` into a WDK
+client wrapper that belonged in the service layer, and moving the wrapper
+cleared it. A gate that has never been red is a gate nobody has tested; this one
+has been.
 
-Note what the contract does **not** say. It forbids the import path, not the type:
-`ai/tools/standalone/_catalog_models.py` holds `WDKSearch` and
-`_result_models.py` holds `WDKAnswer`, both through the seam, both green. Nor does
-it forbid `httpx`, which is on only the domain contract's list - a tool that built
-its own client would break the reasoning above with all six contracts green. That
-proposition is not this rule's; it belongs to
+Note what the contract does **not** say. It forbids the import path, not the
+type, and it carries four named exceptions: the FRAME tool modules annotate a
+search definition with `WDKSearch`, which is a frozen response model. The symbol
+those four may name is pinned by
+`tests/unit/services/wdk/test_no_integration_facade.py`, because a contract
+cannot see a name. Nor does the contract forbid `httpx`, which is on only the
+domain contract's list - a tool that built its own client would break the
+reasoning above with every contract green. That proposition is not this rule's;
+it belongs to
 [WDK-MAP-005](#wdk-map-005---only-integrationsveupathdb-may-open-a-connection-to-a-wdk-host-and-no-contract-can-see-that),
 and it is `UNENFORCED` there. The status here is `ENFORCED` for the import
 prohibition this rule states, and for nothing wider.
@@ -174,15 +182,15 @@ prohibition this rule states, and for nothing wider.
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/SessionService.java#L277-L311
 - anchor: apps/api/src/pathfinder/transport/http/routers/veupathdb_auth.py:logout
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_call_sites.py::test_wdk_map_005_no_module_outside_the_integration_builds_a_site_client
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_call_sites.py::test_wdk_map_005_no_module_outside_the_integration_builds_a_site_client
 
-**This rule was briefly marked `PARTIAL by` the contract
-`Transport never imports integrations or persistence directly`, and that was
-wrong.** That contract enforces a different proposition. It says a transport module
+**This rule was briefly marked `PARTIAL by` the layering contract that forbids
+transport an integration import, and that was wrong.** That contract enforces a
+different proposition. It says a transport module
 must not name `pathfinder.integrations` in an import; this rule says nothing
 outside `integrations/veupathdb` may open a connection to a WDK host. The two
 coincide only by accident. Breaking this rule from `services/`, which is permitted
-to import `integrations` freely, leaves all six contracts green - and so does
+to import `integrations` freely, leaves every contract green - and so does
 breaking it from `transport/` with a raw `httpx` client, which is what actually
 happens. A contract with a different scope is not enforcement, however close it
 looks, and the rest of this rule is the proof.
@@ -201,7 +209,7 @@ derives from `get_site`, `SiteInfo` or a `service_url` attribute. That would cat
 today's instance and would not depend on a hostname literal, since the URL is
 always resolved from the site router rather than written down.
 
-**`httpx` appears in only one of the six contracts' forbidden lists, the domain
+**`httpx` appears in only one contract's forbidden list, the domain
 one**, so a transport module may import it and call a VEuPathDB URL with every
 contract green. One did.
 `transport/http/routers/veupathdb_auth.py` built

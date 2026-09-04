@@ -47,10 +47,9 @@ export function ParamFieldRenderer({
   return (
     <state.form.Field name={paramName}>
       {(field) => {
-        const fieldApi = field as unknown as ParamWidgetProps["field"];
         const hasFieldError = field.state.meta.errors.length > 0;
         const wrappedField = wrapFieldWithCallbacks(
-          fieldApi,
+          field,
           state,
           paramName,
           onFieldChanged,

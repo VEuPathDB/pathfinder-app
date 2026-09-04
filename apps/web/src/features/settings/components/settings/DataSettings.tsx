@@ -14,9 +14,9 @@ import { useState } from "react";
 import { requestVoid } from "@/lib/api/http";
 import { listStrategies } from "@pathfinder/shared/generated/hooks/useListStrategies";
 import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
-import { useAsyncAction } from "@/lib/utils/asyncAction";
+import { useAsyncAction } from "@/features/settings/asyncAction";
 import { Loader2, Trash2, AlertTriangle } from "lucide-react";
-import { Input } from "@/lib/components/ui/Input";
+import { Input } from "@/components/ui/input";
 
 interface DataSettingsProps {
   siteId: string;

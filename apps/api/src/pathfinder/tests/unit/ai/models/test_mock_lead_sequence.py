@@ -17,7 +17,7 @@ from pydantic_ai.messages import (
 )
 
 from pathfinder.ai.lead.dispatch_messages import build_would_replace_the_strategy
-from pathfinder.ai.models import mock_arcs
+from pathfinder.ai.models.mock import arcs
 
 
 def _user(text: str) -> ModelRequest:
@@ -30,7 +30,7 @@ def _names(seq: list[ToolCallPart]) -> list[str]:
 
 def test_build_journey_frames_builds_verifies() -> None:
     msgs: list[ModelMessage] = [_user("...3d7...interpro...")]
-    assert _names(mock_arcs._lead_sequence(msgs)) == [
+    assert _names(arcs._lead_sequence(msgs)) == [
         "classify_user_intent",
         "frame_problem",
         "build_strategy",
@@ -41,7 +41,7 @@ def test_build_journey_frames_builds_verifies() -> None:
 
 def test_consult_marker_pauses_on_consult_user() -> None:
     msgs: list[ModelMessage] = [_user("Consult me before planning this strategy.")]
-    assert _names(mock_arcs._lead_sequence(msgs)) == [
+    assert _names(arcs._lead_sequence(msgs)) == [
         "classify_user_intent",
         "consult_user",
     ]
@@ -62,7 +62,7 @@ def test_consult_resume_runs_the_build_journey() -> None:
             ]
         ),
     ]
-    assert _names(mock_arcs._lead_sequence(msgs)) == [
+    assert _names(arcs._lead_sequence(msgs)) == [
         "classify_user_intent",
         "frame_problem",
         "build_strategy",
@@ -73,7 +73,7 @@ def test_consult_resume_runs_the_build_journey() -> None:
 
 def test_variant_marker_compares_variants() -> None:
     msgs: list[ModelMessage] = [_user("Compare two search variants for kinases.")]
-    assert _names(mock_arcs._lead_sequence(msgs)) == [
+    assert _names(arcs._lead_sequence(msgs)) == [
         "classify_user_intent",
         "compare_search_variants",
         "final_result",
@@ -87,7 +87,7 @@ def test_an_attachment_classifies_before_it_seeds_a_control_set() -> None:
         _user("Attached gene-ID list from controls.csv: PF3D7_0709000, PF3D7_1133400"),
     ]
 
-    assert _names(mock_arcs._lead_sequence(msgs)) == [
+    assert _names(arcs._lead_sequence(msgs)) == [
         "classify_user_intent",
         "build_control_set",
         "final_result",
@@ -96,7 +96,7 @@ def test_an_attachment_classifies_before_it_seeds_a_control_set() -> None:
 
 def test_plain_prompt_echoes_only() -> None:
     msgs: list[ModelMessage] = [_user("hello there")]
-    assert _names(mock_arcs._lead_sequence(msgs)) == ["final_result"]
+    assert _names(arcs._lead_sequence(msgs)) == ["final_result"]
 
 
 def _prose(seq: list[ToolCallPart]) -> str:
@@ -110,7 +110,7 @@ _FIX = "Fix the phylogenetic pattern by loosening to %MAMM:N%pfal:Y%."
 
 
 def test_a_broadening_request_builds_and_reports_the_zero_result() -> None:
-    seq = mock_arcs._lead_sequence([_user(_BROADEN)])
+    seq = arcs._lead_sequence([_user(_BROADEN)])
 
     assert _names(seq) == [
         "classify_user_intent",
@@ -124,7 +124,7 @@ def test_a_broadening_request_builds_and_reports_the_zero_result() -> None:
 
 
 def test_the_fix_request_then_verifies_cleanly() -> None:
-    seq = mock_arcs._lead_sequence([_user(_FIX)])
+    seq = arcs._lead_sequence([_user(_FIX)])
 
     assert "Verified end-to-end" in _prose(seq)
     assert seq[-1].args_as_dict()["nextState"] == "complete"
@@ -132,8 +132,8 @@ def test_the_fix_request_then_verifies_cleanly() -> None:
 
 def test_the_feedback_prose_states_the_failure_and_not_the_success() -> None:
     # The specs read these two apart by their text, so they must not overlap.
-    feedback = _prose(mock_arcs._lead_sequence([_user(_BROADEN)]))
-    success = _prose(mock_arcs._lead_sequence([_user(_FIX)]))
+    feedback = _prose(arcs._lead_sequence([_user(_BROADEN)]))
+    success = _prose(arcs._lead_sequence([_user(_FIX)]))
 
     assert not re.search(r"verified end-to-end|root size", feedback, re.IGNORECASE)
     assert not re.search(r"returned 0|too narrow|loosen", success, re.IGNORECASE)
@@ -142,33 +142,33 @@ def test_the_feedback_prose_states_the_failure_and_not_the_success() -> None:
 def test_the_digest_agrees_with_the_lead_about_failure() -> None:
     # A digest that reports success over a failed build is the contradiction
     # the ledger cannot show the user.
-    assert mock_arcs.verification_succeeds(_FIX) is True
-    assert mock_arcs.verification_succeeds(_BROADEN) is False
+    assert arcs.verification_succeeds(_FIX) is True
+    assert arcs.verification_succeeds(_BROADEN) is False
 
 
 # ── Site-aware canned specs ─────────────────────────────────────────
 
 
 def test_the_canned_spec_takes_the_organism_of_the_site_it_runs_on() -> None:
-    spec = mock_arcs.spec_for("create step", "cryptodb")
+    spec = arcs.spec_for("create step", "cryptodb")
 
     assert spec.criteria[0].values["organism"] == ["Cryptosporidium parvum Iowa II"]
 
 
 def test_a_broadening_request_frames_two_leaves() -> None:
-    spec = mock_arcs.spec_for(_BROADEN, "plasmodb")
+    spec = arcs.spec_for(_BROADEN, "plasmodb")
 
     assert [c.search_name for c in spec.criteria] == ["GenesByText", "GenesByTaxon"]
 
 
 def test_a_go_request_frames_the_go_search() -> None:
-    spec = mock_arcs.spec_for("build a GO term strategy for kinases", "plasmodb")
+    spec = arcs.spec_for("build a GO term strategy for kinases", "plasmodb")
 
     assert [c.search_name for c in spec.criteria] == ["GenesByGoTerm"]
 
 
 def test_an_all_parameter_request_frames_three_search_types() -> None:
-    spec = mock_arcs.spec_for("Build a comprehensive kinase strategy", "plasmodb")
+    spec = arcs.spec_for("Build a comprehensive kinase strategy", "plasmodb")
 
     assert [c.search_name for c in spec.criteria] == [
         "GenesByText",
@@ -179,7 +179,7 @@ def test_an_all_parameter_request_frames_three_search_types() -> None:
 
 def test_an_impact_question_does_not_rebuild() -> None:
     # It names InterPro, which otherwise routes to a build.
-    seq = mock_arcs._lead_sequence(
+    seq = arcs._lead_sequence(
         [_user("What's the impact of switching the InterPro/GO combine to INTERSECT?")]
     )
 
@@ -191,7 +191,7 @@ def test_an_edit_marker_routes_to_the_edit_dispatch() -> None:
     msgs: list[ModelMessage] = [
         _user("Swap the organism on the taxon criterion and keep the rest.")
     ]
-    assert _names(mock_arcs._lead_sequence(msgs)) == [
+    assert _names(arcs._lead_sequence(msgs)) == [
         "classify_user_intent",
         "edit_strategy",
         "verify_strategy",
@@ -204,7 +204,7 @@ def test_a_remember_request_stores_the_preference_and_builds_nothing() -> None:
         _user("Please remember for future sessions: I work with P. falciparum 3D7.")
     ]
 
-    assert _names(mock_arcs._lead_sequence(msgs)) == [
+    assert _names(arcs._lead_sequence(msgs)) == [
         "classify_user_intent",
         "remember",
         "final_result",
@@ -216,7 +216,7 @@ def test_a_context_statement_answers_in_prose_and_builds_nothing() -> None:
         _user("I'm investigating virulence factors in Leishmania major")
     ]
 
-    assert _names(mock_arcs._lead_sequence(msgs)) == [
+    assert _names(arcs._lead_sequence(msgs)) == [
         "classify_user_intent",
         "final_result",
     ]
@@ -248,7 +248,7 @@ def test_the_classification_is_made_once_per_turn() -> None:
         _user("Swap the organism on the taxon criterion and keep the rest."),
     ]
 
-    assert mock_arcs.lead_script(second_turn).tool_name == "classify_user_intent"
+    assert arcs.lead_script(second_turn).tool_name == "classify_user_intent"
 
 
 # ── The recall arc ──────────────────────────────────────────────────
@@ -257,7 +257,7 @@ _RECALL = "Recap what I have asked so far."
 
 
 def test_the_recall_arc_reads_the_frame_section_first() -> None:
-    seq = mock_arcs._lead_sequence([_user(_RECALL)])
+    seq = arcs._lead_sequence([_user(_RECALL)])
 
     assert _names(seq) == ["read_ledger_section", "final_result"]
     assert seq[0].args_as_dict()["section"] == "frame"
@@ -286,7 +286,7 @@ def test_the_recall_arc_answers_with_the_section_it_read() -> None:
         ),
     ]
 
-    seq = mock_arcs._lead_sequence(msgs)
+    seq = arcs._lead_sequence(msgs)
 
     assert _prose(seq) == (
         "This thread already carries: ## Frame (full)\n- goal: kinases"
@@ -294,7 +294,7 @@ def test_the_recall_arc_answers_with_the_section_it_read() -> None:
 
 
 def test_the_recall_arc_dispatches_no_sub_agent() -> None:
-    seq = mock_arcs._lead_sequence([_user(_RECALL)])
+    seq = arcs._lead_sequence([_user(_RECALL)])
 
     assert "frame_problem" not in _names(seq)
     assert "build_strategy" not in _names(seq)
@@ -368,7 +368,7 @@ def _absent_build_turn(prompt: str = "...3d7...interpro...") -> list[ModelMessag
 
 def test_a_withheld_build_stops_before_verification() -> None:
     """The gate hides the tool, so the arc meets the refusal as an absence."""
-    seq = mock_arcs._lead_sequence(_absent_build_turn())
+    seq = arcs._lead_sequence(_absent_build_turn())
 
     assert _names(seq) == [
         "classify_user_intent",
@@ -379,11 +379,11 @@ def test_a_withheld_build_stops_before_verification() -> None:
 
 
 def test_the_mock_reads_the_real_refusal_message() -> None:
-    assert mock_arcs._BUILD_REFUSED_MARKER in build_would_replace_the_strategy(1)
+    assert arcs._BUILD_REFUSED_MARKER in build_would_replace_the_strategy(1)
 
 
 def test_a_refused_build_stops_before_verification() -> None:
-    seq = mock_arcs._lead_sequence(_refused_build_turn())
+    seq = arcs._lead_sequence(_refused_build_turn())
 
     assert _names(seq) == [
         "classify_user_intent",
@@ -395,7 +395,7 @@ def test_a_refused_build_stops_before_verification() -> None:
 
 
 def test_the_refused_build_answers_with_the_edit_tool_and_no_success() -> None:
-    prose = _prose(mock_arcs._lead_sequence(_refused_build_turn()))
+    prose = _prose(arcs._lead_sequence(_refused_build_turn()))
 
     assert "edit_strategy" in prose
     assert not re.search(
@@ -407,13 +407,13 @@ def test_the_refused_build_answers_with_the_edit_tool_and_no_success() -> None:
 
 
 def test_the_refused_build_leaves_the_turn_with_the_user() -> None:
-    seq = mock_arcs._lead_sequence(_refused_build_turn())
+    seq = arcs._lead_sequence(_refused_build_turn())
 
     assert seq[-1].args_as_dict()["nextState"] == "await_user"
 
 
 def test_the_script_answers_the_refusal_instead_of_verifying() -> None:
-    assert mock_arcs.lead_script(_refused_build_turn()).tool_name == "final_result"
+    assert arcs.lead_script(_refused_build_turn()).tool_name == "final_result"
 
 
 def test_a_refused_consult_resume_reports_the_refusal_too() -> None:
@@ -443,7 +443,7 @@ def test_a_refused_consult_resume_reports_the_refusal_too() -> None:
         ),
     ]
 
-    assert "edit_strategy" in _prose(mock_arcs._lead_sequence(msgs))
+    assert "edit_strategy" in _prose(arcs._lead_sequence(msgs))
 
 
 def test_an_earlier_turns_refusal_does_not_bend_the_next_turn() -> None:
@@ -455,7 +455,7 @@ def test_an_earlier_turns_refusal_does_not_bend_the_next_turn() -> None:
         _user("create step for tryptophan synthase"),
     ]
 
-    assert _names(mock_arcs._lead_sequence(msgs)) == [
+    assert _names(arcs._lead_sequence(msgs)) == [
         "classify_user_intent",
         "frame_problem",
         "build_strategy",
@@ -481,4 +481,4 @@ def test_a_retry_from_another_tool_does_not_stop_the_build_arc() -> None:
         ),
     ]
 
-    assert "verify_strategy" in _names(mock_arcs._lead_sequence(msgs))
+    assert "verify_strategy" in _names(arcs._lead_sequence(msgs))

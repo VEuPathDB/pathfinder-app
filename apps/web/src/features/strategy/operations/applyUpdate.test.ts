@@ -1,6 +1,6 @@
 import { makeStep, makeStrategy } from "@/lib/types/fixtures";
 import { describe, expect, it } from "vitest";
-import { CombineOperator, type Step, type Strategy } from "@pathfinder/shared";
+import { combineOpEnum, type Step, type Strategy } from "@pathfinder/shared";
 
 import { applyOperation } from "./apply";
 
@@ -37,7 +37,7 @@ function strat(): Strategy {
     searchName: "__combine__",
     recordType: "transcript",
     parameters: null,
-    operator: CombineOperator.UNION,
+    operator: combineOpEnum.UNION,
     primaryInputStepId: "a",
     secondaryInputStepId: "b",
     isFiltered: false,
@@ -69,11 +69,11 @@ describe("applyOperation — value updates", () => {
     const result = applyOperation(strat(), {
       kind: "updateCombineOperator",
       stepId: "c",
-      operator: CombineOperator.INTERSECT,
+      operator: combineOpEnum.INTERSECT,
     });
     expect(result.kind).toBe("applied");
     if (result.kind !== "applied") return;
-    expect(stepById(result.next, "c").operator).toBe(CombineOperator.INTERSECT);
+    expect(stepById(result.next, "c").operator).toBe(combineOpEnum.INTERSECT);
     // Leaves and topology untouched.
     expect(result.next.steps.map((s) => s.id)).toEqual(["a", "b", "c"]);
     expect(stepById(result.next, "c").primaryInputStepId).toBe("a");
@@ -117,11 +117,31 @@ describe("applyOperation — value updates", () => {
     expect(stepById(result.next, "c").displayName).toBe("InterPro AND EC kinases");
   });
 
+  it("flattens a null input the wire allows as no input at all", () => {
+    const result = applyOperation(strat(), {
+      kind: "replaceStrategy",
+      root: {
+        id: "a",
+        searchName: "GenesByText",
+        displayName: "Kinases via InterPro",
+        primaryInput: null,
+        secondaryInput: null,
+      },
+      name: "Drug targets",
+    });
+    expect(result.kind).toBe("applied");
+    if (result.kind !== "applied") return;
+    expect(result.next.steps.map((s) => s.id)).toEqual(["a"]);
+    expect(stepById(result.next, "a").kind).toBe("search");
+    expect(stepById(result.next, "a").primaryInputStepId).toBe(null);
+    expect(stepById(result.next, "a").secondaryInputStepId).toBe(null);
+  });
+
   it("rejects an operator update on a non-existent step", () => {
     const result = applyOperation(strat(), {
       kind: "updateCombineOperator",
       stepId: "missing",
-      operator: CombineOperator.INTERSECT,
+      operator: combineOpEnum.INTERSECT,
     });
     expect(result.kind).toBe("rejected");
     if (result.kind !== "rejected") return;

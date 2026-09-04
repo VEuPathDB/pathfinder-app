@@ -28,6 +28,15 @@ logger = get_logger(__name__)
 
 WDK_WILDCARD_LIMIT = 50
 
+MAX_GENE_IDS = 200
+"""The largest identifier list one resolve call accepts."""
+
+
+def normalize_gene_ids(gene_ids: list[str]) -> list[str]:
+    """Trim a gene identifier list, drop the blanks, and keep the first of each."""
+    return list(dict.fromkeys(value.strip() for value in gene_ids if value.strip()))
+
+
 WDK_TEXT_FIELDS_ID: list[str] = ["primary_key", "Alias"]
 WDK_TEXT_FIELDS_BROAD: list[str] = [
     "product",

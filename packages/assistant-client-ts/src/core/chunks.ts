@@ -6,7 +6,7 @@ export interface ProtocolChunk {
   readonly [field: string]: unknown;
 }
 
-export const DATA_PART_PREFIX = "data-";
+const DATA_PART_PREFIX = "data-";
 
 export function isDataChunk(chunk: ProtocolChunk): boolean {
   return chunk.type.startsWith(DATA_PART_PREFIX);

@@ -70,14 +70,21 @@ def _route(
     return httpx.MockTransport(handler)
 
 
+type Wire = Callable[[httpx.AsyncBaseTransport], EdaClient]
+
+
 @pytest.fixture
-def wired(monkeypatch: pytest.MonkeyPatch) -> Iterator[EdaClient]:
-    catalog.clear_study_caches()
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
-    monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)
+def wire(monkeypatch: pytest.MonkeyPatch) -> Iterator[Wire]:
+    """Build the site's EDA client over one transport, and route the site to it."""
+
+    def _wire(transport: httpx.AsyncBaseTransport) -> EdaClient:
+        client = EdaClient(base_url="https://plasmodb.org/eda", transport=transport)
+        monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
+        monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)
+        return client
+
     token = veupathdb_auth_token_ctx.set("t")
-    yield client
+    yield _wire
     veupathdb_auth_token_ctx.reset(token)
 
 
@@ -88,10 +95,10 @@ def _species(value: str) -> EdaStringSetFilter:
 
 
 async def test_an_out_of_vocabulary_value_is_refused_before_the_count(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
     """The service would answer 200 with count 0, so validation is the only guard."""
-    wired.install_transport(_route())
+    wired = wire(_route())
     with pytest.raises(authoring.SubsetRejectedError) as excinfo:
         await authoring.verified_count(
             "plasmodb",
@@ -104,8 +111,8 @@ async def test_an_out_of_vocabulary_value_is_refused_before_the_count(
     assert "P. vivax" in excinfo.value.messages[0]
 
 
-async def test_the_verified_count_is_the_service_answer(wired: EdaClient) -> None:
-    wired.install_transport(_route({True: 4011, False: 4279}))
+async def test_the_verified_count_is_the_service_answer(wire: Wire) -> None:
+    wired = wire(_route({True: 4011, False: 4279}))
     counted = await authoring.verified_count(
         "plasmodb",
         dataset_id=_DATASET,
@@ -119,9 +126,9 @@ async def test_the_verified_count_is_the_service_answer(wired: EdaClient) -> Non
 
 
 async def test_a_verified_count_of_zero_is_reported_not_swallowed(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
-    wired.install_transport(_route({True: 0, False: 4279}))
+    wired = wire(_route({True: 0, False: 4279}))
     counted = await authoring.verified_count(
         "plasmodb",
         dataset_id=_DATASET,
@@ -134,11 +141,11 @@ async def test_a_verified_count_of_zero_is_reported_not_swallowed(
 
 
 async def test_a_verified_count_refuses_an_out_of_vocabulary_value(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
     """The service answers 200 with count 0, so the predicates run first."""
     seen: list[httpx.Request] = []
-    wired.install_transport(_route({True: 4011, False: 4279}, seen))
+    wired = wire(_route({True: 4011, False: 4279}, seen))
     with pytest.raises(authoring.SubsetRejectedError) as excinfo:
         await authoring.verified_count(
             "plasmodb",
@@ -152,10 +159,10 @@ async def test_a_verified_count_refuses_an_out_of_vocabulary_value(
 
 
 async def test_a_preview_refuses_an_out_of_vocabulary_value(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
     seen: list[httpx.Request] = []
-    wired.install_transport(_route({True: 4011, False: 4279}, seen))
+    wired = wire(_route({True: 4011, False: 4279}, seen))
     with pytest.raises(authoring.SubsetRejectedError) as excinfo:
         await authoring.preview_subset(
             "plasmodb",
@@ -169,9 +176,9 @@ async def test_a_preview_refuses_an_out_of_vocabulary_value(
 
 
 async def test_the_preview_carries_both_counts_and_a_distribution(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
-    wired.install_transport(_route({True: 4011, False: 4279}))
+    wired = wire(_route({True: 4011, False: 4279}))
     preview = await authoring.preview_subset(
         "plasmodb",
         dataset_id=_DATASET,
@@ -189,9 +196,9 @@ async def test_the_preview_carries_both_counts_and_a_distribution(
 
 
 async def test_the_preview_omits_the_distribution_when_no_variable_is_named(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
-    wired.install_transport(_route({True: 4011, False: 4279}))
+    wired = wire(_route({True: 4011, False: 4279}))
     preview = await authoring.preview_subset(
         "plasmodb",
         dataset_id=_DATASET,
@@ -204,9 +211,9 @@ async def test_the_preview_omits_the_distribution_when_no_variable_is_named(
 
 
 async def test_a_filter_on_an_unknown_entity_is_reported_with_its_id(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
-    wired.install_transport(_route())
+    wired = wire(_route())
     with pytest.raises(authoring.SubsetRejectedError) as excinfo:
         await authoring.verified_count(
             "plasmodb",
@@ -224,11 +231,11 @@ async def test_a_filter_on_an_unknown_entity_is_reported_with_its_id(
 
 
 async def test_every_subset_call_addresses_the_study_id_never_the_dataset_id(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
     """Subsetting takes the STUDY id; a dataset id there is a 403 upstream."""
     seen: list[httpx.Request] = []
-    wired.install_transport(_route({True: 4011, False: 4279}, seen))
+    wired = wire(_route({True: 4011, False: 4279}, seen))
     await authoring.preview_subset(
         "plasmodb",
         dataset_id=_DATASET,
@@ -244,9 +251,9 @@ async def test_every_subset_call_addresses_the_study_id_never_the_dataset_id(
 
 
 async def test_a_preview_on_an_entity_the_study_does_not_carry_is_refused(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
-    wired.install_transport(_route())
+    wired = wire(_route())
     with pytest.raises(ValueError, match="ENT_nope"):
         await authoring.preview_subset(
             "plasmodb",
@@ -314,11 +321,11 @@ def _de_value_variable(study: Any) -> Any:
 
 
 async def test_a_continuous_variable_sends_the_declared_bin_spec(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
     """A continuous variable with no binSpec is a bare 500 upstream."""
     seen: list[httpx.Request] = []
-    wired.install_transport(_de_route(_de_study(), seen))
+    wired = wire(_de_route(_de_study(), seen))
     preview = await authoring.preview_subset(
         "plasmodb",
         dataset_id=_DATASET,
@@ -340,12 +347,12 @@ async def test_a_continuous_variable_sends_the_declared_bin_spec(
 
 
 async def test_a_continuous_variable_with_no_declared_bin_width_is_skipped(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
     study = _de_study()
     del _de_value_variable(study)["distributionDefaults"]
     seen: list[httpx.Request] = []
-    wired.install_transport(_de_route(study, seen))
+    wired = wire(_de_route(study, seen))
     preview = await authoring.preview_subset(
         "plasmodb",
         dataset_id=_DATASET,
@@ -361,7 +368,7 @@ async def test_a_continuous_variable_with_no_declared_bin_width_is_skipped(
 
 
 async def test_a_continuous_date_variable_is_skipped_rather_than_binned(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
     """Its declared bin width is a day count, which a numeric binSpec cannot carry."""
     study = _de_study()
@@ -380,7 +387,7 @@ async def test_a_continuous_date_variable_is_skipped_rather_than_binned(
         }
     )
     seen: list[httpx.Request] = []
-    wired.install_transport(_de_route(study, seen))
+    wired = wire(_de_route(study, seen))
     preview = await authoring.preview_subset(
         "plasmodb",
         dataset_id=_DATASET,
@@ -396,10 +403,10 @@ async def test_a_continuous_date_variable_is_skipped_rather_than_binned(
 
 
 async def test_a_variable_the_entity_does_not_declare_is_named_in_the_note(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
     seen: list[httpx.Request] = []
-    wired.install_transport(_de_route(_de_study(), seen))
+    wired = wire(_de_route(_de_study(), seen))
     preview = await authoring.preview_subset(
         "plasmodb",
         dataset_id=_DATASET,
@@ -414,9 +421,9 @@ async def test_a_variable_the_entity_does_not_declare_is_named_in_the_note(
 
 
 async def test_the_declared_ranges_key_every_numeric_variable_by_entity(
-    wired: EdaClient,
+    wire: Wire,
 ) -> None:
-    wired.install_transport(_de_route(_de_study(), []))
+    wired = wire(_de_route(_de_study(), []))
     _entry, study = await catalog.get_study_detail_for_dataset("plasmodb", _DATASET)
     await wired.close()
     ranges = authoring.declared_ranges(study)
@@ -465,9 +472,9 @@ def _wire(
     handler: Callable[[httpx.Request], httpx.Response],
 ) -> EdaClient:
     """One client for the catalog, the authoring module and the analysis store."""
-    catalog.clear_study_caches()
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(handler))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+    )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(eda_factory, "get_eda_client", lambda _s: client)

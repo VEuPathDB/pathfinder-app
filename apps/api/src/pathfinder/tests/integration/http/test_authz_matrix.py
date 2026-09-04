@@ -44,7 +44,7 @@ from pathfinder.tests.integration.http._authz_matrix_support import (
 )
 from pathfinder.tests.integration.http.conftest import (
     client_for,
-    first_frame_client_for,
+    ends_at_first_frame,
     make_user,
     other_application_client_for,
 )
@@ -94,10 +94,6 @@ async def owned(
     """One instance of every owned resource kind, held by a fresh user."""
     del signed_in_to_veupathdb
     return await create_owned(db_session, app_memory_store)
-
-
-def _served(status: int | None) -> str:
-    return "an open SSE stream" if status is None else str(status)
 
 
 class _NestedTarget(BaseModel):
@@ -198,13 +194,13 @@ async def test_a_non_owner_is_refused_by_every_route(
 
     offenders: list[str] = []
     ambiguous: list[str] = []
-    async with client_for(app, intruder.id) as client:
+    async with client_for(ends_at_first_frame(app), intruder.id) as client:
         for case in cases(owned):
             status = await status_for(client, case)
             if status not in REFUSAL_STATUSES:
-                offenders.append(f"{case.method} {case.url} -> {_served(status)}")
+                offenders.append(f"{case.method} {case.url} -> {status}")
             elif status != 403 and (case.method, case.route) in NO_OWNER_CONTRAST:
-                ambiguous.append(f"{case.method} {case.url} -> {_served(status)}")
+                ambiguous.append(f"{case.method} {case.url} -> {status}")
 
     assert offenders == [], (
         "routes that served a non-owner instead of 403/404: " + "; ".join(offenders)
@@ -233,11 +229,12 @@ async def test_another_application_is_refused_by_every_route(
     del patch_app_db_engine, db_session, other_application, in_memory_jobs
 
     offenders: list[str] = []
-    async with other_application_client_for(app, owned.user_id) as client:
+    client = other_application_client_for(ends_at_first_frame(app), owned.user_id)
+    async with client:
         for case in cases(owned):
             status = await status_for(client, case)
             if status not in REFUSAL_STATUSES:
-                offenders.append(f"{case.method} {case.url} -> {_served(status)}")
+                offenders.append(f"{case.method} {case.url} -> {status}")
 
     assert offenders == [], (
         "routes that served another application's request for this user's "
@@ -270,19 +267,19 @@ async def test_the_owner_is_not_refused_by_any_route(
             continue
         fresh = await create_owned(db_session, app_memory_store)
         case = cases(fresh)[index]
-        async with first_frame_client_for(app, fresh.user_id) as client:
+        async with client_for(ends_at_first_frame(app), fresh.user_id) as client:
             status = await status_for(client, case)
         contrasted += 1
-        if status in OWNER_REFUSAL_STATUSES or status is None:
-            offenders.append(f"{case.method} {case.url} -> {_served(status)}")
+        if status in OWNER_REFUSAL_STATUSES:
+            offenders.append(f"{case.method} {case.url} -> {status}")
 
     expected = len(_BLUEPRINTS) - len(NO_OWNER_CONTRAST) - len(_WDK_BACKED_INDEXES)
     assert contrasted == expected, (
         f"the owner contrast ran {contrasted} of {len(_BLUEPRINTS)} cases"
     )
     assert offenders == [], (
-        "routes that answered 404 to their own owner, or never answered at "
-        "all, so the non-owner 404 proves nothing: " + "; ".join(offenders)
+        "routes that answered 404 to their own owner, so the non-owner 404 "
+        "proves nothing: " + "; ".join(offenders)
     )
 
 
@@ -302,13 +299,12 @@ async def test_the_owner_is_not_refused_by_a_wdk_backed_route(
     """
     del patch_app_db_engine, in_memory_jobs
     case = cases(owned)[index]
-    async with first_frame_client_for(
-        app, owned.user_id, wdk_token=require_wdk_creds
+    async with client_for(
+        ends_at_first_frame(app), owned.user_id, wdk_token=require_wdk_creds
     ) as client:
         status = await status_for(client, case)
 
-    refused = f"{case.method} {case.url} -> {_served(status)}: the route refused "
-    assert status is not None, refused + "to answer its own owner at all"
     assert status not in OWNER_REFUSAL_STATUSES, (
-        refused + "its own owner, so the non-owner refusal proves nothing"
+        f"{case.method} {case.url} -> {status}: the route refused its own "
+        "owner, so the non-owner refusal proves nothing"
     )

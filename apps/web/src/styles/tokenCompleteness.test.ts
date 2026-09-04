@@ -22,9 +22,8 @@ const CHART_TOKENS = [
 ];
 
 /**
- * A value that paints. Wider than the acceptance suite's rule: a translucent
- * `hsl(var(--x) / a)` counts too, so a token defined in one ground only is
- * still caught.
+ * A value that paints. A translucent `hsl(var(--x) / a)` counts too, so a
+ * token defined in one ground only is still caught.
  */
 const PAINTS =
   /^(?:[\d.]+ [\d.]+% [\d.]+%|rgba?\(.+\)|hsla?\(.+\)|oklch\(.+\)|#[0-9a-fA-F]{3,8})$/;

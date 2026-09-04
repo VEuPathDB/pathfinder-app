@@ -1,28 +1,22 @@
 """Pushes local graph state to WDK: step tree, strategy, counts, decorations."""
 
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
 
 from assistant_core.platform.logging import get_logger
-from assistant_core.platform.types import JSONObject
-from pydantic import JsonValue
 
-from pathfinder.domain.strategy.ast import (
-    StrategyStepNode,
-    fold_step_tree,
-    walk_step_tree,
-)
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.graph_model import (
     pushable_root_id,
     rebuild_tree,
     record_class_of,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.tree import fold, walk
 from pathfinder.domain.strategy.validate import validate_strategy
 from pathfinder.domain.strategy.validation import StepValidation
 from pathfinder.integrations.veupathdb.factory import get_site, get_strategy_api
+from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
 from pathfinder.integrations.veupathdb.wdk_models import (
-    WDKIdentifier,
     WDKStepTree,
     WDKStrategyDetails,
 )
@@ -35,63 +29,6 @@ from pathfinder.services.strategies.build import RootResolutionError, resolve_ro
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
-
-
-@runtime_checkable
-class StepDecoratorAPI(Protocol):
-    """I/O boundary for step decorations: filters, analyses, and reports."""
-
-    async def set_step_filter(
-        self,
-        step_id: int,
-        filter_name: str,
-        value: JsonValue,
-        *,
-        disabled: bool = False,
-    ) -> None: ...
-
-    async def run_step_analysis(
-        self,
-        step_id: int,
-        analysis_type: str,
-        parameters: JSONObject | None = None,
-        custom_name: str | None = None,
-    ) -> JSONObject: ...
-
-    async def run_step_report(
-        self, step_id: int, report_name: str, config: JSONObject | None = None
-    ) -> JsonValue: ...
-
-
-class StrategySyncAPI(StepDecoratorAPI, Protocol):
-    """I/O boundary for strategy sync operations."""
-
-    async def create_strategy(
-        self,
-        step_tree: WDKStepTree,
-        name: str,
-        description: str | None = None,
-        *,
-        is_public: bool = False,
-        is_saved: bool = False,
-    ) -> WDKIdentifier: ...
-
-    async def update_strategy(
-        self,
-        strategy_id: int,
-        step_tree: WDKStepTree | None = None,
-        name: str | None = None,
-    ) -> WDKStrategyDetails: ...
-
-    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails: ...
-
-
-class SiteInfoLike(Protocol):
-    """Site metadata that the sync service needs."""
-
-    def strategy_url(
-        self, strategy_id: int, root_step_id: int | None = None
-    ) -> str: ...
 
 
 @dataclass
@@ -126,7 +63,7 @@ def build_step_tree_from_graph(
             step_id=wdk_id, primary_input=slots[0], secondary_input=slots[1]
         )
 
-    return fold_step_tree(root, node)
+    return fold(root, node)
 
 
 def _extract_counts_and_validations(
@@ -164,10 +101,10 @@ def _extract_counts_and_validations(
 async def _apply_decorations(
     root_step: StrategyStepNode,
     wdk_step_ids: dict[str, int],
-    api: StepDecoratorAPI,
+    api: StrategyAPI,
 ) -> None:
     """Apply declared filters, analyses, and reports to each WDK step."""
-    for step in walk_step_tree(root_step):
+    for step in walk(root_step):
         wdk_step_id = wdk_step_ids.get(step.id)
         if wdk_step_id is None:
             continue
@@ -194,7 +131,7 @@ async def _apply_decorations(
 
 
 async def _create_or_update_wdk_strategy(
-    api: StrategySyncAPI,
+    api: StrategyAPI,
     step_tree: WDKStepTree,
     name: str,
     sync_state: WDKSyncState,
@@ -242,7 +179,7 @@ async def _create_or_update_wdk_strategy(
 
 
 async def _fetch_strategy_state(
-    api: StrategySyncAPI,
+    api: StrategyAPI,
     wdk_strategy_id: int,
     wdk_step_ids: dict[str, int],
     step_tree: WDKStepTree,
@@ -263,12 +200,10 @@ async def _fetch_strategy_state(
         return counts, validations, root_count, strategy_info.root_step_id
 
 
-async def sync_strategy(
+async def sync_strategy_for_site(
     *,
     graph: StrategyGraph,
     sync_state: WDKSyncState,
-    api: StrategySyncAPI,
-    site: SiteInfoLike,
     site_id: str,
     strategy_name: str | None = None,
 ) -> SyncResult:
@@ -280,6 +215,7 @@ async def sync_strategy(
     :raises StrategyCompilationError: If steps lack WDK IDs or validation fails.
     :raises AppError: On WDK API failures.
     """
+    api = get_strategy_api(site_id)
     root = resolve_root_step(graph, None)
     # A combine step that lacks an input is not computable. WDK receives the
     # surviving branch instead.
@@ -316,8 +252,8 @@ async def sync_strategy(
     sync_state.step_counts = counts
     sync_state.step_validations = validations
 
-    all_steps = walk_step_tree(root_step)
-    wdk_url = site.strategy_url(wdk_strategy_id, root_wdk_step_id)
+    all_steps = walk(root_step)
+    wdk_url = get_site(site_id).strategy_url(wdk_strategy_id, root_wdk_step_id)
     zeros = sorted([sid for sid, c in counts.items() if c == 0])
 
     return SyncResult(
@@ -347,10 +283,10 @@ def _validate_graph(root_step: StrategyStepNode, record_type: str | None) -> Non
 async def _maybe_apply_decorations(
     root_step: StrategyStepNode,
     wdk_step_ids: dict[str, int],
-    api: StepDecoratorAPI,
+    api: StrategyAPI,
 ) -> None:
     """Apply step decorations when at least one step declares them."""
-    all_steps = walk_step_tree(root_step)
+    all_steps = walk(root_step)
     has_decorations = any(
         step.filters or step.analyses or step.reports for step in all_steps
     )
@@ -360,23 +296,3 @@ async def _maybe_apply_decorations(
         await _apply_decorations(root_step, wdk_step_ids, api)
     except AppError as e:
         logger.warning("Step decoration failed (non-fatal)", error=str(e))
-
-
-async def sync_strategy_for_site(
-    *,
-    graph: StrategyGraph,
-    sync_state: WDKSyncState,
-    site_id: str,
-    strategy_name: str | None = None,
-) -> SyncResult:
-    """Sync a strategy, resolving the API and site info from the site ID."""
-    api = get_strategy_api(site_id)
-    site = get_site(site_id)
-    return await sync_strategy(
-        graph=graph,
-        sync_state=sync_state,
-        api=api,
-        site=site,
-        site_id=site_id,
-        strategy_name=strategy_name,
-    )

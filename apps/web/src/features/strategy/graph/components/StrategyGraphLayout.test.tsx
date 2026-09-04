@@ -55,7 +55,6 @@ const ctx = {
   handleRelayout: () => {},
   handleStartCombineFromSelection: () => {},
   handleStartOrthologTransformFromSelection: () => {},
-  handleAddSelectionToChat: () => {},
   combineMismatchGroups: [],
 };
 

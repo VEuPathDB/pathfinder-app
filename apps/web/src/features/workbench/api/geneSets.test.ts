@@ -415,10 +415,13 @@ describe("createGeneSetFromStrategy", () => {
     await createGeneSetFromStrategy(args);
 
     const body = mockRequestJson.mock.calls[0]![2] as { body: CreateGeneSetRequest };
-    expect(body.body.wdkStepId).toBeUndefined();
-    expect(body.body.searchName).toBeUndefined();
-    expect(body.body.recordType).toBeUndefined();
-    expect(body.body.parameters).toBeUndefined();
+    expect(body.body).toEqual({
+      name: "Minimal",
+      source: "strategy",
+      geneIds: [],
+      siteId: "plasmodb",
+      wdkStrategyId: 1,
+    });
   });
 
   it("propagates errors from createGeneSet", async () => {

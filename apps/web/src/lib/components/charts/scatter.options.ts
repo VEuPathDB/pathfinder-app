@@ -2,7 +2,7 @@ import type { ChartTokens } from "./chartTheme";
 import type { EdaAxisLabel, EdaScatterSeries } from "./types";
 import { UNRESOLVED_SERIES_COLOR } from "./unresolved";
 
-export type ScatterPoint = [number, number, string];
+type ScatterPoint = [number, number, string];
 
 export interface ScatterOptionModel {
   series: { name: string; points: ScatterPoint[]; color: string }[];

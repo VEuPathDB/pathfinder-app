@@ -1,5 +1,108 @@
 # Log
 
+## 2026-09-03
+
+* **The second and third lean-down batches: one of everything.** The frontend
+  keeps one UI kit (`src/components/ui`, the shadcn tree; the hand-rolled
+  `lib/components/ui` twin and five direct Radix packages are gone), one chart
+  library (echarts; the three recharts components are option builders under
+  `features/analysis` with their option objects pinned by tests, and recharts
+  left `package.json`), and one source for wire types: every hand-written
+  mirror of a generated type in `packages/shared-ts/src/types.ts` is gone,
+  the ledger rail reads the generated `InvestigationLedger` through its zod
+  schema, and the OpenAPI post-pass emits anchored schemas in serialization
+  mode so computed fields reach the client (pinned by
+  `tests/unit/transport/test_openapi_post_passes.py`). `lib/` holds only what
+  two or more features share; `scripts/check-boundaries.mjs` rules 4 and 5
+  forbid `lib/` and `state/` from importing upward. The backend keeps one
+  traversal module (`domain/strategy/tree.py`), no single-implementation
+  Protocols, no `ai/context`, `ai/orchestration` or `services/wdk` re-export
+  facade, and one import-linter contract for transport and AI together
+  (seven contracts, `conventions/verification-gates.md`). `packages/shared-py`
+  folded into `apps/api`. The MCP server and the agent toolsets render one set
+  of payload models (`services/tool_payloads.py`), which exposed and fixed a
+  defect: search-level control tests had reported default zeros because two
+  models shared no field name. Three more defects fell out of the moves: the
+  graph state pinned into the model's prompt showed a `ParamValue` repr, the
+  scratchpad compaction row recorded an empty model id, and the thumbs-up and
+  thumbs-down feedback had never recorded anything because the trace id it
+  required was never emitted; the feedback route and its buttons are gone.
+  The four stream parts registered schema-only and never emitted
+  (`graph_plan`, `strategy_patch`, `optimization_snapshot`, `phase_change`)
+  left the registry and the generated types with them.
+
+* **The first lean-down batch: what nothing reached is gone, and the seed
+  catalog is data.** The reachability inventory found every agent tool mounted,
+  every table live and every worker task deferred by something, so the cut fell
+  on code no entry point reached: 25 HTTP operations with no caller in
+  `apps/web` (the experiment list, patch, delete, export, refine, re-evaluate,
+  cross-validate, enrich, overlap and enrichment-compare routes among them; the
+  route count is 94 production operations, asserted by
+  `tests/unit/transport/test_wdk_gate_route_table.py`), the experiment phases no
+  producer could switch on (`optimization_specs`, `threshold_knobs`,
+  `operator_knobs`, `enable_step_analysis`, `sort_attribute` had no writer
+  anywhere; `run_experiment` is five phases, pinned by
+  `tests/unit/services/experiment/test_run_experiment_orchestration.py`, and
+  `optuna` left `apps/api/pyproject.toml`), the three schema-anchor routes
+  (replaced by the post-pass in `transport/http/openapi.py`, which encodes
+  injected schemas the way FastAPI encodes its own, pinned by
+  `tests/unit/transport/test_openapi_post_passes.py`), and the dead modules the
+  import graph proved orphaned. The 17,722 lines of per-site seed definitions
+  that were Python dict literals are `apps/api/src/pathfinder/data/seeds/*.json`
+  behind a Pydantic loader (`services/experiment/seed/catalog.py`, pinned by
+  `test_seed_loader.py`: 76 definitions across 13 sites, byte-equal to the
+  modules they replaced). The frontend lost the files nothing imported, the
+  second copy of the `data-*` renderer dispatch, the experiment proxies that
+  duplicated the `next.config.ts` rewrite, and `data-verification-summary`,
+  which no backend emitter produced; `data-strategy-revision` and
+  `data-user-question-answers` joined `KnownDataPartKind` because the backend
+  does emit them.
+
+* **The EDA integration plan left the bundle.** `eda/plan/` held nine
+  `type: Plan, status: accepted` documents, 21,204 lines of per-step task cards
+  and checkboxes for a program that closed. `conventions/maintaining-this-bundle.md`
+  admits decisions, backlog items, conventions and WDK references "and nothing
+  else", and excludes session narrative, so the tree was inadmissible from the
+  day the last batch was accepted; `check-knowledge` cannot see the violation
+  because it enforces shape and links, not admissibility. What the plans pinned
+  is where it belongs: the live-verified EDA facts are the thirteen reference
+  documents in [eda/](eda/) (the filter algebra, the six-state job lifecycle,
+  the bridge, the REST divergences), the architecture is
+  [architecture fit](eda/pathfinder-architecture-fit.md), and every wire value
+  the batch cards carried is asserted in the EDA tests under `apps/api` and
+  `apps/web`. `eda/index.md` no longer offers a plan; the two documents whose
+  Status line pointed into it now state the status alone.
+
+* **The thread redesign plan left the bundle, and `thread/` with it.** Its six
+  documents were 3,665 lines describing a rendering that now exists: the trace
+  grouping rule is `buildTrace` in `@pathfinder/assistant-client` with its
+  conformance suite, the `data-tool-summary` reduction is PROTOCOL section 6.3,
+  the figure style is `Figure.tsx` and `Figure.test.tsx`, and the two-ground
+  token layer is `globals.css` under `styles/tokenCompleteness.test.ts`. With
+  the plan gone the directory held only its own index, so the directory and its
+  line in the bundle root index are gone too.
+
+* **The frozen acceptance layer is retired.** The four suites the two programs
+  built - `apps/web/src/acceptance/`, `packages/assistant-client-ts/tests/acceptance/`,
+  `apps/web/e2e/acceptance/` and `apps/api/src/pathfinder/tests/acceptance/` -
+  were collected by no script, hook or CI job, and every module skipped clean
+  when its target was absent. They are deleted, along with the `eda_acceptance`
+  marker, the `addopts` line that deselected it, the two env-gated playwright
+  projects and the `test:acceptance` script. Four contracts had no assertion
+  outside them and now do; see
+  [a frozen acceptance suite is not a test tier](decisions/a-frozen-acceptance-suite-is-not-a-test-tier.md).
+
+* **No endpoint reports the resolved principal.** `GET /api/v1/me/principal`
+  had no caller, so it is gone; a caller learns its application from the
+  service token it presents. The bearer, cookie, service-token, guest and
+  forged-credential cases now run against the principal dependency on a route
+  the test module owns (`tests/integration/http/test_principal_auth.py`). The
+  dead helpers vulture reads at confidence 60 went with it: the three
+  `from_list` classmethods on the strategy AST, two plan-tree collectors, the
+  enrichment `is_enrichment_analysis`, `infer_enrichment_type` and
+  `parse_enrichment_from_raw`, the ranking `best_ratio` and `ratio_sort_key`,
+  and the two control-test count helpers in `tree_evaluation.py`.
+
 ## 2026-09-01
 
 * **A pass that stops early now says so, continues itself, and can no longer
@@ -83,6 +186,7 @@
   otherwise. Proven by
   `tests/unit/domain/strategy/test_combination_check.py`,
   `tests/unit/domain/strategy/test_constraints.py`,
+  `tests/unit/domain/strategy/test_constraint_grounding.py`,
   `tests/unit/ai/agents/test_frame_toolset.py` (the four-kinase drug-target
   shape: intersecting the two evidence lines is refused, unioning them is
   written), `tests/unit/ai/lead/test_consult_user.py`,
@@ -162,10 +266,10 @@
   arc tripping the validator.
 
 * **The step tree has one owner again, and the sentinel answers nothing.**
-  `fold_step_tree` in `domain/strategy/ast.py` hands each node its inputs
+  `fold` in `domain/strategy/tree.py` hands each node its inputs
   already folded, in slot order, and the six raw recursions over
   `primary_input` outside `domain/strategy/` are written on it or on
-  `walk_step_tree`: the eval comparison tree and structure signature, the
+  `walk`: the eval comparison tree and structure signature, the
   step-analysis prune and branch extraction, the WDK step-tree projection, the
   parameter canonicalization pass and the experiment materializer. The wire
   tree got the same treatment through `integrations/veupathdb/step_tree.py`;
@@ -1094,7 +1198,7 @@
   `validate_parameters` reports the class it resolved, and the push addresses each
   step's search URL from the step's own rather than from one value per graph.
   `record_class_of` reads a step's class and takes a combine's from the steps it
-  consumes, `sync_strategy` sets the strategy's class from the root through it,
+  consumes, `sync_strategy_for_site` sets the strategy's class from the root through it,
   and the leaf-first `resolve_record_type_from_steps` is deleted along with the
   unreferenced `services/strategies/search_resolution.py`. The pin is live on
   plasmodb: `GenesByMolecularWeight` is listed under `transcript` and
@@ -1826,7 +1930,7 @@
   editor never writes: the root read 15 for a strategy the editor showed
   returning 7, the edited step read null, and the step's name still said "top
   20%" while its parameter said 90. `read_live_state` is now async, takes a
-  `StrategyReader`, and sources every count from `read_wdk_step_counts` - a
+  the site id, and sources every count from `read_wdk_step_counts` - a
   count the site does not answer for is reported as unknown, never as the count
   from the last build. Step parameters are serialized through `wire_map`, so the
   Lead reads `min_expression_percentile: "90"` rather than a nested value model,
@@ -2448,7 +2552,7 @@
   item named.
 
 * **The EDA plan gained a frozen acceptance layer, and it is already written.**
-  [The overview](eda/plan/overview.md) now defines the protocol: a
+  The plan overview defined the protocol: a
   behavior-only conformance suite written before any implementation by QA
   agents who implement nothing, pinning live-verified VALUES at stable
   boundaries, pending until each batch closes (backend: `eda_acceptance`
@@ -2472,8 +2576,8 @@
   required-and-nullable, the volcano `selected` ordering is up-then-down,
   and batch 7's e2e snippets now use the rail's real accessible names.
 
-* **The EDA integration has a verified implementation plan.** [eda/plan/](eda/plan/)
-  holds an [overview](eda/plan/overview.md) - the layering, the co-edited-SSOT
+* **The EDA integration has a verified implementation plan.** The plan tree
+  held an overview - the layering, the co-edited-SSOT
   design (one analysis per thread, agent tools and tab clicks patching the
   same upstream document, both surfaces re-rendering from
   `data-eda.analysis-state` snapshots with a per-binding revision counter),
@@ -3342,10 +3446,10 @@
   ids. `SpecDiff.touched_count` counts a rewire as one touch and `render` names
   it, so a rewire beside a criterion change no longer suppresses enrichment and
   no reply can report a rewire as "nothing changed". Proven by
-  `tests/unit/domain/strategy/test_spec_to_operations.py` (the rearrangement
-  plans as one replacement, every leaf id survives, the combine whose inputs do
-  not move keeps its own, a moved transform is rewired, and three of the
-  refusals) and `tests/unit/ai/lead/test_edit_work_order.py`.
+  `tests/unit/domain/strategy/test_spec_to_operations_rearrange.py` (the
+  rearrangement plans as one replacement, every leaf id survives, the combine
+  whose inputs do not move keeps its own, a moved transform is rewired, and
+  three of the refusals) and `tests/unit/ai/lead/test_edit_work_order.py`.
 
 * **Stated combination logic is now typed, gated and verified; a combine
   rewire is an in-place edit.** A user's "A OR B" lands as a

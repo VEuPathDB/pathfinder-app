@@ -14,12 +14,10 @@ from assistant_core.platform.types import JSONObject
 from cachetools import LRUCache
 
 from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.domain.strategy.ast import (
-    StrategyStepNode,
-    walk_step_tree,
-)
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.ops import DEFAULT_COMBINE_OPERATOR, CombineOp
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import leaves, walk
 from pathfinder.integrations.veupathdb.client import (
     VEuPathDBClient,
 )
@@ -92,7 +90,7 @@ async def _count_via_anonymous_report(
 
 def is_leaf_only_plan(root: StrategyStepNode) -> bool:
     """Whether every step in the plan tree is a search step."""
-    return all(step.infer_kind() == "search" for step in walk_step_tree(root))
+    return len(leaves(root)) == len(walk(root))
 
 
 async def compute_step_counts_for_plan(
@@ -129,7 +127,7 @@ async def _compute_leaf_counts_parallel(
     record_type: str,
 ) -> dict[str, int | None]:
     """Compute counts for all leaf steps in parallel using anonymous reports."""
-    all_steps = walk_step_tree(root)
+    all_steps = walk(root)
 
     tasks = [
         _count_via_anonymous_report(
@@ -197,8 +195,8 @@ async def _create_wdk_step(
                 record_type=record_type,
             )
             return result.id
-        if kind == "transform" and step.primary_input:
-            input_wdk_id = wdk_step_ids.get(step.primary_input.id)
+        if kind == "transform" and step.primary_input_id:
+            input_wdk_id = wdk_step_ids.get(step.primary_input_id)
             if input_wdk_id is None:
                 return None
             result = await api.create_transform_step(
@@ -210,9 +208,9 @@ async def _create_wdk_step(
                 record_type=record_type,
             )
             return result.id
-        if kind == "combine" and step.primary_input and step.secondary_input:
-            primary_wdk_id = wdk_step_ids.get(step.primary_input.id)
-            secondary_wdk_id = wdk_step_ids.get(step.secondary_input.id)
+        if kind == "combine" and step.primary_input_id and step.secondary_input_id:
+            primary_wdk_id = wdk_step_ids.get(step.primary_input_id)
+            secondary_wdk_id = wdk_step_ids.get(step.secondary_input_id)
             if primary_wdk_id is None or secondary_wdk_id is None:
                 return None
             return await _create_combine_wdk_step(
@@ -261,7 +259,7 @@ async def _compute_counts_via_temp_strategy(
 
     The strategy is deleted once its counts are read.
     """
-    all_steps = walk_step_tree(payload.root)
+    all_steps = walk(payload.root)
 
     # Maps a local step id to the WDK step id.
     wdk_step_ids: dict[str, int] = {}

@@ -4,6 +4,5 @@
   "venvPath": ".",
   "venv": "apps/api/.venv",
   "include": ["apps/api/src", "packages/assistant-core/src"],
-  "stubPath": "apps/api/stubs",
   "exclude": ["apps/api/src/pathfinder/tests"]
 }

@@ -94,11 +94,8 @@ def _callbacks(site_id: str, **_kw: object) -> pv.ValidationCallbacks:
     async def _record_type(
         record_type: str | None,
         search_name: str | None,
-        *,
-        require_match: bool = False,
-        allow_fallback: bool = False,
     ) -> str | None:
-        del search_name, require_match, allow_fallback
+        del search_name
         return record_type
 
     async def _hint(search_name: str, record_type: str | None) -> str | None:

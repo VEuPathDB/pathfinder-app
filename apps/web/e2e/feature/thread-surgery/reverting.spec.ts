@@ -12,6 +12,7 @@ import {
   BUILT_ORGANISM,
   EDITED_ORGANISM,
   EDIT_ORGANISM,
+  SITE_ID,
   SUBSTITUTED,
   VERIFIED,
   echoOf,
@@ -26,9 +27,10 @@ test.describe("Thread reverting", () => {
   // behind another suite's build waits minutes.
   test.describe.configure({ timeout: 600_000 });
 
-  test.beforeEach(async ({ chatPage }) => {
+  test.beforeEach(async ({ chatPage, sitePicker }) => {
     await chatPage.goto();
-    await chatPage.newChat();
+    await sitePicker.selectSite(SITE_ID);
+    await chatPage.newChat(SITE_ID);
   });
 
   test("a revert truncates the transcript in place and restores that turn's strategy", async ({

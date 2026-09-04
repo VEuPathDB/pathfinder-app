@@ -52,30 +52,3 @@ export function walkSubtreeIds(steps: Step[], rootId: string): string[] {
   }
   return Array.from(out);
 }
-
-export function subtreeSize(steps: Step[], rootId: string): number {
-  return walkSubtreeIds(steps, rootId).length;
-}
-
-export function getRootIds(steps: Step[]): string[] {
-  if (steps.length === 0) return [];
-  const referenced = new Set<string>();
-  for (const s of steps) {
-    if (s.primaryInputStepId != null && s.primaryInputStepId !== "")
-      referenced.add(s.primaryInputStepId);
-    if (s.secondaryInputStepId != null && s.secondaryInputStepId !== "")
-      referenced.add(s.secondaryInputStepId);
-  }
-  return steps.map((s) => s.id).filter((id) => !referenced.has(id));
-}
-
-export function isReachableFromAnyRoot(
-  steps: Step[],
-  stepId: string,
-  rootSet: Set<string>,
-): boolean {
-  for (const rootId of rootSet) {
-    if (walkSubtreeIds(steps, rootId).includes(stepId)) return true;
-  }
-  return false;
-}

@@ -11,9 +11,6 @@ from pydantic import JsonValue, TypeAdapter
 
 from pathfinder.integrations.eda.errors import eda_failure
 from pathfinder.integrations.eda.models import (
-    TABULAR_JSON,
-    EdaAppInfo,
-    EdaAppsResponse,
     EdaBinSpec,
     EdaComputeJob,
     EdaCountResponse,
@@ -43,16 +40,18 @@ _FIRST_ERROR_STATUS = 400
 class EdaClient:
     """One site's EDA service. The request's own registered token authenticates it."""
 
-    def __init__(self, *, base_url: str, timeout: float = 60.0) -> None:
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        timeout: float = 60.0,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self._client: httpx.AsyncClient | None = None
-        self._transport: httpx.AsyncBaseTransport | None = None
-        self._lock = asyncio.Lock()
-
-    def install_transport(self, transport: httpx.AsyncBaseTransport) -> None:
-        """Pin the transport a test drives. Production leaves it unset."""
         self._transport = transport
+        self._lock = asyncio.Lock()
 
     async def close(self) -> None:
         if self._client is not None and not self._client.is_closed:
@@ -127,30 +126,6 @@ class EdaClient:
         )
         return EdaCountResponse.model_validate(raw).count
 
-    async def tabular(
-        self,
-        *,
-        study_id: str,
-        entity_id: str,
-        filters: Sequence[EdaFilter],
-        output_variable_ids: Sequence[str],
-        num_rows: int | None = None,
-        offset: int = 0,
-    ) -> list[list[str]]:
-        body: dict[str, JsonValue] = {
-            "filters": _filters(filters),
-            "outputVariableIds": list(output_variable_ids),
-        }
-        # An offset with no numRows is a server error, so both keys travel or neither.
-        if num_rows is not None:
-            body["reportConfig"] = {"paging": {"numRows": num_rows, "offset": offset}}
-        raw = await self.request_json(
-            "POST",
-            f"/studies/{study_id}/entities/{entity_id}/tabular",
-            json=body,
-        )
-        return TABULAR_JSON.validate_python(raw)
-
     async def distribution(
         self,
         *,
@@ -176,10 +151,6 @@ class EdaClient:
             json=body,
         )
         return EdaDistributionResponse.model_validate(raw)
-
-    async def list_apps(self) -> list[EdaAppInfo]:
-        raw = await self.request_json("GET", "/apps")
-        return EdaAppsResponse.model_validate(raw).apps
 
     async def submit_compute(
         self,
@@ -214,29 +185,6 @@ class EdaClient:
             "POST",
             f"/computes/{compute_name}/statistics",
             json=_compute_body(study_id, config, filters),
-        )
-        return VolcanoStatsResponse.model_validate(raw)
-
-    async def visualization_data(
-        self,
-        *,
-        app: str,
-        viz: str,
-        study_id: str,
-        compute_config: EdaDifferentialExpressionConfig,
-        filters: Sequence[EdaFilter],
-    ) -> VolcanoStatsResponse:
-        raw = await self.request_json(
-            "POST",
-            f"/apps/{app}/visualizations/{viz}",
-            json={
-                "studyId": study_id,
-                "filters": _filters(filters),
-                "computeConfig": compute_config.model_dump(
-                    by_alias=True, mode="json", exclude_none=True
-                ),
-                "config": {},
-            },
         )
         return VolcanoStatsResponse.model_validate(raw)
 

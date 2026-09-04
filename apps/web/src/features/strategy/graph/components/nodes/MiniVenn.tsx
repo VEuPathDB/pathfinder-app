@@ -1,6 +1,6 @@
 "use client";
 
-import { CombineOperator } from "@pathfinder/shared";
+import { combineOpEnum } from "@pathfinder/shared";
 
 interface MiniVennProps {
   operator: string;
@@ -16,22 +16,22 @@ interface RegionFlags {
 }
 
 function regionFlagsForOperator(operator: string): RegionFlags {
-  if (operator === CombineOperator.UNION) {
+  if (operator === combineOpEnum.UNION) {
     return { leftOnly: true, rightOnly: true, lens: true };
   }
-  if (operator === CombineOperator.INTERSECT) {
+  if (operator === combineOpEnum.INTERSECT) {
     return { leftOnly: false, rightOnly: false, lens: true };
   }
-  if (operator === CombineOperator.LONLY) {
+  if (operator === combineOpEnum.LONLY) {
     return { leftOnly: true, rightOnly: false, lens: true };
   }
-  if (operator === CombineOperator.RONLY) {
+  if (operator === combineOpEnum.RONLY) {
     return { leftOnly: false, rightOnly: true, lens: true };
   }
-  if (operator === CombineOperator.MINUS) {
+  if (operator === combineOpEnum.MINUS) {
     return { leftOnly: true, rightOnly: false, lens: false };
   }
-  if (operator === CombineOperator.RMINUS) {
+  if (operator === combineOpEnum.RMINUS) {
     return { leftOnly: false, rightOnly: true, lens: false };
   }
   return { leftOnly: false, rightOnly: false, lens: false };
@@ -56,7 +56,7 @@ export function MiniVenn({
   height = 56,
   className,
 }: MiniVennProps) {
-  if (operator === CombineOperator.COLOCATE) {
+  if (operator === combineOpEnum.COLOCATE) {
     return (
       <svg
         width={width}

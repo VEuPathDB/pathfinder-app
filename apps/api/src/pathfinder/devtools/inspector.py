@@ -6,13 +6,9 @@ from typing import Any
 
 from pydantic import TypeAdapter
 
-from pathfinder.devtools.models import Anomaly, CapturedToolCall, RunSummary
+from pathfinder.devtools.models import Anomaly, CapturedToolCall
 
 _ANOMALIES = TypeAdapter(list[Anomaly])
-
-
-def load_summary(run_dir: Path) -> RunSummary:
-    return RunSummary.model_validate_json((run_dir / "summary.json").read_text())
 
 
 def load_tool_calls(run_dir: Path) -> list[CapturedToolCall]:

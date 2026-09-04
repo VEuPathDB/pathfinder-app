@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 import { Database } from "lucide-react";
 import { useSessionStore } from "@/state/useSessionStore";
-import { useGeneSetsQuery } from "@/lib/query/hooks/useGeneSetsQuery";
+import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
 
 interface GeneSetPickerProps {
   onSelect: (geneIds: string[]) => void;

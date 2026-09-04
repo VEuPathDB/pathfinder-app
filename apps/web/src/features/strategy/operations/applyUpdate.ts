@@ -1,6 +1,7 @@
 import type { Step, Strategy, StrategyStepNode } from "@pathfinder/shared";
 import { patchSteps } from "./_patch";
-import type { ApplyResult, GraphOperation } from "./types";
+import type { GraphOperation } from "@/lib/types/graphOperation";
+import type { ApplyResult } from "./types";
 
 type UpdateParamsOp = Extract<GraphOperation, { kind: "updateStepParams" }>;
 type UpdateOpOp = Extract<GraphOperation, { kind: "updateCombineOperator" }>;
@@ -99,17 +100,19 @@ function treeToFlatSteps(root: StrategyStepNode, strategy: Strategy): Step[] {
   const existingById = new Map(strategy.steps.map((s) => [s.id, s]));
   const out: Step[] = [];
   const visit = (node: StrategyStepNode): void => {
-    if (node.primaryInput !== undefined) visit(node.primaryInput);
-    if (node.secondaryInput !== undefined) visit(node.secondaryInput);
+    const primary = node.primaryInput ?? null;
+    const secondary = node.secondaryInput ?? null;
+    if (primary !== null) visit(primary);
+    if (secondary !== null) visit(secondary);
     const nodeId = node.id ?? "";
     const existing = existingById.get(nodeId);
     const flat: Step = {
       ...(existing ?? { id: nodeId }),
       id: nodeId,
       kind:
-        node.primaryInput !== undefined && node.secondaryInput !== undefined
+        primary !== null && secondary !== null
           ? "combine"
-          : node.primaryInput !== undefined
+          : primary !== null
             ? "transform"
             : "search",
       displayName: node.displayName ?? null,
@@ -117,8 +120,8 @@ function treeToFlatSteps(root: StrategyStepNode, strategy: Strategy): Step[] {
       parameters: node.parameters ?? null,
       operator: node.operator ?? null,
       colocationParams: node.colocationParams ?? null,
-      primaryInputStepId: node.primaryInput?.id ?? null,
-      secondaryInputStepId: node.secondaryInput?.id ?? null,
+      primaryInputStepId: primary?.id ?? null,
+      secondaryInputStepId: secondary?.id ?? null,
     };
     out.push(flat);
   };

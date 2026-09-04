@@ -15,10 +15,10 @@ from uuid import UUID
 from assistant_core.persistence.models import ConversationEvent
 from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict, TypeAdapter
-from shared_py.stream_parts.eda import EdaAnalysisState
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.integrations.eda.errors import EdaNotFoundError
 from pathfinder.integrations.eda.models import EdaFilter
 from pathfinder.persistence.models import ConversationAnalysisView

@@ -20,6 +20,7 @@ from pathfinder.domain.wdk_values import (
     WDKHistogramBin,
     WDKHistogramStatistics,
     WDKRecordIdPart,
+    WDKSortDirection,
 )
 from pathfinder.integrations.veupathdb.value_decoding import encode_params
 
@@ -156,9 +157,6 @@ class WDKIdentifier(WDKModel):
     """Generic WDK ``{"id": <int>}`` response from resource-creating POSTs."""
 
     id: int
-
-
-WDKSortDirection = Literal["ASC", "DESC"]
 
 
 class WDKSortSpec(WDKModel):

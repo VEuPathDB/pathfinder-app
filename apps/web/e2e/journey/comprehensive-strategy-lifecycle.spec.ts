@@ -1,5 +1,5 @@
 import { test, expect } from "../fixtures/test";
-import { wdkAccountCreds, loginWdkAccount } from "../fixtures/wdk-account";
+import { signInAsWdkAccount } from "../fixtures/wdk-account";
 import {
   COMBINE_SEARCH_NAME,
   astNodes,
@@ -17,10 +17,7 @@ test.describe("Comprehensive multi-param strategy lifecycle", () => {
     graphPage,
     sitePicker,
   }) => {
-    const creds = wdkAccountCreds();
-    test.skip(creds === null, "Requires WDK_TEST_EMAIL/WDK_TEST_PASSWORD");
-
-    await loginWdkAccount(page.context().request, creds!, "plasmodb");
+    await signInAsWdkAccount(page.context().request, "plasmodb");
 
     await chatPage.goto();
     await sitePicker.selectSite("plasmodb");

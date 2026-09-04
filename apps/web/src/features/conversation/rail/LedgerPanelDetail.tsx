@@ -1,20 +1,14 @@
 "use client";
 
-import type {
-  LedgerBuildPayload,
-  LedgerCriterionPayload,
-  LedgerFramePayload,
-  LedgerNodeResultPayload,
-  LedgerVerificationPayload,
-} from "@pathfinder/shared";
+import type { Criterion } from "@pathfinder/shared/generated/types/Criterion";
+import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
+import type { NodeResult } from "@pathfinder/shared/generated/types/NodeResult";
 
 import { MessageResponse } from "@/components/ai-elements/message";
-import { type Tone } from "@/lib/utils/statusTone";
+import { formatParamValue } from "@/lib/parameters/paramValue";
+import { type Tone } from "@/features/conversation/rail/statusTone";
 
 import { StatusPill } from "./LedgerPanelPrimitives";
-
-// Ledger snapshots persisted before a field existed arrive without it (and
-// exclude_none drops optional nulls), so every wire array/object is guarded.
 
 function Markdown({ children }: { children: string }) {
   return (
@@ -24,14 +18,16 @@ function Markdown({ children }: { children: string }) {
   );
 }
 
-function CriterionCard({ crit }: { crit: LedgerCriterionPayload }) {
-  const params = Object.entries(crit.resolvedParams);
+function CriterionCard({ crit }: { crit: Criterion }) {
+  const params = Object.entries(crit.resolvedParams ?? {});
   const defaulted = new Set(crit.defaultedParams ?? []);
   return (
     <div className="min-w-0 rounded-md border border-border bg-muted/20 p-2">
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 break-all font-mono text-[11px] font-medium text-foreground">
-          {crit.searchName || "(unbound)"}
+          {crit.searchName != null && crit.searchName !== ""
+            ? crit.searchName
+            : "(unbound)"}
         </span>
         <StatusPill text={crit.role} />
       </div>
@@ -44,7 +40,7 @@ function CriterionCard({ crit }: { crit: LedgerCriterionPayload }) {
             <div key={key} className="break-all font-mono text-[10px] leading-relaxed">
               <span className="text-muted-foreground">{key}</span>
               <span className="text-muted-foreground">: </span>
-              <span className="text-foreground">{JSON.stringify(value)}</span>
+              <span className="text-foreground">{formatParamValue(value)}</span>
               {defaulted.has(key) && (
                 <span
                   title="Assumed: the search's own default, not a value you stated"
@@ -57,7 +53,7 @@ function CriterionCard({ crit }: { crit: LedgerCriterionPayload }) {
           ))}
         </div>
       )}
-      {crit.openParams.map((slot) => (
+      {(crit.openParams ?? []).map((slot) => (
         <p key={slot.paramName} className="mt-1 break-words text-[10px] text-warning">
           needs <span className="font-mono">{slot.paramName}</span>: {slot.question}
         </p>
@@ -66,13 +62,14 @@ function CriterionCard({ crit }: { crit: LedgerCriterionPayload }) {
   );
 }
 
-export function FrameDetail({ frame }: { frame: LedgerFramePayload }) {
+export function FrameDetail({ frame }: { frame: InvestigationLedger["frame"] }) {
   const spec = frame.spec;
   if (spec == null) return null;
+  const { criteria = [], dropped = [] } = spec;
   return (
     <div className="mt-2 min-w-0 space-y-2 border-t border-border pt-2">
       <div className="space-y-1.5">
-        {spec.criteria.map((crit) => (
+        {criteria.map((crit) => (
           <CriterionCard key={crit.id} crit={crit} />
         ))}
       </div>
@@ -84,9 +81,9 @@ export function FrameDetail({ frame }: { frame: LedgerFramePayload }) {
           </span>
         </div>
       )}
-      {spec.dropped.length > 0 && (
+      {dropped.length > 0 && (
         <div className="space-y-0.5">
-          {spec.dropped.map((d) => (
+          {dropped.map((d) => (
             <p key={d.text} className="break-words text-[10px] text-muted-foreground">
               <span className="text-destructive">dropped</span> {d.text} — {d.reason}
             </p>
@@ -97,13 +94,13 @@ export function FrameDetail({ frame }: { frame: LedgerFramePayload }) {
   );
 }
 
-const NODE_STATUS_TONE: Record<LedgerNodeResultPayload["status"], Tone> = {
+const NODE_STATUS_TONE: Record<NodeResult["status"], Tone> = {
   ok: "good",
   zero: "warn",
   failed: "bad",
 };
 
-function NodeResultRow({ node }: { node: LedgerNodeResultPayload }) {
+function NodeResultRow({ node }: { node: NodeResult }) {
   return (
     <div className="min-w-0 rounded-md border border-border bg-muted/20 p-2">
       <div className="flex items-start justify-between gap-2">
@@ -130,8 +127,8 @@ function NodeResultRow({ node }: { node: LedgerNodeResultPayload }) {
   );
 }
 
-export function BuildDetail({ build }: { build: LedgerBuildPayload }) {
-  const nodeResults = build.nodeResults ?? [];
+export function BuildDetail({ build }: { build: InvestigationLedger["build"] }) {
+  const nodeResults = build.nodeResults;
   if (nodeResults.length === 0 && build.wdkUrl == null) return null;
   return (
     <div className="mt-2 min-w-0 space-y-2 border-t border-border pt-2">
@@ -169,15 +166,15 @@ function MarkdownList({ label, items }: { label: string; items: string[] }) {
 export function VerificationDetail({
   verification,
 }: {
-  verification: LedgerVerificationPayload;
+  verification: InvestigationLedger["verification"];
 }) {
   const digest = verification.digest;
   if (digest == null) return null;
   return (
     <div className="mt-2 min-w-0 space-y-2 border-t border-border pt-2">
       {digest.prose !== "" && <Markdown>{digest.prose}</Markdown>}
-      <MarkdownList label="key findings" items={digest.keyFindings} />
-      <MarkdownList label="caveats" items={digest.caveats} />
+      <MarkdownList label="key findings" items={digest.keyFindings ?? []} />
+      <MarkdownList label="caveats" items={digest.caveats ?? []} />
     </div>
   );
 }

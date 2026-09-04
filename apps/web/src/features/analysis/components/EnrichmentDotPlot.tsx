@@ -1,93 +1,9 @@
 import type { EnrichmentTerm } from "@pathfinder/shared";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  MAX_CHART_TERMS,
-  DOT_MIN_R,
-  DOT_MAX_R,
-  compareNullableAsc,
-  formatProbability,
-  formatRatio,
-  pvalColor,
-  pvalGradient,
-  truncateLabel,
-} from "./enrichment-utils";
 
-// ---------------------------------------------------------------------------
-// Chart data type
-// ---------------------------------------------------------------------------
-
-interface DotChartDatum {
-  name: string;
-  /** Null when the fold enrichment is unbounded, which has no bar length. */
-  foldEnrichment: number | null;
-  geneCount: number;
-  pValue: number | null;
-  /** Pre-computed dot radius based on geneCount / maxGeneCount. */
-  dotRadius: number;
-}
-
-// ---------------------------------------------------------------------------
-// Custom bar shape (circle instead of rectangle)
-// ---------------------------------------------------------------------------
-
-function DotShape(props: {
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  payload?: DotChartDatum;
-}) {
-  const { x = 0, y = 0, width = 0, height = 0, payload } = props;
-  if (payload?.foldEnrichment == null) return null;
-  const d = payload;
-
-  return (
-    <circle
-      cx={x + width}
-      cy={y + height / 2}
-      r={d.dotRadius}
-      fill={pvalColor(d.pValue)}
-      fillOpacity={0.85}
-    />
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Tooltip
-// ---------------------------------------------------------------------------
-
-function DotPlotTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: DotChartDatum }>;
-}) {
-  if (active !== true || payload?.[0] == null) return null;
-  const d = payload[0].payload;
-  return (
-    <div className="rounded border border-border bg-card px-3 py-2 text-xs shadow-lg">
-      <p className="mb-1 font-medium text-foreground">{d.name}</p>
-      <div className="flex gap-3 text-muted-foreground">
-        <span>Fold: {formatRatio(d.foldEnrichment, 2)}</span>
-        <span>Genes: {d.geneCount}</span>
-        <span>p: {formatProbability(d.pValue)}</span>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Legend
-// ---------------------------------------------------------------------------
+import { EChart } from "@/lib/components/charts/EChart";
+import { readChartTokens } from "@/lib/components/charts/chartTheme";
+import { buildEnrichmentDotPlot } from "./enrichmentDotPlot.options";
+import { DOT_MAX_R, DOT_MIN_R, pvalColor, pvalGradient } from "./enrichment-utils";
 
 function DotPlotLegend({ maxGeneCount }: { maxGeneCount: number }) {
   const sizes = [
@@ -130,91 +46,31 @@ function DotPlotLegend({ maxGeneCount }: { maxGeneCount: number }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
-
 interface EnrichmentDotPlotProps {
   terms: EnrichmentTerm[];
 }
 
 export function EnrichmentDotPlot({ terms }: EnrichmentDotPlotProps) {
-  const { data, maxGeneCount } = (() => {
-    const top = [...terms]
-      .sort((a, b) => compareNullableAsc(a.pValue, b.pValue))
-      .slice(0, MAX_CHART_TERMS)
-      .reverse();
-
-    const maxGC = Math.max(...top.map((t) => t.geneCount), 1);
-
-    return {
-      data: top.map((t) => {
-        const ratio = t.geneCount / maxGC;
-        const label = t.termName || t.termId || "\u2014";
-        return {
-          name: truncateLabel(label),
-          foldEnrichment: t.foldEnrichment,
-          geneCount: t.geneCount,
-          pValue: t.pValue,
-          dotRadius: DOT_MIN_R + ratio * (DOT_MAX_R - DOT_MIN_R),
-        };
-      }),
-      maxGeneCount: maxGC,
-    };
-  })();
-
-  const chartHeight = Math.max(data.length * 28 + 40, 140);
+  const model = buildEnrichmentDotPlot({
+    terms,
+    tokens: readChartTokens(),
+    colorForPValue: pvalColor,
+  });
 
   return (
     <div className="border-b border-border/50 px-4 py-4">
       <div className="mb-2 flex items-center justify-between">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Top {data.length} Terms by Significance
+          Top {model.termCount} Terms by Significance
         </h4>
-        <DotPlotLegend maxGeneCount={maxGeneCount} />
+        <DotPlotLegend maxGeneCount={model.maxGeneCount} />
       </div>
-      <ResponsiveContainer width="100%" height={chartHeight}>
-        <BarChart
-          layout="vertical"
-          data={data}
-          margin={{ top: 4, right: 32, bottom: 16, left: 8 }}
-        >
-          <CartesianGrid
-            strokeDasharray="3 3"
-            stroke="hsl(var(--border))"
-            horizontal={false}
-          />
-          <XAxis
-            type="number"
-            dataKey="foldEnrichment"
-            tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-            label={{
-              value: "Fold Enrichment",
-              position: "insideBottom",
-              offset: -8,
-              fontSize: 11,
-              fill: "hsl(var(--muted-foreground))",
-            }}
-          />
-          <YAxis
-            type="category"
-            dataKey="name"
-            width={200}
-            tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-            tickLine={false}
-            axisLine={false}
-          />
-          <Tooltip
-            content={<DotPlotTooltip />}
-            cursor={{ fill: "hsl(var(--accent))", fillOpacity: 0.3 }}
-          />
-          <Bar
-            dataKey="foldEnrichment"
-            shape={<DotShape />}
-            isAnimationActive={false}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+      <EChart
+        option={model.option}
+        height={model.height}
+        ariaLabel={`Fold enrichment of the top ${String(model.termCount)} terms by significance`}
+        testId="enrichment-dot-plot"
+      />
     </div>
   );
 }

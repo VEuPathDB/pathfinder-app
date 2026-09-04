@@ -4,7 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-import type { LedgerFramePayload } from "@pathfinder/shared";
+import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
 
 import {
   BuildSection,
@@ -18,14 +18,15 @@ describe("IntentSection", () => {
     render(
       <IntentSection
         intent={{
-          classification: "NEW_STRATEGY",
+          rawText: "find kinase drug targets",
+          classification: "new_strategy",
           inferredGoal: "Find kinase drug targets",
           isDifferential: true,
           differentialSides: ["expressed", "not expressed"],
         }}
       />,
     );
-    expect(screen.getByText("NEW_STRATEGY")).toBeInTheDocument();
+    expect(screen.getByText("new_strategy")).toBeInTheDocument();
     expect(screen.getByText("Find kinase drug targets")).toBeInTheDocument();
     expect(screen.getByText("expressed")).toBeInTheDocument();
   });
@@ -41,8 +42,9 @@ describe("IntentSection", () => {
   });
 });
 
-const FRAME_WITH_SPEC: LedgerFramePayload = {
+const FRAME_WITH_SPEC: InvestigationLedger["frame"] = {
   present: true,
+  diff: null,
   criteriaCount: 2,
   boundCount: 2,
   openSlotCount: 1,
@@ -65,14 +67,16 @@ const FRAME_WITH_SPEC: LedgerFramePayload = {
     recordType: "transcript",
     organismScope: "Plasmodium falciparum",
     title: "Gametocyte genes",
-    readyToBuild: false,
     criteria: [
       {
         id: "c1",
         text: "product mentions gametocyte",
         searchName: "GenesByText",
         role: "seed",
-        resolvedParams: { text_expression: "gametocyte", text_fields: "product" },
+        resolvedParams: {
+          text_expression: { type: "string", value: "gametocyte" },
+          text_fields: { type: "string", value: "product" },
+        },
         openParams: [],
         confidence: 0.9,
       },
@@ -153,22 +157,6 @@ describe("BuildSection detail", () => {
     expect(screen.queryByText("GenesByOrthologs")).not.toBeInTheDocument();
   });
 
-  it("does not crash on a legacy payload missing nodeResults", () => {
-    // Ledger snapshots persisted before nodeResults existed arrive without the
-    // field; the detail view must tolerate the wire gap, not throw.
-    const legacy = {
-      pushedCount: 1,
-      failedCount: 0,
-      skippedCount: 0,
-      zeroResultSteps: [],
-      needsRecovery: false,
-      recoveryKind: "none" as const,
-      succeeded: true,
-    } as unknown as typeof BUILD_WITH_NODES;
-    render(<BuildSection build={legacy} detail />);
-    expect(screen.getByText("Build")).toBeInTheDocument();
-  });
-
   it("labels combine nodes 'Combine', never the raw __combine__ sentinel", () => {
     const build = {
       ...BUILD_WITH_NODES,
@@ -187,6 +175,7 @@ const VERIFY_WITH_DIGEST = {
   complete: true,
   successful: true,
   digest: {
+    disposition: "done" as const,
     prose: "The strategy returned 61 gametocyte genes.",
     reason: "sizes look right",
     success: true,
@@ -194,6 +183,46 @@ const VERIFY_WITH_DIGEST = {
     caveats: ["product-name search matched 0"],
   },
 };
+
+describe("sections tolerate the optional lists exclude_none drops", () => {
+  it("renders an intent with no differential sides", () => {
+    render(
+      <IntentSection
+        intent={{
+          rawText: "any kinase",
+          classification: "new_strategy",
+          inferredGoal: "Find kinases",
+        }}
+      />,
+    );
+    expect(screen.getByText("Find kinases")).toBeInTheDocument();
+  });
+
+  it("renders a build with no zero-result steps and no counts", () => {
+    render(
+      <BuildSection
+        build={{
+          succeeded: false,
+          nodeResults: [],
+          wdkStrategyId: null,
+          wdkUrl: null,
+        }}
+      />,
+    );
+    expect(screen.getByText("recovery kind")).toBeInTheDocument();
+    expect(screen.getByText("none")).toBeInTheDocument();
+  });
+
+  it("renders a spec with no criteria and no dropped criteria", () => {
+    render(
+      <FrameSection
+        frame={{ ...FRAME_WITH_SPEC, spec: { title: "Empty spec" } }}
+        detail
+      />,
+    );
+    expect(screen.queryByText("GenesByText")).not.toBeInTheDocument();
+  });
+});
 
 describe("VerificationSection detail", () => {
   it("renders prose, findings and caveats in detail mode", () => {

@@ -67,10 +67,12 @@ No DB and no re-run needed to inspect a past run — the files are the interface
 | `--model PHASE=ID` | per-phase model override (repeatable). Phases: `lead frame execution verification`. |
 | `--approve auto\|deny\|prompt` | how to answer mid-turn approval gates (`consult_user`, etc.). `auto` for unattended; `prompt` reads stdin. |
 | `--capture-wdk` | also record raw WDK httpx round-trips to `wdk/`. |
-| `--via-worker` | run the turn through the **real worker** (defers a `chat_turn:run` job) instead of in-process, so **durable tools actually execute** (enrichment, control tests, optimization) and verification can complete. The worker writes `llm/` to the shared run-dir (captures the durable resumes too — the post-result phase agents); the devtool waits for the turn to settle, then replays the persisted `chat_events` into `events.jsonl`/`tools/`/`diagnosis`. Use this whenever the in-process run can't finish because a durable tool raises (the `AppNotOpen`/stub case). Requires the worker container running. |
+| `--via-worker` | run the turn through the **real worker** (defers a `chat_turn:run` job) instead of in-process, so **durable tools actually execute** (enrichment, control tests, optimization) and verification can complete. The worker writes `llm/` to the shared run-dir (captures the durable resumes too — the post-result phase agents); the devtool waits for the turn to settle, then replays the persisted `conversation_events` into `events.jsonl`/`tools/`/`diagnosis`. Use this whenever the in-process run can't finish because a durable tool raises (the `AppNotOpen`/stub case). Requires the worker container running. |
 | `--capture-llm` | (in-process runs) record the exact LLM I/O per call to `llm/NN-<role>-{request,response}.json` — the full system prompt (`instructions`), the complete typed message history **as the model receives it** (incl. `tool-return` / `retry-prompt` parts — i.e. whether the model actually sees an error/directive), the tool definitions offered, model settings, and the response parts + usage + finish reason. The ground-truth plane for "does the model truly see X". Read with `inspect <dir> --llm [role]`. |
 | `--mock` | use the deterministic FunctionModel (free; also sets `API_ENV=test`). Default is the real configured provider. |
 | `--email` / `--password` | WDK login override; default to `WDK_DEV_EMAIL` / `WDK_DEV_PASSWORD` (set in `.env.dev`). |
+| `--assistant <id>` | which assistant to run. It applies when the thread is new; naming another assistant than an existing thread's is refused. Default: the registry's default. |
+| `--quiet` | suppress the live trace; still writes artifacts + prints the summary. |
 
 **Login is mandatory for real runs.** A non-mock `run` logs in to VEuPathDB as the
 dev user (creds from `WDK_DEV_EMAIL`/`WDK_DEV_PASSWORD` in `.env.dev`, or
@@ -78,7 +80,6 @@ dev user (creds from `WDK_DEV_EMAIL`/`WDK_DEV_PASSWORD` in `.env.dev`, or
 creds are missing or rejected it aborts with a clear error. `--mock` skips login
 (it never touches WDK). This requires running compose with `--env-file .env.dev`
 so the vars reach the container.
-| `--quiet` | suppress the live trace; still writes artifacts + prints the summary. |
 
 ## Driving gates like the UI (`run` + `respond`)
 
@@ -212,7 +213,7 @@ The engine (`diagnosis.py`) flags PathFinder's recurring failure modes:
   chunks), not read from live `agent_state`.
 - **Editing the devtool?** Rebuild with the env file or settings validation
   crashes the container:
-  `docker compose --env-file .env.dev up -d --build api`
+  `docker compose --env-file .env.dev up -d --build --force-recreate api worker`
 - Tests: `apps/api/src/pathfinder/tests/{unit,integration}/devtools/`.
 
 ---
@@ -251,7 +252,7 @@ different provider.
 
 | file | responsibility |
 |------|----------------|
-| `chat.py` | CLI: `run`/`inspect`/`diff`, bootstrap, turn loop, approval resume |
+| `chat.py` | CLI: `run`/`respond`/`inspect`/`diff`, bootstrap, turn loop, approval resume |
 | `evals.py` | CLI: `staged`/`show`/`promote`/`corpus`/`extract`/`run` |
 | `eval_runner.py` | one case per fresh thread, every turn in order, read back from the projection and the checkpoint |
 | `capture.py` | `RunCapture` (chunk → artifacts writer) + `capture_tracebacks` |
@@ -259,6 +260,9 @@ different provider.
 | `diagnosis.py` | the fingerprint engine |
 | `inspector.py` | `inspect`/`diff` rendering (pure, reads a run-dir) |
 | `wdk_capture.py` | opt-in WDK httpx capture (`--capture-wdk`) |
+| `gates.py` | the gate the CLI detects after a step, and the parts `respond` sends to answer it |
+| `openapi.py` | CLI: `generate`/`check` for `packages/spec/openapi.{json,yaml}` |
+| `wdk_fixtures.py` | CLI: `list`/`record` for the WDK fixtures the tests replay |
 
 `RunCapture` implements the `ChatWriter` protocol
 (`packages/assistant-core/.../conversation/event_writer.py`) — the same surface as the production

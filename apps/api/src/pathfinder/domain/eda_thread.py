@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-from shared_py.stream_parts.eda import EdaEffectDirection, EdaEntityCount
+
+from pathfinder.domain.eda_parts import EdaEffectDirection, EdaEntityCount
 
 
 class EdaAnalysisFacts(CamelModel):

@@ -1,7 +1,7 @@
 """The EDA doubles the durable-compute tests share.
 
-One recorded wire for the study, the job and the statistics, plus the three
-module-level names the worker impl reads the thread's analysis through.
+One recorded wire for the study, the job, the statistics and the analysis
+document, plus the thread binding the worker impl reads the analysis through.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from uuid import UUID
 import httpx
 import pytest
 
+from pathfinder.integrations.eda import factory
 from pathfinder.integrations.eda.client import EdaClient
 from pathfinder.integrations.eda.models import (
     EdaAnalysisDescriptor,
@@ -28,7 +29,8 @@ from pathfinder.integrations.eda.models import (
 )
 from pathfinder.jobs.impls import eda_compute_impl
 from pathfinder.persistence.models import ConversationAnalysisView
-from pathfinder.services.eda import authoring, catalog, compute
+from pathfinder.services.eda import authoring, binding, catalog, compute
+from pathfinder.tests._support.eda_wire import AnalysisStore
 
 FIXTURES = (
     Path(__file__).resolve().parents[2] / "unit" / "integrations" / "eda" / "fixtures"
@@ -104,11 +106,6 @@ def detail(
     )
 
 
-async def read_analysis(site_id: str, *, analysis_id: str) -> EdaAnalysisDetail:
-    del site_id, analysis_id
-    return detail(SUBSET)
-
-
 def permissions() -> dict[str, Any]:
     """The fixture body, plus the entry that resolves this test's dataset."""
     body = json.loads((FIXTURES / "permissions.json").read_text())
@@ -123,29 +120,39 @@ class Call:
     body: Any
 
 
-def handler(statuses: Sequence[str], calls: list[Call]) -> httpx.MockTransport:
+def _recorded(path: str) -> httpx.Response | None:
+    """The response a read path answers with, or None when it is a job poll."""
+    if path.endswith("/permissions"):
+        return httpx.Response(200, json=permissions())
+    if path == "/eda/studies":
+        return httpx.Response(200, json={"studies": []})
+    if path.endswith("/count"):
+        return httpx.Response(200, json={"count": ENTITY_SIZES[path.split("/")[5]]})
+    if path.startswith("/eda/studies/"):
+        return httpx.Response(
+            200, json=json.loads((FIXTURES / "study_detail_de.json").read_text())
+        )
+    if path.endswith("/statistics"):
+        return httpx.Response(
+            200, json=json.loads((FIXTURES / "volcano_statistics.json").read_text())
+        )
+    return None
+
+
+def handler(
+    statuses: Sequence[str], calls: list[Call], store: AnalysisStore
+) -> httpx.MockTransport:
     remaining = list(statuses)
 
     def handle(request: httpx.Request) -> httpx.Response:
         path = request.url.path
         content = request.content
         calls.append(Call(path=path, body=json.loads(content) if content else None))
-        if path.endswith("/permissions"):
-            return httpx.Response(200, json=permissions())
-        if path == "/eda/studies":
-            return httpx.Response(200, json={"studies": []})
-        if path.endswith("/count"):
-            return httpx.Response(200, json={"count": ENTITY_SIZES[path.split("/")[5]]})
-        if path.startswith("/eda/studies/"):
-            return httpx.Response(
-                200,
-                json=json.loads((FIXTURES / "study_detail_de.json").read_text()),
-            )
-        if path.endswith("/statistics"):
-            return httpx.Response(
-                200,
-                json=json.loads((FIXTURES / "volcano_statistics.json").read_text()),
-            )
+        if "/analyses/" in path:
+            return store.respond(request)
+        recorded = _recorded(path)
+        if recorded is not None:
+            return recorded
         status = remaining.pop(0) if remaining else "complete"
         return httpx.Response(200, json={"jobID": JOB, "status": status})
 
@@ -158,8 +165,13 @@ class Wire:
 
     client: EdaClient
     calls: list[Call]
-    applied: list[EdaComputation]
+    store: AnalysisStore
     chunks: list[dict[str, Any]]
+
+    @property
+    def applied(self) -> list[EdaComputation]:
+        """The computations the analysis document now carries."""
+        return list(self.store.detail.descriptor.computations)
 
 
 def install(
@@ -173,25 +185,18 @@ def install(
     test with a database reads and counts the row the tool bound.
     """
     calls: list[Call] = []
-    applied: list[EdaComputation] = []
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(handler(statuses, calls))
+    store = AnalysisStore(detail=detail(SUBSET))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=handler(statuses, calls, store)
+    )
 
-    async def apply(
-        site_id: str,
-        *,
-        analysis_id: str,
-        dataset_id: str,
-        computation: EdaComputation,
-    ) -> EdaAnalysisDetail:
-        del site_id, analysis_id, dataset_id
-        applied.append(computation)
-        return detail(SUBSET, [computation])
+    async def user_id(_site: str) -> str:
+        return "9001"
 
-    catalog.clear_study_caches()
-    monkeypatch.setattr(compute, "get_eda_client", lambda _s: client)
-    monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
-    monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)
+    for module in (compute, catalog, authoring, factory):
+        monkeypatch.setattr(module, "get_eda_client", lambda _s: client)
+    monkeypatch.setattr(authoring, "resolve_eda_user_id", user_id)
+    monkeypatch.setattr(binding, "resolve_eda_user_id", user_id)
     chunks: list[dict[str, Any]] = []
     revisions = count(1)
 
@@ -208,7 +213,5 @@ def install(
         monkeypatch.setattr(eda_compute_impl, "bound_conversation_analysis", bound)
         monkeypatch.setattr(eda_compute_impl, "bump_analysis_revision", bump)
         monkeypatch.setattr(eda_compute_impl, "append_chunk", record)
-    monkeypatch.setattr(eda_compute_impl, "read_analysis", read_analysis)
-    monkeypatch.setattr(eda_compute_impl, "apply_computation", apply)
     monkeypatch.setattr(eda_compute_impl, "_POLL_SECONDS", 0.0)
-    return Wire(client=client, calls=calls, applied=applied, chunks=chunks)
+    return Wire(client=client, calls=calls, store=store, chunks=chunks)

@@ -10,8 +10,9 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from pathfinder.domain.parameters.value_codec import to_wire
-from pathfinder.domain.strategy.ast import StrategyStepNode, walk_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import walk
 
 __all__ = [
     "ParamChange",
@@ -68,9 +69,9 @@ class StrategyAstDiff(BaseModel):
 def _nodes(ast: StrategyAst | None) -> dict[str, StrategyStepNode]:
     if ast is None:
         return {}
-    walked = list(walk_step_tree(ast.root))
+    walked = list(walk(ast.root))
     for detached in ast.detached_roots:
-        walked.extend(walk_step_tree(detached))
+        walked.extend(walk(detached))
     return {node.id: node for node in walked}
 
 

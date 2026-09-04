@@ -144,11 +144,11 @@ in the whole 70-step run.
 `TestADependentVocabularyIsRedecided`, `TestAStatedQuantityLeftNullIsARetry`,
 `TestTheSheetComesBackFromSetCriterion` and
 `TestASecondSheetDropsTheVocabularies`
-in `tests/unit/ai/agents/test_frame_toolset.py`;
+in `tests/unit/ai/tools/test_frame_spec.py`;
 `ai/tools/standalone/_catalog_models.py:register_search` is the only write to the
 discovery gate from a WDK search definition;
-`services/catalog/param_dag.py` for the walk. The measurement is
-`devtools/resolver_bench.py --propose` against `thesis/eval/gold_strategies`; it
-costs one to two model calls per step and about eight minutes, so it is a
-deliberate measurement and not a gate. This decision is wrong the day the
-propose arm stops beating the floor by a wide margin on that corpus.
+`services/catalog/param_dag.py` for the walk. The figures above were measured
+by hand against `thesis/eval/gold_strategies`, at one to two model calls per
+step; no gate re-runs them. This decision is wrong the day the tests named above
+stop holding, or the day a fresh scored run over that corpus stops beating the
+floor by a wide margin.

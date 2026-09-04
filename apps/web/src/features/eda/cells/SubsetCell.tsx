@@ -12,7 +12,7 @@ import {
   countEdaSubset,
   edaStudyDetailOptions,
   patchConversationEda,
-} from "@/lib/api/eda";
+} from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
 import { selectEffectiveFilters, useEdaStore } from "@/state/eda";
 

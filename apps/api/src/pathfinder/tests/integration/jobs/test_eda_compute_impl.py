@@ -16,7 +16,6 @@ from pathfinder.jobs.impls import eda_compute_impl
 from pathfinder.jobs.impls.eda_compute_impl import run_eda_compute_impl
 from pathfinder.jobs.progress import TaskProgressEmitter
 from pathfinder.platform.context import veupathdb_auth_token_ctx
-from pathfinder.services.eda import catalog
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.tests.integration.jobs import _eda_wire
@@ -72,7 +71,6 @@ def token() -> Iterator[None]:
     handle = veupathdb_auth_token_ctx.set("t")
     yield
     veupathdb_auth_token_ctx.reset(handle)
-    catalog.clear_study_caches()
 
 
 @pytest.fixture

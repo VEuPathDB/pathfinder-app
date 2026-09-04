@@ -8,52 +8,47 @@ from fastmcp.exceptions import ToolError
 from pydantic import Field
 
 from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.mcp.schemas import StepDownloadUrl
+from pathfinder.integrations.veupathdb.wdk_models import WDKAnswer
 from pathfinder.platform.errors import ValidationError
-from pathfinder.services import control_tests, gene_lookup, wdk
+from pathfinder.services import control_tests, gene_lookup
 from pathfinder.services.control_tests import IntersectionConfig
 from pathfinder.services.enrichment.types import (
     BackgroundSource,
     EnrichmentAnalysisType,
 )
 from pathfinder.services.experiment.types.control_result import ControlTestResult
-from pathfinder.services.gene_lookup import GeneResolveResult, GeneSearchResult
+from pathfinder.services.gene_lookup import (
+    MAX_GENE_IDS,
+    GeneResolveResult,
+    GeneSearchResult,
+    normalize_gene_ids,
+)
 from pathfinder.services.gene_sets import enrichment
 from pathfinder.services.gene_sets.enrichment import GeneIdEnrichment
 from pathfinder.services.strategies import build
 from pathfinder.services.strategies.build import StepCountResult
-from pathfinder.services.wdk import WDKAnswer, step_results
-
-_MAX_GENE_IDS = 200
+from pathfinder.services.tool_payloads import StepDownloadUrl, gene_sample_attributes
+from pathfinder.services.wdk.step_preview import step_download_url
+from pathfinder.services.wdk.step_results import step_results_service
 
 # A call past a bound is refused by name, not narrowed in silence.
 type GeneRecordLimit = Annotated[int, Field(ge=1, le=50)]
 type SampleRecordLimit = Annotated[int, Field(ge=1, le=100)]
 
-_GENE_RECORD_TYPES = frozenset({"gene", "transcript"})
-_GENE_SAMPLE_ATTRIBUTES = ("gene_product", "gene_name", "organism")
-
 
 def _bounded_gene_ids(gene_ids: list[str]) -> list[str]:
-    """Trim and de-duplicate a gene list, and refuse one out of bounds."""
-    ids = list(dict.fromkeys(value.strip() for value in gene_ids if value.strip()))
+    """Refuse an empty or oversized gene list by name."""
+    ids = normalize_gene_ids(gene_ids)
     if not ids:
         msg = "gene_ids holds no gene identifier."
         raise ToolError(msg)
-    if len(ids) > _MAX_GENE_IDS:
+    if len(ids) > MAX_GENE_IDS:
         msg = (
             f"gene_ids holds {len(ids)} identifiers; one call takes at most "
-            f"{_MAX_GENE_IDS}."
+            f"{MAX_GENE_IDS}."
         )
         raise ToolError(msg)
     return ids
-
-
-def _sample_attributes(record_type: str) -> list[str] | None:
-    """The gene attributes to request, or None to keep the sample id-only."""
-    if record_type in _GENE_RECORD_TYPES:
-        return list(_GENE_SAMPLE_ATTRIBUTES)
-    return None
 
 
 async def lookup_gene_records(
@@ -136,13 +131,13 @@ async def get_step_sample_records(
         record_type: Record type of the step. Gene steps are 'transcript'.
         limit: Number of records to return.
     """
-    results = step_results.StepResultsService(
-        wdk.get_strategy_api(site_id),
+    results = step_results_service(
+        site_id=site_id,
         step_id=wdk_step_id,
         record_type=record_type,
     )
     return await results.get_records(
-        limit=limit, attributes=_sample_attributes(record_type)
+        limit=limit, attributes=gene_sample_attributes(record_type)
     )
 
 
@@ -160,7 +155,8 @@ async def get_step_download_url(
         output_format: Download format.
         attributes: Attributes to include. Omit for the WDK default set.
     """
-    url = await wdk.get_results_api(site_id).get_download_url(
+    url = await step_download_url(
+        site_id,
         wdk_step_id,
         output_format=output_format,
         attributes=attributes,
@@ -193,8 +189,8 @@ async def run_control_tests_on_search(
         negative_controls: Gene ids the search should not return.
         record_type: Record type. Gene searches are 'transcript'.
     """
-    positives = [value.strip() for value in (positive_controls or []) if value.strip()]
-    negatives = [value.strip() for value in (negative_controls or []) if value.strip()]
+    positives = normalize_gene_ids(positive_controls or [])
+    negatives = normalize_gene_ids(negative_controls or [])
     if not positives and not negatives:
         msg = "positive_controls or negative_controls must name a gene id."
         raise ToolError(msg)

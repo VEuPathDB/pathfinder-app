@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { Edge } from "@xyflow/react";
-import { CombineOperator, type Step } from "@pathfinder/shared";
+import { combineOpEnum, type Step } from "@pathfinder/shared";
 import { EdgeContextMenu } from "./EdgeContextMenu";
 
 const COMBINE_STEP: Step = {
@@ -14,7 +14,7 @@ const COMBINE_STEP: Step = {
   parameters: {},
   primaryInputStepId: "step_a",
   secondaryInputStepId: "step_b",
-  operator: CombineOperator.INTERSECT,
+  operator: combineOpEnum.INTERSECT,
   isFiltered: false,
 };
 
@@ -60,7 +60,7 @@ describe("EdgeContextMenu", () => {
     const grid = screen.getByTestId("edge-context-menu-operator-grid");
     expect(grid).toBeTruthy();
     fireEvent.click(screen.getByLabelText(/Set operator to Union/i));
-    expect(onChange).toHaveBeenCalledWith("step_combine", CombineOperator.UNION);
+    expect(onChange).toHaveBeenCalledWith("step_combine", combineOpEnum.UNION);
   });
 
   it("does not render operator grid for non-combine edges", () => {
@@ -75,7 +75,8 @@ describe("EdgeContextMenu", () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.queryByTestId("edge-context-menu-operator-grid")).toBeNull();
+    expect(screen.queryAllByTestId("edge-context-menu-operator-grid")).toHaveLength(0);
+    expect(screen.getByRole("menuitem", { name: /delete edge/i })).toBeVisible();
   });
 
   it("Delete edge fires onDeleteEdge", () => {

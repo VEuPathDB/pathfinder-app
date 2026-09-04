@@ -8,7 +8,7 @@ import {
   loginVeupathdb,
 } from "@/lib/api/veupathdb-auth";
 import { useSessionStore } from "@/state/useSessionStore";
-import { Input } from "@/lib/components/ui/Input";
+import { Input } from "@/components/ui/input";
 
 interface SignInFormProps {
   /** Called when sign-in succeeds. */

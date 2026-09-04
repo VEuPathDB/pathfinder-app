@@ -19,7 +19,3 @@ export function useChatHelpers(): ChatHelpers {
   }
   return helpers;
 }
-
-export function useChatHelpersOptional(): ChatHelpers | null {
-  return useContext(ChatHelpersContext);
-}

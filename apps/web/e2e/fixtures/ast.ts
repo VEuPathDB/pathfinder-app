@@ -8,7 +8,7 @@ import { expect } from "@playwright/test";
  * it is - its search, its operator, its position - never by a literal id.
  */
 
-export interface ParamValue {
+interface ParamValue {
   value?: unknown;
   values?: unknown[];
 }

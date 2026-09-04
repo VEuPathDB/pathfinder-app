@@ -14,10 +14,6 @@ from pathfinder.services.experiment.types.metrics import (
     ExperimentMetrics,
     GeneInfo,
 )
-from pathfinder.services.experiment.types.step_analysis import (
-    StepAnalysisResult,
-    StepContribution,
-)
 from pathfinder.services.gene_sets.types import GeneSetSource
 
 
@@ -111,13 +107,6 @@ class ConfidenceScoresResult(CamelModel):
     cross_validation: CrossValidationResult
 
 
-class StepContributionsResult(CamelModel):
-    """Step contributions (ablation analysis)."""
-
-    step_contributions: list[StepContribution] = Field(default_factory=list)
-    count: int = 0
-
-
 class ExperimentConfigResult(CamelModel):
     """Experiment configuration and status."""
 
@@ -128,12 +117,6 @@ class ExperimentConfigResult(CamelModel):
     notes: str | None = None
     created_at: str = ""
     completed_at: str | None = None
-
-
-class EnsembleAnalysisResult(CamelModel):
-    """Full ensemble step analysis."""
-
-    step_analysis: StepAnalysisResult
 
 
 class GeneListResult(CamelModel):

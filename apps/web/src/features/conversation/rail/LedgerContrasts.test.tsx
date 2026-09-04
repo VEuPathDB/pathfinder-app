@@ -1,14 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import type { LedgerContrastPayload } from "@pathfinder/shared";
+import type { ContrastSummary } from "@pathfinder/shared/generated/types/ContrastSummary";
 import { LedgerContrasts } from "./LedgerContrasts";
 
 afterEach(cleanup);
 
-const contrast = (
-  over: Partial<LedgerContrastPayload> = {},
-): LedgerContrastPayload => ({
+const contrast = (over: Partial<ContrastSummary> = {}): ContrastSummary => ({
   criterionId: "female_enrichment",
   comparator: "female",
   reference: "male",

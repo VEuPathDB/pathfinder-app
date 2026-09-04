@@ -17,10 +17,10 @@ from pathfinder.domain.strategy.graph_model import (
     StrategyStep,
     flatten_tree,
     runs_a_wdk_search,
-    subtree_ids,
     wdk_search_name,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.tree import subtree_ids
 from pathfinder.platform.errors import AppError, ValidationError
 from pathfinder.services.catalog.param_validation import validate_parameters
 from pathfinder.services.catalog.validation_callbacks import (
@@ -253,7 +253,7 @@ def _has_failed_descendant(
     steps: dict[str, StrategyStep],
 ) -> bool:
     """Report whether any descendant of the node already failed its push."""
-    for input_id in node.inputs():
+    for input_id in node.input_ids():
         if input_id in failed_ids:
             return True
         child = steps.get(input_id)

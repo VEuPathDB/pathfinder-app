@@ -1,0 +1,279 @@
+[
+  {
+    "control_set": {
+      "name": "Kinase vs Protease Groups",
+      "negative_ids": [
+        "OG7_0001372",
+        "OG7_0001373",
+        "OG7_0001375",
+        "OG7_0001376",
+        "OG7_0002302",
+        "OG7_0003250"
+      ],
+      "positive_ids": [
+        "OG7_0000000",
+        "OG7_0000001",
+        "OG7_0000002",
+        "OG7_0000003",
+        "OG7_0000004",
+        "OG7_0000005"
+      ],
+      "provenance_notes": "Positives: protein kinase domain (PF00069) ortholog groups. Negatives: peptidase S8 domain (PF00082) groups \u2014 structurally distinct enzyme families.",
+      "tags": [
+        "kinase",
+        "orthomcl",
+        "seed"
+      ]
+    },
+    "description": "Ortholog groups containing the protein kinase domain (PF00069) INTERSECT with groups conserved across eukaryotes, bacteria, and archaea. Identifies the most ancient, universally retained kinases.",
+    "name": "Conserved Kinase Orthologs",
+    "record_type": "group",
+    "site_id": "orthomcl",
+    "step_tree": {
+      "displayName": "Universal Kinase Groups",
+      "id": "combine_1",
+      "operator": "INTERSECT",
+      "primaryInput": {
+        "displayName": "Protein Kinase Domain (PF00069)",
+        "id": "step_kinase_pfam",
+        "parameters": {
+          "min_fraction_proteins": "0.3",
+          "min_num_proteins": "5",
+          "pfam_id_type_ahead": "PF00069"
+        },
+        "searchName": "GroupsByPFamIdOrKeyword"
+      },
+      "secondaryInput": {
+        "displayName": "Universally Conserved Groups",
+        "id": "step_universal",
+        "parameters": {
+          "phyletic_expression": "EUKA>=10T AND BACT>=5T AND ARCH>=3T"
+        },
+        "searchName": "GroupsByPhyleticPattern"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Apicomplexa-Specific vs Universal",
+      "negative_ids": [
+        "OG7_0000012",
+        "OG7_0000032",
+        "OG7_0000034",
+        "OG7_0000035",
+        "OG7_0000054",
+        "OG7_0000069"
+      ],
+      "positive_ids": [
+        "OG7_0000022",
+        "OG7_0000049",
+        "OG7_0000087",
+        "OG7_0000108",
+        "OG7_0000115",
+        "OG7_0000380"
+      ],
+      "provenance_notes": "Positives: Apicomplexa-specific groups absent in mammals. Negatives: universally conserved groups present in eukaryotes, bacteria, and archaea.",
+      "tags": [
+        "apicomplexa",
+        "drug-target",
+        "orthomcl",
+        "seed"
+      ]
+    },
+    "description": "Ortholog groups present in at least 3 Apicomplexa species but completely absent from human (hsap) and mouse (mmus). These lineage-specific groups represent potential drug targets for malaria and toxoplasmosis since they lack mammalian orthologs.",
+    "name": "Apicomplexan-Specific Groups",
+    "record_type": "group",
+    "site_id": "orthomcl",
+    "step_tree": {
+      "displayName": "Apicomplexa-Specific (No Human/Mouse)",
+      "id": "step_apicomplexa_only",
+      "parameters": {
+        "phyletic_expression": "APIC>=3T AND hsap=0 AND mmus=0"
+      },
+      "searchName": "GroupsByPhyleticPattern"
+    }
+  },
+  {
+    "control_set": {
+      "name": "Core Metabolism vs Apicomplexa-Specific",
+      "negative_ids": [
+        "OG7_0000022",
+        "OG7_0000049",
+        "OG7_0000087",
+        "OG7_0000108",
+        "OG7_0000115",
+        "OG7_0000380"
+      ],
+      "positive_ids": [
+        "OG7_0000048",
+        "OG7_0000079",
+        "OG7_0000537",
+        "OG7_0000759",
+        "OG7_0001008",
+        "OG7_0001201"
+      ],
+      "provenance_notes": "Positives: highly conserved metabolic groups present in >100 taxa. Negatives: Apicomplexa-specific groups absent in mammals \u2014 lineage-restricted, not universally conserved.",
+      "tags": [
+        "metabolism",
+        "glycolysis",
+        "orthomcl",
+        "seed"
+      ]
+    },
+    "description": "3-node strategy: UNION of (groups conserved across >100 taxa INTERSECT glycolysis enzyme groups EC 2.7.1.11) with universally conserved enoyl-CoA hydratase/lipid metabolism groups. Captures the most fundamental metabolic enzyme orthologs shared across all domains of life.",
+    "name": "Core Metabolism Groups",
+    "record_type": "group",
+    "site_id": "orthomcl",
+    "step_tree": {
+      "displayName": "Core Metabolism",
+      "id": "root_union",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Conserved Glycolysis Enzymes",
+        "id": "intersect_glycolysis",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Groups in >100 Taxa",
+          "id": "leaf_conserved_taxa",
+          "parameters": {
+            "all_taxon": "{\"min\": \"100\", \"max\": \"200\"}",
+            "core_taxon": "{\"min\": \"50\", \"max\": \"200\"}",
+            "peripheral_taxon": "{\"min\": \"0\", \"max\": \"100000\"}"
+          },
+          "searchName": "GroupsByGenomeCount"
+        },
+        "secondaryInput": {
+          "displayName": "Phosphofructokinase (EC 2.7.1.11)",
+          "id": "leaf_glycolysis_ec",
+          "parameters": {
+            "ec_number_type_ahead": "2.7.1.11",
+            "ec_wildcard": "N/A"
+          },
+          "searchName": "GroupsByEcNumber"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Universal Conservation Pattern",
+        "id": "leaf_universal_phyletic",
+        "parameters": {
+          "phyletic_expression": "EUKA>=10T AND BACT>=5T AND ARCH>=3T"
+        },
+        "searchName": "GroupsByPhyleticPattern"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Protease vs Universal Groups",
+      "negative_ids": [
+        "OG7_0000012",
+        "OG7_0000032",
+        "OG7_0000034",
+        "OG7_0000035",
+        "OG7_0000054",
+        "OG7_0000069"
+      ],
+      "positive_ids": [
+        "OG7_0001372",
+        "OG7_0001373",
+        "OG7_0001375",
+        "OG7_0001376",
+        "OG7_0002302",
+        "OG7_0003250"
+      ],
+      "provenance_notes": "Positives: peptidase S8 domain (PF00082) ortholog groups. Negatives: universally conserved groups \u2014 housekeeping enzymes present across all domains of life.",
+      "tags": [
+        "protease",
+        "drug-target",
+        "orthomcl",
+        "seed"
+      ]
+    },
+    "description": "Protease ortholog groups (Subtilase/Peptidase S8 domain PF00082) MINUS universally conserved groups. The remaining groups are enriched in pathogens and parasites, representing potential drug targets that can be inhibited without affecting host enzymes.",
+    "name": "Pathogen-Enriched Proteases",
+    "record_type": "group",
+    "site_id": "orthomcl",
+    "step_tree": {
+      "displayName": "Pathogen-Enriched Proteases",
+      "id": "combine_minus",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Subtilase/S8 Proteases (PF00082)",
+        "id": "step_protease_pfam",
+        "parameters": {
+          "min_fraction_proteins": "0.2",
+          "min_num_proteins": "3",
+          "pfam_id_type_ahead": "PF00082"
+        },
+        "searchName": "GroupsByPFamIdOrKeyword"
+      },
+      "secondaryInput": {
+        "displayName": "Universal Groups (All Domains of Life)",
+        "id": "step_universal_groups",
+        "parameters": {
+          "phyletic_expression": "EUKA>=10T AND BACT>=5T AND ARCH>=3T"
+        },
+        "searchName": "GroupsByPhyleticPattern"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "HSP + GTPase vs Transporter Groups",
+      "negative_ids": [
+        "OG7_0000138",
+        "OG7_0000139",
+        "OG7_0000140",
+        "OG7_0000141",
+        "OG7_0000142",
+        "OG7_0000145"
+      ],
+      "positive_ids": [
+        "OG7_0000776",
+        "OG7_0000777",
+        "OG7_0000778",
+        "OG7_0000779",
+        "OG7_0000131",
+        "OG7_0001070",
+        "OG7_0001254",
+        "OG7_0003858"
+      ],
+      "provenance_notes": "Positives: HSP70 chaperones (PF00012) and Ras/GTPase (PF00071) groups \u2014 stress response and signaling. Negatives: ABC transporter (PF00005) groups \u2014 membrane transport, functionally distinct from stress/signaling.",
+      "tags": [
+        "stress",
+        "signaling",
+        "orthomcl",
+        "seed"
+      ]
+    },
+    "description": "UNION of heat shock protein 70 groups (PF00012) and Ras/GTPase signaling groups (PF00071). Captures the interplay between protein folding stress responses and signal transduction across eukaryotes \u2014 key for understanding pathogen adaptation.",
+    "name": "Stress Response and Signaling Orthologs",
+    "record_type": "group",
+    "site_id": "orthomcl",
+    "step_tree": {
+      "displayName": "HSP70 + GTPase Signaling",
+      "id": "combine_union",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "HSP70 Chaperones (PF00012)",
+        "id": "step_hsp70",
+        "parameters": {
+          "min_fraction_proteins": "0.2",
+          "min_num_proteins": "3",
+          "pfam_id_type_ahead": "PF00012"
+        },
+        "searchName": "GroupsByPFamIdOrKeyword"
+      },
+      "secondaryInput": {
+        "displayName": "Ras/GTPase Family (PF00071)",
+        "id": "step_gtpase",
+        "parameters": {
+          "min_fraction_proteins": "0.3",
+          "min_num_proteins": "5",
+          "pfam_id_type_ahead": "PF00071"
+        },
+        "searchName": "GroupsByPFamIdOrKeyword"
+      }
+    }
+  }
+]

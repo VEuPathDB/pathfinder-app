@@ -1,15 +1,15 @@
-export interface CapturedExample {
+interface CapturedExample {
   kind: string;
   json: string;
 }
 
-export interface CapturedRequest {
+interface CapturedRequest {
   coreFields: string[];
   extensionFields: string[];
   examples: CapturedExample[];
 }
 
-export interface CapturedProtocol {
+interface CapturedProtocol {
   version: string;
   chunkKinds: string[];
   dataPartKinds: string[];
@@ -20,7 +20,7 @@ export interface CapturedProtocol {
   examples: CapturedExample[];
 }
 
-export class ProtocolExtractionError extends Error {}
+class ProtocolExtractionError extends Error {}
 
 function section(markdown: string, name: string): string {
   const begin = `<!-- ${name}:begin -->`;

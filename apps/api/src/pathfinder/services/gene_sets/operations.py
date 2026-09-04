@@ -9,9 +9,6 @@ from pathfinder.domain.parameters.values import ParamValue
 from pathfinder.integrations.veupathdb.factory import (
     get_strategy_api,
 )
-from pathfinder.integrations.veupathdb.wdk_models import (
-    WDKStrategyDetails,
-)
 from pathfinder.platform.errors import (
     InternalError,
     NotFoundError,
@@ -321,27 +318,3 @@ class GeneSetService:
         return StepResultsService(
             get_strategy_api(gs.site_id), step_id=step_id, record_type=record_type
         )
-
-    async def get_strategy_tree(
-        self, user_id: UUID, gene_set_id: str
-    ) -> tuple[GeneSet, WDKStrategyDetails]:
-        """Get a gene set and its WDK strategy tree.
-
-        :raises ValidationError: If the gene set has no WDK strategy.
-        """
-        gs = await self.get_for_user(user_id, gene_set_id)
-        if not gs.wdk_strategy_id:
-            msg = "No WDK strategy: this gene set has no associated WDK strategy."
-            raise ValidationError(detail=msg)
-        if not gs.wdk_step_id:
-            msg = (
-                "No WDK strategy: this gene set has no associated WDK strategy "
-                "for result browsing."
-            )
-            raise ValidationError(detail=msg)
-        api = get_strategy_api(gs.site_id)
-        svc = StepResultsService(
-            api, step_id=gs.wdk_step_id, record_type=gs.record_type or "transcript"
-        )
-        tree = await svc.get_strategy(gs.wdk_strategy_id)
-        return gs, tree

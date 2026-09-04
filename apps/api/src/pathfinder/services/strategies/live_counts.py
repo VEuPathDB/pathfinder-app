@@ -7,12 +7,10 @@ counts has to be checked against the server to mean anything.
 
 from __future__ import annotations
 
-from typing import Protocol
-
 from assistant_core.platform.logging import get_logger
 
 from pathfinder.domain.strategy.types import SyncStateProtocol
-from pathfinder.integrations.veupathdb.wdk_models import WDKStrategyDetails
+from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.platform.errors import AppError
 
 logger = get_logger(__name__)
@@ -20,15 +18,9 @@ logger = get_logger(__name__)
 __all__ = ["read_wdk_step_counts"]
 
 
-class StrategyReader(Protocol):
-    async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
-    ) -> WDKStrategyDetails: ...
-
-
 async def read_wdk_step_counts(
     sync_state: SyncStateProtocol,
-    api: StrategyReader,
+    site_id: str,
 ) -> dict[str, int | None]:
     """Return per-local-step counts from WDK, keyed as the graph keys them.
 
@@ -40,7 +32,7 @@ async def read_wdk_step_counts(
         return {}
 
     try:
-        details = await api.get_strategy(strategy_id)
+        details = await get_strategy_api(site_id).get_strategy(strategy_id)
     except AppError, OSError:
         logger.warning("Live step count read failed", strategy_id=strategy_id)
         return {}

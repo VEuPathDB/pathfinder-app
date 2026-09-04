@@ -50,7 +50,7 @@ describe("workbench experiment streams", () => {
   it("sends the CSRF header when running an evaluation", async () => {
     const fetchSpy = stubFetch();
     await drain(createExperimentStream(CONFIG));
-    expect(fetchSpy.mock.calls[0]?.[0]).toBe("/api/v1/experiments/");
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe("/api/v1/experiments");
     expect(sentHeaders(fetchSpy)["X-Requested-With"]).toBe("XMLHttpRequest");
   });
 

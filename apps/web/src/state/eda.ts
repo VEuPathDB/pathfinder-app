@@ -12,13 +12,13 @@ import type { VolcanoThresholds } from "@/lib/components/charts/types";
 
 import { createStore } from "./middleware";
 
-export interface EdaBinding {
+interface EdaBinding {
   siteId: string;
   datasetId: string;
   analysisId: string;
 }
 
-export interface EdaAnalysisSnapshot {
+interface EdaAnalysisSnapshot {
   analysisId: string;
   revision: number | null;
   siteId: string;
@@ -213,7 +213,7 @@ export function selectEffectiveFilters(state: EdaState): EdaFilter[] {
   return state.localFilters ?? state.analysis?.filters ?? [];
 }
 
-export type EdaHydratablePart =
+type EdaHydratablePart =
   | { kind: "analysis-state"; data: EdaAnalysisState }
   | { kind: "subset-preview"; data: EdaSubsetPreview }
   | { kind: "viz"; data: EdaViz };

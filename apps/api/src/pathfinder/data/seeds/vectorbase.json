@@ -1,0 +1,991 @@
+[
+  {
+    "control_set": {
+      "name": "A. gambiae Insecticide Resistance (curated)",
+      "negative_ids": [
+        "AGAP001424",
+        "AGAP001502",
+        "AGAP002076",
+        "AGAP004002",
+        "AGAP004192",
+        "AGAP004581",
+        "AGAP004582",
+        "AGAP004583",
+        "AGAP006958",
+        "AGAP009882",
+        "AGAP010331",
+        "AGAP010514",
+        "AGAP011521",
+        "AGAP012891",
+        "AGAP013228",
+        "AGAP000427",
+        "AGAP004203",
+        "AGAP008369",
+        "AGAP006795",
+        "AGAP006796"
+      ],
+      "positive_ids": [
+        "AGAP000088",
+        "AGAP000109",
+        "AGAP000192",
+        "AGAP000193",
+        "AGAP000194",
+        "AGAP000284",
+        "AGAP000500",
+        "AGAP000818",
+        "AGAP000851",
+        "AGAP000877",
+        "AGAP001039",
+        "AGAP001042",
+        "AGAP001076",
+        "AGAP001443",
+        "AGAP001744",
+        "AGAP001861",
+        "AGAP001864",
+        "AGAP002113",
+        "AGAP002138",
+        "AGAP002195",
+        "AGAP000081",
+        "AGAP000163",
+        "AGAP000165",
+        "AGAP000170",
+        "AGAP000531",
+        "AGAP000534",
+        "AGAP000761",
+        "AGAP000794",
+        "AGAP000888",
+        "AGAP000947",
+        "AGAP001310",
+        "AGAP001653",
+        "AGAP001711",
+        "AGAP001804",
+        "AGAP002627",
+        "AGAP001723",
+        "AGAP002863",
+        "AGAP005370",
+        "AGAP005371",
+        "AGAP005372",
+        "AGAP005373",
+        "AGAP005757",
+        "AGAP005833",
+        "AGAP000022",
+        "AGAP000128",
+        "AGAP000181",
+        "AGAP000387",
+        "AGAP000394",
+        "AGAP000440",
+        "AGAP000448",
+        "AGAP000506",
+        "AGAP000540",
+        "AGAP000637",
+        "AGAP001027",
+        "AGAP001185"
+      ],
+      "provenance_notes": "Positives: CYP450 metabolizers (CYP6P3, CYP6M2), GSTs (GSTe2), esterases, and ABC transporters \u2014 validated resistance genes. Negatives: heat shock proteins, vitellogenin, and peritrophin \u2014 housekeeping and reproductive genes not involved in resistance.",
+      "tags": [
+        "insecticide-resistance",
+        "anopheles",
+        "seed"
+      ]
+    },
+    "description": "Comprehensive insecticide resistance gene network in A. gambiae PEST. Combines Phase I (CYP450, validated by deltamethrin RNA-Seq upregulation), Phase II (GST + esterases) metabolic detoxification, and Phase III (ABC transporter efflux with 7+ TM domains). 12-node strategy tree covering CYP6P3, CYP6M2, GSTe2, and MDR-like transporters.",
+    "name": "AgPEST Insecticide Resistance Network",
+    "record_type": "transcript",
+    "site_id": "vectorbase",
+    "step_tree": {
+      "displayName": "Insecticide Resistance Network",
+      "id": "root_resistance",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Metabolic Detoxification",
+        "id": "metabolic_detox",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Phase I: CYP450 + Deltamethrin Upregulated",
+          "id": "phase_I_validated",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Cytochrome P450s",
+            "id": "cyp450_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "cytochrome P450",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Deltamethrin Resistant Upregulated (2x)",
+            "id": "rnaseq_delta_up",
+            "parameters": {
+              "dataset_url": "https://VectorBase.org/a/app/record/dataset/DS_455af12573",
+              "fold_change": "2",
+              "hard_floor": "566.783419111714624439522346051893696185",
+              "min_max_avg_comp": "average1",
+              "min_max_avg_ref": "average1",
+              "profileset_generic": "SRP014191 Comparative transcriptome analyses of deltmethrin resistant and suscpetible Anopheles gambiae mosquitoes  -   unstranded",
+              "protein_coding_only": "yes",
+              "regulated_dir": "up-regulated",
+              "samples_fc_comp_generic": "Resistant",
+              "samples_fc_ref_generic": "Susceptible"
+            },
+            "searchName": "GenesByRNASeqagamPEST_SRP014191_ebi_rnaSeq_RSRC"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Phase II: Conjugation Enzymes",
+          "id": "phase_II",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Glutathione S-Transferases",
+            "id": "gst_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "glutathione S-transferase",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Esterases",
+            "id": "esterase_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "esterase",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Phase III: ABC Efflux Transporters (7+ TM)",
+        "id": "phase_III",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "ABC Transporters",
+          "id": "abc_text",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "ABC transporter",
+            "text_fields": "product",
+            "text_search_organism": "Anopheles gambiae PEST"
+          },
+          "searchName": "GenesByText"
+        },
+        "secondaryInput": {
+          "displayName": "7+ Transmembrane Domains",
+          "id": "tm7plus",
+          "parameters": {
+            "max_tm": "20",
+            "min_tm": "7",
+            "organism": "[\"Anopheles gambiae PEST\"]"
+          },
+          "searchName": "GenesByTransmembraneDomains"
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "A. gambiae Anti-Plasmodium Immunity (curated)",
+      "negative_ids": [
+        "AGAP000088",
+        "AGAP000109",
+        "AGAP000192",
+        "AGAP000193",
+        "AGAP000194",
+        "AGAP000284",
+        "AGAP000500",
+        "AGAP000818",
+        "AGAP000851",
+        "AGAP000877",
+        "AGAP000016",
+        "AGAP000038",
+        "AGAP000115",
+        "AGAP000138",
+        "AGAP000140",
+        "AGAP004900",
+        "AGAP005587",
+        "AGAP005591",
+        "AGAP005593",
+        "AGAP006485"
+      ],
+      "positive_ids": [
+        "AGAP008364",
+        "AGAP008366",
+        "AGAP008368",
+        "AGAP008407",
+        "AGAP008654",
+        "AGAP010812",
+        "AGAP010813",
+        "AGAP010814",
+        "AGAP010815",
+        "AGAP010816",
+        "AGAP000136",
+        "AGAP000213",
+        "AGAP000319",
+        "AGAP000471",
+        "AGAP000563",
+        "AGAP000678",
+        "AGAP001136",
+        "AGAP001159",
+        "AGAP001215",
+        "AGAP001278",
+        "AGAP000692",
+        "AGAP000693",
+        "AGAP000694",
+        "AGAP000757",
+        "AGAP000833",
+        "AGAP001174",
+        "AGAP001878",
+        "AGAP002284",
+        "AGAP003141",
+        "AGAP003207",
+        "AGAP003283",
+        "AGAP003861",
+        "AGAP003917",
+        "AGAP003927",
+        "AGAP004632",
+        "AGAP000240",
+        "AGAP000290",
+        "AGAP000315",
+        "AGAP000477",
+        "AGAP000571",
+        "AGAP000572",
+        "AGAP000573",
+        "AGAP001190",
+        "AGAP001199",
+        "AGAP001375",
+        "AGAP000388",
+        "AGAP000999",
+        "AGAP001002",
+        "AGAP001004",
+        "AGAP002966",
+        "AGAP003062",
+        "AGAP003615",
+        "AGAP005252",
+        "AGAP005295",
+        "AGAP006974"
+      ],
+      "provenance_notes": "Positives: TEPs, LRIM/APL family, antimicrobial peptides, CLIP serine proteases, and Toll pathway \u2014 core anti-Plasmodium immune defense. Negatives: CYP450 detox enzymes, odorant receptors, and trypsins \u2014 non-immune functions.",
+      "tags": [
+        "immunity",
+        "anti-plasmodium",
+        "anopheles",
+        "seed"
+      ]
+    },
+    "description": "Anti-Plasmodium immune defense in A. gambiae PEST. Models the complement-like system (TEP1/LRIM1/APL1C interaction), secreted CLIP serine protease cascade for melanization, antimicrobial peptides (cecropins, defensins, gambicin) plus Toll pathway signaling, and infection-responsive immune genes. 11-node tree covering humoral and cellular immunity from pathogen recognition to effector response.",
+    "name": "AgPEST Anti-Plasmodium Immune Response",
+    "record_type": "transcript",
+    "site_id": "vectorbase",
+    "step_tree": {
+      "displayName": "Anti-Plasmodium Immune Response",
+      "id": "root_immune",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Complement-Like System",
+        "id": "complement_system",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "TEP-LRIM Interacting Partners",
+          "id": "tep_lrim_overlap",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Thioester Proteins (TEPs)",
+            "id": "tep_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "thioester",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Leucine-Rich Repeat Immune (LRIM/APL)",
+            "id": "lrim_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "leucine-rich repeat immune",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Secreted CLIP Serine Proteases",
+          "id": "clip_secreted",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Serine Proteases",
+            "id": "serine_protease_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "serine protease",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Signal Peptide (Secreted)",
+            "id": "signal_peptide_immune",
+            "parameters": {
+              "organism": "[\"Anopheles gambiae PEST\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Effector Response",
+        "id": "effector_response",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "AMPs + Toll Signaling",
+          "id": "amp_signaling",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Antimicrobial Peptides",
+            "id": "amp_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "antimicrobial peptide OR cecropin OR defensin OR gambicin",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Toll Pathway Components",
+            "id": "toll_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "toll",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Immune-Annotated Genes",
+          "id": "immune_broad",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "immune",
+            "text_fields": "product",
+            "text_search_organism": "Anopheles gambiae PEST"
+          },
+          "searchName": "GenesByText"
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "A. gambiae Olfactory System (curated)",
+      "negative_ids": [
+        "AGAP000088",
+        "AGAP000109",
+        "AGAP000192",
+        "AGAP000193",
+        "AGAP000194",
+        "AGAP000284",
+        "AGAP000500",
+        "AGAP000818",
+        "AGAP000851",
+        "AGAP000877",
+        "AGAP004900",
+        "AGAP005587",
+        "AGAP005591",
+        "AGAP005593",
+        "AGAP006485",
+        "AGAP006487",
+        "AGAP006677",
+        "AGAP007165",
+        "AGAP008290",
+        "AGAP008291"
+      ],
+      "positive_ids": [
+        "AGAP000016",
+        "AGAP000038",
+        "AGAP000115",
+        "AGAP000138",
+        "AGAP000140",
+        "AGAP000144",
+        "AGAP000168",
+        "AGAP000209",
+        "AGAP000226",
+        "AGAP000230",
+        "AGAP000278",
+        "AGAP000279",
+        "AGAP000293",
+        "AGAP000329",
+        "AGAP000349",
+        "AGAP000351",
+        "AGAP000369",
+        "AGAP000388",
+        "AGAP000402",
+        "AGAP000426",
+        "AGAP000427",
+        "AGAP000445",
+        "AGAP000489",
+        "AGAP000606",
+        "AGAP000640",
+        "AGAP000005",
+        "AGAP000009",
+        "AGAP000014",
+        "AGAP000015",
+        "AGAP000022",
+        "AGAP000028",
+        "AGAP000029",
+        "AGAP000032",
+        "AGAP000033",
+        "AGAP000040",
+        "AGAP000044",
+        "AGAP000045",
+        "AGAP000047",
+        "AGAP000049",
+        "AGAP000056",
+        "AGAP000057",
+        "AGAP000063",
+        "AGAP000070",
+        "AGAP000076",
+        "AGAP000085",
+        "AGAP000016",
+        "AGAP000038",
+        "AGAP000115",
+        "AGAP000138",
+        "AGAP000140",
+        "AGAP000144",
+        "AGAP000168",
+        "AGAP000209",
+        "AGAP000226",
+        "AGAP000230"
+      ],
+      "provenance_notes": "Positives: odorant receptors, odorant-binding proteins, and gustatory receptors \u2014 complete olfactory host-seeking machinery. Negatives: CYP450 detox enzymes and trypsins \u2014 non-olfactory.",
+      "tags": [
+        "olfactory",
+        "host-seeking",
+        "anopheles",
+        "seed"
+      ]
+    },
+    "description": "Olfactory system components driving host-seeking behavior in female A. gambiae PEST. Combines odorant receptors (validated as 7+ TM domain GPCRs), gustatory receptors (CO2 detection), and secreted odorant-binding proteins (OBPs with signal peptides). 8-node strategy covering the complete molecular machinery from odor detection to ligand transport.",
+    "name": "AgPEST Olfactory System Host-Seeking",
+    "record_type": "transcript",
+    "site_id": "vectorbase",
+    "step_tree": {
+      "displayName": "Olfactory Host-Seeking System",
+      "id": "root_olfactory",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Chemoreceptor Complex",
+        "id": "receptor_complex",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Odorant Receptors (7+ TM)",
+          "id": "or_membrane",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Odorant Receptors",
+            "id": "or_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "odorant receptor",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "7+ Transmembrane Domains",
+            "id": "tm7_olfactory",
+            "parameters": {
+              "max_tm": "20",
+              "min_tm": "7",
+              "organism": "[\"Anopheles gambiae PEST\"]"
+            },
+            "searchName": "GenesByTransmembraneDomains"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Gustatory Receptors (CO2 etc)",
+          "id": "gr_text",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "gustatory receptor",
+            "text_fields": "product",
+            "text_search_organism": "Anopheles gambiae PEST"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Secreted Odorant-Binding Proteins",
+        "id": "obp_secreted",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Odorant-Binding Proteins",
+          "id": "obp_text",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "odorant binding protein",
+            "text_fields": "product",
+            "text_search_organism": "Anopheles gambiae PEST"
+          },
+          "searchName": "GenesByText"
+        },
+        "secondaryInput": {
+          "displayName": "Signal Peptide (Secreted)",
+          "id": "signal_obp",
+          "parameters": {
+            "organism": "[\"Anopheles gambiae PEST\"]"
+          },
+          "searchName": "GenesWithSignalPeptide"
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "A. gambiae Salivary Secretome (curated)",
+      "negative_ids": [
+        "AGAP000022",
+        "AGAP000128",
+        "AGAP000181",
+        "AGAP000387",
+        "AGAP000394",
+        "AGAP000440",
+        "AGAP000448",
+        "AGAP000506",
+        "AGAP000540",
+        "AGAP000637",
+        "AGAP001205",
+        "AGAP001597",
+        "AGAP001748",
+        "AGAP002052",
+        "AGAP006435",
+        "AGAP007089",
+        "AGAP007613",
+        "AGAP008123",
+        "AGAP009480",
+        "AGAP010302"
+      ],
+      "positive_ids": [
+        "AGAP008278",
+        "AGAP008279",
+        "AGAP008280",
+        "AGAP008281",
+        "AGAP008282",
+        "AGAP008283",
+        "AGAP008284",
+        "AGAP028120",
+        "AGAP000150",
+        "AGAP000548",
+        "AGAP000607",
+        "AGAP000609",
+        "AGAP000610",
+        "AGAP000611",
+        "AGAP000612",
+        "AGAP001174",
+        "AGAP001374",
+        "AGAP001825",
+        "AGAP002910",
+        "AGAP002912",
+        "AGAP003841",
+        "AGAP004334",
+        "AGAP006504",
+        "AGAP006506",
+        "AGAP006507",
+        "AGAP006899",
+        "AGAP007041",
+        "AGAP007907",
+        "AGAP000240",
+        "AGAP000290",
+        "AGAP000315",
+        "AGAP000477",
+        "AGAP000571",
+        "AGAP000572",
+        "AGAP000573",
+        "AGAP001190",
+        "AGAP001199",
+        "AGAP001375"
+      ],
+      "provenance_notes": "Positives: D7 anti-hemostatic proteins, salivary gland proteins, and secreted serine proteases \u2014 blood-feeding secretome. Negatives: ABC transporters and chitin genes \u2014 not secretome.",
+      "tags": [
+        "salivary",
+        "blood-feeding",
+        "anopheles",
+        "seed"
+      ]
+    },
+    "description": "Salivary gland secretome involved in anti-hemostasis during blood feeding in A. gambiae PEST. D7 family proteins (AngaD7L1 binds TXA2 analog, AngaD7L3 binds serotonin), salivary gland-specific proteins, secreted serine proteases, and oxidoreductases. All filtered for signal peptide presence (secreted) and molecular weight <60kDa. 10-node strategy modeling the complete anti-coagulation secretome relevant to Plasmodium transmission.",
+    "name": "AgPEST Salivary Anticoagulant Secretome",
+    "record_type": "transcript",
+    "site_id": "vectorbase",
+    "step_tree": {
+      "displayName": "Salivary Anticoagulant Secretome",
+      "id": "root_salivary",
+      "operator": "INTERSECT",
+      "primaryInput": {
+        "displayName": "Salivary Components",
+        "id": "salivary_components",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "D7 + Salivary Gland Proteins",
+          "id": "d7_salivary",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "D7 Family Proteins",
+            "id": "d7_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "D7",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Salivary Gland Proteins",
+            "id": "salivary_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "salivary gland",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Enzyme Effectors",
+          "id": "enzyme_effectors",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Serine Proteases",
+            "id": "sp_salivary",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "serine protease",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Oxidoreductases",
+            "id": "oxidored_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "oxidoreductase",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Secreted Proteins (<60kDa)",
+        "id": "secreted_small",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Signal Peptide (Secreted)",
+          "id": "signal_salivary",
+          "parameters": {
+            "organism": "[\"Anopheles gambiae PEST\"]"
+          },
+          "searchName": "GenesWithSignalPeptide"
+        },
+        "secondaryInput": {
+          "displayName": "Molecular Weight < 60kDa",
+          "id": "small_mw",
+          "parameters": {
+            "max_molecular_weight": "60000",
+            "min_molecular_weight": "0",
+            "organism": "[\"Anopheles gambiae PEST\"]"
+          },
+          "searchName": "GenesByMolecularWeight"
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "A. gambiae Midgut Blood-Meal (curated)",
+      "negative_ids": [
+        "AGAP000016",
+        "AGAP000038",
+        "AGAP000115",
+        "AGAP000138",
+        "AGAP000140",
+        "AGAP000144",
+        "AGAP000168",
+        "AGAP000209",
+        "AGAP000226",
+        "AGAP000230",
+        "AGAP008278",
+        "AGAP008279",
+        "AGAP008280",
+        "AGAP008281",
+        "AGAP008282",
+        "AGAP008283",
+        "AGAP008284",
+        "AGAP028120",
+        "AGAP000427",
+        "AGAP004203",
+        "AGAP008369"
+      ],
+      "positive_ids": [
+        "AGAP004900",
+        "AGAP005587",
+        "AGAP005591",
+        "AGAP005593",
+        "AGAP006485",
+        "AGAP006487",
+        "AGAP006677",
+        "AGAP007165",
+        "AGAP008290",
+        "AGAP008291",
+        "AGAP008292",
+        "AGAP008293",
+        "AGAP008294",
+        "AGAP008295",
+        "AGAP008296",
+        "AGAP010240",
+        "AGAP012472",
+        "AGAP001205",
+        "AGAP001597",
+        "AGAP001748",
+        "AGAP002052",
+        "AGAP006435",
+        "AGAP007089",
+        "AGAP007613",
+        "AGAP008123",
+        "AGAP009480",
+        "AGAP010302",
+        "AGAP006795",
+        "AGAP006796",
+        "AGAP002542",
+        "AGAP004959",
+        "AGAP005496",
+        "AGAP005693",
+        "AGAP005744",
+        "AGAP006327",
+        "AGAP006348",
+        "AGAP007034",
+        "AGAP007037",
+        "AGAP007039"
+      ],
+      "provenance_notes": "Positives: trypsins, chitin/peritrophin barrier genes, and infection-responsive immune genes \u2014 midgut biology. Negatives: odorant receptors, D7 salivary proteins, and vitellogenin \u2014 non-midgut functions.",
+      "tags": [
+        "midgut",
+        "blood-meal",
+        "anopheles",
+        "seed"
+      ]
+    },
+    "description": "Midgut biology during blood-meal digestion and Plasmodium interaction in A. gambiae PEST. Digestive enzymes (trypsins with complex gene structure), peritrophic matrix components (chitin/peritrophin forming the midgut barrier), and immune genes upregulated during P. falciparum infection (validated by RNA-Seq). 10-node strategy covering the complete midgut response from blood digestion to parasite defense.",
+    "name": "AgPEST Midgut Blood-Meal Interaction",
+    "record_type": "transcript",
+    "site_id": "vectorbase",
+    "step_tree": {
+      "displayName": "Midgut Blood-Meal Interaction",
+      "id": "root_midgut",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Digestive Apparatus + Barrier",
+        "id": "digestive_barrier",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Digestive Trypsins (multi-exon)",
+          "id": "digestive_enzymes",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Trypsins",
+            "id": "trypsin_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "trypsin",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Genes with 3+ Exons",
+            "id": "multi_exon",
+            "parameters": {
+              "num_exons_gte": "3",
+              "num_exons_lte": "50",
+              "organism": "[\"Anopheles gambiae PEST\"]",
+              "scope": "Gene"
+            },
+            "searchName": "GenesByExonCount"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Peritrophic Matrix Proteins",
+          "id": "peritrophic_matrix",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Chitin/Chitinase Genes",
+            "id": "chitin_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "chitin",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Peritrophins",
+            "id": "peritrophin_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "peritrophin OR peritrophic",
+              "text_fields": "product",
+              "text_search_organism": "Anopheles gambiae PEST"
+            },
+            "searchName": "GenesByText"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "P. falciparum Infection Response",
+        "id": "infection_response",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Immune Genes",
+          "id": "immune_midgut_text",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "immune",
+            "text_fields": "product",
+            "text_search_organism": "Anopheles gambiae PEST"
+          },
+          "searchName": "GenesByText"
+        },
+        "secondaryInput": {
+          "displayName": "Upregulated in Pf-Infected Midgut (2x)",
+          "id": "rnaseq_pf_up",
+          "parameters": {
+            "dataset_url": "https://VectorBase.org/a/app/record/dataset/DS_7f62901422",
+            "fold_change": "2",
+            "hard_floor": "6591.17770484092987047740297968873220306",
+            "min_max_avg_comp": "average1",
+            "min_max_avg_ref": "average1",
+            "profileset_generic": "SRP013741 Plasmodium falciparum infection  -   unstranded",
+            "protein_coding_only": "yes",
+            "regulated_dir": "up-regulated",
+            "samples_fc_comp_generic": "Infected_polysomal",
+            "samples_fc_ref_generic": "Uninfected unfractioned"
+          },
+          "searchName": "GenesByRNASeqagamPEST_SRP013741_ebi_rnaSeq_RSRC"
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "A. gambiae 2L Baseline (curated)",
+      "negative_ids": [
+        "AGAP001424",
+        "AGAP001502",
+        "AGAP002076",
+        "AGAP004002",
+        "AGAP004192",
+        "AGAP004581",
+        "AGAP004582",
+        "AGAP004583",
+        "AGAP006958",
+        "AGAP009882",
+        "AGAP010331",
+        "AGAP010514",
+        "AGAP011521",
+        "AGAP012891",
+        "AGAP013228"
+      ],
+      "positive_ids": [
+        "AGAP000240",
+        "AGAP000290",
+        "AGAP000315",
+        "AGAP000477",
+        "AGAP000571",
+        "AGAP000572",
+        "AGAP000573",
+        "AGAP001190",
+        "AGAP001199",
+        "AGAP001375",
+        "AGAP001376",
+        "AGAP001377",
+        "AGAP001433",
+        "AGAP001636",
+        "AGAP001648"
+      ],
+      "provenance_notes": "Positives: serine proteases \u2014 large proteins likely on 2L. Negatives: heat shock proteins \u2014 excluded by the strategy.",
+      "tags": [
+        "baseline",
+        "anopheles",
+        "seed"
+      ]
+    },
+    "description": "Simple baseline strategy: A. gambiae PEST protein-coding genes on chromosome 2L with molecular weight > 100kDa, minus heat shock proteins. Serves as a sanity check and comparison baseline for the more complex biological strategies.",
+    "name": "AgPEST Baseline: 2L High-MW minus HSP",
+    "record_type": "transcript",
+    "site_id": "vectorbase",
+    "step_tree": {
+      "displayName": "High-MW 2L Genes minus HSP",
+      "id": "root_baseline",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "High-MW Genes (>100kDa) on 2L",
+        "id": "high_mw_2l",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Chromosome 2L Genes",
+          "id": "chr2l",
+          "parameters": {
+            "chromosomeOptional": "2L",
+            "end_point": "0",
+            "organismSinglePick": "[\"Anopheles gambiae PEST\"]",
+            "sequenceId": "",
+            "start_point": "1"
+          },
+          "searchName": "GenesByLocation"
+        },
+        "secondaryInput": {
+          "displayName": "Molecular Weight > 100kDa",
+          "id": "high_mw",
+          "parameters": {
+            "max_molecular_weight": "1000000",
+            "min_molecular_weight": "100000",
+            "organism": "[\"Anopheles gambiae PEST\"]"
+          },
+          "searchName": "GenesByMolecularWeight"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Heat Shock Proteins",
+        "id": "hsp_text",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "heat shock",
+          "text_fields": "product",
+          "text_search_organism": "Anopheles gambiae PEST"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  }
+]

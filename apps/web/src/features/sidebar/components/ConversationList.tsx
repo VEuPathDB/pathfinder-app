@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import type { ConversationItem } from "@/features/sidebar/components/conversationSidebarTypes";
 import { ConversationListItem } from "@/features/sidebar/components/ConversationListItem";
 import { ConversationSubtree } from "@/features/sidebar/components/ConversationSubtree";
-import { toTreeRoots } from "@/features/sidebar/lib/conversationTree";
+import { toTreeRoots } from "@/features/sidebar/conversationTree";
 
 interface ConversationListProps {
   items: ConversationItem[];
@@ -14,7 +14,6 @@ interface ConversationListProps {
   activeId: string | null;
   renamingId: string | null;
   renameValue: string;
-  chatIsStreaming: boolean;
   onRenameValueChange: (v: string) => void;
   onCommitRename: (item: ConversationItem) => void;
   onCancelRename: () => void;
@@ -31,7 +30,6 @@ export function ConversationList({
   activeId,
   renamingId,
   renameValue,
-  chatIsStreaming,
   onRenameValueChange,
   onCommitRename,
   onCancelRename,
@@ -67,7 +65,6 @@ export function ConversationList({
                 isActive={activeId === root.item.id}
                 isRenaming={renamingId === root.item.id}
                 renameValue={renameValue}
-                isActiveStreaming={chatIsStreaming && activeId === root.item.id}
                 onRenameValueChange={onRenameValueChange}
                 onCommitRename={onCommitRename}
                 onCancelRename={onCancelRename}

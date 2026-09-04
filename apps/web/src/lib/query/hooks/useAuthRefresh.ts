@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSessionStore } from "@/state/useSessionStore";
 import {
   authRefreshOptions,
   authStatusOptions,
@@ -15,18 +14,17 @@ import { invalidateUserScopedQueries } from "@/lib/query/invalidateUserScoped";
  * Running this hook from multiple components is safe — TanStack Query
  * deduplicates by queryKey.
  */
-export function useAuthRefresh(): { authRefreshed: boolean } {
+export function useAuthRefresh(siteId: string): { authRefreshed: boolean } {
   const queryClient = useQueryClient();
-  const selectedSite = useSessionStore((s) => s.selectedSite);
 
-  const statusQuery = useQuery(authStatusOptions(selectedSite));
+  const statusQuery = useQuery(authStatusOptions(siteId));
   const signedIn = statusQuery.data?.signedIn === true;
 
-  const base = authRefreshOptions(selectedSite);
+  const base = authRefreshOptions(siteId);
   const refreshQuery = useQuery({
     ...base,
     queryFn: async () => {
-      await refreshAuth(selectedSite);
+      await refreshAuth(siteId);
       invalidateUserScopedQueries(queryClient);
       return { refreshed: true };
     },

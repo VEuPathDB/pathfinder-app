@@ -7,6 +7,7 @@ its WDK id and every value the researcher set on it.
 
 from __future__ import annotations
 
+from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
@@ -26,7 +27,7 @@ from pathfinder.ai.lead.edit_messages import (
     no_strategy_to_edit_message,
     unsupported_edit_message,
 )
-from pathfinder.ai.lead.sub_agent_dispatch import run_frame
+from pathfinder.ai.lead.frame_dispatch import run_frame
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._stream_parts import graph_snapshot_chunk
@@ -40,7 +41,6 @@ from pathfinder.domain.strategy.spec_to_operations import (
     UnsupportedEditError,
     operations_for,
 )
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.services.strategies.commit import (
     CommitResult,
     apply_operations_and_commit,
@@ -151,9 +151,7 @@ async def _outcome_after_edit(
     """
     session = agent_deps.strategy_session
     sync_state = ensure_sync_state(session)
-    counts = await read_wdk_step_counts(
-        sync_state, get_strategy_api(agent_deps.site_id)
-    )
+    counts = await read_wdk_step_counts(sync_state, agent_deps.site_id)
     return outcome_for_graph(
         graph=session.get_graph(None),
         sync_state=sync_state,
@@ -168,13 +166,7 @@ def _emit_graph_snapshot(agent_deps: AgentDeps) -> None:
     graph = session.get_graph(None)
     if graph is None:
         return
-    get_stream_writer()(
-        {
-            "chunk": graph_snapshot_chunk(session, graph).model_dump(
-                by_alias=True, mode="json", exclude_none=True
-            ),
-        },
-    )
+    emit_chunk(get_stream_writer(), graph_snapshot_chunk(session, graph))
 
 
 async def edit_strategy(ctx: RunContext[LeadDeps], reason: str) -> EditDelta:

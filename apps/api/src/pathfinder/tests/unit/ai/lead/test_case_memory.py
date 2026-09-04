@@ -3,8 +3,6 @@ any zero-result step the turn recovered."""
 
 from __future__ import annotations
 
-from uuid import uuid4
-
 from assistant_core.memory.tombstones import compute_content_hash
 
 from pathfinder.ai.graph.state import (
@@ -25,6 +23,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
 
 def _spec() -> OperationalSpec:
@@ -68,11 +67,7 @@ def _state(
     success: bool = True,
     history: list[ZeroResultStep] | None = None,
 ) -> PipelineState:
-    return PipelineState(
-        conversation_id=uuid4(),
-        user_id=uuid4(),
-        site_id="plasmodb",
-        mode="strategy",
+    return pipeline_state(
         user_prompt="find the kinases",
         domain=StrategyDomainState(
             operational_spec=_spec(),
@@ -251,11 +246,7 @@ def _eda_outcome(count: int) -> BuildOutcome:
 
 
 def _eda_state(export: EdaExport | None) -> PipelineState:
-    state = PipelineState(
-        conversation_id=uuid4(),
-        user_id=uuid4(),
-        site_id="plasmodb",
-        mode="strategy",
+    state = pipeline_state(
         user_prompt="export the genes up in the heat-shocked samples",
         domain=StrategyDomainState(
             original_request="which genes go up under heat shock in P. berghei",

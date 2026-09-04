@@ -2,13 +2,17 @@
 
 import { HelpCircle } from "lucide-react";
 
-import type { ConsultAnswerView, ConsultRecap } from "./consultData";
+import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/UserQuestionAnswer";
 
-function answerText(answer: ConsultAnswerView | undefined): string {
+import type { ConsultRecap } from "./consultData";
+
+function answerText(answer: UserQuestionAnswer | undefined): string {
   if (answer === undefined) return "-";
-  if (answer.chosenLabels.length === 0) return answer.note === "" ? "-" : answer.note;
-  const chosen = answer.chosenLabels.join(", ");
-  return answer.note === "" ? chosen : `${chosen} (${answer.note})`;
+  const note = answer.note ?? "";
+  const labels = answer.chosenLabels ?? [];
+  if (labels.length === 0) return note === "" ? "-" : note;
+  const chosen = labels.join(", ");
+  return note === "" ? chosen : `${chosen} (${note})`;
 }
 
 export function ConsultRecapView({ recap }: { recap: ConsultRecap }) {

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bookmark, Loader2 } from "lucide-react";
 import { createControlSet } from "../api/controlSets";
-import { Button } from "@/lib/components/ui/Button";
-import { Input } from "@/lib/components/ui/Input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface SaveControlSetFormProps {
   siteId: string;

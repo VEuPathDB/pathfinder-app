@@ -5,7 +5,6 @@ export { CustomEnrichmentPanel } from "./CustomEnrichmentPanel";
 
 export { SweepPanel } from "./SweepPanel";
 export { ResultsTablePanel } from "./ResultsTablePanel";
-export { StepContributionPanel } from "./StepContributionPanel";
 export { BatchPanel } from "./BatchPanel";
 export { BenchmarkPanel } from "./BenchmarkPanel";
 export { EnsemblePanel } from "./EnsemblePanel";

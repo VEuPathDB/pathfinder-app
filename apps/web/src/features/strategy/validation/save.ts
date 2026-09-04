@@ -2,9 +2,9 @@ import type { Step, Strategy } from "@pathfinder/shared";
 import { validateSearchParams } from "@/lib/api/sites";
 import { toUserMessage } from "@/lib/api/errors";
 import { formatSearchValidationResponse } from "./format";
-import { validateStrategySteps } from "@/lib/strategyGraph";
+import { validateStrategySteps } from "@/features/strategy/graph";
 import { normalizeRecordType } from "@/lib/utils/normalizeRecordType";
-import { inferStepKind } from "@/lib/strategyGraph";
+import { inferStepKind } from "@/features/strategy/graph";
 
 export async function validateStepsForSave(args: {
   siteId: string;

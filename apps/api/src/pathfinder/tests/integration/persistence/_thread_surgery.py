@@ -15,11 +15,11 @@ from assistant_core.persistence.models import (
 )
 from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, Field
-from shared_py.stream_parts.eda import EdaAnalysisState
 from sqlalchemy import func, select
 
-from pathfinder.domain.strategy.ast import walk_step_tree
+from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.domain.strategy.revision import parse_strategy_ast, without_wdk_ids
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.integrations.eda.errors import EdaNotFoundError, EdaServerError
 from pathfinder.integrations.eda.models import (
     EdaAnalysisDescriptor,
@@ -74,7 +74,7 @@ def _plan_step_ids_of(strategy_ast: JSONObject) -> list[str]:
     ast = parse_strategy_ast(strategy_ast)
     if ast is None:
         return []
-    return [node.id for node in walk_step_tree(ast.root)]
+    return [node.id for node in walk(ast.root)]
 
 
 @dataclass

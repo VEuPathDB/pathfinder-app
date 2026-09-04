@@ -2,13 +2,13 @@
 
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { useSessionStore } from "@/state/useSessionStore";
-import { useGeneSetsQuery } from "@/lib/query/hooks/useGeneSetsQuery";
-import { EmptyState } from "@/lib/components/ui/EmptyState";
+import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Layers, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ChatView } from "@/features/conversation/ChatView";
-import { useInvalidateGeneSets } from "@/lib/query/hooks/useInvalidateGeneSets";
+import { useInvalidateGeneSets } from "@/features/workbench/hooks/useInvalidateGeneSets";
 import { retakeGeneSet } from "../api/geneSets";
 import { canRetakeGeneSet } from "./canRetakeGeneSet";
 import { SOURCE_CONFIG } from "./geneSetSourceConfig";
@@ -18,7 +18,6 @@ import {
   CustomEnrichmentPanel,
   SweepPanel,
   ResultsTablePanel,
-  StepContributionPanel,
   EnsemblePanel,
   ConfidencePanel,
   ReverseSearchPanel,
@@ -112,7 +111,6 @@ export const WORKBENCH_PANELS = [
   ResultsTablePanel,
   EnrichmentPanel,
   DistributionsPanel,
-  StepContributionPanel,
   ConfidencePanel,
   EnsemblePanel,
   ReverseSearchPanel,

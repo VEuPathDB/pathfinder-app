@@ -86,17 +86,6 @@ def test_no_runtime_module_imports_the_science(module: ModuleType) -> None:
     assert reached == set()
 
 
-def test_no_runtime_module_imports_the_product_shared_types() -> None:
-    reached = {
-        name
-        for m in _core_modules()
-        for name in _imported_names(m)
-        if name.startswith("shared_py")
-    }
-
-    assert reached == set()
-
-
 def _distributions(names: set[str]) -> set[str]:
     roots = {name.split(".")[0] for name in names}
     return {root for root in roots if root not in sys.stdlib_module_names} - {CORE}

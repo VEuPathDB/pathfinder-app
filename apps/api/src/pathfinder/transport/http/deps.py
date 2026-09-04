@@ -1,6 +1,5 @@
 """Dependency injection for HTTP routes."""
 
-import asyncio
 from typing import Annotated
 from uuid import UUID
 
@@ -103,19 +102,3 @@ async def get_experiment_owned_by_user(
 
 
 ExperimentDep = Annotated[Experiment, Depends(get_experiment_owned_by_user)]
-
-
-async def get_experiments_owned_by_user(
-    experiment_ids: list[str], user_id: str
-) -> list[Experiment]:
-    """Fetch multiple experiments by ID and verify ownership (parallel)."""
-    store = get_experiment_store()
-    fetched = await asyncio.gather(*(store.aget(eid) for eid in experiment_ids))
-    experiments: list[Experiment] = []
-    for eid, exp in zip(experiment_ids, fetched, strict=True):
-        if not exp:
-            raise NotFoundError(title=f"Experiment {eid} not found")
-        if exp.user_id != user_id:
-            raise ForbiddenError(title="Not authorized to access this experiment")
-        experiments.append(exp)
-    return experiments

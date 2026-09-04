@@ -1,7 +1,8 @@
 import type { Step, Strategy } from "@pathfinder/shared";
 import { findParent } from "./utils";
 import { patchSteps } from "./_patch";
-import type { ApplyResult, GraphOperation } from "./types";
+import type { GraphOperation } from "@/lib/types/graphOperation";
+import type { ApplyResult } from "./types";
 
 type AddLeafOp = Extract<GraphOperation, { kind: "addLeaf" }>;
 type AddCombineOp = Extract<GraphOperation, { kind: "addCombine" }>;

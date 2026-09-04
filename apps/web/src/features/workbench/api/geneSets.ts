@@ -8,12 +8,12 @@ import { geneSetResponseSchema } from "@pathfinder/shared/generated/zod/geneSetR
 import { z } from "zod";
 
 import { requestJson, requestVoid } from "@/lib/api/http";
-import { enrichmentResultResponseSchema } from "@pathfinder/shared/generated/zod/enrichmentResultResponseSchema";
+import { enrichmentResultSchema } from "@pathfinder/shared/generated/zod/enrichmentResultSchema";
 
-const EnrichmentResultListSchema = z.array(enrichmentResultResponseSchema);
+const EnrichmentResultListSchema = z.array(enrichmentResultSchema);
 
 const GeneSetListSchema = z.array(geneSetResponseSchema);
-import type { StepParameters } from "@/lib/strategyGraph/types";
+import type { StepParameters } from "@/lib/types/stepParameters";
 
 // ---------------------------------------------------------------------------
 // Request / response types
@@ -87,7 +87,7 @@ export function enrichGeneSet(
   return requestJson(EnrichmentResultListSchema, `/api/v1/gene-sets/${id}/enrich`, {
     method: "POST",
     body: { enrichmentTypes: types },
-  }) as unknown as Promise<EnrichmentResult[]>;
+  });
 }
 
 // ---------------------------------------------------------------------------

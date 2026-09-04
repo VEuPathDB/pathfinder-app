@@ -39,9 +39,7 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "get_evaluation_summary",
         "get_enrichment_results",
         "get_confidence_scores",
-        "get_step_contributions",
         "get_experiment_config",
-        "get_ensemble_analysis",
         "get_result_gene_lists",
         # Research
         "web_search",

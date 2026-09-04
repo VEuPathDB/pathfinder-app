@@ -104,4 +104,41 @@ describe("selectVolcanoGenes", () => {
     const result = selectVolcanoGenes(points, thresholds, "adjustedPValue");
     expect(result.selected).toEqual(["EXACT"]);
   });
+
+  it("never grows the selection when the effect-size threshold rises", () => {
+    let previous: string[] | null = null;
+    for (const effectSizeThreshold of [0.5, 1, 1.5, 2, 3, 4.5]) {
+      const result = selectVolcanoGenes(
+        VOLCANO_POINT_SAMPLE,
+        { ...thresholds, effectSizeThreshold },
+        "adjustedPValue",
+      );
+      if (previous !== null) {
+        const kept = previous;
+        expect(result.selected.every((id) => kept.includes(id))).toBe(true);
+      }
+      previous = result.selected;
+    }
+    expect(previous).toEqual([]);
+  });
+
+  it("partitions the upAndDown selection into the up and down halves", () => {
+    const both = selectVolcanoGenes(VOLCANO_POINT_SAMPLE, thresholds, "adjustedPValue");
+    const up = selectVolcanoGenes(
+      VOLCANO_POINT_SAMPLE,
+      { ...thresholds, direction: "upOnly" },
+      "adjustedPValue",
+    );
+    const down = selectVolcanoGenes(
+      VOLCANO_POINT_SAMPLE,
+      { ...thresholds, direction: "downOnly" },
+      "adjustedPValue",
+    );
+    expect([...up.selected, ...down.selected].sort()).toEqual(
+      [...both.selected].sort(),
+    );
+    expect(up.selected.filter((id) => down.selected.includes(id))).toEqual([]);
+    expect(both.up).toEqual(up.selected);
+    expect(both.down).toEqual(down.selected);
+  });
 });

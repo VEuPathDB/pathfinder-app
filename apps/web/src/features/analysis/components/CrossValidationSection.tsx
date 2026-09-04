@@ -1,7 +1,7 @@
 import type { CrossValidationResult } from "@pathfinder/shared";
 import { Layers } from "lucide-react";
-import { Badge } from "@/lib/components/ui/Badge";
-import { Card } from "@/lib/components/ui/Card";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Section } from "./Section";
 import { pct } from "../utils/formatters";
 

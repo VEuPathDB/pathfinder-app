@@ -101,11 +101,6 @@ def load_prompt_result(name: str, *, label: str = "production") -> LoadedPrompt:
     return loaded
 
 
-def load_prompt(name: str, *, label: str = "production") -> str:
-    """Load the text of a prompt by name."""
-    return load_prompt_result(name, label=label).text
-
-
 def seed_prompts() -> None:
     """Upload each local prompt file that Langfuse does not hold yet."""
     client = get_langfuse()

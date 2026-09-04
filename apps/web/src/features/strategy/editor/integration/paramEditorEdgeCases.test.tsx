@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { useStore } from "@tanstack/react-form";
 import type { ParamSpec } from "@pathfinder/shared";
-import { buildParamSchema, buildFieldSchemaMap } from "../schema/paramSchema";
 import { useParamForm, type ParamForm } from "../hooks/useParamForm";
 import { SelectParam } from "../widgets/SelectParam";
 import {
@@ -41,17 +40,6 @@ function FormVal({ form, name }: { form: ParamForm; name: string }) {
 }
 
 describe("TF: empty param specs", () => {
-  it("buildParamSchema([]) produces valid empty schema", () => {
-    const schema = buildParamSchema([]);
-    expect(schema.safeParse({}).success).toBe(true);
-    expect(schema.safeParse({}).data).toEqual({});
-  });
-
-  it("buildFieldSchemaMap([]) produces empty map", () => {
-    const map = buildFieldSchemaMap([]);
-    expect(map.size).toBe(0);
-  });
-
   it("useParamForm with empty specs produces empty defaults", () => {
     let formRef: ParamForm | null = null;
     render(
@@ -78,48 +66,6 @@ describe("TF: all defaults unchanged", () => {
       />,
     );
     expect(formRef!.state.isDirty).toBe(false);
-  });
-});
-
-describe("TF: numeric validation edge cases", () => {
-  it("rejects non-numeric string for numeric param", () => {
-    const schema = buildParamSchema([
-      makeSpec({ name: "w", isNumber: true, allowEmptyValue: false }),
-    ]);
-    expect(schema.safeParse({ w: "abc" }).success).toBe(false);
-    expect(schema.safeParse({ w: "" }).success).toBe(false);
-    expect(schema.safeParse({ w: "42" }).success).toBe(true);
-  });
-
-  it("accepts empty string for optional numeric param", () => {
-    const schema = buildParamSchema([
-      makeSpec({ name: "w", isNumber: true, allowEmptyValue: true }),
-    ]);
-    expect(schema.safeParse({ w: "" }).success).toBe(true);
-  });
-
-  it("rejects empty string for required numeric param", () => {
-    const schema = buildParamSchema([
-      makeSpec({ name: "w", isNumber: true, allowEmptyValue: false }),
-    ]);
-    expect(schema.safeParse({ w: "" }).success).toBe(false);
-  });
-
-  it("accepts decimal and negative numbers as strings", () => {
-    const schema = buildParamSchema([
-      makeSpec({ name: "w", isNumber: true, allowEmptyValue: false }),
-    ]);
-    expect(schema.safeParse({ w: "3.14" }).success).toBe(true);
-    expect(schema.safeParse({ w: "-100" }).success).toBe(true);
-    expect(schema.safeParse({ w: "0" }).success).toBe(true);
-  });
-
-  it("rejects mixed alpha-numeric for numeric param", () => {
-    const schema = buildParamSchema([
-      makeSpec({ name: "w", isNumber: true, allowEmptyValue: true }),
-    ]);
-    expect(schema.safeParse({ w: "12abc" }).success).toBe(false);
-    expect(schema.safeParse({ w: "e10" }).success).toBe(false);
   });
 });
 
@@ -194,25 +140,6 @@ describe("TF: hidden and empty-name params are excluded", () => {
     expect(formRef!.state.values["visible_param"]).toBe("hello");
     expect(formRef!.state.values["hidden_param"]).toBeUndefined();
   });
-
-  it("empty-name params are excluded from schema", () => {
-    const schema = buildParamSchema([
-      makeSpec({ name: "", displayName: "NoName", initialDisplayValue: "x" }),
-      makeSpec({ name: "real_param", initialDisplayValue: "y" }),
-    ]);
-    expect(schema.safeParse({ real_param: "y" }).success).toBe(true);
-    expect(schema.shape[""]).toBeUndefined();
-  });
-});
-
-describe("TF: multi-pick required rejects empty array", () => {
-  it("rejects [] and accepts non-empty array", () => {
-    const schema = buildParamSchema([
-      makeSpec({ name: "orgs", allowMultipleValues: true, allowEmptyValue: false }),
-    ]);
-    expect(schema.safeParse({ orgs: [] }).success).toBe(false);
-    expect(schema.safeParse({ orgs: ["P. falciparum"] }).success).toBe(true);
-  });
 });
 
 describe("TF: select param with required validation", () => {
@@ -241,48 +168,5 @@ describe("TF: select param with required validation", () => {
     );
     expect(screen.getByRole("combobox")).toBeTruthy();
     expect(screen.queryByText("-- Select --")).toBeNull();
-  });
-});
-
-describe("TF: schema for mixed param types", () => {
-  it("validates string, number, and multi-pick params together", () => {
-    const schema = buildParamSchema([
-      makeSpec({ name: "organism", type: "string", allowEmptyValue: false }),
-      makeSpec({
-        name: "min_weight",
-        type: "number",
-        isNumber: true,
-        allowEmptyValue: true,
-      }),
-      makeSpec({ name: "go_terms", allowMultipleValues: true, allowEmptyValue: false }),
-    ]);
-    expect(
-      schema.safeParse({
-        organism: "P. falciparum",
-        min_weight: "50000",
-        go_terms: ["GO:0006915"],
-      }).success,
-    ).toBe(true);
-    expect(
-      schema.safeParse({
-        organism: "",
-        min_weight: "50000",
-        go_terms: ["GO:0006915"],
-      }).success,
-    ).toBe(false);
-    expect(
-      schema.safeParse({
-        organism: "P. falciparum",
-        min_weight: "abc",
-        go_terms: ["GO:0006915"],
-      }).success,
-    ).toBe(false);
-    expect(
-      schema.safeParse({
-        organism: "P. falciparum",
-        min_weight: "",
-        go_terms: [],
-      }).success,
-    ).toBe(false);
   });
 });

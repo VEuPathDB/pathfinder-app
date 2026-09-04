@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from pathfinder.domain.parameters.values import StringValue
-from pathfinder.domain.strategy.ast import StrategyStepNode, walk_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.graph_model import flatten_tree
 from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.services.strategies.insert_saved import _build_new_root
 
 
@@ -52,7 +53,7 @@ def test_splicing_at_the_root_makes_the_new_combine_the_root() -> None:
 
     assert new_root.id == combine_id
     assert graph.steps[combine_id].primary_input_id == "step_combine"
-    assert [node.id for node in walk_step_tree(new_root)] == [
+    assert [node.id for node in walk(new_root)] == [
         "step_a",
         "step_b",
         "step_combine",
@@ -84,7 +85,7 @@ def test_splicing_below_the_root_rewires_only_the_parent_slot() -> None:
     assert new_root.id == "step_root"
     assert graph.steps["step_root"].secondary_input_id == combine_id
     assert graph.steps[combine_id].primary_input_id == "step_b"
-    assert [node.id for node in walk_step_tree(new_root)] == [
+    assert [node.id for node in walk(new_root)] == [
         "step_a",
         "step_b",
         "saved_leaf",

@@ -1,6 +1,6 @@
 import { test, expect } from "../fixtures/test";
 import type { APIRequestContext } from "@playwright/test";
-import { loginWdkAccount, wdkAccountCreds } from "../fixtures/wdk-account";
+import { signInAsWdkAccount } from "../fixtures/wdk-account";
 import { astNodes, leafIdBySearch } from "../fixtures/ast";
 import type { ChatPage } from "../pages/chat.page";
 import type { SitePickerComponent } from "../pages/site-picker.page";
@@ -105,16 +105,11 @@ test.describe("Insert saved sub-strategy", () => {
     chatPage,
     sitePicker,
   }) => {
-    const creds = wdkAccountCreds();
-    test.skip(
-      creds == null,
-      "set WDK_TEST_EMAIL/WDK_TEST_PASSWORD to run real-account WDK tests",
-    );
     test.setTimeout(180_000);
 
     const ctx = page.context().request;
     const csrf = { "X-Requested-With": "XMLHttpRequest" };
-    await loginWdkAccount(ctx, creds as NonNullable<typeof creds>, "plasmodb");
+    await signInAsWdkAccount(ctx, "plasmodb");
     await page.reload();
 
     const created: string[] = [];

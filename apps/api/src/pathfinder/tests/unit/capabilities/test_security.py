@@ -227,7 +227,7 @@ class TestWarmUp:
 
         assert len(builds) == 1
 
-    def test_the_scanner_reports_whether_it_is_loaded(
+    def test_the_scanner_builds_its_models_once(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
@@ -238,11 +238,11 @@ class TestWarmUp:
         monkeypatch.setattr(security, "PIGuardScanner", _Stub)
         scanner = UserInputScanner()
 
-        assert scanner.is_loaded is False
-        scanner.ensure_loaded()
-        assert scanner.is_loaded is True
+        first = scanner.ensure_loaded()
+        assert scanner.ensure_loaded() == first
 
 
 def test_every_test_process_starts_with_a_loaded_scanner() -> None:
     """The first chat POST of a test process must not pay the model load."""
-    assert security._scanner.is_loaded is True
+    before = security._scanner.ensure_loaded()
+    assert security._scanner.ensure_loaded() == before

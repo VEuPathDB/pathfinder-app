@@ -1,30 +1,17 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
-// Mock requestJson, requestVoid, and requestBlob before importing the module under test
 vi.mock("@/lib/api/http", () => ({
   requestJson: vi.fn(),
-  requestVoid: vi.fn(),
-  requestBlob: vi.fn(),
 }));
 
-import {
-  listControlSets,
-  getControlSet,
-  createControlSet,
-  deleteControlSet,
-  getExperimentReport,
-} from "./controlSets";
-import { requestJson, requestVoid, requestBlob } from "@/lib/api/http";
+import { listControlSets, createControlSet } from "./controlSets";
+import { requestJson } from "@/lib/api/http";
 import type { ControlSet } from "@pathfinder/shared";
 
 const mockRequestJson = vi.mocked(requestJson);
-const mockRequestVoid = vi.mocked(requestVoid);
-const mockRequestBlob = vi.mocked(requestBlob);
 
 beforeEach(() => {
   mockRequestJson.mockReset();
-  mockRequestVoid.mockReset();
-  mockRequestBlob.mockReset();
 });
 
 // ---------------------------------------------------------------------------
@@ -92,41 +79,6 @@ describe("listControlSets", () => {
     mockRequestJson.mockRejectedValue(new Error("Unauthorized"));
 
     await expect(listControlSets("plasmodb")).rejects.toThrow("Unauthorized");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getControlSet
-// ---------------------------------------------------------------------------
-
-describe("getControlSet", () => {
-  it("sends GET to /api/v1/control-sets/:id", async () => {
-    mockRequestJson.mockResolvedValue(controlSetFixture);
-
-    const result = await getControlSet("cs-1");
-
-    expect(mockRequestJson).toHaveBeenCalledWith(
-      expect.anything(),
-      "/api/v1/control-sets/cs-1",
-    );
-    expect(result).toEqual(controlSetFixture);
-  });
-
-  it("returns control set with all fields", async () => {
-    mockRequestJson.mockResolvedValue(controlSetFixture);
-
-    const result = await getControlSet("cs-1");
-
-    expect(result.positiveIds).toEqual(["PF3D7_0100100", "PF3D7_0200200"]);
-    expect(result.negativeIds).toEqual(["PF3D7_0300300", "PF3D7_0400400"]);
-    expect(result.source).toBe("curation");
-    expect(result.tags).toEqual(["kinase", "validated"]);
-  });
-
-  it("propagates errors", async () => {
-    mockRequestJson.mockRejectedValue(new Error("404 Not Found"));
-
-    await expect(getControlSet("nonexistent")).rejects.toThrow("404 Not Found");
   });
 });
 
@@ -228,110 +180,5 @@ describe("createControlSet", () => {
         negativeIds: [],
       }),
     ).rejects.toThrow("Validation error");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// deleteControlSet
-// ---------------------------------------------------------------------------
-
-describe("deleteControlSet", () => {
-  it("sends DELETE to /api/v1/control-sets/:id", async () => {
-    mockRequestVoid.mockResolvedValue(undefined);
-
-    await deleteControlSet("cs-1");
-
-    expect(mockRequestVoid).toHaveBeenCalledWith("/api/v1/control-sets/cs-1", {
-      method: "DELETE",
-    });
-  });
-
-  it("propagates errors on deletion failure", async () => {
-    mockRequestVoid.mockRejectedValue(new Error("403 Forbidden"));
-
-    await expect(deleteControlSet("cs-1")).rejects.toThrow("403 Forbidden");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getExperimentReport
-// ---------------------------------------------------------------------------
-
-describe("getExperimentReport", () => {
-  let clickSpy: ReturnType<typeof vi.fn>;
-  let createdUrls: string[];
-  let revokedUrls: string[];
-
-  beforeEach(() => {
-    clickSpy = vi.fn();
-    createdUrls = [];
-    revokedUrls = [];
-
-    vi.stubGlobal("URL", {
-      createObjectURL: vi.fn((_blob: Blob) => {
-        const url = `blob:mock-${createdUrls.length}`;
-        createdUrls.push(url);
-        return url;
-      }),
-      revokeObjectURL: vi.fn((url: string) => {
-        revokedUrls.push(url);
-      }),
-    });
-
-    vi.stubGlobal("document", {
-      createElement: vi.fn(() => ({
-        href: "",
-        download: "",
-        click: clickSpy,
-      })),
-    });
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it("fetches a blob and triggers a download with correct filename", async () => {
-    const mockBlob = new Blob(["<html>report</html>"], {
-      type: "text/html",
-    });
-    mockRequestBlob.mockResolvedValue(mockBlob);
-
-    await getExperimentReport("exp-1");
-
-    expect(mockRequestBlob).toHaveBeenCalledWith("/api/v1/experiments/exp-1/export");
-    expect(clickSpy).toHaveBeenCalledOnce();
-    expect(createdUrls).toHaveLength(1);
-    expect(revokedUrls).toHaveLength(1);
-  });
-
-  it("uses fixed filename experiment-report.html", async () => {
-    const mockBlob = new Blob(["<html>report</html>"], {
-      type: "text/html",
-    });
-    mockRequestBlob.mockResolvedValue(mockBlob);
-
-    const el = { href: "", download: "", click: clickSpy };
-    vi.mocked(document.createElement).mockReturnValue(el as unknown as HTMLElement);
-
-    await getExperimentReport("exp-1");
-
-    expect(el.download).toBe("experiment-report.html");
-  });
-
-  it("revokes the object URL after download", async () => {
-    const mockBlob = new Blob(["content"], { type: "text/html" });
-    mockRequestBlob.mockResolvedValue(mockBlob);
-
-    await getExperimentReport("exp-1");
-
-    expect(revokedUrls).toHaveLength(1);
-    expect(revokedUrls[0]).toBe(createdUrls[0]);
-  });
-
-  it("propagates blob fetch errors", async () => {
-    mockRequestBlob.mockRejectedValue(new Error("Network error"));
-
-    await expect(getExperimentReport("exp-1")).rejects.toThrow("Network error");
   });
 });

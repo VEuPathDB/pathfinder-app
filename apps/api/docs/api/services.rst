@@ -38,7 +38,7 @@ literature or user input.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.gene_lookup.enrich
+.. automodule:: pathfinder.services.gene_lookup.hydrate
    :members:
    :undoc-members:
    :show-inheritance:
@@ -87,37 +87,12 @@ trial runs a temporary WDK strategy and scores the result.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.parameter_optimization.core
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 .. automodule:: pathfinder.services.parameter_optimization.scoring
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.parameter_optimization.trials
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.parameter_optimization.sampler
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.parameter_optimization.early_stop
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 .. automodule:: pathfinder.services.parameter_optimization.builders
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.parameter_optimization.evaluation
    :members:
    :undoc-members:
    :show-inheritance:
@@ -146,11 +121,6 @@ enrichment results, storing them briefly in Redis for client retrieval.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.parameter_optimization.callbacks
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Control Tests
 -------------
 
@@ -173,6 +143,18 @@ Encodes gene ID lists in various formats (newline, comma, JSON) and handles
 temporary strategy cleanup.
 
 .. automodule:: pathfinder.services.control_helpers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Tool Payloads
+-------------
+
+**Purpose:** The result shapes the MCP server and the agent toolsets both
+render, so one catalog listing, one download URL and one control outcome
+serve both adapters.
+
+.. automodule:: pathfinder.services.tool_payloads
    :members:
    :undoc-members:
    :show-inheritance:
@@ -265,11 +247,6 @@ factors in TriTrypDB).
    :show-inheritance:
 
 .. automodule:: pathfinder.services.experiment.seed.runner
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.seed.helpers
    :members:
    :undoc-members:
    :show-inheritance:

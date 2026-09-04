@@ -1,7 +1,7 @@
 import type { Connection } from "@xyflow/react";
 import type { Step } from "@pathfinder/shared";
-import { inferStepKind } from "@/lib/strategyGraph";
-import { resolveRecordType } from "@/lib/strategyGraph";
+import { inferStepKind } from "@/features/strategy/graph";
+import { resolveRecordType } from "@/features/strategy/graph";
 
 type GraphIndices = {
   stepsById: Map<string, Step>;

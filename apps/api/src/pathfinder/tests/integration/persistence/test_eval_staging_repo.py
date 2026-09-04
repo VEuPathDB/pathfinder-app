@@ -185,40 +185,6 @@ async def test_a_promoted_thread_does_not_stage_again(
     assert again is None
 
 
-async def test_clearing_a_user_removes_their_staged_rows(
-    repo: EvalStagingRepository,
-    seeded: tuple[UUID, UUID],
-) -> None:
-    user_id, conversation_id = seeded
-    await repo.stage(
-        user_id=user_id,
-        conversation_id=conversation_id,
-        extract=_extract(),
-    )
-
-    cleared = await repo.clear_for_user(user_id=user_id)
-
-    assert cleared == 1
-    assert await repo.list_staged() == []
-
-
-async def test_clearing_a_user_leaves_promoted_cases_alone(
-    repo: EvalStagingRepository,
-    seeded: tuple[UUID, UUID],
-) -> None:
-    user_id, conversation_id = seeded
-    staged = await repo.stage(
-        user_id=user_id,
-        conversation_id=conversation_id,
-        extract=_extract(),
-    )
-    assert staged is not None
-    await repo.promote(staging_id=staged, corpus_name="a-case")
-
-    assert await repo.clear_for_user(user_id=user_id) == 0
-    assert await repo.get(staged) is not None
-
-
 async def test_deleting_the_user_deletes_their_staged_rows(
     repo: EvalStagingRepository,
     seeded: tuple[UUID, UUID],

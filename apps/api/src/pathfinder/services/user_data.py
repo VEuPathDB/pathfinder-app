@@ -23,6 +23,7 @@ from pathfinder.persistence.models import (
 )
 from pathfinder.persistence.repositories.eval_staging import delete_staged_for_user
 from pathfinder.platform.errors import AppError
+from pathfinder.services.conversations.cancellation import stop_turns_and_wait
 from pathfinder.services.gene_sets.store import get_gene_set_store
 
 logger = get_logger(__name__)
@@ -74,7 +75,15 @@ async def purge_user_data(
     if site_id:
         conversation_query = conversation_query.where(Conversation.site_id == site_id)
     conversations = list((await session.execute(conversation_query)).all())
-    conversation_ids = [str(row.id) for row in conversations]
+    conversation_ids = [row.id for row in conversations]
+
+    still_running = await stop_turns_and_wait(conversation_ids)
+    if still_running:
+        logger.warning(
+            "Purging threads whose turn has not stopped",
+            user_id=str(user_id),
+            conversations=[str(conversation_id) for conversation_id in still_running],
+        )
 
     wdk_deleted = await _purge_wdk_strategies(
         _strategies_built_by(conversations),
@@ -94,10 +103,9 @@ async def purge_user_data(
         sr = cast("CursorResult[object]", await session.execute(conv_del))
         hard_deleted_count = sr.rowcount or 0
     elif conversation_ids:
-        all_uuids = [UUID(conv_id) for conv_id in conversation_ids]
         await session.execute(
             update(Conversation)
-            .where(Conversation.id.in_(all_uuids))
+            .where(Conversation.id.in_(conversation_ids))
             .values(dismissed_at=datetime.now(UTC))
         )
         dismissed_count = len(conversation_ids)

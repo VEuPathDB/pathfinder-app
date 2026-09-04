@@ -1,6 +1,6 @@
 import type { GeneSetPart } from "@pathfinder/shared";
 
-import { Figure } from "@/lib/components/thread/Figure";
+import { Figure } from "@/features/conversation/thread/Figure";
 
 export function DataGeneSet({ data }: { data: GeneSetPart }) {
   return (

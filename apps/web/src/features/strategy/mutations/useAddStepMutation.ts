@@ -1,7 +1,7 @@
 "use client";
 
 import type { Step } from "@pathfinder/shared";
-import { inferStepKind } from "@/lib/strategyGraph";
+import { inferStepKind } from "@/features/strategy/graph";
 import type { GraphOperation } from "@/features/strategy/operations";
 import { useApplyOperation } from "./useApplyOperation";
 

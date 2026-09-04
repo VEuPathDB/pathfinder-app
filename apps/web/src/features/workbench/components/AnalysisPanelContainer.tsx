@@ -2,7 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { Card } from "@/lib/components/ui/Card";
+import { Card } from "@/components/ui/card";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import type { PanelId } from "@/state/useWorkbenchStore";
 

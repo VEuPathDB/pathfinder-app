@@ -9,13 +9,12 @@ import { Button } from "@/components/ui/button";
 import { forkStrategy } from "@pathfinder/shared/generated/hooks/useForkStrategy";
 import { revertToMessage } from "@pathfinder/shared/generated/hooks/useRevertToMessage";
 import { submitProductAction } from "@pathfinder/shared/generated/hooks/useSubmitProductAction";
-import { conversationSnapshotOptions } from "@/lib/api/conversationSnapshot";
+import { conversationSnapshotOptions } from "@/features/conversation/api/conversationSnapshot";
 import { strategyQueryKey } from "@/lib/api/strategy";
 import { toUserMessage } from "@/lib/api/errors";
 import { chatUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 
-import { extractTraceId } from "../runtime/traceId";
 import { BranchOrRevertDialog } from "./BranchOrRevertDialog";
 
 const ROUTE_RE = /^\/([^/]+)\/conversation\/([^/?#]+)/;
@@ -29,7 +28,6 @@ function dialogError(branchError: unknown, revertError: unknown): string | null 
 export function EditComposerBranchOrRevert() {
   const messageId = useAuiState((s) => s.message.id);
   const parentId = useAuiState((s) => s.message.parentId);
-  const fullMessage = useAuiState((s) => s.message);
   const composerText = useEditComposer((s) => s.text);
   const pathname = usePathname();
   const router = useRouter();
@@ -65,11 +63,9 @@ export function EditComposerBranchOrRevert() {
     mutationFn: async () => {
       if (conversationId === null) throw new Error("No conversation");
       await revertToMessage(conversationId, { messageId });
-      const traceId = extractTraceId(fullMessage);
       void submitProductAction({
         action: "undo_turn",
         streamId: messageId,
-        ...(traceId !== null && { traceId }),
       }).catch((err: unknown) => {
         console.warn("submitProductAction(undo_turn) failed", err);
       });

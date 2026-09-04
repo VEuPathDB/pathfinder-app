@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from collections.abc import AsyncGenerator, AsyncIterator
-from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
@@ -279,21 +278,6 @@ async def latest_turn_boundary(conversation_id: UUID) -> int:
             .limit(1),
         )
         return row.id if row is not None else 0
-
-
-async def latest_event_with_timestamp(
-    conversation_id: UUID,
-) -> tuple[int, dict[str, Any], datetime] | None:
-    async with async_session_factory() as session:
-        row = await session.scalar(
-            select(ConversationEvent)
-            .where(ConversationEvent.conversation_id == conversation_id)
-            .order_by(ConversationEvent.id.desc())
-            .limit(1),
-        )
-        if row is None:
-            return None
-        return (row.id, row.chunk, row.emitted_at)
 
 
 async def _drain_and_yield(

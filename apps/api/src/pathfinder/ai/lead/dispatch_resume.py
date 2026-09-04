@@ -16,14 +16,11 @@ from pathfinder.ai.lead.deltas import (
     VerificationDelta,
 )
 from pathfinder.ai.lead.edit_dispatch import run_edit
-from pathfinder.ai.lead.sub_agent_dispatch import (
-    frame_work_order,
-    run_frame,
-    run_recovery,
-    run_verification,
-)
+from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
+from pathfinder.ai.lead.sub_agent_dispatch import run_recovery
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.verify_dispatch import run_verification
 
 __all__ = ["SubAgentOutcome", "resume_sub_agent"]
 

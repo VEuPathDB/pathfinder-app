@@ -4,16 +4,14 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-import { DataPartRenderer } from "./DataPartRenderer";
 import { dataPartRenderers } from "./dataPartRegistry";
 import type { ReasoningMessagePartProps } from "@assistant-ui/react";
 
 import { ReasoningPart, selectAssistantErrorDetail } from "./MessageRenderer";
 import { USER_QUESTION_ANSWERS_PART_TYPE } from "../rail/consultActions";
+import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersContext";
 
-// Test the DataPartRenderer dispatch directly since MessageRenderer
-// requires the full assistant-ui runtime provider tree which is
-// integration-tested via ChatThread.test.tsx.
+const STUB_CHAT = { messages: [], status: "ready" } as unknown as ChatHelpers;
 
 describe("selectAssistantErrorDetail", () => {
   const failed = { type: "incomplete", reason: "error", error: "boom" };
@@ -94,73 +92,48 @@ describe("dataPartRenderers", () => {
   });
 });
 
-describe("DataPartRenderer dispatch", () => {
-  it("dispatches data-sub-agent-call to the correct component", () => {
-    render(
-      <DataPartRenderer
-        kind="data-sub-agent-call"
-        data={{
-          toolCallId: "sa_1",
-          subAgent: "frame_problem",
-          phase: "frame",
-          state: "started",
-          summary: "Framing the problem",
-          succeeded: null,
-        }}
-      />,
-    );
-    expect(screen.getByTestId("data-sub-agent-call")).toBeInTheDocument();
-  });
+function renderPart(shortName: string, data: unknown) {
+  const Part = dataPartRenderers[shortName]!;
+  return render(
+    <ChatHelpersProvider value={STUB_CHAT}>
+      <Part type="data" name={shortName} data={data} status={{ type: "complete" }} />
+    </ChatHelpersProvider>,
+  );
+}
 
+describe("dataPartRenderers dispatch", () => {
   it("dispatches data-memory-retrieved to the correct component", () => {
-    render(
-      <DataPartRenderer
-        kind="data-memory-retrieved"
-        data={{
-          memories: [{ key: "k1", kind: "gene_set", name: "Kinases", score: 1 }],
-        }}
-      />,
-    );
+    renderPart("memory-retrieved", {
+      memories: [{ key: "k1", kind: "gene_set", name: "Kinases", score: 1 }],
+    });
     expect(screen.getByTestId("data-memory-retrieved")).toBeInTheDocument();
   });
 
   it("renders nothing for a task part the started card owns", () => {
-    const { container } = render(
-      <DataPartRenderer
-        kind="data-task-completed"
-        data={{ taskId: "t1", status: "success" }}
-      />,
-    );
+    const { container } = renderPart("task-completed", {
+      taskId: "t1",
+      status: "success",
+    });
     expect(container.innerHTML).toBe("");
   });
 
   it("dispatches data-strategy-link to the correct component", () => {
-    render(
-      <DataPartRenderer
-        kind="data-strategy-link"
-        data={{
-          strategyId: "s1",
-          url: "https://plasmodb.org/s1",
-          title: "Test",
-        }}
-      />,
-    );
+    renderPart("strategy-link", {
+      strategyId: "s1",
+      url: "https://plasmodb.org/s1",
+      title: "Test",
+    });
     expect(screen.getByTestId("data-strategy-link")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Test" })).toBeInTheDocument();
   });
 
   it("dispatches data-gene-set to the correct component", () => {
-    render(
-      <DataPartRenderer
-        kind="data-gene-set"
-        data={{
-          geneSetId: "gs1",
-          name: "Test Set",
-          geneCount: 42,
-          siteId: "plasmodb",
-        }}
-      />,
-    );
+    renderPart("gene-set", {
+      geneSetId: "gs1",
+      name: "Test Set",
+      geneCount: 42,
+      siteId: "plasmodb",
+    });
     expect(screen.getByTestId("data-gene-set")).toBeInTheDocument();
   });
 });

@@ -29,7 +29,7 @@ for node in nodes[1:]:
 That can only produce a left spine. Meanwhile:
 
 - `StructureNode` already carried `inputs: list[StructureNode]` -- a general tree;
-- `operational_spec_to_step_tree` already recursed on **both** primary and secondary inputs;
+- `build_step_tree` already recursed on **both** primary and secondary inputs;
 - WDK step trees carry a primary **and** a secondary input, which `CLAUDE.md` lists as non-negotiable.
 
 So the domain, the seam and WDK could all express a nested branch. Only the tool could not. FRAME's own instruction even told the model to "UNION them into one branch first, then INTERSECT that branch with the others" -- asking for a shape its tool could not encode.
@@ -56,4 +56,4 @@ The union of 87 and 128 giving 134 is only possible if the two kinase sets were 
 
 # Anchor
 
-`set_structure` in `ai/tools/standalone/frame_spec.py`. Guarded by `TestNestedBranches` in `tests/unit/ai/agents/test_frame_toolset.py` and `TestNestedBranchesReachWdk` in `tests/unit/domain/strategy/test_operational_spec.py`, which pins that the branch survives all the way to the WDK step tree.
+`set_structure` in `ai/tools/standalone/frame_spec.py`. Guarded by `TestNestedBranches` in `tests/unit/ai/tools/test_frame_structure.py` and `TestNestedBranchesReachWdk` in `tests/unit/domain/strategy/test_operational_spec.py`, which pins that the branch survives all the way to the WDK step tree.

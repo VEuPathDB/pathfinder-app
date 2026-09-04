@@ -6,13 +6,10 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 
 from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.domain.strategy.ast import (
-    COMBINE_SEARCH_NAME,
-    StrategyStepNode,
-    deep_clone_with_fresh_ids,
-)
+from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.ops import CombineOp
+from pathfinder.domain.strategy.tree import clone_with_fresh_ids
 
 CriterionRole = Literal["seed", "filter", "transform", "exclude"]
 _MIN_COMBINE_INPUTS = 2
@@ -145,13 +142,6 @@ class SpecTree(NamedTuple):
     step_id_by_criterion: dict[str, str]
 
 
-def operational_spec_to_step_tree(spec: OperationalSpec) -> StrategyStepNode:
-    """Pure FRAME→BUILD seam: convert the spec's structure into the declarative
-    builder's ``StrategyStepNode`` tree. Raises if any referenced criterion is
-    missing or unbound."""
-    return build_step_tree(spec).root
-
-
 def build_step_tree(spec: OperationalSpec) -> SpecTree:
     """Convert the spec and report the step id it minted for each criterion."""
     if spec.structure is None:
@@ -208,7 +198,7 @@ def _node_to_step(
     if node.kind == "leaf":
         crit = _bound_criterion(node, by_id, "criterion")
         if crit.saved_strategy_ref is not None:
-            saved_step = deep_clone_with_fresh_ids(crit.saved_strategy_ref.subtree)
+            saved_step = clone_with_fresh_ids(crit.saved_strategy_ref.subtree)
             minted[crit.id] = saved_step.id
             return saved_step
         step = StrategyStepNode(

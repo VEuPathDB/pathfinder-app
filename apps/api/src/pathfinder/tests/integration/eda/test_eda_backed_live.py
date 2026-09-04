@@ -20,7 +20,10 @@ _MIN_COMPUTE_BACKED = 50
 
 async def test_the_predicate_finds_far_more_than_a_name_filter(
     require_wdk_creds: str,
+    patch_app_db_engine: None,
 ) -> None:
+    """The search catalog is indexed in Postgres, so the census reads it there."""
+    del patch_app_db_engine
     handle = veupathdb_auth_token_ctx.set(require_wdk_creds)
     try:
         searches = await get_raw_searches("plasmodb", "transcript")
@@ -34,7 +37,9 @@ async def test_the_predicate_finds_far_more_than_a_name_filter(
 
 async def test_the_compute_backed_searches_are_the_majority(
     require_wdk_creds: str,
+    patch_app_db_engine: None,
 ) -> None:
+    del patch_app_db_engine
     handle = veupathdb_auth_token_ctx.set(require_wdk_creds)
     try:
         described = await list_eda_backed("plasmodb", "transcript")
@@ -46,7 +51,9 @@ async def test_the_compute_backed_searches_are_the_majority(
 
 async def test_exactly_one_search_declares_the_spec_and_never_reads_it(
     require_wdk_creds: str,
+    patch_app_db_engine: None,
 ) -> None:
+    del patch_app_db_engine
     handle = veupathdb_auth_token_ctx.set(require_wdk_creds)
     try:
         described = await list_eda_backed("plasmodb", "transcript")

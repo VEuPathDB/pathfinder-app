@@ -1,4 +1,4 @@
-import type { StepParameters } from "@/lib/strategyGraph/types";
+import type { StepParameters } from "@/lib/types/stepParameters";
 
 export function buildContextValues(
   values: StepParameters,

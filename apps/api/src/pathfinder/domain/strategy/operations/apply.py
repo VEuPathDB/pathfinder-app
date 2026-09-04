@@ -9,7 +9,6 @@ from pathfinder.domain.strategy.graph_model import (
     StepKind,
     StrategyStep,
     flatten_tree,
-    subtree_ids,
 )
 from pathfinder.domain.strategy.operations._delete import (
     _apply_delete_edge,
@@ -44,6 +43,7 @@ from pathfinder.domain.strategy.operations.types import (
 )
 from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.tree import subtree_ids
 
 
 def apply_operation(graph: StrategyGraph, op: GraphOperation) -> ApplyResult:
@@ -129,7 +129,7 @@ def _apply_add_transform(graph: StrategyGraph, op: AddTransformOp) -> ApplyResul
     transform = _step_from_node(op.step, StepKind.TRANSFORM)
     transform.primary_input_id = op.input_id
     consumer_info = (
-        graph.find_parent(op.input_id) if op.mode == "before-consumer" else (None)
+        graph.parent_of(op.input_id) if op.mode == "before-consumer" else (None)
     )
     graph.steps[transform.id] = transform
     if consumer_info is not None:
@@ -144,7 +144,7 @@ def _apply_add_transform(graph: StrategyGraph, op: AddTransformOp) -> ApplyResul
 def _apply_replace_subtree(graph: StrategyGraph, op: ReplaceSubtreeOp) -> ApplyResult:
     _require(graph, op.step_id, "step")
     old_ids = set(subtree_ids(op.step_id, graph.steps))
-    parent_info = graph.find_parent(op.step_id)
+    parent_info = graph.parent_of(op.step_id)
 
     try:
         incoming = flatten_tree(op.subtree)
@@ -245,7 +245,7 @@ def _apply_duplicate_step(
         display_name=op.combine_display_name,
     )
 
-    parent_info = graph.find_parent(op.source_step_id)
+    parent_info = graph.parent_of(op.source_step_id)
     graph.steps[duplicate.id] = duplicate
     graph.steps[combine.id] = combine
     if parent_info is not None:

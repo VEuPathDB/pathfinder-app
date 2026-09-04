@@ -8,6 +8,7 @@ Handles WDK transcript ID version suffixes (e.g. "GENE.1" -> "GENE").
 from assistant_core.platform.types import JSONObject
 
 from pathfinder.integrations.veupathdb.wdk_models import WDKRecordInstance
+from pathfinder.services.experiment.types.core import Classification
 from pathfinder.services.wdk.helpers import extract_pk
 
 
@@ -38,7 +39,7 @@ def _classify_gene_id(
     fp_ids: set[str],
     fn_ids: set[str],
     tn_ids: set[str],
-) -> str | None:
+) -> Classification | None:
     """Return the classification label for a single gene ID, or ``None``."""
     if not gene_id:
         return None

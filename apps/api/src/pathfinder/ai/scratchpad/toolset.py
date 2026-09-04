@@ -18,7 +18,9 @@ from pathfinder.ai.scratchpad.tools import (
     unpin_note,
     update_note,
 )
-from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
+from pathfinder.services.conversations.scratchpad_service import (
+    ScratchpadNotebook,
+)
 
 _EMPTY_SCRATCHPAD_HIDDEN = frozenset(
     {
@@ -70,9 +72,7 @@ async def _prepare_scratchpad_tools(
     conversation_id = ctx.deps.conversation_id
     if factory is None or conversation_id is None:
         return tool_defs
-    async with factory() as session:
-        repo = ScratchpadRepository(session)
-        total, _ = await repo.totals(conversation_id=conversation_id)
+    total = await ScratchpadNotebook(factory, conversation_id).total_notes()
     if total == 0:
         return [td for td in tool_defs if td.name not in _EMPTY_SCRATCHPAD_HIDDEN]
     loop_hidden = _loop_hidden_read_tools(ctx)

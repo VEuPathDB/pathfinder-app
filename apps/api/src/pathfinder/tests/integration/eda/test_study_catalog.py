@@ -40,9 +40,9 @@ async def wired(
     db_cleaner: None,
 ) -> AsyncGenerator[EdaClient]:
     del patch_app_db_engine, db_cleaner
-    catalog.clear_study_caches()
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(_route))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(_route)
+    )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     token = veupathdb_auth_token_ctx.set("t")
     await sync_study_index(await catalog.list_studies("plasmodb"))
@@ -100,15 +100,15 @@ async def test_a_countable_study_that_refuses_rows_says_so_on_its_card(
 ) -> None:
     """A study can be fully countable and refuse rows with a 403."""
     del patch_app_db_engine, db_cleaner
-    catalog.clear_study_caches()
 
     def route(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/permissions"):
             return httpx.Response(200, json=_SPLIT_AXES)
         return _route(request)
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(route))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(route)
+    )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     token = veupathdb_auth_token_ctx.set("t")
     try:
@@ -131,7 +131,6 @@ async def test_a_study_absent_from_permissions_is_dropped_from_the_cards(
 ) -> None:
     """A study the account cannot see resolves to nothing, so it is not offered."""
     del patch_app_db_engine, db_cleaner
-    catalog.clear_study_caches()
 
     def route(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/permissions"):
@@ -140,8 +139,9 @@ async def test_a_study_absent_from_permissions_is_dropped_from_the_cards(
             return httpx.Response(200, json=_fixture("studies_list.json"))
         return httpx.Response(404, json={"status": "not-found"})
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(route))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(route)
+    )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     token = veupathdb_auth_token_ctx.set("t")
     try:
@@ -159,15 +159,15 @@ async def test_the_catalog_is_fetched_once_per_site(
     db_cleaner: None,
 ) -> None:
     del patch_app_db_engine, db_cleaner
-    catalog.clear_study_caches()
     calls: list[str] = []
 
     def route(request: httpx.Request) -> httpx.Response:
         calls.append(request.url.path)
         return _route(request)
 
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(httpx.MockTransport(route))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(route)
+    )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     token = veupathdb_auth_token_ctx.set("t")
     try:

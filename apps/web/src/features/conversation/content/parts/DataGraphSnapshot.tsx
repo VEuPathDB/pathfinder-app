@@ -1,6 +1,6 @@
 import type { GraphSnapshot } from "@pathfinder/shared";
 
-import { Figure } from "@/lib/components/thread/Figure";
+import { Figure } from "@/features/conversation/thread/Figure";
 
 export function DataGraphSnapshot({ data }: { data: GraphSnapshot }) {
   const stepCount = data.nodes.length;

@@ -6,9 +6,9 @@ from collections.abc import Sequence
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
-from shared_py.stream_parts.eda import EdaAnalysisState
 
 from pathfinder.domain.eda import find_gene_entity
+from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.integrations.eda.factory import get_eda_analyses_client
 from pathfinder.integrations.eda.models import (
     EdaAnalysisDetail,

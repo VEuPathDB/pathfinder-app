@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import type { ModelCatalogEntry, ModelProvider } from "@pathfinder/shared";
+import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
 import { Modal } from "@/lib/components/Modal";
 import { ProviderIcon } from "@/lib/components/ProviderIcon";
-import { useModelCatalogQuery } from "@/lib/query/hooks/useModelCatalogQuery";
-import { formatCompactClean, formatPrice } from "@/lib/utils/format";
+import { formatCompactClean, formatPrice } from "@/features/settings/format";
 import { PROVIDER_TABS } from "@/lib/models/providerMeta";
 
 type SortKey =
@@ -44,7 +45,7 @@ export function ModelCatalogModal({
   onOpenChange,
   onSelect,
 }: ModelCatalogModalProps) {
-  const { data } = useModelCatalogQuery();
+  const { data } = useQuery(listModelsQueryOptions());
   const catalog = data?.models ?? [];
   const [providerFilter, setProviderFilter] = useState<"all" | ModelProvider>("all");
   const [sortKey, setSortKey] = useState<SortKey>("inputPrice");

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import type { MemoryEditRequest, MemoryItem } from "@pathfinder/shared";
 
-import { Input } from "@/lib/components/ui/Input";
+import { Input } from "@/components/ui/input";
 
 interface MemoryEditorProps {
   open: boolean;

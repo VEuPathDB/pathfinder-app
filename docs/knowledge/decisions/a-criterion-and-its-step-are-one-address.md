@@ -16,8 +16,8 @@ exists. Two paths hold it up:
 - `spec_from_ast` keys each reconstructed criterion on the node's own id, so a
   thread the graph editor or a saved-strategy import produced addresses its own
   steps.
-- `operational_spec_to_step_tree` mints an id per node. `build_step_tree`
-  reports that mapping, and `build_strategy` writes
+- `build_step_tree` mints an id per node and reports that mapping, and
+  `build_strategy` writes
   `renumber_criteria(spec, mapping)` back into the state, so a spec FRAME
   authored with labels like `c1_protease_text` adopts the step ids the build
   produced.

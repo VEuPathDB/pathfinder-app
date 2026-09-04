@@ -1,11 +1,9 @@
 "use client";
 
-import type {
-  LedgerConstraintPayload,
-  LedgerConstraintsPayload,
-} from "@pathfinder/shared";
+import type { GroundedConstraint } from "@pathfinder/shared/generated/types/GroundedConstraint";
+import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
 
-import { type Tone } from "@/lib/utils/statusTone";
+import { type Tone } from "@/features/conversation/rail/statusTone";
 
 import {
   BoolBadge,
@@ -14,14 +12,14 @@ import {
   StatusPill,
 } from "./LedgerPanelPrimitives";
 
-const STATUS_TONE: Record<LedgerConstraintPayload["status"], Tone> = {
+const STATUS_TONE: Record<GroundedConstraint["status"], Tone> = {
   grounded: "good",
   provisional: "neutral",
   substituted: "warn",
   ungroundable: "bad",
 };
 
-function ConstraintRow({ entry }: { entry: LedgerConstraintPayload }) {
+function ConstraintRow({ entry }: { entry: GroundedConstraint }) {
   const { constraint } = entry;
   const realized = entry.realizedValue ?? "—";
   return (
@@ -36,7 +34,7 @@ function ConstraintRow({ entry }: { entry: LedgerConstraintPayload }) {
       <p className="text-muted-foreground">
         requested {constraint.requestedValue} → {realized}
       </p>
-      {entry.note !== "" && (
+      {entry.note != null && entry.note !== "" && (
         <p className="italic text-muted-foreground">{entry.note}</p>
       )}
     </div>
@@ -46,24 +44,25 @@ function ConstraintRow({ entry }: { entry: LedgerConstraintPayload }) {
 export function ConstraintsSection({
   constraints,
 }: {
-  constraints: LedgerConstraintsPayload;
+  constraints: InvestigationLedger["constraints"];
 }) {
+  const { blocking = false, unmetCount = 0, grounded = [] } = constraints ?? {};
   return (
     <LedgerSection title="Constraints">
-      <LedgerRow label="blocking" value={<BoolBadge value={constraints.blocking} />} />
+      <LedgerRow label="blocking" value={<BoolBadge value={blocking} />} />
       <LedgerRow
         label="unmet (user-explicit)"
         value={
           <StatusPill
-            text={String(constraints.unmetCount)}
-            tone={constraints.unmetCount > 0 ? "warn" : "neutral"}
+            text={String(unmetCount)}
+            tone={unmetCount > 0 ? "warn" : "neutral"}
           />
         }
       />
-      {constraints.grounded.length === 0 ? (
+      {grounded.length === 0 ? (
         <p className="ml-1 pl-2 text-[11px] italic text-muted-foreground">none</p>
       ) : (
-        constraints.grounded.map((entry) => (
+        grounded.map((entry) => (
           <ConstraintRow
             key={`${entry.constraint.kind}:${entry.constraint.label}`}
             entry={entry}

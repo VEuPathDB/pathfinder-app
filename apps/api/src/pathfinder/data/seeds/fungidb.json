@@ -1,0 +1,833 @@
+[
+  {
+    "control_set": {
+      "name": "A. fumigatus Antifungal Targets (curated)",
+      "negative_ids": [
+        "Afu1g03390",
+        "Afu1g04320",
+        "Afu1g04660",
+        "Afu1g05080",
+        "Afu1g05340",
+        "Afu1g05500",
+        "Afu1g05630",
+        "Afu1g05990",
+        "Afu1g06340",
+        "Afu1g06770",
+        "Afu1g06830",
+        "Afu1g09100",
+        "Afu1g09440",
+        "Afu1g10510",
+        "Afu1g11130"
+      ],
+      "positive_ids": [
+        "Afu1g12600",
+        "Afu2g01870",
+        "Afu2g13430",
+        "Afu2g13440",
+        "Afu3g14420",
+        "Afu4g04180",
+        "Afu1g15440",
+        "Afu2g11270",
+        "Afu3g00910",
+        "Afu4g06890",
+        "Afu1g03570",
+        "Afu1g03630",
+        "Afu1g05790",
+        "Afu1g09510",
+        "Afu1g09650"
+      ],
+      "provenance_notes": "Positives: chitin/glucan synthases, CYP51A azole target, and GPI-anchored cell wall proteins \u2014 validated antifungal targets. Negatives: ribosomal structural proteins \u2014 conserved housekeeping genes not suitable as drug targets.",
+      "tags": [
+        "drug-target",
+        "aspergillus",
+        "seed"
+      ]
+    },
+    "description": "Multi-step strategy to identify potential antifungal drug targets in A. fumigatus Af293. Combines cell wall enzymes (chitin/glucan synthases), ergosterol pathway genes (CYP51A), secreted proteins, and membrane-bound targets, excluding ribosomal housekeeping genes.",
+    "name": "AfAf293 Antifungal Targets",
+    "record_type": "transcript",
+    "site_id": "fungidb",
+    "step_tree": {
+      "displayName": "Drug Targets minus Housekeeping",
+      "id": "root_minus_ribosomal",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Secreted Drug Targets",
+        "id": "secreted_targets",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Secreted Cell Wall Enzymes",
+          "id": "secreted_cell_wall",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "All Cell Wall Enzymes",
+            "id": "cell_wall_all",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Chitin + Glucan Synthases",
+              "id": "chitin_glucan",
+              "operator": "UNION",
+              "primaryInput": {
+                "displayName": "Chitin Synthases",
+                "id": "leaf_chitin",
+                "parameters": {
+                  "document_type": "gene",
+                  "text_expression": "\"chitin synthase\"",
+                  "text_fields": "[\"product\"]",
+                  "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+                },
+                "searchName": "GenesByText"
+              },
+              "secondaryInput": {
+                "displayName": "Glucan Synthases",
+                "id": "leaf_glucan",
+                "parameters": {
+                  "document_type": "gene",
+                  "text_expression": "\"glucan synthase\"",
+                  "text_fields": "[\"product\"]",
+                  "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+                },
+                "searchName": "GenesByText"
+              }
+            },
+            "secondaryInput": {
+              "displayName": "GPI-anchored Proteins",
+              "id": "leaf_gpi",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "GPI-anchored",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_signal_1",
+            "parameters": {
+              "organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Membrane CYP450 Targets",
+          "id": "membrane_targets",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Cytochrome P450s",
+            "id": "leaf_cyp450",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "\"cytochrome P450\"",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Transmembrane Proteins (>=1 TM)",
+            "id": "leaf_tm",
+            "parameters": {
+              "max_tm": "20",
+              "min_tm": "1",
+              "organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByTransmembraneDomains"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal Proteins (excluded)",
+        "id": "leaf_ribosomal",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "\"ribosomal protein\"",
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "A. fumigatus Virulence Factors (curated)",
+      "negative_ids": [
+        "Afu1g03390",
+        "Afu1g04320",
+        "Afu1g04660",
+        "Afu1g05080",
+        "Afu1g05340",
+        "Afu1g05500",
+        "Afu1g05630",
+        "Afu1g05990",
+        "Afu1g06340",
+        "Afu1g06770",
+        "Afu1g06830",
+        "Afu1g09100",
+        "Afu1g09440",
+        "Afu1g10510",
+        "Afu1g11130",
+        "Afu1g11710",
+        "Afu1g12890",
+        "Afu1g14410",
+        "Afu1g14750",
+        "Afu1g15020"
+      ],
+      "positive_ids": [
+        "Afu1g07160",
+        "Afu1g15920",
+        "Afu2g02680",
+        "Afu2g03400",
+        "Afu2g04720",
+        "Afu2g05590",
+        "Afu2g11740",
+        "Afu2g14130",
+        "Afu2g00200",
+        "Afu2g18030",
+        "Afu3g02270",
+        "Afu1g11640",
+        "Afu1g14550",
+        "Afu2g09700",
+        "Afu1g01120",
+        "Afu1g03060",
+        "Afu1g14050",
+        "Afu2g03830",
+        "Afu1g11180",
+        "Afu1g17370",
+        "Afu2g16020",
+        "Afu3g14540"
+      ],
+      "provenance_notes": "Positives: secreted proteases, catalases, SODs, allergens, and heat shock proteins \u2014 known virulence determinants in invasive aspergillosis. Negatives: ribosomal structural proteins \u2014 housekeeping genes.",
+      "tags": [
+        "virulence",
+        "aspergillus",
+        "seed"
+      ]
+    },
+    "description": "Strategy identifying virulence determinants in A. fumigatus Af293. Combines pathogenesis-annotated genes (GO:0009405), secreted proteases, oxidative stress response (GO:0006979), and allergens to capture the molecular arsenal enabling invasive aspergillosis.",
+    "name": "AfAf293 Virulence Factors",
+    "record_type": "transcript",
+    "site_id": "fungidb",
+    "step_tree": {
+      "displayName": "All Virulence Factors",
+      "id": "root_virulence",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Pathogenesis + Secreted Proteases",
+        "id": "pathogen_secreted",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "GO: Pathogenesis",
+          "id": "leaf_pathogenesis",
+          "parameters": {
+            "go_term": "GO:0009405",
+            "go_term_evidence": "Computed",
+            "go_term_slim": "No",
+            "go_typeahead": "GO:0009405",
+            "organism": "[\"Aspergillus fumigatus Af293\"]"
+          },
+          "searchName": "GenesByGoTerm"
+        },
+        "secondaryInput": {
+          "displayName": "Secreted Proteases",
+          "id": "secreted_proteases",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Proteases",
+            "id": "leaf_proteases",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "protease",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_signal_2",
+            "parameters": {
+              "organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Stress + Thermotolerance",
+        "id": "stress_allergen",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "GO: Oxidative Stress Response",
+          "id": "leaf_oxidative",
+          "parameters": {
+            "go_term": "GO:0006979",
+            "go_term_evidence": "Computed",
+            "go_term_slim": "No",
+            "go_typeahead": "GO:0006979",
+            "organism": "[\"Aspergillus fumigatus Af293\"]"
+          },
+          "searchName": "GenesByGoTerm"
+        },
+        "secondaryInput": {
+          "displayName": "Heat Shock Proteins",
+          "id": "leaf_heat_shock",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "\"heat shock\"",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+          },
+          "searchName": "GenesByText"
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "A. fumigatus Secondary Metabolites (curated)",
+      "negative_ids": [
+        "Afu1g03390",
+        "Afu1g04320",
+        "Afu1g04660",
+        "Afu1g05080",
+        "Afu1g05340",
+        "Afu1g05500",
+        "Afu1g05630",
+        "Afu1g05990",
+        "Afu1g06340",
+        "Afu1g06770",
+        "Afu1g06830",
+        "Afu1g09100",
+        "Afu1g09440",
+        "Afu1g10510",
+        "Afu1g11130",
+        "Afu1g11710",
+        "Afu1g12890",
+        "Afu1g14410"
+      ],
+      "positive_ids": [
+        "Afu6g09630",
+        "Afu6g09640",
+        "Afu6g09650",
+        "Afu6g09660",
+        "Afu6g09670",
+        "Afu6g09680",
+        "Afu2g17530",
+        "Afu2g17540",
+        "Afu2g17550",
+        "Afu2g17560",
+        "Afu1g05180",
+        "Afu1g09600",
+        "Afu1g10380",
+        "Afu1g12240",
+        "Afu1g15280",
+        "Afu1g17200",
+        "Afu8g00370",
+        "Afu8g00380",
+        "Afu8g00390"
+      ],
+      "provenance_notes": "Positives: gliotoxin cluster genes, melanin biosynthesis, NRPS enzymes, and fumagillin cluster \u2014 confirmed secondary metabolite pathway components. Negatives: ribosomal structural proteins.",
+      "tags": [
+        "secondary-metabolite",
+        "aspergillus",
+        "seed"
+      ]
+    },
+    "description": "Comprehensive secondary metabolite gene strategy for A. fumigatus Af293. UNION of NRPS, polyketide synthase, and terpene synthase gene families, plus CYP450 tailoring enzymes, MINUS ribosomal genes.",
+    "name": "AfAf293 Secondary Metabolites",
+    "record_type": "transcript",
+    "site_id": "fungidb",
+    "step_tree": {
+      "displayName": "Secondary Metabolites (clean)",
+      "id": "root_sm_clean",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "SM Backbone + Tailoring Enzymes",
+        "id": "sm_backbone_regulated",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "All SM Backbone Enzymes",
+          "id": "all_backbone",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "NRPS + PKS",
+            "id": "nrps_pks",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Nonribosomal Peptide Synthetases",
+              "id": "leaf_nrps",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "\"nonribosomal peptide\"",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Polyketide Synthases",
+              "id": "leaf_pks",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "\"polyketide synthase\"",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Terpene Synthases",
+            "id": "leaf_terpene",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "terpene",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Cytochrome P450s (tailoring)",
+          "id": "leaf_cyp450_sm",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "\"cytochrome P450\"",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal Proteins (excluded)",
+        "id": "leaf_ribosomal_2",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "\"ribosomal protein\"",
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "A. fumigatus Cell Wall Machinery (curated)",
+      "negative_ids": [
+        "Afu1g03390",
+        "Afu1g04320",
+        "Afu1g04660",
+        "Afu1g05080",
+        "Afu1g05340",
+        "Afu1g05500",
+        "Afu1g05630",
+        "Afu1g05990",
+        "Afu1g06340",
+        "Afu1g06770",
+        "Afu1g06830",
+        "Afu1g09100",
+        "Afu1g09440",
+        "Afu1g10510",
+        "Afu1g11130",
+        "Afu1g11710",
+        "Afu1g12890",
+        "Afu1g14410"
+      ],
+      "positive_ids": [
+        "Afu1g12600",
+        "Afu2g01870",
+        "Afu2g13430",
+        "Afu2g13440",
+        "Afu3g14420",
+        "Afu1g15440",
+        "Afu2g11270",
+        "Afu3g00910",
+        "Afu1g03570",
+        "Afu1g03630",
+        "Afu1g05790",
+        "Afu1g09510",
+        "Afu1g09650",
+        "Afu1g10590",
+        "Afu1g01380",
+        "Afu1g06890",
+        "Afu1g07690",
+        "Afu1g14140"
+      ],
+      "provenance_notes": "Positives: chitin/glucan synthases, GPI-anchored proteins, and mannosyltransferases \u2014 core cell wall biosynthetic machinery. Negatives: ribosomal structural proteins.",
+      "tags": [
+        "cell-wall",
+        "aspergillus",
+        "seed"
+      ]
+    },
+    "description": "Complete cell wall biosynthetic machinery in A. fumigatus Af293. Combines GO:0005618 (cell wall localization) with text-based searches for chitin/glucan synthases, GPI-anchored proteins, and mannosyltransferases, all filtered by signal peptide.",
+    "name": "AfAf293 Cell Wall Machinery",
+    "record_type": "transcript",
+    "site_id": "fungidb",
+    "step_tree": {
+      "displayName": "Secreted Cell Wall Machinery",
+      "id": "root_cw_secreted",
+      "operator": "INTERSECT",
+      "primaryInput": {
+        "displayName": "All Cell Wall Genes",
+        "id": "all_cw_genes",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Core Synthases + GO",
+          "id": "core_cw",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "GO: Cell Wall",
+            "id": "leaf_cw_go",
+            "parameters": {
+              "go_term": "GO:0005618",
+              "go_term_evidence": "Computed",
+              "go_term_slim": "No",
+              "go_typeahead": "GO:0005618",
+              "organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          },
+          "secondaryInput": {
+            "displayName": "Chitin + Glucan Synthases",
+            "id": "synthases",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Chitin Synthases",
+              "id": "leaf_chitin_2",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "\"chitin synthase\"",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Glucan Synthases",
+              "id": "leaf_glucan_2",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "\"glucan synthase\"",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          }
+        },
+        "secondaryInput": {
+          "displayName": "GPI + Mannosyltransferases",
+          "id": "modification_enzymes",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "GPI-anchored Proteins",
+            "id": "leaf_gpi_2",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "GPI-anchored",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Mannosyltransferases",
+            "id": "leaf_mannosyl",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "mannosyltransferase",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByText"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Signal Peptide",
+        "id": "leaf_signal_3",
+        "parameters": {
+          "organism": "[\"Aspergillus fumigatus Af293\"]"
+        },
+        "searchName": "GenesWithSignalPeptide"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "A. fumigatus Azole Resistance (curated)",
+      "negative_ids": [
+        "Afu1g03390",
+        "Afu1g04320",
+        "Afu1g04660",
+        "Afu1g05080",
+        "Afu1g05340",
+        "Afu1g05500",
+        "Afu1g05630",
+        "Afu1g05990",
+        "Afu1g06340",
+        "Afu1g06770",
+        "Afu1g06830",
+        "Afu1g09100",
+        "Afu1g09440",
+        "Afu1g10510",
+        "Afu1g11130"
+      ],
+      "positive_ids": [
+        "Afu4g06890",
+        "Afu2g11550",
+        "Afu3g10490",
+        "Afu4g11500",
+        "Afu1g04780",
+        "Afu2g14020",
+        "Afu3g02760",
+        "Afu4g14130",
+        "Afu5g07020",
+        "Afu1g05760",
+        "Afu1g12620",
+        "Afu3g15250",
+        "Afu5g13170",
+        "Afu4g12040",
+        "Afu5g04080"
+      ],
+      "provenance_notes": "Positives: CYP51A azole target, ergosterol pathway enzymes, ABC transporters, efflux pumps, and lanosterol biosynthesis \u2014 known azole resistance mechanisms. Negatives: ribosomal structural proteins.",
+      "tags": [
+        "azole-resistance",
+        "aspergillus",
+        "seed"
+      ]
+    },
+    "description": "Azole resistance mechanisms in A. fumigatus Af293. UNION of ergosterol pathway, ABC/MFS efflux transporters, and CYP450 enzymes, INTERSECT with membrane proteins (>=1 TM domain). Captures CYP51A, efflux pumps, and sterol biosynthesis enzymes.",
+    "name": "AfAf293 Azole Resistance Network",
+    "record_type": "transcript",
+    "site_id": "fungidb",
+    "step_tree": {
+      "displayName": "Membrane Azole Resistance Genes",
+      "id": "root_azole",
+      "operator": "INTERSECT",
+      "primaryInput": {
+        "displayName": "Azole-related Genes",
+        "id": "azole_genes",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Ergosterol + CYP450",
+          "id": "erg_cyp",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Ergosterol Biosynthesis",
+            "id": "leaf_ergosterol",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "ergosterol",
+              "text_fields": "[\"product\", \"GOTerms\"]",
+              "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Cytochrome P450s",
+            "id": "leaf_cyp450_azole",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "\"cytochrome P450\"",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "ABC + Efflux Transporters",
+          "id": "all_transporters",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "ABC Transporters",
+            "id": "leaf_abc",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "\"ABC transporter\"",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Efflux Pumps",
+            "id": "leaf_efflux",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "efflux",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByText"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Transmembrane Proteins",
+        "id": "leaf_tm_azole",
+        "parameters": {
+          "max_tm": "20",
+          "min_tm": "1",
+          "organism": "[\"Aspergillus fumigatus Af293\"]"
+        },
+        "searchName": "GenesByTransmembraneDomains"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "A. fumigatus Iron & Redox Defense (curated)",
+      "negative_ids": [
+        "Afu1g03390",
+        "Afu1g04320",
+        "Afu1g04660",
+        "Afu1g05080",
+        "Afu1g05340",
+        "Afu1g05500",
+        "Afu1g05630",
+        "Afu1g05990",
+        "Afu1g06340",
+        "Afu1g06770",
+        "Afu1g06830",
+        "Afu1g09100",
+        "Afu1g09440",
+        "Afu1g10510",
+        "Afu1g11130",
+        "Afu1g11710"
+      ],
+      "positive_ids": [
+        "Afu2g00200",
+        "Afu2g18030",
+        "Afu3g02270",
+        "Afu1g11640",
+        "Afu1g14550",
+        "Afu2g09700",
+        "Afu2g05730",
+        "Afu3g03390",
+        "Afu3g03400",
+        "Afu3g03440",
+        "Afu2g07680",
+        "Afu5g03920",
+        "Afu5g11260",
+        "Afu1g01370",
+        "Afu1g06100",
+        "Afu1g09090"
+      ],
+      "provenance_notes": "Positives: catalases, SODs, siderophore biosynthesis genes, iron homeostasis regulators (sidA, hapX, sreA), and glutathione system \u2014 virulence-relevant oxidative defense. Negatives: ribosomal structural proteins.",
+      "tags": [
+        "iron",
+        "redox",
+        "virulence",
+        "aspergillus",
+        "seed"
+      ]
+    },
+    "description": "Iron acquisition and oxidative stress defense in A. fumigatus Af293. UNION of siderophore biosynthesis, iron metabolism, catalases, SODs, and glutathione/thioredoxin defense systems. INTERSECT with pathogenesis (GO:0009405) to identify virulence-relevant redox defense.",
+    "name": "AfAf293 Iron and Redox Defense",
+    "record_type": "transcript",
+    "site_id": "fungidb",
+    "step_tree": {
+      "displayName": "Pathogenic Iron & Redox Genes",
+      "id": "root_iron_redox",
+      "operator": "INTERSECT",
+      "primaryInput": {
+        "displayName": "Iron + Redox Defense",
+        "id": "all_iron_redox",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Iron Acquisition",
+          "id": "iron_system",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Siderophore Biosynthesis",
+            "id": "leaf_siderophore",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "siderophore",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Iron Metabolism",
+            "id": "leaf_iron",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "iron",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Redox Defense Systems",
+          "id": "redox_defense",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Catalases + SODs",
+            "id": "cat_sod",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Catalases",
+              "id": "leaf_catalase",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "catalase",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Superoxide Dismutases",
+              "id": "leaf_sod",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "\"superoxide dismutase\"",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Aspergillus fumigatus Af293\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "GO: Oxidative Stress",
+            "id": "leaf_oxidative_stress",
+            "parameters": {
+              "go_term": "GO:0006979",
+              "go_term_evidence": "Computed",
+              "go_term_slim": "No",
+              "go_typeahead": "GO:0006979",
+              "organism": "[\"Aspergillus fumigatus Af293\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "GO: Pathogenesis",
+        "id": "leaf_pathogenesis_2",
+        "parameters": {
+          "go_term": "GO:0009405",
+          "go_term_evidence": "Computed",
+          "go_term_slim": "No",
+          "go_typeahead": "GO:0009405",
+          "organism": "[\"Aspergillus fumigatus Af293\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  }
+]

@@ -8,10 +8,6 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from sqlalchemy import select
 
-from pathfinder.ai.tools.standalone._experiment_models import (
-    DownloadLinks,
-    StepControlTestResult,
-)
 from pathfinder.jobs.impls import control_tests_impl, register_all_tools
 from pathfinder.jobs.impls.control_tests_impl import (
     run_control_tests_on_step_impl,
@@ -24,6 +20,7 @@ from pathfinder.persistence.repositories.background_tasks import (
     BackgroundTaskRepository,
     NewBackgroundTask,
 )
+from pathfinder.services.tool_payloads import ControlOutcome, DownloadLinks
 
 
 async def _seed_user_chat(user_id: UUID, conversation_id: UUID) -> None:
@@ -47,11 +44,11 @@ async def _fake_run_step(
     wdk_step_id: int,
     positive_controls: list[str] | None = None,
     negative_controls: list[str] | None = None,
-) -> StepControlTestResult:
+) -> ControlOutcome:
     del site_id
     pos = positive_controls or []
     neg = negative_controls or []
-    return StepControlTestResult(
+    return ControlOutcome(
         step_id=wdk_step_id,
         estimated_size=100,
         positive_intersection=len(pos),
@@ -66,9 +63,7 @@ async def _fake_run_step(
     )
 
 
-async def _fake_export(
-    result: StepControlTestResult, name: str
-) -> StepControlTestResult:
+async def _fake_export(result: ControlOutcome, name: str) -> ControlOutcome:
     del name
     result.downloads = DownloadLinks(
         json_url="https://example/export.json",
@@ -99,8 +94,8 @@ async def test_control_tests_impl_emits_progress_and_returns_dict(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     del db_cleaner, patch_app_db_engine
-    monkeypatch.setattr(control_tests_impl, "_run_step_control_tests", _fake_run_step)
-    monkeypatch.setattr(control_tests_impl, "_export_step_control_result", _fake_export)
+    monkeypatch.setattr(control_tests_impl, "run_step_control_tests", _fake_run_step)
+    monkeypatch.setattr(control_tests_impl, "attach_control_downloads", _fake_export)
 
     user_id = uuid4()
     conversation_id = uuid4()
@@ -171,8 +166,8 @@ async def test_run_durable_task_wiring_control_tests_end_to_end(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     del db_cleaner, patch_app_db_engine
-    monkeypatch.setattr(control_tests_impl, "_run_step_control_tests", _fake_run_step)
-    monkeypatch.setattr(control_tests_impl, "_export_step_control_result", _fake_export)
+    monkeypatch.setattr(control_tests_impl, "run_step_control_tests", _fake_run_step)
+    monkeypatch.setattr(control_tests_impl, "attach_control_downloads", _fake_export)
     register_all_tools()
 
     user_id = uuid4()

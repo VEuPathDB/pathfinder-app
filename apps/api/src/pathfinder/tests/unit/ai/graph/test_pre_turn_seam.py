@@ -16,7 +16,6 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import pathfinder.ai.graph.lead_node as lead_node_mod
-from pathfinder.ai.graph.builder import build_graph
 from pathfinder.ai.graph.lead_node import make_lead_node
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
@@ -107,14 +106,10 @@ def test_the_turn_node_names_no_wdk_symbol() -> None:
     assert WDK_NAMES & set(vars(lead_node_mod)) == set()
 
 
-def test_the_graph_is_built_with_a_pre_turn_hook() -> None:
-    params = inspect.signature(build_graph).parameters
+def test_the_node_factory_takes_the_hook() -> None:
+    params = inspect.signature(make_lead_node).parameters
     assert "pre_turn" in params
     assert params["pre_turn"].default is inspect.Parameter.empty
-
-
-def test_the_node_factory_takes_the_hook() -> None:
-    assert "pre_turn" in inspect.signature(make_lead_node).parameters
 
 
 async def test_the_hook_marks_a_build_stale_against_the_live_counts(
@@ -123,7 +118,7 @@ async def test_the_hook_marks_a_build_stale_against_the_live_counts(
     api = AsyncMock()
     api.get_strategy = AsyncMock(return_value=_details({11: 587}))
     monkeypatch.setattr(
-        "pathfinder.ai.lead.pre_turn.get_strategy_api",
+        "pathfinder.services.strategies.live_counts.get_strategy_api",
         lambda site_id: api,
     )
     state = _state()
@@ -142,7 +137,7 @@ async def test_the_hook_leaves_the_checkpointed_state_untouched(
     api = AsyncMock()
     api.get_strategy = AsyncMock(return_value=_details({11: 587}))
     monkeypatch.setattr(
-        "pathfinder.ai.lead.pre_turn.get_strategy_api",
+        "pathfinder.services.strategies.live_counts.get_strategy_api",
         lambda site_id: api,
     )
     state = _state()

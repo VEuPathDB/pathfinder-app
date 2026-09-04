@@ -11,7 +11,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from pathfinder.domain.parameters.value_codec import to_wire
-from pathfinder.domain.strategy.ast import StrategyStepNode, walk_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.ast_diff import (
     StepChange,
     StrategyAstDiff,
@@ -24,6 +24,7 @@ from pathfinder.domain.strategy.constraints import (
 )
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.services.conversations.thread_activity import (
     AnalysisDrift,
     FinishedTask,
@@ -195,9 +196,9 @@ def _statuses(
     requirements: list[Constraint],
     ast: StrategyAst,
 ) -> list[ConstraintStatus]:
-    nodes = list(walk_step_tree(ast.root))
+    nodes = list(walk(ast.root))
     for detached in ast.detached_roots:
-        nodes.extend(walk_step_tree(detached))
+        nodes.extend(walk(detached))
     values = _param_values(nodes)
     spec = spec_from_ast(ast, goal="")
     return [

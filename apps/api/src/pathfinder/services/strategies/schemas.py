@@ -71,10 +71,8 @@ def step_response_from_strategy_ast(
         parameters=step.parameters,
         operator=step.operator.value if step.operator else None,
         colocation_params=step.colocation_params,
-        primary_input_step_id=step.primary_input.id if step.primary_input else None,
-        secondary_input_step_id=step.secondary_input.id
-        if step.secondary_input
-        else None,
+        primary_input_step_id=step.primary_input_id,
+        secondary_input_step_id=step.secondary_input_id,
         estimated_size=counts.get(step.id),
         wdk_step_id=wdk_step_id,
         status=step_status(

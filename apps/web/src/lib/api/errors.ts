@@ -48,7 +48,7 @@ const wdkAuthRefusalSchema = z.object({
 });
 
 /** A refusal about which VEuPathDB account the request acts as. */
-export type WdkAuthRefusal = z.infer<typeof wdkAuthRefusalSchema>;
+type WdkAuthRefusal = z.infer<typeof wdkAuthRefusalSchema>;
 
 /**
  * The server's refusal when a route wants a VEuPathDB login or reports that the

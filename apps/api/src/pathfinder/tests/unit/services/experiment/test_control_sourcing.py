@@ -1,5 +1,5 @@
-"""Control-sourcing helpers: parse pasted/CSV blobs, validate IDs against WDK
-(split recognized vs typo'd), and pull IDs from a saved gene set.
+"""Control-sourcing helpers: validate IDs against WDK (split recognized vs
+typo'd), and pull IDs from a saved gene set.
 """
 
 from __future__ import annotations
@@ -13,28 +13,10 @@ import pytest
 from pathfinder.services.experiment import control_sourcing
 from pathfinder.services.experiment.control_sourcing import (
     control_ids_from_saved_gene_set,
-    parse_gene_id_blob,
     validate_control_ids,
 )
 from pathfinder.services.gene_lookup.result import GeneResult
 from pathfinder.services.gene_lookup.wdk import GeneResolveResult
-
-
-def test_parse_blob_handles_csv_tsv_newline_and_dedup() -> None:
-    raw = "gene_id\nPF3D7_0100100, PF3D7_0200200\tPF3D7_0300300\nPF3D7_0100100"
-    assert parse_gene_id_blob(raw) == [
-        "PF3D7_0100100",
-        "PF3D7_0200200",
-        "PF3D7_0300300",
-    ]
-
-
-def test_parse_blob_strips_quotes_and_empty() -> None:
-    assert parse_gene_id_blob("\"g1\"; 'g2';;  ") == ["g1", "g2"]
-
-
-def test_parse_blob_empty() -> None:
-    assert parse_gene_id_blob("   \n  ") == []
 
 
 @pytest.mark.asyncio

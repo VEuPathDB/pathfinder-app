@@ -1,7 +1,10 @@
+"""Formatting WDK parameter specs into the info objects the model reads."""
+
 from __future__ import annotations
 
 from typing import ClassVar
 
+from pathfinder.domain.parameters.specs import ParamSpecNormalized
 from pathfinder.domain.parameters.values import SinglePickValue
 from pathfinder.domain.parameters.wdk_vocab import (
     WDKFilterOntologyTerm,
@@ -17,36 +20,64 @@ from pathfinder.integrations.veupathdb.wdk_parameters import (
 )
 from pathfinder.services.catalog.param_formatting import (
     ParameterInfo,
+    format_normalized_param_info,
     format_param_info_typed,
     format_typed_param,
 )
 from pathfinder.services.catalog.vocab_rendering import _MAX_VOCAB_ENTRIES
 
+from .conftest import param_info, vocab_terms
 
-def _pi(param_type: str) -> ParameterInfo:
-    return ParameterInfo(
-        name="p",
-        display_name="P",
-        type=param_type,
-        required=True,
-        is_visible=True,
-        help="",
-        value_format="",
+_PHYLETIC_TERMS = vocab_terms(
+    ("ALL", "Root"),
+    ("EUKA", "Eukaryota"),
+    ("MAMM", "Mammalia"),
+    ("hsap", "Homo sapiens REF"),
+    ("pfal", "Plasmodium falciparum 3D7"),
+)
+_PHYLETIC_INDENTS = vocab_terms(
+    ("EUKA", "1"), ("MAMM", "2"), ("hsap", "3"), ("pfal", "2")
+)
+_PHYLETIC_HELP_SENTENCE = (
+    "Species or clade codes from the phyletic tree, comma-separated or a list; "
+    "a clade selects all of its species; profile_pattern is derived from these "
+    "two lists."
+)
+
+
+def _one_leaf_tree(term: str) -> WDKTreeBoxVocabNode:
+    return WDKTreeBoxVocabNode(
+        data=WDKVocabNodeData(term="root", display="root"),
+        children=[WDKTreeBoxVocabNode(data=WDKVocabNodeData(term=term, display=term))],
+    )
+
+
+def _samples(name: str) -> WDKEnumParam:
+    return WDKEnumParam(
+        name=name,
+        display_name="Samples",
+        type="multi-pick-vocabulary",
+        vocabulary=_one_leaf_tree("20 Hour"),
     )
 
 
 def test_param_kind_narrows_type_to_typed_paramkind() -> None:
-    assert _pi("multi-pick-vocabulary").param_kind == "multi-pick-vocabulary"
-    assert _pi("single-pick-vocabulary").param_kind == "single-pick-vocabulary"
-    assert _pi("number").param_kind == "number"
-    assert _pi("input-dataset").param_kind == "input-dataset"
+    kinds = [
+        "multi-pick-vocabulary",
+        "single-pick-vocabulary",
+        "number",
+        "input-dataset",
+    ]
+
+    assert [param_info("p", kind).param_kind for kind in kinds] == kinds
 
 
 def test_param_kind_falls_back_to_string_for_unknown_type() -> None:
     # The discriminator field `kind` must NOT be mistaken for the param kind.
-    pi = _pi("SomeUnnormalizedWdkType")
-    assert pi.kind == "parameter_info"
-    assert pi.param_kind == "string"
+    info = param_info("p", "SomeUnnormalizedWdkType")
+
+    assert info.kind == "parameter_info"
+    assert info.param_kind == "string"
 
 
 def test_filter_param_exposes_selectable_leaf_facets() -> None:
@@ -88,79 +119,47 @@ def test_filter_param_exposes_selectable_leaf_facets() -> None:
 class TestDependentParamNote:
     """The note must say which parent values produced the list it accompanies.
 
-    Naming the wrong context when the read inherited a bound
-    parent is a lie about provenance, and the model has no way to detect it: it
-    sees a plausible list of 46 time points either way.
+    Naming the wrong context when the read inherited a bound parent is a lie
+    about provenance, and the model sees a plausible list either way.
     """
-
-    @staticmethod
-    def _samples() -> WDKEnumParam:
-        return WDKEnumParam(
-            name="samples_percentile_generic",
-            display_name="Samples",
-            type="multi-pick-vocabulary",
-            vocabulary=WDKTreeBoxVocabNode(
-                data=WDKVocabNodeData(term="root", display="root"),
-                children=[
-                    WDKTreeBoxVocabNode(
-                        data=WDKVocabNodeData(term="20 Hour", display="20 Hour")
-                    )
-                ],
-            ),
-        )
 
     _DEPENDS: ClassVar[dict[str, list[str]]] = {
         "samples_percentile_generic": ["profileset_generic"]
     }
+    _APPLIED: ClassVar[dict[str, SinglePickValue]] = {
+        "profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed")
+    }
+
+    def _applied_note(self) -> str:
+        info = format_typed_param(
+            _samples("samples_percentile_generic"),
+            self._DEPENDS,
+            {},
+            applied_context=self._APPLIED,
+        )
+        assert info.note is not None
+        return info.note
 
     def test_names_the_applied_parent_value(self) -> None:
-        info = format_typed_param(
-            self._samples(),
-            self._DEPENDS,
-            {},
-            applied_context={
-                "profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed")
-            },
-        )
-
-        assert info.note is not None
-        assert "DeRisi 3D7 Smoothed" in info.note
+        assert "DeRisi 3D7 Smoothed" in self._applied_note()
 
     def test_does_not_claim_default_context_when_one_was_applied(self) -> None:
-        info = format_typed_param(
-            self._samples(),
-            self._DEPENDS,
-            {},
-            applied_context={
-                "profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed")
-            },
-        )
-
-        assert info.note is not None
-        assert "No parent value was supplied" not in info.note
+        assert "No parent value was supplied" not in self._applied_note()
 
     def test_warns_that_another_parent_yields_another_list(self) -> None:
-        info = format_typed_param(
-            self._samples(),
-            self._DEPENDS,
-            {},
-            applied_context={
-                "profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed")
-            },
-        )
-
-        assert info.note is not None
-        assert "DIFFERENT" in info.note
+        assert "DIFFERENT" in self._applied_note()
 
     def test_falls_back_to_the_default_context_wording(self) -> None:
-        info = format_typed_param(self._samples(), self._DEPENDS, {})
+        info = format_typed_param(
+            _samples("samples_percentile_generic"), self._DEPENDS, {}
+        )
 
         assert info.note is not None
         assert "No parent value was supplied" in info.note
 
     def test_ignores_context_for_parents_this_param_does_not_have(self) -> None:
         info = format_typed_param(
-            self._samples(),
+            _samples("samples_percentile_generic"),
             self._DEPENDS,
             {},
             applied_context={"organism": SinglePickValue(value="P. falciparum")},
@@ -170,12 +169,55 @@ class TestDependentParamNote:
         assert "No parent value was supplied" in info.note
 
 
+class TestAnUnqualifiedRead:
+    """A vocabulary read without parents names the defaults it was read under."""
+
+    _DEPENDS: ClassVar[dict[str, list[str]]] = {"samples": ["profileset"]}
+
+    def _default_note(self) -> str:
+        info = format_typed_param(
+            _samples("samples"),
+            self._DEPENDS,
+            {},
+            parent_defaults={"profileset": "DeRisi HB3 Smoothed"},
+        )
+        assert info.note is not None
+        return info.note
+
+    def test_the_note_names_the_parent_value_wdk_used(self) -> None:
+        assert "DeRisi HB3 Smoothed" in self._default_note()
+
+    def test_it_warns_that_another_parent_gives_another_list(self) -> None:
+        assert "DIFFERENT" in self._default_note()
+
+    def test_without_a_known_default_it_still_says_it_is_a_default(self) -> None:
+        info = format_typed_param(_samples("samples"), self._DEPENDS, {})
+
+        assert info.note is not None
+        assert "default" in info.note.lower()
+
+    def test_an_applied_context_still_names_what_was_applied(self) -> None:
+        info = format_typed_param(
+            _samples("samples"),
+            self._DEPENDS,
+            {},
+            applied_context={
+                "profileset": SinglePickValue(value="DeRisi 3D7 Smoothed")
+            },
+            parent_defaults={"profileset": "DeRisi HB3 Smoothed"},
+        )
+
+        assert info.note is not None
+        assert "DeRisi 3D7 Smoothed" in info.note
+        assert "DeRisi HB3 Smoothed" not in info.note
+
+
 class TestRequiredFollowsBothWdkSignals:
     """WDK marks a parameter mandatory with allowEmptyValue or minSelectedCount."""
 
     @staticmethod
-    def _param(*, allow_empty: bool, min_selected: int) -> WDKEnumParam:
-        return WDKEnumParam.model_validate(
+    def _required(*, allow_empty: bool, min_selected: int) -> bool:
+        param = WDKEnumParam.model_validate(
             {
                 "name": "organism",
                 "type": "multi-pick-vocabulary",
@@ -183,46 +225,16 @@ class TestRequiredFollowsBothWdkSignals:
                 "minSelectedCount": min_selected,
             }
         )
+        return format_typed_param(param, {}, {}).required
 
     def test_a_minimum_selection_makes_a_param_required(self) -> None:
-        param = self._param(allow_empty=True, min_selected=1)
-
-        assert format_typed_param(param, {}, {}).required is True
+        assert self._required(allow_empty=True, min_selected=1) is True
 
     def test_an_empty_value_is_allowed_when_nothing_must_be_selected(self) -> None:
-        param = self._param(allow_empty=True, min_selected=0)
-
-        assert format_typed_param(param, {}, {}).required is False
+        assert self._required(allow_empty=True, min_selected=0) is False
 
     def test_forbidding_an_empty_value_is_enough_on_its_own(self) -> None:
-        param = self._param(allow_empty=False, min_selected=0)
-
-        assert format_typed_param(param, {}, {}).required is True
-
-
-def _vocab_term(code: str, display: str) -> WDKVocabTerm:
-    return WDKVocabTerm((code, display, None))
-
-
-_PHYLETIC_TERMS = [
-    _vocab_term("ALL", "Root"),
-    _vocab_term("EUKA", "Eukaryota"),
-    _vocab_term("MAMM", "Mammalia"),
-    _vocab_term("hsap", "Homo sapiens REF"),
-    _vocab_term("pfal", "Plasmodium falciparum 3D7"),
-]
-_PHYLETIC_INDENTS = [
-    _vocab_term("EUKA", "1"),
-    _vocab_term("MAMM", "2"),
-    _vocab_term("hsap", "3"),
-    _vocab_term("pfal", "2"),
-]
-
-_PHYLETIC_HELP_SENTENCE = (
-    "Species or clade codes from the phyletic tree, comma-separated or a list; "
-    "a clade selects all of its species; profile_pattern is derived from these "
-    "two lists."
-)
+        assert self._required(allow_empty=False, min_selected=0) is True
 
 
 class TestThePhyleticListsCarryTheTree:
@@ -263,16 +275,7 @@ class TestThePhyleticListsCarryTheTree:
                 name="organism",
                 display_name="Organism",
                 type="multi-pick-vocabulary",
-                vocabulary=WDKTreeBoxVocabNode(
-                    data=WDKVocabNodeData(term="root", display="root"),
-                    children=[
-                        WDKTreeBoxVocabNode(
-                            data=WDKVocabNodeData(
-                                term="P. falciparum 3D7", display="P. falciparum 3D7"
-                            )
-                        )
-                    ],
-                ),
+                vocabulary=_one_leaf_tree("P. falciparum 3D7"),
             ),
         ]
         if with_term_map:
@@ -358,11 +361,11 @@ class TestTheFullTreeSurvivesTheWireCap:
 
     @classmethod
     def _big_sheet(cls) -> ParameterInfo:
-        terms = [_vocab_term("ALL", "Root"), _vocab_term("EUKA", "Eukaryota")]
-        indents = [_vocab_term("EUKA", "1")]
+        terms = vocab_terms(("ALL", "Root"), ("EUKA", "Eukaryota"))
+        indents = vocab_terms(("EUKA", "1"))
         for i in range(cls._LEAF_COUNT):
-            terms.append(_vocab_term(f"sp{i:02d}", f"Species {i}"))
-            indents.append(_vocab_term(f"sp{i:02d}", "2"))
+            terms += vocab_terms((f"sp{i:02d}", f"Species {i}"))
+            indents += vocab_terms((f"sp{i:02d}", "2"))
         params: list[WDKParameter] = [
             WDKStringParam(name="profile_pattern", is_visible=False),
             WDKStringParam(name="included_species", allow_empty_value=True),
@@ -396,3 +399,51 @@ class TestTheFullTreeSurvivesTheWireCap:
     def test_matching_still_sees_every_node(self) -> None:
         # The clade plus every species, uncapped, so a value the cap hid still binds.
         assert len(self._big_sheet().vocabulary()) == self._LEAF_COUNT + 1
+
+
+class TestFormatNormalizedParamInfo:
+    def test_it_emits_vocab_and_dependency_links(self) -> None:
+        specs: dict[str, ParamSpecNormalized] = {
+            "organism": ParamSpecNormalized(
+                name="organism",
+                param_type="single-pick-vocabulary",
+                allow_empty_value=False,
+                vocabulary=vocab_terms(
+                    ("Pf3D7", "P. falciparum 3D7"), ("PvP01", "P. vivax P01")
+                ),
+                dependent_params=("taxon",),
+            ),
+            "taxon": ParamSpecNormalized(
+                name="taxon",
+                param_type="single-pick-vocabulary",
+                allow_empty_value=False,
+                vocabulary=vocab_terms(
+                    ("PfTaxonA", "Pf Taxon A"), ("PfTaxonB", "Pf Taxon B")
+                ),
+            ),
+        }
+
+        by_name = {p.name: p for p in format_normalized_param_info(specs)}
+
+        assert by_name["organism"].required is True
+        assert by_name["organism"].controls_vocab_of == ["taxon"]
+        assert by_name["organism"].vocab_depends_on is None
+        taxon = by_name["taxon"]
+        assert taxon.vocab_depends_on == ["organism"]
+        assert taxon.allowed_values is not None
+        assert sorted(v.value for v in taxon.allowed_values) == ["PfTaxonA", "PfTaxonB"]
+
+    def test_it_truncates_a_large_vocab(self) -> None:
+        huge = [WDKVocabTerm((f"v{i}", f"v{i}", None)) for i in range(200)]
+        specs = {
+            "p": ParamSpecNormalized(
+                name="p", param_type="single-pick-vocabulary", vocabulary=huge
+            )
+        }
+
+        formatted = format_normalized_param_info(specs)
+
+        assert formatted[0].allowed_values is not None
+        assert len(formatted[0].allowed_values) == 50
+        assert formatted[0].allowed_values_note is not None
+        assert "truncated" in formatted[0].allowed_values_note.lower()

@@ -9,12 +9,10 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
-from pathfinder.ai.graph.runtime import (
-    AgentDeps,
-    Context,
-    build_node_deps,
-)
+from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
+from pathfinder.ai.lead.dispatch_context import agent_deps_for
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
@@ -46,6 +44,12 @@ def _build_state() -> PipelineState:
         user_id=uuid4(),
         site_id="plasmodb",
         mode="strategy",
+    )
+
+
+def _deps(state: PipelineState, ctx: Context) -> AgentDeps:
+    return agent_deps_for(
+        LeadDeps(state=state, intent=None, runtime=ctx, retrieved_memories=[])
     )
 
 
@@ -85,7 +89,7 @@ def test_agent_deps_accepts_mock_service_via_skip_validation() -> None:
     assert deps.literature_search_service is mock_lit
 
 
-def test_build_node_deps_copies_state_into_scratchpad() -> None:
+def test_dispatch_deps_copy_state_into_scratchpad() -> None:
     ctx = _build_context()
     state = _build_state()
     overview = SearchOverview(
@@ -103,7 +107,7 @@ def test_build_node_deps_copies_state_into_scratchpad() -> None:
             ),
         },
     )
-    deps = build_node_deps(state, ctx)
+    deps = _deps(state, ctx)
     assert deps.site_id == ctx.site_id
     assert deps.user_id == ctx.user_id
     assert deps.strategy_session is ctx.strategy_session
@@ -114,24 +118,24 @@ def test_build_node_deps_copies_state_into_scratchpad() -> None:
     assert deps.agent_state.discovered_searches is not discovered
 
 
-def test_build_node_deps_propagates_experiment_id_from_context() -> None:
+def test_dispatch_deps_propagate_experiment_id_from_context() -> None:
     ctx = _build_context(experiment_id="exp-42")
-    deps = build_node_deps(_build_state(), ctx)
+    deps = _deps(_build_state(), ctx)
     assert deps.experiment_id == "exp-42"
 
 
-def test_build_node_deps_propagates_cancel_event_from_context() -> None:
+def test_dispatch_deps_propagate_cancel_event_from_context() -> None:
     event = asyncio.Event()
     ctx = _build_context(cancel_event=event)
-    deps = build_node_deps(_build_state(), ctx)
+    deps = _deps(_build_state(), ctx)
     assert deps.cancel_event is event
 
 
-def test_build_node_deps_yields_fresh_tool_repetition_guard() -> None:
+def test_dispatch_deps_yield_a_fresh_tool_repetition_guard() -> None:
     ctx = _build_context()
     state = _build_state()
-    deps_a = build_node_deps(state, ctx)
-    deps_b = build_node_deps(state, ctx)
+    deps_a = _deps(state, ctx)
+    deps_b = _deps(state, ctx)
     assert deps_a.tool_repetition_guard is not deps_b.tool_repetition_guard
 
 
@@ -145,5 +149,5 @@ def test_context_is_a_frozen_dataclass() -> None:
 def test_agent_deps_keeps_existing_agent_tool_state_type() -> None:
     state = _build_state()
     ctx = _build_context()
-    deps = build_node_deps(state, ctx)
+    deps = _deps(state, ctx)
     assert isinstance(deps.agent_state, AgentToolState)

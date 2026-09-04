@@ -128,11 +128,10 @@ Same WDK bearer token PathFinder already holds
   `GET|PATCH|DELETE|POST-copy .../{analysisId}` -> analysis CRUD. The body is
   the `Analysis` document (`descriptor` with subset filters, computations,
   derived variables).
-- On both the create and the rename, `displayName` is capped at 50 UTF-8 bytes
-  and `description` at 4000; over the cap the answer is
+- On the create, `displayName` is capped at 50 UTF-8 bytes and `description` at
+  4000; over the cap the answer is
   `400 "displayName must not be larger than 50 bytes."` and no analysis is
-  written. `EdaNewAnalysis` and `EdaAnalysisRename` cut both fields to those
-  bounds.
+  written. `EdaNewAnalysis` cuts both fields to those bounds.
 - `GET /public/analyses/{project}` and
   `GET /import-analysis/{project}/{analysisId}` -> shared analyses.
 - Thread surgery does not use the `POST .../{analysisId}` copy: a branch and a

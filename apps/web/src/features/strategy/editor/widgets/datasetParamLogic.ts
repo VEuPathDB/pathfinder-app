@@ -15,7 +15,7 @@ const DatasetUrlContent = z.object({
   parser: z.string().optional(),
 });
 
-export const DatasetConfigSchema = z.discriminatedUnion("sourceType", [
+const DatasetConfigSchema = z.discriminatedUnion("sourceType", [
   z.object({ sourceType: z.literal("idList"), sourceContent: DatasetIdListContent }),
   z.object({ sourceType: z.literal("basket"), sourceContent: DatasetBasketContent }),
   z.object({

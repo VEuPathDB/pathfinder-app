@@ -5,7 +5,7 @@ import { Check, ChevronsDownUp, ChevronsUpDown, Copy } from "lucide-react";
 import type { EdaViz } from "@pathfinder/shared";
 
 import { Button } from "@/components/ui/button";
-import { Figure } from "@/lib/components/thread/Figure";
+import { Figure } from "@/features/conversation/thread/Figure";
 import { ScatterChart } from "@/lib/components/charts/ScatterChart";
 import { VolcanoChart } from "@/lib/components/charts/VolcanoChart";
 import type {
@@ -15,7 +15,7 @@ import type {
 import { selectVolcanoGenes } from "@/lib/eda/volcanoSelection";
 import { useEdaStore, useHydrateEdaPart } from "@/state/eda";
 
-import { useChatHelpersOptional } from "../../runtime/chatHelpersContext";
+import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { studyNameFor } from "./analysisStateParts";
 import { figureNumberFor } from "./figureNumbers";
 import { plotCaption } from "./plotCaptions";
@@ -31,10 +31,10 @@ const SUMMARY = `cursor-pointer ${MUTED}`;
 export function DataEdaViz({ data }: { data: EdaViz }) {
   useHydrateEdaPart({ kind: "viz", data });
   const thresholds = useEdaStore((s) => s.volcanoThresholds);
-  const chat = useChatHelpersOptional();
+  const chat = useChatHelpers();
   const [expanded, setExpanded] = useState(true);
   const height = expanded ? EXPANDED_HEIGHT : COLLAPSED_HEIGHT;
-  const study = chat !== null ? studyNameFor(chat.messages, data.analysisId) : "";
+  const study = studyNameFor(chat.messages, data.analysisId);
   const retained = `${data.retainedPoints.toLocaleString()} of ${data.totalPoints.toLocaleString()} genes retained`;
 
   return (
@@ -43,7 +43,7 @@ export function DataEdaViz({ data }: { data: EdaViz }) {
       title={data.effectSizeLabel}
       caption={plotCaption(data.caption ?? "", study, retained)}
       numbered
-      figureNumber={chat !== null ? figureNumberFor(chat.messages, data) : null}
+      figureNumber={figureNumberFor(chat.messages, data)}
       footer={<VizReadouts data={data} thresholds={thresholds} />}
     >
       <div>

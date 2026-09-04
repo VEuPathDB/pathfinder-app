@@ -1,0 +1,1037 @@
+[
+  {
+    "control_set": {
+      "name": "B. bovis VESA Immune Evasion (curated)",
+      "negative_ids": [
+        "BBOV_I000230",
+        "BBOV_I000700",
+        "BBOV_I001510",
+        "BBOV_I002240",
+        "BBOV_I002850",
+        "BBOV_I003160",
+        "BBOV_I003410",
+        "BBOV_I003470",
+        "BBOV_I004110",
+        "BBOV_I004730",
+        "BBOV_II000880",
+        "BBOV_II001050",
+        "BBOV_II001060",
+        "BBOV_II001650",
+        "BBOV_II001860",
+        "BBOV_II001920",
+        "BBOV_II002030",
+        "BBOV_II002670",
+        "BBOV_II002750",
+        "BBOV_II002800",
+        "BBOV_II003110",
+        "BBOV_II003160",
+        "BBOV_II003270",
+        "BBOV_II003460",
+        "BBOV_II003660",
+        "BBOV_II004020",
+        "BBOV_II004570",
+        "BBOV_II004580",
+        "BBOV_II004750",
+        "BBOV_II005040",
+        "BBOV_II005090",
+        "BBOV_II005740",
+        "BBOV_II006110",
+        "BBOV_II006670",
+        "BBOV_II007060",
+        "BBOV_II007110",
+        "BBOV_II007320",
+        "BBOV_III000550",
+        "BBOV_III000770",
+        "BBOV_III000970"
+      ],
+      "positive_ids": [
+        "BBOV_I000010",
+        "BBOV_I000020",
+        "BBOV_I000030",
+        "BBOV_I000050",
+        "BBOV_I000060",
+        "BBOV_I000070",
+        "BBOV_I001140",
+        "BBOV_I001190",
+        "BBOV_I001320",
+        "BBOV_I001330",
+        "BBOV_I001340",
+        "BBOV_I001410",
+        "BBOV_I001430",
+        "BBOV_I001440",
+        "BBOV_I002990",
+        "BBOV_I003000",
+        "BBOV_I003010",
+        "BBOV_I003020",
+        "BBOV_I003060",
+        "BBOV_I003830",
+        "BBOV_I003840",
+        "BBOV_I003870",
+        "BBOV_I003900",
+        "BBOV_I003910",
+        "BBOV_I004510",
+        "BBOV_I004520",
+        "BBOV_I005110",
+        "BBOV_I005120",
+        "BBOV_I005140",
+        "BBOV_I005160",
+        "BBOV_I005180",
+        "BBOV_I005190",
+        "BBOV_I005805",
+        "BBOV_I005815",
+        "BBOV_I005825",
+        "BBOV_I005835",
+        "BBOV_I005845",
+        "BBOV_I005865",
+        "BBOV_I005875",
+        "BBOV_I005885"
+      ],
+      "provenance_notes": "Positives: variant erythrocyte surface antigen (VESA) genes \u2014 the primary immune evasion surface proteins of B. bovis. Negatives: ribosomal proteins \u2014 ubiquitous housekeeping genes not involved in immune evasion.",
+      "tags": [
+        "babesia",
+        "vesa",
+        "immune-evasion",
+        "seed"
+      ]
+    },
+    "description": "5-node strategy for B. bovis VESA immune evasion analysis. INTERSECT of variant erythrocyte surface antigen text hits with transmembrane-domain proteins to confirm surface exposure; MINUS ribosomal genes (housekeeping exclusion). Models research into antigenic variation and immune evasion in bovine babesiosis.",
+    "name": "BB VESA Immune Evasion Surface Proteins",
+    "record_type": "transcript",
+    "site_id": "piroplasmadb",
+    "step_tree": {
+      "displayName": "VESA Surface (no ribosomal)",
+      "id": "root_minus_ribo",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "VESA with TM domains",
+        "id": "vesa_tm_intersect",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "VESA (text search)",
+          "id": "leaf_vesa_text",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "variant erythrocyte surface antigen",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Babesia bovis T2Bo\"]"
+          },
+          "searchName": "GenesByText"
+        },
+        "secondaryInput": {
+          "displayName": "Transmembrane (1-20 TM)",
+          "id": "leaf_tm",
+          "parameters": {
+            "max_tm": "20",
+            "min_tm": "1",
+            "organism": "[\"Babesia bovis T2Bo\"]"
+          },
+          "searchName": "GenesByTransmembraneDomains"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal (GO:0003735)",
+        "id": "leaf_ribosomal",
+        "parameters": {
+          "go_term": "GO:0003735",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0003735\"]",
+          "organism": "[\"Babesia bovis T2Bo\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "B. bovis Drug Targets (curated)",
+      "negative_ids": [
+        "BBOV_I000230",
+        "BBOV_I000700",
+        "BBOV_I001510",
+        "BBOV_I002240",
+        "BBOV_I002850",
+        "BBOV_I003160",
+        "BBOV_I003410",
+        "BBOV_I003470",
+        "BBOV_I004110",
+        "BBOV_I004730",
+        "BBOV_II000880",
+        "BBOV_II001050",
+        "BBOV_II001060",
+        "BBOV_II001650",
+        "BBOV_II001860",
+        "BBOV_II001920",
+        "BBOV_II002030",
+        "BBOV_II002670",
+        "BBOV_II002750",
+        "BBOV_II002800",
+        "BBOV_II003110",
+        "BBOV_II003160",
+        "BBOV_II003270",
+        "BBOV_II003460",
+        "BBOV_II003660",
+        "BBOV_II004020",
+        "BBOV_II004570",
+        "BBOV_II004580",
+        "BBOV_II004750",
+        "BBOV_II005040",
+        "BBOV_II005090",
+        "BBOV_II005740",
+        "BBOV_II006110",
+        "BBOV_II006670",
+        "BBOV_II007060",
+        "BBOV_II007110",
+        "BBOV_II007320",
+        "BBOV_III000550",
+        "BBOV_III000770",
+        "BBOV_III000970",
+        "BBOV_III000980",
+        "BBOV_III001110",
+        "BBOV_III001140",
+        "BBOV_III001170",
+        "BBOV_III001250",
+        "BBOV_III001350",
+        "BBOV_III001480",
+        "BBOV_III001580",
+        "BBOV_III001790",
+        "BBOV_III001970"
+      ],
+      "positive_ids": [
+        "BBOV_I000170",
+        "BBOV_I000350",
+        "BBOV_I001560",
+        "BBOV_I001950",
+        "BBOV_I004190",
+        "BBOV_I004215",
+        "BBOV_I004690",
+        "BBOV_II000610",
+        "BBOV_II000760",
+        "BBOV_II004380",
+        "BBOV_II005282",
+        "BBOV_II006890",
+        "BBOV_II007230",
+        "BBOV_II007390",
+        "BBOV_II007640",
+        "BBOV_III001400",
+        "BBOV_III002900",
+        "BBOV_III003120",
+        "BBOV_III003210",
+        "BBOV_III003600",
+        "BBOV_III004260",
+        "BBOV_III004870",
+        "BBOV_III005470",
+        "BBOV_III005740",
+        "BBOV_III006430",
+        "BBOV_I000200",
+        "BBOV_I000540",
+        "BBOV_I002820",
+        "BBOV_I003700",
+        "BBOV_I004260",
+        "BBOV_II000170",
+        "BBOV_II000870",
+        "BBOV_II001460",
+        "BBOV_II001800",
+        "BBOV_II002340",
+        "BBOV_II003480",
+        "BBOV_II004070",
+        "BBOV_II004090",
+        "BBOV_II004450",
+        "BBOV_II005180",
+        "BBOV_II005380",
+        "BBOV_II005540",
+        "BBOV_II005930",
+        "BBOV_II005940",
+        "BBOV_II005950",
+        "BBOV_II005970",
+        "BBOV_II006070",
+        "BBOV_II006080",
+        "BBOV_II006100",
+        "BBOV_II007480"
+      ],
+      "provenance_notes": "Positives: protein kinases and peptidases \u2014 validated enzyme families used as anti-parasitic drug targets. Negatives: ribosomal proteins \u2014 essential housekeeping genes conserved across all eukaryotes, poor drug targets.",
+      "tags": [
+        "babesia",
+        "drug-target",
+        "seed"
+      ]
+    },
+    "description": "9-node strategy for B. bovis drug target identification. UNION of kinases and peptidases; INTERSECT with secreted or transmembrane proteins for accessible targets. MINUS ribosomal genes (housekeeping exclusion). Models anti-babesial drug discovery pipelines targeting enzymes accessible to therapeutic compounds.",
+    "name": "BB Drug Target Discovery",
+    "record_type": "transcript",
+    "site_id": "piroplasmadb",
+    "step_tree": {
+      "displayName": "Drug Targets (no ribosomal)",
+      "id": "root_minus_ribo",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Accessible Enzymes",
+        "id": "accessible_enzymes",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Kinases + Peptidases",
+          "id": "enzyme_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Protein Kinases (GO:0004672)",
+            "id": "leaf_kinases",
+            "parameters": {
+              "go_term": "GO:0004672",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0004672\"]",
+              "organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          },
+          "secondaryInput": {
+            "displayName": "Peptidases (GO:0008233)",
+            "id": "leaf_peptidases",
+            "parameters": {
+              "go_term": "GO:0008233",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0008233\"]",
+              "organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Secreted or Membrane",
+          "id": "accessible_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_signal_peptide",
+            "parameters": {
+              "organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          },
+          "secondaryInput": {
+            "displayName": "Transmembrane (1-20 TM)",
+            "id": "leaf_tm",
+            "parameters": {
+              "max_tm": "20",
+              "min_tm": "1",
+              "organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesByTransmembraneDomains"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal (GO:0003735)",
+        "id": "leaf_ribosomal",
+        "parameters": {
+          "go_term": "GO:0003735",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0003735\"]",
+          "organism": "[\"Babesia bovis T2Bo\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "B. bovis Secreted Virulence (curated)",
+      "negative_ids": [
+        "BBOV_I000230",
+        "BBOV_I000700",
+        "BBOV_I001510",
+        "BBOV_I002240",
+        "BBOV_I002850",
+        "BBOV_I003160",
+        "BBOV_I003410",
+        "BBOV_I003470",
+        "BBOV_I004110",
+        "BBOV_I004730",
+        "BBOV_II000880",
+        "BBOV_II001050",
+        "BBOV_II001060",
+        "BBOV_II001650",
+        "BBOV_II001860",
+        "BBOV_II001920",
+        "BBOV_II002030",
+        "BBOV_II002670",
+        "BBOV_II002750",
+        "BBOV_II002800",
+        "BBOV_II003110",
+        "BBOV_II003160",
+        "BBOV_II003270",
+        "BBOV_II003460",
+        "BBOV_II003660",
+        "BBOV_II004020",
+        "BBOV_II004570",
+        "BBOV_II004580",
+        "BBOV_II004750",
+        "BBOV_II005040",
+        "BBOV_II005090",
+        "BBOV_II005740",
+        "BBOV_II006110",
+        "BBOV_II006670",
+        "BBOV_II007060",
+        "BBOV_II007110",
+        "BBOV_II007320",
+        "BBOV_III000550",
+        "BBOV_III000770",
+        "BBOV_III000970"
+      ],
+      "positive_ids": [
+        "BBOV_I000010",
+        "BBOV_I000020",
+        "BBOV_I000030",
+        "BBOV_I000050",
+        "BBOV_I000060",
+        "BBOV_I000070",
+        "BBOV_I001140",
+        "BBOV_I001190",
+        "BBOV_I001320",
+        "BBOV_I001330",
+        "BBOV_I001340",
+        "BBOV_I001410",
+        "BBOV_I001430",
+        "BBOV_I001440",
+        "BBOV_I002990",
+        "BBOV_I003000",
+        "BBOV_I003010",
+        "BBOV_I003020",
+        "BBOV_I003060",
+        "BBOV_I003830",
+        "BBOV_I003840",
+        "BBOV_I003870",
+        "BBOV_I003900",
+        "BBOV_I003910",
+        "BBOV_I004510",
+        "BBOV_I004210",
+        "BBOV_II000680",
+        "BBOV_II000740",
+        "BBOV_III005600",
+        "BBOV_III005630",
+        "BBOV_III005790",
+        "BBOV_III005830",
+        "BBOV_III005840",
+        "BBOV_III005860",
+        "BBOV_III006460",
+        "BBOV_III006480",
+        "BBOV_III006500",
+        "BBOV_III006520",
+        "BBOV_III006540",
+        "BBOV_IV005390"
+      ],
+      "provenance_notes": "Positives: VESA surface antigens and spherical body proteins \u2014 secreted virulence factors involved in host-parasite interaction. Negatives: ribosomal proteins \u2014 housekeeping genes not secreted.",
+      "tags": [
+        "babesia",
+        "virulence",
+        "secreted",
+        "seed"
+      ]
+    },
+    "description": "7-node strategy for B. bovis secreted virulence factor discovery. UNION of VESA, spherical body, and rhoptry text hits; INTERSECT with signal peptide for confirmed secretory pathway. Models research into the parasite's pathogenic arsenal for vaccine and diagnostic target identification.",
+    "name": "BB Secreted Virulence Factors",
+    "record_type": "transcript",
+    "site_id": "piroplasmadb",
+    "step_tree": {
+      "displayName": "Secreted Virulence Factors",
+      "id": "root_sp_intersect",
+      "operator": "INTERSECT",
+      "primaryInput": {
+        "displayName": "All Virulence Families",
+        "id": "virulence_union_outer",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "VESA + Spherical Body",
+          "id": "vesa_sbc_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "VESA (text search)",
+            "id": "leaf_vesa",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "variant erythrocyte surface antigen",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Spherical Body (text search)",
+            "id": "leaf_sbc",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "spherical body",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Rhoptry (text search)",
+          "id": "leaf_rhoptry",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "rhoptry",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Babesia bovis T2Bo\"]"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Signal Peptide",
+        "id": "leaf_signal_peptide",
+        "parameters": {
+          "organism": "[\"Babesia bovis T2Bo\"]"
+        },
+        "searchName": "GenesWithSignalPeptide"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "B. bovis Membrane Transport (curated)",
+      "negative_ids": [
+        "BBOV_I000230",
+        "BBOV_I000700",
+        "BBOV_I001510",
+        "BBOV_I002240",
+        "BBOV_I002850",
+        "BBOV_I003160",
+        "BBOV_I003410",
+        "BBOV_I003470",
+        "BBOV_I004110",
+        "BBOV_I004730",
+        "BBOV_II000880",
+        "BBOV_II001050",
+        "BBOV_II001060",
+        "BBOV_II001650",
+        "BBOV_II001860",
+        "BBOV_II001920",
+        "BBOV_II002030",
+        "BBOV_II002670",
+        "BBOV_II002750",
+        "BBOV_II002800",
+        "BBOV_II003110",
+        "BBOV_II003160",
+        "BBOV_II003270",
+        "BBOV_II003460",
+        "BBOV_II003660",
+        "BBOV_II004020",
+        "BBOV_II004570",
+        "BBOV_II004580",
+        "BBOV_II004750",
+        "BBOV_II005040",
+        "BBOV_II005090",
+        "BBOV_II005740",
+        "BBOV_II006110",
+        "BBOV_II006670",
+        "BBOV_II007060",
+        "BBOV_II007110",
+        "BBOV_II007320",
+        "BBOV_III000550",
+        "BBOV_III000770",
+        "BBOV_III000970"
+      ],
+      "positive_ids": [
+        "BBOV_II003640",
+        "BBOV_II003920",
+        "BBOV_III004230",
+        "BBOV_III010010",
+        "BBOV_IV003490",
+        "BBOV_IV009880",
+        "BBOV_IV010060",
+        "BBOV_IV010880",
+        "BBOV_I000170",
+        "BBOV_I000350",
+        "BBOV_I001560",
+        "BBOV_I001950",
+        "BBOV_I004190",
+        "BBOV_I004215",
+        "BBOV_I004690",
+        "BBOV_II000610",
+        "BBOV_II000760",
+        "BBOV_II004380",
+        "BBOV_II005282",
+        "BBOV_II006890",
+        "BBOV_II007230",
+        "BBOV_II007390",
+        "BBOV_II007640",
+        "BBOV_III001400",
+        "BBOV_III002900",
+        "BBOV_III003120",
+        "BBOV_III003210",
+        "BBOV_III003600",
+        "BBOV_III004260",
+        "BBOV_III004870",
+        "BBOV_III005470",
+        "BBOV_III005740",
+        "BBOV_III006430",
+        "BBOV_III007370",
+        "BBOV_III007550",
+        "BBOV_III007790",
+        "BBOV_III008760",
+        "BBOV_III008880"
+      ],
+      "provenance_notes": "Positives: heat shock proteins and kinases \u2014 stress-responsive membrane-associated proteins in B. bovis. Negatives: ribosomal proteins \u2014 translation machinery excluded as housekeeping.",
+      "tags": [
+        "babesia",
+        "transport",
+        "stress",
+        "seed"
+      ]
+    },
+    "description": "7-node strategy for B. bovis membrane transport and stress response. INTERSECT of transport process (GO:0006810) with transmembrane domain proteins; UNION with heat shock text hits for stress response transporters. MINUS translation (GO:0006412) to exclude ribosomal machinery. Models nutrient uptake and stress adaptation.",
+    "name": "BB Membrane Transport Network",
+    "record_type": "transcript",
+    "site_id": "piroplasmadb",
+    "step_tree": {
+      "displayName": "Transport Network (no translation)",
+      "id": "root_minus_translation",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Transporters + Heat Shock",
+        "id": "transport_hsp_union",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Membrane Transporters",
+          "id": "transport_tm_intersect",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Transport (GO:0006810)",
+            "id": "leaf_transport",
+            "parameters": {
+              "go_term": "GO:0006810",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0006810\"]",
+              "organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          },
+          "secondaryInput": {
+            "displayName": "Transmembrane (1-20 TM)",
+            "id": "leaf_tm",
+            "parameters": {
+              "max_tm": "20",
+              "min_tm": "1",
+              "organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesByTransmembraneDomains"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Heat Shock (text search)",
+          "id": "leaf_heat_shock",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "heat shock",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Babesia bovis T2Bo\"]"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Translation (GO:0006412)",
+        "id": "leaf_translation",
+        "parameters": {
+          "go_term": "GO:0006412",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0006412\"]",
+          "organism": "[\"Babesia bovis T2Bo\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "B. bovis Surface Antigens (curated)",
+      "negative_ids": [
+        "BBOV_I000170",
+        "BBOV_I000350",
+        "BBOV_I001560",
+        "BBOV_I001950",
+        "BBOV_I004190",
+        "BBOV_I004215",
+        "BBOV_I004690",
+        "BBOV_II000610",
+        "BBOV_II000760",
+        "BBOV_II004380",
+        "BBOV_II005282",
+        "BBOV_II006890",
+        "BBOV_II007230",
+        "BBOV_II007390",
+        "BBOV_II007640",
+        "BBOV_III001400",
+        "BBOV_III002900",
+        "BBOV_III003120",
+        "BBOV_III003210",
+        "BBOV_III003600",
+        "BBOV_III004260",
+        "BBOV_III004870",
+        "BBOV_III005470",
+        "BBOV_III005740",
+        "BBOV_III006430",
+        "BBOV_I000230",
+        "BBOV_I000700",
+        "BBOV_I001510",
+        "BBOV_I002240",
+        "BBOV_I002850",
+        "BBOV_I003160",
+        "BBOV_I003410",
+        "BBOV_I003470",
+        "BBOV_I004110",
+        "BBOV_I004730",
+        "BBOV_II000880",
+        "BBOV_II001050",
+        "BBOV_II001060",
+        "BBOV_II001650",
+        "BBOV_II001860",
+        "BBOV_II001920",
+        "BBOV_II002030",
+        "BBOV_II002670",
+        "BBOV_II002750",
+        "BBOV_II002800",
+        "BBOV_II003110",
+        "BBOV_II003160",
+        "BBOV_II003270",
+        "BBOV_II003460",
+        "BBOV_II003660"
+      ],
+      "positive_ids": [
+        "BBOV_I000010",
+        "BBOV_I000020",
+        "BBOV_I000030",
+        "BBOV_I000050",
+        "BBOV_I000060",
+        "BBOV_I000070",
+        "BBOV_I001140",
+        "BBOV_I001190",
+        "BBOV_I001320",
+        "BBOV_I001330",
+        "BBOV_I001340",
+        "BBOV_I001410",
+        "BBOV_I001430",
+        "BBOV_I001440",
+        "BBOV_I002990",
+        "BBOV_I003000",
+        "BBOV_I003010",
+        "BBOV_I003020",
+        "BBOV_I003060",
+        "BBOV_I003830",
+        "BBOV_I003840",
+        "BBOV_I003870",
+        "BBOV_I003900",
+        "BBOV_I003910",
+        "BBOV_I004510",
+        "BBOV_I004520",
+        "BBOV_I005110",
+        "BBOV_I005120",
+        "BBOV_I005140",
+        "BBOV_I005160",
+        "BBOV_I005180",
+        "BBOV_I005190",
+        "BBOV_I005805",
+        "BBOV_I005815",
+        "BBOV_I005825",
+        "BBOV_I005835",
+        "BBOV_I005845",
+        "BBOV_I005865",
+        "BBOV_I005875",
+        "BBOV_I005885",
+        "BBOV_I005895",
+        "BBOV_I005905",
+        "BBOV_I005915",
+        "BBOV_I005925",
+        "BBOV_I005935",
+        "BBOV_I005945",
+        "BBOV_I005955",
+        "BBOV_II000030",
+        "BBOV_II000040",
+        "BBOV_II000100"
+      ],
+      "provenance_notes": "Positives: VESA family \u2014 the dominant surface antigen repertoire of B. bovis responsible for antigenic variation. Negatives: kinases and ribosomal proteins \u2014 intracellular signaling and housekeeping, not surface-exposed.",
+      "tags": [
+        "babesia",
+        "surface-antigen",
+        "seed"
+      ]
+    },
+    "description": "9-node strategy for B. bovis surface antigen repertoire analysis. UNION of VESA text hits with signal-peptide + transmembrane intersect (MINUS kinases to remove signaling enzymes). MINUS ribosomal genes. Models comprehensive surface proteome characterization for vaccine candidate discovery.",
+    "name": "BB Surface Antigen Repertoire",
+    "record_type": "transcript",
+    "site_id": "piroplasmadb",
+    "step_tree": {
+      "displayName": "Surface Antigens (no ribosomal)",
+      "id": "root_minus_ribo",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "VESA + Non-Kinase Surface",
+        "id": "surface_union",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "VESA (text search)",
+          "id": "leaf_vesa",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "variant erythrocyte surface antigen",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Babesia bovis T2Bo\"]"
+          },
+          "searchName": "GenesByText"
+        },
+        "secondaryInput": {
+          "displayName": "Surface (no kinases)",
+          "id": "surface_minus_kinase",
+          "operator": "MINUS",
+          "primaryInput": {
+            "displayName": "Signal Peptide + TM",
+            "id": "sp_tm_intersect",
+            "operator": "INTERSECT",
+            "primaryInput": {
+              "displayName": "Signal Peptide",
+              "id": "leaf_signal_peptide",
+              "parameters": {
+                "organism": "[\"Babesia bovis T2Bo\"]"
+              },
+              "searchName": "GenesWithSignalPeptide"
+            },
+            "secondaryInput": {
+              "displayName": "Transmembrane (1-20 TM)",
+              "id": "leaf_tm",
+              "parameters": {
+                "max_tm": "20",
+                "min_tm": "1",
+                "organism": "[\"Babesia bovis T2Bo\"]"
+              },
+              "searchName": "GenesByTransmembraneDomains"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Kinases (GO:0004672)",
+            "id": "leaf_kinases",
+            "parameters": {
+              "go_term": "GO:0004672",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0004672\"]",
+              "organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal (GO:0003735)",
+        "id": "leaf_ribosomal",
+        "parameters": {
+          "go_term": "GO:0003735",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0003735\"]",
+          "organism": "[\"Babesia bovis T2Bo\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "B. bovis Erythrocyte Invasion (curated)",
+      "negative_ids": [
+        "BBOV_I000230",
+        "BBOV_I000700",
+        "BBOV_I001510",
+        "BBOV_I002240",
+        "BBOV_I002850",
+        "BBOV_I003160",
+        "BBOV_I003410",
+        "BBOV_I003470",
+        "BBOV_I004110",
+        "BBOV_I004730",
+        "BBOV_II000880",
+        "BBOV_II001050",
+        "BBOV_II001060",
+        "BBOV_II001650",
+        "BBOV_II001860",
+        "BBOV_II001920",
+        "BBOV_II002030",
+        "BBOV_II002670",
+        "BBOV_II002750",
+        "BBOV_II002800",
+        "BBOV_II003110",
+        "BBOV_II003160",
+        "BBOV_II003270",
+        "BBOV_II003460",
+        "BBOV_II003660",
+        "BBOV_II004020",
+        "BBOV_II004570",
+        "BBOV_II004580",
+        "BBOV_II004750",
+        "BBOV_II005040",
+        "BBOV_II005090",
+        "BBOV_II005740",
+        "BBOV_II006110",
+        "BBOV_II006670",
+        "BBOV_II007060",
+        "BBOV_II007110",
+        "BBOV_II007320",
+        "BBOV_III000550",
+        "BBOV_III000770",
+        "BBOV_III000970"
+      ],
+      "positive_ids": [
+        "BBOV_I002990",
+        "BBOV_I003000",
+        "BBOV_I003010",
+        "BBOV_I003020",
+        "BBOV_I003060",
+        "BBOV_I001630",
+        "BBOV_IV009860",
+        "BBOV_IV009870",
+        "BBOV_IV011430",
+        "BBOV_I004210",
+        "BBOV_II000680",
+        "BBOV_II000740",
+        "BBOV_III005600",
+        "BBOV_III005630",
+        "BBOV_III005790",
+        "BBOV_III005830",
+        "BBOV_III005840",
+        "BBOV_III005860",
+        "BBOV_III006460",
+        "BBOV_III006480",
+        "BBOV_III006500",
+        "BBOV_III006520",
+        "BBOV_III006540",
+        "BBOV_IV005390",
+        "BBOV_I000170",
+        "BBOV_I000350",
+        "BBOV_I001560",
+        "BBOV_I001950",
+        "BBOV_I004190",
+        "BBOV_I004215",
+        "BBOV_I004690",
+        "BBOV_II000610",
+        "BBOV_II000760",
+        "BBOV_II004380",
+        "BBOV_II005282",
+        "BBOV_II006890",
+        "BBOV_II007230",
+        "BBOV_II007390",
+        "BBOV_II007640",
+        "BBOV_III001400",
+        "BBOV_III002900",
+        "BBOV_III003120",
+        "BBOV_III003210",
+        "BBOV_III003600"
+      ],
+      "provenance_notes": "Positives: merozoite surface, rhoptry, spherical body, and secreted kinase proteins \u2014 the core invasion machinery of B. bovis for red blood cell entry. Negatives: ribosomal proteins \u2014 housekeeping translation machinery not involved in invasion.",
+      "tags": [
+        "babesia",
+        "invasion",
+        "seed"
+      ]
+    },
+    "description": "9-node strategy for B. bovis erythrocyte invasion machinery. UNION of merozoite, rhoptry, and spherical body text hits with kinase + signal peptide intersect for secreted signaling. MINUS ribosomal genes. Models the molecular machinery driving red blood cell invasion in bovine babesiosis.",
+    "name": "BB Erythrocyte Invasion Machinery",
+    "record_type": "transcript",
+    "site_id": "piroplasmadb",
+    "step_tree": {
+      "displayName": "Invasion Machinery (no ribosomal)",
+      "id": "root_minus_ribo",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Invasion Components",
+        "id": "invasion_union",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Merozoite + Secretory Organelles",
+          "id": "organelle_union",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Merozoite (text search)",
+            "id": "leaf_merozoite",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "merozoite",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Rhoptry + Spherical Body",
+            "id": "rhoptry_sbc_union",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Rhoptry (text search)",
+              "id": "leaf_rhoptry",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "rhoptry",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Babesia bovis T2Bo\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Spherical Body (text search)",
+              "id": "leaf_sbc",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "spherical body",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Babesia bovis T2Bo\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Secreted Kinases",
+          "id": "kinase_sp_intersect",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Kinases (GO:0004672)",
+            "id": "leaf_kinases",
+            "parameters": {
+              "go_term": "GO:0004672",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0004672\"]",
+              "organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          },
+          "secondaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_signal_peptide",
+            "parameters": {
+              "organism": "[\"Babesia bovis T2Bo\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal (GO:0003735)",
+        "id": "leaf_ribosomal",
+        "parameters": {
+          "go_term": "GO:0003735",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0003735\"]",
+          "organism": "[\"Babesia bovis T2Bo\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  }
+]

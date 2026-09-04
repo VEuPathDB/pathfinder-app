@@ -90,11 +90,3 @@ class ControlSetRepository:
         self.session.add(cs)
         await self.session.flush()
         return cs
-
-    async def delete(self, control_set_id: UUID) -> bool:
-        """Delete a control set."""
-        cs = await self.get_by_id(control_set_id)
-        if cs is None:
-            return False
-        await self.session.delete(cs)
-        return True

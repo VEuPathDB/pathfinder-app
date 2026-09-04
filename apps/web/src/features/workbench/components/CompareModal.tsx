@@ -1,7 +1,7 @@
 "use client";
 
 import { Modal } from "@/lib/components/Modal";
-import { SetVenn } from "@/lib/components/SetVenn";
+import { SetVenn } from "@/features/workbench/components/SetVenn";
 import type { GeneSet } from "@pathfinder/shared";
 
 interface CompareModalProps {

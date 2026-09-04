@@ -20,9 +20,7 @@ from pathfinder.main import create_app
 PINNED_SCHEMA_NAMES = frozenset(
     {
         "graph_snapshot",
-        "graph_plan",
         "graph_cleared",
-        "strategy_patch",
         "strategy_meta",
         "strategy_link",
         "consult_question",
@@ -30,8 +28,6 @@ PINNED_SCHEMA_NAMES = frozenset(
         "variant_comparison",
         "scored_comparison",
         "gene_set",
-        "optimization_snapshot",
-        "phase_change",
         "turn_usage",
         "background_task_started",
         "task_progress",
@@ -46,6 +42,9 @@ PINNED_SCHEMA_NAMES = frozenset(
         "lead_usage",
         "strategy_revision",
         "tool_summary",
+        "ledger_update",
+        "memory_retrieved",
+        "scratchpad_updated",
     }
 )
 
@@ -77,6 +76,9 @@ PINNED_STRATEGY_KINDS = frozenset(
         "data-enrichment-results",
         "data-variant-comparison",
         "data-scored-comparison",
+        "data-ledger-update",
+        "data-memory-retrieved",
+        "data-scratchpad-updated",
     }
 )
 

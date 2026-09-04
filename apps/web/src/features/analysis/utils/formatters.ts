@@ -8,3 +8,8 @@ export function fmtNum(v: number | null | undefined, d = 3): string {
   if (v == null) return "\u2014";
   return v.toFixed(d);
 }
+
+/** Format a parameter value: integers plain, otherwise 2 decimals. */
+export function fmtParamValue(v: number): string {
+  return Number.isInteger(v) ? String(v) : v.toFixed(2);
+}

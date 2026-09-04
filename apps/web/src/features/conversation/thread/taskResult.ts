@@ -1,31 +1,23 @@
+import type { UIMessage } from "ai";
 import { z } from "zod";
 
-interface PartLike {
-  type: string;
-  text?: string | undefined;
-  data?: unknown;
-}
-
-interface MessageLike {
-  id: string;
-  parts: readonly PartLike[];
-}
-
 const completedSchema = z.object({ taskId: z.string().min(1) });
+
+type Part = UIMessage["parts"][number];
 
 /** The DOM id of the message a link can jump to. */
 export function messageAnchorId(messageId: string): string {
   return `message-${messageId}`;
 }
 
-function completesTask(part: PartLike, taskId: string): boolean {
+function completesTask(part: Part, taskId: string): boolean {
   if (part.type !== "data-task-completed") return false;
   const parsed = completedSchema.safeParse(part.data);
   return parsed.success && parsed.data.taskId === taskId;
 }
 
-function carriesResult(part: PartLike, figures: ReadonlySet<string>): boolean {
-  if (part.type === "text") return (part.text ?? "").trim() !== "";
+function carriesResult(part: Part, figures: ReadonlySet<string>): boolean {
+  if (part.type === "text") return part.text.trim() !== "";
   return figures.has(part.type);
 }
 
@@ -36,7 +28,7 @@ function carriesResult(part: PartLike, figures: ReadonlySet<string>): boolean {
  * request and never to its result.
  */
 export function taskResultHref(
-  messages: readonly MessageLike[],
+  messages: readonly UIMessage[],
   taskId: string,
   figures: ReadonlySet<string>,
 ): string | null {

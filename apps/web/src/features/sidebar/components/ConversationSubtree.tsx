@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { ConversationItem } from "@/features/sidebar/components/conversationSidebarTypes";
-import { formatSidebarTime } from "@/lib/formatTime";
+import { formatSidebarTime } from "@/features/sidebar/formatTime";
 import { chatUrl } from "@/lib/routes";
 import { cn } from "@/lib/utils/cn";
 

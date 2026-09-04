@@ -1,23 +1,27 @@
 """The seam between a sub-agent dispatch and the agent it runs.
 
-A module-level agent is one agent for the whole process: its toolsets, its
-model and its ``override`` state are shared by every dispatch. Each phase
-module exposes a factory instead, so the agent belongs to the dispatch that
-runs it.
+A module-level agent is one agent for the whole process, so each phase module
+exposes a factory instead and the agent belongs to the dispatch that runs it.
+Its pinned instructions and its construction are checked here for the same
+reason: the three phase agents must not drift apart.
 """
 
 from __future__ import annotations
 
+import inspect
+import warnings
 from collections.abc import Callable
 from types import ModuleType
 from typing import Any
 
 import pytest
-from pydantic_ai import Agent, Tool
+from pydantic_ai import Agent, PydanticAIDeprecationWarning, Tool
 from pydantic_ai.toolsets.function import FunctionToolset
 
+import pathfinder.ai.agents._instructions as generic_mod
 import pathfinder.ai.agents.execution as execution_mod
 import pathfinder.ai.agents.frame as frame_mod
+import pathfinder.ai.agents.strategy_instructions as strategy_mod
 import pathfinder.ai.agents.verification as verification_mod
 from pathfinder.ai.agents.execution import EXECUTION_MODEL, build_execution_agent
 from pathfinder.ai.agents.frame import FRAME_MODEL, build_frame_agent
@@ -27,6 +31,7 @@ from pathfinder.ai.agents.verification import (
     VERIFICATION_MODEL,
     build_verification_agent,
 )
+from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import (
     BUILD_SUB_AGENT_BY_ROLE,
     SUB_AGENT_MODEL_BY_ROLE,
@@ -98,13 +103,11 @@ VERIFICATION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "get_confidence_scores",
     "get_download_url",
     "get_enrichment_results",
-    "get_ensemble_analysis",
     "get_estimated_size",
     "get_evaluation_summary",
     "get_experiment_config",
     "get_result_gene_lists",
     "get_sample_records",
-    "get_step_contributions",
     "get_strategy",
     "list_workbench_gene_sets",
     "literature_search",
@@ -156,6 +159,7 @@ def test_the_phase_module_owns_no_agent_singleton(
     module: ModuleType,
     name: str,
 ) -> None:
+    assert [n for n, value in vars(module).items() if isinstance(value, Agent)] == []
     assert name not in vars(module)
 
 
@@ -221,3 +225,90 @@ def test_the_registry_agrees_with_the_dispatch_map() -> None:
     """Two places enumerate the phase roles; neither may drift."""
     defaults = phase_defaults()
     assert {role: defaults[role] for role in ROLES} == SUB_AGENT_MODEL_BY_ROLE
+
+
+STRATEGY_RENDERERS = {
+    "base_system_prompt",
+    "pinned_frame_workspace",
+    "pinned_graph_state",
+    "pinned_ledger",
+    "pinned_discovered_searches",
+}
+
+GENERIC_RENDERERS = {
+    "pinned_user_memories",
+    "pinned_scratchpad",
+    "pinned_run_budget",
+}
+
+INSTRUCTION_ORDER = {
+    "frame": [
+        "base_system_prompt",
+        "pinned_user_memories",
+        "pinned_scratchpad",
+        "pinned_frame_workspace",
+        "pinned_run_budget",
+    ],
+    "execution": [
+        "base_system_prompt",
+        "pinned_graph_state",
+        "pinned_user_memories",
+        "pinned_scratchpad",
+        "pinned_ledger",
+        "pinned_discovered_searches",
+        "pinned_run_budget",
+    ],
+    "verification": [
+        "base_system_prompt",
+        "pinned_graph_state",
+        "pinned_user_memories",
+        "pinned_scratchpad",
+        "pinned_ledger",
+        "pinned_discovered_searches",
+        "pinned_run_budget",
+    ],
+}
+
+
+def _named(module: ModuleType) -> set[str]:
+    """The renderers a module defines. A type it declares is not one."""
+    return {
+        name
+        for name, value in vars(module).items()
+        if inspect.isfunction(value) and value.__module__ == module.__name__
+    }
+
+
+def test_the_generic_module_renders_no_strategy_content() -> None:
+    assert _named(generic_mod) == GENERIC_RENDERERS
+
+
+def test_the_product_module_owns_every_strategy_renderer() -> None:
+    assert _named(strategy_mod) >= STRATEGY_RENDERERS
+
+
+@pytest.mark.parametrize("role", sorted(BUILDERS))
+def test_each_agent_pins_its_renderers_in_the_same_order(role: PhaseRole) -> None:
+    names = [
+        item if isinstance(item, str) else item.__name__
+        for item in BUILDERS[role]()._instructions
+    ]
+    assert names[1:] == INSTRUCTION_ORDER[role]
+
+
+def test_phase_and_lead_agents_construct_without_pydantic_ai_deprecation() -> None:
+    """Building the phase and Lead agents must not trip any pydantic-ai
+    deprecation. ``simplefilter("always")`` keeps a warning that fires on an
+    earlier build from being swallowed here.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        for build in (*BUILDERS.values(), build_lead_agent):
+            build()
+
+    offenders = [
+        str(w.message)
+        for w in caught
+        if issubclass(w.category, PydanticAIDeprecationWarning)
+    ]
+    assert offenders == []

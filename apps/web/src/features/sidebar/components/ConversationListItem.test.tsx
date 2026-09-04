@@ -39,7 +39,6 @@ function renderItem(over: Partial<Parameters<typeof ConversationListItem>[0]> = 
       isActive={false}
       isRenaming={false}
       renameValue=""
-      isActiveStreaming={false}
       onRenameValueChange={noop}
       onCommitRename={noop}
       onCancelRename={noop}

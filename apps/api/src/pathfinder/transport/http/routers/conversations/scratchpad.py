@@ -1,4 +1,4 @@
-"""Scratchpad HTTP routes — list/get/patch(pin)/delete + compaction audit log."""
+"""Scratchpad HTTP routes: list, pin, delete."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import APIRouter, status
 from pydantic import ConfigDict, Field
 
-from pathfinder.domain.scratchpad.models import CompactionRun, Note
+from pathfinder.domain.scratchpad.models import Note
 from pathfinder.services.conversations.scratchpad_service import ScratchpadService
 from pathfinder.transport.http.deps import CurrentUser, DBSession
 
@@ -38,20 +38,6 @@ async def list_scratchpad_notes(
     user_id: CurrentUser,
 ) -> list[Note]:
     return await ScratchpadService(session).list_notes(conversation_id, user_id)
-
-
-@router.get(
-    "/{conversation_id}/scratchpad/notes/{note_id}",
-    response_model=Note,
-    summary="Get a single scratchpad note.",
-)
-async def get_scratchpad_note(
-    conversation_id: UUID,
-    note_id: str,
-    session: DBSession,
-    user_id: CurrentUser,
-) -> Note:
-    return await ScratchpadService(session).get_note(conversation_id, note_id, user_id)
 
 
 @router.patch(
@@ -86,16 +72,3 @@ async def delete_scratchpad_note(
     user_id: CurrentUser,
 ) -> None:
     await ScratchpadService(session).delete_note(conversation_id, note_id, user_id)
-
-
-@router.get(
-    "/{conversation_id}/scratchpad/compactions",
-    response_model=list[CompactionRun],
-    summary="Audit log for scratchpad compaction runs.",
-)
-async def list_compactions(
-    conversation_id: UUID,
-    session: DBSession,
-    user_id: CurrentUser,
-) -> list[CompactionRun]:
-    return await ScratchpadService(session).list_compactions(conversation_id, user_id)

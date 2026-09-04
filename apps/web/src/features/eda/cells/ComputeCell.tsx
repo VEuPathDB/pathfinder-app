@@ -7,7 +7,7 @@ import type { EdaVariableResponse } from "@pathfinder/shared/generated/types/Eda
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { edaStudyDetailOptions } from "@/lib/api/eda";
+import { edaStudyDetailOptions } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
 import { useEdaStore } from "@/state/eda";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import * as Dialog from "@radix-ui/react-dialog";
+import { Dialog } from "radix-ui";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -21,7 +21,7 @@ interface ModalProps {
 }
 
 /**
- * Shared modal shell built on @radix-ui/react-dialog.
+ * Shared modal shell built on the Radix Dialog primitive.
  *
  * Provides focus trapping, escape-to-close, click-outside-to-close,
  * consistent backdrop, accessible labelling, and enter/exit animations.

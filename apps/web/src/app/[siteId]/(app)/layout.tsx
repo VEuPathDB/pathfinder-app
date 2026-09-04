@@ -71,7 +71,7 @@ function AppShellInner({
 
   const { data: authStatus } = useSuspenseQuery(authStatusOptions(selectedSite));
   const veupathdbSignedIn = authStatus.signedIn;
-  useAuthRefresh();
+  useAuthRefresh(selectedSite);
   useSiteTheme(selectedSite);
   const { setupRequired, retry: retryConfig } = useSystemConfig();
 

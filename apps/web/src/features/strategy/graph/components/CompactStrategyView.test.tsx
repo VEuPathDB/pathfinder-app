@@ -90,7 +90,7 @@ describe("CompactStrategyView (vertical layout)", () => {
 
   it("renders nothing when strategy is null", () => {
     const { container } = render(<CompactStrategyView strategy={null} />);
-    expect(container.firstChild).toBeNull();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("renders a vertical step list for a single search", () => {

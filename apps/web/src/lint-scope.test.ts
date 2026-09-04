@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { ESLint } from "eslint";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 const WEB_ROOT = fileURLToPath(new URL("..", import.meta.url));
 
@@ -22,12 +22,22 @@ const LINTED_TREES = [
   "scripts/check-boundaries.mjs",
 ];
 
+const ignored = new Map<string, boolean>();
+
 describe("the whole-directory lint program", () => {
-  it.each(GENERATED_TREES)("ignores %s", async (path) => {
-    expect(await eslint.isPathIgnored(path)).toBe(true);
+  // The first isPathIgnored call resolves the flat config, which loads
+  // typescript-eslint. The hook budget covers that one load, not an assertion.
+  beforeAll(async () => {
+    for (const path of [...GENERATED_TREES, ...LINTED_TREES]) {
+      ignored.set(path, await eslint.isPathIgnored(path));
+    }
+  }, 120_000);
+
+  it.each(GENERATED_TREES)("ignores %s", (path) => {
+    expect(ignored.get(path)).toBe(true);
   });
 
-  it.each(LINTED_TREES)("lints %s", async (path) => {
-    expect(await eslint.isPathIgnored(path)).toBe(false);
+  it.each(LINTED_TREES)("lints %s", (path) => {
+    expect(ignored.get(path)).toBe(false);
   });
 });

@@ -3,7 +3,7 @@
 import type { GeneSet } from "@pathfinder/shared";
 import { cn } from "@/lib/utils/cn";
 import { SOURCE_CONFIG } from "./geneSetSourceConfig";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/lib/components/ui/Tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const OP_SYMBOLS: Record<string, string> = {
   intersect: "\u2229",

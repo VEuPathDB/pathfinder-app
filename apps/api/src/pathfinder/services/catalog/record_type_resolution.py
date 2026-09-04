@@ -10,8 +10,11 @@ from __future__ import annotations
 
 from assistant_core.platform.logging import get_logger
 
+from pathfinder.integrations.veupathdb.discovery import SearchCatalog
+from pathfinder.integrations.veupathdb.discovery_service import (
+    get_discovery_service,
+)
 from pathfinder.platform.errors import AppError
-from pathfinder.services.wdk import SearchCatalog, get_discovery_service
 from pathfinder.services.wdk.record_types import resolve_record_type
 
 

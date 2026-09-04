@@ -143,7 +143,10 @@ describe("FilterParam — populated value", () => {
     await user.click(
       screen.getByRole("button", { name: /remove filter on organism/i }),
     );
-    expect(screen.queryByText("organism")).toBeNull();
+    expect(screen.queryAllByText("organism")).toHaveLength(0);
+    expect(screen.queryAllByRole("button", { name: /remove filter on/i })).toHaveLength(
+      0,
+    );
   });
 
   it("clears all filters when 'Clear all' is clicked", async () => {

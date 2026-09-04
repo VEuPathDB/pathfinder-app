@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import type { CombineMismatchGroup } from "@/lib/strategyGraph";
+import type { CombineMismatchGroup } from "@/features/strategy/graph";
 import { ValidationAlert } from "./ValidationAlert";
 
 const GROUPS: CombineMismatchGroup[] = [
@@ -19,7 +19,7 @@ describe("ValidationAlert", () => {
     const { container } = render(
       <ValidationAlert mismatchGroups={[]} isPaused={false} onView={vi.fn()} />,
     );
-    expect(container.firstChild).toBeNull();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("renders when isPaused is true", () => {

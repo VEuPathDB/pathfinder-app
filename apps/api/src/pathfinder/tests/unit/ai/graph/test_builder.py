@@ -5,7 +5,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START
 from langgraph.graph.state import CompiledStateGraph
 
-from pathfinder.ai.graph.composition import build_pathfinder_graph
+from pathfinder.ai.graph.builder import build_pathfinder_graph
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 

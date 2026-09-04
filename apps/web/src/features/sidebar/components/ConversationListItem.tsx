@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ConversationItem } from "@/features/sidebar/components/conversationSidebarTypes";
 import { useFlushBeforeNav } from "@/features/strategy/hooks/useFlushBeforeNav";
-import { formatSidebarTime } from "@/lib/formatTime";
+import { formatSidebarTime } from "@/features/sidebar/formatTime";
 import { chatUrl } from "@/lib/routes";
 import { cn } from "@/lib/utils/cn";
 
@@ -21,7 +21,6 @@ interface ConversationListItemProps {
   isActive: boolean;
   isRenaming: boolean;
   renameValue: string;
-  isActiveStreaming: boolean;
   onRenameValueChange: (value: string) => void;
   onCommitRename: (item: ConversationItem) => void;
   onCancelRename: () => void;
@@ -36,7 +35,6 @@ export function ConversationListItem({
   isActive,
   isRenaming,
   renameValue,
-  isActiveStreaming,
   onRenameValueChange,
   onCommitRename,
   onCancelRename,
@@ -104,12 +102,6 @@ export function ConversationListItem({
               )}
             >
               {metaParts.join(" · ")}
-              {isActiveStreaming && (
-                <>
-                  {" · "}
-                  <span className="text-primary">streaming</span>
-                </>
-              )}
             </div>
           </Link>
 

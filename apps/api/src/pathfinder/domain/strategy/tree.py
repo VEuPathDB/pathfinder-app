@@ -1,57 +1,99 @@
-"""Typed tree walkers for StrategyStepNode strategy trees."""
+"""The traversal surface for a strategy graph, in both of the shapes it takes.
+
+WDK gives structure twice: a nested step tree and a flat map of steps keyed by
+id. Walking either one lives here, so a step-tree bug is fixable in one place.
+"""
 
 from collections.abc import Callable
 
-from pathfinder.domain.strategy.ast import StrategyStepNode
+from pathfinder.domain.strategy.ast import StrategyStepNode, generate_step_id
+from pathfinder.domain.strategy.graph_model import StrategyStep
+
+type StepFold[T] = Callable[[StrategyStepNode, list[T]], T]
 
 
-def walk_plan_tree(
-    root: StrategyStepNode, visitor: Callable[[StrategyStepNode], None]
-) -> None:
-    """Pre-order walk of a StrategyStepNode AST."""
-    visitor(root)
-    if root.primary_input is not None:
-        walk_plan_tree(root.primary_input, visitor)
-    if root.secondary_input is not None:
-        walk_plan_tree(root.secondary_input, visitor)
+def walk(root: StrategyStepNode) -> list[StrategyStepNode]:
+    """Every node of the tree, inputs before the step that consumes them and
+    the primary input before the secondary."""
+    steps: list[StrategyStepNode] = []
+
+    def visit(node: StrategyStepNode) -> None:
+        for child in node.inputs():
+            visit(child)
+        steps.append(node)
+
+    visit(root)
+    return steps
 
 
-def collect_plan_leaves(root: StrategyStepNode) -> list[StrategyStepNode]:
-    """Collect leaf AST nodes (no primary or secondary input)."""
-    leaves: list[StrategyStepNode] = []
+def fold[T](root: StrategyStepNode, combine: StepFold[T]) -> T:
+    """Fold the tree bottom up.
 
-    def _visit(node: StrategyStepNode) -> None:
-        if node.primary_input is None and node.secondary_input is None:
-            leaves.append(node)
-
-    walk_plan_tree(root, _visit)
-    return leaves
-
-
-def collect_plan_combine_nodes(root: StrategyStepNode) -> list[StrategyStepNode]:
-    """Collect combine (binary) nodes from a StrategyStepNode tree."""
-    combines: list[StrategyStepNode] = []
-
-    def _visit(node: StrategyStepNode) -> None:
-        if node.primary_input is not None and node.secondary_input is not None:
-            combines.append(node)
-
-    walk_plan_tree(root, _visit)
-    return combines
-
-
-def map_plan_tree(
-    root: StrategyStepNode,
-    transform: Callable[[StrategyStepNode], StrategyStepNode],
-) -> StrategyStepNode:
-    """Bottom-up map: apply *transform* to every node, children first.
-
-    The original tree is **not** mutated.
+    Each node is given the folded results of its inputs in slot order: none
+    for a search, the primary alone for a transform, both for a combine.
     """
-    updated: dict[str, StrategyStepNode | None] = {}
-    if root.primary_input is not None:
-        updated["primary_input"] = map_plan_tree(root.primary_input, transform)
-    if root.secondary_input is not None:
-        updated["secondary_input"] = map_plan_tree(root.secondary_input, transform)
-    node = root.model_copy(update=updated) if updated else root
-    return transform(node)
+    return combine(root, [fold(child, combine) for child in root.inputs()])
+
+
+def leaves(root: StrategyStepNode) -> list[StrategyStepNode]:
+    """The searches: the nodes that consume no other step."""
+    return [node for node in walk(root) if not node.inputs()]
+
+
+def clone_with_fresh_ids(node: StrategyStepNode) -> StrategyStepNode:
+    """Clone a subtree, assigning a fresh ``id`` to every node.
+
+    A cloned subtree joins another graph, so its ids must not collide with the
+    ids that graph already holds.
+    """
+    return node.model_copy(
+        deep=True,
+        update={
+            "id": generate_step_id(),
+            "primary_input": (
+                clone_with_fresh_ids(node.primary_input)
+                if node.primary_input is not None
+                else None
+            ),
+            "secondary_input": (
+                clone_with_fresh_ids(node.secondary_input)
+                if node.secondary_input is not None
+                else None
+            ),
+        },
+    )
+
+
+def root_ids(steps: dict[str, StrategyStep]) -> set[str]:
+    """The steps that no other step consumes."""
+    consumed = {input_id for step in steps.values() for input_id in step.input_ids()}
+    return {step_id for step_id in steps if step_id not in consumed}
+
+
+def subtree_ids(root_id: str, steps: dict[str, StrategyStep]) -> list[str]:
+    """The root and everything feeding it, descendants before ancestors."""
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def visit(step_id: str) -> None:
+        if step_id in seen or step_id not in steps:
+            return
+        seen.add(step_id)
+        for input_id in steps[step_id].input_ids():
+            visit(input_id)
+        out.append(step_id)
+
+    visit(root_id)
+    return out
+
+
+def parent_of(
+    step_id: str, steps: dict[str, StrategyStep]
+) -> tuple[StrategyStep, str] | None:
+    """The step that consumes this step, and the slot it occupies."""
+    for step in steps.values():
+        if step.primary_input_id == step_id:
+            return step, "primary"
+        if step.secondary_input_id == step_id:
+            return step, "secondary"
+    return None

@@ -47,23 +47,13 @@ export default defineConfig({
         "src/features/conversation/content/parts/consultData.ts",
         "src/features/conversation/content/statusClock.ts",
         "src/features/conversation/rail/{consultActions,normalizeLedger,railActivity}.ts",
-        "src/features/conversation/runtime/{buildRequestBody,feedbackAdapter,geneIdAttachmentAdapter,replayChunks,traceId}.ts",
+        "src/features/conversation/runtime/{buildRequestBody,geneIdAttachmentAdapter}.ts",
         "src/features/conversation/slash/{parser,registryUtils}.ts",
         // ReactFlow graph interaction logic (unit-tested).
         "src/features/strategy/graph/utils/**/*.{ts,tsx}",
-        // Strategy pure helpers (unit-tested).
-        "src/features/strategy/services/openAndHydrateDraftStrategy.ts",
-        "src/features/strategy/utils/draftSummary.ts",
-        // Sidebar pure list logic.
-        "src/features/sidebar/utils/**/*.{ts,tsx}",
-        "src/features/sidebar/services/**/*.{ts,tsx}",
         "src/state/**/*.{ts,tsx}",
-        // Experiment store logic.
-        "src/features/experiments/store/**/*.{ts,tsx}",
-        "src/features/experiments/utils/**/*.{ts,tsx}",
-        "src/shared/**/*.{ts,tsx}",
         // Pure strategy graph logic (unit-tested).
-        "src/lib/strategyGraph/{kind,serialize,validate,types,deserialize}.ts",
+        "src/features/strategy/graph/{kind,serialize,validate,deserialize}.ts",
       ],
       exclude: [
         // UI rendering is primarily covered by Playwright E2E.
@@ -72,13 +62,7 @@ export default defineConfig({
         "src/features/**/graph/components/**",
         "src/features/**/graph/hooks/**",
         "src/features/**/editor/**",
-        "src/features/results/**",
         "src/features/sites/**",
-        // React hooks are primarily tested via E2E; unit coverage focuses on pure logic.
-        "src/shared/hooks/**",
-        "src/shared/types/**",
-        "src/core/**",
-        "src/types/**",
         "**/*.d.ts",
         "**/*.config.*",
         "**/e2e/**",

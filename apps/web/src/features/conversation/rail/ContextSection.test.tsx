@@ -1,10 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
+import type { UIMessage } from "ai";
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { ContextSection } from "./ContextSection";
+
+type Part = UIMessage["parts"][number];
 
 function dispatch(
   phase: string,
@@ -12,7 +15,7 @@ function dispatch(
   contextTokens: number,
   contextWindow: number,
   toolCallId = `sa_${phase}`,
-) {
+): Part {
   return {
     type: "data-sub-agent-call",
     data: {
@@ -27,7 +30,7 @@ function dispatch(
   };
 }
 
-function leadUsage(contextTokens: number, contextWindow: number) {
+function leadUsage(contextTokens: number, contextWindow: number): Part {
   return {
     type: "data-lead-usage",
     data: {

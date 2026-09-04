@@ -153,7 +153,7 @@ def _state(spec: OperationalSpec | None) -> PipelineState:
 def refusing_api(monkeypatch: Any) -> _RefusingStrategyApi:
     api = _RefusingStrategyApi()
     monkeypatch.setattr(
-        "pathfinder.ai.lead.pre_turn.get_strategy_api",
+        "pathfinder.services.strategies.live_counts.get_strategy_api",
         lambda site_id: api,
     )
     return api

@@ -12,7 +12,7 @@ from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.domain.parameters.values import MultiPickValue
-from pathfinder.domain.strategy.ast import StrategyStepNode, walk_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.graph_model import flatten_tree
 from pathfinder.domain.strategy.operations import (
     AddLeafOp,
@@ -25,6 +25,7 @@ from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.integrations.veupathdb.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
@@ -578,9 +579,9 @@ async def test_adding_a_second_root_step_is_persisted(
     async with session_maker() as fresh:
         refetched = await ConversationRepository(fresh).get_strategy(conv_id)
         persisted = StrategyAst.model_validate(refetched.strategy_ast)
-        ids = {node.id for node in walk_step_tree(persisted.root)}
+        ids = {node.id for node in walk(persisted.root)}
         for detached in persisted.detached_roots:
-            ids |= {node.id for node in walk_step_tree(detached)}
+            ids |= {node.id for node in walk(detached)}
         assert ids == {"step_a", "step_b"}
         assert refetched.step_count == 2
 
@@ -615,9 +616,9 @@ async def test_the_operation_response_reflects_the_operation(
     db_session.expire_all()
     refreshed = await outer.get_strategy(conv_id)
     persisted = StrategyAst.model_validate(refreshed.strategy_ast)
-    ids = {node.id for node in walk_step_tree(persisted.root)}
+    ids = {node.id for node in walk(persisted.root)}
     for detached in persisted.detached_roots:
-        ids |= {node.id for node in walk_step_tree(detached)}
+        ids |= {node.id for node in walk(detached)}
     assert ids == {"step_a", "step_b"}
 
 

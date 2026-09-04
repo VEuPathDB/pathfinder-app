@@ -1,28 +1,41 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import type { DataLedgerUpdatePayload } from "@pathfinder/shared";
+import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
 
 const messagesRef: { current: unknown[] } = { current: [] };
 vi.mock("../runtime/chatHelpersContext", () => ({
-  useChatHelpersOptional: () => ({ messages: messagesRef.current }),
+  useChatHelpers: () => ({ messages: messagesRef.current }),
 }));
 
 import { LedgerPanel, ledgerTabSignatures } from "./LedgerPanel";
 import { useRightRailStore } from "@/state/useRightRailStore";
 
-function makeLedger(
-  overrides: Partial<DataLedgerUpdatePayload> = {},
-): DataLedgerUpdatePayload {
+const EMPTY_BUILD = {
+  pushedCount: 0,
+  failedCount: 0,
+  skippedCount: 0,
+  zeroResultSteps: [],
+  needsRecovery: false,
+  recoveryKind: "none" as const,
+  succeeded: false,
+  nodeResults: [],
+  wdkStrategyId: null,
+  wdkUrl: null,
+};
+
+function makeLedger(overrides: Partial<InvestigationLedger> = {}): InvestigationLedger {
   return {
     userIntent: {
-      classification: "discovery",
+      rawText: "find genes",
+      classification: "new_strategy",
       inferredGoal: "find genes",
       isDifferential: false,
       differentialSides: [],
     },
     frame: {
       present: true,
+      diff: null,
       criteriaCount: 2,
       boundCount: 2,
       openSlotCount: 0,
@@ -30,6 +43,7 @@ function makeLedger(
       readyToBuild: true,
       needsUser: false,
       contrasts: [],
+      structureRender: null,
       spec: null,
     },
     build: {
@@ -41,6 +55,8 @@ function makeLedger(
       recoveryKind: "none",
       succeeded: true,
       nodeResults: [],
+      wdkStrategyId: null,
+      wdkUrl: null,
     },
     verification: { complete: false, successful: false },
     constraints: { grounded: [], unmetCount: 0, blocking: false },
@@ -48,7 +64,7 @@ function makeLedger(
   };
 }
 
-function setLedger(ledger: DataLedgerUpdatePayload): void {
+function setLedger(ledger: InvestigationLedger): void {
   messagesRef.current = [
     { role: "assistant", parts: [{ type: "data-ledger-update", data: ledger }] },
   ];
@@ -67,18 +83,7 @@ describe("ledgerTabSignatures", () => {
   it("isolates a change to the tab whose section changed", () => {
     const base = ledgerTabSignatures(makeLedger());
     const buildChanged = ledgerTabSignatures(
-      makeLedger({
-        build: {
-          pushedCount: 5,
-          failedCount: 0,
-          skippedCount: 0,
-          zeroResultSteps: [],
-          needsRecovery: false,
-          recoveryKind: "none",
-          succeeded: true,
-          nodeResults: [],
-        },
-      }),
+      makeLedger({ build: { ...EMPTY_BUILD, pushedCount: 5, succeeded: true } }),
     );
     expect(buildChanged.build).not.toBe(base.build);
     expect(buildChanged.frame).toBe(base.frame);
@@ -147,7 +152,16 @@ describe("LedgerPanel summary", () => {
     setLedger(makeLedger());
     render(<LedgerPanel conversationId="c1" />);
 
-    expect(screen.queryByText("Context")).toBeNull();
+    const headings = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+    expect(headings).toEqual([
+      "Intent",
+      "Planning",
+      "Build",
+      "Verification",
+      "Constraints",
+    ]);
   });
 });
 
@@ -160,17 +174,6 @@ describe("LedgerPanel keyboard access", () => {
     expect(body).toHaveAttribute("tabindex", "0");
   });
 });
-
-const EMPTY_BUILD = {
-  pushedCount: 0,
-  failedCount: 0,
-  skippedCount: 0,
-  zeroResultSteps: [],
-  needsRecovery: false,
-  recoveryKind: "none" as const,
-  succeeded: false,
-  nodeResults: [],
-};
 
 describe("LedgerPanel raises no dot over an empty section", () => {
   it("leaves Building and Checking unflagged while only Planning has content", () => {
@@ -199,6 +202,7 @@ describe("LedgerPanel raises no dot over an empty section", () => {
         userIntent: null,
         frame: {
           present: false,
+          diff: null,
           criteriaCount: 0,
           boundCount: 0,
           openSlotCount: 0,
@@ -206,6 +210,7 @@ describe("LedgerPanel raises no dot over an empty section", () => {
           readyToBuild: false,
           needsUser: false,
           contrasts: [],
+          structureRender: null,
           spec: null,
         },
         build: EMPTY_BUILD,

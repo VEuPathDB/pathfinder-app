@@ -8,7 +8,7 @@ import { Search } from "lucide-react";
 import type { MemoryItem } from "@pathfinder/shared";
 
 import { searchMemories } from "@/features/settings/api/memories";
-import { Input } from "@/lib/components/ui/Input";
+import { Input } from "@/components/ui/input";
 
 import { MemoryRow } from "./MemoryRow";
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuiState } from "@assistant-ui/react";
+import type { ConsultQuestion } from "@pathfinder/shared/generated/types/ConsultQuestion";
+import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/UserQuestionAnswer";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, ChevronLeft, ChevronRight, HelpCircle, Sparkles } from "lucide-react";
 import { useState } from "react";
@@ -9,14 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils/cn";
 
-import { useChatHelpersOptional } from "../../runtime/chatHelpersContext";
-import {
-  type UserQuestionAnswerEntry,
-  handleConsultSubmit,
-} from "../../rail/consultActions";
+import { useChatHelpers, type ChatHelpers } from "../../runtime/chatHelpersContext";
+import { handleConsultSubmit } from "../../rail/consultActions";
 import { ConsultRecapView } from "./ConsultRecap";
 import {
-  type ConsultQuestionView,
   type PendingConsult,
   findConsultRecap,
   findPendingConsult,
@@ -31,8 +29,7 @@ const SLIDE_TRANSITION = { duration: 0.22, ease: [0.4, 0, 0.2, 1] } as const;
 
 export function ConsultCarousel({ toolCallId }: { toolCallId?: string }) {
   const currentId = useAuiState((s) => s.message.id);
-  const chat = useChatHelpersOptional();
-  if (chat == null) return null;
+  const chat = useChatHelpers();
   const message = chat.messages.find((m) => m.id === currentId);
   if (message?.role !== "assistant") return null;
   if (toolCallId !== undefined) {
@@ -52,7 +49,7 @@ export function ConsultCarousel({ toolCallId }: { toolCallId?: string }) {
   return null;
 }
 
-function isAnswered(q: ConsultQuestionView, a: AnswerState | undefined): boolean {
+function isAnswered(q: ConsultQuestion, a: AnswerState | undefined): boolean {
   if (a === undefined) return false;
   if (q.kind === "free_text") return a.note.trim() !== "";
   return a.labels.length > 0;
@@ -63,7 +60,7 @@ export function ConsultCarouselView({
   chat,
 }: {
   pending: PendingConsult;
-  chat: NonNullable<ReturnType<typeof useChatHelpersOptional>>;
+  chat: ChatHelpers;
 }) {
   const questions = pending.questions;
   const [index, setIndex] = useState(0);
@@ -81,7 +78,7 @@ export function ConsultCarouselView({
     setIndex(Math.max(0, Math.min(next, questions.length - 1)));
   };
 
-  const toggle = (question: ConsultQuestionView, label: string) => {
+  const toggle = (question: ConsultQuestion, label: string) => {
     setAnswers((prev) => {
       const a = prev[question.id] ?? { labels: [], note: "" };
       if (question.kind === "multi_choice") {
@@ -94,7 +91,7 @@ export function ConsultCarouselView({
     });
   };
 
-  const setNote = (question: ConsultQuestionView, note: string) => {
+  const setNote = (question: ConsultQuestion, note: string) => {
     setAnswers((prev) => {
       const a = prev[question.id] ?? { labels: [], note: "" };
       return { ...prev, [question.id]: { ...a, note } };
@@ -102,7 +99,7 @@ export function ConsultCarouselView({
   };
 
   const submit = () => {
-    const entries: UserQuestionAnswerEntry[] = questions.map((qq) => {
+    const entries: UserQuestionAnswer[] = questions.map((qq) => {
       const a = answers[qq.id] ?? { labels: [], note: "" };
       return {
         questionId: qq.id,
@@ -208,7 +205,7 @@ function ConsultSlide({
   onToggle,
   onNote,
 }: {
-  question: ConsultQuestionView;
+  question: ConsultQuestion;
   answer: AnswerState | undefined;
   onToggle: (label: string) => void;
   onNote: (note: string) => void;
@@ -217,14 +214,14 @@ function ConsultSlide({
   return (
     <div data-testid="consult-slide" className="space-y-2">
       <p className="text-sm font-medium text-foreground">{question.prompt}</p>
-      {question.context !== "" && (
+      {question.context != null && question.context !== "" && (
         <p className="text-xs leading-relaxed text-muted-foreground">
           {question.context}
         </p>
       )}
       {question.kind !== "free_text" && (
         <div className="space-y-1.5">
-          {question.options.map((opt) => {
+          {(question.options ?? []).map((opt) => {
             const isChosen = chosen.includes(opt.label);
             return (
               <button
@@ -255,13 +252,13 @@ function ConsultSlide({
                   <span className="text-xs font-medium text-foreground">
                     {opt.label}
                   </span>
-                  {opt.recommended && (
+                  {opt.recommended === true && (
                     <span className="ml-auto inline-flex items-center gap-1 rounded bg-success/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-success">
                       <Sparkles className="size-2.5" aria-hidden /> Recommended
                     </span>
                   )}
                 </div>
-                {opt.description !== "" && (
+                {opt.description != null && opt.description !== "" && (
                   <p className="mt-1 pl-6 text-[11px] text-muted-foreground">
                     {opt.description}
                   </p>
@@ -271,7 +268,7 @@ function ConsultSlide({
           })}
         </div>
       )}
-      {(question.allowNotes || question.kind === "free_text") && (
+      {(question.allowNotes !== false || question.kind === "free_text") && (
         <Textarea
           value={answer?.note ?? ""}
           onChange={(e) => onNote(e.target.value)}

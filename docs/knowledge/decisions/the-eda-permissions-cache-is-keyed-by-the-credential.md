@@ -15,8 +15,8 @@ status: stable
 `veupathdb_auth_token_ctx`. A call that carries no token raises
 `WDKLoginRequiredError` before it reaches the address, which is the error the
 EDA client raises for the same request anyway. The map is capped at 512
-entries and dropped whole when the cap is reached, and `clear_study_caches`
-drops it with the rest.
+entries and dropped whole when the cap is reached, beside the other
+module-level catalog maps.
 
 `studies` stays keyed by the site alone. The `/eda/studies` listing is the
 same for every account, and only `permissions` decides what an account may

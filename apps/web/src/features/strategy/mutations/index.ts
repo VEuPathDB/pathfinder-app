@@ -1,5 +1,4 @@
 export { useAddStepMutation } from "./useAddStepMutation";
-export { useApplyOperation } from "./useApplyOperation";
 export { useDeleteStrategyMutation } from "./useDeleteStrategyMutation";
 export { useDuplicateStepMutation } from "./useDuplicateStepMutation";
 export { useRetryLastPush } from "./useRetryLastPush";

@@ -10,7 +10,7 @@ status: accepted
 
 # PathFinder EDA integration concept
 
-Status: implemented by [the EDA integration plan](plan/index.md). The facts it
+Status: implemented. The facts it
 stands on are in [what-eda-is.md](what-eda-is.md),
 [eda-wdk-bridge.md](eda-wdk-bridge.md), and [rest-surface.md](rest-surface.md).
 

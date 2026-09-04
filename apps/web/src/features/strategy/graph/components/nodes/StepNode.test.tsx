@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Node, NodeProps } from "@xyflow/react";
-import { CombineOperator, type Step } from "@pathfinder/shared";
+import { combineOpEnum, type Step } from "@pathfinder/shared";
 import { useStrategyStore } from "@/state/strategy/store";
 import { StepNode } from "./StepNode";
 import type { StepNodeData } from "./types";
@@ -85,7 +85,7 @@ describe("StepNode dispatcher", () => {
     const step = makeStep({
       kind: "combine",
       displayName: "Kinases AND drug targets",
-      operator: CombineOperator.INTERSECT,
+      operator: combineOpEnum.INTERSECT,
       primaryInputStepId: "a",
       secondaryInputStepId: "b",
     });
@@ -108,21 +108,19 @@ describe("StepNode dispatcher", () => {
 
   it("renders a selection ring on the shell when selected=true", () => {
     const step = makeStep();
-    const { container } = render(<StepNode {...makeNodeProps(step, true)} />);
-    expect(container.querySelector('[data-selected="true"]')).not.toBeNull();
+    render(<StepNode {...makeNodeProps(step, true)} />);
+    expect(screen.getByTestId(`rf-node-${step.id}`)).toHaveAttribute(
+      "data-selected",
+      "true",
+    );
   });
 
-  it("fires onAddToChat with the step id when the add-to-chat chip is clicked", async () => {
+  it("fires onOpenDetails with the step id when the edit chip is clicked", async () => {
     const step = makeStep({ id: "step-kinases" });
-    const onAddToChat = vi.fn();
-    render(
-      <StepNode
-        {...makeNodeProps(step, false, { onAddToChat, onOpenDetails: vi.fn() })}
-      />,
-    );
-    expect(screen.getByTestId(`rf-edit-${step.id}`)).toBeTruthy();
-    await userEvent.click(screen.getByTestId(`rf-add-to-chat-${step.id}`));
-    expect(onAddToChat).toHaveBeenCalledWith("step-kinases");
+    const onOpenDetails = vi.fn();
+    render(<StepNode {...makeNodeProps(step, false, { onOpenDetails })} />);
+    await userEvent.click(screen.getByTestId(`rf-edit-${step.id}`));
+    expect(onOpenDetails).toHaveBeenCalledWith("step-kinases");
   });
 
   it("tags the rendered node with data-orphan when isOrphan is true", () => {

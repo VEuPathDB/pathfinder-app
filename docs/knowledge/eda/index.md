@@ -40,4 +40,3 @@ Start with [What EDA is](what-eda-is.md), then read by subject.
 
 - [Integration concept](pathfinder-integration-concept.md) - the two seams, the workbench-style tab, and how models get EDA knowledge
 - [Architecture fit](pathfinder-architecture-fit.md) - where every EDA concern lands in the layer model, the durable-tool mapping piece by piece, the MCP/SDK placement, and the SSOT for the analysis spec
-- [Implementation plan](plan/) - the seven-batch, verifier-gated execution plan; start at its [overview](plan/overview.md)

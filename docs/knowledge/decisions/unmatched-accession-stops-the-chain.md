@@ -96,11 +96,11 @@ Three things changed together, because each one alone leaves the loop open:
 `ai/tools/standalone/frame_spec.py:_refuse_unmatched_value`, ranking through
 `domain/parameters/wdk_vocab.py:nearest_entries`, which is the one ranker every
 did-you-mean uses, guarded by
-`tests/unit/domain/parameters/test_nearest_entries.py`.
+`tests/unit/domain/parameters/test_wdk_vocab.py`.
 Guarded by `TestAProposedValueMustBeOnTheSheet::test_a_substring_of_an_entry_is_not_a_match`
-and `TestAnAccessionNamesItsEntry` in `tests/unit/ai/agents/test_frame_toolset.py`.
+and `tests/unit/ai/tools/test_frame_proposals.py`.
 Matching is `domain/parameters/wdk_vocab.py:match_exact_option` over
 `leading_accession_token`, guarded by
-`tests/unit/domain/parameters/test_match_exact_option.py`; the pin is
+`tests/unit/domain/parameters/test_wdk_vocab.py`; the pin is
 `services/catalog/param_sheet.py:_is_named`, guarded in
 `tests/unit/services/catalog/test_param_sheet.py`.

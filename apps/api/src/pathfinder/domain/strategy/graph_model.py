@@ -77,7 +77,7 @@ class StrategyStep(CamelModel):
             return "Combine"
         return self.search_name or self.id
 
-    def inputs(self) -> list[str]:
+    def input_ids(self) -> list[str]:
         """Returns the input step ids in slot order and omits empty slots."""
         return [
             step_id
@@ -87,7 +87,7 @@ class StrategyStep(CamelModel):
 
 
 def _kind_of(node: StrategyStepNode) -> StepKind:
-    if node.primary_input is not None and node.secondary_input is not None:
+    if node.secondary_input is not None:
         return StepKind.COMBINE
     if node.primary_input is not None:
         return StepKind.TRANSFORM
@@ -129,12 +129,8 @@ def flatten_tree(root: StrategyStepNode) -> dict[str, StrategyStep]:
             kind=kind,
             search_name=own_search_name(node, kind),
             parameters=dict(node.parameters),
-            primary_input_id=(
-                node.primary_input.id if node.primary_input is not None else None
-            ),
-            secondary_input_id=(
-                node.secondary_input.id if node.secondary_input is not None else None
-            ),
+            primary_input_id=node.primary_input_id,
+            secondary_input_id=node.secondary_input_id,
             display_name=node.display_name,
             operator=node.operator,
             colocation_params=node.colocation_params,
@@ -145,10 +141,8 @@ def flatten_tree(root: StrategyStepNode) -> dict[str, StrategyStep]:
             expanded_strategy_id=node.expanded_strategy_id,
             expanded_name=node.expanded_name,
         )
-        if node.primary_input is not None:
-            visit(node.primary_input)
-        if node.secondary_input is not None:
-            visit(node.secondary_input)
+        for child in node.inputs():
+            visit(child)
 
     visit(root)
     return steps
@@ -212,45 +206,10 @@ def _own_or_inherited(
     seen.add(step_id)
     if step.record_class:
         return step.record_class
-    for input_id in step.inputs():
+    for input_id in step.input_ids():
         inherited = _own_or_inherited(input_id, steps, seen)
         if inherited:
             return inherited
-    return None
-
-
-def root_ids(steps: dict[str, StrategyStep]) -> set[str]:
-    """Returns the steps that no other step consumes."""
-    consumed = {input_id for step in steps.values() for input_id in step.inputs()}
-    return {step_id for step_id in steps if step_id not in consumed}
-
-
-def subtree_ids(root_id: str, steps: dict[str, StrategyStep]) -> list[str]:
-    """Returns the root and everything feeding it, descendants before ancestors."""
-    out: list[str] = []
-    seen: set[str] = set()
-
-    def visit(step_id: str) -> None:
-        if step_id in seen or step_id not in steps:
-            return
-        seen.add(step_id)
-        for input_id in steps[step_id].inputs():
-            visit(input_id)
-        out.append(step_id)
-
-    visit(root_id)
-    return out
-
-
-def find_parent(
-    step_id: str, steps: dict[str, StrategyStep]
-) -> tuple[StrategyStep, str] | None:
-    """Returns the step that consumes this step and the slot it occupies."""
-    for step in steps.values():
-        if step.primary_input_id == step_id:
-            return step, "primary"
-        if step.secondary_input_id == step_id:
-            return step, "secondary"
     return None
 
 
@@ -295,7 +254,7 @@ def pushable_root_id(root_id: str, steps: dict[str, StrategyStep]) -> str | None
             return None
         if is_computable(step):
             return current
-        inputs = step.inputs()
+        inputs = step.input_ids()
         current = inputs[0] if inputs else None
     return None
 

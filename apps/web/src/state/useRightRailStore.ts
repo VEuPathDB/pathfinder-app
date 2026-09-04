@@ -30,7 +30,7 @@ const DEFAULT_LAST_SEEN: LastSeen = {
 };
 
 /** Markers for every conversation the rail has shown, keyed by conversation id. */
-export type LastSeenByConversation = Record<string, LastSeen>;
+type LastSeenByConversation = Record<string, LastSeen>;
 
 /** What the rail showed for one conversation, defaulting to a fresh thread. */
 export function lastSeenFor(

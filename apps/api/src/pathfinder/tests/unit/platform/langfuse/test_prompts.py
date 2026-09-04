@@ -6,7 +6,6 @@ import pytest
 from langfuse.api.commons.errors.not_found_error import NotFoundError
 
 from pathfinder.platform.langfuse.prompts import (
-    load_prompt,
     load_prompt_result,
     seed_prompts,
 )
@@ -20,7 +19,7 @@ class TestLoadPromptLocalFallback:
             "pathfinder.platform.langfuse.prompts.get_langfuse",
             return_value=None,
         ):
-            result = load_prompt("system")
+            result = load_prompt_result("system").text
         assert len(result) > 100
         assert "VEuPathDB" in result
 
@@ -29,7 +28,7 @@ class TestLoadPromptLocalFallback:
             "pathfinder.platform.langfuse.prompts.get_langfuse",
             return_value=None,
         ):
-            result = load_prompt("safety")
+            result = load_prompt_result("safety").text
         assert len(result) > 0
 
     def test_loads_site_hints_prompt_from_local(self) -> None:
@@ -37,7 +36,7 @@ class TestLoadPromptLocalFallback:
             "pathfinder.platform.langfuse.prompts.get_langfuse",
             return_value=None,
         ):
-            result = load_prompt("site-hints")
+            result = load_prompt_result("site-hints").text
         assert len(result) > 0
 
     def test_load_prompt_result_tracks_local_metadata(self) -> None:
@@ -63,7 +62,7 @@ class TestLoadPromptLangfuseError:
             "pathfinder.platform.langfuse.prompts.get_langfuse",
             return_value=mock_client,
         ):
-            result = load_prompt("system")
+            result = load_prompt_result("system").text
         assert len(result) > 100
 
     def test_falls_back_on_value_error(self) -> None:
@@ -73,7 +72,7 @@ class TestLoadPromptLangfuseError:
             "pathfinder.platform.langfuse.prompts.get_langfuse",
             return_value=mock_client,
         ):
-            result = load_prompt("system")
+            result = load_prompt_result("system").text
         assert len(result) > 100
 
     def test_falls_back_on_not_found_error(self) -> None:
@@ -85,7 +84,7 @@ class TestLoadPromptLangfuseError:
             "pathfinder.platform.langfuse.prompts.get_langfuse",
             return_value=mock_client,
         ):
-            result = load_prompt("system")
+            result = load_prompt_result("system").text
         assert len(result) > 100
 
 
@@ -101,7 +100,7 @@ class TestLoadPromptFromLangfuse:
             "pathfinder.platform.langfuse.prompts.get_langfuse",
             return_value=mock_client,
         ):
-            result = load_prompt("system")
+            result = load_prompt_result("system").text
         assert result == "langfuse prompt content"
         mock_client.get_prompt.assert_called_once_with("system", label="production")
 
@@ -114,7 +113,7 @@ class TestLoadPromptFromLangfuse:
             "pathfinder.platform.langfuse.prompts.get_langfuse",
             return_value=mock_client,
         ):
-            result = load_prompt("system", label="staging")
+            result = load_prompt_result("system", label="staging").text
         assert result == "staging content"
         mock_client.get_prompt.assert_called_once_with("system", label="staging")
 
@@ -146,7 +145,7 @@ class TestLoadPromptUnknownName:
             ),
             pytest.raises(ValueError, match="nonexistent"),
         ):
-            load_prompt("nonexistent")
+            load_prompt_result("nonexistent")
 
 
 class TestSeedPrompts:

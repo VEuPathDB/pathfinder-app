@@ -108,7 +108,6 @@ test.describe("Analysis Panels", () => {
       "Results Table",
       "Enrichment Analysis",
       "Distribution Explorer",
-      "Step Contribution",
       "Gene Confidence",
       "Ensemble Scoring",
       "Reverse Search",

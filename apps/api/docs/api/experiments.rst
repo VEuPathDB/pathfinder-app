@@ -244,11 +244,6 @@ Evaluation Service
 **Purpose:** Re-evaluation and threshold sweep service. Pure business logic
 for recomputing experiment metrics with updated controls or parameters.
 
-.. automodule:: pathfinder.services.experiment.evaluation
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Metrics and Evaluation
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -274,11 +269,6 @@ Classification metrics, rank metrics, and statistical utilities.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.experiment.rank_metrics
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Analysis Features
 ~~~~~~~~~~~~~~~~~
 
@@ -289,22 +279,7 @@ Cross-validation, overlap, comparison, robustness, and reporting.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.experiment.overlap
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 .. automodule:: pathfinder.services.experiment.robustness
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.report
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.tree_knobs
    :members:
    :undoc-members:
    :show-inheritance:
@@ -314,46 +289,6 @@ Step Analysis
 
 Multi-step strategy analysis: per-step evaluation, operator comparison,
 contribution analysis, and parameter sensitivity.
-
-.. automodule:: pathfinder.services.experiment.step_analysis
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.step_analysis.orchestrator
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.step_analysis.phase_step_eval
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.step_analysis.phase_operators
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.step_analysis.phase_contribution
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.step_analysis.phase_sensitivity
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.step_analysis._evaluation
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.step_analysis._tree_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 Types
 ~~~~~
@@ -376,21 +311,6 @@ Pydantic models for experiment configuration, metrics, enrichment, and results.
    :show-inheritance:
 
 .. automodule:: pathfinder.services.experiment.types.metrics
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.types.optimization
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.types.rank
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.types.step_analysis
    :members:
    :undoc-members:
    :show-inheritance:
@@ -429,11 +349,6 @@ comparison, ranking, and the statistics they share.
    :show-inheritance:
 
 .. automodule:: pathfinder.services.enrichment.custom
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.enrichment.compare
    :members:
    :undoc-members:
    :show-inheritance:

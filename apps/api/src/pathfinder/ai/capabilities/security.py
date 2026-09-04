@@ -81,10 +81,6 @@ class UserInputScanner:
         repr=False,
     )
 
-    @property
-    def is_loaded(self) -> bool:
-        return self._piguard is not None and self._invisible is not None
-
     def ensure_loaded(self) -> tuple[PIGuardScanner, InvisibleTextScanner]:
         if self._piguard is not None and self._invisible is not None:
             return self._piguard, self._invisible

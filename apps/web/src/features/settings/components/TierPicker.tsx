@@ -1,7 +1,7 @@
 "use client";
 
 import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
-import { CUSTOM_TIER } from "@/lib/models/tierPresets";
+import { CUSTOM_TIER } from "@/features/settings/tierPresets";
 
 const TIER_LABELS: Record<string, string> = {
   quality: "Quality",

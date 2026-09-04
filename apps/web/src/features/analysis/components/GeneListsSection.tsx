@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Experiment, GeneInfo } from "@pathfinder/shared";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { Card } from "@/lib/components/ui/Card";
+import { Card } from "@/components/ui/card";
 import { Section } from "./Section";
 
 interface GeneListsSectionProps {

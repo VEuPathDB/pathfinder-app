@@ -6,10 +6,10 @@ from uuid import UUID
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.logging import get_logger
 
-from pathfinder.domain.strategy.ast import walk_step_tree
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import walk
+from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
-from pathfinder.integrations.veupathdb.wdk_models import WDKStrategySummary
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import (
     ConversationRepository,
@@ -22,7 +22,6 @@ from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
 )
 from pathfinder.platform.errors import AppError, InternalError
-from pathfinder.services.wdk import get_strategy_api
 
 from .wdk_conversion import (
     build_snapshot_from_wdk,
@@ -100,7 +99,7 @@ async def sync_to_chat(
             strategy_ast=payload,
             record_type=payload.record_type,
             is_saved=is_saved,
-            step_count=len(walk_step_tree(payload.root)),
+            step_count=len(walk(payload.root)),
         ),
     )
 
@@ -158,73 +157,6 @@ async def upsert_chat(
     return conversation
 
 
-async def upsert_summary_chat(
-    wdk_item: WDKStrategySummary,
-    *,
-    conv_repo: ConversationRepository,
-    user_id: UUID,
-    site_id: str,
-) -> Conversation | None:
-    """Creates or updates a chat from list summary data only.
-
-    This call fetches no strategy detail and keeps any existing plan data. The full
-    detail arrives on first read.
-    """
-    wdk_id = wdk_item.strategy_id
-    name = wdk_item.name or f"WDK Strategy {wdk_id}"
-    record_type = (
-        wdk_item.record_class_name.strip() if wdk_item.record_class_name else None
-    )
-    is_saved = wdk_item.is_saved
-    estimated_size = wdk_item.estimated_size
-    step_count = wdk_item.leaf_and_transform_step_count
-
-    found = await SavedStrategyRepository(conv_repo.session).get_by_wdk_strategy_id(
-        user_id, wdk_id
-    )
-    existing = None if found is None else found[0]
-    if existing and existing.dismissed_at is not None:
-        # A dismissed strategy is neither re-imported nor updated.
-        return existing
-    if existing:
-        await conv_repo.update_conversation(
-            existing.id,
-            ConversationUpdate(
-                name=name,
-                record_type=record_type,
-                wdk_strategy_id=wdk_id,
-                wdk_strategy_id_set=True,
-                is_saved=is_saved,
-                is_saved_set=True,
-                step_count=step_count,
-                estimated_size=estimated_size,
-                estimated_size_set=True,
-                touch_updated_at=False,
-            ),
-        )
-        return await conv_repo.get_by_id(existing.id)
-
-    created = await conv_repo.create(
-        user_id=user_id,
-        site_id=site_id,
-        name=name,
-    )
-    await conv_repo.update_conversation(
-        created.id,
-        ConversationUpdate(
-            record_type=record_type,
-            wdk_strategy_id=wdk_id,
-            wdk_strategy_id_set=True,
-            is_saved=is_saved,
-            is_saved_set=True,
-            step_count=step_count,
-            estimated_size=estimated_size,
-            estimated_size_set=True,
-        ),
-    )
-    return await conv_repo.get_by_id(created.id)
-
-
 async def lazy_fetch_wdk_detail(
     *,
     conversation: Conversation,
@@ -249,7 +181,7 @@ async def lazy_fetch_wdk_detail(
             ConversationUpdate(
                 strategy_ast=payload,
                 record_type=payload.record_type,
-                step_count=len(walk_step_tree(payload.root)),
+                step_count=len(walk(payload.root)),
                 is_saved=is_saved,
                 is_saved_set=True,
                 touch_updated_at=False,

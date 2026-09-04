@@ -1,6 +1,6 @@
 import type { Step, StrategyStepNode } from "@pathfinder/shared";
 import type { ApplyOperationRequest } from "@pathfinder/shared/generated/types/ApplyOperationRequest";
-import type { GraphOperation } from "./types";
+import type { GraphOperation } from "@/lib/types/graphOperation";
 
 export type WireOperation = ApplyOperationRequest["op"];
 

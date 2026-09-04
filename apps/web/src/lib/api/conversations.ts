@@ -10,7 +10,7 @@ const conversationDuplicateSchema = z.object({
   name: z.string(),
 });
 
-export type ConversationDuplicate = z.infer<typeof conversationDuplicateSchema>;
+type ConversationDuplicate = z.infer<typeof conversationDuplicateSchema>;
 
 /** Duplicate a whole conversation (incl. its strategy) into a new copy. */
 export async function duplicateConversation(
@@ -23,7 +23,7 @@ export async function duplicateConversation(
   );
 }
 
-export interface InsertSavedStrategyArgs {
+interface InsertSavedStrategyArgs {
   conversationId: string;
   siteId: string;
   /** Empty when the thread has no steps: the saved strategy becomes the root. */
@@ -33,7 +33,7 @@ export interface InsertSavedStrategyArgs {
   operator?: string | undefined;
 }
 
-export interface InsertSavedStrategyResult {
+interface InsertSavedStrategyResult {
   wdkStrategyId: number;
   insertedSavedWdkStrategyId: number;
   insertedSavedName: string;

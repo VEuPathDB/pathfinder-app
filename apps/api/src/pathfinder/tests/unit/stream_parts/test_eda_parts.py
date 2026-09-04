@@ -8,7 +8,10 @@ from assistant_core.conversation.stream_parts.core_parts import (
 )
 from assistant_core.conversation.stream_parts.registry import StreamPartRegistry
 from pydantic import BaseModel, ValidationError
-from shared_py.stream_parts.eda import (
+
+from pathfinder.ai.eda_stream_parts import register_eda_stream_parts
+from pathfinder.ai.strategy_stream_parts import register_strategy_stream_parts
+from pathfinder.domain.eda_parts import (
     EdaAnalysisState,
     EdaDistributionSeries,
     EdaEntityCount,
@@ -16,9 +19,6 @@ from shared_py.stream_parts.eda import (
     EdaVizPart,
     EdaVolcanoPoint,
 )
-
-from pathfinder.ai.eda_stream_parts import register_eda_stream_parts
-from pathfinder.ai.strategy_stream_parts import register_strategy_stream_parts
 
 _KINDS = {
     "data-eda.analysis-state",

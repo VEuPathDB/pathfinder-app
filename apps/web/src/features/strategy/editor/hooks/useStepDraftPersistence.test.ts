@@ -33,7 +33,9 @@ describe("useStepDraftPersistence", () => {
     act(() => {
       result.current.scheduleWrite({ organism: "Pf3D7" });
     });
-    expect(window.localStorage.getItem(stepDraftKey("strat-1", "step-1"))).toBeNull();
+    expect(window.localStorage.getItem(stepDraftKey("strat-1", "step-1"))).toEqual(
+      null,
+    );
     act(() => {
       vi.advanceTimersByTime(150);
     });
@@ -83,7 +85,9 @@ describe("useStepDraftPersistence", () => {
     act(() => {
       result.current.clear();
     });
-    expect(window.localStorage.getItem(stepDraftKey("strat-1", "step-1"))).toBeNull();
+    expect(window.localStorage.getItem(stepDraftKey("strat-1", "step-1"))).toEqual(
+      null,
+    );
   });
 
   it("flush writes immediately without waiting for throttle", () => {
@@ -131,7 +135,7 @@ describe("useRecoveredDraft", () => {
         baselineValues: { organism: "Pf3D7" },
       }),
     );
-    expect(result.current.draft).toBeNull();
+    expect(result.current.draft).toEqual(null);
   });
 
   it("returns null when draft equals baseline", () => {
@@ -146,7 +150,7 @@ describe("useRecoveredDraft", () => {
         baselineValues: { organism: "Pf3D7" },
       }),
     );
-    expect(result.current.draft).toBeNull();
+    expect(result.current.draft).toEqual(null);
   });
 
   it("returns the draft when it differs from baseline", () => {
@@ -179,7 +183,9 @@ describe("useRecoveredDraft", () => {
     act(() => {
       result.current.dismiss();
     });
-    expect(result.current.draft).toBeNull();
-    expect(window.localStorage.getItem(stepDraftKey("strat-1", "step-1"))).toBeNull();
+    expect(result.current.draft).toEqual(null);
+    expect(window.localStorage.getItem(stepDraftKey("strat-1", "step-1"))).toEqual(
+      null,
+    );
   });
 });

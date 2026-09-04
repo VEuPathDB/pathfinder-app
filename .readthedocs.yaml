@@ -7,12 +7,9 @@ build:
   tools:
     python: "3.14"
 
-# Install shared Python package first (local dep of the API)
-# then install the API with dev extras (Sphinx + autodoc deps)
+# Install the API with dev extras (Sphinx + autodoc deps)
 python:
   install:
-    - method: pip
-      path: packages/shared-py
     - method: pip
       path: apps/api
       extra_requirements:

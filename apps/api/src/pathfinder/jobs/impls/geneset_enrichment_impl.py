@@ -7,14 +7,17 @@ gene set on the verification worker; progress is emitted per enrichment phase
 
 from __future__ import annotations
 
-from typing import Any, cast, get_args
+from typing import Any
 from uuid import UUID
 
 from assistant_core.memory.store import MemoryStore
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.jobs.progress import TaskProgressEmitter
-from pathfinder.services.enrichment.types import EnrichmentAnalysisType
+from pathfinder.services.enrichment.types import (
+    ALL_ENRICHMENT_ANALYSIS_TYPES,
+    EnrichmentAnalysisType,
+)
 from pathfinder.services.gene_sets.enrichment import run_enrichment_for_gene_set
 from pathfinder.services.gene_sets.store import get_gene_set_store
 
@@ -43,15 +46,10 @@ async def run_gene_set_enrichment_impl(
         msg = f"gene set {gene_set_id} does not exist"
         raise LookupError(msg)
 
-    valid_types = get_args(EnrichmentAnalysisType)
     types: list[EnrichmentAnalysisType] = (
-        [
-            cast("EnrichmentAnalysisType", t)
-            for t in enrichment_types
-            if t in valid_types
-        ]
+        [t for t in ALL_ENRICHMENT_ANALYSIS_TYPES if t in enrichment_types]
         if enrichment_types
-        else ["go_function", "go_process", "go_component", "pathway", "word"]
+        else list(ALL_ENRICHMENT_ANALYSIS_TYPES)
     )
     await progress.update(
         percent=0.2,

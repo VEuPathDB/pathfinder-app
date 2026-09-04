@@ -1,7 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import type { Classification } from "@pathfinder/shared";
-import { Badge } from "@/lib/components/ui/Badge";
-import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
+import { Badge } from "@/components/ui/badge";
+import { sanitizeHtml } from "@/features/analysis/utils/sanitizeHtml";
 import type { RecordAttribute } from "@pathfinder/shared/generated/types/RecordAttribute";
 import type { ClassifiedRecord } from "@pathfinder/shared/generated/types/ClassifiedRecord";
 
@@ -34,7 +34,7 @@ export function getPrimaryKey(record: ClassifiedRecord): string {
   return record.id.map((k) => k.value).join("/");
 }
 
-export function ClassificationBadge({ value }: { value: Classification | null }) {
+function ClassificationBadge({ value }: { value: Classification | null }) {
   if (!value) return null;
   const style = CLASSIFICATION_STYLES[value];
   return (
@@ -69,7 +69,7 @@ function tryParseJsonLink(raw: string): { text: string; url: string } | null {
   return null;
 }
 
-export function AttributeValue({ value }: { value: unknown }) {
+function AttributeValue({ value }: { value: unknown }) {
   if (value == null) return <span className="text-muted-foreground">{"\u2014"}</span>;
 
   const str = typeof value === "object" ? JSON.stringify(value) : String(value);

@@ -131,3 +131,11 @@ describe("POST /api/v1/chat", () => {
     expect(body.detail).toContain("ECONNREFUSED");
   });
 });
+
+describe("Next.js config for SSE", () => {
+  it("has compression disabled so SSE events are flushed per event", async () => {
+    vi.stubEnv("NEXT_PUBLIC_API_URL", "http://api.test");
+    const config = (await import("../../../../../next.config")).default;
+    expect(config.compress).toBe(false);
+  });
+});

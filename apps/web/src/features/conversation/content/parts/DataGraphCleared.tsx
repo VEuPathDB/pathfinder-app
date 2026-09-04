@@ -1,6 +1,6 @@
 import type { GraphCleared } from "@pathfinder/shared";
 
-import { Figure } from "@/lib/components/thread/Figure";
+import { Figure } from "@/features/conversation/thread/Figure";
 
 const CLEARED = "Strategy cleared";
 

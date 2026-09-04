@@ -1,176 +1,198 @@
 ## Pathfinder API (`apps/api`)
 
-FastAPI backend for PathFinder. It exposes a streaming chat API (SSE) that runs a unified **tool-calling agent**, persists conversations/strategies, and integrates with **VEuPathDB/WDK**.
+FastAPI backend for PathFinder. It owns the HTTP surface, the agents, the WDK client, the
+services behind them, and the procrastinate worker that runs every chat turn.
 
 ### Key entrypoints
 
 - **App**: `src/pathfinder/main.py`
-- **Chat SSE endpoint**: `src/pathfinder/transport/http/routers/chat.py` (`POST /api/v1/chat`)
-- **Chat orchestration**: `src/pathfinder/services/chat/orchestrator.py`
-- **Streaming implementation**: `src/pathfinder/transport/http/streaming.py`
-- **Unified agent**: `src/pathfinder/ai/agents/executor.py` (`PathfinderAgent`)
-- **Agent factory**: `src/pathfinder/ai/agents/factory.py`
+- **Chat endpoint**: `src/pathfinder/transport/http/routers/chat.py` (`POST /api/v1/chat`)
+- **Dispatcher** (persists the message, defers the turn, tails the log): `src/pathfinder/ai/conversation/dispatcher.py`
+- **Turn runner** (worker side): `src/pathfinder/jobs/impls/chat_turn_impl.py` -> `src/pathfinder/ai/conversation/turn_runner.py`
+- **Graph**: `src/pathfinder/ai/graph/builder.py` (`lead` -> `finalize_turn`)
+- **Lead agent + ledger**: `src/pathfinder/ai/lead/lead_agent.py`, `src/pathfinder/ai/lead/ledger.py`
+- **Worker**: `python -m pathfinder.jobs.worker` (`src/pathfinder/jobs/worker.py`)
+- **MCP server**: `python -m pathfinder.mcp` (`src/pathfinder/mcp/server.py`)
 
 ### Package structure
 
 ```
 src/pathfinder/
-  ai/                        # Agent construction and orchestration
-    agents/                  #   Unified PathfinderAgent, subtask agent, factory
-    models/                  #   Model catalog: provider mappings, reasoning config
-    orchestration/           #   Sub-agent delegation, scheduler
-      subkani/               #     SubKani multi-agent coordination
-    prompts/                 #   System prompt templates and loader
-    stubs/                   #   Type stubs for downstream extensions
-    tools/                   #   All agent tools (unified -- no mode split)
-      planner/               #     Artifact, experiment, gene, optimization, workbench tools
-      strategy_tools/        #     Strategy graph mutation tools (step_ops, graph_ops, etc.)
-      unified_registry.py    #     Unified tool registry mixin
-      catalog_tools.py       #     Catalog browsing tools
-      conversation_tools.py  #     Conversation management tools
-      execution_tools.py     #     Strategy execution tools
-      export_tools.py        #     Data export tools
-      result_tools.py        #     Result retrieval tools
-      research_registry.py   #     Research/literature tool registry
-      strategy_registry.py   #     Strategy tool registry
-      registry.py            #     Base tool registry
-      wdk_error_handler.py   #     WDK error handling
-      workbench_read_tools.py #    Workbench data access tools
-  domain/                    # Core business logic (no I/O)
-    parameters/              #   Parameter decoding, validation, vocabulary resolution
+  main.py                    # FastAPI app factory
+  assistants/                # Composition root: one spec per assistant, plus the registry
+    pathfinder_spec.py       #   The Lead + ledger assistant
+    site_help/               #   A single-agent assistant: two catalog tools, no ledger
+  ai/                        # The agents themselves
+    agents/                  #   Sub-agent roles (frame, execution, verification), instructions,
+                             #     history compaction, tool and parameter vocabulary
+    capabilities/            #   PIGuard, error classification, resilience, security
+    conversation/            #   Dispatcher, turn runner, assistant routing, request body,
+                             #     title generator, turn stop
+    graph/                   #   The two-node LangGraph: state, runtime, builder, lead_node,
+                             #     nodes, stream events, lead-turn helpers
+    lead/                    #   Lead agent, InvestigationLedger, sub-agent dispatch and tools,
+                             #     case memory, intent gate, ledger rendering
+    models/                  #   Model catalog, tiers, per-provider settings, mock/
+    prompts/                 #   Prompt templates and loader
+    scratchpad/              #   Scratchpad tools, toolset, rendering, compactor
+    tools/                   #   standalone/ (one module per tool family), toolsets/ (what each
+                             #     role mounts), durable.py (@durable_tool)
+  data/seeds/                # Per-site experiment seed JSON
+  domain/                    # Pure domain logic (no I/O)
+    parameters/              #   Parameter decoding, canonicalization, vocabulary, phyletic values
     research/                #   Citation extraction and research helpers
-    strategy/                #   Strategy AST, compilation, explanation, metadata, validation
-  integrations/              # External service clients
-    veupathdb/               #   WDK HTTP client (cookie-based auth)
+    scratchpad/              #   Scratchpad note model
+    strategy/                #   Strategy AST, graph model, operations, spec, validation, explain
+  evals/                     # Eval case and extract shapes, redaction, scoring, summary
+    corpus/                  #   One JSON per pinned case
+  integrations/              # External clients
+    eda/                     #   EDA service client
+    embeddings/              #   Semantic search and EDA study indexes
+    veupathdb/               #   WDK HTTP client
       strategy_api/          #     Strategy CRUD, steps, reports, helpers
-  jobs/                      # Background tasks (startup ingestion)
+  mcp/                       # The PathFinder MCP server (catalog and user tools, auth, metadata)
+  jobs/                      # Procrastinate worker: app, tasks, registry, runner, runtime,
+                             #   impls/ (the real durable-tool bodies), progress, completion_turn
   persistence/               # Database layer
-    repositories/            #   SQLAlchemy repositories (users, streams, control sets)
+    models.py                #   Every table this app owns
+    repositories/            #   SQLAlchemy repositories
   platform/                  # Shared infrastructure
     config.py                #   Settings (API keys, DB URL, feature flags)
     context.py               #   Request-scoped context variables
     errors.py                #   Error codes and exception types
-    events.py                #   Event bus for cross-cutting concerns
     health.py                #   Health check logic
-    logging.py               #   Structured logging setup
-    parsing.py               #   Input parsing utilities
-    pydantic_validation.py   #   Pydantic validation helpers
-    redis.py                 #   Redis client and connection management
+    migrations.py            #   Alembic upgrade to head at startup
+    observability.py         #   OTEL tracing, metrics, logs, library instrumentation
+    langfuse/                #   Langfuse client, prompts, datasets, scoring
+    principal.py             #   Who the caller is
+    readiness.py             #   Readiness probe state
     security.py              #   Auth and authorization helpers
-    store.py                 #   Generic store abstractions
+    store.py                 #   Cross-thread memory store wiring
     tasks.py                 #   Background task infrastructure
     tool_errors.py           #   Tool-specific error formatting
-    types.py                 #   JSONObject, JSONArray, JSONValue aliases
+    tool_sources.py          #   Declared MCP tool sources
   services/                  # Application services
-    catalog/                 #   Catalog browsing, search spec loading, parameter helpers
-      parameters/            #     Parameter-specific catalog logic
-    chat/                    #   Chat orchestration and message processing
-      orchestrator.py        #     SSE stream entry point, agent construction
-      streaming.py           #     Stream processing, event handling
-      events.py              #     Chat event types
-      mention_context.py     #     @mention context injection
-      utils.py               #     Shared chat utilities
-    experiment/              #   Experiment mode (comparison, evaluation, enrichment)
-      core/                  #     Experiment config, streaming
-      seed/                  #     Experiment seeding (per-database seed definitions)
-      step_analysis/         #     Per-step analysis utilities
-      types/                 #     Experiment Pydantic models
-    export/                  #   Data export (CSV, TXT)
+    catalog/                 #   Catalog browsing, search specs, parameter resolution and validation
+    conversations/           #   Conversation lifecycle, fork, revert, cancellation, scratchpad
+    eda/                     #   EDA study catalog, subsetting, compute, export
+    enrichment/              #   GO / pathway / word enrichment and its statistics
+    eval_data/               #   Eval staging and promotion
+    experiment/              #   Experiment engine (evaluate, persist, robustness, cross-validate,
+                             #     enrich), sweeps, seeds, streaming
+    export/                  #   Data export and its sweeper
     gene_lookup/             #   Gene ID resolution
-    gene_sets/               #   Gene set management (CRUD, confidence, ensemble)
-    parameter_optimization/  #   Parameter tuning via optimization loops
-    research/                #   Research paper retrieval
-      clients/               #     External research API clients (PubMed, arXiv, etc.)
-    strategies/              #   Strategy lifecycle
-      engine/                #     Graph integrity, step ordering, execution helpers
-    wdk/                     #   WDK integration helpers (enrichment, record types, results)
+    gene_sets/               #   Gene set CRUD, confidence, ensemble, enrichment
+    parameter_optimization/  #   Parameter sweeps, scoring, builders
+    research/                #   Literature retrieval
+    strategies/              #   Strategy lifecycle: build, commit, materialize, push, sync, revisions
+    wdk/                     #   WDK-facing helpers: login, record types, step preview, step results
+    tool_payloads.py         #   The result shapes the MCP server and the agent toolsets both render
   transport/                 # HTTP layer
     http/
       routers/               #   FastAPI routers
-        chat.py              #     Chat SSE endpoint
+        chat.py              #     Chat endpoint
+        conversations/       #     CRUD, events, counts, fork, revert, WDK import, scratchpad
+        sites/               #     Site-scoped catalog, gene, parameter endpoints
+        experiments/         #     Experiment execution, evaluation, enrichment, results
+        gene_sets/           #     Gene set CRUD, confidence, enrichment, records, operations
         control_sets.py      #     Control set CRUD
-        dev.py               #     Dev login and utilities
-        exports.py           #     Data export endpoints
-        gene_sets.py         #     Gene set CRUD
-        health.py            #     Health/readiness probes
-        internal.py          #     Internal admin endpoints
-        models.py            #     Model catalog endpoints
-        operations.py        #     Long-running operation tracking
-        tools.py             #     Tool listing endpoint
-        user_data.py         #     User data management
+        eda.py               #     EDA studies, subset counts, distributions, viz
+        evaluation.py        #     Thesis eval endpoints
+        exports.py           #     Export download
+        feedback.py          #     Product action feedback
+        health.py            #     Health and readiness probes
+        me.py                #     Privacy settings and quota
+        memories.py          #     Cross-thread memory CRUD
+        models.py            #     Model catalog
+        tasks.py             #     Durable task list for a conversation
+        tiers.py             #     Model tier catalog
+        user_data.py         #     User data deletion
         veupathdb_auth.py    #     VEuPathDB auth proxy
-        experiments/          #     Experiment CRUD, execution, evaluation, analysis, etc.
-        sites/                #     Site-scoped catalog, gene, parameter endpoints
-        strategies/           #     Strategy CRUD, plan, counts, WDK import
+        dev.py               #     Dev login (never written into the OpenAPI spec)
       schemas/               #   Pydantic request/response DTOs
       deps.py                #   FastAPI dependencies (auth, DB, site context)
-      streaming.py           #   SSE event formatting and stream lifecycle
-      sse.py                 #   Low-level SSE encoding helpers
-  tests/                     # Test suite
-    fixtures/                #   Shared test fixtures and WDK mock data
-    integration/             #   Integration tests
-    unit/                    #   Unit tests
-  devtools/                  # Developer utilities (OpenAPI generation, etc.)
+      openapi.py             #   Spec post-passes
+      sse_utils.py           #   SSE encoding helpers
+  devtools/                  # Developer CLIs (chat debugger, evals desk, openapi, WDK fixtures)
+  tests/                     # Unit + integration tests
 ```
 
 ### Architecture overview
 
 **Request flow** (chat):
 
-1. `POST /api/v1/chat` arrives at `transport/http/routers/chat.py`
-2. FastAPI dependencies (`deps.py`) inject auth context, DB session, site context
-3. `services/chat/orchestrator` bootstraps the conversation (strategy, history) and creates the agent
-4. The orchestrator builds a single unified `PathfinderAgent` (`ai/agents/factory.py`) with:
-   - The selected LLM engine (OpenAI, Anthropic, Google)
-   - The full tool suite from `ai/tools/` (via `UnifiedToolRegistryMixin`)
-   - System prompts from `ai/prompts/`
-5. The agent streams responses as SSE events via `transport/http/streaming.py`
-6. Tool calls mutate strategy state via `services/strategies/` and are synced to WDK
+1. `POST /api/v1/chat` arrives at `transport/http/routers/chat.py`.
+2. FastAPI dependencies (`deps.py`) inject the principal, a DB session and the site context.
+3. `ai/conversation/dispatcher.py` resolves the thread's `AssistantSpec` from
+   `conversations.assistant_id`, runs that assistant's identity gate, persists the user message,
+   defers a `chat_turn` procrastinate job, and returns an SSE tail of the durable event log.
+4. The worker picks the job up (`jobs/impls/chat_turn_impl.py`) and drives the spec's graph
+   through `ai/conversation/turn_runner.py`. `AsyncPostgresSaver` checkpoints the turn.
+5. Every chunk the graph emits is written to `conversation_events` and streamed to whoever is
+   tailing the thread. A client that disconnects resumes from its cursor.
+6. Tool calls mutate strategy state through `services/strategies/` and are pushed to WDK.
 
-**Unified agent**:
+**The two assistants**:
 
-There is a single `PathfinderAgent` that has access to all tools -- strategy construction, catalog browsing, gene lookup, research, artifacts, and more. The model decides autonomously when to research vs. execute, with no separate plan/execute mode selection. Complex goals can still be decomposed into sub-tasks via the `ai/orchestration/` layer, which coordinates multiple sub-agents (SubKani) to build multi-step strategies.
+`pathfinder` runs a Lead agent that is the only voice the user hears. It invokes FRAME, BUILD and
+VERIFY sub-agents as tools and reads a typed `InvestigationLedger` they write. `site_help` runs one
+agent with two catalog tools and no ledger, on the runtime's stock single-agent graph. Which
+assistant a thread uses is fixed when the thread is created.
+
+**Durable tools**:
+
+`run_control_tests_on_step`, `optimize_search_parameters`, `run_gene_set_enrichment` and
+`run_eda_compute` are deferred: the call creates a `background_tasks` row and a procrastinate job,
+the turn ends, and the worker opens a new turn on the thread with the result once every task of
+that step has reported.
 
 **Persistence**:
 
 - PostgreSQL via SQLAlchemy async sessions
-- Repositories in `persistence/repositories/` for users, streams, control sets
-- Uses **Alembic** for schema migrations (see `alembic/versions/`). Initial schema is also bootstrapped via `create_all` for development convenience.
+- Repositories in `persistence/repositories/`; tables in `persistence/models.py`
+- **Alembic** is the only path to the schema; `platform/migrations.py` upgrades to `head` at startup
 
 **VEuPathDB integration**:
 
-- `integrations/veupathdb/` wraps the WDK REST API with cookie-based auth
-- Strategy API client handles CRUD, step management, and result reports
-- Auto-push (`services/strategies/auto_push.py`) syncs local strategy state back to WDK
+- `integrations/veupathdb/` wraps the WDK REST API
+- The strategy API client handles CRUD, step management and result reports
+- Every WDK-backed feature needs a registered VEuPathDB login; guest calls are refused upstream
 
 ### Configuration
 
 Settings are loaded from:
 
-- **TOML**: `config.toml` (checked in; this file is expected at `apps/api/config.toml`)
-- **Environment**: `.env` (not checked in; see `.env.example`)
+- **TOML**: `config.toml` (checked in; expected at `apps/api/config.toml`)
+- **Environment**: `.env` (not checked in; see `/.env.example` at the repo root)
 
 Common env vars:
 
 - `OPENAI_API_KEY` (or `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` if using those providers)
 - `API_SECRET_KEY` (32+ chars; required in every profile)
-- `DATABASE_URL` and `REDIS_URL` (required; no implicit localhost defaults)
+- `DATABASE_URL` (required; no implicit localhost default)
 - `PATHFINDER_CHAT_PROVIDER=default` for normal runs
 - `PATHFINDER_CHAT_PROVIDER=mock` is allowed only in the dedicated test profile
 - `DEFAULT_PROVIDER` and `DEFAULT_TIER` choose the base model preset when using real providers
+
 ### Run locally (no Docker)
 
-Start local dependencies (recommended):
+Start Postgres:
 
 ```bash
-docker compose --env-file .env.dev -f ../../docker-compose.yml -f ../../docker-compose.dev.yml up -d db redis
+docker compose --env-file .env.dev -f ../../docker-compose.yml -f ../../docker-compose.dev.yml up -d db
 ```
 
 ```bash
 cd apps/api
-cp .env.dev.example .env
-uv sync --extra dev
+cp ../../.env.dev.example .env
+uv sync
 uv run uvicorn pathfinder.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Chat turns run in the worker, so start it too or no turn will ever finish:
+
+```bash
+uv run python -m pathfinder.jobs.worker
 ```
 
 API will be available at:
@@ -182,7 +204,7 @@ API will be available at:
 
 ```bash
 cd apps/api
-uv sync --extra dev
+uv sync --group docs
 uv run sphinx-build -b html docs docs/_build/html
 ```
 
@@ -190,15 +212,12 @@ Output: `docs/_build/html/`. Hosted at [veupathdb-pathfinder.readthedocs.io](htt
 
 ### Run tests / lint / typecheck
 
+The full gate list is in `docs/DEVELOPMENT.md`. The short form:
+
 ```bash
 cd apps/api
-uv run pytest
-uv run ruff check .
-uv run mypy src
+uv run ruff check . && uv run ruff format --check .
+uv run mypy src && uv run pyright src/pathfinder
+uv run lint-imports
+uv run pytest src/pathfinder/tests/unit/ -v
 ```
-
-### Persistence & migrations (current state)
-
-- Uses SQLAlchemy async sessions (`src/pathfinder/persistence/session.py`).
-- Dev defaults to **PostgreSQL** (to match Docker/production).
-- Uses **Alembic** for schema migrations (see `alembic/versions/`). Initial schema is also bootstrapped via `create_all` for development convenience.

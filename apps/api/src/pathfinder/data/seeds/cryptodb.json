@@ -1,0 +1,698 @@
+[
+  {
+    "control_set": {
+      "name": "Surface Invasion Controls",
+      "negative_ids": [
+        "Cgd2_2990",
+        "cgd1_1660",
+        "cgd1_2270",
+        "cgd1_300",
+        "cgd1_3000",
+        "cgd1_850",
+        "cgd2_120",
+        "cgd2_130",
+        "cgd2_170",
+        "cgd2_2200",
+        "cgd2_280",
+        "cgd2_2870",
+        "cgd2_3000",
+        "cgd2_350",
+        "cgd2_4260"
+      ],
+      "positive_ids": [
+        "cgd1_3500",
+        "cgd8_150",
+        "cgd8_540",
+        "cgd6_1300",
+        "cgd6_1660",
+        "cgd1_3510",
+        "cgd3_720",
+        "cgd7_4020",
+        "cgd6_1080",
+        "cgd7_4330",
+        "cgd1_1100",
+        "cgd1_1170",
+        "cgd1_220",
+        "cgd1_2240",
+        "cgd1_2490"
+      ],
+      "provenance_notes": "Positive: TRAP/TSP family adhesins, surface glycoproteins, and secreted proteases involved in invasion. Negative: ribosomal proteins (GO:0003735, housekeeping). All gene IDs verified against live CryptoDB API March 2026.",
+      "tags": [
+        "invasion",
+        "TRAP",
+        "mucin",
+        "glycoprotein",
+        "surface-antigen",
+        "vaccine-target",
+        "sporozoite"
+      ]
+    },
+    "description": "10-node strategy modeling the molecular toolkit C. parvum Iowa II sporozoites use to invade intestinal epithelial cells. Combines secreted proteins with enzymatic activity (kinases + proteases), surface-anchored transmembrane proteins, thrombospondin-related adhesive proteins (TRAP/TSP family), and mucin-like glycoproteins. These are prime vaccine and drug targets for cryptosporidiosis.",
+    "name": "CpIowaII Surface Invasion Machinery",
+    "record_type": "transcript",
+    "site_id": "cryptodb",
+    "step_tree": {
+      "displayName": "Surface Invasion Machinery",
+      "id": "root_union",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Secreted + Surface-anchored Enzymes",
+        "id": "secreted_surface",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Secreted Proteins with Enzymatic Activity",
+          "id": "secreted_w_activity",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Signal Peptide (Secreted)",
+            "id": "leaf_signal_peptide",
+            "parameters": {
+              "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          },
+          "secondaryInput": {
+            "displayName": "Kinases + Proteases",
+            "id": "enzyme_union",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Protein Kinase Activity",
+              "id": "leaf_kinases",
+              "parameters": {
+                "go_term": "GO:0004672",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0004672\"]",
+                "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            },
+            "secondaryInput": {
+              "displayName": "Peptidase Activity",
+              "id": "leaf_proteases",
+              "parameters": {
+                "go_term": "GO:0008233",
+                "go_term_evidence": "[\"Curated\", \"Computed\"]",
+                "go_term_slim": "No",
+                "go_typeahead": "[\"GO:0008233\"]",
+                "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+              },
+              "searchName": "GenesByGoTerm"
+            }
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Surface-anchored (1-3 TM domains)",
+          "id": "leaf_tm_low",
+          "parameters": {
+            "max_tm": "3",
+            "min_tm": "1",
+            "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+          },
+          "searchName": "GenesByTransmembraneDomains"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Adhesins + Surface Glycoproteins",
+        "id": "adhesins_surface",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Thrombospondin/TRAP Family",
+          "id": "leaf_trap",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "thrombospondin",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Cryptosporidium parvum Iowa II\"]"
+          },
+          "searchName": "GenesByText"
+        },
+        "secondaryInput": {
+          "displayName": "Mucins + Glycoproteins + Surface Antigens",
+          "id": "leaf_surface_glyco",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "mucin OR glycoprotein OR surface antigen",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Cryptosporidium parvum Iowa II\"]"
+          },
+          "searchName": "GenesByText"
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Drug Target Enzyme Controls",
+      "negative_ids": [
+        "Cgd2_2990",
+        "cgd1_1660",
+        "cgd1_2270",
+        "cgd1_300",
+        "cgd1_3000",
+        "cgd1_850",
+        "cgd2_120",
+        "cgd2_130",
+        "cgd2_170",
+        "cgd2_2200",
+        "Cgd2_2990",
+        "cgd1_1660",
+        "cgd1_2130",
+        "cgd1_2270",
+        "cgd1_300"
+      ],
+      "positive_ids": [
+        "cgd1_1350",
+        "cgd1_1670",
+        "cgd1_190",
+        "cgd1_2410",
+        "cgd1_2710",
+        "cgd1_280",
+        "cgd1_3440",
+        "cgd1_360",
+        "cgd1_40",
+        "cgd1_530",
+        "cgd1_1100",
+        "cgd1_1170",
+        "cgd1_220",
+        "cgd1_2240",
+        "cgd1_2490"
+      ],
+      "provenance_notes": "Positive: oxidoreductases and proteases with EC annotations (parasite-specific metabolic enzymes). Negative: ribosomal (GO:0003735) + translation (GO:0006412). All gene IDs verified against live CryptoDB API March 2026.",
+      "tags": [
+        "drug-target",
+        "enzyme",
+        "oxidoreductase",
+        "transferase",
+        "hydrolase",
+        "ligase",
+        "metabolic",
+        "mitosome"
+      ]
+    },
+    "description": "8-node strategy to find parasite-specific enzyme drug targets in C. parvum Iowa II. Cryptosporidium has a remarkably reduced metabolome (no functional mitochondria, uses a mitosome; lacks the apicoplast found in other apicomplexans). This makes its unique enzymes especially attractive as drug targets. Combines oxidoreductases, transferases, hydrolases, and ligases, then subtracts translation machinery to focus on metabolic enzymes divergent from host.",
+    "name": "CpIowaII Drug Target Enzymes",
+    "record_type": "transcript",
+    "site_id": "cryptodb",
+    "step_tree": {
+      "displayName": "Parasite-specific Enzymes (Drug Targets)",
+      "id": "root_minus",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "All EC-annotated Enzymes",
+        "id": "all_enzymes",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Oxidoreductases + Transferases",
+          "id": "oxido_transfer",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Oxidoreductases (EC 1.*)",
+            "id": "leaf_oxidoreductases",
+            "parameters": {
+              "ec_number_pattern": "2.7.11.1",
+              "ec_source": "[\"KEGG_Enzyme\", \"GenBank\", \"computationally inferred from Orthology\", \"Uniprot\", \"KissingerLab\"]",
+              "ec_wildcard": "1.*.*.*",
+              "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            },
+            "searchName": "GenesByEcNumber"
+          },
+          "secondaryInput": {
+            "displayName": "Transferases (EC 2.*)",
+            "id": "leaf_transferases",
+            "parameters": {
+              "ec_number_pattern": "2.7.11.1",
+              "ec_source": "[\"KEGG_Enzyme\", \"GenBank\", \"computationally inferred from Orthology\", \"Uniprot\", \"KissingerLab\"]",
+              "ec_wildcard": "2.*.*.*",
+              "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            },
+            "searchName": "GenesByEcNumber"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Hydrolases + Ligases",
+          "id": "hydro_ligase",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Hydrolases (EC 3.*)",
+            "id": "leaf_hydrolases",
+            "parameters": {
+              "ec_number_pattern": "2.7.11.1",
+              "ec_source": "[\"KEGG_Enzyme\", \"GenBank\", \"computationally inferred from Orthology\", \"Uniprot\", \"KissingerLab\"]",
+              "ec_wildcard": "3.*.*.*",
+              "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            },
+            "searchName": "GenesByEcNumber"
+          },
+          "secondaryInput": {
+            "displayName": "Ligases (EC 6.*)",
+            "id": "leaf_ligases",
+            "parameters": {
+              "ec_number_pattern": "2.7.11.1",
+              "ec_source": "[\"KEGG_Enzyme\", \"GenBank\", \"computationally inferred from Orthology\", \"Uniprot\", \"KissingerLab\"]",
+              "ec_wildcard": "6.*.*.*",
+              "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            },
+            "searchName": "GenesByEcNumber"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Translation Machinery (housekeeping)",
+        "id": "leaf_translation",
+        "parameters": {
+          "go_term": "GO:0006412",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0006412\"]",
+          "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Oocyst Development Controls",
+      "negative_ids": [
+        "Cgd7_260",
+        "cgd1_1350",
+        "cgd1_2190",
+        "cgd1_2550",
+        "cgd1_2560",
+        "cgd1_3050",
+        "cgd1_520",
+        "cgd1_540",
+        "cgd1_700",
+        "cgd2_1360",
+        "cgd2_1450",
+        "cgd2_2400",
+        "cgd2_250",
+        "cgd2_2660",
+        "cgd2_2670"
+      ],
+      "positive_ids": [
+        "cgd4_3090",
+        "cgd4_500",
+        "cgd4_670",
+        "cgd6_200",
+        "cgd6_210",
+        "cgd8_3350",
+        "cgd2_20",
+        "cgd3_3440",
+        "cgd7_360",
+        "cgd7_3670",
+        "cgd7_3770",
+        "Cgd3_2720",
+        "cgd1_1560",
+        "cgd1_1700",
+        "cgd1_2770",
+        "cgd1_2870"
+      ],
+      "provenance_notes": "Positive: oocyst wall proteins (COWPs), heat shock chaperones, and DNA-binding transcriptional regulators. Negative: transporters (GO:0005215, not involved in oocyst wall). All gene IDs verified against live CryptoDB API March 2026.",
+      "tags": [
+        "oocyst",
+        "COWP",
+        "cysteine-rich",
+        "wall-formation",
+        "heat-shock",
+        "transcription-factor",
+        "transmission",
+        "water-treatment",
+        "public-health"
+      ]
+    },
+    "description": "7-node strategy probing the oocyst development program in C. parvum Iowa II. Oocysts are the chlorine-resistant environmental transmission stage -- understanding their wall formation is critical for water treatment and public health. Combines oocyst wall proteins (COWPs), cysteine-rich secreted proteins, transcriptional regulators (DNA binding), and stress response (heat shock proteins) that orchestrate oocyst maturation.",
+    "name": "CpIowaII Oocyst Development Program",
+    "record_type": "transcript",
+    "site_id": "cryptodb",
+    "step_tree": {
+      "displayName": "Oocyst Development Program",
+      "id": "root_union",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Wall Proteins + Cysteine-rich Secreted",
+        "id": "wall_cysteine",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Oocyst Wall Proteins",
+          "id": "leaf_oocyst_wall",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "oocyst wall",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Cryptosporidium parvum Iowa II\"]"
+          },
+          "searchName": "GenesByText"
+        },
+        "secondaryInput": {
+          "displayName": "Cysteine-rich + Secreted",
+          "id": "cysteine_secreted",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "COWP / Cysteine-rich Proteins",
+            "id": "leaf_cysteine",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "COWP OR cysteine-rich",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_signal_oocyst",
+            "parameters": {
+              "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Stage-specific Regulators",
+        "id": "stage_regulators",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "DNA Binding / Transcription Factors",
+          "id": "leaf_dna_binding",
+          "parameters": {
+            "go_term": "GO:0003677",
+            "go_term_evidence": "[\"Curated\", \"Computed\"]",
+            "go_term_slim": "No",
+            "go_typeahead": "[\"GO:0003677\"]",
+            "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+          },
+          "searchName": "GenesByGoTerm"
+        },
+        "secondaryInput": {
+          "displayName": "Heat Shock / Stress Response",
+          "id": "leaf_heat_shock",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "heat shock",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Cryptosporidium parvum Iowa II\"]"
+          },
+          "searchName": "GenesByText"
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Metabolic Enzyme Controls",
+      "negative_ids": [
+        "Cgd2_2990",
+        "cgd1_1660",
+        "cgd1_2270",
+        "cgd1_300",
+        "cgd1_3000",
+        "cgd1_850",
+        "cgd2_120",
+        "cgd2_130",
+        "cgd2_170",
+        "cgd2_2200",
+        "cgd2_280",
+        "cgd2_2870",
+        "cgd2_3000",
+        "cgd2_350",
+        "cgd2_4260"
+      ],
+      "positive_ids": [
+        "Cgd7_260",
+        "cgd1_1350",
+        "cgd1_2190",
+        "cgd1_2550",
+        "cgd1_2560",
+        "cgd1_3050",
+        "cgd1_520",
+        "cgd1_540",
+        "cgd1_700",
+        "cgd2_1360",
+        "cgd1_1350",
+        "cgd1_1670",
+        "cgd1_190",
+        "cgd1_2410",
+        "cgd1_2710"
+      ],
+      "provenance_notes": "Positive: transporters with EC annotations (nutrient salvage enzymes), oxidoreductases (metabolic). Negative: ribosomal proteins (GO:0003735, housekeeping). All gene IDs verified against live CryptoDB API March 2026.",
+      "tags": [
+        "metabolic",
+        "nutrient-salvage",
+        "transporter",
+        "oxidoreductase",
+        "mitosome",
+        "reduced-metabolism"
+      ]
+    },
+    "description": "6-node strategy mapping the metabolic enzyme landscape of C. parvum Iowa II. This obligate intracellular parasite has a drastically reduced metabolome -- it lacks a functional mitochondrion (uses a mitosome for FeS cluster assembly) and lacks the apicoplast organelle found in Plasmodium and Toxoplasma. Intersects EC-annotated metabolic enzymes (transferases, hydrolases, oxidoreductases) with transporter genes to identify nutrient salvage pathways critical for parasite survival.",
+    "name": "CpIowaII Metabolic Enzyme Landscape",
+    "record_type": "transcript",
+    "site_id": "cryptodb",
+    "step_tree": {
+      "displayName": "Metabolic Enzymes with Transport Function",
+      "id": "root_intersect",
+      "operator": "INTERSECT",
+      "primaryInput": {
+        "displayName": "All Metabolic Enzymes",
+        "id": "all_metabolic",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Transferases + Hydrolases",
+          "id": "transfer_hydro",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Transferases (EC 2.*)",
+            "id": "leaf_transferases",
+            "parameters": {
+              "ec_number_pattern": "2.7.11.1",
+              "ec_source": "[\"KEGG_Enzyme\", \"GenBank\", \"computationally inferred from Orthology\", \"Uniprot\", \"KissingerLab\"]",
+              "ec_wildcard": "2.*.*.*",
+              "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            },
+            "searchName": "GenesByEcNumber"
+          },
+          "secondaryInput": {
+            "displayName": "Hydrolases (EC 3.*)",
+            "id": "leaf_hydrolases",
+            "parameters": {
+              "ec_number_pattern": "2.7.11.1",
+              "ec_source": "[\"KEGG_Enzyme\", \"GenBank\", \"computationally inferred from Orthology\", \"Uniprot\", \"KissingerLab\"]",
+              "ec_wildcard": "3.*.*.*",
+              "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            },
+            "searchName": "GenesByEcNumber"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Oxidoreductases (EC 1.*)",
+          "id": "leaf_oxidoreductases",
+          "parameters": {
+            "ec_number_pattern": "2.7.11.1",
+            "ec_source": "[\"KEGG_Enzyme\", \"GenBank\", \"computationally inferred from Orthology\", \"Uniprot\", \"KissingerLab\"]",
+            "ec_wildcard": "1.*.*.*",
+            "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+          },
+          "searchName": "GenesByEcNumber"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Transporter Activity",
+        "id": "leaf_transporters",
+        "parameters": {
+          "go_term": "GO:0005215",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0005215\"]",
+          "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Secreted Effector Controls",
+      "negative_ids": [
+        "Cgd2_2990",
+        "cgd1_1660",
+        "cgd1_2270",
+        "cgd1_300",
+        "cgd1_3000",
+        "cgd1_850",
+        "cgd2_120",
+        "cgd2_130",
+        "cgd2_170",
+        "cgd2_2200",
+        "cgd2_280",
+        "cgd2_2870",
+        "cgd2_3000",
+        "cgd2_350",
+        "cgd2_4260"
+      ],
+      "positive_ids": [
+        "cgd5_4580",
+        "cgd5_4590",
+        "cgd5_4600",
+        "cgd5_4610",
+        "cgd6_5480",
+        "cgd6_5490",
+        "cgd1_1680",
+        "cgd2_2760",
+        "cgd2_920",
+        "cgd2_930",
+        "cgd3_4260",
+        "cgd3_4270",
+        "cgd5_2020",
+        "cgd7_4310",
+        "Cgd5_40"
+      ],
+      "provenance_notes": "Positive: MEDLE family effectors, insulinase-like proteases, and diverse secreted proteins. Negative: ribosomal proteins (GO:0003735, housekeeping). All gene IDs verified against live CryptoDB API March 2026.",
+      "tags": [
+        "effector",
+        "MEDLE",
+        "insulinase",
+        "secreted",
+        "host-manipulation",
+        "cryptopain",
+        "signal-peptide"
+      ]
+    },
+    "description": "5-node strategy identifying the secreted effector repertoire of C. parvum Iowa II. Cryptosporidium exports proteins into the host cell cytoplasm to subvert host defenses and manipulate cell signaling. Key families include MEDLE proteins, insulinase-like proteases (expanded in subtelomeric regions), secreted GGC proteins, and cysteine proteases (cryptopains). Filters for signal peptide plus effector annotations, then removes ribosomal housekeeping genes.",
+    "name": "CpIowaII Secreted Effector Repertoire",
+    "record_type": "transcript",
+    "site_id": "cryptodb",
+    "step_tree": {
+      "displayName": "Secreted Effectors (non-housekeeping)",
+      "id": "root_minus",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Secreted Effector Candidates",
+        "id": "secreted_effectors",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Signal Peptide",
+          "id": "leaf_signal",
+          "parameters": {
+            "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+          },
+          "searchName": "GenesWithSignalPeptide"
+        },
+        "secondaryInput": {
+          "displayName": "Effector Families + Proteases",
+          "id": "effector_families",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "MEDLE / Insulinase / Secreted families",
+            "id": "leaf_effector_text",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "secreted OR MEDLE OR insulinase",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Peptidase Activity",
+            "id": "leaf_peptidase",
+            "parameters": {
+              "go_term": "GO:0008233",
+              "go_term_evidence": "[\"Curated\", \"Computed\"]",
+              "go_term_slim": "No",
+              "go_typeahead": "[\"GO:0008233\"]",
+              "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            },
+            "searchName": "GenesByGoTerm"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal Proteins (housekeeping)",
+        "id": "leaf_ribosomal",
+        "parameters": {
+          "go_term": "GO:0003735",
+          "go_term_evidence": "[\"Curated\", \"Computed\"]",
+          "go_term_slim": "No",
+          "go_typeahead": "[\"GO:0003735\"]",
+          "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+        },
+        "searchName": "GenesByGoTerm"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Baseline Kinase Controls",
+      "negative_ids": [
+        "Cgd2_2990",
+        "cgd1_1660",
+        "cgd1_2270",
+        "cgd1_300",
+        "cgd1_3000",
+        "cgd1_850",
+        "cgd2_120",
+        "cgd2_130",
+        "cgd2_170",
+        "cgd2_2200",
+        "cgd2_280",
+        "cgd2_2870",
+        "cgd2_3000",
+        "cgd2_350",
+        "cgd2_4260",
+        "cgd3_1250",
+        "cgd3_1300",
+        "cgd3_2090",
+        "cgd3_2250",
+        "cgd3_2440"
+      ],
+      "positive_ids": [
+        "cgd1_1220",
+        "cgd1_1490",
+        "cgd1_2110",
+        "cgd1_2630",
+        "cgd1_2850",
+        "cgd1_2960",
+        "cgd1_3230",
+        "cgd1_400",
+        "cgd1_60",
+        "cgd1_810",
+        "cgd1_890",
+        "cgd2_1060",
+        "cgd2_1300",
+        "cgd2_1610",
+        "cgd2_1830",
+        "cgd2_1880",
+        "cgd2_1960",
+        "cgd2_2310",
+        "cgd2_3190",
+        "cgd2_3340"
+      ],
+      "provenance_notes": "Positive: protein kinases (GO:0004672, CDPKs and others). Negative: ribosomal proteins (GO:0003735, housekeeping). All gene IDs verified against live CryptoDB API March 2026.",
+      "tags": [
+        "kinase",
+        "CDPK",
+        "baseline",
+        "cryptosporidium"
+      ]
+    },
+    "description": "Simple 1-node baseline strategy: all protein kinase activity (GO:0004672) genes in C. parvum Iowa II. Serves as a reference for comparison with more complex multi-step strategies. Includes calcium-dependent protein kinases (CDPKs), cyclin-dependent kinases, MAP kinases, and other Ser/Thr kinases.",
+    "name": "CpIowaII Baseline Kinases",
+    "record_type": "transcript",
+    "site_id": "cryptodb",
+    "step_tree": {
+      "displayName": "All Kinases (GO:0004672)",
+      "id": "leaf_kinases_baseline",
+      "parameters": {
+        "go_term": "GO:0004672",
+        "go_term_evidence": "[\"Curated\", \"Computed\"]",
+        "go_term_slim": "No",
+        "go_typeahead": "[\"GO:0004672\"]",
+        "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+      },
+      "searchName": "GenesByGoTerm"
+    }
+  }
+]

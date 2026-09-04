@@ -4,10 +4,8 @@ import type { Strategy } from "@pathfinder/shared";
 
 import { CompactDisconnectedSection } from "@/features/strategy/graph/components/CompactDisconnectedSection";
 import { CompactTreeRow } from "@/features/strategy/graph/components/CompactTree";
-import {
-  buildStrategyTree,
-  findOrphanSteps,
-} from "@/features/strategy/graph/utils/compactLayout";
+import { findOrphanSteps } from "@/features/strategy/graph/orphans";
+import { buildStrategyTree } from "@/features/strategy/graph/utils/compactLayout";
 
 interface CompactStrategyViewProps {
   strategy: Strategy | null;

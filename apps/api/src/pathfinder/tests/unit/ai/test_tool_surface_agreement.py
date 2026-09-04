@@ -1,5 +1,5 @@
-"""Agreement between the tool names agents and extractors mention and the
-tool names their toolsets register."""
+"""Agreement between the tool names an agent's instructions mention and the
+tool names its toolsets register."""
 
 from __future__ import annotations
 
@@ -19,10 +19,6 @@ from pathfinder.ai.agents.frame import _FRAME_INSTRUCTIONS, build_frame_agent
 from pathfinder.ai.agents.verification import (
     _VERIFICATION_INSTRUCTIONS,
     build_verification_agent,
-)
-from pathfinder.ai.context.extractors import (
-    _EXTRACTOR_REGISTRY,
-    _SEARCH_DISCOVERY_TOOLS,
 )
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
@@ -67,13 +63,11 @@ _TOOL_NAME_TOKENS = frozenset(
         "get_confidence_scores",
         "get_download_url",
         "get_enrichment_results",
-        "get_ensemble_analysis",
         "get_estimated_size",
         "get_evaluation_summary",
         "get_experiment_config",
         "get_result_gene_lists",
         "get_sample_records",
-        "get_step_contributions",
         "get_strategy",
         "list_workbench_gene_sets",
         "optimize_search_parameters",
@@ -166,13 +160,6 @@ def test_tool_name_tokens_are_all_real_tools() -> None:
     """The token list stays honest: no entry names a tool nobody registers."""
     stale = sorted(_TOOL_NAME_TOKENS - _all_registered_names())
     assert not stale, f"token list names unregistered tools: {stale}"
-
-
-def test_extractor_registry_names_only_registered_tools() -> None:
-    registered = _all_registered_names()
-    named = set(_EXTRACTOR_REGISTRY) | set(_SEARCH_DISCOVERY_TOOLS)
-    orphans = sorted(named - registered)
-    assert not orphans, f"extractors name tools no toolset registers: {orphans}"
 
 
 def test_update_search_decision_absent() -> None:

@@ -26,10 +26,10 @@ either existed.
 
 # The decision
 
-`build_lead_agent()` is a factory, the graph builder takes it as
-`build_agent`, and the turn node calls it once per turn. `ai/graph/composition.py`
-is the single place that names PathFinder's factory and its pre-turn hook, so
-the five processes that build a graph cannot drift apart.
+`build_lead_agent()` is a factory, the turn node takes it as `build_agent`,
+and calls it once per turn. `ai/graph/builder.py` is the single place that
+names PathFinder's factory and its pre-turn hook, so the processes that build
+a graph cannot drift apart.
 
 `build_frame_agent()`, `build_execution_agent()` and `build_verification_agent()`
 are the same for the phases. `BUILD_SUB_AGENT_BY_ROLE` maps a role to its
@@ -53,7 +53,7 @@ what model that agent would have used.
 # Anchor
 
 `apps/api/src/pathfinder/ai/lead/lead_agent.py` holds the Lead's factory,
-`ai/graph/composition.py` the wiring, and `ai/agents/frame.py`,
+`ai/graph/builder.py` the wiring, and `ai/agents/frame.py`,
 `execution.py` and `verification.py` the phase factories that
 `ai/lead/sub_agent_tools.py` maps by role. Done if a module-level `Agent` is
-reintroduced, or if a second `build_graph` caller supplies its own hooks.
+reintroduced, or if `make_lead_node` stops taking its hooks.

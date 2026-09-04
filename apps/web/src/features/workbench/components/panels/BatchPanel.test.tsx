@@ -21,7 +21,7 @@ vi.mock("@/state/useSessionStore", () => ({
   useSessionStore: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({ selectedSite: "plasmodb" }),
 }));
-vi.mock("@/lib/query/hooks/useGeneSetsQuery", () => ({
+vi.mock("@/features/workbench/hooks/useGeneSetsQuery", () => ({
   useGeneSetsQuery: () => ({
     data: [
       {

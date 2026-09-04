@@ -11,7 +11,7 @@ from assistant_core.platform.db import async_session_factory
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.domain.parameters.values import MultiPickValue, StringValue
-from pathfinder.domain.strategy.ast import StrategyStepNode, walk_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.operations import (
     DeleteEdgeOp,
     DeleteEdgeResolution,
@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.operations import (
 )
 from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.strategy_ast import PersistedStrategyGraph, StrategyAst
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.context import veupathdb_auth_token_ctx
@@ -121,7 +122,7 @@ async def _persisted_step_ids(built: _BuiltConv) -> list[str]:
         strategy = await session.get(ConversationStrategy, built.conv_id)
         assert strategy is not None
         ast = StrategyAst.model_validate(strategy.strategy_ast)
-    return sorted(s.id for s in walk_step_tree(ast.root))
+    return sorted(s.id for s in walk(ast.root))
 
 
 async def test_collapse_delete_drops_step_and_combine_no_orphans(

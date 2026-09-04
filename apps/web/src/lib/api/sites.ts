@@ -3,8 +3,8 @@ import type {
   ParamSpec,
   RecordType,
   Search,
-  SearchValidationResponse,
-  VEuPathDBSite,
+  SiteResponse,
+  ValidationResponse,
 } from "@pathfinder/shared";
 import { paramSpecResponseSchema } from "@pathfinder/shared/generated/zod/paramSpecResponseSchema";
 import { recordTypeResponseSchema } from "@pathfinder/shared/generated/zod/recordTypeResponseSchema";
@@ -13,7 +13,7 @@ import { siteResponseSchema } from "@pathfinder/shared/generated/zod/siteRespons
 import { validationResponseSchema } from "@pathfinder/shared/generated/zod/validationResponseSchema";
 import { z } from "zod";
 
-import type { StepParameters } from "@/lib/strategyGraph/types";
+import type { StepParameters } from "@/lib/types/stepParameters";
 import { requestJson } from "./http";
 
 const SiteListSchema = z.array(siteResponseSchema);
@@ -21,8 +21,8 @@ const RecordTypeListSchema = z.array(recordTypeResponseSchema);
 const SearchListSchema = z.array(searchResponseSchema);
 const ParamSpecListSchema = z.array(paramSpecResponseSchema);
 
-export async function listSites(): Promise<VEuPathDBSite[]> {
-  return (await requestJson(SiteListSchema, "/api/v1/sites")) as VEuPathDBSite[];
+export async function listSites(): Promise<SiteResponse[]> {
+  return await requestJson(SiteListSchema, "/api/v1/sites");
 }
 
 export async function getRecordTypes(siteId: string): Promise<RecordType[]> {
@@ -79,14 +79,14 @@ export async function validateSearchParams(
   recordType: string,
   searchName: string,
   contextValues: StepParameters = {},
-): Promise<SearchValidationResponse> {
-  return (await requestJson(
+): Promise<ValidationResponse> {
+  return await requestJson(
     validationResponseSchema,
     `/api/v1/sites/${encodeURIComponent(siteId)}/searches/${encodeURIComponent(
       recordType,
     )}/${encodeURIComponent(searchName)}/validate`,
     { method: "POST", body: { contextValues } },
-  )) as SearchValidationResponse;
+  );
 }
 
 export function sitesOptions() {

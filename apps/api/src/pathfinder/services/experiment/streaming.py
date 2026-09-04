@@ -212,13 +212,6 @@ async def stream_batch_experiment(
                     enrichment_types=list(base.enrichment_types),
                     name=f"{base.name} ({target.organism})",
                     description=base.description,
-                    optimization_specs=(
-                        copy.deepcopy(base.optimization_specs)
-                        if base.optimization_specs
-                        else None
-                    ),
-                    optimization_budget=base.optimization_budget,
-                    optimization_objective=base.optimization_objective,
                     parameter_display_values=(
                         dict(base.parameter_display_values)
                         if base.parameter_display_values

@@ -8,7 +8,6 @@ export type StepNodeData = {
   showPrimaryInputHandle?: boolean | undefined;
   showSecondaryInputHandle?: boolean | undefined;
   enterDelayIndex?: number | undefined;
-  onAddToChat?: ((stepId: string) => void) | undefined;
   onOpenDetails?: ((stepId: string) => void) | undefined;
   onRename?: ((stepId: string, nextName: string) => void) | undefined;
   onDuplicate?: ((stepId: string) => void) | undefined;
@@ -24,7 +23,6 @@ export type StepNodeProps = {
   showPrimaryInputHandle?: boolean | undefined;
   showSecondaryInputHandle?: boolean | undefined;
   enterDelayIndex?: number | undefined;
-  onAddToChat?: ((stepId: string) => void) | undefined;
   onOpenDetails?: ((stepId: string) => void) | undefined;
   onRename?: ((stepId: string, nextName: string) => void) | undefined;
   onDuplicate?: ((stepId: string) => void) | undefined;

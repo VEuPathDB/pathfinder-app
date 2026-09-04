@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils/cn";
 import { normalizeLatex } from "@/lib/markdown/normalizeLatex";
-import { THREAD_BLOCK_GAP } from "@/lib/components/thread/rhythm";
+import { THREAD_BLOCK_GAP } from "@/components/ai-elements/rhythm";
 import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
 import { createMathPlugin } from "@streamdown/math";

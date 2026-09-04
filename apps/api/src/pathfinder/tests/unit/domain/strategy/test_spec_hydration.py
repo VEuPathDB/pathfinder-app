@@ -11,17 +11,19 @@ from pathfinder.domain.parameters.values import (
     NumberValue,
     StringValue,
 )
-from pathfinder.domain.strategy.ast import (
-    COMBINE_SEARCH_NAME,
-    StrategyStepNode,
-    walk_step_tree,
-)
+from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from pathfinder.domain.strategy.operational_spec import (
-    operational_spec_to_step_tree,
+    OperationalSpec,
+    build_step_tree,
 )
 from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import walk
+
+
+def _step_tree(spec: OperationalSpec) -> StrategyStepNode:
+    return build_step_tree(spec).root
 
 
 def _text_leaf() -> StrategyStepNode:
@@ -72,7 +74,7 @@ def _three_leaf_ast(percentile: float = 90) -> StrategyAst:
 def _params_by_search(root: StrategyStepNode) -> dict[str, dict[str, object]]:
     return {
         node.search_name: dict(node.parameters)
-        for node in walk_step_tree(root)
+        for node in walk(root)
         if node.search_name != COMBINE_SEARCH_NAME
     }
 
@@ -99,7 +101,7 @@ class TestTheValuesSurvive:
         ast = _three_leaf_ast()
 
         spec = spec_from_ast(ast, goal="find kinases")
-        built = _params_by_search(operational_spec_to_step_tree(spec))
+        built = _params_by_search(_step_tree(spec))
 
         assert built == _params_by_search(ast.root)
 

@@ -132,28 +132,36 @@ function renderChat(): void {
   });
 }
 
+// Every wait here is on a snapshot or revert response served by msw, not on a
+// timer. The budget covers that round trip on a loaded machine.
+const ROUND_TRIP = { timeout: 20_000 };
+
 /** Edit the second user message, then confirm Revert in the dialog. */
 async function revertSecondTurn(): Promise<void> {
-  const user = userEvent.setup();
+  const user = userEvent.setup({ delay: null });
   await waitFor(() => {
     expect(screen.getByText("second answer")).toBeInTheDocument();
-  });
+  }, ROUND_TRIP);
 
   const editButtons = screen.getAllByRole("button", { name: "Edit" });
   await user.click(editButtons[editButtons.length - 1]!);
 
-  const saveButton = await screen.findByTestId("edit-composer-branch-or-revert");
-  const input = within(await screen.findByTestId("user-edit-composer")).getByRole(
-    "textbox",
+  const saveButton = await screen.findByTestId(
+    "edit-composer-branch-or-revert",
+    {},
+    ROUND_TRIP,
   );
+  const input = within(
+    await screen.findByTestId("user-edit-composer", {}, ROUND_TRIP),
+  ).getByRole("textbox");
   await user.clear(input);
-  await user.type(input, "revised question");
+  await user.paste("revised question");
 
   await user.click(saveButton);
   await user.click(screen.getByTestId("edit-revert-button"));
 }
 
-describe("revert truncates the client thread", () => {
+describe("revert truncates the client thread", { timeout: 30_000 }, () => {
   afterEach(() => {
     useSessionStore.getState().setPendingUserSubmission(null);
   });
@@ -167,7 +175,7 @@ describe("revert truncates the client thread", () => {
 
     await waitFor(() => {
       expect(screen.queryByText("second answer")).not.toBeInTheDocument();
-    });
+    }, ROUND_TRIP);
     expect(screen.queryByText("second question")).not.toBeInTheDocument();
     expect(screen.getByText("first question")).toBeInTheDocument();
     expect(screen.getByText("first answer")).toBeInTheDocument();
@@ -175,7 +183,7 @@ describe("revert truncates the client thread", () => {
 
     await waitFor(() => {
       expect(stubs.calls).toContain("chat");
-    });
+    }, ROUND_TRIP);
     expect(stubs.calls).toEqual(["snapshot", "revert", "snapshot", "begin", "chat"]);
   });
 
@@ -199,7 +207,7 @@ describe("revert truncates the client thread", () => {
       expect(screen.getByTestId("edit-dialog-error")).toHaveTextContent(
         "Target message not found",
       );
-    });
+    }, ROUND_TRIP);
     expect(screen.getByTestId("edit-revert-button")).toBeEnabled();
     expect(screen.getByTestId("edit-branch-button")).toBeEnabled();
     expect(screen.getByText("second answer")).toBeInTheDocument();
@@ -227,7 +235,7 @@ describe("revert truncates the client thread", () => {
       expect(screen.getByTestId("edit-dialog-error")).toHaveTextContent(
         "Sign in to VEuPathDB to use searches, strategies and gene sets.",
       );
-    });
+    }, ROUND_TRIP);
     expect(screen.getByTestId("edit-revert-button")).toBeEnabled();
     expect(screen.getByText("second answer")).toBeInTheDocument();
     expect(stubs.calls).toEqual(["snapshot", "revert"]);
@@ -254,7 +262,7 @@ describe("revert truncates the client thread", () => {
       expect(screen.getByTestId("edit-dialog-error")).toHaveTextContent(
         "The thread moved on since this message was loaded.",
       );
-    });
+    }, ROUND_TRIP);
     expect(screen.getByTestId("edit-revert-button")).toBeEnabled();
     expect(screen.getByText("second answer")).toBeInTheDocument();
     expect(stubs.calls).toEqual(["snapshot", "revert"]);

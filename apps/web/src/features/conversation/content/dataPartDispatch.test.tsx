@@ -15,6 +15,8 @@ import type { DataPartKind } from "@pathfinder/shared";
 
 import { useSettingsStore } from "@/state/useSettingsStore";
 
+import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersContext";
+
 import { AssistantMessage, UserMessage } from "./MessageRenderer";
 import { coreDataPartComponents } from "./coreDataParts";
 import { edaDataPartComponents } from "./edaDataParts";
@@ -44,6 +46,8 @@ vi.mock("@/lib/components/charts/echartsRegistry", () => ({
 // A kind this app never registers, in the shape a second assistant would use.
 const FOREIGN_KIND = "data-other.gene-view";
 
+const STUB_CHAT = { messages: [], status: "ready" } as unknown as ChatHelpers;
+
 function Thread({ content }: { content: ThreadMessageLike["content"] }) {
   const runtime = useExternalStoreRuntime<ThreadMessageLike>({
     messages: [{ role: "assistant", content }],
@@ -52,7 +56,9 @@ function Thread({ content }: { content: ThreadMessageLike["content"] }) {
   });
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ThreadPrimitive.Messages components={{ AssistantMessage, UserMessage }} />
+      <ChatHelpersProvider value={STUB_CHAT}>
+        <ThreadPrimitive.Messages components={{ AssistantMessage, UserMessage }} />
+      </ChatHelpersProvider>
     </AssistantRuntimeProvider>
   );
 }

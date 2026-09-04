@@ -37,9 +37,9 @@ appear only where the user typed them or where a link needs them.
 
 - `apps/web/src/lib/models/phaseRoles.ts` holds the one label set and the
   settings descriptions.
-- `apps/web/src/lib/utils/toolNames.ts` holds every tool verb; the fallback
+- `apps/web/src/features/conversation/toolNames.ts` holds every tool verb; the fallback
   Title-case never produces an internal name because every tool is listed.
-- `apps/web/src/lib/copy/vocabulary.test.ts` scans JSX text and string
+- `apps/web/src/vocabulary.test.ts` scans JSX text and string
   literals under `src/features`, `src/app`, `src/lib/components`,
   `src/lib/models` and `src/lib/utils` for the internal words. It carries one
   exception, the stream part kind: every other place an internal name is

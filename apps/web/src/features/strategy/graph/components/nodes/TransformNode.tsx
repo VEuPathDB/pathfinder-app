@@ -5,8 +5,8 @@ import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { NodeShell } from "./NodeShell";
 import type { StepNodeProps } from "./types";
 
-export const TRANSFORM_NODE_WIDTH = 184;
-export const TRANSFORM_NODE_HEIGHT = 64;
+const TRANSFORM_NODE_WIDTH = 184;
+const TRANSFORM_NODE_HEIGHT = 64;
 
 const CHEVRON_CLIP =
   "polygon(0% 0%, calc(100% - 14px) 0%, 100% 50%, calc(100% - 14px) 100%, 0% 100%)";
@@ -20,7 +20,6 @@ export function TransformNode(props: StepNodeProps) {
     showOutputHandle = false,
     showPrimaryInputHandle = false,
     enterDelayIndex,
-    onAddToChat,
     onOpenDetails,
     onRename,
     onDuplicate,
@@ -39,7 +38,6 @@ export function TransformNode(props: StepNodeProps) {
       height={TRANSFORM_NODE_HEIGHT}
       snapshot={snapshot}
       enterDelayIndex={enterDelayIndex}
-      onAddToChat={onAddToChat}
       onOpenDetails={onOpenDetails}
       onRename={onRename}
       onDuplicate={onDuplicate}

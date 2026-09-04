@@ -20,17 +20,14 @@ from dataclasses import dataclass
 
 from assistant_core.platform.logging import get_logger
 
-from pathfinder.domain.strategy.ast import (
-    StrategyStepNode,
-    deep_clone_with_fresh_ids,
-)
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.graph_model import (
     flatten_tree,
     rebuild_tree,
-    subtree_ids,
     wdk_search_name,
 )
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.domain.strategy.tree import clone_with_fresh_ids, subtree_ids
 from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.platform.errors import ErrorCode, NotFoundError, ValidationError
 from pathfinder.services.strategies.step_wdk_push import push_step_to_wdk
@@ -88,7 +85,7 @@ async def save_subtree_as_strategy(
         )
 
     # deep_clone works on the nested shape, so project this subtree first.
-    cloned_root = deep_clone_with_fresh_ids(rebuild_tree(source_step_id, graph.steps))
+    cloned_root = clone_with_fresh_ids(rebuild_tree(source_step_id, graph.steps))
     cloned_steps = flatten_tree(cloned_root)
     push_order = subtree_ids(cloned_root.id, cloned_steps)
 

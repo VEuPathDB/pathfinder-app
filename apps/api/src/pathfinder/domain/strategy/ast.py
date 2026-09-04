@@ -1,11 +1,10 @@
 """AST node types for strategy representation (untyped tree)."""
 
-from collections.abc import Callable
 from uuid import uuid4
 
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
-from pydantic import Field, JsonValue, ValidationError, model_validator
+from pydantic import Field, JsonValue, model_validator
 from pydantic_core import PydanticCustomError
 
 from pathfinder.domain.parameters.values import ParamValue
@@ -40,19 +39,6 @@ class StepFilter(CamelModel):
             raise ValueError(msg)
         return dict(data)
 
-    @classmethod
-    def from_list(cls, raw: object) -> list[StepFilter]:
-        """Parse a list from raw JSON and drop the invalid items."""
-        if not isinstance(raw, list):
-            return []
-        result: list[StepFilter] = []
-        for item in raw:
-            try:
-                result.append(cls.model_validate(item))
-            except ValueError, TypeError, ValidationError:
-                continue
-        return result
-
 
 class StepAnalysis(CamelModel):
     """Analysis configuration attached to a step."""
@@ -82,19 +68,6 @@ class StepAnalysis(CamelModel):
             result.pop("custom_name", None)
         return result
 
-    @classmethod
-    def from_list(cls, raw: object) -> list[StepAnalysis]:
-        """Parse a list from raw JSON and drop the invalid items."""
-        if not isinstance(raw, list):
-            return []
-        result: list[StepAnalysis] = []
-        for item in raw:
-            try:
-                result.append(cls.model_validate(item))
-            except ValueError, TypeError, ValidationError:
-                continue
-        return result
-
 
 class StepReport(CamelModel):
     """Report request attached to a step."""
@@ -112,19 +85,6 @@ class StepReport(CamelModel):
         result: dict[str, JsonValue] = dict(data)
         if not isinstance(result.get("config"), dict):
             result["config"] = {}
-        return result
-
-    @classmethod
-    def from_list(cls, raw: object) -> list[StepReport]:
-        """Parse a list from raw JSON and drop the invalid items."""
-        if not isinstance(raw, list):
-            return []
-        result: list[StepReport] = []
-        for item in raw:
-            try:
-                result.append(cls.model_validate(item))
-            except ValueError, TypeError, ValidationError:
-                continue
         return result
 
 
@@ -209,6 +169,28 @@ class StrategyStepNode(CamelModel):
             raise ValueError(msg)
         return self
 
+    @property
+    def primary_input_id(self) -> str | None:
+        """The id in the primary slot, or ``None`` when the slot is empty."""
+        return self.primary_input.id if self.primary_input is not None else None
+
+    @property
+    def secondary_input_id(self) -> str | None:
+        """The id in the secondary slot, or ``None`` when the slot is empty."""
+        return self.secondary_input.id if self.secondary_input is not None else None
+
+    def inputs(self) -> list[StrategyStepNode]:
+        """The steps this step consumes, in slot order, empty slots omitted."""
+        return [
+            node
+            for node in (self.primary_input, self.secondary_input)
+            if node is not None
+        ]
+
+    def input_ids(self) -> list[str]:
+        """The ids of the steps this step consumes, in slot order."""
+        return [node.id for node in self.inputs()]
+
     def infer_kind(self) -> str:
         if self.primary_input is not None and self.secondary_input is not None:
             return "combine"
@@ -227,60 +209,3 @@ class StrategyStepNode(CamelModel):
         if self.search_name == COMBINE_SEARCH_NAME:
             return "Combine"
         return self.search_name
-
-
-def deep_clone_with_fresh_ids(node: StrategyStepNode) -> StrategyStepNode:
-    """Recursively clone a subtree, assigning a fresh ``id`` to every node.
-
-    A cloned subtree joins another graph, so its ids must not collide with the
-    ids that graph already holds.
-    """
-    primary = (
-        deep_clone_with_fresh_ids(node.primary_input)
-        if node.primary_input is not None
-        else None
-    )
-    secondary = (
-        deep_clone_with_fresh_ids(node.secondary_input)
-        if node.secondary_input is not None
-        else None
-    )
-    return node.model_copy(
-        deep=True,
-        update={
-            "id": generate_step_id(),
-            "primary_input": primary,
-            "secondary_input": secondary,
-        },
-    )
-
-
-type StepFold[T] = Callable[[StrategyStepNode, list[T]], T]
-
-
-def fold_step_tree[T](root: StrategyStepNode, fold: StepFold[T]) -> T:
-    """Fold a step tree bottom up.
-
-    Each node is given the folded results of its inputs in slot order: none
-    for a search, the primary alone for a transform, both for a combine.
-    """
-    inputs = [
-        node for node in (root.primary_input, root.secondary_input) if node is not None
-    ]
-    return fold(root, [fold_step_tree(node, fold) for node in inputs])
-
-
-def walk_step_tree(root: StrategyStepNode) -> list[StrategyStepNode]:
-    """Walk a step tree depth first. Each node comes after its inputs, and the
-    primary input comes before the secondary input."""
-    steps: list[StrategyStepNode] = []
-
-    def visit(node: StrategyStepNode) -> None:
-        if node.primary_input is not None:
-            visit(node.primary_input)
-        if node.secondary_input is not None:
-            visit(node.secondary_input)
-        steps.append(node)
-
-    visit(root)
-    return steps

@@ -33,14 +33,20 @@ describe("GeneChip", () => {
     const { container } = render(
       <GeneChip geneId="PF3D7_0100100" status="verified" onRemove={() => {}} />,
     );
-    expect(container.querySelector("[data-status='verified']")).toBeTruthy();
+    expect(container.querySelector("[data-gene-chip]")).toHaveAttribute(
+      "data-status",
+      "verified",
+    );
   });
 
   it("applies invalid styling when status is invalid", () => {
     const { container } = render(
       <GeneChip geneId="INVALID_001" status="invalid" onRemove={() => {}} />,
     );
-    expect(container.querySelector("[data-status='invalid']")).toBeTruthy();
+    expect(container.querySelector("[data-gene-chip]")).toHaveAttribute(
+      "data-status",
+      "invalid",
+    );
   });
 
   it("shows rich hover card with gene details when resolvedGene is provided", async () => {

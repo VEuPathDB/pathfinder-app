@@ -1,57 +1,70 @@
 ## `@pathfinder/shared` (TypeScript) -- `packages/shared-ts`
 
-Shared TypeScript types and validators used by the web app and any TS tooling around the API.
+Shared TypeScript types used by the web app and any TS tooling around the API. Most of what this
+package exports is generated from the OpenAPI spec; `types.ts` is the thin hand-written layer on
+top.
 
 ### What lives here
 
 ```
 src/
-  index.ts                 # Package entry point (re-exports types.ts)
-  types.ts                 # Core type definitions and constants
-  defaults.ts              # Default values and shared constants
-  zod.ts                   # Zod runtime validators for API payloads
-  openapi.generated.ts     # Auto-generated types from OpenAPI spec
+  index.ts       # Package entry point: re-exports types.ts plus DEFAULT_STREAM_NAME
+  types.ts       # The hand-written layer: aliases over generated types, the data-part
+                 #   kind union, site helpers
+  defaults.ts    # DEFAULT_STREAM_NAME
+  generated/     # Kubb output from packages/spec/openapi.json. Do NOT edit.
+    types/       #   One module per schema and per operation
+    zod/         #   Runtime validators mirroring those types
+    hooks/       #   React Query options and mutation hooks, one per operation
+    index.ts     #   Barrel over all three
 ```
 
 ### Key exports
 
-**Combine operators**: `CombineOperator` enum, labels, WDK operator mappings, and conversion helpers (`wdkOperatorToCombine`, `getOperatorDisplayLabel`).
+**Aliases over generated types**: `Step`, `Strategy`, `GeneSet`, `ControlSet`, `Search`,
+`RecordType`, `ParamSpec`, `ModelCatalogEntry`, `GeneSearchResult`. These name the wire type the
+backend actually serves, so a backend rename is a compile error here.
 
-**Strategy plan AST**: `PlanStepNode` (recursive tree node), `ColocationParams`, `BasePlanNode`. The AST represents WDK strategy graphs as a tree of search, combine, and transform nodes.
+**Combine operators**: the generated `combineOpEnum` / `CombineOp` (the seven WDK operators),
+re-exported here, and `CombineOpBadgeLabels`, the label the UI shows for each.
 
-**Step and strategy types**: `Step`, `Strategy`, `StrategySummary`, `StepFilter`, `StepAnalysis`, `StepReport`.
+**Strategy AST**: the generated `StrategyAst`, `StrategyStepNode` and `ColocationParams` - the tree
+of search, combine and transform nodes the UI edits - re-exported here.
 
-**Chat types**: `Message`, `ToolCall`, `ChatRequest`, `Conversation`.
+**Data parts**: `KnownDataPartKind` (every `data-*` chunk the thread knows how to draw) and
+`DataPartKind` (that union, open to kinds an assistant adds). The frontend's renderer map must be
+total over `KnownDataPartKind`.
 
-**Site types**: `VEuPathDBSite`, `RecordType`, `Search`, `SearchParameter`.
+**Site types**: the generated `SiteResponse`, plus `siteDisplayName` and `siteShortName`.
 
-**Zod validators** (`zod.ts`): Runtime validation schemas mirroring the TypeScript types. Used for API payload validation.
-
-**OpenAPI generated types** (`openapi.generated.ts`): Auto-generated from `packages/spec/openapi.yaml`. Do not edit manually.
+**Zod validators**: `generated/zod/` carries one schema per wire type. `lib/api/http.ts` in the web
+app validates every response against them at the network boundary.
 
 ### How the web app imports these
 
-The web app uses TS path mapping (`@pathfinder/shared`) configured in `apps/web/tsconfig.json`. Next.js transpiles this package automatically via `transpilePackages` in `next.config.js`.
+The web app uses TS path mapping (`@pathfinder/shared`) configured in `apps/web/tsconfig.json`.
+Next.js transpiles this package automatically via `transpilePackages` in `next.config.ts`.
 
 ### Common commands
 
 ```bash
 cd packages/shared-ts
-yarn install
-yarn build
+yarn build            # tsc
+yarn typecheck        # tsc --noEmit
+yarn format:check     # prettier --check
 ```
 
 Regenerate from an already-dumped spec:
 
 ```bash
-yarn generate
+yarn generate         # kubb
 ```
 
-To refresh the spec itself from the running API and regenerate in one step, run
+To refresh the spec itself from the application and regenerate in one step, run
 `yarn generate:types` from the repo root.
 
-Validate that generated types match the spec:
+Check that the generated output matches the committed spec, which is what CI does:
 
 ```bash
-yarn check:generated
+yarn check:generated  # kubb && tsc --noEmit
 ```

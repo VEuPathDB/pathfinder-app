@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { useSessionStore } from "@/state/useSessionStore";
 import { useConversationSidebarData } from "@/features/sidebar/hooks/useConversationSidebarData";
 import { useConversationSidebarActions } from "@/features/sidebar/hooks/useConversationSidebarActions";
 import { ConversationList } from "@/features/sidebar/components/ConversationList";
@@ -33,8 +32,6 @@ interface ConversationSidebarProps {
 }
 
 export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
-  const chatIsStreaming = useSessionStore((s) => s.chatIsStreaming);
-
   const reportError = (message: string) => toast.error(message);
 
   const [showDismissed, setShowDismissed] = useState(false);
@@ -56,7 +53,7 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
           type="button"
           variant="ghost"
           size="icon-sm"
-          disabled={chatIsStreaming || data.isSyncing}
+          disabled={data.isSyncing}
           onClick={() => void data.handleManualRefresh()}
           aria-label="Refresh conversations"
           title="Refresh conversations & strategies"
@@ -70,7 +67,6 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
           type="button"
           variant="ghost"
           size="icon-sm"
-          disabled={chatIsStreaming}
           onClick={() => void actions.handleNewConversation()}
           aria-label="New chat"
           title="New chat"
@@ -102,7 +98,6 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
         activeId={actions.activeId}
         renamingId={actions.renamingId}
         renameValue={actions.renameValue}
-        chatIsStreaming={chatIsStreaming}
         onRenameValueChange={actions.setRenameValue}
         onCommitRename={(target) => void actions.commitRename(target)}
         onCancelRename={actions.cancelRename}

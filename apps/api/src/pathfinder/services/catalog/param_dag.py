@@ -11,6 +11,10 @@ from pathfinder.domain.parameters.value_codec import to_wire
 from pathfinder.domain.parameters.values import ParamValue
 from pathfinder.domain.search import SearchContext
 from pathfinder.domain.strategy.operational_spec import OpenSlot
+from pathfinder.integrations.veupathdb.discovery_service import (
+    get_discovery_service,
+)
+from pathfinder.integrations.veupathdb.factory import get_wdk_client
 from pathfinder.platform.errors import ValidationError
 from pathfinder.services.catalog._param_binding import (
     OverrideMap,
@@ -36,7 +40,6 @@ from pathfinder.services.catalog.param_intent import (
 from pathfinder.services.catalog.search_context import (
     get_search_params_under_context,
 )
-from pathfinder.services.wdk import get_discovery_service, get_wdk_client
 
 _MAX_RESOLVE_DEPTH = 6
 

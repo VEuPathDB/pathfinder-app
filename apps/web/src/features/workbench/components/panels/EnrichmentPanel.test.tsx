@@ -46,7 +46,7 @@ vi.mock("@/state/useSessionStore", () => ({
     }),
 }));
 
-vi.mock("@/lib/query/hooks/useGeneSetsQuery", () => ({
+vi.mock("@/features/workbench/hooks/useGeneSetsQuery", () => ({
   useGeneSetsQuery: () => ({
     data: storeState["geneSets"] as GeneSet[],
     isPending: false,
@@ -65,7 +65,7 @@ vi.mock("../../api/geneSets", () => ({
 
 const mockInvalidateGeneSets = vi.fn(async () => {});
 
-vi.mock("@/lib/query/hooks/useInvalidateGeneSets", () => ({
+vi.mock("@/features/workbench/hooks/useInvalidateGeneSets", () => ({
   useInvalidateGeneSets: () => mockInvalidateGeneSets,
 }));
 

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import UUID
 
 from assistant_core.graph.stream_events import scratchpad_updated_event
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.memory.store import MemoryStore
-from assistant_core.platform.db import DBSessionFactory
 from assistant_core.platform.logging import get_logger
 from pydantic import ValidationError
 from pydantic_ai.exceptions import ModelRetry
@@ -24,9 +22,11 @@ from pathfinder.domain.scratchpad.models import (
     NoteSearchResult,
     NoteUpdate,
 )
-from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.platform.tool_errors import ToolErrorPayload, tool_error
+from pathfinder.services.conversations.scratchpad_service import (
+    ScratchpadNotebook,
+)
 
 logger = get_logger(__name__)
 
@@ -49,10 +49,8 @@ def _note_payload(note: Note) -> dict[str, object]:
     )
 
 
-def _require_context(
-    ctx: RunContext[AgentDeps],
-) -> tuple[DBSessionFactory, UUID] | None:
-    """Return the session factory and conversation ID, or None when the scratchpad is unreachable.
+def _notebook(ctx: RunContext[AgentDeps]) -> ScratchpadNotebook | None:
+    """This thread's scratchpad, or None when it is unreachable.
 
     None is a permanent condition. Callers must report it as a plain tool
     result, never as a retry.
@@ -61,7 +59,7 @@ def _require_context(
     conversation_id = ctx.deps.conversation_id
     if factory is None or conversation_id is None:
         return None
-    return factory, conversation_id
+    return ScratchpadNotebook(factory, conversation_id)
 
 
 def _not_found_msg(note_id: str) -> str:
@@ -82,10 +80,9 @@ async def note(
     learned. Over-noting is cheaper than re-discovering. Keep ``summary`` to
     roughly 280 characters (a one-line gist); put detail in ``body``.
     """
-    ctx_or_none = _require_context(ctx)
-    if ctx_or_none is None:
+    notebook = _notebook(ctx)
+    if notebook is None:
         return _no_scratchpad(ctx)
-    factory, conversation_id = ctx_or_none
     try:
         data = (
             NoteCreate(title=title, summary=summary, body=body, pinned=pinned)
@@ -102,14 +99,11 @@ async def note(
         msg = f"invalid note payload: {exc}"
         raise ModelRetry(msg) from exc
 
-    async with factory() as session:
-        repo = ScratchpadRepository(session)
-        created = await repo.create(conversation_id=conversation_id, data=data)
-        await session.commit()
+    created = await notebook.create(data)
 
     logger.info(
         "scratchpad.note_created",
-        conversation_id=str(conversation_id),
+        conversation_id=str(ctx.deps.conversation_id),
         note_id=created.id,
         title=created.title,
     )
@@ -145,27 +139,19 @@ async def update_note(
 
     Keep ``summary`` to roughly 280 characters; put detail in ``body``.
     """
-    ctx_or_none = _require_context(ctx)
-    if ctx_or_none is None:
+    notebook = _notebook(ctx)
+    if notebook is None:
         return _no_scratchpad(ctx)
-    factory, conversation_id = ctx_or_none
     try:
         patch = NoteUpdate(title=title, summary=summary, body=body, tags=tags)
     except ValidationError as exc:
         msg = f"invalid update payload: {exc}"
         raise ModelRetry(msg) from exc
 
-    async with factory() as session:
-        repo = ScratchpadRepository(session)
-        try:
-            updated = await repo.update(
-                conversation_id=conversation_id,
-                note_id=note_id,
-                patch=patch,
-            )
-        except LookupError as exc:
-            raise ModelRetry(_not_found_msg(note_id)) from exc
-        await session.commit()
+    try:
+        updated = await notebook.update(note_id, patch)
+    except LookupError as exc:
+        raise ModelRetry(_not_found_msg(note_id)) from exc
 
     return with_summary(
         _ref_payload(updated),
@@ -180,21 +166,16 @@ async def delete_note(
     note_id: str,
 ) -> ToolReturn[str]:
     """Remove a note. Use when the note is superseded by a newer one."""
-    ctx_or_none = _require_context(ctx)
-    if ctx_or_none is None:
+    notebook = _notebook(ctx)
+    if notebook is None:
         return with_summary(
             _MSG_MISSING_CTX,
             "The scratchpad is unavailable on this thread",
             ctx=ctx,
             status="warn",
         )
-    factory, conversation_id = ctx_or_none
-    async with factory() as session:
-        repo = ScratchpadRepository(session)
-        ok = await repo.delete(conversation_id=conversation_id, note_id=note_id)
-        if not ok:
-            raise ModelRetry(_not_found_msg(note_id))
-        await session.commit()
+    if not await notebook.delete(note_id):
+        raise ModelRetry(_not_found_msg(note_id))
     return with_summary(
         "deleted",
         "Note deleted",
@@ -208,21 +189,13 @@ async def pin_note(
     note_id: str,
 ) -> ToolReturn[dict[str, object] | ToolErrorPayload]:
     """Pin a note so compaction never merges or drops it."""
-    ctx_or_none = _require_context(ctx)
-    if ctx_or_none is None:
+    notebook = _notebook(ctx)
+    if notebook is None:
         return _no_scratchpad(ctx)
-    factory, conversation_id = ctx_or_none
-    async with factory() as session:
-        repo = ScratchpadRepository(session)
-        try:
-            updated = await repo.set_pinned(
-                conversation_id=conversation_id,
-                note_id=note_id,
-                pinned=True,
-            )
-        except LookupError as exc:
-            raise ModelRetry(_not_found_msg(note_id)) from exc
-        await session.commit()
+    try:
+        updated = await notebook.set_pinned(note_id, pinned=True)
+    except LookupError as exc:
+        raise ModelRetry(_not_found_msg(note_id)) from exc
     return with_summary(
         _ref_payload(updated),
         f"Pinned {updated.title}",
@@ -236,21 +209,13 @@ async def unpin_note(
     note_id: str,
 ) -> ToolReturn[dict[str, object] | ToolErrorPayload]:
     """Unpin a previously pinned note."""
-    ctx_or_none = _require_context(ctx)
-    if ctx_or_none is None:
+    notebook = _notebook(ctx)
+    if notebook is None:
         return _no_scratchpad(ctx)
-    factory, conversation_id = ctx_or_none
-    async with factory() as session:
-        repo = ScratchpadRepository(session)
-        try:
-            updated = await repo.set_pinned(
-                conversation_id=conversation_id,
-                note_id=note_id,
-                pinned=False,
-            )
-        except LookupError as exc:
-            raise ModelRetry(_not_found_msg(note_id)) from exc
-        await session.commit()
+    try:
+        updated = await notebook.set_pinned(note_id, pinned=False)
+    except LookupError as exc:
+        raise ModelRetry(_not_found_msg(note_id)) from exc
     return with_summary(
         _ref_payload(updated),
         f"Unpinned {updated.title}",
@@ -285,19 +250,10 @@ async def list_notes(
     the size of the whole scratchpad, so it separates "no matches" from "empty
     scratchpad".
     """
-    ctx_or_none = _require_context(ctx)
-    if ctx_or_none is None:
+    notebook = _notebook(ctx)
+    if notebook is None:
         return _no_scratchpad(ctx)
-    factory, conversation_id = ctx_or_none
-    async with factory() as session:
-        repo = ScratchpadRepository(session)
-        notes = await repo.list_notes(
-            conversation_id=conversation_id,
-            tag=tag,
-            pinned=pinned,
-            limit=limit,
-        )
-        total, _ = await repo.totals(conversation_id=conversation_id)
+    notes, total = await notebook.list_notes(tag=tag, pinned=pinned, limit=limit)
 
     matches = [_note_ref(n) for n in notes]
     filter_desc = _filter_description(tag, pinned)
@@ -326,18 +282,10 @@ async def search_notes(
     ``matches`` with ``totalNotes > 0`` means the query didn't hit; with
     ``totalNotes == 0`` it means the scratchpad is empty.
     """
-    ctx_or_none = _require_context(ctx)
-    if ctx_or_none is None:
+    notebook = _notebook(ctx)
+    if notebook is None:
         return _no_scratchpad(ctx)
-    factory, conversation_id = ctx_or_none
-    async with factory() as session:
-        repo = ScratchpadRepository(session)
-        hits = await repo.search_notes(
-            conversation_id=conversation_id,
-            query=query,
-            limit=limit,
-        )
-        total, _ = await repo.totals(conversation_id=conversation_id)
+    hits, total = await notebook.search_notes(query, limit=limit)
 
     matches = [_note_ref(n) for n in hits]
     if total == 0:
@@ -367,13 +315,10 @@ async def read_note(
     note_id: str,
 ) -> ToolReturn[dict[str, object] | ToolErrorPayload]:
     """Fetch the full note (including body) by id."""
-    ctx_or_none = _require_context(ctx)
-    if ctx_or_none is None:
+    notebook = _notebook(ctx)
+    if notebook is None:
         return _no_scratchpad(ctx)
-    factory, conversation_id = ctx_or_none
-    async with factory() as session:
-        repo = ScratchpadRepository(session)
-        note_row = await repo.get(conversation_id=conversation_id, note_id=note_id)
+    note_row = await notebook.get(note_id)
     if note_row is None:
         raise ModelRetry(_not_found_msg(note_id))
     return with_summary(
@@ -400,23 +345,20 @@ async def promote_to_memory(
     pipeline at the end of successful turns, not via this tool. The
     scratchpad note stays in place; a new cross-thread memory is created.
     """
-    ctx_or_none = _require_context(ctx)
-    if ctx_or_none is None:
+    notebook = _notebook(ctx)
+    if notebook is None:
         return with_summary(
             _MSG_MISSING_CTX,
             "The scratchpad is unavailable on this thread",
             ctx=ctx,
             status="warn",
         )
-    factory, conversation_id = ctx_or_none
     store_raw = ctx.deps.memory_store
     user_id = ctx.deps.user_id
     if store_raw is None or user_id is None:
         raise ModelRetry(_MSG_MEMORY_UNAVAILABLE)
 
-    async with factory() as session:
-        repo = ScratchpadRepository(session)
-        note_row = await repo.get(conversation_id=conversation_id, note_id=note_id)
+    note_row = await notebook.get(note_id)
     if note_row is None:
         raise ModelRetry(_not_found_msg(note_id))
 
@@ -428,7 +370,7 @@ async def promote_to_memory(
         site_id=ctx.deps.site_id,
         content={"body": note_row.body, "source_note_id": note_row.id},
         auto_retrieve=True,
-        source_conversation_id=conversation_id,
+        source_conversation_id=ctx.deps.conversation_id,
         created_at=datetime.now(UTC),
     )
     mem_store = MemoryStore(store=store_raw)

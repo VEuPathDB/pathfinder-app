@@ -22,7 +22,7 @@ import { PRIVACY_QUERY_KEY } from "./settings/privacyQuery";
 export function EvalDataNotice() {
   const qc = useQueryClient();
   const selectedSite = useSessionStore((s) => s.selectedSite);
-  const { authRefreshed } = useAuthRefresh();
+  const { authRefreshed } = useAuthRefresh(selectedSite);
   const { data: authStatus } = useQuery(authStatusOptions(selectedSite));
   // The privacy read needs the internal session cookie, which the refresh
   // mints on page load. An unauthenticated visitor is never asked.

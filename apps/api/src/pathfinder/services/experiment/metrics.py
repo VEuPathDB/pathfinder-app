@@ -107,7 +107,7 @@ def evaluate_gene_ids_against_controls(
 
     No WDK calls -- the gene set already has its results.  Returns a
     :class:`ControlTestResult` that :func:`metrics_from_control_result` and
-    :func:`extract_and_enrich_genes` consume.
+    :func:`extract_and_hydrate_genes` consume.
     """
     gene_set = set(gene_ids)
     pos = [s.strip() for s in positive_controls if s.strip()]

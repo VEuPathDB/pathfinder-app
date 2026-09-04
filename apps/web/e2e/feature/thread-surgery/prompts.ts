@@ -5,6 +5,12 @@
  * anchor a branch on a reply that is unique in its thread.
  */
 
+/**
+ * The site these journeys build on. Its search listing fits in one FRAME
+ * request, and the organisms below are its own.
+ */
+export const SITE_ID = "plasmodb";
+
 /** Builds a one-leaf strategy and verifies cleanly. */
 export const BUILD_ONE = "create step for tryptophan synthase";
 

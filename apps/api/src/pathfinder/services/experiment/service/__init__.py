@@ -1,11 +1,8 @@
 """Experiment execution orchestrator.
 
-Coordinates the full experiment lifecycle: evaluation, metrics computation,
-optional cross-validation, and optional enrichment analysis.
-
-Each phase is a function in a dedicated submodule under ``phases/``.  The
-public ``run_experiment()`` function orchestrates phase sequencing,
-lifecycle management, and error handling.
+Coordinates the full experiment lifecycle: evaluation, strategy persistence,
+robustness, optional cross-validation, and optional enrichment analysis.
+Each phase is a function in a dedicated submodule under ``phases/``.
 """
 
 import time
@@ -25,12 +22,6 @@ from pathfinder.services.experiment.service.context import (
 from pathfinder.services.experiment.service.phases.evaluate import (
     phase_evaluate,
     phase_persist_strategy,
-    phase_rank_metrics,
-    phase_step_analysis,
-)
-from pathfinder.services.experiment.service.phases.optimize import (
-    phase_optimize_parameters,
-    phase_optimize_tree_knobs,
 )
 from pathfinder.services.experiment.service.phases.validate import (
     phase_cross_validate,
@@ -100,44 +91,19 @@ async def run_experiment(
         )
 
         # Phase 1: Control-test evaluation + metrics + gene enrichment
-        result, metrics = await phase_evaluate(pctx)
+        await phase_evaluate(pctx)
 
         plan_tree: StrategyStepNode | None = (
             config.step_tree if config.is_tree_mode else None
         )
 
-        # Phase 2: Step analysis (multi-step only)
-        if (
-            config.is_tree_mode
-            and plan_tree is not None
-            and config.enable_step_analysis
-        ):
-            await phase_step_analysis(pctx, plan_tree, result)
-
-        # Phase 3: Persist WDK strategy for result exploration
+        # Phase 2: Persist WDK strategy for result exploration
         await phase_persist_strategy(pctx, plan_tree)
 
-        # Phase 4: Rank-based metrics
-        is_ranked = config.sort_attribute is not None
-        ordered_ids = await phase_rank_metrics(pctx)
+        # Phase 3: Robustness / bootstrap CIs
+        await phase_robustness(pctx)
 
-        # Phase 5: Robustness / bootstrap CIs
-        await phase_robustness(pctx, ordered_ids, is_ranked=is_ranked)
-
-        # Phase 6: Parameter optimization (single-step only)
-        if (
-            not config.is_tree_mode
-            and config.optimization_specs
-            and len(config.optimization_specs) > 0
-        ):
-            _, metrics = await phase_optimize_parameters(pctx, metrics)
-
-        # Phase 7: Tree-knob optimization (multi-step only)
-        has_tree_knobs = bool(config.threshold_knobs or config.operator_knobs)
-        if config.is_tree_mode and has_tree_knobs and plan_tree is not None:
-            await phase_optimize_tree_knobs(pctx, plan_tree)
-
-        # Phase 8: Cross-validation
+        # Phase 4: Cross-validation
         if (
             config.enable_cross_validation
             and config.positive_controls
@@ -145,7 +111,7 @@ async def run_experiment(
         ):
             await phase_cross_validate(pctx, plan_tree)
 
-        # Phase 9: Enrichment analysis
+        # Phase 5: Enrichment analysis
         if config.enrichment_types:
             await phase_enrich(pctx)
 

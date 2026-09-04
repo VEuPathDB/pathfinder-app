@@ -21,7 +21,17 @@ uv run lint-imports
 uv run vulture
 uv run pytest --override-ini "addopts=" --collect-only -q
 uv run pytest src/pathfinder/tests/ -q
+uv run python scripts/check_max_lines.py
+uv run python scripts/check_weak_assertions.py
 ```
+
+The two ratchets cover production and tests alike. `check_max_lines.py` fails a
+Python file over 400 meaningful lines; `src/pathfinder/tests/.max-lines-baseline.txt`
+records the count each older offender had when the cap reached tests, and a
+baselined file fails as soon as it grows past that count. `check_weak_assertions.py`
+fails a test whose only assertions pin nothing, suppressed by
+`src/pathfinder/tests/.weak-baseline.txt`. An entry leaves either file when the
+file shrinks or the test gains a value assertion; an entry never enters one.
 
 The collect runs with `addopts` cleared, so it reaches the tiers the default
 run deselects. An opt-in tier is invisible to every other command here, and a
@@ -35,7 +45,27 @@ project environment: an older interpreter on `PATH` reports every PEP 758, PEP
 695 and `match` file as a syntax error and silently inspects the rest. See
 [the pinning decision](../decisions/the-dead-code-checker-is-a-pinned-dependency.md).
 
-`pyright` is not redundant with `mypy`: it catches variance and invariance errors mypy misses. `lint-imports` enforces the six layering contracts and is the gate that keeps Domain pure. `ruff format --check` is not redundant with `ruff check` either: the two rule sets do not overlap, and formatting drift is invisible to the linter.
+`pyright` is not redundant with `mypy`: it catches variance and invariance errors mypy misses. `ruff format --check` is not redundant with `ruff check` either: the two rule sets do not overlap, and formatting drift is invisible to the linter.
+
+`lint-imports` enforces seven layering contracts, declared in `apps/api/pyproject.toml` under `[tool.importlinter]`, and it is the gate that keeps Domain pure:
+
+1. Domain is pure: no I/O, no other layer.
+2. Transport and AI never import integrations or persistence directly.
+3. Services never import transport or AI.
+4. Integrations never import services, transport or AI.
+5. Persistence never imports services, transport, AI or integrations.
+6. The science never imports an assistant's composition root.
+7. The MCP server never imports the agents or the API transport.
+
+Contract 2 was two contracts, one over `pathfinder.transport` and
+`pathfinder.ai.tools` and one over `pathfinder.ai`, which between them stated
+one rule twice and left the rest of `pathfinder.ai` free to open a database
+session. It carries the only exception in the file: four FRAME tool modules
+annotate a WDK search definition with a wire model, and each edge is a line in
+`ignore_imports`. A contract cannot see which name an edge imports, so
+`tests/unit/services/wdk/test_no_integration_facade.py` pins the symbol and
+fails any other import from `pathfinder.integrations` in either layer. See
+[the WDK service-layer decision](../decisions/the-wdk-service-layer-holds-functions-not-re-exports.md).
 
 The unit tier refuses every connection made through Python's socket module. An autouse fixture in `src/pathfinder/tests/unit/conftest.py` patches `socket.socket.connect`, `connect_ex`, `socket.getaddrinfo` and the event loop's `create_connection`/`getaddrinfo`, so a stub that no longer covers its seam fails there instead of passing against a live server. The refusal derives from `BaseException`, because every HTTP client here retries under `except Exception` and would otherwise swallow it.
 
@@ -58,6 +88,8 @@ yarn check:wdk-rules
 ```
 
 **A confirmed drift is answered by re-recording, not by editing a fixture.** No fixture is written by hand. `apps/api/src/pathfinder/devtools/wdk_fixtures.py` holds the manifest - what to ask, where, and which rules read it - and `record` refreshes the store. Each file carries its own provenance as data: site, method, url, status, content type, and the date it was recorded. Recording needs `VEUPATHDB_AUTH_TOKEN`, because VEuPathDB refuses anonymous service calls; every manifest entry is user-independent, so no account is addressed.
+
+**The EDA fixtures answer the same way.** The recorded EDA bodies under `apps/api/src/pathfinder/tests/unit/integrations/eda/fixtures/` are trimmed by hand, so `record` refreshes their provenance rather than their content. `apps/api/src/pathfinder/tests/_support/eda_fixtures.py` holds the manifest - what to ask, where, and what the stored copy drops - and writes `provenance.json` beside the bodies: site, deployment, method, url, status, content type, body shape and the date. `tests/live/test_eda_fixture_drift.py` runs in the `live_wdk` lane and fails when the deployment's body shape no longer matches what a fixture pins, or when a fixture on disk is not in the manifest. Recording needs the same registered account the lane skips without.
 
 The lane writes `wdk-live-summary.json`: the run's outcomes, a per-site tally, and the drift list. It is the science layer's feed into the observability contract.
 

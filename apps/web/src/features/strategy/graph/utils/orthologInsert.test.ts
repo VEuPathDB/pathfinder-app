@@ -87,6 +87,6 @@ describe("computeOrthologInsert", () => {
       options: { insertBetween: false },
       generateId: () => "new3",
     });
-    expect(result.downstreamPatch).toBeUndefined();
+    expect(result.downstreamPatch).toEqual(undefined);
   });
 });

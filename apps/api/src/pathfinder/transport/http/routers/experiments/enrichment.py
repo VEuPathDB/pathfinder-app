@@ -1,63 +1,15 @@
-"""Enrichment analysis endpoints for experiments."""
+"""Custom gene-set enrichment endpoint for experiments."""
 
-from assistant_core.platform.logging import get_logger
-from assistant_core.platform.types import JSONObject
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from pathfinder.platform.errors import InternalError
 from pathfinder.services.enrichment.custom import (
     CustomEnrichmentResult,
     run_custom_enrichment,
 )
-from pathfinder.services.enrichment.parser import (
-    upsert_enrichment_result,
-)
-from pathfinder.services.enrichment.service import EnrichmentService
-from pathfinder.services.experiment.store import get_experiment_store
-from pathfinder.transport.http.deps import (
-    CurrentUser,
-    ExperimentDep,
-    require_registered_wdk_identity,
-)
-from pathfinder.transport.http.schemas.experiments import (
-    CustomEnrichRequest,
-    RunEnrichmentRequest,
-)
+from pathfinder.transport.http.deps import CurrentUser, ExperimentDep
+from pathfinder.transport.http.schemas.experiments import CustomEnrichRequest
 
 router = APIRouter()
-logger = get_logger(__name__)
-
-
-@router.post(
-    "/{experiment_id}/enrich",
-    dependencies=[Depends(require_registered_wdk_identity)],
-)
-async def run_enrichment(
-    exp: ExperimentDep,
-    request: RunEnrichmentRequest,
-    user_id: CurrentUser,
-) -> list[JSONObject]:
-    """Run enrichment analysis on an existing experiment's results."""
-    svc = EnrichmentService()
-    results, errors = await svc.run_batch(
-        site_id=exp.config.site_id,
-        analysis_types=request.enrichment_types,
-        step_id=exp.wdk_step_id,
-        search_name=exp.config.search_name,
-        record_type=exp.config.record_type,
-        parameters=exp.config.parameters,
-    )
-    for r in results:
-        upsert_enrichment_result(exp.enrichment_results, r)
-    get_experiment_store().save(exp)
-
-    if not results and errors:
-        raise InternalError(
-            title="Enrichment analysis failed",
-            detail="; ".join(errors),
-        )
-
-    return [r.model_dump(by_alias=True) for r in results]
 
 
 @router.post("/{experiment_id}/custom-enrich")

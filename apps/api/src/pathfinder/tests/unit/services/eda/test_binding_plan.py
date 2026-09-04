@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from shared_py.stream_parts.eda import EdaAnalysisState
-
+from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.services.eda.thread_surgery import (
     AdoptBinding,

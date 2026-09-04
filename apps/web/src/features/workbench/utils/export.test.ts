@@ -12,7 +12,13 @@ let removedElements: HTMLElement[] = [];
 let createdObjectURLs: string[] = [];
 let revokedObjectURLs: string[] = [];
 let lastAnchorProps: { href: string; download: string } | null = null;
+let downloadedContents: string[] = [];
 let clickSpy: ReturnType<typeof vi.fn>;
+
+interface MockBlobShape {
+  content: string[];
+  type: string;
+}
 
 beforeEach(() => {
   appendedElements = [];
@@ -20,10 +26,12 @@ beforeEach(() => {
   createdObjectURLs = [];
   revokedObjectURLs = [];
   lastAnchorProps = null;
+  downloadedContents = [];
   clickSpy = vi.fn();
 
   vi.stubGlobal("URL", {
-    createObjectURL: vi.fn((_blob: Blob) => {
+    createObjectURL: vi.fn((blob: Blob) => {
+      downloadedContents.push((blob as unknown as MockBlobShape).content.join(""));
       const url = `blob:mock-${createdObjectURLs.length}`;
       createdObjectURLs.push(url);
       return url;
@@ -135,7 +143,7 @@ describe("exportAsTxt", () => {
 
     exportAsTxt(gs);
 
-    expect(clickSpy).toHaveBeenCalledOnce();
+    expect(downloadedContents).toEqual(["ONLY_GENE"]);
   });
 
   it("appends and removes the anchor element from document.body", () => {
@@ -246,8 +254,9 @@ describe("exportMultipleAsCsv", () => {
 
     exportMultipleAsCsv(sets);
 
-    // The download should still happen; CSV comma escaping is handled internally
-    expect(clickSpy).toHaveBeenCalledOnce();
+    expect(downloadedContents).toEqual([
+      'gene_id,gene_set_name,source\nG1,"Set A, variant 1",paste',
+    ]);
   });
 
   it("revokes object URL after download", () => {

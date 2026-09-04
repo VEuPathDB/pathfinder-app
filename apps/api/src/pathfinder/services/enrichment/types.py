@@ -13,7 +13,7 @@ from assistant_core.platform.pydantic_base import (
 )
 from pydantic import ConfigDict, Field
 
-EnrichmentAnalysisType = Literal[
+type EnrichmentAnalysisType = Literal[
     "go_function", "go_component", "go_process", "pathway", "word"
 ]
 

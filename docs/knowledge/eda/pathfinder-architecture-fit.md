@@ -10,7 +10,7 @@ status: accepted
 
 # How EDA fits PathFinder's architecture
 
-Status: built. See [the plan](plan/index.md) for the batches that built it. It deepens
+Status: built. It deepens
 [pathfinder-integration-concept.md](pathfinder-integration-concept.md), which
 states the two seams; this document states where each piece of code goes, which
 existing mechanism it reuses, and what it must not duplicate.
@@ -35,7 +35,7 @@ boundaries.
 ## 1. Layering
 
 PathFinder's layer rule is `transport -> services -> domain + integrations ->
-persistence`, enforced by six import-linter contracts in
+persistence`, enforced by the import-linter contracts in
 `apps/api/pyproject.toml:257-324`. EDA lands as follows.
 
 ### 1.1 `integrations/eda/` - the typed client
@@ -189,7 +189,7 @@ analysis on the VEuPathDB site.
 
 The boundary is an installation fact, not a convention:
 `packages/assistant-core/pyproject.toml` names no `pathfinder` dependency, and
-`packages/assistant-core/tests/unit/test_package_boundary.py` pins the import
+`packages/assistant-core/packages/assistant-core/tests/unit/test_package_boundary.py` pins the import
 surface ([the runtime is a package](../decisions/the-runtime-is-a-package.md)).
 CLAUDE.md states the placement rule directly: "anything that names a gene, a
 strategy, a WDK search or a phase role goes in `ai/`".
@@ -489,7 +489,7 @@ change, and both are measured facts rather than guesses:
 `params_template: dict[str, None]`, and the instruction that goes with it is
 "The result's `params_template` is the exact `params` object to send back"
 (pinned by
-`tests/unit/ai/agents/test_frame_instructions.py:27-31`). The decision behind it
+`tests/unit/ai/agents/test_frame.py`). The decision behind it
 is [one proposer, one validator](../decisions/one-proposer-one-validator.md):
 the model reads the whole sheet and answers every slot once, and the per-slot
 resolvers that read English were deleted.

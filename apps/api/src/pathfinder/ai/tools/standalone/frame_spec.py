@@ -37,6 +37,7 @@ from pathfinder.domain.strategy.operational_spec import (
     CriterionRole,
     OpenSlot,
 )
+from pathfinder.integrations.veupathdb.wdk_models import WDKSearch
 from pathfinder.platform.errors import ValidationError
 from pathfinder.services.catalog._param_filters import has_contrast_sibling
 from pathfinder.services.catalog.param_dag import (
@@ -59,7 +60,6 @@ from pathfinder.services.catalog.searches import (
 )
 from pathfinder.services.catalog.validation_callbacks import make_validation_callbacks
 from pathfinder.services.strategies.saved_library import SavedStrategyListing
-from pathfinder.services.wdk import WDKSearch
 
 
 class SetCriterionResult(CamelModel):

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { useSessionStore } from "@/state/useSessionStore";
-import { useGeneSetsQuery } from "@/lib/query/hooks/useGeneSetsQuery";
+import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
 import { WorkbenchMain } from "@/features/workbench/components/WorkbenchMain";
 
 export default function WorkbenchGeneSetPage() {

@@ -124,11 +124,6 @@ class _JWKS(BaseModel):
 _signing_keys: dict[str, tuple[float, PyJWK]] = {}
 
 
-def clear_oauth_signing_key_cache() -> None:
-    """Drop every cached OAuth signing key."""
-    _signing_keys.clear()
-
-
 def _unavailable(jwks_url: str, reason: str) -> ExternalServiceError:
     """Report that no token can be verified right now."""
     logger.warning(

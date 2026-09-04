@@ -85,6 +85,7 @@ describe("Reasoning", () => {
 
   it("does not auto-open when defaultOpen={false}", () => {
     setup({ isStreaming: true, defaultOpen: false });
-    expect(screen.queryByText("Some reasoning content.")).toBeNull();
+    expect(screen.getByText("Thinking...")).toBeInTheDocument();
+    expect(screen.queryAllByText("Some reasoning content.")).toHaveLength(0);
   });
 });

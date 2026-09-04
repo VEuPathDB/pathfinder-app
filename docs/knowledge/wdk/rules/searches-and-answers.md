@@ -15,7 +15,7 @@ status: stable
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/AbstractWdkService.java#L359-L368
 - anchor: apps/api/src/pathfinder/services/catalog/searches.py:find_record_type_for_search
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_search_addressing.py::test_wdk_search_001_the_catalog_binds_a_search_to_one_record_type
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_discovery.py::test_wdk_search_001_the_catalog_binds_a_search_to_one_record_type
 
 `getQuestionOrNotFound(RecordClass, String)` resolves the search by name and then compares
 `question.getRecordClassName()` against the record class's **full name**. A mismatch throws
@@ -45,7 +45,7 @@ segment** (`transcript`), the same two-vocabulary split that bites in
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/AbstractWdkService.java#L344-L349
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKSearch
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_search_addressing.py::test_wdk_search_002_the_request_path_carries_the_url_segment
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_discovery.py::test_wdk_search_002_the_request_path_carries_the_url_segment
 
 A search carries two names and the response gives you both:
 [`QuestionFormatter`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/QuestionFormatter.java#L66-L68)
@@ -77,7 +77,7 @@ Two names, two jobs; the mapping between them is data, so keep both.
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/QuestionService.java#L96-L105
 - anchor: apps/api/src/pathfinder/services/catalog/searches.py:get_raw_searches
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_search_document.py::test_wdk_search_003_two_sites_do_not_share_a_search_set
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_discovery.py::test_wdk_search_003_two_sites_do_not_share_a_search_set
 
 `getQuestions()` takes `model.getAllQuestions()` and filters it by the requested record
 class's full name, every time. There is no per-site constant anywhere in the service layer:
@@ -102,7 +102,7 @@ that exists on both can differ in what it will take.
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/Group.java#L6-L16
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKParameterGroup
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_search_document.py::test_wdk_search_004_the_specs_come_from_the_parameter_list
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_discovery.py::test_wdk_search_004_the_specs_come_from_the_parameter_list
 
 `Group`'s class comment is unambiguous: a group is `only used to group Params together in
 the question page for display/layout purpose`, and a param with no group is assigned to the
@@ -136,7 +136,7 @@ optional or defaulted; the parameter still has to be supplied.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/AnswerService.java#L282-L304
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/base.py:_standard_report
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_report_config_contract.py::TestTheStepReportEndpointTakesOnlyAReportConfig::test_the_report_config_is_the_whole_body
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_reports.py::TestTheStepReportEndpointTakesOnlyAReportConfig::test_the_report_config_is_the_whole_body
 There are two ways to run a reporter and they take different bodies.
 
 `POST /record-types/{rc}/searches/{name}/reports/{reporter}` runs a search that no step
@@ -167,7 +167,7 @@ site. See [the pin-versus-deployment note](../sources.md).
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/report/config/AnswerDetailsFactory.java#L165-L191
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/reports.py:get_step_records
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_report_config_contract.py::TestAttributesAreOnlyWhatWeAskFor::test_asking_for_none_sends_no_attributes_key
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_reports.py::TestAttributesAreOnlyWhatWeAskFor::test_asking_for_none_sends_no_attributes_key
 
 `parseAttributeJson` ends with `// if unspecified, do not include any attributes; user could
 just be requesting tables` and returns an empty map. Tables behave the same way. The
@@ -193,8 +193,9 @@ and [WDK-ANS-001](#wdk-ans-001---the-unpersisted-report-endpoint-requires-both-s
 means you cannot omit the key. The search document's `defaultAttributes` is a suggestion to
 the client, and the client has to act on it. If you want the defaults, send them.
 
-PathFinder relies on this deliberately in one place - `_fetch_step_preview` retries with no
-attributes to get an id-only preview when a record class rejects the ones it asked for - and
+PathFinder relies on this deliberately in one place - `services/wdk/step_preview.py` retries
+with no attributes to get an id-only preview when a record class rejects the ones it asked for
+- and
 that works because record identity is not an attribute (see
 [WDK-ANS-004](#wdk-ans-004---recordclassname-means-the-full-name-inside-records-and-the-url-segment-inside-meta)).
 
@@ -203,7 +204,7 @@ that works because record identity is not an attribute (see
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/report/config/AnswerDetailsFactory.java#L101-L111
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/reports.py:get_step_count
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_report_config_contract.py::TestACountAsksForZeroRecords::test_the_count_page_is_exactly_zero_records
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_reports.py::TestACountAsksForZeroRecords::test_the_count_page_is_exactly_zero_records
 
 The factory reads `numRecords` and replaces it with
 [`ALL_RECORDS`, which is `-1`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/report/config/AnswerDetails.java#L13-L32),
@@ -234,7 +235,7 @@ page.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/report/util/RecordFormatter.java#L41-L52
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKRecordInstance
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_record_shapes.py::TestTheTwoRecordClassNames::test_one_is_not_the_other
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models.py::TestTheTwoRecordClassNames::test_one_is_not_the_other
 
 `RecordFormatter.getRecordJson` writes `JsonKeys.RECORD_CLASS_NAME` from
 `record.getRecordClass().getFullName()`.
@@ -263,7 +264,7 @@ attribute. Those are present even when `attributes` is `{}`.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/report/reporter/StandardReporter.java#L52-L66
 - anchor: apps/api/src/pathfinder/services/wdk/step_results.py:StepResultsService
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_report_config_contract.py::TestOnlyTheJsonReporterHonoursThePage::test_records_go_through_the_standard_reporter
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_reports.py::TestOnlyTheJsonReporterHonoursThePage::test_records_go_through_the_standard_reporter
 
 Two reporter base classes take the same `reportConfig` and treat it differently.
 
@@ -296,7 +297,7 @@ narrower search, because the reporter will stream whatever the step returns.
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/AnswerService.java#L448-L461
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKReporter
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_param_metadata.py::test_wdk_ans_006_nothing_but_the_model_reads_scopes
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_call_sites.py::test_wdk_ans_006_nothing_but_the_model_reads_scopes
 
 `getConfiguredReporter` checks one thing before dispatching: whether the name is a key in
 `question.getReporterMap()`. It never reads `scopes`. Scope is only ever consulted when the
@@ -407,7 +408,7 @@ caller: the step's own count, or the size of the gene list that built the step.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/report/util/RecordFormatter.java#L110-L140
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKRecordInstance
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_record_shapes.py::TestComparingAnAttributeToText::test_a_link_value_compares_by_its_display_text
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models.py::TestComparingAnAttributeToText::test_a_link_value_compares_by_its_display_text
 
 `getAttributeValueJson` branches on the attribute's Java class before it branches on the
 requested format. A `LinkAttributeValue` becomes a `{url, displayText}` **object** under

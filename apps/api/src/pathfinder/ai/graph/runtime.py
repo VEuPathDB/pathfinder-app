@@ -1,25 +1,51 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from assistant_core.graph.runtime import AssistantDeps, TurnContext
-from assistant_core.memory.schemas import MemoryValue
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, SkipValidation
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
-from pathfinder.ai.capabilities.service_outage import ServiceOutageMemory
-from pathfinder.ai.graph.state import PipelineState
-from pathfinder.domain.strategy.constraints import (
-    combination_requirements_from,
-    organism_hints_from,
-)
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies.context import StrategyMutationContext
+
+# A search is abandoned once it has failed this many times in a turn. The
+# resilience layer retries below the threshold; at or above it the search is
+# both reported as unavailable AND withdrawn from the tools' search_name enum,
+# so the model cannot keep re-selecting something that is down upstream.
+OUTAGE_GIVE_UP_THRESHOLD = 2
+
+
+@dataclass
+class ServiceOutageMemory:
+    """Run-scoped memory of which searches have hit transient (5xx) errors this
+    turn. Lets ToolResilience abandon a persistently-unavailable search instead
+    of telling the model to retry it forever.
+
+    Counts are keyed by SEARCH NAME, not by (tool, search): a 500 is a property
+    of the search, so a failure seen through ``get_search_overview`` and one
+    through ``set_criterion`` are the same outage and must add up.
+    """
+
+    _counts: dict[str, int] = field(default_factory=dict, init=False, repr=False)
+
+    def record_search_failure(self, search_name: str) -> int:
+        """Record one transient failure; returns the running count."""
+        self._counts[search_name] = self._counts.get(search_name, 0) + 1
+        return self._counts[search_name]
+
+    def unavailable_searches(self) -> frozenset[str]:
+        """Searches abandoned for the rest of this turn."""
+        return frozenset(
+            name
+            for name, seen in self._counts.items()
+            if seen >= OUTAGE_GIVE_UP_THRESHOLD
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -69,32 +95,3 @@ class AgentDeps(AssistantDeps):
             conversation_id=self.conversation_id,
             db_session_factory=self.db_session_factory,
         )
-
-
-def build_node_deps(
-    state: PipelineState,
-    context: Context,
-    *,
-    memories: list[MemoryValue] | None = None,
-) -> AgentDeps:
-    agent_state = AgentToolState(
-        discovered_searches=dict(state.domain.discovered_searches),
-        organism_hints=organism_hints_from(state.domain.requirements),
-        combination_requirements=combination_requirements_from(
-            state.domain.requirements
-        ),
-    )
-    return AgentDeps(
-        site_id=context.site_id,
-        user_id=context.user_id,
-        strategy_session=context.strategy_session,
-        web_search_service=context.web_search_service,
-        literature_search_service=context.literature_search_service,
-        agent_state=agent_state,
-        experiment_id=context.experiment_id,
-        cancel_event=context.cancel_event,
-        memory_store=context.memory_store,
-        retrieved_memories=memories or [],
-        conversation_id=state.conversation_id,
-        db_session_factory=context.db_session_factory,
-    )

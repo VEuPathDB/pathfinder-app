@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from assistant_core.platform.logging import get_logger
 
-from pathfinder.domain.strategy.ast import walk_step_tree
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import (
@@ -82,9 +82,9 @@ async def persist_strategy_ast_to_conversation(
 
 def _total_step_count(ast: StrategyAst) -> int:
     """Every step the researcher can see, pushed or not yet combined."""
-    total = len(walk_step_tree(ast.root))
+    total = len(walk(ast.root))
     for detached in ast.detached_roots:
-        total += len(walk_step_tree(detached))
+        total += len(walk(detached))
     return total
 
 

@@ -6,20 +6,14 @@ serialized exactly as a ``ToolReturnPart`` sends it.
 
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
-from uuid import uuid4
 
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn, ToolReturnPart
-from pydantic_ai.models.test import TestModel
-from pydantic_ai.usage import RunUsage
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.ai.graph.runtime import AgentDeps, Context
-from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis, eda_catalog, research
 from pathfinder.domain.research.citations import (
@@ -29,7 +23,6 @@ from pathfinder.domain.research.citations import (
     LiteratureSort,
     LiteratureSource,
 )
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.integrations.eda.models import (
     EdaPermissionEntry,
     EdaStudyDetail,
@@ -48,6 +41,7 @@ from pathfinder.services.research.web_search import (
     WebSearchResult,
     WebSearchService,
 )
+from pathfinder.tests.unit.ai.tools.conftest import lead_run_context
 
 FIXTURES = (
     Path(__file__).resolve().parents[3] / "unit" / "integrations" / "eda" / "fixtures"
@@ -66,49 +60,9 @@ _DATASET = "DS_53f554ec6a"
 _STUDY = "STUDY_53f554ec6a"
 
 
-def _never_factory() -> AsyncSession:
-    msg = "db factory should not be called in unit tests"
-    raise AssertionError(msg)
-
-
-def _runtime() -> Context:
-    return Context(
-        site_id="plasmodb",
-        user_id=uuid4(),
-        strategy_session=StrategySession(site_id="plasmodb"),
-        db_session_factory=_never_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
-        cancel_event=asyncio.Event(),
-    )
-
-
 @pytest.fixture
-def agent_ctx() -> RunContext[AgentDeps]:
-    runtime = _runtime()
-    deps = AgentDeps(
-        site_id="plasmodb",
-        user_id=runtime.user_id,
-        strategy_session=runtime.strategy_session,
-        web_search_service=runtime.web_search_service,
-        literature_search_service=runtime.literature_search_service,
-        cancel_event=runtime.cancel_event,
-    )
-    return RunContext(deps=deps, model=TestModel(), usage=RunUsage(), messages=[])
-
-
-@pytest.fixture
-def lead_ctx() -> RunContext[LeadDeps]:
-    runtime = _runtime()
-    state = PipelineState(
-        conversation_id=uuid4(),
-        user_id=runtime.user_id,
-        site_id="plasmodb",
-        mode="strategy",
-        user_prompt="which studies measure phenotype scores",
-    )
-    deps = LeadDeps(state=state, intent=None, runtime=runtime, retrieved_memories=[])
-    return RunContext(deps=deps, model=TestModel(), usage=RunUsage(), messages=[])
+def studies_ctx() -> RunContext[LeadDeps]:
+    return lead_run_context(user_prompt="which studies measure phenotype scores")
 
 
 def wire_size(returned: ToolReturn[object], tool_name: str) -> int:
@@ -334,17 +288,17 @@ async def test_literature_search_names_the_handle_for_the_full_record(
 
 
 async def test_search_eda_studies_stays_under_its_ceiling(
-    lead_ctx: RunContext[LeadDeps],
+    studies_ctx: RunContext[LeadDeps],
 ) -> None:
-    returned = await eda_catalog.search_eda_studies(lead_ctx, query="rodent malaria")
+    returned = await eda_catalog.search_eda_studies(studies_ctx, query="rodent malaria")
     assert wire_size(returned, "search_eda_studies") < EDA_STUDY_SEARCH_CEILING
 
 
 async def test_search_eda_studies_names_the_handle_for_the_full_study(
-    lead_ctx: RunContext[LeadDeps],
+    studies_ctx: RunContext[LeadDeps],
 ) -> None:
     result = (
-        await eda_catalog.search_eda_studies(lead_ctx, query="rodent malaria")
+        await eda_catalog.search_eda_studies(studies_ctx, query="rodent malaria")
     ).return_value
     assert len(result.studies) == 5
     assert all(s.dataset_id for s in result.studies)
@@ -352,19 +306,19 @@ async def test_search_eda_studies_names_the_handle_for_the_full_study(
 
 
 async def test_the_eda_filter_sheet_stays_under_its_ceiling(
-    lead_ctx: RunContext[LeadDeps],
+    studies_ctx: RunContext[LeadDeps],
 ) -> None:
-    returned = await eda_analysis.set_eda_filters(lead_ctx, dataset_id=_DATASET)
+    returned = await eda_analysis.set_eda_filters(studies_ctx, dataset_id=_DATASET)
     assert wire_size(returned, "set_eda_filters") < EDA_FILTER_SHEET_CEILING
 
 
 async def test_the_eda_filter_sheet_keeps_every_filterable_variable(
-    lead_ctx: RunContext[LeadDeps],
+    studies_ctx: RunContext[LeadDeps],
 ) -> None:
     """A variable dropped from the sheet is a filter the model cannot write."""
 
     result = (
-        await eda_analysis.set_eda_filters(lead_ctx, dataset_id=_DATASET)
+        await eda_analysis.set_eda_filters(studies_ctx, dataset_id=_DATASET)
     ).return_value
     assert len(result.decide) == 13
     assert all(entry.example for entry in result.decide)

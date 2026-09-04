@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Step } from "@pathfinder/shared";
-import { CombineOperator } from "@pathfinder/shared";
+import { combineOpEnum, type CombineOp } from "@pathfinder/shared";
 import { getZeroResultSuggestions } from "./zeroResultAdvisor";
 
 // ---------------------------------------------------------------------------
@@ -28,10 +28,7 @@ function makeTransformStep(overrides?: Partial<Step>): Step {
   };
 }
 
-function makeCombineStep(
-  operator: (typeof CombineOperator)[keyof typeof CombineOperator],
-  overrides?: Partial<Step>,
-): Step {
+function makeCombineStep(operator: CombineOp, overrides?: Partial<Step>): Step {
   return {
     id: "c1",
     displayName: "Combine step",
@@ -109,7 +106,7 @@ describe("getZeroResultSuggestions", () => {
   describe("combine steps", () => {
     it("always suggests checking both inputs are non-zero", () => {
       const suggestions = getZeroResultSuggestions(
-        makeCombineStep(CombineOperator.UNION),
+        makeCombineStep(combineOpEnum.UNION),
       );
       expect(suggestions).toContainEqual(
         expect.stringContaining("both input steps are non-zero"),
@@ -119,7 +116,7 @@ describe("getZeroResultSuggestions", () => {
     describe("INTERSECT operator", () => {
       it("suggests changing to UNION", () => {
         const suggestions = getZeroResultSuggestions(
-          makeCombineStep(CombineOperator.INTERSECT),
+          makeCombineStep(combineOpEnum.INTERSECT),
         );
         expect(suggestions).toContainEqual(expect.stringContaining("change INTERSECT"));
       });
@@ -127,10 +124,10 @@ describe("getZeroResultSuggestions", () => {
 
     describe("MINUS / LONLY / RMINUS / RONLY operators", () => {
       for (const op of [
-        CombineOperator.MINUS,
-        CombineOperator.LONLY,
-        CombineOperator.RMINUS,
-        CombineOperator.RONLY,
+        combineOpEnum.MINUS,
+        combineOpEnum.LONLY,
+        combineOpEnum.RMINUS,
+        combineOpEnum.RONLY,
       ] as const) {
         it(`suggests verifying MINUS direction for ${op}`, () => {
           const suggestions = getZeroResultSuggestions(makeCombineStep(op));
@@ -144,7 +141,7 @@ describe("getZeroResultSuggestions", () => {
     describe("COLOCATE operator", () => {
       it("suggests increasing distance and verifying feature types", () => {
         const suggestions = getZeroResultSuggestions(
-          makeCombineStep(CombineOperator.COLOCATE),
+          makeCombineStep(combineOpEnum.COLOCATE),
         );
         expect(suggestions).toContainEqual(
           expect.stringContaining("widen the region offsets"),
@@ -155,7 +152,7 @@ describe("getZeroResultSuggestions", () => {
     describe("UNION operator", () => {
       it("does NOT include INTERSECT or MINUS-specific suggestions", () => {
         const suggestions = getZeroResultSuggestions(
-          makeCombineStep(CombineOperator.UNION),
+          makeCombineStep(combineOpEnum.UNION),
         );
         const joined = suggestions.join(" ");
         expect(joined).not.toContain("change INTERSECT");
@@ -185,7 +182,7 @@ describe("getZeroResultSuggestions", () => {
 
     it("returns at most 5 suggestions even for combine steps", () => {
       const suggestions = getZeroResultSuggestions(
-        makeCombineStep(CombineOperator.INTERSECT),
+        makeCombineStep(combineOpEnum.INTERSECT),
       );
       expect(suggestions.length).toBeLessThanOrEqual(5);
     });

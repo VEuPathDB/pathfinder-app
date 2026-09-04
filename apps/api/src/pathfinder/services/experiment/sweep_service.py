@@ -9,7 +9,7 @@ from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat
 
 from pathfinder.domain.parameters.value_codec import from_wire
 from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.tree import walk_plan_tree
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.platform.errors import AppError, ValidationError
 from pathfinder.services.control_helpers import (
@@ -21,7 +21,7 @@ from pathfinder.services.control_tests import (
 )
 from pathfinder.services.experiment.helpers import ControlsContext
 from pathfinder.services.experiment.metrics import metrics_from_control_result
-from pathfinder.services.experiment.step_analysis import (
+from pathfinder.services.experiment.tree_evaluation import (
     run_controls_against_tree,
 )
 from pathfinder.services.experiment.types import (
@@ -140,15 +140,7 @@ def validate_sweep_parameter(exp: Experiment, param_name: str) -> None:
 
 def _tree_has_parameter(tree: StrategyStepNode, param_name: str) -> bool:
     """Report whether any node of a plan step tree holds the parameter."""
-    found = False
-
-    def _check(node: StrategyStepNode) -> None:
-        nonlocal found
-        if param_name in node.parameters:
-            found = True
-
-    walk_plan_tree(tree, _check)
-    return found
+    return any(param_name in node.parameters for node in walk(tree))
 
 
 def _metrics_to_sweep(m: ExperimentMetrics) -> SweepMetrics:
@@ -236,13 +228,10 @@ async def _run_sweep_point_tree(
 
     tree = exp.config.step_tree.model_copy(deep=True)
 
-    def _inject(node: StrategyStepNode) -> None:
+    for node in walk(tree):
         existing = node.parameters.get(param_name)
-        if existing is None:
-            return
-        node.parameters[param_name] = from_wire(existing.type, value)
-
-    walk_plan_tree(tree, _inject)
+        if existing is not None:
+            node.parameters[param_name] = from_wire(existing.type, value)
 
     return await asyncio.wait_for(
         run_controls_against_tree(

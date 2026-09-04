@@ -1,32 +1,33 @@
-"""Shared types for seed definitions and progress events.
+"""Seed definition models and the typed progress events ``run_seed`` yields."""
 
-``ControlSetDef`` / ``SeedDef`` describe the static seed catalog.
-``SeedEvent`` and its variants are the typed progress events yielded by
-``run_seed`` and serialized over SSE by the transport layer.
-"""
-
-from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field
+from assistant_core.platform.types import JSONObject
+from pydantic import BaseModel, ConfigDict, Field
 
 
-@dataclass
-class ControlSetDef:
+class ControlSetDef(BaseModel):
+    """A curated positive/negative gene-id pair shipped with a seed strategy."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     name: str
     positive_ids: list[str]
     negative_ids: list[str]
     provenance_notes: str
-    tags: list[str] = field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
 
 
-@dataclass
-class SeedDef:
+class SeedDef(BaseModel):
+    """One seed strategy and its control set, as stored in data/seeds."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     name: str
     description: str
     site_id: str
-    step_tree: dict[str, Any]
+    step_tree: JSONObject
     control_set: ControlSetDef
     record_type: str = "transcript"
 

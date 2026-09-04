@@ -19,8 +19,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY apps/api/pyproject.toml apps/api/
 COPY apps/api/uv.lock apps/api/
 COPY apps/api/config.toml apps/api/
-COPY packages/shared-py/pyproject.toml packages/shared-py/
-COPY packages/shared-py/src packages/shared-py/src
 COPY packages/assistant-core/pyproject.toml packages/assistant-core/
 COPY packages/assistant-core/src packages/assistant-core/src
 COPY packages/mcp-conformance/pyproject.toml packages/mcp-conformance/
@@ -82,7 +80,7 @@ COPY ollama_models.yam[l] ./
 # Run from source inside the image. Avoid a second `uv sync` after copying app
 # code: installing the editable project needs the Hatchling build backend, and
 # build isolation may try to fetch it from PyPI during every code-layer rebuild.
-ENV PYTHONPATH=/app/apps/api/src:/app/packages/shared-py/src:/app/packages/assistant-core/src
+ENV PYTHONPATH=/app/apps/api/src:/app/packages/assistant-core/src
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app/apps/api
 

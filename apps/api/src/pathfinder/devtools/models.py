@@ -61,21 +61,6 @@ class SubAgentStepData(BaseModel):
     parent_tool_call_id: str | None = Field(default=None, alias="parentToolCallId")
 
 
-class TurnUsageData(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    total_tokens: int = Field(default=0, alias="totalTokens")
-    cost_usd: str = Field(default="0", alias="costUsd")
-
-
-class LeadUsageData(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-    model_id: str = Field(default="", alias="modelId")
-    tokens: int = 0
-    cost_usd: str = Field(default="0", alias="costUsd")
-
-
 def sub_agent_call_data(data: dict[str, Any] | None) -> SubAgentCallData | None:
     return None if data is None else SubAgentCallData.model_validate(data)
 

@@ -165,7 +165,7 @@ protocol's own text, reasoning and tool parts, PathFinder emits typed
    * - ``data-background-task-started`` / ``data-task-progress`` /
        ``data-task-completed``
      - A durable tool's lifecycle
-   * - ``data-verification-summary`` / ``data-enrichment-results``
+   * - ``data-enrichment-results``
      - What VERIFY established
    * - ``data-eda.analysis-state`` / ``data-eda.subset-preview`` /
        ``data-eda.viz``

@@ -1,48 +1,17 @@
 import { useState } from "react";
-import type {
-  ExperimentMetrics,
-  RankMetrics,
-  BootstrapResult,
-} from "@pathfinder/shared";
-import {
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-} from "recharts";
-import { Button } from "@/lib/components/ui/Button";
-import { Card } from "@/lib/components/ui/Card";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/lib/components/ui/Tooltip";
-import { Separator } from "@/lib/components/ui/Separator";
+import type { ExperimentMetrics } from "@pathfinder/shared";
+import { EChart } from "@/lib/components/charts/EChart";
+import { readChartTokens } from "@/lib/components/charts/chartTheme";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
 import { Section } from "./Section";
+import { buildMetricsRadarOption } from "./metricsRadar.options";
 import { pct, fmtNum } from "../utils/formatters";
 
 interface MetricsOverviewProps {
   metrics: ExperimentMetrics;
-  rankMetrics?: RankMetrics | null;
-  robustness?: BootstrapResult | null;
-}
-
-function CIBadge({
-  ciKey,
-  robustness,
-  fmt = pct,
-}: {
-  ciKey: string;
-  robustness?: BootstrapResult | null;
-  fmt?: (v: number) => string;
-}) {
-  const ci = robustness?.rankMetricCis?.[ciKey] ?? robustness?.metricCis?.[ciKey];
-  const lower = ci?.lower;
-  const upper = ci?.upper;
-  if (lower === undefined || upper === undefined) return null;
-  return (
-    <span className="ml-1.5 text-[10px] text-muted-foreground tabular-nums">
-      [{fmt(lower)}, {fmt(upper)}]
-    </span>
-  );
 }
 
 function metricValueColor(value: number, raw?: boolean | null): string {
@@ -52,28 +21,8 @@ function metricValueColor(value: number, raw?: boolean | null): string {
   return "text-destructive";
 }
 
-export function MetricsOverview({
-  metrics,
-  rankMetrics,
-  robustness,
-}: MetricsOverviewProps) {
+export function MetricsOverview({ metrics }: MetricsOverviewProps) {
   const [showSecondary, setShowSecondary] = useState(false);
-
-  const p50 = rankMetrics?.precisionAtK?.["50"] ?? null;
-  const e50 = rankMetrics?.enrichmentAtK?.["50"] ?? null;
-  const r50 = rankMetrics?.recallAtK?.["50"] ?? null;
-
-  const radarData = [
-    { metric: "Sensitivity", value: metrics.sensitivity },
-    { metric: "Specificity", value: metrics.specificity },
-    { metric: "Precision", value: metrics.precision },
-    { metric: "F1", value: metrics.f1Score },
-    { metric: "Bal. Acc.", value: metrics.balancedAccuracy },
-    {
-      metric: "MCC",
-      value: Math.max(0, (metrics.mcc + 1) / 2),
-    },
-  ];
 
   interface MetricRow {
     label: string;
@@ -142,61 +91,6 @@ export function MetricsOverview({
 
   return (
     <div data-testid="metrics-overview" className="space-y-6">
-      {/* Rank-based summary (promoted above classification metrics) */}
-      {(p50 != null || e50 != null) && (
-        <Section title="Rank-Based Summary">
-          <div className="grid grid-cols-3 gap-4">
-            {p50 != null && (
-              <Card className="px-5 py-4 text-center">
-                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Precision@50
-                </div>
-                <div className="mt-1 font-mono text-2xl font-bold tabular-nums text-foreground">
-                  {pct(p50)}
-                </div>
-                <CIBadge ciKey="precision_at_50" robustness={robustness ?? null} />
-              </Card>
-            )}
-            {r50 != null && (
-              <Card className="px-5 py-4 text-center">
-                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Recall@50
-                </div>
-                <div className="mt-1 font-mono text-2xl font-bold tabular-nums text-foreground">
-                  {pct(r50)}
-                </div>
-                <CIBadge ciKey="recall_at_50" robustness={robustness ?? null} />
-              </Card>
-            )}
-            {e50 != null && (
-              <Card className="px-5 py-4 text-center">
-                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Enrichment@50
-                </div>
-                <div className="mt-1 font-mono text-2xl font-bold tabular-nums">
-                  <span
-                    className={
-                      e50 > 2
-                        ? "text-success"
-                        : e50 > 1
-                          ? "text-primary"
-                          : "text-foreground"
-                    }
-                  >
-                    {fmtNum(e50)}x
-                  </span>
-                </div>
-                <CIBadge
-                  ciKey="enrichment_at_50"
-                  robustness={robustness ?? null}
-                  fmt={(v) => `${fmtNum(v)}x`}
-                />
-              </Card>
-            )}
-          </div>
-        </Section>
-      )}
-
       {/* Classification metrics */}
       <Section title="Classification Metrics">
         <Card>
@@ -270,28 +164,15 @@ export function MetricsOverview({
             </div>
 
             <div className="flex items-center justify-center p-4 max-lg:py-6">
-              <ResponsiveContainer width="100%" height={220}>
-                <RadarChart data={radarData} outerRadius="75%">
-                  <PolarGrid stroke="hsl(var(--border))" />
-                  <PolarAngleAxis
-                    dataKey="metric"
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  />
-                  <PolarRadiusAxis
-                    angle={90}
-                    domain={[0, 1]}
-                    tick={{ fontSize: 9, fill: "hsl(var(--border))" }}
-                    tickCount={5}
-                  />
-                  <Radar
-                    dataKey="value"
-                    stroke="hsl(var(--foreground))"
-                    fill="hsl(var(--foreground))"
-                    fillOpacity={0.12}
-                    strokeWidth={1.5}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
+              <EChart
+                option={buildMetricsRadarOption({
+                  metrics,
+                  tokens: readChartTokens(),
+                })}
+                height={220}
+                ariaLabel="Radar of the six classification metrics"
+                testId="metrics-radar"
+              />
             </div>
           </div>
         </Card>

@@ -22,11 +22,6 @@ save or push to VEuPathDB.
 
 **Key function:** :py:func:`canonicalize_plan_parameters`
 
-.. automodule:: pathfinder.services.strategies.plan_normalize
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Plan Validation
 ---------------
 
@@ -180,11 +175,6 @@ the steps, and sync.
    :show-inheritance:
 
 .. automodule:: pathfinder.services.strategies.persist
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.strategies.input_resolution
    :members:
    :undoc-members:
    :show-inheritance:

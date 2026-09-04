@@ -38,16 +38,6 @@ class ParamSpecNormalized:
     initial_display_value: str | None = None
 
 
-def unwrap_search_data(details: JSONObject | None) -> JSONObject | None:
-    """Return the dict that holds the parameters from a WDK or discovery payload."""
-    if not isinstance(details, dict):
-        return None
-    search_data_raw = details.get("searchData")
-    if isinstance(search_data_raw, dict):
-        return search_data_raw
-    return details
-
-
 def find_input_step_param(specs: dict[str, ParamSpecNormalized]) -> str | None:
     for spec in specs.values():
         if spec.param_type == "input-step":

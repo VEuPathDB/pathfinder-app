@@ -38,11 +38,6 @@ vi.mock("@/lib/query/invalidateUserScoped", () => ({
   invalidateUserScopedQueries: mockInvalidateUserScopedQueries,
 }));
 
-vi.mock("@/state/useSessionStore", () => ({
-  useSessionStore: <T>(selector: (s: { selectedSite: string }) => T) =>
-    selector({ selectedSite: "plasmodb" }),
-}));
-
 describe("useAuthRefresh", () => {
   beforeEach(() => {
     mockRefreshAuth.mockReset();
@@ -57,7 +52,7 @@ describe("useAuthRefresh", () => {
   async function importAndRender() {
     const { useAuthRefresh } = await import("./useAuthRefresh");
     const { Wrapper } = createTestWrapper();
-    return renderHook(() => useAuthRefresh(), { wrapper: Wrapper });
+    return renderHook(() => useAuthRefresh("plasmodb"), { wrapper: Wrapper });
   }
 
   it("does not refresh when user is not signed in", async () => {

@@ -6,7 +6,6 @@ assistant every later turn, so a thread cannot change architecture mid-flight.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -23,23 +22,13 @@ from pathfinder.tests.integration.http.conftest import (
     chat_body,
     chat_jobs,
     client_for,
+    ends_at_first_frame,
     make_user,
 )
 
 _CONFLICT = 409
 _NOT_FOUND = 404
-_STREAM_TIMEOUT_SECONDS = 15.0
-
-
-async def _wait_for_new_chat_job(
-    connector: InMemoryConnector,
-    before: int,
-) -> dict[str, Any]:
-    while True:
-        jobs = chat_jobs(connector)
-        if len(jobs) > before:
-            return jobs[-1]
-        await asyncio.sleep(0.02)
+_OK = 200
 
 
 async def _defer_one_turn(
@@ -47,31 +36,20 @@ async def _defer_one_turn(
     body: dict[str, Any],
     connector: InMemoryConnector,
 ) -> dict[str, Any]:
-    """POST one turn and return its job row; the SSE tail is abandoned."""
+    """POST one turn and return its job row.
+
+    The route defers the job before it answers, so the status line is enough.
+    """
     before = len(chat_jobs(connector))
-    post = asyncio.create_task(client.post("/api/v1/chat", json=body, timeout=60.0))
-    try:
-        return await asyncio.wait_for(
-            _wait_for_new_chat_job(connector, before),
-            timeout=30.0,
-        )
-    finally:
-        post.cancel()
-        await asyncio.gather(post, return_exceptions=True)
+    response = await client.post("/api/v1/chat", json=body, timeout=60.0)
+    assert response.status_code == _OK
+    jobs = chat_jobs(connector)
+    assert len(jobs) > before, "the served turn deferred no job"
+    return jobs[-1]
 
 
-async def _post_chat(client: httpx.AsyncClient, body: dict[str, Any]) -> int | None:
-    """Return the status code, or None when the route opens an SSE stream."""
-    post = asyncio.create_task(client.post("/api/v1/chat", json=body, timeout=60.0))
-    try:
-        response = await asyncio.wait_for(
-            asyncio.shield(post),
-            timeout=_STREAM_TIMEOUT_SECONDS,
-        )
-    except TimeoutError:
-        post.cancel()
-        await asyncio.gather(post, return_exceptions=True)
-        return None
+async def _post_chat(client: httpx.AsyncClient, body: dict[str, Any]) -> int:
+    response = await client.post("/api/v1/chat", json=body, timeout=60.0)
     return response.status_code
 
 
@@ -99,7 +77,7 @@ async def test_a_turn_creates_the_thread_under_the_default_assistant(
     owner = await make_user(db_session)
     body = chat_body(uuid4())
 
-    async with client_for(app, owner.id) as client:
+    async with client_for(ends_at_first_frame(app), owner.id) as client:
         job = await _defer_one_turn(client, body, in_memory_jobs)
 
     conversation_id = UUID(body["conversationId"])
@@ -128,7 +106,7 @@ async def test_a_turn_naming_the_thread_s_assistant_is_served(
     await db_session.commit()
     body = {**chat_body(conversation.id), "assistantId": "pathfinder"}
 
-    async with client_for(app, owner.id) as client:
+    async with client_for(ends_at_first_frame(app), owner.id) as client:
         job = await _defer_one_turn(client, body, in_memory_jobs)
 
     assert job["args"]["payload"]["assistant_id"] == "pathfinder"
@@ -146,7 +124,7 @@ async def test_an_unknown_assistant_is_refused_with_404(
     owner = await make_user(db_session)
     body = {**chat_body(uuid4()), "assistantId": "no_such_assistant"}
 
-    async with client_for(app, owner.id) as client:
+    async with client_for(ends_at_first_frame(app), owner.id) as client:
         status = await _post_chat(client, body)
 
     assert status == _NOT_FOUND
@@ -174,7 +152,7 @@ async def test_naming_another_assistant_on_an_existing_thread_is_refused(
     await db_session.commit()
     body = {**chat_body(conversation.id), "assistantId": "site_help"}
 
-    async with client_for(app, owner.id) as client:
+    async with client_for(ends_at_first_frame(app), owner.id) as client:
         status = await _post_chat(client, body)
 
     assert status == _CONFLICT
@@ -211,7 +189,7 @@ async def test_a_thread_created_under_another_assistant_mid_dispatch_is_refused(
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(assistant_routing, "conversation_assistant_id", _resolve_none)
-        async with client_for(app, owner.id) as client:
+        async with client_for(ends_at_first_frame(app), owner.id) as client:
             status = await _post_chat(client, body)
 
     assert status == _CONFLICT

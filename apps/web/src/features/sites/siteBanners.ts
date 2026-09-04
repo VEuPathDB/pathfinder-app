@@ -3,7 +3,7 @@
  * in public/banners/. Header always uses a dark overlay and white text.
  */
 
-/** When set, SitePicker uses white text for the header (dark overlay). */
+/** When set, the site header uses white text (dark overlay). */
 export type HeaderTextVariant = "light";
 
 interface SiteBannerConfig {

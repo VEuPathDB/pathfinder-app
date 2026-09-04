@@ -7,10 +7,10 @@ import { toast } from "sonner";
 import {
   ApprovalCard,
   type ApprovalDecision,
-} from "@/lib/components/thread/ApprovalCard";
-import { approvalPromptFor } from "@/lib/utils/toolNames";
+} from "@/features/conversation/thread/ApprovalCard";
+import { approvalPromptFor } from "@/features/conversation/toolNames";
 
-import { useChatHelpersOptional } from "../../runtime/chatHelpersContext";
+import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { useThreadDevMode } from "../../thread/useThreadDevMode";
 
 // The consult carousel answers this tool's approval with the user's answers.
@@ -57,9 +57,8 @@ export function ToolApprovalControls({
 }: {
   toolCallId: string;
 }): ReactElement | null {
-  const chat = useChatHelpersOptional();
+  const chat = useChatHelpers();
   const { showRaw } = useThreadDevMode();
-  if (chat === null) return null;
   const approval = findToolApproval(chat.messages, toolCallId);
   if (approval === null || approval.toolName === CONSULT_TOOL_NAME) return null;
 

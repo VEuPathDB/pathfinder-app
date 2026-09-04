@@ -25,7 +25,7 @@ vi.mock("@/lib/api/veupathdb-auth", () => ({
   logoutVeupathdb: vi.fn(() => Promise.resolve({ success: true })),
 }));
 
-vi.mock("@/lib/hooks/useHasHydrated", () => ({ useHasHydrated: () => true }));
+vi.mock("@/features/sites/useHasHydrated", () => ({ useHasHydrated: () => true }));
 vi.mock("@/lib/query/invalidateUserScoped", () => ({
   invalidateUserScopedQueries: vi.fn(),
 }));

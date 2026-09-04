@@ -1,35 +1,12 @@
 from __future__ import annotations
 
-import optuna
 import pytest
 
-from pathfinder.services.parameter_optimization.config import (
-    OptimizationConfig,
-    ParameterSpec,
-    TrialResult,
-)
+from pathfinder.services.parameter_optimization.config import OptimizationConfig
 from pathfinder.services.parameter_optimization.scoring import (
-    _compute_pareto_frontier,
     _compute_score,
-    _compute_sensitivity,
     _score_mcc,
 )
-
-
-def _trial(
-    n: int,
-    *,
-    recall: float | None,
-    fpr: float | None,
-) -> TrialResult:
-    return TrialResult(
-        trial_number=n,
-        parameters={},
-        score=0.0,
-        recall=recall,
-        false_positive_rate=fpr,
-        estimated_size=None,
-    )
 
 
 class TestScoreMcc:
@@ -94,69 +71,3 @@ class TestEstimatedSizePenalty:
         assert _compute_score(0.6, 0.1, cfg, estimated_size=999_999) == pytest.approx(
             0.6
         )
-
-
-class TestParetoFrontier:
-    def test_drops_dominated_trials(self) -> None:
-        a = _trial(0, recall=0.9, fpr=0.5)
-        b = _trial(1, recall=0.8, fpr=0.3)
-        c = _trial(2, recall=0.7, fpr=0.4)
-        d = _trial(3, recall=0.6, fpr=0.1)
-        frontier = _compute_pareto_frontier([c, a, d, b])
-        assert [t.trial_number for t in frontier] == [0, 1, 3]
-
-    def test_ignores_trials_missing_recall_or_fpr(self) -> None:
-        good = _trial(0, recall=0.8, fpr=0.2)
-        no_recall = _trial(1, recall=None, fpr=0.1)
-        no_fpr = _trial(2, recall=0.9, fpr=None)
-        frontier = _compute_pareto_frontier([good, no_recall, no_fpr])
-        assert [t.trial_number for t in frontier] == [0]
-
-    def test_empty_input_returns_empty(self) -> None:
-        assert _compute_pareto_frontier([]) == []
-
-
-class TestSensitivityFallbacks:
-    def test_no_study_returns_zero_for_every_param(self) -> None:
-        specs = [
-            ParameterSpec(name="alpha", type="numeric", min=0.0, max=1.0),
-            ParameterSpec(name="beta", type="integer", min=0, max=10),
-        ]
-        assert _compute_sensitivity(specs, study=None) == {"alpha": 0.0, "beta": 0.0}
-
-    def test_fewer_than_two_completed_trials_returns_zeros(self) -> None:
-        specs = [ParameterSpec(name="alpha", type="numeric", min=0.0, max=1.0)]
-        study = optuna.create_study(direction="maximize")
-        dist: dict[str, optuna.distributions.BaseDistribution] = {
-            "alpha": optuna.distributions.FloatDistribution(0.0, 1.0)
-        }
-        study.add_trial(
-            optuna.trial.create_trial(
-                params={"alpha": 0.5}, distributions=dist, value=1.0
-            )
-        )
-        assert _compute_sensitivity(specs, study=study) == {"alpha": 0.0}
-
-    def test_real_study_normalizes_and_surfaces_dominant_param(self) -> None:
-        specs = [
-            ParameterSpec(name="driver", type="numeric", min=0.0, max=1.0),
-            ParameterSpec(name="noise", type="numeric", min=0.0, max=1.0),
-        ]
-        study = optuna.create_study(direction="maximize")
-        dist: dict[str, optuna.distributions.BaseDistribution] = {
-            "driver": optuna.distributions.FloatDistribution(0.0, 1.0),
-            "noise": optuna.distributions.FloatDistribution(0.0, 1.0),
-        }
-        for i in range(12):
-            study.add_trial(
-                optuna.trial.create_trial(
-                    params={"driver": i / 11.0, "noise": (i * 7 % 12) / 11.0},
-                    distributions=dist,
-                    value=i / 11.0,
-                )
-            )
-        importances = _compute_sensitivity(specs, study=study)
-        assert set(importances) == {"driver", "noise"}
-        assert all(0.0 <= v <= 1.0 for v in importances.values())
-        assert sum(importances.values()) == pytest.approx(1.0, abs=1e-6)
-        assert importances["driver"] > importances["noise"]

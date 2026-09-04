@@ -11,10 +11,7 @@ from pathfinder.domain.strategy.strategy_ast import StrategyAst
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
-from pathfinder.services.strategies.saved_library import (
-    list_saved_strategies,
-    resolve_saved_reference,
-)
+from pathfinder.services.strategies.saved_library import list_saved_strategies
 
 
 def _ast() -> StrategyAst:
@@ -91,43 +88,3 @@ async def test_the_listing_holds_only_the_callers_saved_rows_on_the_site(
     assert entry.record_type == "transcript"
     assert entry.root_count == 227
     assert entry.step_count == 3
-
-
-async def test_a_reference_resolves_by_name_by_id_and_by_thread(
-    authed_user_id: UUID,
-) -> None:
-    conversation_id = await _saved_thread(
-        authed_user_id, name="Pf protease union (text OR GO)", wdk_strategy_id=330534203
-    )
-
-    for reference in (
-        "Pf protease union (text OR GO)",
-        "pf protease union (TEXT or go)",
-        "330534203",
-        str(conversation_id),
-    ):
-        resolved = await resolve_saved_reference(
-            async_session_factory,
-            user_id=authed_user_id,
-            site_id="plasmodb",
-            reference=reference,
-        )
-        assert resolved is not None, reference
-        assert resolved.wdk_strategy_id == 330534203
-
-
-async def test_an_unknown_reference_resolves_to_nothing(
-    authed_user_id: UUID,
-) -> None:
-    await _saved_thread(
-        authed_user_id, name="Pf protease union (text OR GO)", wdk_strategy_id=330534203
-    )
-
-    resolved = await resolve_saved_reference(
-        async_session_factory,
-        user_id=authed_user_id,
-        site_id="plasmodb",
-        reference="a strategy nobody saved",
-    )
-
-    assert resolved is None

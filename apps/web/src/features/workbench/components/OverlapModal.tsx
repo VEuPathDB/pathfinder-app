@@ -4,12 +4,12 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { Modal } from "@/lib/components/Modal";
-import { SetVenn } from "@/lib/components/SetVenn";
-import { Button } from "@/lib/components/ui/Button";
+import { SetVenn } from "@/features/workbench/components/SetVenn";
+import { Button } from "@/components/ui/button";
 import { createGeneSet } from "../api/geneSets";
 import type { GeneSet } from "@pathfinder/shared";
 import { useSessionStore } from "@/state/useSessionStore";
-import { useInvalidateGeneSets } from "@/lib/query/hooks/useInvalidateGeneSets";
+import { useInvalidateGeneSets } from "@/features/workbench/hooks/useInvalidateGeneSets";
 
 interface OverlapModalProps {
   open: boolean;

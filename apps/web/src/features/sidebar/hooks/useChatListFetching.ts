@@ -27,7 +27,7 @@ export function useChatListFetching({
   siteId,
 }: UseChatListFetchingArgs): ChatListFetchingResult {
   const { data: authStatus } = useQuery(authStatusOptions(siteId));
-  const { authRefreshed } = useAuthRefresh();
+  const { authRefreshed } = useAuthRefresh(siteId);
   const queryClient = useQueryClient();
 
   const [isSyncing, setIsSyncing] = useState(false);

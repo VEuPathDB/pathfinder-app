@@ -10,7 +10,7 @@
 import type { ParamSpec } from "@/features/strategy/parameters/spec";
 
 /** Resolve the canonical displayType string from a param spec. */
-export function resolveDisplayType(spec: ParamSpec): string {
+function resolveDisplayType(spec: ParamSpec): string {
   return (spec.displayType ?? "").trim().toLowerCase();
 }
 
@@ -28,7 +28,7 @@ export function isAdvancedParam(spec: ParamSpec): boolean {
  * Canonical display type constants matching WDK's enum values (lowercased).
  * Empty string → fall through to spec.type dispatch.
  */
-export const DISPLAY_TYPES = {
+const DISPLAY_TYPES = {
   TREE_BOX: "treebox",
   TYPE_AHEAD: "typeahead",
   SELECT: "select",

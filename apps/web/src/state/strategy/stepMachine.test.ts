@@ -7,7 +7,7 @@ import {
   stepMachine,
   type StepMachineContext,
 } from "./stepMachine";
-import type { SearchValidationErrors } from "@pathfinder/shared";
+import type { ValidationErrors } from "@pathfinder/shared";
 
 function startInState(
   state: "idle" | "valid" | "invalid" | "complete" | "failed",
@@ -103,7 +103,7 @@ describe("stepMachine — VALIDATION_SUCCESS transitions", () => {
 
 describe("stepMachine — VALIDATION_ERROR transitions", () => {
   it("validating → invalid with error payload", () => {
-    const errors: SearchValidationErrors = {
+    const errors: ValidationErrors = {
       general: ["Missing required param"],
       byKey: { taxon: ["required"] },
     };

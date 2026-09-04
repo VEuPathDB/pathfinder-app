@@ -75,26 +75,13 @@ export class SidebarPage {
       .click();
   }
 
-  async duplicate(conversationId: string) {
-    await this.openMenu(conversationId);
-    await this.page.getByRole("menuitem", { name: /duplicate/i }).click();
-  }
-
   async refresh() {
     await this.refreshButton.click();
-  }
-
-  async expectConversationCount(count: number) {
-    await expect(this.items).toHaveCount(count);
   }
 
   /** Assert at least one conversation item is rendered. */
   async expectAtLeastOneConversation(timeout = 15_000) {
     await expect.poll(() => this.items.count(), { timeout }).toBeGreaterThan(0);
-  }
-
-  async expectConversationVisible(conversationId: string) {
-    await expect(this.item(conversationId)).toBeVisible();
   }
 
   async expectConversationName(conversationId: string, name: string | RegExp) {
@@ -139,13 +126,6 @@ export class SidebarPage {
       await this.dismissedToggle.click();
     }
     await expect(this.dismissedItems).not.toHaveCount(0, { timeout: 5_000 });
-  }
-
-  /** Collapse the dismissed section (idempotent — no-op if already collapsed). */
-  async collapseDismissed() {
-    if ((await this.dismissedItems.count()) > 0) {
-      await this.dismissedToggle.click();
-    }
   }
 
   /** Click the Restore button on a specific dismissed item. */

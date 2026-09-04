@@ -139,9 +139,14 @@ describe("the second click of a double-click on Send does not cancel the turn", 
   it("ignores a Stop click inside the guard window", async () => {
     const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
+    // The clock is frozen so the Stop click is inside the window by
+    // construction, not by how fast the send rendered.
+    let now = 1_700_000_000_000;
+    vi.spyOn(Date, "now").mockImplementation(() => now);
     renderComposer(true, { hangingRuntime: true });
 
     await sendAndWaitForStop();
+    now += 499;
     fireEvent.click(screen.getByTestId("stop-button"));
 
     expect(cancelCalls(fetchMock)).toHaveLength(0);

@@ -179,22 +179,3 @@ Tool Errors
    :undoc-members:
    :show-inheritance:
 
-Parsing
--------
-
-**Purpose:** Input parsing utilities for request processing.
-
-.. automodule:: pathfinder.platform.parsing
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Pydantic Validation
--------------------
-
-**Purpose:** Pydantic validation helpers and custom validators.
-
-.. automodule:: pathfinder.platform.pydantic_validation
-   :members:
-   :undoc-members:
-   :show-inheritance:

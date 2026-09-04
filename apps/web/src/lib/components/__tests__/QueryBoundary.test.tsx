@@ -44,7 +44,7 @@ function renderWithClient(ui: React.ReactElement) {
 describe("DefaultSpinner", () => {
   it("renders a spinner", () => {
     const { container } = renderWithClient(<DefaultSpinner />);
-    expect(container.querySelector(".animate-spin")).not.toBeNull();
+    expect(container.querySelectorAll(".animate-spin")).toHaveLength(1);
   });
 });
 

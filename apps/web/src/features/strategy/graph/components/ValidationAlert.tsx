@@ -1,7 +1,7 @@
 "use client";
 
 import { TriangleAlert } from "lucide-react";
-import type { CombineMismatchGroup } from "@/lib/strategyGraph";
+import type { CombineMismatchGroup } from "@/features/strategy/graph";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 

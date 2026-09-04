@@ -1,0 +1,901 @@
+[
+  {
+    "control_set": {
+      "name": "E. histolytica Virulence Factors (curated)",
+      "negative_ids": [
+        "EHI_003940",
+        "EHI_008210",
+        "EHI_008620",
+        "EHI_009680",
+        "EHI_009810",
+        "EHI_012360",
+        "EHI_015320",
+        "EHI_017700",
+        "EHI_020370",
+        "EHI_023400",
+        "EHI_031400",
+        "EHI_035600",
+        "EHI_037130",
+        "EHI_038580",
+        "EHI_040660",
+        "EHI_044550",
+        "EHI_044590",
+        "EHI_044810",
+        "EHI_044830",
+        "EHI_048990",
+        "EHI_054740",
+        "EHI_069490",
+        "EHI_074800",
+        "EHI_078300",
+        "EHI_079190"
+      ],
+      "positive_ids": [
+        "EHI_030720",
+        "EHI_062480",
+        "EHI_084060",
+        "EHI_091450",
+        "EHI_097900",
+        "EHI_108240",
+        "EHI_117650",
+        "EHI_121160",
+        "EHI_123950",
+        "EHI_126170",
+        "EHI_140220",
+        "EHI_159610",
+        "EHI_160330",
+        "EHI_179600",
+        "EHI_180170",
+        "EHI_058330",
+        "EHI_006980",
+        "EHI_012270",
+        "EHI_065330",
+        "EHI_148790",
+        "EHI_183000",
+        "EHI_046650",
+        "EHI_159870",
+        "EHI_118270",
+        "EHI_159480",
+        "EHI_169350",
+        "EHI_194540"
+      ],
+      "provenance_notes": "Positives: cysteine proteases (CP family), Gal/GalNAc lectins, and amoebapores \u2014 major virulence factors for tissue invasion. Negatives: ribosomal structural proteins \u2014 housekeeping genes.",
+      "tags": [
+        "virulence",
+        "amoeba",
+        "seed"
+      ]
+    },
+    "description": "Comprehensive virulence factor identification in E. histolytica HM-1:IMSS. Combines cysteine proteases (CP family), Gal/GalNAc lectins, and amoebapores with signal peptide prediction. Unions with surface-anchored TM proteins. Excludes ribosomal housekeeping genes. Key pathogenesis factors for tissue invasion, host cell killing, and immune evasion.",
+    "name": "EhHMIMSS Virulence Factors",
+    "record_type": "transcript",
+    "site_id": "amoebadb",
+    "step_tree": {
+      "displayName": "Virulence Factors (no ribosomal)",
+      "id": "root_minus",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "All Virulence Candidates",
+        "id": "union_all_virulence",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Secreted Virulence Factors",
+          "id": "secreted_virulence",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "CP + Lectin + Amoebapore",
+            "id": "union_cp_lectin_ap",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "CP + Lectin",
+              "id": "union_cp_lectin",
+              "operator": "UNION",
+              "primaryInput": {
+                "displayName": "Cysteine Proteases",
+                "id": "leaf_cp",
+                "parameters": {
+                  "document_type": "gene",
+                  "text_expression": "cysteine protease OR cysteine proteinase",
+                  "text_fields": "[\"product\"]",
+                  "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+                },
+                "searchName": "GenesByText"
+              },
+              "secondaryInput": {
+                "displayName": "Lectins",
+                "id": "leaf_lectin",
+                "parameters": {
+                  "document_type": "gene",
+                  "text_expression": "lectin",
+                  "text_fields": "[\"product\"]",
+                  "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+                },
+                "searchName": "GenesByText"
+              }
+            },
+            "secondaryInput": {
+              "displayName": "Amoebapores",
+              "id": "leaf_amoebapore",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "amoebapore OR saposin",
+                "text_fields": "[\"product\", \"InterPro\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_signal_pep",
+            "parameters": {
+              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Surface + TM",
+          "id": "surface_tm",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Surface Antigens",
+            "id": "leaf_surface",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "surface",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Transmembrane Domains",
+            "id": "leaf_tm",
+            "parameters": {
+              "max_tm": "30",
+              "min_tm": "1",
+              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+            },
+            "searchName": "GenesByTransmembraneDomains"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal (exclude)",
+        "id": "leaf_ribosomal",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "\"ribosomal protein\"",
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "E. histolytica Tissue Invasion (curated)",
+      "negative_ids": [
+        "EHI_003940",
+        "EHI_008210",
+        "EHI_008620",
+        "EHI_009680",
+        "EHI_009810",
+        "EHI_012360",
+        "EHI_015320",
+        "EHI_017700",
+        "EHI_020370",
+        "EHI_023400",
+        "EHI_031400",
+        "EHI_035600",
+        "EHI_037130",
+        "EHI_038580",
+        "EHI_040660",
+        "EHI_044550",
+        "EHI_044590",
+        "EHI_044810",
+        "EHI_044830",
+        "EHI_048990",
+        "EHI_054740",
+        "EHI_069490",
+        "EHI_074800",
+        "EHI_078300",
+        "EHI_079190"
+      ],
+      "positive_ids": [
+        "EHI_030720",
+        "EHI_062480",
+        "EHI_084060",
+        "EHI_091450",
+        "EHI_097900",
+        "EHI_108240",
+        "EHI_117650",
+        "EHI_121160",
+        "EHI_123950",
+        "EHI_126170",
+        "EHI_005260",
+        "EHI_028430",
+        "EHI_030860",
+        "EHI_036490",
+        "EHI_041270",
+        "EHI_057430",
+        "EHI_080200",
+        "EHI_091840",
+        "EHI_182900",
+        "EHI_008780",
+        "EHI_022240",
+        "EHI_039070",
+        "EHI_043640",
+        "EHI_012240",
+        "EHI_013260",
+        "EHI_015440",
+        "EHI_029020",
+        "EHI_046630"
+      ],
+      "provenance_notes": "Positives: cysteine proteases, surface molecules, actin, and Rho GTPases \u2014 tissue invasion machinery. Negatives: ribosomal structural proteins.",
+      "tags": [
+        "invasion",
+        "amoeba",
+        "seed"
+      ]
+    },
+    "description": "Tissue invasion machinery of E. histolytica HM-1:IMSS. Combines proteases, surface molecules, actin/cytoskeleton genes, and Rho GTPases (motility/trogocytosis signaling) intersected with membrane-associated features (signal peptide or transmembrane domains). Excludes ribosomal genes.",
+    "name": "EhHMIMSS Tissue Invasion",
+    "record_type": "transcript",
+    "site_id": "amoebadb",
+    "step_tree": {
+      "displayName": "Invasion Genes (no ribosomal)",
+      "id": "root_minus",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Invasion intersect Membrane",
+        "id": "invasion_membrane",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Invasion Components",
+          "id": "union_invasion",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Protease + Surface",
+            "id": "union_protease_surface",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Proteases",
+              "id": "leaf_protease",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "protease OR proteinase OR peptidase",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Surface Molecules",
+              "id": "leaf_surface_inv",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "surface OR lectin",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Cytoskeleton + GTPase",
+            "id": "union_actin_rho",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Actin Cytoskeleton",
+              "id": "leaf_actin",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "actin",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Rho GTPases",
+              "id": "leaf_rho",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "\"Rho family GTPase\"",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Signal Peptide U TM",
+          "id": "union_sp_tm",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_sp_inv",
+            "parameters": {
+              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          },
+          "secondaryInput": {
+            "displayName": "Transmembrane",
+            "id": "leaf_tm_inv",
+            "parameters": {
+              "max_tm": "30",
+              "min_tm": "1",
+              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+            },
+            "searchName": "GenesByTransmembraneDomains"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal (exclude)",
+        "id": "leaf_ribosomal_inv",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "\"ribosomal protein\"",
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "E. histolytica Drug Targets (curated)",
+      "negative_ids": [
+        "EHI_003940",
+        "EHI_008210",
+        "EHI_008620",
+        "EHI_009680",
+        "EHI_009810",
+        "EHI_012360",
+        "EHI_015320",
+        "EHI_017700",
+        "EHI_020370",
+        "EHI_023400",
+        "EHI_031400",
+        "EHI_035600",
+        "EHI_037130",
+        "EHI_038580",
+        "EHI_040660",
+        "EHI_017350",
+        "EHI_022620",
+        "EHI_028920",
+        "EHI_034710",
+        "EHI_042860",
+        "EHI_072140",
+        "EHI_135750",
+        "EHI_156560",
+        "EHI_001950",
+        "EHI_002560"
+      ],
+      "positive_ids": [
+        "EHI_004490",
+        "EHI_006700",
+        "EHI_021560",
+        "EHI_023060",
+        "EHI_026340",
+        "EHI_027550",
+        "EHI_029380",
+        "EHI_042900",
+        "EHI_045250",
+        "EHI_053840",
+        "EHI_062790",
+        "EHI_068390",
+        "EHI_000410",
+        "EHI_088020",
+        "EHI_107560",
+        "EHI_125950",
+        "EHI_157010",
+        "EHI_166490",
+        "EHI_192470",
+        "EHI_023110",
+        "EHI_025710",
+        "EHI_138480",
+        "EHI_189480",
+        "EHI_198670",
+        "EHI_099860",
+        "EHI_001420",
+        "EHI_061980",
+        "EHI_114010",
+        "EHI_122310",
+        "EHI_123390"
+      ],
+      "provenance_notes": "Positives: thioredoxins, dehydrogenases, ferredoxins, and redox defense enzymes \u2014 anaerobic metabolism drug targets. Negatives: ribosomal proteins and heat shock chaperones.",
+      "tags": [
+        "drug-target",
+        "amoeba",
+        "seed"
+      ]
+    },
+    "description": "Potential drug targets in E. histolytica HM-1:IMSS focusing on anaerobic metabolism. Thioredoxin/reductase (central metronidazole target), alcohol dehydrogenases, ferredoxin/iron-sulfur proteins (mitosomal), and peroxiredoxins. E. histolytica lacks mitochondria -- these essential anaerobic enzymes are prime therapeutic targets. Excludes ribosomal and heat shock housekeeping genes.",
+    "name": "EhHMIMSS Drug Targets",
+    "record_type": "transcript",
+    "site_id": "amoebadb",
+    "step_tree": {
+      "displayName": "Drug Targets (no housekeeping)",
+      "id": "root_minus",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Metabolic - HSP",
+        "id": "minus_hsp",
+        "operator": "MINUS",
+        "primaryInput": {
+          "displayName": "All Metabolic Targets",
+          "id": "union_all_metabolic",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Thioredoxin + ADH",
+            "id": "union_trx_adh",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Thioredoxin Family",
+              "id": "leaf_thioredoxin",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "thioredoxin",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Dehydrogenases",
+              "id": "leaf_adh",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "dehydrogenase",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Ferredoxin + Redox",
+            "id": "union_fd_prx",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Iron-Sulfur / Ferredoxin",
+              "id": "leaf_ferredoxin",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "ferredoxin OR iron-sulfur",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Peroxiredoxin / SOD",
+              "id": "leaf_redox",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "peroxiredoxin OR superoxide OR lysozyme",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Heat Shock (exclude)",
+          "id": "leaf_hsp",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "\"heat shock\"",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal (exclude)",
+        "id": "leaf_ribo_drug",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "\"ribosomal protein\"",
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "E. histolytica Encystation (curated)",
+      "negative_ids": [
+        "EHI_003940",
+        "EHI_008210",
+        "EHI_008620",
+        "EHI_009680",
+        "EHI_009810",
+        "EHI_012360",
+        "EHI_015320",
+        "EHI_017700",
+        "EHI_020370",
+        "EHI_023400",
+        "EHI_031400",
+        "EHI_035600",
+        "EHI_037130",
+        "EHI_038580",
+        "EHI_040660",
+        "EHI_044550",
+        "EHI_044590",
+        "EHI_044810",
+        "EHI_044830",
+        "EHI_048990"
+      ],
+      "positive_ids": [
+        "EHI_028930",
+        "EHI_067190",
+        "EHI_044500",
+        "EHI_136360",
+        "EHI_092100",
+        "EHI_109890",
+        "EHI_180790",
+        "EHI_015750",
+        "EHI_024660",
+        "EHI_170480",
+        "EHI_152170",
+        "EHI_044840",
+        "EHI_148280",
+        "EHI_002790",
+        "EHI_004780",
+        "EHI_004790",
+        "EHI_006750",
+        "EHI_006800",
+        "EHI_009580",
+        "EHI_011170"
+      ],
+      "provenance_notes": "Positives: encystation genes (chitin synthases, chitinases, Jacob lectins) and signaling kinases. Negatives: ribosomal structural proteins.",
+      "tags": [
+        "encystation",
+        "amoeba",
+        "seed"
+      ]
+    },
+    "description": "Encystation pathway genes in E. histolytica HM-1:IMSS. Chitin synthases and chitinases build the cyst wall; Jacob lectins are cyst-wall glycoproteins. Signaling kinases with signal peptides may regulate encystation. Understanding encystation is key to blocking fecal-oral transmission.",
+    "name": "EhHMIMSS Encystation",
+    "record_type": "transcript",
+    "site_id": "amoebadb",
+    "step_tree": {
+      "displayName": "Encystation (no ribosomal)",
+      "id": "root_minus",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Cyst Wall + Signaling",
+        "id": "union_cyst_signaling",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Chitin + Jacob",
+          "id": "union_chitin_jacob",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Chitin Synthase/Chitinase",
+            "id": "leaf_chitin",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "chitin OR chitinase",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Jacob / Cyst Wall",
+            "id": "leaf_jacob",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "\"cyst wall\" OR jacob",
+              "text_fields": "[\"product\"]",
+              "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Secreted Kinases",
+          "id": "kinase_secreted",
+          "operator": "INTERSECT",
+          "primaryInput": {
+            "displayName": "Ser/Thr Kinases",
+            "id": "leaf_kinase_ec",
+            "parameters": {
+              "ec_number_pattern": "2.7.11.1",
+              "ec_source": "[\"KEGG_Enzyme\", \"GenBank\", \"computationally inferred from Orthology\", \"Uniprot\"]",
+              "ec_wildcard": "No",
+              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+            },
+            "searchName": "GenesByEcNumber"
+          },
+          "secondaryInput": {
+            "displayName": "Signal Peptide",
+            "id": "leaf_sp_encyst",
+            "parameters": {
+              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+            },
+            "searchName": "GenesWithSignalPeptide"
+          }
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal (exclude)",
+        "id": "leaf_ribo_encyst",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "\"ribosomal protein\"",
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "E. histolytica Signaling Network (curated)",
+      "negative_ids": [
+        "EHI_003940",
+        "EHI_008210",
+        "EHI_008620",
+        "EHI_009680",
+        "EHI_009810",
+        "EHI_012360",
+        "EHI_015320",
+        "EHI_017700",
+        "EHI_020370",
+        "EHI_023400",
+        "EHI_031400",
+        "EHI_035600",
+        "EHI_037130",
+        "EHI_038580",
+        "EHI_040660",
+        "EHI_005050",
+        "EHI_008030",
+        "EHI_010080",
+        "EHI_015330",
+        "EHI_017040",
+        "EHI_025250",
+        "EHI_026390",
+        "EHI_069990",
+        "EHI_078700",
+        "EHI_110700"
+      ],
+      "positive_ids": [
+        "EHI_148280",
+        "EHI_002790",
+        "EHI_004780",
+        "EHI_004790",
+        "EHI_006750",
+        "EHI_006800",
+        "EHI_009580",
+        "EHI_011170",
+        "EHI_011220",
+        "EHI_011510",
+        "EHI_011920",
+        "EHI_014100",
+        "EHI_015960",
+        "EHI_017760",
+        "EHI_023010",
+        "EHI_023610",
+        "EHI_025280",
+        "EHI_030120",
+        "EHI_030420",
+        "EHI_035500",
+        "EHI_019610",
+        "EHI_048570",
+        "EHI_056420",
+        "EHI_086040",
+        "EHI_092510",
+        "EHI_107260",
+        "EHI_110320",
+        "EHI_114170",
+        "EHI_140690",
+        "EHI_141860",
+        "EHI_012240",
+        "EHI_013260",
+        "EHI_015440",
+        "EHI_029020",
+        "EHI_046630",
+        "EHI_052150",
+        "EHI_067220",
+        "EHI_067390",
+        "EHI_001870",
+        "EHI_003020",
+        "EHI_004380",
+        "EHI_005010",
+        "EHI_005460",
+        "EHI_008350",
+        "EHI_008640",
+        "EHI_010660"
+      ],
+      "provenance_notes": "Positives: kinases, phosphatases, Rho and Rab GTPases \u2014 complete signaling apparatus for invasion and trafficking. Negatives: ribosomal proteins and transporters.",
+      "tags": [
+        "signaling",
+        "amoeba",
+        "seed"
+      ]
+    },
+    "description": "Complete signaling network in E. histolytica HM-1:IMSS. Kinases (EC 2.7.11.1), phosphatases, Rho GTPases (invasion/motility), and Rab GTPases (vesicular trafficking/phagocytosis). Excludes ribosomal and transporter housekeeping. Critical for understanding how the parasite coordinates tissue invasion, trogocytosis, and immune evasion.",
+    "name": "EhHMIMSS Signaling Network",
+    "record_type": "transcript",
+    "site_id": "amoebadb",
+    "step_tree": {
+      "displayName": "Signaling (no housekeeping)",
+      "id": "root_minus",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Signaling - Transporters",
+        "id": "minus_transporter",
+        "operator": "MINUS",
+        "primaryInput": {
+          "displayName": "All Signaling",
+          "id": "union_all_signaling",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Kinases U Phosphatases",
+            "id": "kinase_phosphatase",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Ser/Thr Kinases (EC)",
+              "id": "leaf_kinase",
+              "parameters": {
+                "ec_number_pattern": "2.7.11.1",
+                "ec_source": "[\"KEGG_Enzyme\", \"GenBank\", \"computationally inferred from Orthology\", \"Uniprot\"]",
+                "ec_wildcard": "No",
+                "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByEcNumber"
+            },
+            "secondaryInput": {
+              "displayName": "Phosphatases",
+              "id": "leaf_phosphatase",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "phosphatase",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "GTPases",
+            "id": "union_gtpases",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Rho GTPases",
+              "id": "leaf_rho_sig",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "\"Rho family GTPase\"",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Rab GTPases",
+              "id": "leaf_rab_sig",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "\"Rab family GTPase\"",
+                "text_fields": "[\"product\"]",
+                "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              },
+              "searchName": "GenesByText"
+            }
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Transporters (exclude)",
+          "id": "leaf_transporter",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "transporter",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Ribosomal (exclude)",
+        "id": "leaf_ribo_sig",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "\"ribosomal protein\"",
+          "text_fields": "[\"product\"]",
+          "text_search_organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "E. histolytica Exported Kinases (curated)",
+      "negative_ids": [
+        "EHI_003940",
+        "EHI_008210",
+        "EHI_008620",
+        "EHI_009680",
+        "EHI_009810",
+        "EHI_012360",
+        "EHI_015320",
+        "EHI_017700",
+        "EHI_020370",
+        "EHI_023400",
+        "EHI_031400",
+        "EHI_035600",
+        "EHI_037130",
+        "EHI_038580",
+        "EHI_040660"
+      ],
+      "positive_ids": [
+        "EHI_148280",
+        "EHI_002790",
+        "EHI_004780",
+        "EHI_004790",
+        "EHI_006750",
+        "EHI_006800",
+        "EHI_009580",
+        "EHI_011170",
+        "EHI_011220",
+        "EHI_011510",
+        "EHI_011920",
+        "EHI_014100",
+        "EHI_015960",
+        "EHI_017760",
+        "EHI_023010"
+      ],
+      "provenance_notes": "Positives: annotated Ser/Thr protein kinases (EC 2.7.11.1). Negatives: ribosomal structural proteins \u2014 housekeeping.",
+      "tags": [
+        "kinase",
+        "amoeba",
+        "seed"
+      ]
+    },
+    "description": "Simple 2-node baseline: EC 2.7.11.1 Ser/Thr kinases intersected with signal peptide prediction in E. histolytica HM-1:IMSS. Identifies potentially exported/secreted kinases.",
+    "name": "EhHMIMSS Exported Kinases",
+    "record_type": "transcript",
+    "site_id": "amoebadb",
+    "step_tree": {
+      "displayName": "Exported Kinases",
+      "id": "combine_kinase_sp",
+      "operator": "INTERSECT",
+      "primaryInput": {
+        "displayName": "EC Kinases (2.7.11.1)",
+        "id": "leaf_ec_kinase",
+        "parameters": {
+          "ec_number_pattern": "2.7.11.1",
+          "ec_source": "[\"KEGG_Enzyme\", \"GenBank\", \"computationally inferred from Orthology\", \"Uniprot\"]",
+          "ec_wildcard": "No",
+          "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+        },
+        "searchName": "GenesByEcNumber"
+      },
+      "secondaryInput": {
+        "displayName": "Signal Peptide",
+        "id": "leaf_sp_base",
+        "parameters": {
+          "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+        },
+        "searchName": "GenesWithSignalPeptide"
+      }
+    }
+  }
+]

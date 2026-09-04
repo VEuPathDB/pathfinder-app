@@ -126,10 +126,14 @@
         "failedCount": 0,
         "needsRecovery": false,
         "nodeResults": [],
+        "outcome": null,
         "pushedCount": 0,
         "recoveryKind": "none",
         "skippedCount": 0,
+        "staleBuild": null,
         "succeeded": false,
+        "wdkStrategyId": null,
+        "wdkUrl": null,
         "zeroResultSteps": []
       },
       "constraints": {
@@ -141,14 +145,19 @@
         "boundCount": 0,
         "contrasts": [],
         "criteriaCount": 0,
+        "diff": null,
         "droppedCount": 0,
         "needsUser": false,
         "openSlotCount": 0,
         "present": false,
-        "readyToBuild": false
+        "readyToBuild": false,
+        "spec": null,
+        "structureRender": null
       },
+      "userIntent": null,
       "verification": {
         "complete": false,
+        "digest": null,
         "successful": false
       }
     },

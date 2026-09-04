@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Step } from "@pathfinder/shared";
 import type { StepSnapshot } from "@/state/strategy/useStepSnapshot";
-import { STAGGER_DELAY_MS } from "@/lib/motion/presets";
+import { STAGGER_DELAY_MS } from "@/features/strategy/graph/motion";
 
 interface MotionDivProps extends ComponentProps<"div"> {
   initial?: unknown;

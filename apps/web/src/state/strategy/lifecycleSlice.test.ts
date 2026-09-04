@@ -94,7 +94,8 @@ describe("lifecycleSlice — removeStepLifecycle", () => {
     const api = useStrategyStore.getState();
     api.initStepLifecycle("s1");
     api.removeStepLifecycle("s1");
-    expect(useStrategyStore.getState().getStepLifecycle("s1")).toBeNull();
+    expect(useStrategyStore.getState().getStepLifecycle("s1")).toEqual(null);
+    expect(useStrategyStore.getState().stepLifecycleById).toEqual({});
   });
 });
 

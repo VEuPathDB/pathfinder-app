@@ -1,19 +1,8 @@
-import { type APIRequestContext, expect } from "@playwright/test";
+import { type APIRequestContext, expect, test } from "@playwright/test";
 
-export interface WdkCreds {
-  email: string;
-  password: string;
-}
-
-// Real VEuPathDB account creds from the environment, or null when unset.
-// Credentialed WDK tests skip by default and run only when both are provided.
-export function wdkAccountCreds(): WdkCreds | null {
-  const email = process.env["WDK_TEST_EMAIL"];
-  const password = process.env["WDK_TEST_PASSWORD"];
-  return email != null && password != null && email !== "" && password !== ""
-    ? { email, password }
-    : null;
-}
+/** The one reason a credentialed WDK spec skips. */
+const NO_CREDENTIALS =
+  "set WDK_TEST_EMAIL/WDK_TEST_PASSWORD to run real-account WDK tests";
 
 /**
  * The registered VEuPathDB token every worker acts with. VEuPathDB refuses
@@ -32,14 +21,21 @@ export function wdkTestToken(): string {
   return token;
 }
 
-export async function loginWdkAccount(
+/**
+ * Sign the running test in as the real VEuPathDB account on `siteId`, or skip
+ * it when the account credentials are not in the environment.
+ */
+export async function signInAsWdkAccount(
   apiClient: APIRequestContext,
-  creds: WdkCreds,
   siteId: string,
 ): Promise<void> {
+  const email = process.env["WDK_TEST_EMAIL"] ?? "";
+  const password = process.env["WDK_TEST_PASSWORD"] ?? "";
+  test.skip(email === "" || password === "", NO_CREDENTIALS);
+
   const resp = await apiClient.post("/api/v1/veupathdb/auth/login", {
     params: { siteId },
-    data: creds,
+    data: { email, password },
     headers: { "X-Requested-With": "XMLHttpRequest" },
   });
   expect(resp.ok(), `wdk login ${resp.status()}: ${await resp.text()}`).toBeTruthy();

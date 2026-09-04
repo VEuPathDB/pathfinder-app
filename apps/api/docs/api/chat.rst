@@ -123,11 +123,6 @@ Lead node runs the only LLM in the graph; the sub-agents are tools it calls.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.ai.graph.composition
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 .. automodule:: pathfinder.ai.graph.lead_node
    :members:
    :undoc-members:

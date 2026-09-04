@@ -1,6 +1,16 @@
+import type { Page } from "@playwright/test";
+
 import { BASE_URL, test, expect } from "../fixtures/test";
 
 const SIGNED_OUT_STATUS = { signedIn: false, name: null, email: null };
+
+/** The signed-in shell: no sign-in dialog over the app, composer ready. */
+async function expectSignedIn(page: Page) {
+  await expect(
+    page.getByRole("dialog").filter({ hasText: /sign in/i }),
+  ).not.toBeVisible();
+  await expect(page.getByTestId("message-composer")).toBeVisible();
+}
 
 test.describe("VEuPathDB login gate", () => {
   test("a session with no VEuPathDB login gets the sign-in prompt instead of the app", async ({
@@ -63,7 +73,7 @@ test.describe("VEuPathDB login gate", () => {
 test.describe("Auth", () => {
   test("authenticated state shows full UI with working API access", async ({
     chatPage,
-    authPage,
+    page,
     sitePicker,
     settingsPage,
     apiClient,
@@ -71,7 +81,7 @@ test.describe("Auth", () => {
     await chatPage.goto();
 
     // UI: Signed in — no login modal, composer visible
-    await authPage.expectSignedIn();
+    await expectSignedIn(page);
 
     // UI: Site picker shows default site
     await sitePicker.expectCurrentSite("veupathdb");
@@ -101,7 +111,6 @@ test.describe("Auth", () => {
 
   test("page reload preserves session — UI and API intact", async ({
     chatPage,
-    authPage,
     sidebarPage,
     page,
     apiClient,
@@ -128,7 +137,7 @@ test.describe("Auth", () => {
     await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 15_000 });
 
     // UI: Still signed in — composer visible, message still there
-    await authPage.expectSignedIn();
+    await expectSignedIn(page);
     await expect(
       page.locator(".is-user").filter({ hasText: "show me kinase genes" }),
     ).toBeVisible({ timeout: 15_000 });

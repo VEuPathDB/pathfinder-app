@@ -30,7 +30,6 @@ jobs:
           filters: |
             api:
               - 'apps/api/**'
-              - 'packages/shared-py/**'
               - 'packages/assistant-core/**'
             assistant_core:
               - 'packages/assistant-core/**'
@@ -290,17 +289,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-api
-
-      # Opt-in tiers are deselected by addopts, so only a collect with addopts
-      # cleared reports a tier that no longer imports.
-      - name: Collect every tier, opt-in ones included
-        working-directory: apps/api
-        env:
-          API_ENV: test
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
-          API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
-          PATHFINDER_CHAT_PROVIDER: mock
-        run: uv run pytest --override-ini "addopts=" --collect-only -q
 
       - name: Run tests
         working-directory: apps/api

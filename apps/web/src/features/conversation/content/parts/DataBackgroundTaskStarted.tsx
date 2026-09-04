@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { UIMessage } from "ai";
 import { z } from "zod";
 import type {
   BackgroundTaskStarted,
@@ -10,23 +11,14 @@ import type {
 import { taskCompletedSchema } from "@pathfinder/shared/generated/zod/taskCompletedSchema";
 import { taskProgressSchema } from "@pathfinder/shared/generated/zod/taskProgressSchema";
 
-import { THREAD_BLOCK_GAP } from "@/lib/components/thread/rhythm";
-import { TaskRow, type TaskOutcome } from "@/lib/components/thread/TaskRow";
-import { useConversationId } from "@/lib/hooks/useConversationId";
-import { humanizeToolName } from "@/lib/utils/toolNames";
+import { THREAD_BLOCK_GAP } from "@/components/ai-elements/rhythm";
+import { TaskRow, type TaskOutcome } from "@/features/conversation/thread/TaskRow";
+import { useConversationId } from "@/features/conversation/useConversationId";
+import { humanizeToolName } from "@/features/conversation/toolNames";
 
-import { useChatHelpersOptional } from "../../runtime/chatHelpersContext";
+import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { taskResultHref } from "../../thread/taskResult";
 import { traceRenderingKinds } from "../../thread/traceRenderingKinds";
-
-interface MessageWithParts {
-  readonly id: string;
-  readonly parts: readonly {
-    readonly type: string;
-    readonly text?: string | undefined;
-    readonly data?: unknown;
-  }[];
-}
 
 const laneSchema = z.object({ variantId: z.string() });
 
@@ -49,7 +41,7 @@ function laneOf(progress: TaskProgressChunk): string | null {
  * each lane keeps its own newest update.
  */
 function collectTaskLifecycle(
-  messages: readonly MessageWithParts[],
+  messages: readonly UIMessage[],
   taskId: string,
 ): TaskLifecycle {
   const lifecycle: TaskLifecycle = { lanes: new Map(), completed: null };
@@ -80,18 +72,18 @@ function orderedLanes(lanes: Map<string | null, TaskProgressChunk>): readonly La
 
 export function DataBackgroundTaskStarted({ data }: { data: BackgroundTaskStarted }) {
   const conversationId = useConversationId();
-  const chat = useChatHelpersOptional();
-  const { lanes, completed } = collectTaskLifecycle(chat?.messages ?? [], data.taskId);
+  const chat = useChatHelpers();
+  const { lanes, completed } = collectTaskLifecycle(chat.messages, data.taskId);
 
   // A suspended turn closes its own stream, so the task's progress, its outcome
   // and the continuation reach this page only on a fresh tail of the thread.
   useQuery({
     queryKey: ["conversations", conversationId, "tasks", data.taskId, "reattach"],
     queryFn: async () => {
-      await chat?.resumeStream();
+      await chat.resumeStream();
       return data.taskId;
     },
-    enabled: completed === null && chat?.status === "ready",
+    enabled: completed === null && chat.status === "ready",
     staleTime: Infinity,
     gcTime: Infinity,
     retry: false,
@@ -100,7 +92,7 @@ export function DataBackgroundTaskStarted({ data }: { data: BackgroundTaskStarte
   const tool = humanizeToolName(data.toolName);
   const resultHref =
     completed?.status === "success"
-      ? taskResultHref(chat?.messages ?? [], data.taskId, traceRenderingKinds())
+      ? taskResultHref(chat.messages, data.taskId, traceRenderingKinds())
       : null;
   const rows = orderedLanes(lanes).map(([lane, progress], index) => (
     <TaskRow

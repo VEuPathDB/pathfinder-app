@@ -49,13 +49,6 @@ def norm_text(value: str | None) -> str:
     return (value or "").strip().lower()
 
 
-def list_str(value: JsonValue) -> list[str]:
-    """Convert a JSON value to a list of strings."""
-    if isinstance(value, list):
-        return [str(v) for v in value if v is not None]
-    return []
-
-
 def limit_authors(authors: list[str] | None, max_authors: int) -> list[str] | None:
     """Limit the author list. A max of -1 means no limit."""
     cleaned = (
@@ -118,40 +111,6 @@ _LOW_VALUE_QUERY_TOKENS = {
     "department",
     "university",
 }
-
-
-def candidate_queries(q: str) -> list[str]:
-    """Generate query variations for fallback searches."""
-    raw = (q or "").strip()
-    if not raw:
-        return []
-    words = [w for w in raw.split() if w.strip()]
-    cands: list[str] = []
-
-    def _add(x: str) -> None:
-        x = (x or "").strip()
-        if x and x not in cands:
-            cands.append(x)
-
-    _add(raw)
-    if len(words) > _MIN_QUERY_WORD_COUNT:
-        _add(" ".join(words[:-1]))
-    filtered = [w for w in words if w.lower() not in _LOW_VALUE_QUERY_TOKENS]
-    if len(filtered) >= _MIN_FILTERED_WORD_COUNT:
-        _add(" ".join(filtered))
-    if len(words) >= _MIN_BIGRAM_WORD_COUNT:
-        _add(" ".join(words[:2]))
-    return cands
-
-
-def looks_blocked(status_code: int, html: str) -> bool:
-    """Report whether a response looks blocked by rate limiting."""
-    if status_code == _HTTP_ACCEPTED:
-        return True
-    h = (html or "").lower()
-    if "challenge" in h and "result__a" not in h:
-        return True
-    return bool("unusual traffic" in h and "result__a" not in h)
 
 
 def norm_for_match(text: str | None) -> str:

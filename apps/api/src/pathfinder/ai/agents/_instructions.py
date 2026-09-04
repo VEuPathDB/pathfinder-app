@@ -10,7 +10,7 @@ from assistant_core.memory.schemas import MemoryValue
 from pydantic_ai.tools import RunContext
 
 from pathfinder.ai.scratchpad.rendering import render_scratchpad_for_phase
-from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
+from pathfinder.services.conversations.scratchpad_service import ScratchpadNotebook
 
 
 class CarriesMemories(Protocol):
@@ -38,11 +38,10 @@ async def pinned_scratchpad(ctx: RunContext[AssistantDeps]) -> str | None:
     """Render the conversation's scratchpad index for the phase agent."""
     if ctx.deps.db_session_factory is None or ctx.deps.conversation_id is None:
         return None
-    async with ctx.deps.db_session_factory() as session:
-        repo = ScratchpadRepository(session)
-        notes, total_count, _ = await repo.list_for_index_with_totals(
-            conversation_id=ctx.deps.conversation_id,
-        )
+    notes, total_count = await ScratchpadNotebook(
+        ctx.deps.db_session_factory,
+        ctx.deps.conversation_id,
+    ).index()
     return render_scratchpad_for_phase(notes, total_count=total_count)
 
 

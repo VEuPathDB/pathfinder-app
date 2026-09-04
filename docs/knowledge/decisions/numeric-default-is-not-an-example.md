@@ -41,4 +41,4 @@ So the honest answer to "why is it asking so much" was not "add a way to skip qu
 
 # Anchor
 
-`_is_free_text_query` in `services/catalog/param_dag.py` and `is_number` on `ParameterInfo`. Guarded by `tests/unit/services/catalog/test_numeric_default_binding.py`, which pins the five live SNP bounds and keeps the `*reductase` suppression.
+`_is_free_text_query` in `services/catalog/param_dag.py` and `is_number` on `ParameterInfo`. Guarded by `tests/unit/services/catalog/test__param_binding.py`, which pins the five live SNP bounds and keeps the `*reductase` suppression.

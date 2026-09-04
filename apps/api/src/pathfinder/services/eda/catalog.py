@@ -79,14 +79,6 @@ _details: dict[str, EdaStudyDetail] = {}
 _entity_totals: dict[str, int] = {}
 
 
-def clear_study_caches() -> None:
-    """Drop every cached EDA read. A test must not inherit one."""
-    _studies.clear()
-    _permission_maps.clear()
-    _details.clear()
-    _entity_totals.clear()
-
-
 def _permissions_key(site_id: str) -> str:
     """The site and the credential the call carries, as one address."""
     token = veupathdb_auth_token_ctx.get()

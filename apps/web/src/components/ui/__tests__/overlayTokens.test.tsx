@@ -76,7 +76,10 @@ describe("every scrim in the app", () => {
       }
     };
     walk(root);
-    expect(found.length).toBeGreaterThanOrEqual(6);
+    const files = new Set(found.map((line) => line.split(":")[0]));
+    expect(files).toContain("components/ui/dialog.tsx");
+    expect(files).toContain("components/ui/alert-dialog.tsx");
+    expect(files).toContain("components/ui/sheet.tsx");
     expect(found.filter((line) => !line.endsWith(SCRIM))).toEqual([]);
   });
 });

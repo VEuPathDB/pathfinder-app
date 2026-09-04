@@ -108,15 +108,10 @@ validation, compilation, and analysis.
    :undoc-members:
    :show-inheritance:
 
-Strategy — Additional Modules
-------------------------------
+Strategy - Additional Modules
+-----------------------------
 
 .. automodule:: pathfinder.domain.strategy.explain
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.domain.strategy.metadata
    :members:
    :undoc-members:
    :show-inheritance:

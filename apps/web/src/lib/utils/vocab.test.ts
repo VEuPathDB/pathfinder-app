@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectNodeValues, extractVocabOptions, extractVocabTree } from "./vocab";
-import type { VocabNode } from "./vocab";
+import { extractVocabOptions, extractVocabTree } from "./vocab";
 
 // ── extractVocabOptions ────────────────────────────────────────
 
@@ -218,8 +217,10 @@ describe("extractVocabTree", () => {
   });
 
   it("returns null for flat arrays (no children)", () => {
-    const input = [{ data: { value: "a" } }, { data: { value: "b" } }];
-    expect(extractVocabTree(input)).toBeNull();
+    const flat = [{ data: { value: "a" } }, { data: { value: "b" } }];
+    expect(extractVocabTree(flat)).toEqual(null);
+    const nested = [{ data: { value: "a" }, children: [{ data: { value: "b" } }] }];
+    expect(extractVocabTree(nested)).toMatchObject([{ value: "a" }]);
   });
 
   it("extracts from wrapper object with values array", () => {
@@ -245,8 +246,9 @@ describe("extractVocabTree", () => {
         },
       ],
     };
-    const result = extractVocabTree(input);
-    expect(result).not.toBeNull();
+    expect(extractVocabTree(input)).toMatchObject([
+      { value: "p", children: [{ value: "c" }] },
+    ]);
   });
 
   it("extracts from wrapper object with terms array", () => {
@@ -258,7 +260,9 @@ describe("extractVocabTree", () => {
         },
       ],
     };
-    expect(extractVocabTree(input)).not.toBeNull();
+    expect(extractVocabTree(input)).toMatchObject([
+      { value: "t", children: [{ value: "tc" }] },
+    ]);
   });
 
   it("extracts from wrapper object with options array", () => {
@@ -270,7 +274,9 @@ describe("extractVocabTree", () => {
         },
       ],
     };
-    expect(extractVocabTree(input)).not.toBeNull();
+    expect(extractVocabTree(input)).toMatchObject([
+      { value: "o", children: [{ value: "oc" }] },
+    ]);
   });
 
   it("extracts from a root object with children property", () => {
@@ -324,25 +330,25 @@ describe("extractVocabTree", () => {
   // -- Edge cases --
 
   it("returns null for null/undefined input", () => {
-    expect(extractVocabTree(null)).toBeNull();
-    expect(extractVocabTree(undefined)).toBeNull();
+    expect(extractVocabTree(null)).toEqual(null);
+    expect(extractVocabTree(undefined)).toEqual(null);
   });
 
   it("returns null for primitives", () => {
-    expect(extractVocabTree(42)).toBeNull();
-    expect(extractVocabTree("str")).toBeNull();
+    expect(extractVocabTree(42)).toEqual(null);
+    expect(extractVocabTree("str")).toEqual(null);
   });
 
   it("returns null for empty array", () => {
-    expect(extractVocabTree([])).toBeNull();
+    expect(extractVocabTree([])).toEqual(null);
   });
 
   it("returns null for array of primitives", () => {
-    expect(extractVocabTree(["a", "b"])).toBeNull();
+    expect(extractVocabTree(["a", "b"])).toEqual(null);
   });
 
   it("returns null if wrapper values array has no children", () => {
-    expect(extractVocabTree({ values: [{ data: { value: "flat" } }] })).toBeNull();
+    expect(extractVocabTree({ values: [{ data: { value: "flat" } }] })).toEqual(null);
   });
 
   it("skips entries with no extractable value", () => {
@@ -360,62 +366,6 @@ describe("extractVocabTree", () => {
   });
 
   it("returns null for object without values/items/terms/options/children", () => {
-    expect(extractVocabTree({ random: "stuff" })).toBeNull();
-  });
-});
-
-// ── collectNodeValues ─────────────────────────────────────────
-
-describe("collectNodeValues", () => {
-  it("collects value from a leaf node", () => {
-    const node: VocabNode = { value: "leaf", label: "Leaf" };
-    expect(collectNodeValues(node)).toEqual(["leaf"]);
-  });
-
-  it("collects values from a tree recursively", () => {
-    const tree: VocabNode = {
-      value: "root",
-      label: "Root",
-      children: [
-        { value: "a", label: "A" },
-        {
-          value: "b",
-          label: "B",
-          children: [{ value: "c", label: "C" }],
-        },
-      ],
-    };
-    expect(collectNodeValues(tree)).toEqual(["root", "a", "b", "c"]);
-  });
-
-  it("returns only the root value when children is undefined", () => {
-    const node: VocabNode = { value: "solo", label: "Solo" };
-    expect(collectNodeValues(node)).toEqual(["solo"]);
-  });
-
-  it("handles empty children array", () => {
-    const node: VocabNode = { value: "parent", label: "Parent", children: [] };
-    expect(collectNodeValues(node)).toEqual(["parent"]);
-  });
-
-  it("handles deeply nested tree", () => {
-    const deep: VocabNode = {
-      value: "1",
-      label: "1",
-      children: [
-        {
-          value: "2",
-          label: "2",
-          children: [
-            {
-              value: "3",
-              label: "3",
-              children: [{ value: "4", label: "4" }],
-            },
-          ],
-        },
-      ],
-    };
-    expect(collectNodeValues(deep)).toEqual(["1", "2", "3", "4"]);
+    expect(extractVocabTree({ random: "stuff" })).toEqual(null);
   });
 });

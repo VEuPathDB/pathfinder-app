@@ -1,7 +1,11 @@
+from typing import get_args
+
 import pytest
+from assistant_core.platform.types import ModelProvider
 from pydantic_ai.models import infer_model
 from pydantic_ai.models.openai import OpenAIResponsesModel
 
+from pathfinder.ai.models.catalog import get_model_catalog
 from pathfinder.ai.models.settings import build_model_settings, model_provider
 
 
@@ -139,3 +143,53 @@ class TestOpenAiItemIdsAreNotSentBack:
 
         assert settings.get("thinking") == "high"
         assert settings.get("openai_send_reasoning_ids") is False
+
+
+class TestEveryCatalogProviderHasItsOwnSettings:
+    """A provider that falls through to another provider's settings carries
+    flags its API never reads."""
+
+    def test_google_carries_no_openai_flag(self) -> None:
+        settings = build_model_settings("google:gemini-3.1-pro-preview")
+
+        assert "openai_send_reasoning_ids" not in settings
+        assert "anthropic_cache_messages" not in settings
+
+    def test_google_still_carries_the_reasoning_effort(self) -> None:
+        settings = build_model_settings(
+            "google:gemini-3.1-pro-preview", thinking="high"
+        )
+
+        assert settings["thinking"] == "high"
+
+    def test_ollama_carries_no_responses_api_flag(self) -> None:
+        """Ollama speaks Chat Completions, where the flag does not exist."""
+        settings = build_model_settings("ollama:qwen3")
+
+        assert "openai_send_reasoning_ids" not in settings
+        assert settings["timeout"] == 900
+
+    def test_mock_carries_no_provider_flag(self) -> None:
+        settings = build_model_settings("mock:deterministic")
+
+        assert "openai_send_reasoning_ids" not in settings
+        assert "anthropic_cache_messages" not in settings
+
+    def test_an_unknown_provider_is_refused(self) -> None:
+        with pytest.raises(ValueError, match="no model settings"):
+            build_model_settings("bedrock:nova-pro")
+
+    def test_every_catalog_entry_resolves_to_settings(self) -> None:
+        for entry in get_model_catalog():
+            assert build_model_settings(entry.id)["timeout"] == 900, entry.id
+
+    def test_the_provider_set_is_the_declared_one(self) -> None:
+        """The settings table covers exactly the providers the type declares."""
+        declared = sorted(get_args(ModelProvider.__value__))
+        resolved = sorted(
+            provider
+            for provider in declared
+            if build_model_settings(f"{provider}:x")["timeout"] == 900
+        )
+
+        assert resolved == declared

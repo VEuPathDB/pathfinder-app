@@ -8,13 +8,13 @@
 
 import type { Page } from "@playwright/test";
 
-export const EDA_LIVE = process.env["PATHFINDER_EDA_LIVE"] === "1";
+const EDA_LIVE = process.env["PATHFINDER_EDA_LIVE"] === "1";
 
 export const SITE_ID = "plasmodb";
 export const DATASET_ID = "DS_e973eadd57";
-export const STUDY_ID = "STUDY_e973eadd57";
+const STUDY_ID = "STUDY_e973eadd57";
 export const SAMPLE_ENTITY = "ENT_8151325d";
-export const COUNTS_ENTITY = "ENT_fd574cd6";
+const COUNTS_ENTITY = "ENT_fd574cd6";
 export const TEMPERATURE_VAR = "VAR_081ab087";
 export const STUDY_TITLE = "Heat shock response in sensitive mutants (LRR5, DHC)";
 

@@ -9,12 +9,10 @@ from assistant_core.platform.logging import get_logger
 from pathfinder.domain.parameters.canonicalize import ParameterCanonicalizer
 from pathfinder.domain.parameters.value_codec import as_param_kind
 from pathfinder.domain.parameters.values import ParamKind
-from pathfinder.domain.strategy.ast import (
-    StrategyStepNode,
-    walk_step_tree,
-)
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.ops import parse_op
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.integrations.veupathdb.step_tree import walk_wdk_step_tree
 from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
 from pathfinder.integrations.veupathdb.value_decoding import decode_params
@@ -144,7 +142,7 @@ def _extract_wdk_metadata(
     """Extract step counts and WDK step ids from the tree."""
     step_counts: dict[str, int] = {}
     wdk_step_ids: dict[str, int] = {}
-    for step in walk_step_tree(root):
+    for step in walk(root):
         if not step.id.isdigit():
             continue
         wdk_id = int(step.id)
@@ -223,7 +221,7 @@ async def canonicalize_synced_parameters(
     """
     spec_cache: dict[tuple[str, str], WDKSearch | None] = {}
 
-    for step in walk_step_tree(payload.root):
+    for step in walk(payload.root):
         if step.infer_kind() == "combine":
             continue
         search_name = step.search_name

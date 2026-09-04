@@ -2,7 +2,12 @@
  * @vitest-environment jsdom
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render as renderBare,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("@/lib/components/charts/echartsRegistry", () => ({
@@ -14,13 +19,29 @@ vi.mock("@/lib/components/charts/echartsRegistry", () => ({
   }),
 }));
 
+import type { ReactElement, ReactNode } from "react";
+
 import { useEdaStore } from "@/state/eda";
+import {
+  ChatHelpersProvider,
+  type ChatHelpers,
+} from "../../runtime/chatHelpersContext";
 import { DataEdaViz } from "./DataEdaViz";
 import {
   EDA_ANALYSIS_STATE_FIXTURE,
   EDA_SCATTER_VIZ_FIXTURE,
   EDA_VOLCANO_VIZ_FIXTURE,
 } from "./edaPartFixtures";
+
+const STUB_CHAT = { messages: [], status: "ready" } as unknown as ChatHelpers;
+
+function ChatWrapper({ children }: { children: ReactNode }) {
+  return <ChatHelpersProvider value={STUB_CHAT}>{children}</ChatHelpersProvider>;
+}
+
+function render(ui: ReactElement) {
+  return renderBare(ui, { wrapper: ChatWrapper });
+}
 
 beforeEach(() => {
   useEdaStore.getState().reset();

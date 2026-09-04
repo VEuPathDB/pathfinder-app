@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Play } from "lucide-react";
-import { Button } from "@/lib/components/ui/Button";
-import { Badge } from "@/lib/components/ui/Badge";
-import { Card } from "@/lib/components/ui/Card";
-import { Input } from "@/lib/components/ui/Input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import type { CustomEnrichmentResult } from "@pathfinder/shared/generated/types/CustomEnrichmentResult";
-import { runCustomEnrichment } from "@/lib/api/analysis";
+import { runCustomEnrichment } from "@/features/analysis/api/compute";
 import { formatRatio } from "./enrichment-utils";
 
 interface CustomEnrichmentSectionProps {

@@ -3,8 +3,8 @@ import type { ParamSpec } from "@/features/strategy/parameters/spec";
 import {
   paramValueToRaw,
   rawToParamValue,
-  type ParamValueMap,
 } from "@/features/strategy/parameters/paramValue";
+import type { ParamValueMap } from "@/lib/parameters/paramValue";
 
 export interface BuildPatchArgs {
   step: Step;

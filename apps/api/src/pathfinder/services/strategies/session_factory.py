@@ -4,8 +4,8 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from pydantic import ValidationError
-from shared_py.defaults import DEFAULT_STREAM_NAME
 
+from pathfinder.domain.conversation import DEFAULT_STREAM_NAME
 from pathfinder.domain.strategy.graph_model import flatten_tree
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.strategy_ast import (

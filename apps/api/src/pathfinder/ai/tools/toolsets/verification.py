@@ -38,11 +38,9 @@ from pathfinder.ai.tools.standalone.workbench import (
 from pathfinder.ai.tools.standalone.workbench_read import (
     get_confidence_scores,
     get_enrichment_results,
-    get_ensemble_analysis,
     get_evaluation_summary,
     get_experiment_config,
     get_result_gene_lists,
-    get_step_contributions,
 )
 from pathfinder.ai.tools.toolsets._dynamic import (
     DynamicEnumToolset,
@@ -128,9 +126,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             get_evaluation_summary,
             get_enrichment_results,
             get_confidence_scores,
-            get_step_contributions,
             get_experiment_config,
-            get_ensemble_analysis,
             get_result_gene_lists,
             get_strategy,
             check_study_step,

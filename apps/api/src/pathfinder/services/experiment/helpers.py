@@ -1,4 +1,4 @@
-"""Gene-list extraction and enrichment helpers for experiment execution."""
+"""Gene-list extraction and metadata hydration for experiment execution."""
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -77,16 +77,16 @@ def _gene_infos_from_section(
     return []
 
 
-def _enrich_list(
+def _hydrate_list(
     genes: list[GeneInfo],
     lookup: dict[str, GeneResult],
 ) -> list[GeneInfo]:
     """Add name, organism, and product to each gene from the lookup."""
-    enriched: list[GeneInfo] = []
+    hydrated: list[GeneInfo] = []
     for g in genes:
         meta = lookup.get(g.id)
         if meta:
-            enriched.append(
+            hydrated.append(
                 GeneInfo(
                     id=g.id,
                     name=meta.gene_name or g.name,
@@ -95,8 +95,8 @@ def _enrich_list(
                 )
             )
         else:
-            enriched.append(g)
-    return enriched
+            hydrated.append(g)
+    return hydrated
 
 
 async def _resolve_gene_lookup(
@@ -126,7 +126,7 @@ async def _resolve_gene_lookup(
     return lookup
 
 
-async def extract_and_enrich_genes(
+async def extract_and_hydrate_genes(
     *,
     site_id: str,
     result: ControlTestResult,
@@ -152,13 +152,13 @@ async def extract_and_enrich_genes(
     try:
         lookup = await _resolve_gene_lookup(site_id, (tp, fn, fp, tn))
     except AppError as exc:
-        logger.warning("Gene enrichment failed, returning bare IDs", error=str(exc))
+        logger.warning("Gene hydration failed, returning bare IDs", error=str(exc))
         return tp, fn, fp, tn
 
     if lookup:
-        tp = _enrich_list(tp, lookup)
-        fn = _enrich_list(fn, lookup)
-        fp = _enrich_list(fp, lookup)
-        tn = _enrich_list(tn, lookup)
+        tp = _hydrate_list(tp, lookup)
+        fn = _hydrate_list(fn, lookup)
+        fp = _hydrate_list(fp, lookup)
+        tn = _hydrate_list(tn, lookup)
 
     return tp, fn, fp, tn

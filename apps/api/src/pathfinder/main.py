@@ -23,10 +23,6 @@ from starlette.exceptions import HTTPException
 
 from pathfinder import __version__
 from pathfinder.ai.capabilities.security import warm_up_scanner
-from pathfinder.ai.orchestration.observability import (
-    setup_observability,
-    shutdown_observability,
-)
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.integrations.eda.factory import close_all_eda_clients
@@ -45,6 +41,10 @@ from pathfinder.platform.error_handlers import (
 )
 from pathfinder.platform.errors import AppError
 from pathfinder.platform.migrations import init_db
+from pathfinder.platform.observability import (
+    setup_observability,
+    shutdown_observability,
+)
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER
 from pathfinder.platform.readiness import get_readiness, reset_readiness
 from pathfinder.platform.security import (
@@ -53,9 +53,8 @@ from pathfinder.platform.security import (
     limiter,
 )
 from pathfinder.services.eda.catalog import preload_study_index
-from pathfinder.transport.http.openapi import install_problem_responses
+from pathfinder.transport.http.openapi import install_openapi_post_passes
 from pathfinder.transport.http.routers import (
-    _stream_parts_schemas,
     chat,
     control_sets,
     conversations,
@@ -67,12 +66,10 @@ from pathfinder.transport.http.routers import (
     feedback,
     gene_sets,
     health,
-    internal,
     me,
     memories,
     models,
     sites,
-    streaming_schema,
     tasks,
     tiers,
     user_data,
@@ -237,9 +234,6 @@ def _register_routers(app: FastAPI) -> None:
         gene_sets.router,
         exports.router,
         feedback.router,
-        internal.router,
-        _stream_parts_schemas.router,
-        streaming_schema.router,
         user_data.router,
         evaluation.router,
         memories.router,
@@ -335,7 +329,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
     if include_dev_routes:
         app.include_router(dev.router)
 
-    install_problem_responses(app)
+    install_openapi_post_passes(app)
 
     return app
 

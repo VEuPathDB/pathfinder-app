@@ -1,6 +1,5 @@
 "use client";
 
-import { CombineOperator } from "@pathfinder/shared";
 import type { Strategy } from "@pathfinder/shared";
 import { useIsMutating } from "@tanstack/react-query";
 import { useStrategyStore } from "@/state/strategy/store";
@@ -17,8 +16,6 @@ import {
   useUpdateStepMutation,
   useUpdateStrategyMetaMutation,
 } from "@/features/strategy/mutations";
-
-export const COMBINE_OPERATORS = Object.values(CombineOperator);
 
 interface UseStrategyGraphOptions {
   strategy: Strategy | null;
@@ -40,13 +37,8 @@ export function useStrategyGraph(options: UseStrategyGraphOptions) {
 
   const graphNodes = useStrategyGraphNodes({ strategy, siteId, variant });
 
-  const {
-    selectedNodeIds,
-    setSelectedNodeIds,
-    handleAddToChat,
-    handleAddSelectionToChat,
-    handleSelectionChange,
-  } = useGraphSelection({ strategy, isCompact });
+  const { selectedNodeIds, setSelectedNodeIds, handleSelectionChange } =
+    useGraphSelection({ isCompact });
 
   const { isValidConnection, handleConnect, handleDeleteEdge, startCombine } =
     useGraphConnections({
@@ -71,7 +63,6 @@ export function useStrategyGraph(options: UseStrategyGraphOptions) {
     setNodes: graphNodes.setNodes,
     setEdges: graphNodes.setEdges,
     nodePositions: graphNodes.nodePositions,
-    handleAddToChat,
     handleOpenDetails: handlers.handleOpenDetails,
     setSelectedNodeIds,
     requestDelete: handlers.requestDelete,
@@ -111,7 +102,6 @@ export function useStrategyGraph(options: UseStrategyGraphOptions) {
     syncStatus,
 
     selectedNodeIds,
-    handleAddSelectionToChat,
     handleSelectionChange,
 
     isValidConnection,

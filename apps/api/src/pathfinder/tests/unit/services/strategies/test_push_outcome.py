@@ -6,10 +6,11 @@ from typing import Any
 import pytest
 
 from pathfinder.domain.parameters.values import MultiPickValue
-from pathfinder.domain.strategy.ast import StrategyStepNode, walk_step_tree
+from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.graph_model import flatten_tree
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import walk
 from pathfinder.integrations.veupathdb.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
@@ -168,7 +169,7 @@ def _leaf(step_id: str, search: str = "GenesByTaxon") -> StrategyStepNode:
 
 
 def _populate_graph(graph: StrategyGraph, ast: StrategyAst) -> None:
-    for step in walk_step_tree(ast.root):
+    for step in walk(ast.root):
         graph.steps.update(flatten_tree(step))
     graph.record_type = ast.record_type
     graph.recompute_roots()

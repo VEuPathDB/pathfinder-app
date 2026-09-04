@@ -54,6 +54,6 @@ process-wide by design.
 # Anchor
 
 `assistant_core/mcp/admission.py`, pinned by
-`packages/assistant-core/tests/unit/mcp/test_admission.py`: a process admits
+`packages/assistant-core/packages/assistant-core/tests/unit/mcp/test_admission.py`: a process admits
 nothing until a host installs a set, installing replaces it, and no admission
 field is readable from the environment through `RuntimeSettings`.

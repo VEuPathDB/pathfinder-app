@@ -2,12 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import MagicMock
-from uuid import uuid4
-
-from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead.lead_pins import pinned_turn_briefing
 from pathfinder.ai.lead.turn_briefing import MAX_BRIEFING_LINES, compose_turn_briefing
 from pathfinder.domain.parameters.values import (
     MultiPickValue,
@@ -157,28 +151,6 @@ def test_more_changes_than_fit_are_elided_with_a_count() -> None:
     assert len(briefing.strategy.changed) == 12
     assert "- and 4 more changes" in lines
     assert sum(1 for line in lines if line.startswith("- ")) == MAX_BRIEFING_LINES + 1
-
-
-def _briefed_ctx(briefing: str) -> Any:
-    ctx = MagicMock()
-    ctx.deps.state = PipelineState(
-        conversation_id=uuid4(),
-        user_id=uuid4(),
-        site_id="plasmodb",
-        mode="strategy",
-        domain=StrategyDomainState(turn_briefing=briefing),
-    )
-    return ctx
-
-
-def test_the_pin_renders_the_briefing_the_pre_turn_hook_wrote() -> None:
-    assert pinned_turn_briefing(_briefed_ctx("## Since your last turn\n- x")) == (
-        "## Since your last turn\n- x"
-    )
-
-
-def test_a_quiet_turn_pins_nothing() -> None:
-    assert pinned_turn_briefing(_briefed_ctx("")) is None
 
 
 def _wordy_ast(text: str, extras: int) -> StrategyAst:

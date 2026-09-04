@@ -13,57 +13,16 @@ from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.durable import DurableOutcome, durable_tool
-from pathfinder.ai.tools.standalone._experiment_models import (
-    DownloadLinks,
-    SearchControlTestResult,
-    StepControlTestResult,
-)
 from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.platform.errors import AppError, ErrorCode
+from pathfinder.platform.errors import ErrorCode
 from pathfinder.platform.tool_errors import ToolErrorPayload, tool_error
 from pathfinder.services.control_tests import (
     IntersectionConfig,
     run_positive_negative_controls,
 )
-from pathfinder.services.export import get_export_service
+from pathfinder.services.tool_payloads import ControlOutcome, attach_control_downloads
 
 logger = get_logger(__name__)
-
-
-async def _export_step_control_result(
-    result: StepControlTestResult,
-    name: str,
-) -> StepControlTestResult:
-    """Auto-attach download links to a step control test result."""
-    try:
-        svc = get_export_service()
-        result_dict = result.model_dump(by_alias=True, exclude_none=True, mode="json")
-        json_export = await svc.export_json(result_dict, name)
-        result.downloads = DownloadLinks(
-            json_url=json_export.url,
-            expires_in_seconds=json_export.expires_in_seconds,
-        )
-    except (AppError, OSError) as e:
-        logger.warning("Control test export failed", error=str(e))
-    return result
-
-
-async def _export_search_control_result(
-    result: SearchControlTestResult,
-    name: str,
-) -> SearchControlTestResult:
-    """Auto-attach download links to a search control test result."""
-    try:
-        svc = get_export_service()
-        result_dict = result.model_dump(by_alias=True, exclude_none=True, mode="json")
-        json_export = await svc.export_json(result_dict, name)
-        result.downloads = DownloadLinks(
-            json_url=json_export.url,
-            expires_in_seconds=json_export.expires_in_seconds,
-        )
-    except (AppError, OSError) as e:
-        logger.warning("Control test export failed", error=str(e))
-    return result
 
 
 class _RecoveredControls(CamelModel):
@@ -116,7 +75,7 @@ async def run_control_tests_on_step(
 
     Durable: this tool defers work to the verification worker and the turn
     ends while it runs. You are called again with a dict matching
-    :class:`StepControlTestResult`'s serialised shape.
+    :class:`ControlOutcome`'s serialised shape.
 
     Tests directly against the strategy's actual results using Python set
     operations -- no temporary WDK strategy needed.  Use this after a
@@ -145,7 +104,7 @@ async def run_control_tests_on_search(
     positive_controls: list[str] | None = None,
     negative_controls: list[str] | None = None,
     record_type: str = "transcript",
-) -> ToolReturn[SearchControlTestResult | ToolErrorPayload]:
+) -> ToolReturn[ControlOutcome | ToolErrorPayload]:
     """Run control tests against a standalone WDK search (not a built strategy).
 
     Creates a temporary WDK strategy to intersect the search results with
@@ -164,9 +123,7 @@ async def run_control_tests_on_search(
         negative_controls: Known-negative IDs that should NOT be returned.
         record_type: Record type. Defaults to 'transcript'.
     """
-    has_positives = positive_controls and len(positive_controls) > 0
-    has_negatives = negative_controls and len(negative_controls) > 0
-    if not has_positives and not has_negatives:
+    if not positive_controls and not negative_controls:
         return with_summary(
             tool_error(
                 ErrorCode.VALIDATION_ERROR,
@@ -177,27 +134,25 @@ async def run_control_tests_on_search(
             ctx=ctx,
             status="warn",
         )
-    _cfg = IntersectionConfig(
-        site_id=ctx.deps.site_id,
-        record_type=record_type,
-        target_search_name=target_search_name,
-        target_parameters=dict(target_parameters),
-        controls_search_name="GeneByLocusTag",
-        controls_param_name="ds_gene_ids",
-        controls_value_format="newline",
-    )
-    ctrl_result = await run_positive_negative_controls(
-        _cfg,
+    measured = await run_positive_negative_controls(
+        IntersectionConfig(
+            site_id=ctx.deps.site_id,
+            record_type=record_type,
+            target_search_name=target_search_name,
+            target_parameters=dict(target_parameters),
+            controls_search_name="GeneByLocusTag",
+            controls_param_name="ds_gene_ids",
+            controls_value_format="newline",
+        ),
         positive_controls=positive_controls,
         negative_controls=negative_controls,
     )
-    ctrl_dict = ctrl_result.model_dump(by_alias=True, mode="json")
-    result = SearchControlTestResult.model_validate(ctrl_dict)
-    exported = await _export_search_control_result(
-        result, f"{target_search_name}_control_tests"
+    outcome = await attach_control_downloads(
+        ControlOutcome.model_validate(measured),
+        f"{target_search_name}_control_tests",
     )
     return with_summary(
-        exported,
-        controls_summary(_RecoveredControls.model_validate(exported.model_dump())),
+        outcome,
+        controls_summary(_RecoveredControls.model_validate(outcome.model_dump())),
         ctx=ctx,
     )

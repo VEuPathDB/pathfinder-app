@@ -95,13 +95,6 @@ class RecordedWDKResponse(BaseModel):
             raise TypeError(msg)
         return self.body
 
-    def text_body(self) -> str:
-        """The prose body. A JSON fixture raises."""
-        if self.text is None:
-            msg = f"{self.provenance.url} recorded JSON, not prose"
-            raise TypeError(msg)
-        return self.text
-
     def raw_text(self) -> str:
         """The body as a string, whichever form it was stored in.
 

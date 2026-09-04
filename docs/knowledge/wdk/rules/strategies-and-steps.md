@@ -15,7 +15,7 @@ status: stable
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/StepFormatter.java#L129-L140
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKStepTree
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_step_contract.py::test_wdk_strat_001_a_leaf_node_serializes_to_one_key
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models.py::test_wdk_strat_001_a_leaf_node_serializes_to_one_key
 
 `formatAsStepTree` puts exactly one key on a node, `stepId`, and then recurses into
 `primaryInput` and `secondaryInput` where those steps exist. Structure and data are two
@@ -39,7 +39,7 @@ every PUT. See [strategies-and-step-trees](../model/strategies-and-step-trees.md
 
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/Strategy.java#L202-L208
-- anchor: apps/api/src/pathfinder/domain/strategy/graph_model.py:root_ids
+- anchor: apps/api/src/pathfinder/domain/strategy/tree.py:root_ids
 - status: ENFORCED by apps/api/src/pathfinder/tests/unit/services/strategies/test_wdk_pushed_step_tree.py::test_wdk_strat_002_the_pushed_tree_has_exactly_one_root
 
 `StrategyBuilder.build` throws `Root step ID is required but has not been set.` before
@@ -72,7 +72,7 @@ and pure invertibility does not reach it.
 
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/Strategy.java#L290-L301
-- anchor: apps/api/src/pathfinder/domain/strategy/graph_model.py:subtree_ids
+- anchor: apps/api/src/pathfinder/domain/strategy/tree.py:subtree_ids
 - status: ENFORCED by apps/api/src/pathfinder/tests/unit/services/strategies/test_wdk_pushed_step_tree.py::test_wdk_strat_003_no_step_outside_the_pushed_subtree_appears
 
 Reachability is enforced by exhaustion rather than by a traversal check.
@@ -127,7 +127,7 @@ WDK lists that step's own search under; `assign_step_record_classes` fills it fr
 site catalog and `validate_parameters` reports the class it resolved, so the push
 addresses each step's search URL from the step's own class rather than from one value per
 graph. `record_class_of` reads a step's class, taking a combine's from the steps it
-consumes, and `sync_strategy` sets the strategy's class from the root through it. The
+consumes, and `sync_strategy_for_site` sets the strategy's class from the root through it. The
 former leaf-first read is deleted.
 
 The pin is `GenesByMolecularWeight` under a `GenesFromTranscripts` root on plasmodb.org
@@ -179,7 +179,7 @@ strategy whose parameters are invalid, which is this rule. The step then read
 
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/request/strategy/StrategyRequest.java#L177-L201
-- anchor: apps/api/src/pathfinder/domain/strategy/operational_spec.py:operational_spec_to_step_tree
+- anchor: apps/api/src/pathfinder/domain/strategy/operational_spec.py:build_step_tree
 - status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_operational_spec.py::TestNestedBranchesReachWdk::test_the_union_stays_on_the_secondary_input
 
 `treeToSteps` recurses into `secondaryInput` exactly as it does into `primaryInput`, so a
@@ -205,7 +205,7 @@ strategy with two evidence sources for one property.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/request/strategy/StrategyRequest.java#L162-L172
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/strategies.py:get_duplicated_step_tree
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_call_sites.py::test_wdk_strat_007_reusing_a_branch_asks_for_new_ids
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_strategies.py::test_wdk_strat_007_reusing_a_branch_asks_for_new_ids
 
 `treeToSteps` looks up every id in the incoming tree and rejects any step already carrying
 a different strategy id: `belongs to strategy <id> so cannot be assigned to`. The same
@@ -226,7 +226,7 @@ the source does not reach them.
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/Step.java#L440-L472
 - anchor: apps/api/src/pathfinder/domain/strategy/graph_model.py:StepKind
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_step_contract.py::test_wdk_step_001_an_input_parameter_has_no_naming_convention
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models.py::test_wdk_step_001_an_input_parameter_has_no_naming_convention
 
 There is no kind field on a step. `findAnswerParamsStep` takes an ordinal, and
 [the two accessors](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/Step.java#L651-L667)
@@ -249,7 +249,7 @@ declaration order. Guessing by prefix works until it silently does not.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/request/strategy/StepRequestParser.java#L81-L87
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/steps.py:_empty_answer_params
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/test_answer_param_empty.py::test_empty_answer_params_forces_input_step_params_empty
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_steps.py::test_empty_answer_params_forces_input_step_params_empty
 
 `newStepFromJson` walks the answer parameters of the new step's search and throws
 `Answer Params in new steps must have the null value (empty string).` on any that is not
@@ -274,7 +274,7 @@ stronger than omitting the key and is deliberately so: the named test passes a s
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/request/strategy/StepRequestParser.java#L157-L170
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/_analyses.py:update_step_filters
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_step_contract.py::test_wdk_step_003_an_answer_parameter_survives_a_filter_write
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_analyses.py::test_wdk_step_003_an_answer_parameter_survives_a_filter_write
 
 Answer parameters live in the same flat `searchConfig.parameters` map as everything else, so
 a search-config replacement looks like it could rewire a step. It cannot.
@@ -301,7 +301,7 @@ Source-only: read off the pinned sha, not confirmed against a running site. See
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/user/Step.java#L392-L402
 - anchor: apps/api/src/pathfinder/domain/strategy/graph_model.py:pushable_root_id
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_graph_model_round_trip.py::TestComputability::test_the_pushable_root_walks_past_a_half_wired_combine
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_graph_model.py::TestComputability::test_the_pushable_root_walks_past_a_half_wired_combine
 
 `Step`'s constructor asserts the biconditional directly: no strategy implies every answer
 parameter is null, and a strategy implies none of them is. Either violation throws
@@ -328,7 +328,7 @@ projection roots at the surviving input rather than at the broken combine.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/user/StepService.java#L253-L259
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/reports.py:get_step_count
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_call_sites.py::test_wdk_step_005_a_step_count_addresses_a_step_in_a_strategy
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_reports.py::test_wdk_step_005_a_step_count_addresses_a_step_in_a_strategy
 
 Both report paths check `if (!step.getStrategy().isPresent())` and throw
 `Step <id> is not part of a strategy, so cannot run.` - 422 - and the
@@ -350,7 +350,7 @@ which runs a search with no step and no strategy at all.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/BooleanQuery.java#L85-L110
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/steps.py:_get_boolean_param_names
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_step_contract.py::test_wdk_step_006_the_operand_names_carry_the_record_class_full_name
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models.py::test_wdk_step_006_the_operand_names_carry_the_record_class_full_name
 
 `setRecordClass` builds three parameters:
 `bq_left_op_<full name with dots replaced by underscores>`,
@@ -414,7 +414,7 @@ Source-only: read off the pinned sha, not confirmed against a running site. See
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/BooleanQuery.java#L149-L170
 - anchor: apps/api/src/pathfinder/domain/strategy/ops.py:BOOLEAN_OPERATORS
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_step_contract.py::test_wdk_step_008_the_allowed_inputs_are_the_same_single_class
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models.py::test_wdk_step_008_the_allowed_inputs_are_the_same_single_class
 
 **The operands.** `prepareOperand` is called twice with the same `recordClass` argument and
 adds a single `RecordClassReference` to each, so both accept exactly one record class and it

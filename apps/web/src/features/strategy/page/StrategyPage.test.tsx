@@ -188,8 +188,7 @@ describe("StrategyPage", () => {
       <StrategyPage siteId="plasmodb" conversationId="conv-1" focusStepId={null} />,
     );
 
-    expect(screen.queryByTestId("strategy-graph")).toBeNull();
-    // Spinner uses an svg lucide icon; check that a status role exists.
-    expect(container.querySelector("svg")).not.toBeNull();
+    expect(screen.queryAllByTestId("strategy-graph")).toHaveLength(0);
+    expect(container.querySelectorAll("svg.animate-spin")).toHaveLength(1);
   });
 });

@@ -226,3 +226,52 @@ def test_the_recorded_statistics_reproduce_the_measured_gene_counts() -> None:
         )
     )
     assert summary.retained_up + summary.retained_down + summary.unparseable_rows > 0
+
+
+def test_raising_the_effect_size_threshold_never_grows_the_retained_set() -> None:
+    """The cut is monotone in the effect size at a fixed significance."""
+    raw = json.loads((FIXTURES / "volcano_statistics.json").read_text())
+    stats = VolcanoStatsResponse.model_validate(raw)
+    previous: set[str] | None = None
+    for effect_size_threshold in (0.5, 1.0, 1.5, 2.0, 3.0, 4.5):
+        current = set(
+            retained_point_ids(
+                stats,
+                effect_size_threshold=effect_size_threshold,
+                significance_threshold=0.05,
+            )
+        )
+        if previous is not None:
+            assert current <= previous
+        previous = current
+    assert previous is not None
+
+
+def test_the_two_directions_partition_the_retained_set() -> None:
+    """upOnly and downOnly split upAndDown with no row in both halves."""
+    raw = json.loads((FIXTURES / "volcano_statistics.json").read_text())
+    stats = VolcanoStatsResponse.model_validate(raw)
+    both = set(
+        retained_point_ids(
+            stats, effect_size_threshold=1.0, significance_threshold=0.05
+        )
+    )
+    up = set(
+        retained_point_ids(
+            stats,
+            effect_size_threshold=1.0,
+            significance_threshold=0.05,
+            effect_direction="upOnly",
+        )
+    )
+    down = set(
+        retained_point_ids(
+            stats,
+            effect_size_threshold=1.0,
+            significance_threshold=0.05,
+            effect_direction="downOnly",
+        )
+    )
+    assert up | down == both
+    assert up & down == set()
+    assert len(both) == 67

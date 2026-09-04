@@ -1,18 +1,13 @@
-"""Experiment Lab endpoints -- split into sub-routers for maintainability."""
+"""Experiment Lab endpoints, split into sub-routers by responsibility."""
 
 from fastapi import APIRouter
 
-from .analysis import router as analysis_router
-from .crud import router as crud_router
-from .execution import router as execution_router
-from .results import router as results_router
+from . import enrichment, evaluation, execution, results
 
-router = APIRouter(prefix="/api/v1/experiments", tags=["experiments"])
+_PREFIX = "/api/v1/experiments"
 
-# Include order matters: non-parametric paths (/batch, /benchmark, /overlap,
-# /enrichment-compare, /importable-strategies) must be registered
-# before /{experiment_id} to avoid route shadowing.
-router.include_router(execution_router)
-router.include_router(analysis_router)
-router.include_router(crud_router)
-router.include_router(results_router)
+router = APIRouter(tags=["experiments"])
+
+# The literal paths (/batch, /benchmark, /seed) register before /{experiment_id}.
+for _sub in (execution.router, enrichment.router, evaluation.router, results.router):
+    router.include_router(_sub, prefix=_PREFIX)

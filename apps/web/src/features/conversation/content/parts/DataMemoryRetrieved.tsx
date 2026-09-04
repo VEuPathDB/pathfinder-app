@@ -1,8 +1,8 @@
-import type { DataMemoryRetrievedPayload } from "@pathfinder/shared";
+import type { MemoryRetrievedPayload } from "@pathfinder/shared/generated/types/MemoryRetrievedPayload";
 
-import { Figure } from "@/lib/components/thread/Figure";
+import { Figure } from "@/features/conversation/thread/Figure";
 
-export function DataMemoryRetrieved({ data }: { data: DataMemoryRetrievedPayload }) {
+export function DataMemoryRetrieved({ data }: { data: MemoryRetrievedPayload }) {
   if (data.memories.length === 0) return null;
   return (
     <Figure

@@ -17,6 +17,7 @@ from pathfinder.domain.parameters.wdk_vocab import (
     match_exact_option,
     nearest_entries,
 )
+from pathfinder.integrations.veupathdb.wdk_models import WDKSearch
 from pathfinder.services.catalog.param_formatting import ParameterInfo
 from pathfinder.services.catalog.param_phyletic import (
     PhyleticNoSelection,
@@ -30,7 +31,6 @@ from pathfinder.services.catalog.radio_pairs import (
     check_radio_pairs,
     radio_pairs,
 )
-from pathfinder.services.wdk import WDKSearch
 
 
 class _Proposal(BaseModel):

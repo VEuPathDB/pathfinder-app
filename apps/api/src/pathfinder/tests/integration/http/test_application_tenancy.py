@@ -95,24 +95,6 @@ async def test_the_gene_set_list_holds_only_the_calling_application(
     assert theirs.json() == []
 
 
-async def test_the_experiment_list_holds_only_the_calling_application(
-    app: FastAPI,
-    patch_app_db_engine: None,
-    owned: Owned,
-    other_application: str,
-    signed_in_to_veupathdb: None,
-) -> None:
-    del patch_app_db_engine, other_application, signed_in_to_veupathdb
-
-    async with client_for(app, owned.user_id) as home:
-        mine = await _get(home, "/api/v1/experiments/")
-    async with other_application_client_for(app, owned.user_id) as other:
-        theirs = await _get(other, "/api/v1/experiments/")
-
-    assert sorted(e["id"] for e in mine.json()) == sorted(owned.experiment_ids)
-    assert theirs.json() == []
-
-
 async def test_a_control_set_list_holds_only_the_calling_application(
     app: FastAPI,
     patch_app_db_engine: None,

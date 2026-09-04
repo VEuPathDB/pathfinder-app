@@ -1,7 +1,6 @@
 """HTTP request/response schemas for gene sets."""
 
 from assistant_core.platform.pydantic_base import CamelModel
-from assistant_core.platform.types import JSONObject
 from pydantic import Field
 
 from pathfinder.domain.parameters.values import ParamValue
@@ -50,6 +49,21 @@ class GeneSetResponse(CamelModel):
     """Enrichment results already computed for this set."""
 
 
+# A model's docstring is published as its schema description, so these two
+# stay undocumented until the described text is part of the contract.
+class GeneSetImportRequest(CamelModel):
+    name: str = Field(min_length=1, max_length=200)
+    site_id: SiteId
+    raw_text: str
+
+
+class GeneSetExportResponse(CamelModel):
+    export_id: str
+    filename: str
+    content_type: str
+    url: str
+
+
 class SetOperationRequest(CamelModel):
     """Request to combine two gene sets with a set operation."""
 
@@ -91,13 +105,6 @@ class ReverseSearchResultItem(CamelModel):
     f1: float
     estimated_size: int
     overlap_count: int
-
-
-class RunGeneSetAnalysisRequest(CamelModel):
-    """Request to run a WDK step analysis on a gene set."""
-
-    analysis_name: str = Field(min_length=1)
-    parameters: JSONObject = Field(default_factory=dict)
 
 
 class GeneConfidenceRequest(CamelModel):

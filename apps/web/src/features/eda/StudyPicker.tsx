@@ -10,7 +10,7 @@ import type { EdaStudySummaryResponse } from "@pathfinder/shared/generated/types
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { edaStudySearchOptions, patchConversationEda } from "@/lib/api/eda";
+import { edaStudySearchOptions, patchConversationEda } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
 import { useEdaStore } from "@/state/eda";
 

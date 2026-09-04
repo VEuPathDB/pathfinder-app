@@ -2,7 +2,7 @@
 
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONArray, JSONObject
-from pydantic import ConfigDict, Field, RootModel
+from pydantic import ConfigDict, Field
 
 from pathfinder.domain.parameters.values import ParamValue
 
@@ -53,10 +53,6 @@ class SearchDetailsResponse(CamelModel):
     question: JSONObject | None = None
 
     model_config = ConfigDict(extra="allow")
-
-
-class DependentParamsResponse(RootModel[JSONArray]):
-    """Dependent parameter values response."""
 
 
 class SearchValidationRequest(CamelModel):

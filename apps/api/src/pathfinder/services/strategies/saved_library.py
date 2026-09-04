@@ -64,17 +64,3 @@ def match_saved_reference(
     if len(partial) == 1:
         return partial[0]
     return None
-
-
-async def resolve_saved_reference(
-    db_session_factory: DBSessionFactory,
-    *,
-    user_id: UUID,
-    site_id: str,
-    reference: str,
-) -> SavedStrategyListing | None:
-    """Resolve one reference against the caller's own saved strategies."""
-    listing = await list_saved_strategies(
-        db_session_factory, user_id=user_id, site_id=site_id
-    )
-    return match_saved_reference(listing, reference)

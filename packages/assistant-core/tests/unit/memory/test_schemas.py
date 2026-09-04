@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
 
-from assistant_core.memory.schemas import (
-    MemoryKind,
-    MemoryTombstone,
-    MemoryValue,
-)
+from assistant_core.memory.schemas import MemoryKind, MemoryValue
 
 
 def test_memory_value_round_trips() -> None:
@@ -39,17 +34,6 @@ def test_memory_value_rejects_unknown_kind() -> None:
             content={},
             created_at=datetime.now(UTC),
         )
-
-
-def test_memory_tombstone_round_trips() -> None:
-    t = MemoryTombstone(
-        user_id=uuid4(),
-        kind="strategy",
-        content_hash="a" * 64,
-        deleted_at=datetime.now(UTC),
-        reason="user_deleted",
-    )
-    assert MemoryTombstone.model_validate(t.model_dump(by_alias=True, mode="json")) == t
 
 
 def test_all_memory_kinds_accepted() -> None:

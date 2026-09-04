@@ -232,7 +232,8 @@ describe("DatasetParam — default id list", () => {
         )}
       </WidgetTestForm>,
     );
-    expect(screen.queryByRole("tab", { name: /default/i })).toBeNull();
+    expect(screen.queryAllByRole("tab", { name: /default/i })).toHaveLength(0);
+    expect(screen.getByRole("tab", { name: /paste ids/i })).toBeVisible();
   });
 
   it("renders Default list tab when spec.initialDisplayValue is a default id list string", () => {

@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead import edit_dispatch, sub_agent_dispatch
+from pathfinder.ai.lead import edit_dispatch, frame_dispatch
 from pathfinder.ai.lead.deltas import EditDelta, FrameResult
 from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -46,7 +46,7 @@ from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies import commit as commit_module
-from pathfinder.services.strategies import step_wdk_push
+from pathfinder.services.strategies import live_counts, step_wdk_push
 from pathfinder.services.strategies import sync as sync_module
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -182,7 +182,7 @@ class _RecordingAPI:
 @pytest.fixture
 def stub_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     api = _RecordingAPI()
-    for module in (commit_module, step_wdk_push, sync_module, edit_dispatch):
+    for module in (commit_module, step_wdk_push, sync_module, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
     async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
@@ -333,7 +333,7 @@ def _stub_frame(
             disposition="spec_ready", summary="organism swapped", changes=changes
         )
 
-    monkeypatch.setattr(sub_agent_dispatch, "stream_sub_agent", _fake)
+    monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
 
 
 _SWAP_CHANGES = [
@@ -442,7 +442,7 @@ async def test_edit_refuses_on_a_changed_revision(
             disposition="spec_ready", summary="swapped", changes=_SWAP_CHANGES
         )
 
-    monkeypatch.setattr(sub_agent_dispatch, "stream_sub_agent", _fake)
+    monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
 
     with pytest.raises(ModelRetry) as excinfo:
         await run_edit(deps=deps, parent_tool_call_id="t1", reason="swap organism")

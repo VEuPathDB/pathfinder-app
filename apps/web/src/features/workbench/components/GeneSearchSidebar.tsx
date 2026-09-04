@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { ChevronRight, Search } from "lucide-react";
-import { Input } from "@/lib/components/ui/Input";
+import { Input } from "@/components/ui/input";
 import { useGeneSearch } from "../hooks/useGeneSearch";
 import { useGeneSelection } from "../hooks/useGeneSelection";
 import { OrganismFilter } from "./OrganismFilter";

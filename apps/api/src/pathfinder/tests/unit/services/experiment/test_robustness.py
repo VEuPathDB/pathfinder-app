@@ -11,7 +11,7 @@ from pathfinder.services.experiment.robustness import (
     compute_robustness,
 )
 
-_FAST = BootstrapOptions(n_bootstrap=60, seed=42, include_rank_metrics=False)
+_FAST = BootstrapOptions(n_bootstrap=60, seed=42)
 
 
 def test_perfect_separation_yields_unit_confidence_intervals() -> None:
@@ -66,26 +66,10 @@ def test_ci_bounds_are_ordered_and_in_range() -> None:
         result_ids=["g1", "g2", "g3", "g4", "g5"],
         positive_ids=["g1", "g2", "p3", "p4"],
         negative_ids=["g5", "n2", "n3"],
-        options=BootstrapOptions(n_bootstrap=80, seed=42, include_rank_metrics=False),
+        options=BootstrapOptions(n_bootstrap=80, seed=42),
     )
     for ci in res.metric_cis.values():
         assert 0.0 <= ci.lower <= ci.mean <= ci.upper <= 1.0
         assert ci.std >= 0.0
     # A partial-recovery sensitivity (2/4 base) sits strictly between 0 and 1.
     assert 0.0 < res.metric_cis["sensitivity"].mean < 1.0
-
-
-def test_alternative_negative_sets_produce_sensitivity_variants() -> None:
-    res = compute_robustness(
-        result_ids=["g1", "g2", "g3"],
-        positive_ids=["g1", "g2"],
-        negative_ids=["n1", "n2"],
-        options=BootstrapOptions(
-            n_bootstrap=40,
-            seed=42,
-            alternative_negatives={"random_decoys": ["d1", "d2", "d3"]},
-        ),
-    )
-    labels = [v.label for v in res.negative_set_sensitivity]
-    assert labels == ["random_decoys"]
-    assert res.negative_set_sensitivity[0].negative_count == 3

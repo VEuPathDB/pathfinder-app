@@ -2,6 +2,8 @@
 
 from typing import Literal
 
+type Classification = Literal["TP", "FP", "FN", "TN"]
+
 ExperimentMode = Literal["single", "multi-step", "import"]
 
 ParameterType = Literal["numeric", "integer", "categorical"]
@@ -11,10 +13,8 @@ ExperimentStatus = Literal["pending", "running", "completed", "error", "cancelle
 ExperimentProgressPhase = Literal[
     "started",
     "evaluating",
-    "optimizing",
     "cross_validating",
     "enriching",
-    "step_analysis",
     "completed",
     "error",
 ]
@@ -31,15 +31,4 @@ OptimizationObjective = Literal[
     "mcc",
     "youdens_j",
     "custom",
-]
-
-StepContributionVerdict = Literal["essential", "helpful", "neutral", "harmful"]
-
-DEFAULT_K_VALUES: list[int] = [10, 25, 50, 100]
-
-DEFAULT_STEP_ANALYSIS_PHASES: list[str] = [
-    "step_evaluation",
-    "operator_comparison",
-    "contribution",
-    "sensitivity",
 ]

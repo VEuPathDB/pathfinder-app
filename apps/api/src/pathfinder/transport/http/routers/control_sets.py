@@ -1,7 +1,5 @@
 """CRUD endpoints for reusable control gene sets."""
 
-from uuid import UUID
-
 from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import APIRouter
 from pydantic import Field
@@ -53,16 +51,6 @@ async def list_control_sets(
     )
 
 
-@router.get("/{control_set_id}", response_model=ControlSetResponse)
-async def get_control_set(
-    control_set_id: UUID,
-    session: DBSession,
-    user_id: CurrentUser,
-) -> ControlSetResponse:
-    """Get a single control set by ID."""
-    return await ControlSetService(session).get(control_set_id, user_id)
-
-
 @router.post("", response_model=ControlSetResponse, status_code=201)
 async def create_control_set(
     body: CreateControlSetRequest,
@@ -82,13 +70,3 @@ async def create_control_set(
         is_public=body.is_public,
     )
     return await ControlSetService(session).create(spec, user_id=user_id)
-
-
-@router.delete("/{control_set_id}", status_code=204)
-async def delete_control_set(
-    control_set_id: UUID,
-    session: DBSession,
-    user_id: CurrentUser,
-) -> None:
-    """Delete a control set owned by the current user."""
-    await ControlSetService(session).delete(control_set_id, user_id)

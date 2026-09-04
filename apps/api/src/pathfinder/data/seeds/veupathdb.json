@@ -1,0 +1,876 @@
+[
+  {
+    "control_set": {
+      "name": "P. vivax Invasion vs Variant Surface",
+      "negative_ids": [
+        "PVX_001635",
+        "PVX_001640",
+        "PVX_003490",
+        "PVX_003500",
+        "PVX_004495",
+        "PVX_004503",
+        "PVX_004530",
+        "PVX_004537",
+        "PVX_005055",
+        "PVX_005057",
+        "PVX_005058",
+        "PVX_005065",
+        "PVX_086845",
+        "PVX_086863",
+        "PVX_086865",
+        "PVX_086893",
+        "PVX_086895",
+        "PVX_088775",
+        "PVX_088795",
+        "PVX_088797",
+        "PVX_088798",
+        "PVX_090295",
+        "PVX_090310",
+        "PVX_093730",
+        "PVX_093735",
+        "PVX_094250",
+        "PVX_095990",
+        "PVX_096001",
+        "PVX_096003",
+        "PVX_096004"
+      ],
+      "positive_ids": [
+        "PVX_110810",
+        "PVX_098585",
+        "PVX_098582",
+        "PVX_121920",
+        "PVX_094255",
+        "PVX_090325",
+        "PVX_090330",
+        "PVX_101585",
+        "PVX_101590",
+        "PVX_101495",
+        "PVX_099980",
+        "PVX_099975",
+        "PVX_097670",
+        "PVX_097675",
+        "PVX_097680",
+        "PVX_097685",
+        "PVX_097690",
+        "PVX_097695",
+        "PVX_097700",
+        "PVX_097705",
+        "PVX_097710",
+        "PVX_097720",
+        "PVX_097725",
+        "PVX_003775",
+        "PVX_003770",
+        "PVX_082645",
+        "PVX_082650",
+        "PVX_082655",
+        "PVX_082665",
+        "PVX_082670"
+      ],
+      "provenance_notes": "Positives: merozoite surface proteins, reticulocyte binding proteins, rhoptry/microneme proteins \u2014 invasion machinery. Negatives: VIR variant surface proteins \u2014 immune evasion, not invasion drug targets.",
+      "tags": [
+        "invasion",
+        "drug-target",
+        "pvivax",
+        "veupathdb",
+        "seed"
+      ]
+    },
+    "description": "Identifies vivax-specific drug targets at the invasion-host interface. Starts from reticulocyte/Duffy binding proteins, intersects with kinase regulators, unions with rhoptry/microneme and drug resistance genes, subtracts housekeeping.",
+    "name": "PvSal1 Reticulocyte Invasion Drug Targets",
+    "record_type": "transcript",
+    "site_id": "veupathdb",
+    "step_tree": {
+      "displayName": "PvSal1 Invasion-Specific Drug Targets",
+      "id": "step_9",
+      "operator": "MINUS",
+      "primaryInput": {
+        "displayName": "Invasion + Resistance Genes",
+        "id": "step_7",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Invasion + Secretory",
+          "id": "step_5",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "All Invasion Machinery",
+            "id": "step_3",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Invasion Ligands (DBP, RBP, MSP, AMA1)",
+              "id": "step_1",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "\"reticulocyte binding\" OR \"Duffy\" OR \"merozoite surface\" OR \"apical membrane\"",
+                "text_fields": "product",
+                "text_search_organism": "Plasmodium vivax Sal-1"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Invasion Regulators (CDPKs, PKG, ROMs)",
+              "id": "step_2",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "\"calcium-dependent protein kinase\" OR \"cGMP-dependent protein kinase\" OR \"rhomboid protease\"",
+                "text_fields": "product",
+                "text_search_organism": "Plasmodium vivax Sal-1"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Secretory Organelle Proteins",
+            "id": "step_4",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "rhoptry OR microneme",
+              "text_fields": "product",
+              "text_search_organism": "Plasmodium vivax Sal-1"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Drug Resistance Markers",
+          "id": "step_6",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "\"chloroquine resistance\" OR \"multidrug resistance\" OR \"dihydrofolate reductase\"",
+            "text_fields": "product",
+            "text_search_organism": "Plasmodium vivax Sal-1"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Housekeeping Genes (to subtract)",
+        "id": "step_8",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "ribosomal OR \"tRNA ligase\" OR \"ATP synthase\" OR histone",
+          "text_fields": "product",
+          "text_search_organism": "Plasmodium vivax Sal-1"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "N. caninum Invasion vs Kinases",
+      "negative_ids": [
+        "NCLIV_002090",
+        "NCLIV_012150",
+        "NCLIV_016600",
+        "NCLIV_036330",
+        "NCLIV_017560",
+        "NCLIV_011980",
+        "NCLIV_025300",
+        "NCLIV_028350",
+        "NCLIV_002760",
+        "NCLIV_032840",
+        "NCLIV_005080",
+        "NCLIV_014140",
+        "NCLIV_020150",
+        "NCLIV_029900",
+        "NCLIV_033400"
+      ],
+      "positive_ids": [
+        "NCLIV_043270",
+        "NCLIV_010600",
+        "NCLIV_002940",
+        "NCLIV_038120",
+        "NCLIV_061760",
+        "NCLIV_020720",
+        "NCLIV_028680",
+        "NCLIV_005560",
+        "NCLIV_007770",
+        "NCLIV_065640",
+        "NCLIV_034870",
+        "NCLIV_005250",
+        "NCLIV_010280",
+        "NCLIV_016510",
+        "NCLIV_020890"
+      ],
+      "provenance_notes": "Positives: microneme, rhoptry, AMA1, dense granule, subtilisin proteases \u2014 secretory organelle invasion machinery. Negatives: CDPK, MAPK, AGC kinases, HSPs \u2014 signaling and chaperone proteins, not invasion-specific.",
+      "tags": [
+        "invasion",
+        "ncaninum",
+        "veupathdb",
+        "seed"
+      ]
+    },
+    "description": "Comprehensive N. caninum invasion gene set: micronemes, rhoptry kinases, SRS surface receptors, subtilisin proteases, calcium signaling, and bradyzoite overlap.",
+    "name": "NcLiv Host Cell Invasion Toolkit",
+    "record_type": "transcript",
+    "site_id": "veupathdb",
+    "step_tree": {
+      "displayName": "NcLiv Complete Invasion Toolkit",
+      "id": "step_10",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Invasion Machinery + Signaling",
+        "id": "step_7",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "All Surface/Secretory/Processing",
+          "id": "step_5",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Surface + Secretory Proteins",
+            "id": "step_3",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Microneme + AMA1 + Dense Granule",
+              "id": "step_1",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "microneme OR \"apical membrane antigen\" OR \"dense granule\" OR perforin",
+                "text_fields": "product",
+                "text_search_organism": "Neospora caninum Liverpool"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "SRS Surface Protein Family",
+              "id": "step_2",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "\"srs domain\" OR \"surface antigen\"",
+                "text_fields": "product",
+                "text_search_organism": "Neospora caninum Liverpool"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Invasion Ligand Processing Proteases",
+            "id": "step_4",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "subtilase OR subtilisin OR rhomboid",
+              "text_fields": "product",
+              "text_search_organism": "Neospora caninum Liverpool"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Calcium Signaling (Invasion Triggers)",
+          "id": "step_6",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "\"CAM kinase\" OR CDPK OR \"calcium-dependent protein kinase\" OR \"cAMP-dependent\"",
+            "text_fields": "product",
+            "text_search_organism": "Neospora caninum Liverpool"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Bradyzoite Invasion Overlap",
+        "id": "step_9",
+        "operator": "INTERSECT",
+        "primaryInput": {
+          "displayName": "Invasion Machinery + Signaling",
+          "id": "step_7_dup",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "All Surface/Secretory/Processing",
+            "id": "step_5_dup",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Surface + Secretory Proteins",
+              "id": "step_3_dup",
+              "operator": "UNION",
+              "primaryInput": {
+                "displayName": "Microneme + AMA1 + Dense Granule",
+                "id": "step_1_dup",
+                "parameters": {
+                  "document_type": "gene",
+                  "text_expression": "microneme OR \"apical membrane antigen\" OR \"dense granule\" OR perforin",
+                  "text_fields": "product",
+                  "text_search_organism": "Neospora caninum Liverpool"
+                },
+                "searchName": "GenesByText"
+              },
+              "secondaryInput": {
+                "displayName": "SRS Surface Protein Family",
+                "id": "step_2_dup",
+                "parameters": {
+                  "document_type": "gene",
+                  "text_expression": "\"srs domain\" OR \"surface antigen\"",
+                  "text_fields": "product",
+                  "text_search_organism": "Neospora caninum Liverpool"
+                },
+                "searchName": "GenesByText"
+              }
+            },
+            "secondaryInput": {
+              "displayName": "Invasion Ligand Processing Proteases",
+              "id": "step_4_dup",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "subtilase OR subtilisin OR rhomboid",
+                "text_fields": "product",
+                "text_search_organism": "Neospora caninum Liverpool"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "Calcium Signaling (Invasion Triggers)",
+            "id": "step_6_dup",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "\"CAM kinase\" OR CDPK OR \"calcium-dependent protein kinase\" OR \"cAMP-dependent\"",
+              "text_fields": "product",
+              "text_search_organism": "Neospora caninum Liverpool"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Bradyzoite-Specific Genes",
+          "id": "step_8",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "bradyzoite OR BSR4",
+            "text_fields": "product",
+            "text_search_organism": "Neospora caninum Liverpool"
+          },
+          "searchName": "GenesByText"
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "T. cruzi Surface vs Drug Targets",
+      "negative_ids": [
+        "TcCLB.507603.270",
+        "TcCLB.484299.10",
+        "TcCLB.504507.5",
+        "TcCLB.504427.10",
+        "TcCLB.509099.50",
+        "TcCLB.504147.280",
+        "TcCLB.503899.119",
+        "TcCLB.505683.10",
+        "TcCLB.507129.30",
+        "TcCLB.507709.90",
+        "TcCLB.503811.10",
+        "TcCLB.506591.4",
+        "TcCLB.503899.10",
+        "TcCLB.506941.280",
+        "TcCLB.507713.30"
+      ],
+      "positive_ids": [
+        "TcCLB.398265.9",
+        "TcCLB.402919.10",
+        "TcCLB.418185.70",
+        "TcCLB.422867.10",
+        "TcCLB.426675.9",
+        "TcCLB.432995.9",
+        "TcCLB.433733.10",
+        "TcCLB.434545.10",
+        "TcCLB.447899.10",
+        "TcCLB.452475.10",
+        "TcCLB.463279.20",
+        "TcCLB.463323.10",
+        "TcCLB.398477.10",
+        "TcCLB.404431.10",
+        "TcCLB.410199.30",
+        "TcCLB.413133.10",
+        "TcCLB.415273.5",
+        "TcCLB.415273.9",
+        "TcCLB.416605.20",
+        "TcCLB.445557.10",
+        "TcCLB.448661.20",
+        "TcCLB.430603.20",
+        "TcCLB.442801.10",
+        "TcCLB.463955.10",
+        "TcCLB.503417.30",
+        "TcCLB.413859.10",
+        "TcCLB.397923.10",
+        "TcCLB.410275.9",
+        "TcCLB.416605.10",
+        "TcCLB.416605.30"
+      ],
+      "provenance_notes": "Positives: trans-sialidases, mucins, MASP, GP63, amastin \u2014 surface coat proteins for immune evasion. Negatives: cruzipain, trypanothione, HSPs \u2014 intracellular drug targets, not surface immune evasion.",
+      "tags": [
+        "immune-evasion",
+        "surface",
+        "tcruzi",
+        "veupathdb",
+        "seed"
+      ]
+    },
+    "description": "Maps T. cruzi immune evasion: trans-sialidases + mucins + MASP + GP63 + amastin stage-specific proteins.",
+    "name": "TcCLB Trans-Sialidase Immune Evasion Network",
+    "record_type": "transcript",
+    "site_id": "veupathdb",
+    "step_tree": {
+      "displayName": "TcCLB Surface + Stage-Specific Proteins",
+      "id": "step_9",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Complete Surface Coat",
+        "id": "step_7",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "TS + Mucins + MASP",
+          "id": "step_5",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "TS + Mucins",
+            "id": "step_3",
+            "operator": "UNION",
+            "primaryInput": {
+              "displayName": "Trans-Sialidase Superfamily",
+              "id": "step_1",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "trans-sialidase",
+                "text_fields": "product",
+                "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+              },
+              "searchName": "GenesByText"
+            },
+            "secondaryInput": {
+              "displayName": "Mucin Family (Sialic Acid Acceptors)",
+              "id": "step_2",
+              "parameters": {
+                "document_type": "gene",
+                "text_expression": "mucin OR TcMUC",
+                "text_fields": "product",
+                "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+              },
+              "searchName": "GenesByText"
+            }
+          },
+          "secondaryInput": {
+            "displayName": "MASP Family",
+            "id": "step_4",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "\"mucin-associated surface protein\" OR MASP",
+              "text_fields": "product",
+              "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "GP63 Surface Metalloproteases",
+          "id": "step_6",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "\"surface protease GP63\"",
+            "text_fields": "product",
+            "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Amastin (Intracellular Stage)",
+        "id": "step_8",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "amastin",
+          "text_fields": "product",
+          "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Cross-Species Invasion Panel",
+      "negative_ids": [
+        "PVX_001635",
+        "PVX_001640",
+        "PVX_003490",
+        "PVX_003500",
+        "PVX_004495",
+        "PVX_004503",
+        "PVX_004530",
+        "PVX_004537",
+        "PVX_005055",
+        "PVX_005057",
+        "PVX_005058",
+        "PVX_005065",
+        "PVX_086845",
+        "PVX_086863",
+        "PVX_086865",
+        "NCLIV_002220",
+        "NCLIV_002230",
+        "NCLIV_002240",
+        "NCLIV_002250",
+        "NCLIV_002260",
+        "NCLIV_003360",
+        "NCLIV_004401",
+        "NCLIV_004410",
+        "NCLIV_004411",
+        "NCLIV_004420",
+        "NCLIV_004421",
+        "NCLIV_004430",
+        "NCLIV_004431",
+        "NCLIV_004432",
+        "NCLIV_004440"
+      ],
+      "positive_ids": [
+        "PVX_110810",
+        "PVX_098585",
+        "PVX_098582",
+        "PVX_121920",
+        "PVX_094255",
+        "PVX_090325",
+        "PVX_090330",
+        "PVX_101585",
+        "PVX_101590",
+        "PVX_101495",
+        "PVX_099980",
+        "PVX_099975",
+        "PVX_097670",
+        "PVX_097675",
+        "PVX_097680",
+        "NCLIV_043270",
+        "NCLIV_010600",
+        "NCLIV_002940",
+        "NCLIV_038120",
+        "NCLIV_061760",
+        "NCLIV_020720",
+        "NCLIV_028680",
+        "NCLIV_005560",
+        "NCLIV_007770",
+        "NCLIV_065640",
+        "NCLIV_034870",
+        "NCLIV_005250",
+        "NCLIV_010280",
+        "NCLIV_016510",
+        "NCLIV_020890"
+      ],
+      "provenance_notes": "Positives: P. vivax + N. caninum invasion organelle proteins (rhoptry, microneme, AMA1, CDPKs). Negatives: VIR variant surface + SRS domain proteins \u2014 surface-exposed but not conserved invasion machinery.",
+      "tags": [
+        "cross-species",
+        "invasion",
+        "veupathdb",
+        "seed"
+      ]
+    },
+    "description": "Portal-level cross-species strategy identifying conserved invasion genes across P. vivax and N. caninum for comparative genomics.",
+    "name": "Cross-Species Apicomplexan Invasion Conserved",
+    "record_type": "transcript",
+    "site_id": "veupathdb",
+    "step_tree": {
+      "displayName": "Cross-Species Invasion Comparison",
+      "id": "step_7",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "P. vivax Invasion + Signaling",
+        "id": "step_3",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "P. vivax Invasion Organelle Proteins",
+          "id": "step_1",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "\"apical membrane antigen\" OR rhoptry OR microneme",
+            "text_fields": "product",
+            "text_search_organism": "Plasmodium vivax Sal-1"
+          },
+          "searchName": "GenesByText"
+        },
+        "secondaryInput": {
+          "displayName": "P. vivax Kinases + Chaperones",
+          "id": "step_2",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "\"calcium-dependent protein kinase\" OR \"heat shock protein\"",
+            "text_fields": "product",
+            "text_search_organism": "Plasmodium vivax Sal-1"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "N. caninum Invasion + Signaling",
+        "id": "step_6",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "N. caninum Invasion Organelle Proteins",
+          "id": "step_4",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "\"apical membrane antigen\" OR rhoptry OR microneme OR \"dense granule\"",
+            "text_fields": "product",
+            "text_search_organism": "Neospora caninum Liverpool"
+          },
+          "searchName": "GenesByText"
+        },
+        "secondaryInput": {
+          "displayName": "N. caninum Kinases + Chaperones",
+          "id": "step_5",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "\"CAM kinase\" OR CDPK OR \"heat shock\"",
+            "text_fields": "product",
+            "text_search_organism": "Neospora caninum Liverpool"
+          },
+          "searchName": "GenesByText"
+        }
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "Cross-Species Drug Targets Panel",
+      "negative_ids": [
+        "PVX_001635",
+        "PVX_001640",
+        "PVX_003490",
+        "PVX_003500",
+        "PVX_004495",
+        "PVX_004503",
+        "PVX_004530",
+        "PVX_004537",
+        "PVX_005055",
+        "PVX_005057",
+        "TcCLB.411235.9",
+        "TcCLB.506563.40",
+        "TcCLB.503969.10",
+        "TcCLB.509967.160",
+        "TcCLB.511423.90",
+        "TcCLB.511867.190",
+        "TcCLB.511215.119",
+        "TcCLB.506755.20",
+        "TcCLB.507711.20",
+        "TcCLB.509099.30"
+      ],
+      "positive_ids": [
+        "PVX_089950",
+        "PVX_086040",
+        "PVX_002665",
+        "PVX_002805",
+        "PVX_000555",
+        "PVX_087765",
+        "PVX_085300",
+        "PVX_082820",
+        "PVX_091755",
+        "PVX_091770",
+        "NCLIV_002090",
+        "NCLIV_012150",
+        "NCLIV_016600",
+        "NCLIV_036330",
+        "NCLIV_017560",
+        "NCLIV_011980",
+        "NCLIV_025300",
+        "NCLIV_028350",
+        "NCLIV_002760",
+        "NCLIV_032840",
+        "TcCLB.507603.270",
+        "TcCLB.484299.10",
+        "TcCLB.504507.5",
+        "TcCLB.504427.10",
+        "TcCLB.509099.50",
+        "TcCLB.504147.280",
+        "TcCLB.503899.119",
+        "TcCLB.505683.10",
+        "TcCLB.507129.30",
+        "TcCLB.507709.90"
+      ],
+      "provenance_notes": "Positives: validated drug targets across P. vivax (DHFR, CDPKs), N. caninum (kinases, HSPs), and T. cruzi (cruzipain, trypanothione). Negatives: VIR surface proteins and flagellar structural proteins \u2014 not drug targets.",
+      "tags": [
+        "drug-target",
+        "cross-species",
+        "veupathdb",
+        "seed"
+      ]
+    },
+    "description": "Cross-organism drug target discovery across P. vivax, N. caninum, and T. cruzi \u2014 conserved targets for pan-parasitic drug development.",
+    "name": "Portal-Wide Essential Drug Targets",
+    "record_type": "transcript",
+    "site_id": "veupathdb",
+    "step_tree": {
+      "displayName": "Complete Drug Target Collection",
+      "id": "step_7",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "Portal-Wide Drug Target Candidates",
+        "id": "step_5",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Pv + Nc Drug Targets",
+          "id": "step_3",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "P. vivax Validated Drug Targets",
+            "id": "step_1",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "\"dihydrofolate reductase\" OR plasmepsin OR \"heat shock protein 90\" OR \"heat shock protein 70\" OR \"chloroquine resistance\"",
+              "text_fields": "product",
+              "text_search_organism": "Plasmodium vivax Sal-1"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "N. caninum Drug Targets",
+            "id": "step_2",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "\"heat shock protein 90\" OR \"heat shock protein 70\" OR cyclophilin OR \"aspartyl protease\" OR \"ABC transporter\"",
+              "text_fields": "product",
+              "text_search_organism": "Neospora caninum Liverpool"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "T. cruzi Chagas Drug Targets",
+          "id": "step_4",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "cruzipain OR \"trypanothione reductase\" OR \"sterol 24-c-methyltransferase\" OR \"heat shock protein 90\" OR \"heat shock protein 70\"",
+            "text_fields": "product",
+            "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Conserved Transporter Targets",
+        "id": "step_6",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "\"ABC transporter\" OR \"folate transporter\" OR \"nucleoside transporter\"",
+          "text_fields": "product",
+          "text_search_organism": "Plasmodium vivax Sal-1"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  },
+  {
+    "control_set": {
+      "name": "T. cruzi Vaccine vs Flagellar Panel",
+      "negative_ids": [
+        "TcCLB.411235.9",
+        "TcCLB.506563.40",
+        "TcCLB.503969.10",
+        "TcCLB.509967.160",
+        "TcCLB.511423.90",
+        "TcCLB.511867.190",
+        "TcCLB.511215.119",
+        "TcCLB.506755.20",
+        "TcCLB.507711.20",
+        "TcCLB.509099.30",
+        "TcCLB.510353.30",
+        "TcCLB.508387.90",
+        "TcCLB.506221.70",
+        "TcCLB.509537.50",
+        "TcCLB.508837.80"
+      ],
+      "positive_ids": [
+        "TcCLB.398265.9",
+        "TcCLB.402919.10",
+        "TcCLB.418185.70",
+        "TcCLB.422867.10",
+        "TcCLB.426675.9",
+        "TcCLB.432995.9",
+        "TcCLB.433733.10",
+        "TcCLB.434545.10",
+        "TcCLB.447899.10",
+        "TcCLB.452475.10",
+        "TcCLB.463279.20",
+        "TcCLB.463323.10",
+        "TcCLB.398477.10",
+        "TcCLB.404431.10",
+        "TcCLB.410199.30",
+        "TcCLB.413133.10",
+        "TcCLB.415273.5",
+        "TcCLB.415273.9",
+        "TcCLB.416605.20",
+        "TcCLB.445557.10",
+        "TcCLB.448661.20",
+        "TcCLB.430603.20",
+        "TcCLB.442801.10",
+        "TcCLB.463955.10",
+        "TcCLB.503417.30"
+      ],
+      "provenance_notes": "Positives: trans-sialidases, mucins, MASP \u2014 major immunogenic surface antigens and vaccine candidates. Negatives: tubulin, paraflagellar rod, calmodulin \u2014 structural proteins, not primary vaccine targets.",
+      "tags": [
+        "vaccine",
+        "chagas",
+        "tcruzi",
+        "veupathdb",
+        "seed"
+      ]
+    },
+    "description": "Vaccine candidates for Chagas disease: trans-sialidases, amastin, cruzipain, flagellar antigens, and conserved immunogenic proteins (HSP70/90, trypanothione reductase).",
+    "name": "TcCLB Chagas Vaccine Candidate Pipeline",
+    "record_type": "transcript",
+    "site_id": "veupathdb",
+    "step_tree": {
+      "displayName": "TcCLB Vaccine + Immunogenic Candidates",
+      "id": "step_7",
+      "operator": "UNION",
+      "primaryInput": {
+        "displayName": "All Vaccine Candidates",
+        "id": "step_5",
+        "operator": "UNION",
+        "primaryInput": {
+          "displayName": "Major Antigen Families",
+          "id": "step_3",
+          "operator": "UNION",
+          "primaryInput": {
+            "displayName": "Trans-Sialidase Family",
+            "id": "step_1",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "trans-sialidase",
+              "text_fields": "product",
+              "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+            },
+            "searchName": "GenesByText"
+          },
+          "secondaryInput": {
+            "displayName": "Amastin + Cruzipain (Stage Antigens)",
+            "id": "step_2",
+            "parameters": {
+              "document_type": "gene",
+              "text_expression": "amastin OR cruzipain",
+              "text_fields": "product",
+              "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+            },
+            "searchName": "GenesByText"
+          }
+        },
+        "secondaryInput": {
+          "displayName": "Flagellar Surface Antigens",
+          "id": "step_4",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "\"paraflagellar rod\" OR \"flagellar calcium\" OR \"flagellar attachment\"",
+            "text_fields": "product",
+            "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+          },
+          "searchName": "GenesByText"
+        }
+      },
+      "secondaryInput": {
+        "displayName": "Conserved Immunogenic Proteins",
+        "id": "step_6",
+        "parameters": {
+          "document_type": "gene",
+          "text_expression": "\"heat shock protein 70\" OR \"heat shock protein 90\" OR \"trypanothione reductase\"",
+          "text_fields": "product",
+          "text_search_organism": "Trypanosoma cruzi CL Brener Esmeraldo-like"
+        },
+        "searchName": "GenesByText"
+      }
+    }
+  }
+]

@@ -2,25 +2,25 @@
 
 import type { Edge } from "@xyflow/react";
 import { Trash2 } from "lucide-react";
-import { CombineOperator, type Step } from "@pathfinder/shared";
+import { combineOpEnum, type CombineOp, type Step } from "@pathfinder/shared";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { VennIcon } from "@/features/strategy/graph/components/OpBadge";
-import { inferStepKind } from "@/lib/strategyGraph";
+import { VennIcon } from "@/features/strategy/graph/components/VennIcon";
+import { inferStepKind } from "@/features/strategy/graph";
 import { cn } from "@/lib/utils/cn";
 
-const OPERATOR_GRID: readonly CombineOperator[] = [
-  CombineOperator.UNION,
-  CombineOperator.INTERSECT,
-  CombineOperator.MINUS,
-  CombineOperator.RMINUS,
+const OPERATOR_GRID: readonly CombineOp[] = [
+  combineOpEnum.UNION,
+  combineOpEnum.INTERSECT,
+  combineOpEnum.MINUS,
+  combineOpEnum.RMINUS,
 ];
 
 const OPERATOR_LABEL: Record<string, string> = {
-  [CombineOperator.UNION]: "Union",
-  [CombineOperator.INTERSECT]: "Intersect",
-  [CombineOperator.MINUS]: "A only",
-  [CombineOperator.RMINUS]: "B only",
+  [combineOpEnum.UNION]: "Union",
+  [combineOpEnum.INTERSECT]: "Intersect",
+  [combineOpEnum.MINUS]: "A only",
+  [combineOpEnum.RMINUS]: "B only",
 };
 
 interface EdgeContextMenuProps {
@@ -29,7 +29,7 @@ interface EdgeContextMenuProps {
   y: number;
   steps: Step[];
   onDeleteEdge: (edge: Edge) => void;
-  onChangeOperator: (stepId: string, operator: CombineOperator) => void;
+  onChangeOperator: (stepId: string, operator: CombineOp) => void;
   onClose: () => void;
 }
 

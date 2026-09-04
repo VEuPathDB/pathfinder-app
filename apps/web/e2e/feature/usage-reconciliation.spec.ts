@@ -48,10 +48,6 @@ function readFooter(text: string | null): FormattedUsage {
   return { tokens: match.groups["tokens"] ?? "", cost: match.groups["cost"] ?? "" };
 }
 
-function turnChip(page: Page): Locator {
-  return page.getByTestId("trace-usage");
-}
-
 function conversationFooter(page: Page): Locator {
   return page.getByTestId("conversation-usage");
 }
@@ -75,9 +71,13 @@ test.describe("Usage reconciliation", () => {
     await chatPage.expectIdle();
 
     // One turn carries one usage chip: the totals ride its last run alone.
-    const chip = turnChip(page);
+    // The plan turn's reply is the one that never echoes the plain prompt, so
+    // this names the same chip after the second turn lands.
+    const chip = chatPage.assistantMessages
+      .filter({ hasNotText: PLAIN_PROMPT })
+      .getByTestId("trace-usage");
     await expect(chip).toHaveCount(1, { timeout: 60_000 });
-    const chipText = normalize(await chip.last().textContent());
+    const chipText = normalize(await chip.textContent());
     const turnUsage = readChip(chipText);
 
     const footer = conversationFooter(page);
@@ -104,6 +104,7 @@ test.describe("Usage reconciliation", () => {
         timeout: 60_000,
       })
       .not.toBe(conversationUsage.tokens);
-    expect(normalize(await chip.first().textContent())).toBe(chipText);
+    await expect(chip).toHaveCount(1);
+    expect(normalize(await chip.textContent())).toBe(chipText);
   });
 });

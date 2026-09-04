@@ -6,7 +6,7 @@ import type { ParamSpec, Search } from "@pathfinder/shared";
 import { getParamSpecs } from "@/lib/api/sites";
 import { normalizeRecordType } from "@/lib/utils/normalizeRecordType";
 import { buildContextValues } from "@/lib/utils/buildContextValues";
-import type { StepParameters } from "@/lib/strategyGraph/types";
+import type { StepParameters } from "@/lib/types/stepParameters";
 import { useParamSpecsQuery } from "@/lib/query/hooks/useParamSpecsQuery";
 
 interface AdvancedOptions {

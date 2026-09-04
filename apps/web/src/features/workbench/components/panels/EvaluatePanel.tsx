@@ -13,13 +13,12 @@ import {
   EnrichmentSection,
   GeneListsSection,
   MetricsOverview,
-  RankMetricsSection,
   RobustnessSection,
 } from "@/features/analysis";
 import { createExperimentStream } from "@/features/workbench/api";
 import type { ExperimentRunConfig } from "@/features/workbench/api/streaming";
-import { Button } from "@/lib/components/ui/Button";
-import { useGeneSetsQuery } from "@/lib/query/hooks/useGeneSetsQuery";
+import { Button } from "@/components/ui/button";
+import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
 import { queryKeyPrefixes } from "@/lib/query/keys";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useWorkbenchStore, type PanelId } from "@/state/useWorkbenchStore";
@@ -114,7 +113,7 @@ export function EvaluatePanel() {
         signal: controller.signal,
       })) {
         if (event.type === "experiment_progress") {
-          const raw = event.data as Record<string, unknown>;
+          const raw = event.data;
           const phase = typeof raw["phase"] === "string" ? raw["phase"] : undefined;
           if (phase !== undefined) setProgressText(phase);
         } else if (event.type === "experiment_complete") {
@@ -142,7 +141,6 @@ export function EvaluatePanel() {
   if (!activeSet) return null;
 
   const metrics = experiment?.metrics ?? null;
-  const rankMetrics = experiment?.rankMetrics ?? null;
   const robustness = experiment?.robustness ?? null;
   const confusionMatrix = experiment?.metrics?.confusionMatrix ?? null;
   const crossValidation = experiment?.crossValidation ?? null;
@@ -243,17 +241,10 @@ export function EvaluatePanel() {
 
         {experiment !== null && (
           <div className="space-y-4 pt-2">
-            {metrics !== null && (
-              <MetricsOverview
-                metrics={metrics}
-                rankMetrics={rankMetrics}
-                robustness={robustness}
-              />
-            )}
+            {metrics !== null && <MetricsOverview metrics={metrics} />}
             {confusionMatrix !== null && (
               <ConfusionMatrixSection cm={confusionMatrix} />
             )}
-            {rankMetrics !== null && <RankMetricsSection rankMetrics={rankMetrics} />}
             <GeneListsSection experiment={experiment} />
             {crossValidation !== null && (
               <CrossValidationSection cv={crossValidation} />

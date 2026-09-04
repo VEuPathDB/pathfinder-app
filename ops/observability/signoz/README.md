@@ -14,7 +14,6 @@ Generated artifacts:
 
 - importable dashboard JSON in [`dashboards/`](/Users/ahmedmuharram/repos/pathfinder/ops/observability/signoz/dashboards)
 - alert catalog in [`alerts/`](/Users/ahmedmuharram/repos/pathfinder/ops/observability/signoz/alerts)
-- Terraform dashboard wrapper in [`terraform/`](/Users/ahmedmuharram/repos/pathfinder/ops/observability/signoz/terraform)
 - filter guide in [`dashboard-filters.md`](/Users/ahmedmuharram/repos/pathfinder/ops/observability/signoz/dashboard-filters.md)
 - live smoke test in [`../live_smoke_test.py`](/Users/ahmedmuharram/repos/pathfinder/ops/observability/live_smoke_test.py)
 
@@ -77,12 +76,6 @@ The script:
 - verifies traces and metrics in SigNoz ClickHouse
 - prints a filtered Docker log excerpt for the same run
 
-## Apply Dashboards With Terraform
-
-The Terraform wrapper provisions the generated dashboards from JSON files.
-
-See [`terraform/README.md`](/Users/ahmedmuharram/repos/pathfinder/ops/observability/signoz/terraform/README.md).
-
 ## Alerts
 
 Alert intent is version-controlled in:
@@ -104,7 +97,6 @@ So the thresholds, labels, and runbooks are the stable part, while final routing
 Everything in this directory is designed for self-hosted/open-source workflows:
 
 - SigNoz UI import
-- Terraform with the community SigNoz provider
 - source-controlled JSON and Markdown artifacts
 
 No paid SaaS dependency is required.

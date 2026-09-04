@@ -28,10 +28,6 @@ This is not a replacement for `CLAUDE.md` (rules an agent must follow every sess
 
 - [EDA](eda/) - VEuPathDB's Exploratory Data Analysis platform, how it reaches WDK steps, and the PathFinder integration concept
 
-## Thread
-
-- [Thread](thread/) - how a conversation turn is rendered, and the plan that rebuilds it as a science-based reading surface
-
 ## History
 
 - [log.md](log.md) - dated record of significant changes to this bundle

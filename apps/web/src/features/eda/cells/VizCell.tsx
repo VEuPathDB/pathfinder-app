@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import type { EdaViz } from "@pathfinder/shared";
 
 import { Spinner } from "@/components/ui/spinner";
-import { edaViz } from "@/lib/api/eda";
+import { edaViz } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
 import { isEdaJobComplete, useEdaStore, type EdaJobSnapshot } from "@/state/eda";
 

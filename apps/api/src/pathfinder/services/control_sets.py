@@ -70,11 +70,6 @@ def _serialize(cs: ControlSet) -> ControlSetResponse:
     )
 
 
-def _held_by(cs: ControlSet, user_id: UUID) -> bool:
-    """Whether this user owns the set under the calling application."""
-    return cs.user_id == user_id and cs.application_id == calling_application()
-
-
 def _visible_to(cs: ControlSet, user_id: UUID) -> bool:
     """A public set is readable by every user of the application that holds it."""
     if cs.application_id != calling_application():
@@ -127,9 +122,3 @@ class ControlSetService:
             ),
         )
         return _serialize(cs)
-
-    async def delete(self, control_set_id: UUID, user_id: UUID) -> None:
-        cs = await self._repo.get_by_id(control_set_id)
-        if cs is None or not _held_by(cs, user_id):
-            raise NotFoundError(title="Control set not found")
-        await self._repo.delete(control_set_id)

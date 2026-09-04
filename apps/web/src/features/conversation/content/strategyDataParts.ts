@@ -6,7 +6,6 @@ import { DataScoredComparison } from "./parts/DataScoredComparison";
 import { DataStrategyLink } from "./parts/DataStrategyLink";
 import { DataStrategyMeta } from "./parts/DataStrategyMeta";
 import { DataVariantComparison } from "./parts/DataVariantComparison";
-import { DataVerificationSummary } from "./parts/DataVerificationSummary";
 import { noRender } from "./coreDataParts";
 import type { DataPartComponentMap } from "./dataPartComponentMap";
 
@@ -21,7 +20,7 @@ export type StrategyDataPartKind =
   | "data-variant-comparison"
   | "data-scored-comparison"
   | "data-gene-set"
-  | "data-verification-summary";
+  | "data-strategy-revision";
 
 export const strategyDataPartComponents: DataPartComponentMap<StrategyDataPartKind> = {
   "data-ledger-update": noRender,
@@ -33,5 +32,6 @@ export const strategyDataPartComponents: DataPartComponentMap<StrategyDataPartKi
   "data-variant-comparison": DataVariantComparison,
   "data-scored-comparison": DataScoredComparison,
   "data-gene-set": DataGeneSet,
-  "data-verification-summary": DataVerificationSummary,
+  // SupersededBadge reads the revision off the parts array.
+  "data-strategy-revision": noRender,
 };

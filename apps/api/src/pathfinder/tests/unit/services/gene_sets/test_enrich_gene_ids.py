@@ -495,4 +495,4 @@ class TestAFailedAnalysisIsNamed:
 
 
 def test_the_declared_analysis_types_are_the_ones_the_literal_allows() -> None:
-    assert get_args(EnrichmentAnalysisType) == ALL_ENRICHMENT_ANALYSIS_TYPES
+    assert get_args(EnrichmentAnalysisType.__value__) == ALL_ENRICHMENT_ANALYSIS_TYPES

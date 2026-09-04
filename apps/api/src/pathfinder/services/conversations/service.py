@@ -13,12 +13,13 @@ from assistant_core.platform.types import JSONObject
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.domain.strategy.ast import walk_step_tree
 from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.strategy_ast import (
     StrategyAst,
 )
+from pathfinder.domain.strategy.tree import walk
+from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.persistence.models import ConversationStrategy
 from pathfinder.persistence.repositories import (
     ConversationRepository,
@@ -55,7 +56,6 @@ from pathfinder.services.strategies.wdk_sync import (
     lazy_fetch_wdk_detail,
     sync_is_saved_to_wdk,
 )
-from pathfinder.services.wdk import get_strategy_api
 
 logger = get_logger(__name__)
 
@@ -123,7 +123,7 @@ class ConversationService:
             ConversationUpdate(
                 strategy_ast=payload,
                 record_type=payload.record_type,
-                step_count=len(walk_step_tree(payload.root)),
+                step_count=len(walk(payload.root)),
             ),
         )
         refreshed = await self._repo.get_with_strategy(conversation.id)
@@ -183,7 +183,7 @@ class ConversationService:
                 wdk_strategy_id_set=patch.wdk_strategy_id_set,
                 is_saved=patch.is_saved,
                 is_saved_set=patch.is_saved_set,
-                step_count=len(walk_step_tree(payload.root)) if payload else None,
+                step_count=len(walk(payload.root)) if payload else None,
             ),
         )
         found = await self._repo.get_with_strategy(conversation_id)

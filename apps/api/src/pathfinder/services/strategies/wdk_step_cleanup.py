@@ -1,22 +1,15 @@
 import asyncio
-from typing import Protocol, runtime_checkable
 
 from assistant_core.platform.logging import get_logger
 
+from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
 from pathfinder.platform.errors import AppError
 
 logger = get_logger(__name__)
 
 
-@runtime_checkable
-class StepDeleteAPI(Protocol):
-    async def delete_step(
-        self, step_id: int, *, user_id: str | None = None
-    ) -> None: ...
-
-
 async def delete_orphaned_wdk_steps(
-    api: StepDeleteAPI,
+    api: StrategyAPI,
     wdk_step_ids: list[int],
 ) -> list[int]:
     """Delete orphaned WDK step rows in parallel. Returns ids that failed.

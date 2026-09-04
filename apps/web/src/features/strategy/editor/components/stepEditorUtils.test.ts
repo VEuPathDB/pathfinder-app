@@ -11,11 +11,11 @@ describe("extractSpecVocabulary", () => {
   });
 
   it("returns undefined when vocabulary is absent", () => {
-    expect(extractSpecVocabulary({})).toBeUndefined();
+    expect(extractSpecVocabulary({})).toEqual(undefined);
   });
 
   it("returns undefined when vocabulary is null", () => {
-    expect(extractSpecVocabulary({ vocabulary: null })).toBeUndefined();
+    expect(extractSpecVocabulary({ vocabulary: null })).toEqual(undefined);
   });
 
   it("returns empty array vocabulary as-is", () => {

@@ -5,7 +5,7 @@ import { ArrowDownIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 
 import { Button } from "@/components/ui/button";
-import { THREAD_BLOCK_GAP } from "@/lib/components/thread/rhythm";
+import { THREAD_BLOCK_GAP } from "@/components/ai-elements/rhythm";
 import { cn } from "@/lib/utils/cn";
 
 export type ConversationProps = ComponentProps<typeof ThreadPrimitive.Viewport>;

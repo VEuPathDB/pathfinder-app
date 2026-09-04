@@ -18,6 +18,7 @@ describe("ShortcutsOverlay", () => {
 
   it("does not render content when closed", () => {
     render(<ShortcutsOverlay open={false} onOpenChange={vi.fn()} />);
-    expect(screen.queryByText("Keyboard shortcuts")).toBeNull();
+    expect(screen.queryAllByRole("dialog")).toHaveLength(0);
+    expect(screen.queryAllByText("Keyboard shortcuts")).toHaveLength(0);
   });
 });

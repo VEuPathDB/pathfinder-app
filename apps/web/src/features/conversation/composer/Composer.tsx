@@ -29,9 +29,13 @@ import {
   VeupathdbSignInRequired,
   useVeupathdbSignedIn,
 } from "./VeupathdbSignInRequired";
-import { formatTokens, formatCost, formatUsage } from "@/lib/utils/usageFormat";
-import { aggregateSessionUsage } from "@/lib/utils/sessionUsage";
-import { useChatHelpersOptional } from "@/features/conversation/runtime/chatHelpersContext";
+import {
+  formatTokens,
+  formatCost,
+  formatUsage,
+} from "@/features/conversation/usageFormat";
+import { aggregateSessionUsage } from "@/features/conversation/sessionUsage";
+import { useChatHelpers } from "@/features/conversation/runtime/chatHelpersContext";
 import {
   Tooltip,
   TooltipContent,
@@ -47,8 +51,8 @@ export function stopClickBlocked(lastSendAt: number, now: number): boolean {
 }
 
 function ConversationUsageFooter() {
-  const chat = useChatHelpersOptional();
-  const usage = aggregateSessionUsage(chat?.messages ?? []);
+  const chat = useChatHelpers();
+  const usage = aggregateSessionUsage(chat.messages);
   if (usage.totalTokens === 0 && usage.totalCost === 0) return null;
   return (
     <div className="flex items-center gap-2 px-1 pt-1">

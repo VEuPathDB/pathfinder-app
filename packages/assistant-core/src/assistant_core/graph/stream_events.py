@@ -127,9 +127,16 @@ def memory_retrieved_event(*, memories: list[StoredMemory]) -> DataChunk:
     )
 
 
+class ScratchpadUpdatedPayload(CamelModel):
+    """Payload of the scratchpad-updated chunk. The signal is the part itself."""
+
+
 def scratchpad_updated_event() -> DataChunk:
     """Tell the client to invalidate its scratchpad query."""
-    return DataChunk(type="data-scratchpad-updated", data={})
+    return DataChunk(
+        type="data-scratchpad-updated",
+        data=ScratchpadUpdatedPayload().model_dump(by_alias=True, mode="json"),
+    )
 
 
 def turn_usage_event(*, total_tokens: int, cost_usd: str) -> DataChunk:

@@ -13,7 +13,6 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.turn_briefing import compose_turn_briefing
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.domain.strategy.staleness import detect_build_staleness
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.services.conversations.thread_activity import read_thread_activity
 from pathfinder.services.strategies.live_counts import read_wdk_step_counts
 
@@ -59,7 +58,7 @@ async def refresh_live_strategy_state(
     working_state = state.model_copy(deep=True)
     sync_state = context.strategy_session.sync_state
     live_counts = (
-        await read_wdk_step_counts(sync_state, get_strategy_api(context.site_id))
+        await read_wdk_step_counts(sync_state, context.site_id)
         if sync_state is not None
         else {}
     )

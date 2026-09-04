@@ -159,6 +159,7 @@ class TestTriggerGate:
         assert run.before_count == 3
         assert run.after_count == 1
         assert run.trigger_reason in ("count", "both")
+        assert run.model_id, "the run must record the model that compacted"
 
 
 @dataclass

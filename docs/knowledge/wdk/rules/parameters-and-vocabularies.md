@@ -15,7 +15,7 @@ status: stable
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/core/api/JsonKeys.java#L147-L157
 - anchor: apps/api/src/pathfinder/domain/parameters/values.py:ParamKind
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_wdk_param_kinds.py::test_wdk_param_001_display_type_is_a_separate_axis
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_value_codec_wire.py::test_wdk_param_001_display_type_is_a_separate_axis
 
 `JsonKeys` declares exactly eleven `*_PARAM_TYPE` constants, and
 [`ParamFormatterFactory`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/param/ParamFormatterFactory.java#L18-L55)
@@ -48,7 +48,7 @@ PathFinder's `ParamKind` is exactly the eleven and is correct.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L284-L286
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_models.py:WDKSearchConfig
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_wdk_wire_forms.py::test_wdk_param_002_every_kind_encodes_to_a_string
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_value_codec_wire.py::test_wdk_param_002_every_kind_encodes_to_a_string
 
 `ParameterValue` is `string` and `ParameterValues` is `Record<string, string>`.
 A `number-range`, a `date-range`, a `multi-pick-vocabulary` and a `filter` all
@@ -71,7 +71,7 @@ nothing.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AbstractEnumParam.java#L772-L804
 - anchor: apps/api/src/pathfinder/domain/parameters/values.py:SinglePickValue
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_wdk_wire_forms.py::test_wdk_param_003_a_single_pick_wire_value_is_the_bare_term
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_value_codec_wire.py::test_wdk_param_003_a_single_pick_wire_value_is_the_bare_term
 
 Internally every enum value is a JSON array.
 [`standardizeStableValue`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AbstractEnumParam.java#L748-L770)
@@ -115,7 +115,7 @@ whose test does constrain the encoding.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AbstractEnumParam.java#L748-L770
 - anchor: apps/api/src/pathfinder/domain/parameters/values.py:MultiPickValue
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_multipick_empty.py::test_non_empty_selection_still_works
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_value_codec.py::test_non_empty_selection_still_works
 
 `standardizeStableValue` catches the `JSONException` from a non-JSON value and,
 for a multi-pick parameter, falls back to `stableValue.split(",")`. The method's
@@ -162,7 +162,7 @@ rejection, and it told the user WDK had refused a payload WDK accepts.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/NumberRangeParam.java#L96-L146
 - anchor: apps/api/src/pathfinder/domain/parameters/values.py:NumberRangeValue
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_range_has_both_ends.py::TestBothEndsReachTheWire::test_an_open_top_takes_the_declared_maximum
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_canonicalize.py::TestBothEndsReachTheWire::test_an_open_top_takes_the_declared_maximum
 `NumberRangeParam.validateValue` calls `getDouble("min")` and `getDouble("max")`
 on the parsed object. A missing key throws, and the catch turns it into
 `'<value>' must be is the format {"min":<min value>,"max":<max value>}` -
@@ -182,7 +182,7 @@ clearer error on both types.
 `DateRangeValue` require only one endpoint and `to_wire` omits the absent one,
 so a range bound on one side serializes to an object WDK will reject. The
 round-trip test at
-`tests/unit/domain/parameters/test_value_round_trip.py::test_number_range_including_negative_bounds`
+`tests/unit/domain/parameters/test_values.py::test_number_range_including_negative_bounds`
 asserts the one-sided case round-trips, which it does - internally. It is not a
 conformance test, which is why this rule is `UNENFORCED`.
 
@@ -191,7 +191,7 @@ conformance test, which is why this rule is `UNENFORCED`.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/DateRangeParam.java#L154-L207
 - anchor: apps/api/src/pathfinder/domain/parameters/values.py:DateRangeValue
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_wdk_date_range_bounds.py::test_wdk_param_006_a_bound_wdk_cannot_parse_is_refused
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_values.py::test_wdk_param_006_a_bound_wdk_cannot_parse_is_refused
 
 The `try` block does two different jobs and catches only one of their failures.
 `new JSONObject(rawVal)` and `getString` throw `JSONException`, which is caught.
@@ -215,7 +215,7 @@ may simply be a date in the wrong format. `DateParam` is safe here -
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/StringParam.java#L171-L203
 - anchor: apps/api/src/pathfinder/services/catalog/_param_binding.py:is_number
-- status: PARTIAL by apps/api/src/pathfinder/tests/unit/services/catalog/test_numeric_default_binding.py
+- status: PARTIAL by apps/api/src/pathfinder/tests/unit/services/catalog/test__param_binding.py
 
 `StringParam.validateValue` parses the value as a double when `isNumber` is set,
 and `StringParamFormatter`
@@ -309,7 +309,7 @@ so it is structural rather than a value anyone chose.
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AnswerParamHandler.java#L25-L32
 - anchor: apps/api/src/pathfinder/domain/parameters/values.py:InputStepValue
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_wdk_wire_forms.py::test_wdk_param_009_an_input_step_wire_value_is_the_bare_id
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_value_codec_wire.py::test_wdk_param_009_an_input_step_wire_value_is_the_bare_id
 
 An `input-step` stable value is `Long.toString(step.getStepId())` and is read
 back with `Long.parseLong`. An `input-dataset` stable value is the dataset id
@@ -337,7 +337,7 @@ conformance column is worth exactly as much as its worst entry.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/param/ParamFormatter.java#L42-L61
 - anchor: apps/api/src/pathfinder/services/catalog/_param_binding.py:_scalar_default
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_hidden_fill_is_reported.py::TestItAgreesWithTheFill::test_the_report_matches_what_the_fill_added
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_specs.py::TestTheReportAgreesWithTheFill::test_the_report_matches_what_the_fill_added
 `ParamFormatter.getBaseJson` writes the key from
 `_param.getExternalStableValue(spec.get().get(_param.getName()))` - **the value this
 particular spec holds**, converted to external form. It is not `getXmlDefault()`.
@@ -419,7 +419,7 @@ answered 500. The 219 the visible refusal blocks stay unmeasured on purpose:
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/ParameterContainer.java#L18-L26
 - anchor: apps/api/src/pathfinder/domain/parameters/specs.py:fill_hidden_required_defaults
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_param_metadata.py::test_wdk_param_011_a_hidden_parameter_survives_normalization
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models_searches.py::test_wdk_param_011_a_hidden_parameter_survives_normalization
 
 `getRequiredParams()` returns `getParamMap()` - every parameter is a required parameter -
 and the
@@ -469,7 +469,7 @@ defaulted on every later read of the same step.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/param/TreeBoxEnumParamFormatter.java#L30-L51
 - anchor: apps/api/src/pathfinder/domain/parameters/wdk_vocab.py:WDKTreeBoxVocabNode
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/services/catalog/test_synthetic_root_is_not_offered.py::TestTheSystemRefusesIt::test_a_bare_sentinel_is_rejected
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/services/catalog/test_vocab_rendering.py::TestTheSystemRefusesIt::test_a_bare_sentinel_is_rejected
 `getVocabularyObject` returns the single real root only when there is exactly
 one and it has children. Otherwise it builds a new `EnumParamTermNode` whose
 term and display are both the constant `@@fake@@`, hangs every real root off it,
@@ -501,7 +501,7 @@ nothing. Skip the root or drop `@@fake@@` by name; there is no flag to test.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AbstractEnumParam.java#L457-L467
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/strategy_api/base.py:_expand_tree_params_to_leaves
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_tree_param_expansion.py::TestABranchBecomesItsLeaves::test_a_top_branch_expands_to_every_leaf_under_it
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_strategy_api_base.py::TestABranchBecomesItsLeaves::test_a_top_branch_expands_to_every_leaf_under_it
 
 `getNumSelected` builds the parameter tree, marks the selected terms on it, and
 returns `tree.getSelectedLeaves().size()` when the parameter is a `treeBox` with
@@ -569,7 +569,7 @@ the expansion at the WDK boundary leaves it alone for WDK to reject.
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/Param.java#L875-L894
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/wdk_parameters.py:WDKEnumParam
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_param_metadata.py::test_wdk_vocab_003_the_parents_come_from_inverting_the_map
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_models_searches.py::test_wdk_vocab_003_the_parents_come_from_inverting_the_map
 
 The model holds the edge from child to parent -
 [`AbstractDependentParam._dependedParamRefs`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AbstractDependentParam.java#L125-L153)
@@ -600,7 +600,7 @@ readable from that document, and five of the 325 return 500.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AbstractEnumParam.java#L401-L455
 - anchor: apps/api/src/pathfinder/domain/parameters/value_codec.py:coerce_context_values
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/ai/tools/test_get_parameter_options.py::TestADependentReadNeedsItsParent::test_an_unbound_parent_does_not_return_a_term_list
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/ai/tools/test_catalog_discovery_options.py::TestADependentReadNeedsItsParent::test_an_unbound_parent_does_not_return_a_term_list
 
 Validation of an enum value is set membership against the vocabulary generated
 under the *current* parent values, and nothing more. There is no record of which
@@ -641,7 +641,7 @@ both.
 - class: SILENT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/QuestionService.java#L295-L302
 - anchor: apps/api/src/pathfinder/services/catalog/param_validation.py:_refresh_dependent_vocabularies
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/services/catalog/test_refresh_returns_only_the_stale.py::TestWhatDoesNotComeBackIsLeftAlone::test_an_empty_array_changes_nothing
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/services/catalog/test_param_validation.py::TestTheRefreshAnswersWithTheStaleDependentsOnly::test_an_empty_array_changes_nothing
 
 The response is a JSON array of parameter documents, and the service builds it
 from `changedParam.getStaleDependentParams()` with an explicit instruction to
@@ -670,7 +670,7 @@ values of the ones that did come back as the values you sent
 - class: HARD
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/request/ParamValueSetRequest.java#L32-L64
 - anchor: apps/api/src/pathfinder/integrations/veupathdb/_searches.py:get_refreshed_dependent_params
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_wdk_refresh_contract.py::test_wdk_vocab_006_the_changed_value_is_a_string
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/integrations/veupathdb/test_searches.py::test_wdk_vocab_006_the_changed_value_is_a_string
 
 `ParamValueSetRequest.parse` reads `contextParamValues` with `getJSONObject` and
 `changedParam.value` with `getString`, and turns a `JSONException` into a
@@ -702,7 +702,7 @@ name: a third naming vocabulary, alongside the two in
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/EnumParamVocabInstance.java#L160-L174
 - anchor: apps/api/src/pathfinder/domain/parameters/wdk_vocab.py:WDKVocabTerm
-- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_vocabulary_parent_term.py::TestTheThirdElementIsTheParentTerm::test_the_live_parameter_parses
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/parameters/test_wdk_vocab.py::TestTheThirdElementIsTheParentTerm::test_the_live_parameter_parses
 
 `EnumParamVocabInstance.getFullVocab` writes `term`, `_termDisplayMap.get(term)`
 and `_termParentMap.get(term)`, and its own javadoc calls the row a

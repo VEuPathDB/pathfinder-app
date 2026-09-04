@@ -19,8 +19,8 @@ import { StepEdge } from "@/features/strategy/graph/components/edges/StepEdge";
 import { ValidationAlert } from "@/features/strategy/graph/components/ValidationAlert";
 import { useStrategyGraphCtx } from "@/features/strategy/graph/StrategyGraphContext";
 import { isNodeToolbarOrMenuTarget } from "@/features/strategy/graph/nodeClickTarget";
-import { usePrefersReducedMotion } from "@/lib/hooks/usePrefersReducedMotion";
-import { findOrphanSteps } from "@/lib/strategyGraph";
+import { usePrefersReducedMotion } from "@/features/strategy/graph/usePrefersReducedMotion";
+import { findOrphanSteps } from "@/features/strategy/graph";
 import { useStrategyStore } from "@/state/strategy/store";
 
 const NODE_TYPES: NodeTypes = {
@@ -149,7 +149,6 @@ export function StrategyGraphLayout() {
               selectedCount={g.selectedNodeIds.length}
               onCombine={g.handleStartCombineFromSelection}
               onOrtholog={g.handleStartOrthologTransformFromSelection}
-              onAddToChat={g.handleAddSelectionToChat}
             />
           </Panel>
         )}

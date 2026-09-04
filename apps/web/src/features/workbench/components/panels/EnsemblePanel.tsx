@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Layers, Loader2 } from "lucide-react";
-import { Button } from "@/lib/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { requestJson } from "@/lib/api/http";
 import { ensembleScoreSchema } from "@pathfinder/shared/generated/zod/ensembleScoreSchema";
 import type { EnsembleScore } from "@pathfinder/shared/generated/types/EnsembleScore";
@@ -11,7 +11,7 @@ import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 import { GeneChipInput } from "../GeneChipInput";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { useSessionStore } from "@/state/useSessionStore";
-import { useGeneSetsQuery } from "@/lib/query/hooks/useGeneSetsQuery";
+import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
 
 const EnsembleScoreListSchema = z.array(ensembleScoreSchema);
 

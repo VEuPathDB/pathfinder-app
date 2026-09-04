@@ -28,7 +28,7 @@ class SyncPausedError extends Error {
 }
 
 export const APPLY_OPERATION_MUTATION_KEY = ["strategy", "operation"] as const;
-export const APPLY_OPERATION_SCOPE_ID = "strategy-operation";
+const APPLY_OPERATION_SCOPE_ID = "strategy-operation";
 
 export function useApplyOperation(conversationId: string) {
   const queryClient = useQueryClient();

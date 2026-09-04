@@ -29,7 +29,7 @@ export async function createApiClient(
 
 export type ApiClient = APIRequestContext;
 
-export interface PersistedMessage {
+interface PersistedMessage {
   role: "user" | "assistant";
   content: string;
 }

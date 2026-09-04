@@ -1,17 +1,6 @@
-"""Scoring, analysis, and serialization helpers for parameter optimization."""
+"""Objective scoring for parameter sweeps."""
 
-import warnings
-
-import optuna
-from assistant_core.platform.logging import get_logger
-
-from pathfinder.services.parameter_optimization.config import (
-    OptimizationConfig,
-    ParameterSpec,
-    TrialResult,
-)
-
-logger = get_logger(__name__)
+from pathfinder.services.parameter_optimization.config import OptimizationConfig
 
 _DEFAULT_TOTAL_GENES = 20_000
 """The denominator used when the total gene count is unknown."""
@@ -87,61 +76,3 @@ def _compute_score(
         base = max(base - penalty, 0.0)
 
     return base
-
-
-def _compute_sensitivity(
-    param_specs: list[ParameterSpec],
-    study: optuna.Study | None = None,
-) -> dict[str, float]:
-    """Returns the importance of each parameter, from 0 to 1. A study with too few
-    completed trials returns zeros."""
-    param_names = [p.name for p in param_specs]
-    zeros = dict.fromkeys(param_names, 0.0)
-
-    completed = (
-        [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
-        if study is not None
-        else []
-    )
-    if len(completed) < _MIN_COMPLETED_TRIALS:
-        return zeros
-
-    try:
-        with warnings.catch_warnings():
-            # The evaluator is experimental and warns on every use.
-            warnings.filterwarnings("ignore", message="PedAnova")
-            evaluator = optuna.importance.PedAnovaImportanceEvaluator()
-            importances = optuna.importance.get_param_importances(
-                study,
-                evaluator=evaluator,
-                params=param_names,
-                normalize=True,
-            )
-        # The evaluator can omit a parameter, so every name gets an entry here.
-        return {name: importances.get(name, 0.0) for name in param_names}
-    except ValueError, TypeError, RuntimeError:
-        logger.debug(
-            "PED-ANOVA importance estimation failed, returning zeros",
-            exc_info=True,
-        )
-        return zeros
-
-
-def _compute_pareto_frontier(trials: list[TrialResult]) -> list[TrialResult]:
-    """Returns the non-dominated trials. The two objectives are maximum recall and
-    minimum false positive rate."""
-    valid = [
-        t for t in trials if t.recall is not None and t.false_positive_rate is not None
-    ]
-    if not valid:
-        return []
-
-    valid.sort(key=lambda t: t.recall or 0, reverse=True)
-    frontier: list[TrialResult] = []
-    best_fpr = float("inf")
-    for t in valid:
-        fpr = t.false_positive_rate or 0
-        if fpr <= best_fpr:
-            frontier.append(t)
-            best_fpr = fpr
-    return frontier

@@ -34,11 +34,6 @@ export class WorkbenchSidebarPage {
     await this.filterInput.fill(query);
   }
 
-  /** Get a gene set card by its name. */
-  geneSetCard(name: string): Locator {
-    return this.page.getByRole("button", { name }).locator("..");
-  }
-
   /** Activate a gene set by clicking its name.
    *  The card's name span carries the set name as its title, so a derived set
    *  whose name contains this one does not match. */
@@ -54,13 +49,6 @@ export class WorkbenchSidebarPage {
     await this.page
       .getByRole("checkbox", { name: new RegExp(`select ${name}`, "i") })
       .check();
-  }
-
-  /** Deselect a gene set checkbox. */
-  async deselectSet(name: string) {
-    await this.page
-      .getByRole("checkbox", { name: new RegExp(`select ${name}`, "i") })
-      .uncheck();
   }
 
   /** Perform a compose bar set operation (union/intersect/minus).
@@ -80,12 +68,6 @@ export class WorkbenchSidebarPage {
       name: /select/i,
     });
     await expect(checkboxes).toHaveCount(count);
-  }
-
-  async expectActiveSet(name: string) {
-    await expect(
-      this.page.locator(".bg-muted").filter({ hasText: name }),
-    ).toBeVisible();
   }
 
   /** Verify a gene set card shows a specific gene count number. */

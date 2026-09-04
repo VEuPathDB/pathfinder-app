@@ -7,8 +7,8 @@ from typing import Annotated, Literal
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import ConfigDict, Discriminator, Field
-from shared_py.stream_parts.eda import EdaAnalysisState, EdaEffectDirection
 
+from pathfinder.domain.eda_parts import EdaAnalysisState, EdaEffectDirection
 from pathfinder.services.eda import EdaComputationDescriptor, EdaFilter
 from pathfinder.services.eda.compute import VolcanoThresholds
 

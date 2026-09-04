@@ -284,10 +284,6 @@ class SearchCatalog:
         """Get the ontology subcategory for a search, or None if universal."""
         return self._search_categories.get(search_name)
 
-    def get_available_categories(self) -> set[str]:
-        """Get all available searchCategory-* subcategories for this site."""
-        return self._available_categories
-
     async def get_search_details(
         self,
         client: VEuPathDBClient,

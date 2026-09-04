@@ -1,5 +1,7 @@
 "use client";
 
+import type { UIMessage } from "ai";
+
 import { getAuthHeaders } from "@/lib/api/http";
 
 export function downloadTextFile(filename: string, text: string, mime: string) {
@@ -29,19 +31,12 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
   return (await res.json()) as T;
 }
 
-export function renderChatMarkdown(messages: Array<Record<string, unknown>>): string {
+export function renderChatMarkdown(messages: UIMessage[]): string {
   const lines: string[] = ["# Pathfinder Chat Export", ""];
   for (const msg of messages) {
-    const roleRaw = msg["role"];
-    const role = typeof roleRaw === "string" ? roleRaw : "unknown";
-    lines.push(`## ${role}`);
-    const partsRaw = msg["parts"];
-    if (Array.isArray(partsRaw)) {
-      for (const part of partsRaw as Array<{ type?: string; text?: string }>) {
-        if (part.type === "text" && typeof part.text === "string") {
-          lines.push(part.text);
-        }
-      }
+    lines.push(`## ${msg.role}`);
+    for (const part of msg.parts) {
+      if (part.type === "text") lines.push(part.text);
     }
     lines.push("", "---", "");
   }

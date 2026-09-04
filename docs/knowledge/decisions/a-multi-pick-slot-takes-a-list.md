@@ -41,4 +41,4 @@ The DeRisi criterion still did not bind. With the list accepted, the failure mov
 
 # Anchor
 
-`params` on `set_criterion` in `ai/tools/standalone/frame_spec.py`. Guarded by `TestMultiValueProposals` in `tests/unit/ai/agents/test_frame_toolset.py`.
+`params` on `set_criterion` in `ai/tools/standalone/frame_spec.py`. Guarded by `test_a_proposal_reaches_the_resolver_as_the_model_wrote_it` in `tests/unit/ai/tools/test_frame_proposals.py`.

@@ -84,11 +84,11 @@ already knows the thread has no steps.
 
 # What would falsify this
 
-`apps/api/src/pathfinder/tests/unit/domain/strategy/test_saved_strategy_criterion.py`
+`apps/api/src/pathfinder/tests/unit/domain/strategy/test_operational_spec_saved.py`
 fails if a saved criterion stops counting as bound, if the saved subtree stops
 landing on the secondary input with the operator mirrored, or if an open saved
 slot stops blocking the build.
-`.../tests/unit/tools/test_saved_strategy_frame.py` fails if the FRAME toolset
+`.../tests/unit/ai/tools/test_frame_saved.py` fails if the FRAME toolset
 loses the lookup, if an unknown reference stops naming the listing, or if the
 open criterion becomes droppable.
 `.../tests/integration/services/test_saved_strategy_library.py` fails if the

@@ -1,12 +1,9 @@
-import type {
-  SearchValidationPayload,
-  SearchValidationResponse,
-} from "@pathfinder/shared";
+import type { ValidationResult, ValidationResponse } from "@pathfinder/shared";
 
 export function formatSearchValidationResponse(
-  response: SearchValidationResponse | null | undefined,
+  response: ValidationResponse | null | undefined,
 ): { message: string | null; keys: Set<string> } {
-  const payload: SearchValidationPayload | null | undefined = response?.validation;
+  const payload: ValidationResult | null | undefined = response?.validation;
   if (payload?.isValid !== false) return { message: null, keys: new Set() };
 
   const general = payload.errors?.general ?? [];

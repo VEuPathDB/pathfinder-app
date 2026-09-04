@@ -5,7 +5,7 @@ import { DistributionExplorer } from "@/features/analysis";
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { useSessionStore } from "@/state/useSessionStore";
-import { useGeneSetsQuery } from "@/lib/query/hooks/useGeneSetsQuery";
+import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
 
 export function DistributionsPanel() {
   const selectedSite = useSessionStore((s) => s.selectedSite);

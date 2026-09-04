@@ -1,7 +1,5 @@
 """Converts raw WDK enrichment results into structured terms and results."""
 
-import json
-
 from assistant_core.platform.types import JSONObject
 from pydantic import JsonValue, ValidationError
 
@@ -33,56 +31,9 @@ GO_ONTOLOGY_MAP: dict[EnrichmentAnalysisType, str] = {
     "go_process": "Biological Process",
 }
 
-_REVERSE_GO_ONTOLOGY: dict[str, EnrichmentAnalysisType] = {
-    v: k for k, v in GO_ONTOLOGY_MAP.items()
-}
-
-_WDK_TO_ANALYSIS_TYPE: dict[str, EnrichmentAnalysisType] = {
-    "pathway-enrichment": "pathway",
-    "word-enrichment": "word",
-}
-
-ENRICHMENT_ANALYSIS_NAMES = frozenset(ANALYSIS_TYPE_MAP.values())
-
 _GO_ANALYSIS_TYPES: frozenset[EnrichmentAnalysisType] = frozenset(
     {"go_function", "go_component", "go_process"}
 )
-
-
-def infer_enrichment_type(
-    wdk_analysis_name: str,
-    params: JSONObject,
-    result: JsonValue,
-) -> EnrichmentAnalysisType:
-    """Infer the analysis type from a WDK analysis name.
-
-    GO enrichment needs the ontology branch, which comes from the parameters or
-    the result.
-    """
-    if wdk_analysis_name in _WDK_TO_ANALYSIS_TYPE:
-        return _WDK_TO_ANALYSIS_TYPE[wdk_analysis_name]
-
-    ontology = str(params.get("goAssociationsOntologies", ""))
-
-    # A WDK vocabulary parameter arrives as a JSON array string.
-    if ontology.startswith("["):
-        try:
-            parsed = json.loads(ontology)
-            if isinstance(parsed, list) and parsed:
-                ontology = str(parsed[0])
-        except json.JSONDecodeError, ValueError:
-            ontology = ""
-
-    if not ontology and isinstance(result, dict):
-        ontologies = result.get("goOntologies")
-        if isinstance(ontologies, list) and ontologies:
-            ontology = str(ontologies[0])
-    return _REVERSE_GO_ONTOLOGY.get(ontology, "go_process")
-
-
-def is_enrichment_analysis(wdk_analysis_name: str) -> bool:
-    """Report whether a WDK analysis name belongs to an enrichment plugin."""
-    return wdk_analysis_name in ENRICHMENT_ANALYSIS_NAMES
 
 
 def upsert_enrichment_result(
@@ -176,25 +127,3 @@ def parse_enrichment_terms(
         except ValidationError:
             continue
     return terms
-
-
-def parse_enrichment_from_raw(
-    wdk_analysis_name: str,
-    params: JSONObject,
-    result: JsonValue,
-    *,
-    analyzed_gene_count: int,
-) -> EnrichmentResult:
-    """Parse a raw WDK analysis result into an enrichment result.
-
-    The plugins publish no result-level total, so the size of the set that was
-    analyzed comes from the caller.
-    """
-    analysis_type = infer_enrichment_type(wdk_analysis_name, params, result)
-    envelope = parse_enrichment_response(result)
-    terms = parse_enrichment_terms(envelope.result_data, analysis_type)
-    return EnrichmentResult(
-        analysis_type=analysis_type,
-        terms=terms,
-        total_genes_analyzed=analyzed_gene_count,
-    )

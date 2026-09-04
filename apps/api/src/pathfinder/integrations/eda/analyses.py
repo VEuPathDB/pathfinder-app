@@ -8,7 +8,6 @@ from pathfinder.integrations.eda.client import EdaClient
 from pathfinder.integrations.eda.models import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
-    EdaAnalysisRename,
     EdaAnalysisSummary,
     EdaCreateAnalysisResponse,
     EdaNewAnalysis,
@@ -83,21 +82,6 @@ class EdaAnalysesClient:
                     by_alias=True, mode="json", exclude_none=True
                 )
             },
-        )
-
-    async def rename(
-        self,
-        *,
-        user_id: str,
-        analysis_id: str,
-        display_name: str,
-    ) -> None:
-        await self._client.request_json(
-            "PATCH",
-            f"{self._root(user_id)}/{analysis_id}",
-            json=EdaAnalysisRename(display_name=display_name).model_dump(
-                by_alias=True, mode="json"
-            ),
         )
 
     async def delete(self, *, user_id: str, analysis_id: str) -> None:

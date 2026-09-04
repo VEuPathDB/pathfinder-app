@@ -1,6 +1,6 @@
 "use client";
 
-import { CombineOperator } from "@pathfinder/shared";
+import { combineOpEnum } from "@pathfinder/shared";
 import type { ColocationParams } from "@pathfinder/shared";
 import { VennPicker } from "./components/VennPicker";
 import { ColocationEditor, resolveParams } from "./components/ColocationEditor";
@@ -18,7 +18,7 @@ export function CombineBody({
   onOperatorChange,
   onColocationChange,
 }: CombineBodyProps) {
-  const isColocate = operator === CombineOperator.COLOCATE;
+  const isColocate = operator === combineOpEnum.COLOCATE;
 
   return (
     <div className="space-y-4">

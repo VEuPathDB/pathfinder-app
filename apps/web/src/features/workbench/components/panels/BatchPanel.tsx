@@ -11,8 +11,8 @@ import {
   type BatchOrganismTarget,
 } from "@/features/workbench/api";
 import type { ExperimentRunConfig } from "@/features/workbench/api/streaming";
-import { Button } from "@/lib/components/ui/Button";
-import { useGeneSetsQuery } from "@/lib/query/hooks/useGeneSetsQuery";
+import { Button } from "@/components/ui/button";
+import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useWorkbenchStore, type PanelId } from "@/state/useWorkbenchStore";
 
@@ -82,7 +82,7 @@ export function BatchPanel() {
         { signal: controller.signal },
       )) {
         if (event.type === "experiment_progress") {
-          const raw = event.data as Record<string, unknown>;
+          const raw = event.data;
           const phase = typeof raw["phase"] === "string" ? raw["phase"] : undefined;
           if (phase !== undefined) setProgressText(phase);
         } else if (event.type === "batch_complete") {

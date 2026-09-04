@@ -3,8 +3,8 @@
 import { motion } from "motion/react";
 import type { Step } from "@pathfinder/shared";
 import { cn } from "@/lib/utils/cn";
-import { usePrefersReducedMotion } from "@/lib/hooks/usePrefersReducedMotion";
-import { STAGGER_DELAY_MS } from "@/lib/motion/presets";
+import { usePrefersReducedMotion } from "@/features/strategy/graph/usePrefersReducedMotion";
+import { STAGGER_DELAY_MS } from "@/features/strategy/graph/motion";
 import { CornerDot } from "./CornerDot";
 import { HoverActions } from "./HoverActions";
 import { InlineRename } from "./InlineRename";
@@ -24,7 +24,6 @@ type NodeShellProps = {
   height: number;
   snapshot: StepSnapshot;
   enterDelayIndex?: number | undefined;
-  onAddToChat?: ((stepId: string) => void) | undefined;
   onOpenDetails?: ((stepId: string) => void) | undefined;
   onRename?: ((stepId: string, nextName: string) => void) | undefined;
   onDuplicate?: ((stepId: string) => void) | undefined;
@@ -61,7 +60,6 @@ export function NodeShell({
   height,
   snapshot,
   enterDelayIndex,
-  onAddToChat,
   onOpenDetails,
   onRename,
   onDuplicate,
@@ -158,7 +156,6 @@ export function NodeShell({
         <span className="sr-only">{KIND_DOT_LABEL[kind]}</span>
         <HoverActions
           step={step}
-          onAddToChat={onAddToChat}
           onOpenDetails={onOpenDetails}
           onDuplicate={onDuplicate}
           onDelete={onDelete}

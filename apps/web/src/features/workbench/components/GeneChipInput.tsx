@@ -8,7 +8,7 @@ import { GeneChip, type ChipStatus } from "./GeneChip";
 import { GeneAutocomplete } from "./GeneAutocomplete";
 import { GeneSetPicker } from "./GeneSetPicker";
 import { CsvImportButton } from "./CsvImportButton";
-import { Label } from "@/lib/components/ui/Label";
+import { Label } from "@/components/ui/label";
 
 interface GeneChipInputProps {
   siteId: string;

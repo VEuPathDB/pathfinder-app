@@ -3,10 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from pathfinder.ai.scratchpad.rendering import (
-    render_scratchpad_for_phase,
-    render_scratchpad_for_supervisor,
-)
+from pathfinder.ai.scratchpad.rendering import render_scratchpad_for_phase
 from pathfinder.domain.scratchpad.models import Note
 
 
@@ -39,11 +36,6 @@ class TestEmptyState:
         assert "## Scratchpad (empty)" in out
         assert "Rule:" in out
 
-    def test_supervisor_empty_shows_index_no_rule(self) -> None:
-        out = render_scratchpad_for_supervisor([], total_count=0)
-        assert "## Scratchpad" in out
-        assert "Rule:" not in out
-
 
 class TestPopulated:
     def test_phase_lists_pinned_and_recent(self) -> None:
@@ -59,12 +51,6 @@ class TestPopulated:
         assert "Pinned A" in out
         assert "Recent A" in out
         assert "Rule:" in out
-
-    def test_supervisor_omits_rule(self) -> None:
-        notes = [_note(nid="n-x", title="T", summary="S")]
-        out = render_scratchpad_for_supervisor(notes, total_count=1)
-        assert "T" in out
-        assert "Rule:" not in out
 
     def test_total_count_shown(self) -> None:
         notes = [_note(nid="n-x", title="T", summary="S")]

@@ -154,8 +154,8 @@ describe("the thread's numbered figure captions", () => {
     expect(classesOf(caption)).toEqual(["mt-2", "text-xs", "text-muted-foreground"]);
   });
 
-  it("leaves the caption unnumbered when there are no chat helpers", () => {
-    render(<DataEdaViz data={VOLCANO} />);
+  it("leaves the caption unnumbered when the thread carries no parts", () => {
+    inThread([], <DataEdaViz data={VOLCANO} />);
     const caption = screen.getByTestId("figure-caption");
     expect(caption.textContent).toBe("1,543 of 5,511 genes retained.");
     expect(classesOf(caption)).toEqual(["mt-2", "text-xs", "text-muted-foreground"]);

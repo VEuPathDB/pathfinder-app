@@ -28,6 +28,7 @@ from pathfinder.services.eval_data.curation import (
     staged_extract,
 )
 from pathfinder.services.eval_data.extraction import extract_eval_candidates
+from pathfinder.tests._support.ledger import ledger_with
 
 pytestmark = pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
 
@@ -68,10 +69,8 @@ def _ledger_chunk(*, success: bool) -> JSONObject:
             success=success,
         ),
     )
-    chunk = ledger_update_event(ledger=section)
-    payload = chunk.model_dump(by_alias=True, mode="json", exclude_none=True)
-    payload["data"] = {"verification": payload["data"]}
-    return payload
+    chunk = ledger_update_event(ledger=ledger_with(section))
+    return chunk.model_dump(by_alias=True, mode="json", exclude_none=True)
 
 
 async def _seed_thread(

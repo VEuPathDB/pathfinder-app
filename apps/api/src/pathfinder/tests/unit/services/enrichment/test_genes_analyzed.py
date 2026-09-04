@@ -24,7 +24,6 @@ from pathfinder.integrations.veupathdb.wdk_parameters import (
     WDKStringParam,
 )
 from pathfinder.services.enrichment import service as service_module
-from pathfinder.services.enrichment.parser import parse_enrichment_from_raw
 from pathfinder.services.enrichment.service import EnrichmentService
 
 _GENE_SET_SIZE = 46
@@ -50,29 +49,6 @@ def _proteolysis_row() -> JSONObject:
 
 def _analysis_payload() -> JSONObject:
     return {"resultData": [_proteolysis_row()], "pvalueCutoff": "0.05"}
-
-
-class TestTheParserReportsTheSizeItIsGiven:
-    def test_the_analyzed_count_is_the_input_size(self) -> None:
-        result = parse_enrichment_from_raw(
-            "go-enrichment",
-            {},
-            _analysis_payload(),
-            analyzed_gene_count=_GENE_SET_SIZE,
-        )
-
-        assert result.total_genes_analyzed == _GENE_SET_SIZE
-
-    def test_the_top_terms_background_is_not_the_analyzed_count(self) -> None:
-        result = parse_enrichment_from_raw(
-            "go-enrichment",
-            {},
-            _analysis_payload(),
-            analyzed_gene_count=_GENE_SET_SIZE,
-        )
-
-        assert result.total_genes_analyzed != _TOP_TERM_BACKGROUND
-        assert result.terms[0].background_count == _TOP_TERM_BACKGROUND
 
 
 async def _analysis_form(

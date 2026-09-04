@@ -14,11 +14,7 @@ from dataclasses import dataclass
 
 from assistant_core.platform.logging import get_logger
 
-from pathfinder.domain.strategy.ast import (
-    StrategyStepNode,
-    deep_clone_with_fresh_ids,
-    generate_step_id,
-)
+from pathfinder.domain.strategy.ast import StrategyStepNode, generate_step_id
 from pathfinder.domain.strategy.graph_model import (
     StepKind,
     StrategyStep,
@@ -27,6 +23,7 @@ from pathfinder.domain.strategy.graph_model import (
 )
 from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.tree import clone_with_fresh_ids
 from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import (
@@ -93,7 +90,7 @@ async def clone_saved_strategy(
     saved_ast, wire_by_step_id = build_snapshot_from_wdk(saved)
     await canonicalize_synced_parameters(saved_ast, api, wire_by_step_id)
     return ClonedSavedStrategy(
-        root=deep_clone_with_fresh_ids(saved_ast.root),
+        root=clone_with_fresh_ids(saved_ast.root),
         name=saved.name or f"Saved strategy {saved_wdk_strategy_id}",
         record_type=saved_ast.record_type,
         wdk_strategy_id=saved_wdk_strategy_id,
@@ -118,7 +115,7 @@ def _build_new_root(
     graph.steps.update(flatten_tree(cloned_secondary))
     # The parent is read before the combine joins the graph, because the
     # combine consumes the target step and would answer as its own parent.
-    parent_info = graph.find_parent(target_step_id)
+    parent_info = graph.parent_of(target_step_id)
     combine = StrategyStep(
         id=generate_step_id(),
         kind=StepKind.COMBINE,

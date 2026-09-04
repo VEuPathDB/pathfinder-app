@@ -90,9 +90,11 @@ test.describe("Gene Set Analysis Pipeline", () => {
     await expect(
       page.getByRole("heading", { name: "Set A", exact: true, level: 1 }),
     ).toBeVisible();
+    await workbenchMainPage.expectActiveSetHeader("Set A", setACount);
 
     // Run enrichment — real WDK enrichment API call
     await workbenchMainPage.runEnrichmentAndVerifyResults();
     await workbenchMainPage.expectEnrichmentResultsWithData();
+    await workbenchMainPage.expectEnrichmentTypeTabs();
   });
 });

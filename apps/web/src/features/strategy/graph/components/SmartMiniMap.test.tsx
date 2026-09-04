@@ -46,7 +46,7 @@ describe("SmartMiniMap", () => {
 
   it("returns null when nodeCount <= 8", () => {
     const { container } = render(<SmartMiniMap nodeCount={8} />);
-    expect(container.firstChild).toBeNull();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("renders MiniMap when nodeCount > 8", () => {

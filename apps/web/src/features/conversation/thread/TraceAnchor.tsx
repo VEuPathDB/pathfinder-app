@@ -1,12 +1,8 @@
 "use client";
 
-import type { ToolUIPart, UIMessage } from "ai";
+import type { UIMessage } from "ai";
 import type { ReactElement, ReactNode } from "react";
-import {
-  buildTrace,
-  type MessagePart,
-  type TraceRowStatus,
-} from "@pathfinder/assistant-client";
+import { buildTrace, type MessagePart } from "@pathfinder/assistant-client";
 import type { DataLeadUsagePayload, DataSubAgentCallPayload } from "@pathfinder/shared";
 import { leadUsagePayloadSchema } from "@pathfinder/shared/generated/zod/leadUsagePayloadSchema";
 import { subAgentCallPayloadSchema } from "@pathfinder/shared/generated/zod/subAgentCallPayloadSchema";
@@ -16,19 +12,13 @@ import {
   Trace,
   type TraceRunView,
   type TraceUsageView,
-} from "@/lib/components/thread/Trace";
-import { TraceGroup } from "@/lib/components/thread/TraceGroup";
-import type { TraceGroupView, TraceRowView } from "@/lib/components/thread/traceTypes";
-import { humanizeToolName } from "@/lib/utils/toolNames";
+} from "@/features/conversation/thread/Trace";
+import { humanizeToolName } from "@/features/conversation/toolNames";
 
 import { ToolApprovalControls } from "../content/parts/ToolApprovalControls";
-import {
-  useChatHelpersOptional,
-  type ChatHelpers,
-} from "../runtime/chatHelpersContext";
+import { useChatHelpers, type ChatHelpers } from "../runtime/chatHelpersContext";
 import { traceRenderingKinds } from "./traceRenderingKinds";
 import { toTraceParts } from "./traceParts";
-import { toolUIState } from "./toolUIState";
 import { useThreadDevMode, type ThreadDevMode } from "./useThreadDevMode";
 
 type Run = ReturnType<typeof buildTrace>[number];
@@ -37,16 +27,6 @@ const LEAD = "lead";
 const SUB_AGENT_KIND = "data-sub-agent-call";
 const LEAD_USAGE_KIND = "data-lead-usage";
 const LIVE: readonly ChatHelpers["status"][] = ["submitted", "streaming"];
-
-const ROW_STATUS: Record<ToolUIPart["state"], TraceRowStatus> = {
-  "input-streaming": "running",
-  "input-available": "running",
-  "approval-requested": "awaiting-approval",
-  "approval-responded": "running",
-  "output-available": "ok",
-  "output-error": "error",
-  "output-denied": "denied",
-};
 
 export interface TraceAnchorProps {
   toolCallId: string;
@@ -183,50 +163,9 @@ function anchored(
   return null;
 }
 
-/** One row for one call, for a thread rendered outside a chat runtime. */
-function loneRun(props: TraceAnchorProps): TraceRunView {
-  const status = ROW_STATUS[toolUIState(props.status.type, props.result)];
-  const row: TraceRowView = {
-    key: props.toolCallId,
-    toolCallId: props.toolCallId,
-    toolName: props.toolName,
-    summary: null,
-    status,
-    input: props.args,
-    output: props.result ?? null,
-    errorText: null,
-  };
-  return {
-    groups: [
-      {
-        key: LEAD,
-        phase: LEAD,
-        rows: [row],
-        tokens: 0,
-        costUsd: "0",
-        state: "started",
-      },
-    ],
-    rowCount: 1,
-    running: status === "running" || status === "awaiting-approval",
-  };
-}
-
-function loneGroup(data: DataSubAgentCallPayload): TraceGroupView {
-  return {
-    key: data.toolCallId,
-    phase: data.phase,
-    rows: [],
-    tokens: data.tokens ?? 0,
-    costUsd: data.costUsd ?? "0",
-    state: data.state,
-  };
-}
-
 export function TraceAnchor(props: TraceAnchorProps): ReactElement | null {
-  const chat = useChatHelpersOptional();
+  const chat = useChatHelpers();
   const dev = useThreadDevMode();
-  if (chat === null) return drawRun(loneRun(props), dev, null);
   return anchored(chat, props.toolCallId, dev);
 }
 
@@ -235,20 +174,9 @@ export function SubAgentTraceAnchor({
 }: {
   data: DataSubAgentCallPayload;
 }): ReactElement | null {
-  const chat = useChatHelpersOptional();
+  const chat = useChatHelpers();
   const dev = useThreadDevMode();
   const call = readSubAgentCall(data);
   if (call === null) return null;
-  if (chat === null) {
-    return (
-      <TraceGroup
-        group={loneGroup(call)}
-        bare={false}
-        showRaw={dev.showRaw}
-        showUsage={dev.showUsage}
-        nameFor={humanizeToolName}
-      />
-    );
-  }
   return anchored(chat, call.toolCallId, dev);
 }

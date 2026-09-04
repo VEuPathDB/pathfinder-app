@@ -116,11 +116,6 @@ export function useStrategyKeyboardShortcuts({
         ctx.handleStartOrthologTransformFromSelection();
         return;
       }
-      case "@": {
-        event.preventDefault();
-        ctx.handleAddSelectionToChat();
-        return;
-      }
       case "Backspace":
       case "Delete": {
         if (ctx.selectedNodeIds.length === 0) return;

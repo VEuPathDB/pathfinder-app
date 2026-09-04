@@ -1,4 +1,3 @@
-export { listControlSets, controlSetsOptions } from "./controlSets";
 export {
   createExperimentStream,
   createBatchExperimentStream,

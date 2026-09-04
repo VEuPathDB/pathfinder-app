@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, X } from "lucide-react";
-import { Input } from "@/lib/components/ui/Input";
+import { Input } from "@/components/ui/input";
 
 interface GeneSetFilterProps {
   value: string;

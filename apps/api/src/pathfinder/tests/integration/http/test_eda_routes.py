@@ -91,9 +91,9 @@ async def eda_wired(
     patch_app_db_engine: None,
 ) -> AsyncGenerator[EdaClient]:
     del patch_app_db_engine
-    catalog.clear_study_caches()
-    client = EdaClient(base_url="https://plasmodb.org/eda")
-    client.install_transport(_route([4011, 4279]))
+    client = EdaClient(
+        base_url="https://plasmodb.org/eda", transport=_route([4011, 4279])
+    )
     for module in (catalog, authoring, compute):
         monkeypatch.setattr(module, "get_eda_client", lambda _s: client)
     # The api syncs the study index at warm-up; a route only searches it.
@@ -102,7 +102,6 @@ async def eda_wired(
     veupathdb_auth_token_ctx.reset(token)
     yield client
     await client.close()
-    catalog.clear_study_caches()
 
 
 @pytest.fixture

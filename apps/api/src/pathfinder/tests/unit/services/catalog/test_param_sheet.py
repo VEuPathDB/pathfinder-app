@@ -8,8 +8,19 @@ call the model waits on.
 from __future__ import annotations
 
 from pathfinder.domain.parameters.wdk_vocab import VocabOption
-from pathfinder.services.catalog.param_formatting import ParameterInfo
-from pathfinder.services.catalog.param_sheet import DIRECT_MAX, TOP_K, build_sheet
+from pathfinder.integrations.veupathdb.wdk_parameters import WDKEnumParam
+from pathfinder.services.catalog.param_formatting import (
+    ParameterInfo,
+    format_param_info_typed,
+)
+from pathfinder.services.catalog.param_sheet import (
+    DIRECT_MAX,
+    TOP_K,
+    SheetEntry,
+    build_sheet,
+)
+
+from .conftest import vocab_terms
 
 
 def _param(
@@ -240,3 +251,33 @@ def test_hidden_params_are_not_on_the_sheet() -> None:
     )
 
     assert build_sheet([hidden], query="") == []
+
+
+def _dataset_entry(*pairs: tuple[str, str]) -> SheetEntry:
+    param = WDKEnumParam(
+        name="eda_dataset_id",
+        display_name="User dataset",
+        type="single-pick-vocabulary",
+        vocabulary=vocab_terms(*pairs),
+    )
+    entries = build_sheet(format_param_info_typed([param]), query="my phenotype data")
+    assert len(entries) == 1
+    return entries[0]
+
+
+def test_the_sheet_offers_no_value_when_the_vocabulary_is_the_sentinel() -> None:
+    entry = _dataset_entry(
+        ("EDAUD_slI5M0RwIg0Zw", "Upload a Phenotype User Dataset in My Workspace")
+    )
+
+    assert entry.vocabulary == []
+    assert entry.vocabulary_total == 0
+    assert entry.vocabulary_note is not None
+    assert "no installed dataset" in entry.vocabulary_note
+
+
+def test_the_sheet_keeps_a_real_one_dataset_vocabulary() -> None:
+    entry = _dataset_entry(("EDAUD_realid", "My RNA-Seq counts"))
+
+    assert [option.value for option in entry.vocabulary] == ["EDAUD_realid"]
+    assert entry.vocabulary_note is None

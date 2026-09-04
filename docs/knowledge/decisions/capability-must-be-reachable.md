@@ -33,4 +33,4 @@ Every unit test of `compare_variants_scored` keeps passing if the `Tool(...)` li
 
 # Anchor
 
-`ai/lead/lead_agent.py` tool list and the docstring of `compare_search_variants`. Guarded by `tests/unit/ai/tools/test_scored_comparison_tool.py`.
+`ai/lead/lead_agent.py` tool list and the docstring of `compare_search_variants`. Guarded by `tests/unit/ai/tools/test_scored_comparison.py`.

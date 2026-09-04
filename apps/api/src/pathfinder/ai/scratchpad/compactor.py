@@ -15,7 +15,10 @@ from pathfinder.ai.agents.compactor import (
 )
 from pathfinder.domain.scratchpad.ids import approx_body_tokens
 from pathfinder.domain.scratchpad.models import CompactionRun, Note, NoteCreate
-from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
+from pathfinder.services.conversations.scratchpad_service import (
+    CompactionFacts,
+    ScratchpadNotebook,
+)
 
 logger = get_logger(__name__)
 
@@ -64,33 +67,20 @@ async def maybe_compact_scratchpad(
     scratchpad design review.
     """
     del user_id
-    async with db_session_factory() as session:
-        repo = ScratchpadRepository(session)
-        compactable_count, compactable_tokens = await repo.compactable_totals(
-            conversation_id=conversation_id,
-        )
-        total_count, total_tokens = await repo.totals(
-            conversation_id=conversation_id,
-        )
+    notebook = ScratchpadNotebook(db_session_factory, conversation_id)
+    totals = await notebook.compaction_totals()
 
-    over_count = compactable_count > COMPACT_COUNT_THRESHOLD
-    over_tokens = compactable_tokens > COMPACT_TOKENS_THRESHOLD
+    over_count = totals.compactable_count > COMPACT_COUNT_THRESHOLD
+    over_tokens = totals.compactable_tokens > COMPACT_TOKENS_THRESHOLD
     if not over_count and not over_tokens:
         return None
     reason: Literal["count", "tokens", "both"] = (
         "both" if over_count and over_tokens else ("count" if over_count else "tokens")
     )
 
-    async with db_session_factory() as session:
-        repo = ScratchpadRepository(session)
-        non_pinned = await repo.list_notes(
-            conversation_id=conversation_id,
-            pinned=False,
-            limit=1000,
-        )
+    non_pinned = await notebook.notes_to_compact()
 
     agent = build_compactor_agent(model_id=None)
-    model_id: str | None = None
     deps = CompactorDeps(
         input_notes_markdown=_format_notes_for_compactor(non_pinned),
     )
@@ -120,38 +110,27 @@ async def maybe_compact_scratchpad(
         provider_url=response.provider_url,
     )
 
-    async with db_session_factory() as session:
-        repo = ScratchpadRepository(session)
-        await repo.replace_non_pinned(
-            conversation_id=conversation_id,
-            new_notes=trimmed,
-        )
-        new_count, new_tokens = await repo.totals(
-            conversation_id=conversation_id,
-        )
-        run = CompactionRun(
-            conversation_id=conversation_id,
+    run = await notebook.commit_compaction(
+        trimmed,
+        CompactionFacts(
             triggered_at=datetime.now(UTC),
-            before_count=total_count,
-            after_count=new_count,
-            before_tokens=total_tokens,
-            after_tokens=new_tokens,
-            model_id=model_id or "",
+            before_count=totals.total_count,
+            before_tokens=totals.total_tokens,
+            model_id=response.model_name or "",
             cost_usd=cost,
             trigger_reason=reason,
-        )
-        await repo.log_compaction(run=run)
-        await session.commit()
+        ),
+    )
 
     logger.info(
         "scratchpad compaction completed",
         conversation_id=str(conversation_id),
-        before_count=total_count,
-        after_count=new_count,
-        before_tokens=total_tokens,
-        after_tokens=new_tokens,
+        before_count=run.before_count,
+        after_count=run.after_count,
+        before_tokens=run.before_tokens,
+        after_tokens=run.after_tokens,
         trigger_reason=reason,
-        model_id=model_id or "",
+        model_id=run.model_id,
         cost_usd=str(cost),
     )
     return run

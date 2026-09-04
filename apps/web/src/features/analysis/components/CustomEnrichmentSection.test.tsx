@@ -7,10 +7,10 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 
-import { runCustomEnrichment } from "@/lib/api/analysis";
+import { runCustomEnrichment } from "@/features/analysis/api/compute";
 import { CustomEnrichmentSection } from "./CustomEnrichmentSection";
 
-vi.mock("@/lib/api/analysis", () => ({ runCustomEnrichment: vi.fn() }));
+vi.mock("@/features/analysis/api/compute", () => ({ runCustomEnrichment: vi.fn() }));
 
 const mockRun = vi.mocked(runCustomEnrichment);
 

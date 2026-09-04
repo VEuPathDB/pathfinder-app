@@ -18,7 +18,6 @@ from pydantic import (
     Discriminator,
     Field,
     JsonValue,
-    TypeAdapter,
 )
 from pydantic.alias_generators import to_camel
 
@@ -58,11 +57,6 @@ class EdaModel(CamelModel):
 class EdaVariableSpec(EdaModel):
     entity_id: str
     variable_id: str
-
-
-class EdaCollectionSpec(EdaModel):
-    entity_id: str
-    collection_id: str
 
 
 EdaSourceType = Literal["curated", "user_submitted"]
@@ -453,12 +447,6 @@ class EdaAnalysisDetail(EdaAnalysisSummary):
     )
 
 
-class EdaAnalysisRename(EdaModel):
-    """The ``PATCH .../{analysisId}`` body that changes only the label."""
-
-    display_name: AnalysisDisplayName
-
-
 class EdaCreateAnalysisResponse(EdaModel):
     analysis_id: str
 
@@ -535,30 +523,3 @@ class EdaDistributionResponse(EdaModel):
     statistics: EdaDistributionStatistics = Field(
         default_factory=EdaDistributionStatistics,
     )
-
-
-class EdaVisualizationOverview(EdaModel):
-    name: str
-    display_name: str = ""
-    description: str = ""
-    projects: list[str] = Field(default_factory=list)
-    max_panels: int = 1
-
-
-class EdaAppInfo(EdaModel):
-    """An app with no ``computeName`` is a pass-through and takes no computeConfig."""
-
-    name: str
-    display_name: str = ""
-    description: str = ""
-    projects: list[str] = Field(default_factory=list)
-    compute_name: str | None = None
-    visualizations: list[EdaVisualizationOverview] = Field(default_factory=list)
-
-
-class EdaAppsResponse(EdaModel):
-    apps: list[EdaAppInfo] = Field(default_factory=list)
-
-
-TABULAR_JSON: TypeAdapter[list[list[str]]] = TypeAdapter(list[list[str]])
-"""The JSON tabular body is a bare array of arrays, header row first."""

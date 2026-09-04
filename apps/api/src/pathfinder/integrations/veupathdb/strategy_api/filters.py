@@ -14,13 +14,6 @@ from pathfinder.integrations.veupathdb.wdk_models import WDKFilterValue
 class StepFilterMixin(StrategyAPIBase):
     """Mixin providing step filter reads and writes via searchConfig.filters."""
 
-    async def list_step_filters(
-        self, step_id: int, user_id: str | None = None
-    ) -> list[WDKFilterValue]:
-        """List a step's filters, read from ``searchConfig.filters``."""
-        uid = await self._get_user_id(user_id)
-        return await self.client.get_step_filters(uid, step_id)
-
     async def set_step_filter(
         self,
         step_id: int,

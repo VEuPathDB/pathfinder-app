@@ -5,8 +5,8 @@ import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { NodeShell } from "./NodeShell";
 import type { StepNodeProps } from "./types";
 
-export const SEARCH_NODE_WIDTH = 168;
-export const SEARCH_NODE_HEIGHT = 64;
+const SEARCH_NODE_WIDTH = 168;
+const SEARCH_NODE_HEIGHT = 64;
 
 export function SearchNode(props: StepNodeProps) {
   const {
@@ -16,7 +16,6 @@ export function SearchNode(props: StepNodeProps) {
     isOrphan = false,
     showOutputHandle = false,
     enterDelayIndex,
-    onAddToChat,
     onOpenDetails,
     onRename,
     onDuplicate,
@@ -35,7 +34,6 @@ export function SearchNode(props: StepNodeProps) {
       height={SEARCH_NODE_HEIGHT}
       snapshot={snapshot}
       enterDelayIndex={enterDelayIndex}
-      onAddToChat={onAddToChat}
       onOpenDetails={onOpenDetails}
       onRename={onRename}
       onDuplicate={onDuplicate}

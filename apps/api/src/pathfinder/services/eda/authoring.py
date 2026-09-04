@@ -6,11 +6,11 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from assistant_core.platform.types import JSONArray
-from shared_py.stream_parts.eda import EdaDistributionSeries, EdaEntityCount
 
 from pathfinder.domain.eda import validate_filters
 from pathfinder.domain.eda_compute_config import validate_compute_config
 from pathfinder.domain.eda_filter_checks import DeclaredRanges
+from pathfinder.domain.eda_parts import EdaDistributionSeries, EdaEntityCount
 from pathfinder.domain.eda_study import entity_by_id, walk_entities
 from pathfinder.integrations.eda.factory import (
     get_eda_analyses_client,

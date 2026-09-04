@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Table } from "@tanstack/react-table";
-import { Button } from "@/lib/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import type { ClassifiedRecord } from "@pathfinder/shared/generated/types/ClassifiedRecord";
 import { PAGE_SIZE_OPTIONS } from "./ResultsTableColumns";
 

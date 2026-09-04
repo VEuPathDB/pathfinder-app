@@ -5,7 +5,6 @@ import json
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import Any
 from uuid import UUID
 
 from assistant_core.platform.logging import get_logger
@@ -24,12 +23,13 @@ from pathfinder.platform.errors import sanitize_error_for_client
 from pathfinder.services.experiment.materialization import (
     _materialize_step_tree,
 )
-from pathfinder.services.experiment.seed.seeds import (
+from pathfinder.services.experiment.seed.catalog import (
     get_all_seeds,
     get_seeds_for_site,
 )
 from pathfinder.services.experiment.seed.types import (
     SeedComplete,
+    SeedDef,
     SeedEvent,
     SeedItemError,
     SeedProgress,
@@ -86,14 +86,14 @@ class _SeedRunContext:
     total: int
     semaphore: asyncio.Semaphore
     queue: asyncio.Queue[SeedEvent | None]
-    conv_repo: Any
-    control_set_repo: Any
+    conv_repo: ConversationRepository
+    control_set_repo: ControlSetRepository
     user_id: UUID
 
 
 async def _process_single_seed(
     i: int,
-    seed: Any,
+    seed: SeedDef,
     ctx: _SeedRunContext,
 ) -> tuple[bool, bool]:
     """Create one seed strategy and its control set."""

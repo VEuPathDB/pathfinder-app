@@ -19,11 +19,9 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.integrations.veupathdb.auth_login import clear_oauth_signing_key_cache
+from pathfinder.integrations.veupathdb.factory import get_site
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.security import decode_user_id
-from pathfinder.services.wdk import get_site
-from pathfinder.services.wdk_identity import clear_veupathdb_identity_cache
 from pathfinder.tests._support.veupathdb_tokens import (
     JWKS_URL,
     OAUTH_URL,
@@ -67,8 +65,6 @@ def another_veupathdb_account(
     """A verifiable token whose WDK account is not the session's user."""
     monkeypatch.setenv("VEUPATHDB_OAUTH_URL", OAUTH_URL)
     get_settings.cache_clear()
-    clear_oauth_signing_key_cache()
-    clear_veupathdb_identity_cache()
     with respx.mock(assert_all_called=False) as router:
         router.get(JWKS_URL).mock(
             return_value=httpx.Response(200, json=jwks_body(signing_key)),
@@ -90,8 +86,6 @@ def another_veupathdb_account(
             )
         yield veupathdb_token(signing_key)
     get_settings.cache_clear()
-    clear_oauth_signing_key_cache()
-    clear_veupathdb_identity_cache()
 
 
 @pytest.fixture

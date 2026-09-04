@@ -1,44 +1,10 @@
 """Strategy build service: root resolution and result count lookup."""
 
 from dataclasses import dataclass
-from typing import Protocol
-
-from assistant_core.platform.logging import get_logger
 
 from pathfinder.domain.strategy.graph_model import StrategyStep
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.integrations.veupathdb.wdk_models import (
-    WDKStrategyDetails,
-)
-
-logger = get_logger(__name__)
-
-
-# ---------------------------------------------------------------------------
-# Protocols -- I/O boundaries
-# ---------------------------------------------------------------------------
-
-
-class StepCountAPI(Protocol):
-    """Protocol for result count lookup."""
-
-    async def get_strategy(self, strategy_id: int) -> WDKStrategyDetails: ...
-
-    async def get_step_count(self, step_id: int) -> int: ...
-
-
-class SiteInfoLike(Protocol):
-    """Protocol for site metadata needed by the build service."""
-
-    def strategy_url(
-        self, strategy_id: int, root_step_id: int | None = None
-    ) -> str: ...
-
-
-# ---------------------------------------------------------------------------
-# Result types
-# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -47,11 +13,6 @@ class StepCountResult:
 
     step_id: int
     count: int
-
-
-# ---------------------------------------------------------------------------
-# Root resolution
-# ---------------------------------------------------------------------------
 
 
 class RootResolutionError(Exception):
@@ -89,24 +50,19 @@ def resolve_root_step(
     raise RootResolutionError(msg)
 
 
-# ---------------------------------------------------------------------------
-# Result count lookup
-# ---------------------------------------------------------------------------
-
-
-async def get_estimated_size(
-    api: StepCountAPI,
+async def get_estimated_size_for_site(
+    site_id: str,
     wdk_step_id: int,
     wdk_strategy_id: int | None = None,
 ) -> StepCountResult:
     """Get the result count for a built WDK step.
 
-    First tries to read ``estimatedSize`` from the strategy payload (cheaper),
-    then falls back to a direct step count query.
+    The strategy payload carries ``estimatedSize`` and is the cheaper read; a
+    direct step count query answers when it does not.
 
-    :raises TypeError: If strategy payload is malformed.
-    :raises Exception: On WDK API errors (propagated to caller).
+    :raises AppError: On WDK API errors.
     """
+    api = get_strategy_api(site_id)
     if wdk_strategy_id is not None:
         strategy = await api.get_strategy(wdk_strategy_id)
         step = strategy.steps.get(str(wdk_step_id))
@@ -115,21 +71,3 @@ async def get_estimated_size(
 
     count = await api.get_step_count(wdk_step_id)
     return StepCountResult(step_id=wdk_step_id, count=count)
-
-
-# ---------------------------------------------------------------------------
-# Convenience entry points (resolve integrations internally)
-# ---------------------------------------------------------------------------
-
-
-async def get_estimated_size_for_site(
-    site_id: str,
-    wdk_step_id: int,
-    wdk_strategy_id: int | None = None,
-) -> StepCountResult:
-    """Get result count using factory-resolved API.
-
-    This is the entry point for the AI tool layer.
-    """
-    api = get_strategy_api(site_id)
-    return await get_estimated_size(api, wdk_step_id, wdk_strategy_id)

@@ -6,13 +6,13 @@ from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.services.gene_lookup import (
+    MAX_GENE_IDS,
     GeneResolveResult,
     GeneSearchResult,
     lookup_genes_by_text,
+    normalize_gene_ids,
     resolve_gene_ids,
 )
-
-_MAX_GENE_IDS = 200
 
 
 async def lookup_gene_records(
@@ -71,7 +71,7 @@ async def resolve_gene_ids_to_records(
         search_name: WDK search that accepts ID lists (default 'GeneByLocusTag').
         param_name: Parameter name for the ID list (default 'ds_gene_ids').
     """
-    ids = [str(x).strip() for x in (gene_ids or []) if str(x).strip()]
+    ids = normalize_gene_ids(gene_ids or [])
     if not ids:
         return with_summary(
             GeneResolveResult(records=[], total_count=0, error="No gene IDs provided."),
@@ -79,12 +79,12 @@ async def resolve_gene_ids_to_records(
             ctx=ctx,
             status="warn",
         )
-    if len(ids) > _MAX_GENE_IDS:
+    if len(ids) > MAX_GENE_IDS:
         return with_summary(
             GeneResolveResult(
                 records=[],
                 total_count=0,
-                error=f"Too many IDs (max {_MAX_GENE_IDS}). Reduce the list.",
+                error=f"Too many IDs (max {MAX_GENE_IDS}). Reduce the list.",
             ),
             f"0 of {len(ids)} ids resolved",
             ctx=ctx,

@@ -29,14 +29,6 @@ class MemoryValue(CamelModel):
     last_used_at: datetime | None = None
 
 
-class MemoryTombstone(CamelModel):
-    user_id: UUID
-    kind: str
-    content_hash: str
-    deleted_at: datetime
-    reason: TombstoneReason = "user_deleted"
-
-
 class MemoryEntryDraft(CamelModel):
     name: str = Field(
         min_length=1,

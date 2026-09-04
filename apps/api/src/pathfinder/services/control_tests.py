@@ -13,7 +13,10 @@ from pydantic import JsonValue
 from pathfinder.domain.parameters.values import ParamValue, StringValue
 from pathfinder.domain.search import SearchContext
 from pathfinder.domain.strategy.ops import DEFAULT_COMBINE_OPERATOR, CombineOp
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
+from pathfinder.integrations.veupathdb.factory import (
+    get_results_api,
+    get_strategy_api,
+)
 from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
 from pathfinder.integrations.veupathdb.value_decoding import encode_params
 from pathfinder.integrations.veupathdb.wdk_models import (
@@ -43,6 +46,7 @@ from pathfinder.services.experiment.types import (
     ControlValueFormat,
     ExperimentConfig,
 )
+from pathfinder.services.tool_payloads import ControlOutcome
 from pathfinder.services.wdk.helpers import extract_record_ids
 
 __all__ = [
@@ -52,9 +56,49 @@ __all__ = [
     "_run_intersection_control",
     "resolve_controls_param_type",
     "run_positive_negative_controls",
+    "run_step_control_tests",
 ]
 
 logger = get_logger(__name__)
+
+_MAX_REPORTED_IDS = 20
+
+
+async def run_step_control_tests(
+    site_id: str,
+    wdk_step_id: int,
+    positive_controls: list[str] | None = None,
+    negative_controls: list[str] | None = None,
+) -> ControlOutcome:
+    """Intersect an already-built step's results with the control gene lists."""
+    answer = await get_results_api(site_id).get_step_preview(wdk_step_id, limit=50000)
+    result_ids = {record.display_name for record in answer.records}
+
+    outcome = ControlOutcome(
+        step_id=wdk_step_id,
+        estimated_size=answer.meta.records_returned(),
+    )
+
+    if positive_controls:
+        positives = set(positive_controls)
+        recovered = result_ids & positives
+        outcome.positive_intersection = len(recovered)
+        outcome.positive_controls_count = len(positives)
+        outcome.positive_recall = len(recovered) / len(positives)
+        outcome.positive_intersection_ids = sorted(recovered)[:_MAX_REPORTED_IDS]
+        outcome.positive_missing_ids = sorted(positives - result_ids)[
+            :_MAX_REPORTED_IDS
+        ]
+
+    if negative_controls:
+        negatives = set(negative_controls)
+        hits = result_ids & negatives
+        outcome.negative_intersection = len(hits)
+        outcome.negative_controls_count = len(negatives)
+        outcome.negative_false_positive_rate = len(hits) / len(negatives)
+        outcome.negative_intersection_ids = sorted(hits)[:_MAX_REPORTED_IDS]
+
+    return outcome
 
 
 @dataclass

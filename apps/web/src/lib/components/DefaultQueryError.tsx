@@ -3,7 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import type { FallbackProps } from "react-error-boundary";
-import { Button } from "@/lib/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 export function DefaultQueryError({ error, resetErrorBoundary }: FallbackProps) {
   const queryClient = useQueryClient();

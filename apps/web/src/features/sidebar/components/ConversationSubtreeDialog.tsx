@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { ConversationItem } from "@/features/sidebar/components/conversationSidebarTypes";
-import { formatSidebarTime } from "@/lib/formatTime";
+import { formatSidebarTime } from "@/features/sidebar/formatTime";
 import { chatUrl } from "@/lib/routes";
 import { cn } from "@/lib/utils/cn";
 

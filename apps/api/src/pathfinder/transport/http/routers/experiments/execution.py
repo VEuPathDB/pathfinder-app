@@ -46,7 +46,7 @@ logger = get_logger(__name__)
 
 
 @router.post(
-    "/",
+    "",
     responses=SSE_RESPONSES,
 )
 @limiter.limit("20/minute")

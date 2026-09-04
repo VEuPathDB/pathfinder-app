@@ -24,11 +24,6 @@ vi.mock("@/state/strategy/useStepSnapshot", () => ({
   }),
 }));
 
-vi.mock("@/state/useRightRailStore", () => ({
-  useRightRailStore: (selector: (s: unknown) => unknown) =>
-    selector({ closePanel: vi.fn() } as unknown as Record<string, unknown>),
-}));
-
 import { strategyCanvasUrl, strategyStepUrl } from "@/lib/routes";
 import { StrategyPanel } from "./StrategyPanel";
 

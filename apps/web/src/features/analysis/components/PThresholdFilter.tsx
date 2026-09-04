@@ -1,4 +1,4 @@
-import { Label } from "@/lib/components/ui/Label";
+import { Label } from "@/components/ui/label";
 
 interface PThresholdFilterProps {
   value: number;

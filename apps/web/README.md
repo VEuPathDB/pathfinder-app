@@ -2,164 +2,150 @@
 
 Next.js UI for PathFinder. It provides:
 
-- **Chat interface**: unified streaming agent chat that researches, plans, and builds/edits strategy graphs
-- **Strategy graph editing**: visual strategy builder with drag-and-drop nodes, combine operations, and parameter editing
-- **Analysis & workbench**: experiment evaluation, enrichment analysis, cross-validation, AI-powered workbench for multi-experiment analysis
+- **Chat interface**: a durable, resumable thread that renders the agent's reply, its tool trace, its figures and its background tasks
+- **Strategy graph editing**: visual strategy builder with node/edge operations, combine steps, and parameter editing
+- **EDA and workbench**: exploratory subsetting and visualization, gene set management, enrichment and cross-validation panels
 
 ### Project structure
 
 ```
 src/
   app/                          # Next.js App Router
-    api/v1/                     #   API route proxies
-    components/                 #   App-level components (TopBar, LoginModal, Providers)
-    hooks/                      #   App-level hooks (useAuthCheck, useSidebarResize, useToasts)
-    workbench/                  #   /workbench page
-    layout.tsx                  #   Root layout
-    page.tsx                    #   Main chat/strategy page
+    [siteId]/                   #   Every user-facing route is site-scoped
+      (app)/conversation/       #     Thread, and its strategy / EDA panes
+      (app)/saved/              #     Saved strategies
+      workbench/                #     Workbench, and one page per workbench id
+    api/v1/chat/                #   The one hand-written proxy route (chat POST)
+    api/telemetry/              #   Browser telemetry sink
+    components/                 #   App-level shell components
+    hooks/                      #   App-level hooks
+    providers/                  #   Client providers (query, theme, telemetry)
+    layout.tsx page.tsx not-found.tsx
+  components/                   # Vendored primitives, not written here
+    ui/                         #   shadcn components (the `components.json` target)
+    ai-elements/                #   Vendored chat primitives
   features/                     # Feature modules (vertical slices)
-    analysis/                   #   Experiment analysis and results
-    chat/                       #   Chat UI and streaming
-      components/               #     Chat component tree:
-        UnifiedChatPanel.tsx    #       Main chat panel
-        ChatMessageList.tsx     #       Message list with auto-scroll
-        ChatEmptyState.tsx      #       Empty state with suggestions
-        MessageComposer.tsx     #       Input bar with mention autocomplete
-        message/                #       Message rendering (AssistantMessageParts, ChatMarkdown,
-                                #         MentionAutocomplete, ReasoningToggle, ToolCallInspector)
-        optimization/           #       Optimization UI (OptimizationProgressPanel, OptimizationChart,
-                                #         OptimizationTrialList, optimizationFormatters)
-        thinking/               #       Thinking/reasoning display (ThinkingPanel, ChatThinkingDetails,
-                                #         ModelPicker, SubKaniStatusIcon)
-        delegation/             #       Delegation draft viewer (DelegationDraftViewer,
-                                #         DraftSelectionBar, NodeCard)
-      handlers/                 #     SSE event handlers (message, strategy, tool events)
-      hooks/                    #     Chat-specific hooks (useChatStreaming, useGraphSnapshot,
-                                #       useThinkingState, useUnifiedChatDataLoading, etc.)
-      streaming/                #     StreamingSession -- manages SSE lifecycle
-      utils/                    #     Message parsing, graph snapshots, delegation drafts
-      data/                     #     Static chat data (suggestedQuestions.json)
-      sse_events.ts             #     SSE event type definitions
-      stream.ts                 #     Stream initiation logic
-      node_selection.ts         #     Strategy node selection from chat context
-    settings/                   #   Settings page
-      components/               #     SettingsPage, plus settings/ subdirectory
-                                #       (GeneralSettings, DataSettings, AdvancedSettings,
-                                #       SettingsField)
-    sidebar/                    #   Navigation sidebar
-      components/               #     ConversationSidebar, ConversationList, modals
-      hooks/                    #     Sidebar data and action hooks
-      services/                 #     Strategy sidebar workflows
-      utils/                    #     Strategy items, helpers
-    sites/                      #   Site selection and theming
-      components/               #     Site picker UI
-      hooks/                    #     Site data hooks
-      siteBanners.ts            #     Per-site banner config
-      siteTheme.ts              #     Per-site color themes
+    analysis/                   #   Enrichment, distribution and validation panels
+    conversation/               #   The thread
+      ChatShell -> ChatView -> ChatThread   # the three components a page mounts
+      api/                      #     Query options for the thread's own endpoints
+      composer/                 #     Input bar and its gates (quota, sign-in)
+      slash/                    #     Slash-command popover, parser and registry
+      content/                  #     Message part renderers; contentComponents.ts is the map
+        parts/                  #       One component per data-* kind that draws something
+      thread/                   #     Trace, figures, task rows, approval card
+      rail/                     #     Right rail: ledger, tasks, memories, scratchpad, strategy, EDA
+      runtime/                  #     assistant-ui runtime wiring and chat helpers context
+      data/                     #     Static thread data
+    eda/                        #   EDA workbench, study picker, filters, compute config
+    saved/                      #   Saved strategy library
+    settings/                   #   Settings modal (model, tiers, privacy, data, memory, seeding)
+    sidebar/                    #   Conversation sidebar and its subtree dialogs
+    sites/                      #   Site selection, banners, per-site theming
     strategy/                   #   Strategy graph and step editing
-      editor/                   #     StepEditor and editor components
-      graph/                    #     StrategyGraph visualization (dagre + ReactFlow)
-        components/             #       Graph nodes, edges, layout, modals, toolbar
-        hooks/                  #       Split graph hooks:
-                                #         useStrategyGraph, useStrategyGraphNodes,
-                                #         useStrategyGraphHandlers, useStrategyGraphLayout,
-                                #         useGraphConnections, useGraphSelection, useGraphSave,
-                                #         useAutoFitView, useUndoRedoHotkeys, etc.
-        utils/                  #       Graph layout, node deletion, ortholog insert logic
-      hooks/                    #     useBuildStrategy
+      graph/                    #     ReactFlow canvas; elkjs layout; serialize/deserialize
+      editor/                   #     Step editor: bodies, widgets, schema, patch building
+      operations/               #     The typed graph operation algebra and its wire form
+      mutations/                #     React Query mutations for every graph edit
       parameters/               #     Parameter coercion and spec helpers
-      services/                 #     openAndHydrateDraftStrategy, step counts, WDK URL
-      utils/                    #     Draft summaries
       validation/               #     Save validation, formatting, zero-result advisor
-    workbench/                  #   AI workbench for multi-experiment analysis
-  lib/                          # Shared utilities (not feature-specific)
-    api/                        #   Split API client:
-                                #     http.ts (base HTTP), client.ts (main client),
-                                #     auth.ts, errors.ts, strategies.ts, genes.ts,
-                                #     models.ts, plans.ts, sites.ts, veupathdb-auth.ts
-    components/ui/              #   Reusable UI primitives (Button, Card, Badge, Tooltip,
-                                #     Input, Label, Progress, Skeleton, Stepper, etc.)
-    errors/                     #   AppError class
-    hooks/                      #   Shared hooks (usePrevious)
-    strategyGraph/              #   Strategy graph serialization, deserialization, display names
-    types/                      #   Shared TypeScript type helpers (refs)
-    utils/                      #   cn (classnames), isRecord, chartTheme, asyncAction
-    sse.ts                      #   Low-level SSE parsing
-    formatTime.ts               #   Time formatting utility
+      services/ hooks/ page/
+    workbench/                  #   Multi-panel analysis over gene sets and experiments
+  lib/                          # Shared, not feature-specific
+    api/                        #   http.ts (base request + Zod validation), client.ts,
+                                #     conversations.ts, strategy.ts, sites.ts, errors.ts,
+                                #     veupathdb-auth.ts
+    query/                      #   React Query client, keys, hooks, invalidation, test helpers
+    components/                 #   Shared shells (QueryBoundary, Modal, spinners, charts)
+    color/ config/ eda/ errors/ hooks/ markdown/ models/ parameters/ sse/ telemetry/ types/ utils/
   state/                        # Global state (Zustand stores)
-    useSessionStore.ts          #   Chat session state (messages, model)
+    useSessionStore.ts          #   Chat session state
     useSettingsStore.ts         #   User preferences
+    useWorkbenchStore.ts        #   Workbench panels and context
+    useRightRailStore.ts        #   Right rail selection
+    useAuthGateStore.ts         #   Login gate
+    eda.ts                      #   EDA analysis state
     useStrategySelectors.ts     #   Strategy selector hooks
-    useStrategyStore.ts         #   Active strategy state (facade)
-    strategy/                   #   Sliced strategy store
-      store.ts                  #     Core strategy store
-      draftSlice.ts             #     Draft strategy slice
+    strategy/                   #   Composed strategy store
+      store.ts                  #     Store, plus the draft and meta state
       historySlice.ts           #     History/undo-redo slice
-      listSlice.ts              #     Strategy list (sidebar)
-      metaSlice.ts              #     Strategy metadata slice
-      types.ts                  #     Type definitions
-      helpers.ts                #     Helper functions
-  styles/                       # Global CSS
-    globals.css                 #   Tailwind imports and global styles
-  typings/                      # Ambient type declarations
-    dagre.d.ts                  #   Dagre graph layout types
-    remark-gfm.d.ts             #   Remark GFM plugin types
+      lifecycleSlice.ts         #     Per-step lifecycle machine snapshots
+      stepMachine.ts            #     The XState machine one step runs
+      selectors.ts types.ts useStepSnapshot.ts
+  styles/globals.css            # Tailwind imports and global styles
+  typings/remark-gfm.d.ts       # Ambient type declarations
 ```
 
 ### Key patterns
 
-**Feature-based organization**: Each feature (`chat`, `strategy`, `sidebar`, `analysis`, `workbench`, `sites`, `settings`) is a self-contained module with its own components, hooks, services, and utilities. Cross-feature imports go through `lib/` or `state/`.
+**Feature-based organization**: each feature is a self-contained module with its own components,
+hooks, services and utilities. Cross-feature imports go through `lib/` or `state/`, and
+`scripts/check-boundaries.mjs` fails a build that breaks the rule.
 
-**Unified agent**: There is no separate plan/execute mode. The backend agent autonomously decides when to research, think, or act. The chat UI streams the agent's output and renders tool calls, thinking steps, and strategy mutations in a single conversation flow.
+**Generated types, not hand-written ones**: request and response types come from
+`@pathfinder/shared`, whose `src/generated/{types,zod,hooks}` is produced by Kubb from
+`packages/spec/openapi.json`. A type the backend changed is a compile error here, not a runtime
+surprise. Do not hand-edit anything under `generated/`.
 
-**State management**: [Zustand](https://github.com/pmndrs/zustand) stores in `state/` hold global state. The strategy store is split into domain-specific slices (`draftSlice`, `historySlice`, `listSlice`, `metaSlice`) in `state/strategy/`, combined via a facade store (`useStrategyStore`). Selector hooks live in `useStrategySelectors.ts`. Session and settings each have their own top-level store.
+**State management**: [Zustand](https://github.com/pmndrs/zustand) stores in `state/` hold global
+state. The strategy store in `state/strategy/store.ts` holds the draft and meta state directly and
+composes the history and lifecycle slices. Selector hooks live in `useStrategySelectors.ts`.
+Server state is React Query's, not Zustand's.
 
-**SSE streaming**: The chat uses Server-Sent Events. `features/chat/streaming/StreamingSession.ts` manages the connection lifecycle, and `features/chat/sse_events.ts` defines the event types. Events are dispatched to handlers that update Zustand stores.
+**The thread is durable**: chat streams over SSE from a durable event log.
+`@ai-sdk/react`'s `useChat()` runs through `DurableChatTransport` from
+`@pathfinder/assistant-client/ai-sdk`, which reads frames strictly, resumes from a stored cursor,
+and replays a snapshot when there is no turn in flight. Closing the tab loses nothing.
 
-**Strategy graph**: Strategy graphs are visualized using [ReactFlow](https://reactflow.dev/) with [dagre](https://github.com/dagrejs/dagre) for automatic layout. Serialization/deserialization lives in `lib/strategyGraph/`. Graph interaction hooks are split by concern (`useStrategyGraphNodes`, `useStrategyGraphHandlers`, `useStrategyGraphLayout`).
+**Message parts**: a message is an ordered `parts` array. `features/conversation/content/`
+renders them; `contentComponents.ts` merges the core, strategy and EDA maps into one that must be
+total over `KnownDataPartKind`, so a kind the backend adds without a renderer fails to compile.
+The default thread draws tool activity as a trace with flat figures and task rows.
 
-**API communication**: `lib/api/` contains a split HTTP client (`http.ts` for base requests, plus domain-specific modules like `strategies.ts`, `genes.ts`, `models.ts`). Next.js API routes in `app/api/v1/` proxy requests to the backend (see `next.config.js` rewrites).
+**Strategy graph**: graphs are drawn with [ReactFlow](https://reactflow.dev/) and laid out by
+[elkjs](https://github.com/kieler/elkjs). Serialization lives in `features/strategy/graph/`
+(`serialize.ts`, `deserialize.ts`), and every edit goes through the typed operation algebra in
+`features/strategy/operations/` before it reaches the API.
 
-**Styling**: [Tailwind CSS](https://tailwindcss.com/) with utility classes. Reusable UI primitives (Button, Card, Badge, Tooltip, etc.) live in `lib/components/ui/`. Per-site theming is handled by `features/sites/siteTheme.ts`.
+**API validation at the network boundary**: responses are validated against Zod schemas on fetch
+(`lib/api/http.ts`). Contract drift is caught at the boundary, not deep in component logic.
 
-**Shared types**: Types are imported from `@pathfinder/shared` (the `packages/shared-ts` workspace package) via TS path mapping. Next.js transpiles this package automatically (see `next.config.js`).
+**Styling**: [Tailwind CSS](https://tailwindcss.com/) with utility classes. Reusable UI primitives
+live in `components/ui/` (shadcn, the `components.json` target). Per-site theming is handled by
+`features/sites/siteTheme.ts`.
 
-### Architecture & design decisions
+**Real API + test-only mock LLM for E2E**: Playwright tests call live VEuPathDB APIs for gene
+searches, enrichment and catalog browsing. Only the LLM chat call is mocked, and only through the
+dedicated test profile (`PATHFINDER_CHAT_PROVIDER=mock`). Worker isolation uses
+`/dev/login?user_id=worker-{N}` so parallel workers do not interfere. VEuPathDB refuses guest
+service calls, so every worker also carries the registered account's token (`WDK_TEST_TOKEN`) in
+its `Authorization` cookie.
 
-**Zustand slice composition:** The strategy store is the most complex piece of state. Rather than a monolithic store, it's composed from 4 independent slices — `draftSlice` (current strategy mutations), `historySlice` (undo/redo stack), `listSlice` (sidebar strategy list), and `metaSlice` (validation cache). Each slice manages one concern; the composed store combines them via Zustand's create function. This enables local reasoning about state mutations while keeping a single reactive store.
-
-**Signals for decoupled re-runs:** The session store uses monotonic version counters (`authVersion`, `chatPreviewVersion`) instead of deep object equality. Hooks subscribe to these signals and re-run expensive logic (data fetching, SSE subscriptions) only when the signal bumps. This avoids unnecessary re-renders from unrelated state changes.
-
-**Hooks as mini-stores:** The chat feature uses ~18 custom hooks managing streaming state, SSE subscription lifecycle, event parsing, and UI coordination. These manage ephemeral, complex state that doesn't belong in a Zustand store (it's session-scoped and tightly coupled to the streaming connection). Each hook handles one concern: `useStreamLifecycle` manages the SSE connection, `useStreamEvents` parses raw events, `useThinkingState` tracks reasoning display.
-
-**API validation at network boundary:** All API responses are validated against Zod schemas immediately upon fetch (`requestJsonValidated`). Contract drift between frontend and backend is caught at the network boundary, not deep in component logic. Business logic can assume clean data.
-
-**Feature isolation:** Each feature (`chat`, `strategy`, `analysis`, `workbench`, `sidebar`, `sites`, `settings`) is self-contained with its own components, hooks, services, and utilities. Cross-feature imports go through `lib/` or `state/`. Feature-specific stores (workbench) live inside their feature directory.
-
-**Real API + test-only mock LLM for E2E:** Playwright tests call live VEuPathDB APIs for gene searches, enrichment, catalog browsing. Only the LLM chat call is mocked, and only through the dedicated test profile (`PATHFINDER_CHAT_PROVIDER=mock`). This catches real integration bugs that unit tests with mocked APIs would miss. Worker isolation uses `/dev/login?user_id=worker-{N}` so parallel workers don't interfere. VEuPathDB refuses guest service calls, so every worker also carries the registered account's token (`WDK_TEST_TOKEN`) in its `Authorization` cookie.
-
-**SSE over WebSocket:** Chat streaming uses Server-Sent Events (unidirectional server→client) rather than WebSockets. Messages are sent via POST; responses stream via SSE. This is simpler (HTTP/1.1 compatible, no upgrade handshake) and matches the request→stream response pattern. Next.js has compression disabled (`compress: false`) to ensure SSE events flush immediately.
-
-**Workbench as analysis hub:** Analysis components (enrichment, distributions, confusion matrices) live in the `analysis` feature but are re-exported and wrapped in collapsible panels by the `workbench` feature. The workbench store coordinates panel visibility, active gene set, and experiment context. This separation means analysis components can be reused outside the workbench.
+**SSE over WebSocket**: chat streaming uses Server-Sent Events (unidirectional server to client)
+rather than WebSockets. Messages are sent via POST; responses stream via SSE. Next.js has
+compression disabled (`compress: false` in `next.config.ts`) so SSE events flush immediately.
 
 ### How it talks to the API
 
-The web app uses Next rewrites to proxy to the backend (see `next.config.js`), so UI requests like `/api/...` forward to the configured API base.
+The web app uses Next rewrites to proxy to the backend (see `next.config.ts`), so UI requests like
+`/api/...` forward to the configured API base. `app/api/v1/chat/` is the one route handled in
+Next itself.
 
 Required env:
 
-- `NEXT_PUBLIC_API_URL` (required; see `.env.example` or `.env.dev.example`)
+- `NEXT_PUBLIC_API_URL` (required; see `/.env.example` or `/.env.dev.example` at the repo root)
 
 ### Run locally
 
 ```bash
 cd apps/web
-cp .env.dev.example .env
+cp ../../.env.dev.example .env
 yarn install
 yarn dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000`. The API and the worker must both be running: chat turns execute in
+the worker, so without it a turn never finishes.
 
 ### Scripts
 
@@ -168,30 +154,34 @@ From `package.json`:
 - `yarn dev`: start Next dev server
 - `yarn build` / `yarn start`: production build + start
 - `yarn lint`: ESLint
+- `yarn format` / `yarn format:check`: Prettier
 - `yarn typecheck`: TypeScript (`tsc --noEmit`)
-- `yarn test`: Vitest
-- `yarn check:boundaries`: repo-specific boundary checks
+- `yarn check:boundaries`: feature isolation
+- `yarn check:weak-assertions`: assertion strength in tests
+- `yarn check:strict-mode`: bans index-based Playwright locators
+- `yarn test` / `yarn test:coverage` / `yarn test:watch`: Vitest
 - `yarn test:e2e`: Playwright E2E tests
-- `yarn test:e2e:ui`: Playwright E2E tests with UI mode
+- `yarn test:mutation`: Stryker
 
 ### E2E testing
 
 PathFinder uses a 3-tier Playwright E2E test architecture:
 
-- **Feature tests** (`e2e/feature/`) — Individual feature verification (chat, strategy graph, gene sets, settings). Run in parallel.
-- **Cross-feature tests** (`e2e/cross-feature/`) — Multi-feature workflows (gene set analysis pipeline, chat-to-workbench integration). Run serially due to WDK rate limits.
-- **Journey tests** (`e2e/journey/`) — Full researcher workflows across VEuPathDB databases (malaria drug resistance on PlasmoDB, Toxoplasma host invasion, Leishmania virulence). Run serially.
+- **Feature tests** (`e2e/feature/`) - individual feature verification (chat, strategy graph, gene sets, settings). Run in parallel.
+- **Cross-feature tests** (`e2e/cross-feature/`) - multi-feature workflows. Run serially due to WDK rate limits.
+- **Journey tests** (`e2e/journey/`) - full researcher workflows across VEuPathDB databases. Run serially.
 
-**Page Objects** (`e2e/pages/`) encapsulate selectors and interactions. **Fixtures** handle auth, API setup, and test data seeding.
+**Page Objects** (`e2e/pages/`) encapsulate selectors and interactions. **Fixtures**
+(`e2e/fixtures/`) handle auth, API setup and test data seeding.
 
-All tests use real VEuPathDB APIs. Only the LLM is mocked via the dedicated test profile.
+All tests use real VEuPathDB APIs. Only the LLM is mocked, via the dedicated test profile.
 
-Start the local E2E stack with the dedicated test profile. The e2e overlay
-builds the web container's `runner` target, so port 3000 serves the production
-build: the suite meets no development overlay and no per-route compile.
+Start the local E2E stack with that profile. The e2e overlay builds the web container's `runner`
+target, so port 3000 serves the production build: the suite meets no development overlay and no
+per-route compile.
 
 ```bash
-docker compose --env-file .env.test \
+docker compose --env-file ../../.env.test \
   -f ../../docker-compose.yml \
   -f ../../docker-compose.dev.yml \
   -f ../../docker-compose.e2e.yml \

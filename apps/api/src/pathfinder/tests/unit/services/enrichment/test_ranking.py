@@ -1,30 +1,16 @@
-"""Ranking and wire labels for enrichment values that can be None.
+"""Wire labels for enrichment values that can be None.
 
-An unbounded ratio is the strongest result and ranks first. A probability that
-is not computable has no number to write.
+An unbounded ratio gets an ASCII label. A probability that is not computable
+has no number to write.
 """
 
 from __future__ import annotations
 
 from pathfinder.services.enrichment.ranking import (
     UNBOUNDED_RATIO_LABEL,
-    best_ratio,
     probability_cell,
     ratio_cell,
-    ratio_sort_key,
 )
-
-
-def test_an_unbounded_ratio_ranks_before_every_finite_one() -> None:
-    ratios: list[float | None] = [2.0, None, 9.5, 0.25]
-
-    assert sorted(ratios, key=ratio_sort_key) == [None, 9.5, 2.0, 0.25]
-
-
-def test_the_best_ratio_of_a_group_is_the_unbounded_one() -> None:
-    assert best_ratio([3.0, None, 12.0]) is None
-    assert best_ratio([3.0, 12.0]) == 12.0
-    assert best_ratio([]) is None
 
 
 def test_an_unbounded_ratio_renders_as_an_ascii_label() -> None:

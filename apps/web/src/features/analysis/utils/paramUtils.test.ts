@@ -9,7 +9,6 @@ import {
   parseMultiPickInitial,
   resolveDisplayValue,
   isNumericParam,
-  buildAutoOptimizeSpecs,
   buildDisplayMap,
 } from "./paramUtils";
 
@@ -321,114 +320,6 @@ describe("isNumericParam", () => {
   it("is case-insensitive on type", () => {
     expect(isNumericParam(makeSpec({ name: "a", type: "NUMBER" }))).toBe(true);
     expect(isNumericParam(makeSpec({ name: "a", type: "Integer" }))).toBe(true);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// buildAutoOptimizeSpecs
-// ---------------------------------------------------------------------------
-
-describe("buildAutoOptimizeSpecs", () => {
-  it("creates numeric spec for number-type param with explicit min/max", () => {
-    const specs: ParamSpec[] = [
-      makeSpec({ name: "threshold", type: "number", min: 0, max: 100, increment: 5 }),
-    ];
-    const result = buildAutoOptimizeSpecs(specs);
-    expect(result.size).toBe(1);
-    const opt = result.get("threshold")!;
-    expect(opt.type).toBe("numeric");
-    expect(opt.min).toBe(0);
-    expect(opt.max).toBe(100);
-    expect(opt.step).toBe(5);
-  });
-
-  it("creates integer spec for integer-type param", () => {
-    const specs: ParamSpec[] = [
-      makeSpec({ name: "count", type: "integer", min: 1, max: 50 }),
-    ];
-    const result = buildAutoOptimizeSpecs(specs);
-    const opt = result.get("count")!;
-    expect(opt.type).toBe("integer");
-  });
-
-  it("creates categorical spec for param with vocabulary", () => {
-    const specs: ParamSpec[] = [
-      makeSpec({
-        name: "organism",
-        type: "single-pick-vocabulary",
-        vocabulary: [
-          ["org1", "org1", null],
-          ["org2", "org2", null],
-          ["org3", "org3", null],
-        ],
-      }),
-    ];
-    const result = buildAutoOptimizeSpecs(specs);
-    expect(result.size).toBe(1);
-    const opt = result.get("organism")!;
-    expect(opt.type).toBe("categorical");
-    expect(opt.choices).toEqual(["org1", "org2", "org3"]);
-  });
-
-  it("skips input-step params", () => {
-    const specs: ParamSpec[] = [makeSpec({ name: "step", type: "input-step" })];
-    const result = buildAutoOptimizeSpecs(specs);
-    expect(result.size).toBe(0);
-  });
-
-  it("skips filter params", () => {
-    const specs: ParamSpec[] = [makeSpec({ name: "f", type: "filter" })];
-    const result = buildAutoOptimizeSpecs(specs);
-    expect(result.size).toBe(0);
-  });
-
-  it("skips non-numeric params without vocabulary", () => {
-    const specs: ParamSpec[] = [makeSpec({ name: "text", type: "string" })];
-    const result = buildAutoOptimizeSpecs(specs);
-    expect(result.size).toBe(0);
-  });
-
-  it("infers range from initialDisplayValue when no explicit min/max", () => {
-    const specs: ParamSpec[] = [
-      makeSpec({ name: "val", type: "number", initialDisplayValue: "5" }),
-    ];
-    const result = buildAutoOptimizeSpecs(specs);
-    const opt = result.get("val")!;
-    expect(opt.min).toBe(0);
-    expect(opt.max).toBe(50); // max(5*10, 5+10) = 50
-  });
-
-  it("uses defaults (0, 100) when no range info available", () => {
-    const specs: ParamSpec[] = [makeSpec({ name: "val", type: "number" })];
-    const result = buildAutoOptimizeSpecs(specs);
-    const opt = result.get("val")!;
-    expect(opt.min).toBe(0);
-    expect(opt.max).toBe(100);
-  });
-
-  it("handles empty specs array", () => {
-    const result = buildAutoOptimizeSpecs([]);
-    expect(result.size).toBe(0);
-  });
-
-  it("handles mixed param types", () => {
-    const specs: ParamSpec[] = [
-      makeSpec({ name: "threshold", type: "number", min: 0, max: 10 }),
-      makeSpec({ name: "step_input", type: "input-step" }),
-      makeSpec({
-        name: "org",
-        type: "single-pick-vocabulary",
-        vocabulary: [
-          ["a", "a", null],
-          ["b", "b", null],
-        ],
-      }),
-    ];
-    const result = buildAutoOptimizeSpecs(specs);
-    expect(result.size).toBe(2);
-    expect(result.has("threshold")).toBe(true);
-    expect(result.has("org")).toBe(true);
-    expect(result.has("step_input")).toBe(false);
   });
 });
 

@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 from pathfinder.integrations.veupathdb.auth_login import password_logout
-from pathfinder.transport.http.routers import veupathdb_auth as auth_route
+from pathfinder.services.wdk import login as login_service
 
 _TOKEN = "eyJhbGciOiJFUzUxMiJ9.real-user.sig"
 
@@ -78,7 +78,7 @@ class TestARefusalIsReported:
         assert await password_logout("plasmodb", _TOKEN) is False
 
 
-class TestTheRouteReportsWhatWDKDid:
+class TestTheServiceReportsWhatWDKDid:
     @pytest.mark.asyncio
     async def test_it_forwards_the_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
         seen: list[tuple[str, str]] = []
@@ -87,9 +87,9 @@ class TestTheRouteReportsWhatWDKDid:
             seen.append((site_id, token))
             return True
 
-        monkeypatch.setattr(auth_route, "password_logout", _logout)
+        monkeypatch.setattr(login_service, "password_logout", _logout)
 
-        assert await auth_route.logout_of_veupathdb(_TOKEN, "plasmodb") is True
+        assert await login_service.end_veupathdb_session("plasmodb", _TOKEN) is True
         assert seen == [("plasmodb", _TOKEN)]
 
     @pytest.mark.asyncio
@@ -106,9 +106,9 @@ class TestTheRouteReportsWhatWDKDid:
             called = True
             return True
 
-        monkeypatch.setattr(auth_route, "password_logout", _logout)
+        monkeypatch.setattr(login_service, "password_logout", _logout)
 
-        assert await auth_route.logout_of_veupathdb(None, "plasmodb") is False
+        assert await login_service.end_veupathdb_session("plasmodb", None) is False
         assert called is False
 
     @pytest.mark.asyncio
@@ -119,6 +119,6 @@ class TestTheRouteReportsWhatWDKDid:
             del site_id, token
             return False
 
-        monkeypatch.setattr(auth_route, "password_logout", _logout)
+        monkeypatch.setattr(login_service, "password_logout", _logout)
 
-        assert await auth_route.logout_of_veupathdb(_TOKEN, "plasmodb") is False
+        assert await login_service.end_veupathdb_session("plasmodb", _TOKEN) is False

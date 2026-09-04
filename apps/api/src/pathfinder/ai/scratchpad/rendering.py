@@ -80,19 +80,3 @@ def render_scratchpad_for_phase(
         budget_chars=budget_chars,
         include_rule=True,
     )
-
-
-def render_scratchpad_for_supervisor(
-    notes: list[Note],
-    *,
-    total_count: int,
-    budget_chars: int = 10000,
-) -> str:
-    if total_count == 0:
-        return _EMPTY_SUPERVISOR_BLOCK
-    return _render_core(
-        notes,
-        total_count=total_count,
-        budget_chars=budget_chars,
-        include_rule=False,
-    )

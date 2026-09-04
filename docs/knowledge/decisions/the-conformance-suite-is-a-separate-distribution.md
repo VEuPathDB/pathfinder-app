@@ -14,7 +14,7 @@ status: stable
 It declares four dependencies (`mcp<2`, `httpx`, `pytest`, `pydantic`), targets
 Python 3.10 because that is the floor the `mcp` client supports, and names no
 package this repository owns. A test walks every module in it and fails on an
-import of `pathfinder`, `assistant_core` or `shared_py`, and a second test fails
+import of `pathfinder` or `assistant_core`, and a second test fails
 on any import outside the four declared distributions.
 
 **The families ship inside the package**, as `test_shape`, `test_auth`,

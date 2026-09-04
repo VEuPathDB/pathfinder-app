@@ -41,4 +41,4 @@ The turn that exposed it also died with an OpenAI `No tool invocation found for 
 
 # Anchor
 
-`build_not_ready_message` in `ai/lead/sub_agent_dispatch.py`. Guarded by `tests/unit/ai/lead/test_build_not_ready_message.py`, which asserts the open-slot message never says "frame_problem".
+`build_not_ready_message` in `ai/lead/sub_agent_dispatch.py`. Guarded by `tests/unit/ai/lead/test_dispatch_messages.py`, which asserts the open-slot message never says "frame_problem".

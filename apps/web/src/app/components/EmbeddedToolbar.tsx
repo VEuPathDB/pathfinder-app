@@ -4,7 +4,7 @@ import { Layers, MessageCircle, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { Button } from "@/lib/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { chatRoot, workbenchRoot } from "@/lib/routes";
 
 interface EmbeddedToolbarProps {

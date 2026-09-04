@@ -1,37 +1,29 @@
+from __future__ import annotations
+
 from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
 from pathfinder.domain.strategy.operations import DeleteResolution
-from pathfinder.domain.strategy.operations.resolutions import (
-    compute_delete_choices,
-    is_ambiguous_delete,
-)
+from pathfinder.domain.strategy.operations.resolutions import compute_delete_choices
 from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.session import StrategyGraph
 
-
-def _graph_from_root(root: StrategyStepNode, name: str = "g") -> StrategyGraph:
-    g = StrategyGraph(graph_id="g1", name=name, site_id="plasmodb")
-
-    g.steps.update(flatten_tree(root))
-    g.recompute_roots()
-    return g
+from ._builders import graph_with, leaf
 
 
-def _leaf(id_: str) -> StrategyStepNode:
-    return StrategyStepNode(id=id_, search_name="geneById")
+def _graph_from_root(root: StrategyStepNode) -> StrategyGraph:
+    return graph_with([root])
 
 
 class TestComputeDeleteChoices:
     def test_sole_leaf_only_delete_strategy(self) -> None:
-        g = _graph_from_root(_leaf("a"))
+        g = _graph_from_root(leaf("a"))
         choices = compute_delete_choices(g, "a")
         assert [c.resolution for c in choices] == [DeleteResolution.DELETE_STRATEGY]
         assert choices[0].will_delete == ["a"]
         assert choices[0].is_default
 
     def test_leaf_of_root_combine(self) -> None:
-        a = _leaf("a")
-        b = _leaf("b")
+        a = leaf("a")
+        b = leaf("b")
         c = StrategyStepNode(
             id="c",
             search_name="__combine__",
@@ -53,8 +45,8 @@ class TestComputeDeleteChoices:
         assert sorted(collapse.will_delete) == ["a", "c"]
 
     def test_root_combine_promote_or_delete_strategy(self) -> None:
-        a = _leaf("a")
-        b = _leaf("b")
+        a = leaf("a")
+        b = leaf("b")
         c = StrategyStepNode(
             id="c",
             search_name="__combine__",
@@ -74,7 +66,7 @@ class TestComputeDeleteChoices:
         assert sorted(promote.will_delete) == ["b", "c"]
 
     def test_transform_in_middle(self) -> None:
-        a = _leaf("a")
+        a = leaf("a")
         t = StrategyStepNode(
             id="t",
             search_name="orthologs",
@@ -86,7 +78,7 @@ class TestComputeDeleteChoices:
         assert choices[0].will_delete == ["t"]
 
     def test_step_whose_parent_is_transform_cascades(self) -> None:
-        a = _leaf("a")
+        a = leaf("a")
         t = StrategyStepNode(
             id="t",
             search_name="orthologs",
@@ -98,24 +90,5 @@ class TestComputeDeleteChoices:
         assert sorted(choices[0].will_delete) == ["a", "t"]
 
     def test_unknown_step_returns_empty(self) -> None:
-        g = _graph_from_root(_leaf("a"))
+        g = _graph_from_root(leaf("a"))
         assert compute_delete_choices(g, "missing") == []
-
-
-class TestIsAmbiguousDelete:
-    def test_true_when_multiple_choices(self) -> None:
-        a = _leaf("a")
-        b = _leaf("b")
-        c = StrategyStepNode(
-            id="c",
-            search_name="__combine__",
-            primary_input=a,
-            secondary_input=b,
-            operator=CombineOp.INTERSECT,
-        )
-        g = _graph_from_root(c)
-        assert is_ambiguous_delete(g, "a") is True
-
-    def test_false_when_single_choice(self) -> None:
-        g = _graph_from_root(_leaf("a"))
-        assert is_ambiguous_delete(g, "a") is False

@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from shared_py.stream_parts.eda import EdaEffectDirection
-
+from pathfinder.domain.eda_parts import EdaEffectDirection
 from pathfinder.integrations.eda.models import (
     EdaAnalysisDetail,
     EdaComputation,

@@ -5,7 +5,6 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from pathfinder.services import catalog
-from pathfinder.services.wdk import get_discovery_service
 from pathfinder.transport.http.schemas import (
     RecordTypeResponse,
     SearchResponse,
@@ -69,8 +68,7 @@ async def get_searches(
             for s in searches
         ]
 
-    discovery = get_discovery_service()
-    record_types = await discovery.get_record_types(siteId)
+    record_types = await catalog.get_raw_record_types(siteId)
     all_searches: list[SearchResponse] = []
 
     for rt in record_types:

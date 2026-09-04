@@ -18,6 +18,9 @@ import { createTestWrapper } from "@/lib/query/testing";
 import { chatUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 import { ChatThread } from "./ChatThread";
+import { ChatHelpersProvider, type ChatHelpers } from "./runtime/chatHelpersContext";
+
+const STUB_CHAT = { messages: [], status: "ready" } as unknown as ChatHelpers;
 
 function StubRuntimeProvider({ children }: { children: ReactNode }) {
   const runtime = useLocalRuntime({
@@ -26,7 +29,9 @@ function StubRuntimeProvider({ children }: { children: ReactNode }) {
     },
   });
   return (
-    <AssistantRuntimeProvider runtime={runtime}>{children}</AssistantRuntimeProvider>
+    <AssistantRuntimeProvider runtime={runtime}>
+      <ChatHelpersProvider value={STUB_CHAT}>{children}</ChatHelpersProvider>
+    </AssistantRuntimeProvider>
   );
 }
 

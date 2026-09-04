@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
+from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.stream_events import scratchpad_updated_event
 from assistant_core.graph.turn_message import write_turn_message
 from assistant_core.memory.autowrite import auto_write_memories
@@ -22,9 +23,7 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
 from pathfinder.ai.scratchpad.compactor import maybe_compact_scratchpad
-from pathfinder.persistence.repositories.strategy_revision import (
-    StrategyRevisionRepository,
-)
+from pathfinder.services.conversations.turns import name_turn_strategy_revision
 
 logger = get_logger(__name__)
 
@@ -37,14 +36,13 @@ async def _name_strategy_revision(
     conversation_id: UUID,
     message_id: UUID,
 ) -> None:
-    """Record which message the strategy the turn left behind belongs to."""
+    """Name the turn's strategy snapshot. A database refusal does not fail the turn."""
     try:
-        async with context.db_session_factory() as session:
-            await StrategyRevisionRepository(session).name_latest(
-                conversation_id,
-                message_id=message_id,
-            )
-            await session.commit()
+        await name_turn_strategy_revision(
+            context.db_session_factory,
+            conversation_id=conversation_id,
+            message_id=message_id,
+        )
     except SQLAlchemyError:
         logger.warning(
             "failed to name the turn's strategy revision",
@@ -110,15 +108,6 @@ async def finalize_turn_node(
             )
             compaction_run = None
         if compaction_run is not None:
-            writer = get_stream_writer()
-            writer(
-                {
-                    "chunk": scratchpad_updated_event().model_dump(
-                        by_alias=True,
-                        mode="json",
-                        exclude_none=True,
-                    ),
-                },
-            )
+            emit_chunk(get_stream_writer(), scratchpad_updated_event())
 
     return Command(goto=_END)

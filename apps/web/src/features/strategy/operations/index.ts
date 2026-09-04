@@ -1,19 +1,9 @@
 export { applyOperation } from "./apply";
+export type { ApplyResult, OperationChoice } from "./types";
 export type {
-  ApplyResult,
-  AttachPoint,
   DeleteEdgeResolution,
   DeleteResolution,
   GraphOperation,
-  OperationChoice,
-} from "./types";
-export { computeDeleteChoices, isAmbiguousDelete } from "./deleteResolutions";
-export {
-  buildIndex,
-  findParent,
-  getRootIds,
-  isReachableFromAnyRoot,
-  subtreeSize,
-  walkSubtreeIds,
-} from "./utils";
-export type { GraphIndex } from "./utils";
+} from "@/lib/types/graphOperation";
+export { computeDeleteChoices } from "./deleteResolutions";
+export { walkSubtreeIds } from "./utils";

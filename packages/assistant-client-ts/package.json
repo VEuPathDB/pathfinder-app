@@ -13,8 +13,7 @@
     "sync:protocol": "node scripts/sync-protocol.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "test:acceptance": "vitest run --config vitest.acceptance.config.ts --passWithNoTests"
+    "typecheck": "tsc --noEmit"
   },
   "files": [
     "dist"

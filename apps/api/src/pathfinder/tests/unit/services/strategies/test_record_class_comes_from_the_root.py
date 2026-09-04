@@ -237,11 +237,8 @@ class TestValidationWritesTheClassOntoTheStep:
         async def _resolve(
             record_type: str | None,
             search_name: str | None,
-            *,
-            require_match: bool = False,
-            allow_fallback: bool = True,
         ) -> str | None:
-            del record_type, require_match, allow_fallback
+            del record_type
             return _LISTED_UNDER.get(search_name or "")
 
         async def _hint(search_name: str, exclude: str | None = None) -> str | None:

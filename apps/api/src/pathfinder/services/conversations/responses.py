@@ -14,12 +14,13 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 
-from pathfinder.domain.strategy.ast import walk_step_tree
 from pathfinder.domain.strategy.revision import (
     parse_strategy_ast,
     strategy_revision,
 )
 from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from pathfinder.domain.strategy.tree import walk
+from pathfinder.integrations.veupathdb.factory import get_site
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,
@@ -28,7 +29,6 @@ from pathfinder.services.strategies.schemas import (
     StepResponse,
     step_response_from_strategy_ast,
 )
-from pathfinder.services.wdk import get_site
 
 logger = get_logger(__name__)
 
@@ -85,9 +85,9 @@ def derive_steps_from_strategy_ast(payload: StrategyAst | None) -> list[StepResp
     """
     if payload is None:
         return []
-    nodes = list(walk_step_tree(payload.root))
+    nodes = list(walk(payload.root))
     for detached in payload.detached_roots:
-        nodes.extend(walk_step_tree(detached))
+        nodes.extend(walk(detached))
     return [step_response_from_strategy_ast(payload, step) for step in nodes]
 
 

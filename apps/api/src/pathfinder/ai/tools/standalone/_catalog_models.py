@@ -5,8 +5,8 @@ from __future__ import annotations
 from assistant_core.platform.types import JSONObject
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
+from pathfinder.integrations.veupathdb.wdk_models import WDKSearch
 from pathfinder.services.catalog.searches import read_search_definition
-from pathfinder.services.wdk import WDKSearch
 
 _UNIVERSAL_SEARCHES: list[JSONObject] = [
     {

@@ -6,7 +6,7 @@
  */
 
 import type { Step, StepKind } from "@pathfinder/shared";
-import { inferStepKind } from "@/lib/strategyGraph";
+import { inferStepKind } from "@/features/strategy/graph";
 
 // Public types
 
@@ -38,8 +38,6 @@ export interface TreeNode {
 }
 
 // Helpers
-
-export { findOrphanSteps } from "@/lib/strategyGraph/orphans";
 
 const OPERATOR_SYMBOL: Record<string, string> = {
   INTERSECT: "∩",

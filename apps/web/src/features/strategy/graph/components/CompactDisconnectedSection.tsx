@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useDeleteOperation } from "@/features/strategy/graph/hooks/useDeleteOperation";
-import { inferStepKind } from "@/lib/strategyGraph";
+import { inferStepKind } from "@/features/strategy/graph";
 import { cn } from "@/lib/utils/cn";
 
 const KIND_DOT: Record<string, string> = {

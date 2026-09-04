@@ -66,8 +66,7 @@ manually. Do NOT call after a successful build - sets are auto-created.
 
 ### Experiment-linked analysis (only when chat has an experiment_id)
 - ``get_evaluation_summary``, ``get_confidence_scores``, \
-``get_step_contributions``, ``get_enrichment_results``, \
-``get_ensemble_analysis``, ``get_experiment_config``, \
+``get_enrichment_results``, ``get_experiment_config``, \
 ``get_result_gene_lists``.
 
 ### Gene Lookup (control tests)
@@ -99,9 +98,9 @@ to check that the result set is reasonable (not empty, not millions).
 individual steps against known positive/negative controls when available.
 
 3. **Analyze workbench quality (when a chat experiment is linked)**: Use \
-`get_evaluation_summary`, `get_confidence_scores`, `get_step_contributions`, \
-`get_enrichment_results`, `get_ensemble_analysis`, `get_experiment_config`, \
-and `get_result_gene_lists` to assess how the strategy classifies the \
+`get_evaluation_summary`, `get_confidence_scores`, `get_enrichment_results`, \
+`get_experiment_config`, and `get_result_gene_lists` to assess how the \
+strategy classifies the \
 reference controls. These tools return an error when the chat is not \
 associated with an experiment.
 
