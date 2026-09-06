@@ -6,9 +6,13 @@ from typing import Any
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
+from veupathdb.domain.strategy.operations import DeleteResolution
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone import strategy_edits as strategy_module
+from pathfinder.ai.tools.standalone import strategy_edits
 from pathfinder.ai.tools.standalone.strategy_edits import (
     delete_step,
     insert_saved_strategy,
@@ -17,10 +21,7 @@ from pathfinder.ai.tools.standalone.strategy_edits import (
     update_leaf_params,
     update_step_metadata,
 )
-from pathfinder.domain.parameters.values import MultiPickValue, SinglePickValue
-from pathfinder.domain.strategy.operations import DeleteResolution
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.platform.errors import ErrorCode, ValidationError
+from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 from ._strategy_edit_stubs import (
@@ -121,7 +122,7 @@ class TestUpdateLeafParams:
             seen["parameters"] = dict(parameters)
             return dict(parameters)
 
-        monkeypatch.setattr(strategy_module, "validate_parameters", _capture_validate)
+        monkeypatch.setattr(strategy_edits, "validate_parameters", _capture_validate)
 
         await update_leaf_params(
             ctx(deps), "a", {"ReadFrequencyPercent": SinglePickValue(value="80%")}
@@ -164,7 +165,7 @@ class TestUpdateLeafParams:
                 ],
             )
 
-        monkeypatch.setattr(strategy_module, "validate_parameters", _raising_validate)
+        monkeypatch.setattr(strategy_edits, "validate_parameters", _raising_validate)
 
         with pytest.raises(ModelRetry) as excinfo:
             await update_leaf_params(ctx(deps), "a", {"organism": ["NotARealOrganism"]})

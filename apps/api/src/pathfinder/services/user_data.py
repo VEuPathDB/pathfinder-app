@@ -13,8 +13,9 @@ from assistant_core.platform.context import calling_application
 from assistant_core.platform.logging import get_logger
 from sqlalchemy import CursorResult, Row, Select, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk.factory import get_strategy_api
 
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.persistence.models import (
     ControlSet,
     ConversationStrategy,
@@ -183,7 +184,7 @@ async def _purge_wdk_strategies(
         try:
             api = get_strategy_api(purge_site)
             live = {s.strategy_id for s in await api.list_strategies()}
-        except (AppError, OSError, RuntimeError) as exc:
+        except (AppError, VEuPathDBError, OSError, RuntimeError) as exc:
             logger.debug("WDK purge skipped for site", site=purge_site, error=str(exc))
             continue
 
@@ -191,7 +192,7 @@ async def _purge_wdk_strategies(
             async with semaphore:
                 try:
                     await get_strategy_api(site).delete_strategy(strategy_id)
-                except (AppError, OSError, RuntimeError) as exc:
+                except (AppError, VEuPathDBError, OSError, RuntimeError) as exc:
                     logger.warning(
                         "Failed to delete WDK strategy during user data purge",
                         wdk_strategy_id=strategy_id,

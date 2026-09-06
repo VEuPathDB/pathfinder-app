@@ -10,8 +10,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException
+from veupathdb.domain.strategy.operations.apply import ApplyError
+from veupathdb.errors import VEuPathDBError
 
-from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.platform.errors import AppError, ErrorCode, ProblemDetail
 
 _logger = structlog.get_logger(__name__)
@@ -50,13 +51,14 @@ def problem_response(
     )
 
 
-async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
-    """Handle AppError exceptions."""
+def _failed(
+    request: Request, exc: AppError | VEuPathDBError, code: ErrorCode
+) -> JSONResponse:
     log = _logger.bind(
         method=request.method,
         path=request.url.path,
         status=exc.status,
-        code=exc.code.value,
+        code=code.value,
         title=exc.title,
         detail=exc.detail,
         errors=exc.errors,
@@ -68,11 +70,23 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     return problem_response(
         request,
         status=exc.status,
-        code=exc.code,
+        code=code,
         title=exc.title,
         detail=exc.detail,
         errors=exc.errors,
     )
+
+
+async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    """Handle AppError exceptions."""
+    return _failed(request, exc, exc.code)
+
+
+async def veupathdb_error_handler(
+    request: Request, exc: VEuPathDBError
+) -> JSONResponse:
+    """Render a client-library refusal under the code the wire already names."""
+    return _failed(request, exc, ErrorCode(exc.code.value))
 
 
 async def apply_error_handler(request: Request, exc: ApplyError) -> JSONResponse:

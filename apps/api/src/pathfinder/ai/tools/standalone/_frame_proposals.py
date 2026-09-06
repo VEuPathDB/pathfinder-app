@@ -9,23 +9,22 @@ from typing import Annotated
 from pydantic import BaseModel, BeforeValidator, ConfigDict, field_validator
 from pydantic import ValidationError as PydanticValidationError
 from pydantic_ai import ModelRetry
-
-from pathfinder.domain.parameters.wdk_vocab import (
+from veupathdb.domain.parameters.wdk_vocab import (
     MAX_NEAREST_ENTRIES,
     VocabOption,
     accession_matches,
     match_exact_option,
     nearest_entries,
 )
-from pathfinder.integrations.veupathdb.wdk_models import WDKSearch
-from pathfinder.services.catalog.param_formatting import ParameterInfo
-from pathfinder.services.catalog.param_phyletic import (
+from veupathdb.wdk.wdk_models import WDKSearch
+from veupathdb_mcp.catalog.param_formatting import ParameterInfo
+from veupathdb_mcp.catalog.param_phyletic import (
     PhyleticNoSelection,
     PhyleticUnresolvedProposal,
     derive_phyletic_overrides,
     is_phyletic_sheet,
 )
-from pathfinder.services.catalog.radio_pairs import (
+from veupathdb_mcp.catalog.radio_pairs import (
     RADIO_OFF,
     RadioPairIssue,
     check_radio_pairs,

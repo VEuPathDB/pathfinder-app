@@ -20,6 +20,7 @@ from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.toolsets import FunctionToolset
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.build_outcome import BuildOutcome
 
 from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
@@ -33,7 +34,6 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import verify_strategy
 from pathfinder.ai.tools import durable
 from pathfinder.ai.tools.standalone.experiment import run_control_tests_on_step
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,

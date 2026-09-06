@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 /**
- * Conformance check for the WDK rule bundle.
+ * Conformance check for PathFinder's own WDK mapping rules.
+ *
+ * The WDK model, REST and rule bundles are the client library's, under
+ * `veupathdb-py/docs/knowledge/`; that tree carries its own copy of this
+ * script. What is checked here is the mapping PathFinder holds onto WDK.
  *
  * A WDK rule is admissible only because upstream can falsify it. This script
  * is what makes that true in practice: it fails the build when a citation is
@@ -254,7 +258,7 @@ const invokedDirectly = process.argv[1]?.endsWith("check-wdk-rules.mjs");
 if (invokedDirectly) {
   const repoRoot = resolve(process.argv[2] ?? ".");
   const coverage = new Coverage();
-  const errors = collect(repoRoot, join(repoRoot, "docs/knowledge/wdk"), coverage);
+  const errors = collect(repoRoot, join(repoRoot, "docs/knowledge/wdk/pathfinder"), coverage);
   if (errors.length > 0) {
     console.error("check-wdk-rules: FAILED");
     for (const error of errors) console.error(`  ${error}`);

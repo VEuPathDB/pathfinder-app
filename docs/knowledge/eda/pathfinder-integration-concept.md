@@ -11,8 +11,8 @@ status: accepted
 # PathFinder EDA integration concept
 
 Status: implemented. The facts it
-stands on are in [what-eda-is.md](what-eda-is.md),
-[eda-wdk-bridge.md](eda-wdk-bridge.md), and [rest-surface.md](rest-surface.md).
+stands on are in `veupathdb-py: docs/knowledge/eda/what-eda-is.md`,
+`veupathdb-py: docs/knowledge/eda/eda-wdk-bridge.md`, and `veupathdb-py: docs/knowledge/eda/rest-surface.md`.
 
 ## The one-sentence position
 
@@ -25,7 +25,7 @@ the integration work is therefore agent capability and UI, not transport.
 `GenesByEdaSubset`, `GenesByEdaVizWithCompute`, and the per-dataset
 `GenesBy*EdaSubset_*` searches are ordinary transcript searches. PathFinder's
 step creation, combining, and strategy persistence need zero changes; the
-live proof in [eda-wdk-bridge.md](eda-wdk-bridge.md) ran through the same
+live proof in `veupathdb-py: docs/knowledge/eda/eda-wdk-bridge.md` ran through the same
 answer API our services call. What is missing is authoring:
 
 - **An EDA integration client** (`integrations/eda/`), typed with Pydantic
@@ -51,7 +51,7 @@ answer API our services call. What is missing is authoring:
   exactly our background-task architecture), and only create the step once
   status is `complete`, so the step never surfaces WDK's delayed-result
   state. The delayed state is now measured
-  ([notebook-presets.md](notebook-presets.md)): the answer API returns
+  (`veupathdb-py: docs/knowledge/eda/notebook-presets.md`): the answer API returns
   HTTP 202 `{"message":"WDK-DELAYED-RESULT","status":"accepted"}` while the
   job runs, the WDK request itself auto-starts the compute, and the identical
   request after completion returns the 200 answer - so a client that only

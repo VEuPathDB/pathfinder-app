@@ -11,11 +11,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone import conversation as conversation_tools
+from pathfinder.ai.tools.standalone import conversation
 from pathfinder.ai.tools.standalone._validation_helpers import get_graph
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 _WDK_STRATEGY_ID = 330558093
@@ -78,7 +78,7 @@ class TestTheConversationToolsAddressTheSameWay:
     async def test_rename_takes_the_veupathdb_strategy_id(
         self, session: StrategySession
     ) -> None:
-        returned = await conversation_tools.rename_strategy(
+        returned = await conversation.rename_strategy(
             _ctx(session),
             new_name="Heat shock, refined",
             description="a refined strategy",
@@ -94,12 +94,12 @@ class TestTheConversationToolsAddressTheSameWay:
         self, session: StrategySession, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(
-            conversation_tools,
+            conversation,
             "persist_strategy_ast_to_conversation",
             AsyncMock(),
         )
 
-        returned = await conversation_tools.clear_strategy(
+        returned = await conversation.clear_strategy(
             _ctx(session),
             graph_id=str(_WDK_STRATEGY_ID),
             confirm=True,
@@ -114,7 +114,7 @@ class TestTheConversationToolsAddressTheSameWay:
         self, session: StrategySession
     ) -> None:
         with pytest.raises(ModelRetry, match="NOT_FOUND"):
-            await conversation_tools.rename_strategy(
+            await conversation.rename_strategy(
                 _ctx(session),
                 new_name="n",
                 description="d",
@@ -126,7 +126,7 @@ class TestTheConversationToolsAddressTheSameWay:
         self, session: StrategySession
     ) -> None:
         with pytest.raises(ModelRetry, match="NOT_FOUND"):
-            await conversation_tools.clear_strategy(
+            await conversation.clear_strategy(
                 _ctx(session),
                 graph_id="330558094",
                 confirm=True,

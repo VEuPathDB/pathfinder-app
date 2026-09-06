@@ -51,7 +51,7 @@ where it is declared, never to silence a warning.
 # Anchor
 
 `assistant_core/conversation/serde.py`, pinned by
-`packages/assistant-core/packages/assistant-core/tests/unit/conversation/test_checkpoint_serde.py` (a
+`assistant-platform/packages/assistant-core/tests/unit/conversation/test_checkpoint_serde.py` (a
 declared type decodes with no serde event; an undeclared one does not survive)
 and by
 `apps/api/src/pathfinder/tests/integration/ai/test_state_read_allowlist.py`,

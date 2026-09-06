@@ -10,12 +10,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import pytest
+from veupathdb_mcp.wdk.gene_set_steps import GeneSetWdkContext
 
-from pathfinder.services.gene_sets import operations as ops
+from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import GeneSetStore
 from pathfinder.services.gene_sets.types import GeneSet
-from pathfinder.services.gene_sets.wdk_helpers import GeneSetWdkContext
 
 
 @pytest.mark.asyncio
@@ -54,7 +54,7 @@ async def test_resync_strategy_replaces_stale_snapshot(
             4,
         )
 
-    monkeypatch.setattr(ops, "resolve_wdk_context", _fake_resolve)
+    monkeypatch.setattr(operations, "resolve_wdk_context", _fake_resolve)
 
     out = await svc.resync_strategy("g1", wdk_strategy_id=330427013, site_id="plasmodb")
 

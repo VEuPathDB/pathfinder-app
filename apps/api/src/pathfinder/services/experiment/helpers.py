@@ -1,21 +1,22 @@
 """Gene-list extraction and metadata hydration for experiment execution."""
 
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
-
-from pathfinder.platform.errors import AppError
-from pathfinder.services.experiment.types import (
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.errors import VEuPathDBError
+from veupathdb_mcp.controls.control_tests import IntersectionConfig
+from veupathdb_mcp.controls.control_types import (
+    ControlsContext,
     ControlSetData,
     ControlTestResult,
-    ControlValueFormat,
-    ExperimentConfig,
-    GeneInfo,
 )
-from pathfinder.services.gene_lookup.result import GeneResult
-from pathfinder.services.gene_lookup.wdk import resolve_gene_ids
+from veupathdb_mcp.gene_lookup.result import GeneResult
+from veupathdb_mcp.gene_lookup.wdk import resolve_gene_ids
+
+from pathfinder.platform.errors import AppError
+from pathfinder.services.experiment.types import ExperimentConfig, GeneInfo
 
 logger = get_logger(__name__)
 
@@ -23,30 +24,39 @@ ProgressCallback = Callable[[JSONObject], Awaitable[None]]
 """Emits one progress event."""
 
 
-@dataclass
-class ControlsContext:
-    """Site, record type, controls search config, and control gene lists."""
+def intersection_config_from_config(
+    config: ExperimentConfig,
+    *,
+    target_parameters: dict[str, ParamValue] | None = None,
+) -> IntersectionConfig:
+    """Build an intersection config from an experiment config.
 
-    site_id: str
-    record_type: str
-    controls_search_name: str
-    controls_param_name: str
-    controls_value_format: ControlValueFormat
-    positive_controls: list[str] = field(default_factory=list)
-    negative_controls: list[str] = field(default_factory=list)
+    ``target_parameters`` overrides ``config.parameters``.
+    """
+    return IntersectionConfig(
+        site_id=config.site_id,
+        record_type=config.record_type,
+        target_search_name=config.search_name,
+        target_parameters=(
+            target_parameters if target_parameters is not None else config.parameters
+        ),
+        controls_search_name=config.controls_search_name,
+        controls_param_name=config.controls_param_name,
+        controls_value_format=config.controls_value_format,
+    )
 
-    @classmethod
-    def from_config(cls, config: ExperimentConfig) -> "ControlsContext":
-        """Build a controls context from an experiment config."""
-        return cls(
-            site_id=config.site_id,
-            record_type=config.record_type,
-            controls_search_name=config.controls_search_name,
-            controls_param_name=config.controls_param_name,
-            controls_value_format=config.controls_value_format,
-            positive_controls=config.positive_controls or [],
-            negative_controls=config.negative_controls or [],
-        )
+
+def controls_context_from_config(config: ExperimentConfig) -> ControlsContext:
+    """Build a controls context from an experiment config."""
+    return ControlsContext(
+        site_id=config.site_id,
+        record_type=config.record_type,
+        controls_search_name=config.controls_search_name,
+        controls_param_name=config.controls_param_name,
+        controls_value_format=config.controls_value_format,
+        positive_controls=config.positive_controls or [],
+        negative_controls=config.negative_controls or [],
+    )
 
 
 def _ids_to_gene_infos(ids: list[str]) -> list[GeneInfo]:
@@ -151,7 +161,7 @@ async def extract_and_hydrate_genes(
 
     try:
         lookup = await _resolve_gene_lookup(site_id, (tp, fn, fp, tn))
-    except AppError as exc:
+    except (AppError, VEuPathDBError) as exc:
         logger.warning("Gene hydration failed, returning bare IDs", error=str(exc))
         return tp, fn, fp, tn
 

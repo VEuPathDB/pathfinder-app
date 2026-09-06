@@ -1,8 +1,8 @@
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from veupathdb.wdk.strategy_api import StrategyAPI
 
-from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
 from pathfinder.platform.errors import AppError, ErrorCode
 from pathfinder.services.strategies.wdk_step_cleanup import (
     delete_orphaned_wdk_steps,

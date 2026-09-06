@@ -5,6 +5,36 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.search import SearchContext
+from veupathdb.domain.strategy.operational_spec import (
+    AssumedValue,
+    Criterion,
+    CriterionRole,
+    OpenSlot,
+)
+from veupathdb.errors import ValidationError
+from veupathdb.wdk.wdk_models import WDKSearch
+from veupathdb_mcp.catalog._param_filters import has_contrast_sibling
+from veupathdb_mcp.catalog.param_dag import (
+    ParamFetcher,
+    UnknownParameterError,
+    resolve_params_with_intent,
+    wdk_fetch_at,
+)
+from veupathdb_mcp.catalog.param_discovery import fetch_search_details
+from veupathdb_mcp.catalog.param_formatting import (
+    PHYLETIC_LIST_PARAMS,
+    ParameterInfo,
+)
+from veupathdb_mcp.catalog.param_intent import ParamIntent
+from veupathdb_mcp.catalog.param_sheet import SheetEntry
+from veupathdb_mcp.catalog.param_validation import validate_parameters
+from veupathdb_mcp.catalog.searches import (
+    read_search_definition,
+    resolve_search_record_type,
+)
+from veupathdb_mcp.catalog.validation_callbacks import make_validation_callbacks
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._catalog_models import (
@@ -29,36 +59,6 @@ from pathfinder.ai.tools.standalone._frame_sheet import (
     _sheet_for,
 )
 from pathfinder.ai.tools.standalone._validation_helpers import validation_model_retry
-from pathfinder.domain.parameters.value_codec import to_wire
-from pathfinder.domain.search import SearchContext
-from pathfinder.domain.strategy.operational_spec import (
-    AssumedValue,
-    Criterion,
-    CriterionRole,
-    OpenSlot,
-)
-from pathfinder.integrations.veupathdb.wdk_models import WDKSearch
-from pathfinder.platform.errors import ValidationError
-from pathfinder.services.catalog._param_filters import has_contrast_sibling
-from pathfinder.services.catalog.param_dag import (
-    ParamFetcher,
-    UnknownParameterError,
-    resolve_params_with_intent,
-    wdk_fetch_at,
-)
-from pathfinder.services.catalog.param_discovery import fetch_search_details
-from pathfinder.services.catalog.param_formatting import (
-    PHYLETIC_LIST_PARAMS,
-    ParameterInfo,
-)
-from pathfinder.services.catalog.param_intent import ParamIntent
-from pathfinder.services.catalog.param_sheet import SheetEntry
-from pathfinder.services.catalog.param_validation import validate_parameters
-from pathfinder.services.catalog.searches import (
-    read_search_definition,
-    resolve_search_record_type,
-)
-from pathfinder.services.catalog.validation_callbacks import make_validation_callbacks
 from pathfinder.services.strategies.saved_library import SavedStrategyListing
 
 

@@ -13,15 +13,13 @@ from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.errors import WDKLoginRequiredError
+from veupathdb.wdk.auth_login import validate_oauth_token
+from veupathdb.wdk.factory import get_site, get_wdk_client
 
-from pathfinder.integrations.veupathdb.auth_login import validate_oauth_token
-from pathfinder.integrations.veupathdb.factory import get_site, get_wdk_client
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.context import veupathdb_auth_token_ctx
-from pathfinder.platform.errors import (
-    WDKIdentityMismatchError,
-    WDKLoginRequiredError,
-)
+from pathfinder.platform.errors import WDKIdentityMismatchError
 from pathfinder.platform.principal import Principal
 from pathfinder.services.users import get_or_create_user_id
 

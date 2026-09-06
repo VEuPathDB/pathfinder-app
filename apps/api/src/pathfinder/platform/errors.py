@@ -2,9 +2,9 @@
 
 from enum import StrEnum
 
-import pydantic
 from assistant_core.platform.types import JSONArray
 from pydantic import BaseModel
+from veupathdb.errors import VEuPathDBError
 
 
 class ErrorCode(StrEnum):
@@ -138,24 +138,6 @@ class ForbiddenError(AppError):
         super().__init__(code=code, title=title, status=403, detail=detail)
 
 
-class ValidationError(AppError):
-    """Validation error."""
-
-    def __init__(
-        self,
-        title: str = "Validation failed",
-        detail: str | None = None,
-        errors: JSONArray | None = None,
-    ) -> None:
-        super().__init__(
-            code=ErrorCode.VALIDATION_ERROR,
-            title=title,
-            status=422,
-            detail=detail,
-            errors=errors,
-        )
-
-
 class StrategyAstCorruptError(AppError):
     """A stored strategy AST does not parse, so the thread's graph is unreadable.
 
@@ -172,44 +154,6 @@ class StrategyAstCorruptError(AppError):
                 f"conversation {conversation_id} holds a strategy_ast that "
                 f"does not parse: {reasons}"
             ),
-        )
-
-
-class WDKError(AppError):
-    """Error from VEuPathDB WDK service.
-
-    ``errors`` carries the per-parameter messages a refusal named, when it
-    named any.
-    """
-
-    def __init__(
-        self,
-        detail: str,
-        status: int = 502,
-        errors: JSONArray | None = None,
-    ) -> None:
-        super().__init__(
-            code=ErrorCode.WDK_ERROR,
-            title="VEuPathDB service error",
-            status=status,
-            detail=detail,
-            errors=errors,
-        )
-
-
-class WDKLoginRequiredError(AppError):
-    """The request names no registered VEuPathDB user.
-
-    VEuPathDB serves the WDK service to registered users only, so a guest or
-    anonymous request cannot reach a search, a strategy or a gene set.
-    """
-
-    def __init__(self) -> None:
-        super().__init__(
-            code=ErrorCode.WDK_LOGIN_REQUIRED,
-            title="VEuPathDB login required",
-            status=401,
-            detail="Sign in to VEuPathDB to use searches, strategies and gene sets.",
         )
 
 
@@ -290,39 +234,6 @@ class StrategyCompilationError(AppError):
         )
 
 
-class ExternalServiceError(AppError):
-    """A non-WDK external service is unreachable or answers unexpectedly."""
-
-    def __init__(self, service: str, detail: str, status: int = 502) -> None:
-        super().__init__(
-            code=ErrorCode.EXTERNAL_SERVICE_ERROR,
-            title=f"External service error: {service}",
-            status=status,
-            detail=detail,
-        )
-
-
-class DataParsingError(AppError):
-    """An external API returned data that does not match the expected shape."""
-
-    def __init__(self, detail: str) -> None:
-        super().__init__(
-            code=ErrorCode.DATA_PARSING_ERROR,
-            title="Data parsing failed",
-            status=500,
-            detail=detail,
-        )
-
-
-def validate_response[M: BaseModel](model: type[M], raw: object, context: str) -> M:
-    """Validate an external API response and raise ``DataParsingError``."""
-    try:
-        return model.model_validate(raw)
-    except pydantic.ValidationError as e:
-        msg = f"Unexpected {context}: {e}"
-        raise DataParsingError(msg) from e
-
-
 _GENERIC_ERROR = "An internal error occurred"
 
 
@@ -332,6 +243,6 @@ def sanitize_error_for_client(exc: BaseException) -> str:
     Only an ``AppError`` carries a user-facing title and detail. Every other
     exception gets a generic message.
     """
-    if isinstance(exc, AppError):
+    if isinstance(exc, (AppError, VEuPathDBError)):
         return str(exc)
     return _GENERIC_ERROR

@@ -5,9 +5,9 @@ from __future__ import annotations
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
 
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,

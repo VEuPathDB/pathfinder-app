@@ -23,6 +23,7 @@ from assistant_core.mcp.admission import (
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb_mcp.server import TOOLS
 
 from pathfinder.assistants.site_help.mock import (
     CONTROL_TESTS_PROMPT,
@@ -33,7 +34,6 @@ from pathfinder.assistants.site_help.mock import (
     WDK_CONTROL_TESTS_TOOL,
     WDK_RECORD_TYPES_TOOL,
 )
-from pathfinder.mcp.server import TOOLS
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.tool_sources import (
     WDK_MCP_PART_NAMESPACE,

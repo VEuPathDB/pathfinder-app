@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from assistant_core.platform.types import JSONObject
-
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
 
 ORGANISM = "Plasmodium falciparum 3D7"
 

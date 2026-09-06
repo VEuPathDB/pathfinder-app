@@ -14,6 +14,7 @@ from assistant_core.memory.schemas import MemoryValue
 from assistant_core.platform.config import RuntimeSettings, use_settings_source
 from langgraph.runtime import Runtime
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph import _lead_turn, nodes
 from pathfinder.ai.graph.runtime import Context
@@ -23,7 +24,6 @@ from pathfinder.ai.graph.state import (
     StrategyDomainState,
     VerificationDigest,
 )
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 

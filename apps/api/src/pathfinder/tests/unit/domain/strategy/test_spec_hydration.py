@@ -6,20 +6,21 @@ whose spec is missing can describe its own strategy without asking anyone.
 
 from __future__ import annotations
 
-from pathfinder.domain.parameters.values import (
+from veupathdb.domain.parameters.values import (
     MultiPickValue,
     NumberValue,
     StringValue,
 )
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from pathfinder.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.strategy.operational_spec import (
     OperationalSpec,
     build_step_tree,
 )
-from pathfinder.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import walk
+
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import walk
 
 
 def _step_tree(spec: OperationalSpec) -> StrategyStepNode:

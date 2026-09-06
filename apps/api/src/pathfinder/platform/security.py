@@ -22,9 +22,9 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.platform.error_handlers import problem_response
 from pathfinder.platform.errors import ErrorCode, UnauthorizedError
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER, Principal

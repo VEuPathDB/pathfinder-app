@@ -10,6 +10,7 @@ import asyncio
 from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
@@ -19,7 +20,6 @@ from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_agent import LeadResponse
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService

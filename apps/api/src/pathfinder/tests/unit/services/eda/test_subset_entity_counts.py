@@ -4,15 +4,13 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncGenerator, Callable, Generator, Sequence
-from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
-
-from pathfinder.domain.eda_parts import EdaEntityCount
-from pathfinder.integrations.eda.client import EdaClient
-from pathfinder.integrations.eda.models import (
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.eda.client import EdaClient
+from veupathdb.eda.models import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
     EdaFilter,
@@ -20,16 +18,16 @@ from pathfinder.integrations.eda.models import (
     EdaStudyDetail,
     EdaSubsetDescriptor,
 )
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
+
+from pathfinder.domain.eda_parts import EdaEntityCount
 from pathfinder.persistence.models import ConversationAnalysisView
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.services.eda import authoring, catalog
 from pathfinder.services.eda.binding import read_analysis_state
 
 pytestmark = pytest.mark.asyncio
 
-FIXTURES = (
-    Path(__file__).resolve().parents[3] / "unit" / "integrations" / "eda" / "fixtures"
-)
+FIXTURES = FIXTURE_DIR
 
 _PHENOTYPE_DATASET = "DS_53f554ec6a"
 _PHENOTYPE_STUDY = "STUDY_53f554ec6a"

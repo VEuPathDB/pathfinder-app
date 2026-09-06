@@ -7,11 +7,9 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 
 from assistant_core.platform.pydantic_base import CamelModel
-
-from pathfinder.domain.eda_parts import EdaEffectDirection
-from pathfinder.integrations.eda.errors import EdaError
-from pathfinder.integrations.eda.factory import get_eda_client
-from pathfinder.integrations.eda.models import (
+from veupathdb.eda.errors import EdaError
+from veupathdb.eda.factory import get_eda_client
+from veupathdb.eda.models import (
     EdaAnalysisDetail,
     EdaComputation,
     EdaComputationDescriptor,
@@ -22,6 +20,8 @@ from pathfinder.integrations.eda.models import (
     VolcanoStatsResponse,
     VolcanoStatsRow,
 )
+
+from pathfinder.domain.eda_parts import EdaEffectDirection
 from pathfinder.platform.errors import AppError, ErrorCode
 from pathfinder.services.eda.authoring import apply_computation
 from pathfinder.services.eda.binding import read_analysis

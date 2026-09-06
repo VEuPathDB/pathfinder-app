@@ -25,7 +25,6 @@ src/
     ui/                         #   shadcn components (the `components.json` target)
     ai-elements/                #   Vendored chat primitives
   features/                     # Feature modules (vertical slices)
-    analysis/                   #   Enrichment, distribution and validation panels
     conversation/               #   The thread
       ChatShell -> ChatView -> ChatThread   # the three components a page mounts
       api/                      #     Query options for the thread's own endpoints
@@ -51,6 +50,8 @@ src/
       validation/               #     Save validation, formatting, zero-result advisor
       services/ hooks/ page/
     workbench/                  #   Multi-panel analysis over gene sets and experiments
+      analysis/                 #     Enrichment, distribution and validation panels
+      api/                      #     Its entry points: geneSets, controlSets, streaming
   lib/                          # Shared, not feature-specific
     api/                        #   http.ts (base request + Zod validation), client.ts,
                                 #     conversations.ts, strategy.ts, sites.ts, errors.ts,

@@ -8,6 +8,17 @@ import pytest
 from pydantic import TypeAdapter
 from pydantic import ValidationError as PydanticValidationError
 from pydantic_ai import ModelRetry
+from veupathdb.domain.parameters.wdk_vocab import VocabOption, WDKVocabTerm
+from veupathdb.domain.search import SearchContext
+from veupathdb.wdk.wdk_parameters import (
+    WDKEnumParam,
+    WDKParameter,
+    WDKStringParam,
+)
+from veupathdb_mcp.catalog.param_dag import ResolvedParams, UnknownParameterError
+from veupathdb_mcp.catalog.param_formatting import (
+    format_param_info_typed,
+)
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.tools.standalone import frame_spec
@@ -16,17 +27,6 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     coerce_proposals,
 )
 from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
-from pathfinder.domain.parameters.wdk_vocab import VocabOption, WDKVocabTerm
-from pathfinder.domain.search import SearchContext
-from pathfinder.integrations.veupathdb.wdk_parameters import (
-    WDKEnumParam,
-    WDKParameter,
-    WDKStringParam,
-)
-from pathfinder.services.catalog.param_dag import ResolvedParams, UnknownParameterError
-from pathfinder.services.catalog.param_formatting import (
-    format_param_info_typed,
-)
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     KINASE_PARAMS,
     ParamsAt,

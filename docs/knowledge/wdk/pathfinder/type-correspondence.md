@@ -8,7 +8,7 @@ verified: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
 status: stable
 ---
 
-Every permalink below is pinned to the sha recorded in [sources.md](../sources.md).
+Every permalink below is pinned to the sha recorded in sources.md (`veupathdb-py: docs/knowledge/wdk/sources.md`).
 
 # How to read an empty cell
 
@@ -37,7 +37,7 @@ are one type carrying both the declaration (vocabulary, bounds, `dependentParams
 and the current value, as `initialDisplayValue` on
 [`ParameterBase`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L54-L64).
 PathFinder splits them: the declaration is `WDKParameter` in
-`integrations/veupathdb/wdk_parameters.py`, and the value is `ParamValue` in
+`veupathdb/wdk/wdk_parameters.py`, and the value is `ParamValue` in
 `domain/parameters/values.py`. The declaration is an integration concern and the
 value is a domain concern, and only the value crosses layers.
 
@@ -46,7 +46,7 @@ value is a domain concern, and only the value crosses layers.
 carries `stepTree` and `steps` separately - and PathFinder goes one step further
 by flattening the tree into parent pointers everywhere except the WDK boundary
 ([nested-tree-at-the-wire-boundary](../../decisions/nested-tree-at-the-wire-boundary.md),
-[WDK-MAP-003](../rules/pathfinder-mapping.md)).
+[WDK-MAP-003](rules/pathfinder-mapping.md)).
 
 # The structural concepts
 
@@ -77,7 +77,7 @@ discriminated union (next section).
 
 **The declared-filter row is the one row whose Pydantic cell is a raw dict.**
 `WDKSearch.filters` is `list[JSONObject]`, so the three filters every transcript
-search advertises ([filters](../model/filters.md)) arrive unparsed. It is not
+search advertises (filters, `veupathdb-py: docs/knowledge/wdk/model/filters.md`) arrive unparsed. It is not
 PathFinder's only untyped field - `wdk_models.py` declares nine `JSONObject` or
 `JsonValue` fields in all, among them `dynamicAttributes`, `summaryViewPlugins`
 and `columnFilters` - but it is the only one standing in for a concept this table
@@ -88,8 +88,9 @@ appear nowhere outside the model definition, which is why it has survived.
 
 `ParamKind` in `domain/parameters/values.py` is WDK's eleven
 [`*_PARAM_TYPE` constants](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/core/api/JsonKeys.java#L147-L157)
-and nothing else ([WDK-PARAM-001](../rules/parameters-and-vocabularies.md),
-[WDK-MAP-001](../rules/pathfinder-mapping.md)). The Java column names the class
+and nothing else (WDK-PARAM-001 in
+`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`,
+[WDK-MAP-001](rules/pathfinder-mapping.md)). The Java column names the class
 [`ParamFormatterFactory`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/param/ParamFormatterFactory.java#L18-L55)
 dispatches on to produce that `type` string.
 
@@ -141,10 +142,10 @@ machinery is not the obstacle.
 
 # What lives where, in one sentence each
 
-- **`integrations/veupathdb/wdk_models.py`** - every `WDK*` response model, one per
+- **`veupathdb/wdk/wdk_models.py`** - every `WDK*` response model, one per
   WDK JSON document. Frozen, `extra="ignore"`, camelCase aliases. Nothing outside
   the integration layer constructs these from raw JSON.
-- **`integrations/veupathdb/wdk_parameters.py`** - the ten-member `WDKParameter`
+- **`veupathdb/wdk/wdk_parameters.py`** - the ten-member `WDKParameter`
   union, discriminated on `type`.
 - **`domain/parameters/values.py`** - the eleven `*Value` models and `ParamKind`.
   Pure, no I/O, and the only parameter representation that crosses layers.
@@ -152,7 +153,7 @@ machinery is not the obstacle.
   WDK's wire and decoded forms, and the coercion of raw input into one of them.
 - **`domain/parameters/wdk_vocab.py` and `domain/wdk_values.py`** - the eight
   `WDK*`-named types that reach the browser, listed in
-  [WDK-MAP-007](../rules/pathfinder-mapping.md). They are WDK-shaped and
+  [WDK-MAP-007](rules/pathfinder-mapping.md). They are WDK-shaped and
   domain-owned, which is not a contradiction: they carry no I/O.
 - **`packages/shared-ts/src/generated/`** - Kubb output from `openapi.json`. Never
   edited by hand ([one-way-to-generate-types](../../decisions/one-way-to-generate-types.md)).

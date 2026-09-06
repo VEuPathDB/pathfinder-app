@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from assistant_core.embeddings.record_manager import (
+from sqlalchemy import func, select, update
+from veupathdb_mcp.embeddings.db import embedding_session
+from veupathdb_mcp.embeddings.record_manager import (
     IndexEntry,
     prune_orphan_vectors,
     sync_index,
 )
-from assistant_core.persistence.models import EmbeddingVector
-from assistant_core.platform.db import async_session_factory
-from sqlalchemy import func, select, update
+from veupathdb_mcp.embeddings.tables import EmbeddingVector
 
 from pathfinder.jobs import maintenance
 from pathfinder.jobs.app import procrastinate_app
@@ -19,7 +19,7 @@ from pathfinder.jobs.tasks import ORPHAN_VECTOR_GRACE, ensure_registered
 
 
 async def _vector_rows() -> int:
-    async with async_session_factory() as session:
+    async with embedding_session() as session:
         return (
             await session.scalar(select(func.count()).select_from(EmbeddingVector)) or 0
         )
@@ -52,7 +52,7 @@ async def test_the_sweep_drops_an_aged_orphan(
         [IndexEntry(entry_id="a", text="alpha"), IndexEntry(entry_id="b", text="beta")],
     )
     await sync_index("catalog:sweepdb", [IndexEntry(entry_id="a", text="alpha")])
-    async with async_session_factory() as session:
+    async with embedding_session() as session:
         await session.execute(
             update(EmbeddingVector).values(
                 created_at=datetime.now(UTC) - timedelta(days=30),

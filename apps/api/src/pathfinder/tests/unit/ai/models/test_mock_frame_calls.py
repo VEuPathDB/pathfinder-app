@@ -10,6 +10,8 @@ from __future__ import annotations
 import pytest
 from pydantic import TypeAdapter
 from pydantic_ai.messages import ToolReturnPart
+from veupathdb.domain.strategy.operational_spec import StructureNode
+from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.models.mock.specs import (
     CriterionReply,
@@ -26,8 +28,6 @@ from pathfinder.ai.models.mock.specs import (
     single_spec,
 )
 from pathfinder.ai.tools.standalone.frame_spec import ParamProposals, SetCriterionResult
-from pathfinder.domain.strategy.operational_spec import StructureNode
-from pathfinder.domain.strategy.ops import CombineOp
 
 _PF = "Plasmodium falciparum 3D7"
 _SPECS = [single_spec(_PF), go_spec(_PF), interpro_spec(_PF), combined_spec(_PF)]

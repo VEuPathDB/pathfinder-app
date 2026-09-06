@@ -52,76 +52,96 @@ export async function fetchSeedData(baseURL: string): Promise<SeedData> {
   }
 }
 
+/** One site's seed: the organism the journey stays inside, the text query
+ * and the curated ids that stand in when the search answers with too few. */
+interface SiteSeed {
+  organism: string;
+  query: string;
+  curated: string[];
+}
+
+const SITE_SEEDS: Record<string, SiteSeed> = {
+  plasmodb: {
+    organism: "Plasmodium falciparum 3D7",
+    query: "chloroquine resistance",
+    curated: [
+      "PF3D7_0709000", // CRT (chloroquine resistance transporter)
+      "PF3D7_1343700", // Kelch13 (artemisinin resistance)
+      "PF3D7_0523000", // MDR1 (multidrug resistance)
+      "PF3D7_0810800", // DHFR-TS (antifolate resistance)
+      "PF3D7_0417200", // DHPS (sulfadoxine resistance)
+    ],
+  },
+  toxodb: {
+    organism: "Toxoplasma gondii ME49",
+    query: "invasion",
+    curated: [
+      "TGME49_261080", // MIC2 (micronemal protein)
+      "TGME49_233460", // RON4 (rhoptry neck protein)
+      "TGME49_300100", // AMA1 (apical membrane antigen)
+    ],
+  },
+  tritrypdb: {
+    organism: "Leishmania major strain Friedlin",
+    query: "surface protease",
+    curated: [
+      "LmjF.10.0460", // MSP (major surface protease / GP63)
+      "LmjF.35.0010", // A2 family (amastigote-specific)
+      "LmjF.33.1740", // Cysteine peptidase B
+    ],
+  },
+  cryptodb: {
+    organism: "Cryptosporidium parvum Iowa II",
+    query: "oocyst wall",
+    curated: [
+      "cgd7_5030", // COWP1 (oocyst wall protein)
+      "cgd6_1080", // COWP-domain protein
+      "cgd3_920", // GP60 (surface glycoprotein)
+    ],
+  },
+  fungidb: {
+    organism: "Aspergillus fumigatus Af293",
+    query: "glucan synthase",
+    curated: [
+      "AFUA_6G12400", // FKS1 (beta-1,3-glucan synthase)
+      "AFUA_2G13440", // Chitin synthase
+      "AFUA_2G05340", // GEL2 (beta-1,3-glucanosyltransferase)
+    ],
+  },
+};
+
 async function collectSeedData(api: APIRequestContext): Promise<SeedData> {
-  const plasmoGenes = await fetchGeneIds(api, "plasmodb", "chloroquine resistance", [
-    "PF3D7_0709000", // CRT (chloroquine resistance transporter)
-    "PF3D7_1343700", // Kelch13 (artemisinin resistance)
-    "PF3D7_0523000", // MDR1 (multidrug resistance)
-    "PF3D7_0810800", // DHFR-TS (antifolate resistance)
-    "PF3D7_0417200", // DHPS (sulfadoxine resistance)
-  ]);
-
-  const toxoGenes = await fetchGeneIds(api, "toxodb", "invasion", [
-    "TGME49_261080", // MIC2 (micronemal protein)
-    "TGME49_233460", // RON4 (rhoptry neck protein)
-    "TGME49_300100", // AMA1 (apical membrane antigen)
-  ]);
-
-  const tritrypGenes = await fetchGeneIds(api, "tritrypdb", "surface protease", [
-    "LmjF.10.0460", // MSP (major surface protease / GP63)
-    "LmjF.35.0010", // A2 family (amastigote-specific)
-    "LmjF.33.1740", // Cysteine peptidase B
-  ]);
-
-  const cryptoGenes = await fetchGeneIds(api, "cryptodb", "oocyst wall", [
-    "cgd7_5030", // COWP1 (oocyst wall protein)
-    "cgd6_1080", // COWP-domain protein
-    "cgd3_920", // GP60 (surface glycoprotein)
-  ]);
-
-  const fungiGenes = await fetchGeneIds(api, "fungidb", "glucan synthase", [
-    "AFUA_6G12400", // FKS1 (beta-1,3-glucan synthase)
-    "AFUA_2G13440", // Chitin synthase
-    "AFUA_2G05340", // GEL2 (beta-1,3-glucanosyltransferase)
-  ]);
-
-  const siteData: Record<string, SiteGeneData> = {
-    plasmodb: {
-      geneIds: plasmoGenes,
-      organism: "Plasmodium falciparum 3D7",
-    },
-    toxodb: {
-      geneIds: toxoGenes,
-      organism: "Toxoplasma gondii ME49",
-    },
-    tritrypdb: {
-      geneIds: tritrypGenes,
-      organism: "Leishmania major strain Friedlin",
-    },
-    cryptodb: {
-      geneIds: cryptoGenes,
-      organism: "Cryptosporidium parvum Iowa II",
-    },
-    fungidb: {
-      geneIds: fungiGenes,
-      organism: "Aspergillus fumigatus Af293",
-    },
-  };
-
+  const siteData: Record<string, SiteGeneData> = {};
+  for (const [siteId, seed] of Object.entries(SITE_SEEDS)) {
+    siteData[siteId] = {
+      geneIds: await fetchGeneIds(api, siteId, seed),
+      organism: seed.organism,
+    };
+  }
+  const plasmo = siteData["plasmodb"];
+  const toxo = siteData["toxodb"];
+  if (plasmo === undefined || toxo === undefined) {
+    throw new Error("plasmodb and toxodb seeds are always collected");
+  }
   return {
-    plasmoGenes,
-    toxoGenes,
+    plasmoGenes: plasmo.geneIds,
+    toxoGenes: toxo.geneIds,
     siteData,
   };
 }
 
+/**
+ * Gene ids of one organism. The text search reaches every organism the site
+ * hosts, and an enrichment analysis tests one organism's genes against its own
+ * genome, so the search is narrowed to the seed's organism.
+ */
 async function fetchGeneIds(
   api: APIRequestContext,
   siteId: string,
-  query: string,
-  curated: string[],
+  { organism, query, curated }: SiteSeed,
 ): Promise<string[]> {
-  const searchPath = `/api/v1/sites/${siteId}/genes/search?q=${encodeURIComponent(query)}&limit=10`;
+  const params = new URLSearchParams({ q: query, organism, limit: "10" });
+  const searchPath = `/api/v1/sites/${siteId}/genes/search?${params.toString()}`;
   const resp = await api.get(searchPath);
   if (!resp.ok()) {
     throw new Error(`gene search ${siteId} ${resp.status()}: ${await resp.text()}`);
@@ -133,9 +153,9 @@ async function fetchGeneIds(
   const found = hits.length === 0 ? [] : await resolveOnSite(api, siteId, hits);
   if (found.length >= curated.length) return found;
 
-  // The text search reaches every site, so it can answer with fewer genes of
-  // this site than a spec needs. The curated ids stand in for that case, and
-  // they are resolved the same way rather than assumed.
+  // The search can answer with fewer genes than a spec needs. The curated ids
+  // stand in for that case, and they are resolved the same way rather than
+  // assumed.
   const known = await resolveOnSite(api, siteId, curated);
   if (known.length < curated.length) {
     throw new Error(

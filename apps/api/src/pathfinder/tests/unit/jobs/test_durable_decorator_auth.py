@@ -8,12 +8,12 @@ from uuid import UUID, uuid4
 
 import pytest
 from pydantic_ai.exceptions import CallDeferred
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools import durable as durable_mod
+from pathfinder.ai.tools import durable
 from pathfinder.ai.tools.durable import durable_tool
-from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 
 
 class _FakeRepo:
@@ -75,13 +75,13 @@ def _fresh_deps() -> AgentDeps:
 def patch_durable_infra(monkeypatch: pytest.MonkeyPatch) -> None:
     _FakeRepo.created.clear()
     _FakeTask.deferred.clear()
-    monkeypatch.setattr(durable_mod, "get_stream_writer", lambda: lambda _p: None)
+    monkeypatch.setattr(durable, "get_stream_writer", lambda: lambda _p: None)
     monkeypatch.setattr(
-        durable_mod,
+        durable,
         "create_background_task",
         _fake_create_background_task,
     )
-    monkeypatch.setattr(durable_mod, "procrastinate_app", _FakeApp())
+    monkeypatch.setattr(durable, "procrastinate_app", _FakeApp())
 
 
 @pytest.mark.asyncio

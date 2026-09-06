@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
-
-from pathfinder.integrations.eda.models import EdaStringSetFilter
-from pathfinder.services.catalog.eda_backed import (
+from veupathdb.eda.models import EdaStringSetFilter
+from veupathdb_mcp.catalog.eda_backed import (
     EDA_ANALYSIS_SPEC_PARAM,
     EDA_DATASET_ID_PARAM,
     EdaStepRequest,
 )
+
 from pathfinder.services.eda.authoring import new_analysis, serialize_spec
 
 

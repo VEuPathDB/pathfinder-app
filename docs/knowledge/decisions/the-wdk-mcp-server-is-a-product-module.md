@@ -22,8 +22,11 @@ Three facts make that the cheapest correct shape:
   `pathfinder.services`, which is the api.
 - **The coupling that matters is enforced, not conventional.** Import-linter
   contract "The MCP server never imports the agents or the API transport"
-  forbids `pathfinder.ai` and `pathfinder.transport` from `pathfinder.mcp`, so
-  a turn-scoped object cannot reach a stateless server by accident.
+  forbade `pathfinder.ai` and `pathfinder.transport` from `pathfinder.mcp`, so
+  a turn-scoped object could not reach a stateless server by accident. That
+  contract is now the `veupathdb-mcp` distribution's dependency list; see
+  [the MCP server is a distribution](the-mcp-server-is-a-distribution.md), which
+  supersedes this decision's premise while keeping its conclusion.
 - **The api environment now carries the server extra.** `fastmcp-slim` arrives
   with `pydantic-ai` in its client extra only, so `import fastmcp.server`
   raised `ImportError` until `fastmcp-slim[server]` joined the api's own
@@ -61,3 +64,7 @@ Each of those tools therefore declares its own floor in tool `_meta`, under
 budget is choosing to time the tool out, and can read the number before it
 does. Declaring nothing was rejected: the default would silently cut the call
 at 60 seconds and the failure would look like a WDK fault.
+
+The served entrypoint reaches no PathFinder table, which is what a second
+deployment needs; see
+[the MCP server writes no PathFinder table](the-mcp-server-writes-no-pathfinder-table.md).

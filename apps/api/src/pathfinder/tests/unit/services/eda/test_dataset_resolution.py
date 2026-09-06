@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Generator
-from pathlib import Path
 
 import httpx
 import pytest
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.eda.client import EdaClient
+from veupathdb.eda.models import EdaStudiesResponse, EdaStudyOverview
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
-from pathfinder.integrations.eda.client import EdaClient
-from pathfinder.integrations.eda.models import EdaStudiesResponse, EdaStudyOverview
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.services.eda import catalog
 
-FIXTURES = Path(__file__).resolve().parents[2] / "integrations" / "eda" / "fixtures"
+FIXTURES = FIXTURE_DIR
 
 pytestmark = pytest.mark.asyncio
 

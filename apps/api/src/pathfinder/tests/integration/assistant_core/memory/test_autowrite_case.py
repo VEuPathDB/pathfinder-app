@@ -14,6 +14,15 @@ from assistant_core.memory.retrieval import retrieve_relevant_memories
 from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.db import async_session_factory
 from langgraph.runtime import Runtime
+from veupathdb.domain.parameters.values import StringValue
+from veupathdb.domain.strategy.build_outcome import BuildOutcome, NodeResult
+from veupathdb.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph import nodes
 from pathfinder.ai.graph.runtime import Context
@@ -26,15 +35,6 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.lead.memory_candidates import PRODUCT_MEMORY_KINDS
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
-from pathfinder.domain.parameters.values import StringValue
-from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import User
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService

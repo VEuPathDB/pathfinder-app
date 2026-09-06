@@ -16,15 +16,15 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import veupathdb_mcp
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.testing.wdk_credentials import NO_CREDENTIALS_REASON
+from veupathdb.wdk.factory import get_strategy_api
+from veupathdb_mcp.server import SERVER_NAME, TOOLS
+from veupathdb_mcp.wdk.gene_set_steps import fetch_gene_ids_from_step
 
-from pathfinder import __version__ as pathfinder_version
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.mcp.server import SERVER_NAME, TOOLS
-from pathfinder.platform.context import veupathdb_auth_token_ctx
-from pathfinder.services.gene_sets.wdk_helpers import fetch_gene_ids_from_step
-from pathfinder.tests._support.wdk_credentials import NO_CREDENTIALS_REASON
 from pathfinder.tests.integration.mcp._served import (
     RECORD_TYPE,
     SITE,
@@ -54,9 +54,11 @@ CONTROL_GENE_COUNT = 3
 RUN_SECONDS = 900.0
 
 # The slow read that drives family 5, and the budget the client gives it. The
-# call answers in about 21 seconds warm, so five seconds is driven past.
+# tool reads public strategies from the site over the network, so no answer can
+# arrive inside a second; a budget near the call's own cost races the catalog,
+# which is fast when the snapshot is warm and slow when it is cold.
 SLOW_TOOL = "search_example_plans"
-SLOW_TOOL_BUDGET_SECONDS = 5
+SLOW_TOOL_BUDGET_SECONDS = 1
 
 # Two gaps, each for its own measured reason: one account cannot own the
 # resource a second identity must read, and no served write is idempotent. The
@@ -134,7 +136,7 @@ class AdmissionRecord(CamelModel):
 def sample_arguments(step: OwnedStep, controls: list[str]) -> dict[str, Any]:
     """The arguments a conformance call may use, on the one site kept warm.
 
-    Fifteen of the sixteen tools appear. `enrich_gene_ids` does not: the suite
+    Sixteen of the seventeen tools appear. `enrich_gene_ids` does not: the suite
     calls one non-destructive write, and the cheaper of the two answers it.
     """
     return {
@@ -152,6 +154,7 @@ def sample_arguments(step: OwnedStep, controls: list[str]) -> dict[str, Any]:
             "parameter_id": "organism",
         },
         "lookup_gene_records": {"site_id": SITE, "query": "PfAP2-G", "limit": 5},
+        "get_ai_expression_summary": {"site_id": SITE, "gene_id": "PF3D7_1133400"},
         "resolve_gene_ids_to_records": {"site_id": SITE, "gene_ids": controls},
         "get_step_estimated_size": {
             "site_id": SITE,
@@ -308,7 +311,7 @@ def test_the_record_names_this_deployment_and_its_inventory(
 
     assert (server.server_info.name, server.server_info.version) == (
         SERVER_NAME,
-        pathfinder_version,
+        veupathdb_mcp.__version__,
     )
     assert server.protocol_version != ""
     assert {tool.name for tool in admission_record.tools} == declared

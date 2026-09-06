@@ -9,9 +9,9 @@ from __future__ import annotations
 import json
 
 import pytest
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.eda.factory import get_eda_client
 
-from pathfinder.integrations.eda.factory import get_eda_client
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.tests._support.eda_fixtures import (
     FIXTURES,
     SITE_ID,

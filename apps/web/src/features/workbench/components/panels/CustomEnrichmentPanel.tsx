@@ -1,7 +1,7 @@
 "use client";
 
 import { FlaskConical } from "lucide-react";
-import { CustomEnrichmentSection } from "@/features/analysis";
+import { CustomEnrichmentSection } from "@/features/workbench/analysis";
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 

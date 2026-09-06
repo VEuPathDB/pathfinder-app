@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
-from pathfinder.ai.lead.turn_briefing import MAX_BRIEFING_LINES, compose_turn_briefing
-from pathfinder.domain.parameters.values import (
+from veupathdb.domain.parameters.values import (
     MultiPickValue,
     NumberValue,
     ParamValue,
     StringValue,
 )
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.constraints import (
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
 )
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+
+from pathfinder.ai.lead.turn_briefing import MAX_BRIEFING_LINES, compose_turn_briefing
 from pathfinder.services.conversations.thread_activity import (
     AnalysisDrift,
     FinishedTask,

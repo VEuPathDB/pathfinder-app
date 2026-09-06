@@ -7,14 +7,14 @@ transform, plus a combine WDK marks as an expanded saved sub-strategy.
 from __future__ import annotations
 
 import pytest
-
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.wdk.wdk_models import (
     WDKSearchConfig,
     WDKStep,
     WDKStepTree,
     WDKStrategyDetails,
 )
+
 from pathfinder.services.strategies import reconcile
 from pathfinder.services.strategies.reconcile import fetch_wdk_strategy_step_ids
 from pathfinder.services.strategies.wdk_conversion import build_snapshot_from_wdk

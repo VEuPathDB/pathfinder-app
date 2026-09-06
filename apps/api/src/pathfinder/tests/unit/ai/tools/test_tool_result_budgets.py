@@ -7,11 +7,16 @@ serialized exactly as a ``ToolReturnPart`` sends it.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn, ToolReturnPart
+from veupathdb.eda.models import (
+    EdaPermissionEntry,
+    EdaStudyDetail,
+    EdaStudyDetailResponse,
+)
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -22,11 +27,6 @@ from pathfinder.domain.research.citations import (
     LiteratureOutputOptions,
     LiteratureSort,
     LiteratureSource,
-)
-from pathfinder.integrations.eda.models import (
-    EdaPermissionEntry,
-    EdaStudyDetail,
-    EdaStudyDetailResponse,
 )
 from pathfinder.services.eda.binding import ConversationAnalysisView
 from pathfinder.services.eda.catalog import StudyCard, StudySearch
@@ -43,9 +43,7 @@ from pathfinder.services.research.web_search import (
 )
 from pathfinder.tests.unit.ai.tools.conftest import lead_run_context
 
-FIXTURES = (
-    Path(__file__).resolve().parents[3] / "unit" / "integrations" / "eda" / "fixtures"
-)
+FIXTURES = FIXTURE_DIR
 
 # These four results were the largest on the wire. Each ceiling is well under
 # what the same call sent before it disclosed instead of dumping: 11,201 for

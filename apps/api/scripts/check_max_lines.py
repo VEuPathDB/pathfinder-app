@@ -19,7 +19,7 @@ DEFAULT_LIMIT = 400
 DEFAULT_BASELINE = Path("src/pathfinder/tests/.max-lines-baseline.txt")
 SRC_ROOTS = (
     Path("src/pathfinder"),
-    Path("../../packages/assistant-core/src/assistant_core"),
+    Path("../../assistant-platform/packages/assistant-core/src/assistant_core"),
 )
 
 # Directories and files exempt from the line limit.

@@ -16,7 +16,7 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.spec import TurnContextRequest
 
 from pathfinder.assistants import pathfinder_spec
-from pathfinder.jobs import runtime as worker_runtime
+from pathfinder.jobs import runtime
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.platform.errors import ErrorCode, StrategyAstCorruptError
 from pathfinder.services.strategies import session_factory
@@ -77,7 +77,7 @@ def _install(monkeypatch: pytest.MonkeyPatch, strategy_ast: dict[str, Any]) -> N
         ) -> tuple[Conversation, ConversationStrategyView]:
             return conversation, strategy
 
-    for module in (pathfinder_spec, worker_runtime):
+    for module in (pathfinder_spec, runtime):
         monkeypatch.setattr(module, "async_session_factory", _Session)
         monkeypatch.setattr(module, "ConversationRepository", _Repo)
 
@@ -101,7 +101,7 @@ async def test_both_callers_build_the_same_session(
     _install(monkeypatch, _STRATEGY_AST)
 
     from_spec = await pathfinder_spec.build_turn_context(_turn_request())
-    from_worker = await worker_runtime.build_worker_runtime_context(
+    from_worker = await runtime.build_worker_runtime_context(
         conversation_id=str(_CONVERSATION_ID),
         task_id="t1",
     )
@@ -125,7 +125,7 @@ async def _spec_context() -> None:
 
 
 async def _worker_context() -> None:
-    await worker_runtime.build_worker_runtime_context(
+    await runtime.build_worker_runtime_context(
         conversation_id=str(_CONVERSATION_ID),
         task_id="t1",
     )
@@ -149,4 +149,4 @@ async def test_a_corrupt_row_stops_both_callers_by_name(
 def test_the_row_to_session_parse_has_one_owner() -> None:
     """Only ``persisted_graph`` turns a stored row into a graph."""
     assert pathfinder_spec.persisted_graph is session_factory.persisted_graph
-    assert worker_runtime.persisted_graph is session_factory.persisted_graph
+    assert runtime.persisted_graph is session_factory.persisted_graph

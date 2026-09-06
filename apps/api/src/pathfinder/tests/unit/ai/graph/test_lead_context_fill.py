@@ -12,6 +12,7 @@ from uuid import uuid4
 import pytest
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph._lead_capture import (
     _charge_token_delta,
@@ -21,7 +22,6 @@ from pathfinder.ai.graph._lead_capture import (
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.models.catalog import context_window_for
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services import quota
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService

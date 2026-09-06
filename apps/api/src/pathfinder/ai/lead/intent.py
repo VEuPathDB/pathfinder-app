@@ -4,8 +4,7 @@ from enum import StrEnum
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-
-from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from veupathdb.domain.strategy.constraints import Constraint, ConstraintKind
 
 
 class IntentClassification(StrEnum):

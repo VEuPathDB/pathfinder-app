@@ -6,11 +6,14 @@ intersection counts returned by :func:`run_positive_negative_controls`.
 
 import math
 
-from pathfinder.services.experiment.types import (
-    ConfusionMatrix,
+from veupathdb_mcp.controls.control_types import (
     ControlSetData,
     ControlTargetData,
     ControlTestResult,
+)
+
+from pathfinder.services.experiment.types import (
+    ConfusionMatrix,
     ExperimentMetrics,
 )
 

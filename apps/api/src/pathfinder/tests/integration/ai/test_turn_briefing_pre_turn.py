@@ -10,18 +10,18 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 from assistant_core.persistence.models import Conversation, ConversationEvent, Message
+from assistant_core.platform import db
+from veupathdb.domain.parameters.values import NumberValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.session import StrategySession
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.pre_turn import pathfinder_pre_turn
 from pathfinder.ai.tools.standalone._eda_stream_parts import eda_analysis_state_chunk
 from pathfinder.domain.eda_parts import EdaAnalysisState
-from pathfinder.domain.parameters.values import NumberValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
 from pathfinder.persistence.models import BackgroundTask, ConversationAnalysis, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
@@ -43,7 +43,7 @@ def _ast(percentile: int) -> StrategyAst:
 
 async def _seed_thread() -> tuple[UUID, UUID]:
     conversation_id, user_id = uuid4(), uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
         session.add(
@@ -59,7 +59,7 @@ async def _seed_thread() -> tuple[UUID, UUID]:
 
 
 async def _write_strategy(conversation_id: UUID, percentile: int) -> None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await ConversationRepository(session).update_conversation(
             conversation_id,
             ConversationUpdate(
@@ -75,7 +75,7 @@ async def _write_strategy(conversation_id: UUID, percentile: int) -> None:
 
 async def _answer(conversation_id: UUID) -> datetime:
     answered_at = datetime.now(UTC)
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             Message(
                 id=uuid4(),
@@ -95,7 +95,7 @@ async def _finish_task(
     tool_name: str,
     completed_at: datetime,
 ) -> None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             BackgroundTask(
                 id=uuid4(),
@@ -131,7 +131,7 @@ def _shown_state(revision: int) -> EdaAnalysisState:
 
 
 async def _bind_analysis(conversation_id: UUID, *, revision: int, shown: int) -> None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             ConversationAnalysis(
                 conversation_id=conversation_id,
@@ -158,7 +158,7 @@ def _context() -> Context:
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
-        db_session_factory=session_module.async_session_factory,
+        db_session_factory=db.async_session_factory,
         web_search_service=WebSearchService(),
         literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),

@@ -4,10 +4,10 @@ from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
+from veupathdb.domain.strategy.build_outcome import BuildOutcome
+from veupathdb.domain.strategy.spec_diff import CriterionChange, SpecDiff
 
 from pathfinder.ai.graph.state import VerificationDigest
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 
 
 class FrameResult(CamelModel):

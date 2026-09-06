@@ -4,11 +4,11 @@ import re
 from typing import Literal, cast
 
 from fastapi import APIRouter, Query, Request
+from veupathdb.errors import ValidationError
+from veupathdb_mcp.wdk.gene_set_steps import GeneSetWdkContext
 
-from pathfinder.platform.errors import ValidationError
 from pathfinder.platform.security import limiter
 from pathfinder.services.export import get_export_service
-from pathfinder.services.gene_sets.wdk_helpers import GeneSetWdkContext
 from pathfinder.transport.http.deps import CurrentUser, SiteIdQuery
 from pathfinder.transport.http.schemas.gene_sets import (
     CreateGeneSetRequest,

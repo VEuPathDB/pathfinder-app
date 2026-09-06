@@ -4,14 +4,14 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
-
-from pathfinder.domain.parameters.values import MultiPickValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import walk
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.parameters.values import MultiPickValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import walk
+from veupathdb.errors import WDKError
+from veupathdb.wdk.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
     PatchStepSpec,
@@ -19,7 +19,7 @@ from pathfinder.integrations.veupathdb.wdk_models import (
     WDKSearchConfig,
     WDKStep,
 )
-from pathfinder.platform.errors import WDKError
+
 from pathfinder.services.strategies import step_wdk_push
 from pathfinder.services.strategies.step_push_planner import plan_step_pushes
 from pathfinder.services.strategies.step_wdk_push import (

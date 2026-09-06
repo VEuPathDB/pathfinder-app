@@ -1,7 +1,7 @@
 "use client";
 
 import { Table } from "lucide-react";
-import { ResultsTable } from "@/features/analysis/components/ResultsTable";
+import { ResultsTable } from "@/features/workbench/analysis/components/ResultsTable";
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { useSessionStore } from "@/state/useSessionStore";

@@ -6,14 +6,14 @@ from assistant_core.graph.tool_summary import with_summary
 from assistant_core.graph.turn_state import ConsultQuestion, UserQuestionAnswer
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
-
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.constraints import (
+from veupathdb.domain.strategy.constraints import (
     CombinationRequest,
     Constraint,
     ConstraintKind,
     ConstraintSource,
 )
+
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 
 _LABEL_LIMIT = 120
 

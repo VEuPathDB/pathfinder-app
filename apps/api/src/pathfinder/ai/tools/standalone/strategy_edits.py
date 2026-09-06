@@ -9,6 +9,28 @@ from assistant_core.platform.types import JSONArray, JSONObject
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.search import SearchContext
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import StepKind
+from veupathdb.domain.strategy.operations import (
+    DeleteResolution,
+    DeleteStepOp,
+    ReplaceSubtreeOp,
+    UpdateCombineOperatorOp,
+    UpdateStepMetaOp,
+    UpdateStepParamsOp,
+)
+from veupathdb.domain.strategy.ops import ColocationParams, CombineOp
+from veupathdb.errors import ValidationError
+from veupathdb_mcp.catalog.param_validation import (
+    ValidationCallbacks,
+    validate_parameters,
+)
+from veupathdb_mcp.catalog.validation_callbacks import (
+    make_validation_callbacks,
+)
+from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._graph_helpers import (
@@ -27,28 +49,7 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     validation_error_payload,
     validation_model_retry,
 )
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.domain.search import SearchContext
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import StepKind
-from pathfinder.domain.strategy.operations import (
-    DeleteResolution,
-    DeleteStepOp,
-    ReplaceSubtreeOp,
-    UpdateCombineOperatorOp,
-    UpdateStepMetaOp,
-    UpdateStepParamsOp,
-)
-from pathfinder.domain.strategy.ops import ColocationParams, CombineOp
-from pathfinder.platform.errors import ErrorCode, ValidationError
-from pathfinder.platform.tool_errors import ToolErrorPayload, tool_error
-from pathfinder.services.catalog.param_validation import (
-    ValidationCallbacks,
-    validate_parameters,
-)
-from pathfinder.services.catalog.validation_callbacks import (
-    make_validation_callbacks,
-)
+from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.insert_saved import (
     insert_saved_into_conversation,

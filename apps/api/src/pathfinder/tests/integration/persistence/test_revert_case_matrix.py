@@ -9,10 +9,10 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.persistence.models import ConversationEvent
+from assistant_core.platform import db
 from sqlalchemy import func, select, text
 
 from pathfinder.persistence.models import (
@@ -63,7 +63,7 @@ async def _langgraph_checkpoint_tables(
 @pytest.fixture(autouse=True)
 async def _truncate_langgraph_tables() -> AsyncIterator[None]:
     yield
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await session.execute(
             text(
                 "TRUNCATE TABLE checkpoints, checkpoint_blobs, "
@@ -79,7 +79,7 @@ async def _revert(
     target_message_id: UUID,
     user_id: UUID,
 ) -> None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await revert_conversation_to_message(
             session,
             conversation_id=conversation_id,
@@ -95,7 +95,7 @@ async def _fork(
     from_message_id: UUID,
     user_id: UUID,
 ) -> UUID:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_conversation_id,
@@ -107,7 +107,7 @@ async def _fork(
 
 
 async def _turn_ids_in_log(conversation_id: UUID) -> set[str]:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         rows = (
             await session.execute(
                 select(ConversationEvent.turn_id).where(
@@ -119,7 +119,7 @@ async def _turn_ids_in_log(conversation_id: UUID) -> set[str]:
 
 
 async def _revision_step_counts(conversation_id: UUID) -> list[int]:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         return list(
             (
                 await session.execute(
@@ -164,7 +164,7 @@ async def test_r1_a_revert_deletes_exactly_the_turns_after_the_target(
 
 
 async def _strategy_of(conversation_id: UUID) -> ConversationStrategy | None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         return await session.get(ConversationStrategy, conversation_id)
 
 
@@ -406,7 +406,7 @@ async def test_r6_reverting_the_parent_leaves_each_branch_s_content_alone(
 
 
 async def _task_and_progress_counts(conversation_id: UUID) -> tuple[int, int]:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         tasks = (
             await session.scalar(
                 select(func.count())
@@ -427,7 +427,7 @@ async def _task_and_progress_counts(conversation_id: UUID) -> tuple[int, int]:
 
 async def _seed_task(conversation_id: UUID, user_id: UUID) -> None:
     task_id = uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             BackgroundTask(
                 id=task_id,

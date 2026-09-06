@@ -5,6 +5,10 @@ responses and context payloads for AI tool results.
 """
 
 from assistant_core.platform.types import JSONObject
+from veupathdb.domain.strategy.graph_model import StrategyStep, step_status
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.domain.strategy.types import SyncStateProtocol
+from veupathdb.domain.strategy.validation import StepValidation
 
 from pathfinder.ai.tools.standalone._validation_helpers import (
     ContextStrategyAstPayload,
@@ -14,10 +18,6 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     is_placeholder_name,
 )
 from pathfinder.domain.strategy.explain import explain_operation
-from pathfinder.domain.strategy.graph_model import StrategyStep, step_status
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.types import SyncStateProtocol
-from pathfinder.domain.strategy.validation import StepValidation
 from pathfinder.services.strategies.schemas import StepResponse
 
 # ---------------------------------------------------------------------------

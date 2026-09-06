@@ -2,6 +2,16 @@
 
 from __future__ import annotations
 
+from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.parameters.wdk_vocab import match_exact_option
+from veupathdb.wdk.wdk_models import WDKSearch
+from veupathdb_mcp.catalog.param_dag import ParamFetcher, ResolvedParams
+from veupathdb_mcp.catalog.param_formatting import (
+    ParameterInfo,
+    format_param_info_typed,
+)
+from veupathdb_mcp.catalog.param_sheet import SheetEntry, build_sheet
+
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_proposals import (
     ParamProposals,
@@ -9,15 +19,6 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     _refuse_unmatched_value,
     _values_of,
 )
-from pathfinder.domain.parameters.value_codec import to_wire
-from pathfinder.domain.parameters.wdk_vocab import match_exact_option
-from pathfinder.integrations.veupathdb.wdk_models import WDKSearch
-from pathfinder.services.catalog.param_dag import ParamFetcher, ResolvedParams
-from pathfinder.services.catalog.param_formatting import (
-    ParameterInfo,
-    format_param_info_typed,
-)
-from pathfinder.services.catalog.param_sheet import SheetEntry, build_sheet
 
 _RE_SHEET_NOTE = (
     "vocabulary shown in the first sheet; use get_parameter_options(search_name, "

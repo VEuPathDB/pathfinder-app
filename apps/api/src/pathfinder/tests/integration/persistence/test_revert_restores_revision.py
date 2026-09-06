@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from uuid import UUID
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
+from assistant_core.platform import db
 from sqlalchemy import text
 
 from pathfinder.persistence.models import ConversationStrategy
@@ -42,7 +42,7 @@ async def _langgraph_checkpoint_tables(
 @pytest.fixture(autouse=True)
 async def _truncate_langgraph_tables() -> AsyncIterator[None]:
     yield
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await session.execute(
             text(
                 "TRUNCATE TABLE checkpoints, checkpoint_blobs, "
@@ -73,7 +73,7 @@ async def test_revert_past_a_build_puts_the_strategy_back(
     await write_strategy(conversation_id, FOUR_STEPS)
     await add_assistant_message(conversation_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await revert_conversation_to_message(
             session,
             conversation_id=conversation_id,
@@ -82,7 +82,7 @@ async def test_revert_past_a_build_puts_the_strategy_back(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         strategy = await session.get(ConversationStrategy, conversation_id)
         assert strategy is not None
         assert strategy.step_count == 3
@@ -112,7 +112,7 @@ async def test_revert_to_the_first_message_clears_a_strategy_built_after_it(
     await write_strategy(conversation_id, THREE_STEPS)
     await add_assistant_message(conversation_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await revert_conversation_to_message(
             session,
             conversation_id=conversation_id,
@@ -121,7 +121,7 @@ async def test_revert_to_the_first_message_clears_a_strategy_built_after_it(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         strategy = await session.get(ConversationStrategy, conversation_id)
         assert strategy is not None
         assert strategy.step_count == 0
@@ -140,14 +140,14 @@ async def test_revert_leaves_a_thread_without_history_alone(
     first_user = await add_user_message(conversation_id)
     await write_strategy(conversation_id, THREE_STEPS)
     await add_assistant_message(conversation_id)
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await StrategyRevisionRepository(session).delete_newer_than(
             conversation_id,
             revision_row_id=None,
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await revert_conversation_to_message(
             session,
             conversation_id=conversation_id,
@@ -156,7 +156,7 @@ async def test_revert_leaves_a_thread_without_history_alone(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         strategy = await session.get(ConversationStrategy, conversation_id)
         assert strategy is not None
         assert strategy.step_count == 3

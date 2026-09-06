@@ -6,11 +6,11 @@ from typing import Any
 from uuid import UUID
 
 from assistant_core.memory.store import MemoryStore
+from veupathdb_mcp.controls.control_tests import run_step_control_tests
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.jobs.progress import TaskProgressEmitter
-from pathfinder.services.control_tests import run_step_control_tests
-from pathfinder.services.tool_payloads import attach_control_downloads
+from pathfinder.services.export.control_downloads import attach_control_downloads
 
 
 async def run_control_tests_on_step_impl(

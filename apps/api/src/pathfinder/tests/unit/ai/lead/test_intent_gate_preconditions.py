@@ -13,15 +13,15 @@ from uuid import UUID, uuid4
 
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
+from veupathdb.domain.strategy.build_outcome import BuildOutcome
+from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
 from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests.unit.ai.lead.conftest import (
     OfferedTools,
     lead_deps,

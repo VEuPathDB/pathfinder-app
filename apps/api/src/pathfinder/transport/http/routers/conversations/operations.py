@@ -2,8 +2,8 @@ from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import APIRouter
+from veupathdb.domain.strategy.operations import GraphOperation
 
-from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.services.conversations.responses import ConversationResponse
 from pathfinder.services.conversations.service import ConversationService
 from pathfinder.transport.http.deps import CurrentUser, DBSession, RequiredSiteIdQuery

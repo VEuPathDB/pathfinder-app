@@ -29,6 +29,8 @@ _EXPECTED: list[tuple[str, str]] = [
     ),
     ("POST", "/api/v1/gene-sets/{gene_set_id}/results/record"),
     ("POST", "/api/v1/gene-sets/confidence"),
+    ("POST", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
+    ("GET", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
 ]
 
 _EXPECTED_NAMES: list[str] = [
@@ -47,6 +49,8 @@ _EXPECTED_NAMES: list[str] = [
     "get_gene_set_distribution",
     "get_gene_set_record_detail",
     "gene_confidence",
+    "publish_gene_set_to_vdi",
+    "get_gene_set_vdi_publication",
 ]
 
 

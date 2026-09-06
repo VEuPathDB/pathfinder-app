@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from pathfinder.platform.errors import ErrorCode, NotFoundError, ValidationError
+from veupathdb.errors import ValidationError
+
+from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.eda.authoring import SubsetRejectedError
 from pathfinder.services.eda.catalog import UnknownEdaDatasetError
 

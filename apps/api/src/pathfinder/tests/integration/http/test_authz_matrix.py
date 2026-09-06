@@ -16,12 +16,12 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from pathfinder.platform.config import get_settings
-from pathfinder.tests._support.wdk_credentials import (
+from veupathdb.testing.wdk_credentials import (
     NO_CREDENTIALS_REASON,
     wdk_test_account,
 )
+
+from pathfinder.platform.config import get_settings
 from pathfinder.tests.integration.http._authz_matrix_cases import cases
 from pathfinder.tests.integration.http._authz_matrix_owned import (
     create_owned,
@@ -125,9 +125,13 @@ def test_every_exclusion_names_a_route_the_matrix_would_otherwise_demand(
     stale = stale_exclusions(app)
     covered = {(case.method, case.route) for case in _BLUEPRINTS}
     stale += [
+        f"{method} {route} ({waiver.reason})"
+        for (method, route), waiver in NO_OWNER_CONTRAST.items()
+        if (method, route) not in covered
+    ]
+    stale += [
         f"{method} {route} ({reason})"
-        for listing in (NO_OWNER_CONTRAST, WDK_BACKED)
-        for (method, route), reason in listing.items()
+        for (method, route), reason in WDK_BACKED.items()
         if (method, route) not in covered
     ]
     assert stale == [], f"authz matrix exclusions that name nothing: {stale}"
@@ -197,18 +201,18 @@ async def test_a_non_owner_is_refused_by_every_route(
     async with client_for(ends_at_first_frame(app), intruder.id) as client:
         for case in cases(owned):
             status = await status_for(client, case)
+            waiver = NO_OWNER_CONTRAST.get((case.method, case.route))
             if status not in REFUSAL_STATUSES:
                 offenders.append(f"{case.method} {case.url} -> {status}")
-            elif status != 403 and (case.method, case.route) in NO_OWNER_CONTRAST:
+            elif waiver is not None and status != waiver.non_owner_status:
                 ambiguous.append(f"{case.method} {case.url} -> {status}")
 
     assert offenders == [], (
         "routes that served a non-owner instead of 403/404: " + "; ".join(offenders)
     )
     assert ambiguous == [], (
-        "routes excused from the owner contrast must refuse with 403, which no "
-        "missing sub-resource produces; these answered otherwise: "
-        + "; ".join(ambiguous)
+        "routes excused from the owner contrast must refuse with the one status "
+        "their waiver names; these answered otherwise: " + "; ".join(ambiguous)
     )
 
 

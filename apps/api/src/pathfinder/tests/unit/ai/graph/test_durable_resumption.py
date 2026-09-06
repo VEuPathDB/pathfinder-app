@@ -24,6 +24,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.tools import DeferredToolRequests
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph._lead_turn import (
     ConcurrentDurableDispatchError,
@@ -33,7 +34,6 @@ from pathfinder.ai.graph._lead_turn import (
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentDurablePark
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 

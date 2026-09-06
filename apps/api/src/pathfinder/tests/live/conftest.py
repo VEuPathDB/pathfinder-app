@@ -11,16 +11,15 @@ from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 
 import pytest
 from _pytest.reports import TestReport
-
-from pathfinder.integrations.veupathdb.factory import get_strategy_api, get_wdk_client
-from pathfinder.integrations.veupathdb.probe import WDKProbe
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.testing.summary import DriftLog, summary_path
+from veupathdb.wdk.factory import get_strategy_api, get_wdk_client
+from veupathdb.wdk.probe import WDKProbe
+from veupathdb.wdk.wdk_models import (
     NewStepSpec,
     WDKSearchConfig,
     WDKStepTree,
 )
-from pathfinder.platform.context import veupathdb_auth_token_ctx
-from pathfinder.tests.live.summary import DriftLog, summary_path
 
 VERIFICATION_SITES = ("plasmodb", "toxodb")
 

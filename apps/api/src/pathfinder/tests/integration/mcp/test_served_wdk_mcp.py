@@ -11,19 +11,19 @@ import re
 
 import httpx
 import pytest
+import veupathdb_mcp
 from mcp.types import Tool
 from pydantic import BaseModel
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk.wdk_models import WDKAnswer
+from veupathdb_mcp.controls.control_types import ControlTestResult
+from veupathdb_mcp.server import MAX_CALL_SECONDS_META_KEY, TOOLS
+from veupathdb_mcp.wdk.enrichment.gene_ids import GeneIdEnrichment
+from veupathdb_mcp.wdk.helpers import extract_record_ids
+from veupathdb_mcp.wdk.step_size import StepCountResult
 
-from pathfinder import __version__ as pathfinder_version
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.integrations.veupathdb.wdk_models import WDKAnswer
-from pathfinder.mcp.server import MAX_CALL_SECONDS_META_KEY, TOOLS
-from pathfinder.platform.context import veupathdb_auth_token_ctx
-from pathfinder.services.experiment.types.control_result import ControlTestResult
-from pathfinder.services.gene_sets.enrichment import GeneIdEnrichment
-from pathfinder.services.strategies.build import StepCountResult
-from pathfinder.services.wdk.helpers import extract_record_ids
 from pathfinder.tests.integration.mcp._served import (
     ORGANISM,
     RECORD_TYPE,
@@ -150,7 +150,7 @@ async def test_the_server_declares_the_deployments_version(
     document = json.loads(data_lines[0] if data_lines else body)
     server_info = document["result"]["serverInfo"]
     assert server_info["name"] == "veupathdb-wdk-mcp"
-    assert server_info["version"] == pathfinder_version
+    assert server_info["version"] == veupathdb_mcp.__version__
 
 
 async def test_the_inventory_is_the_same_across_two_connections(

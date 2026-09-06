@@ -2,24 +2,22 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
-
-from pathfinder.domain.strategy.graph_model import pushable_root_id
-from pathfinder.domain.strategy.operations import (
+from veupathdb.domain.strategy.graph_model import pushable_root_id
+from veupathdb.domain.strategy.operations import (
     GraphOperation,
     ReplaceStrategyOp,
 )
-from pathfinder.domain.strategy.operations.apply import (
+from veupathdb.domain.strategy.operations.apply import (
     ApplyError,
     ApplyResult,
     apply_operation,
 )
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.platform.errors import (
-    AppError,
-    ValidationError,
-)
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.errors import ValidationError, VEuPathDBError
+from veupathdb.wdk.factory import get_strategy_api
+
+from pathfinder.platform.errors import AppError
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
@@ -233,7 +231,7 @@ async def _commit_to_wdk(
                 site_id=deps.site_id,
                 strategy_name=graph.name,
             )
-        except AppError as exc:
+        except (AppError, VEuPathDBError) as exc:
             logger.warning(
                 "sync_strategy_for_site failed; persisting partial state",
                 error=str(exc),

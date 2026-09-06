@@ -10,11 +10,11 @@ from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.scratchpad import tools as sc_tools
+from pathfinder.ai.scratchpad import tools
 from pathfinder.domain.scratchpad.models import NoteListResult, NoteSearchResult
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import User
 
 
@@ -60,9 +60,9 @@ class TestListNotes:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        await sc_tools.note(ctx, title="T1", summary="S1", body="B1")
-        await sc_tools.note(ctx, title="T2", summary="S2", body="B2", tags=["alpha"])
-        result = (await sc_tools.list_notes(ctx)).return_value
+        await tools.note(ctx, title="T1", summary="S1", body="B1")
+        await tools.note(ctx, title="T2", summary="S2", body="B2", tags=["alpha"])
+        result = (await tools.list_notes(ctx)).return_value
         assert isinstance(result, NoteListResult)
         assert result.total_notes == 2
         titles = [ref.title for ref in result.matches]
@@ -77,9 +77,9 @@ class TestListNotes:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        await sc_tools.note(ctx, title="T1", summary="S", body="B", tags=["alpha"])
-        await sc_tools.note(ctx, title="T2", summary="S", body="B", tags=["beta"])
-        result = (await sc_tools.list_notes(ctx, tag="alpha")).return_value
+        await tools.note(ctx, title="T1", summary="S", body="B", tags=["alpha"])
+        await tools.note(ctx, title="T2", summary="S", body="B", tags=["beta"])
+        result = (await tools.list_notes(ctx, tag="alpha")).return_value
         assert isinstance(result, NoteListResult)
         assert [ref.title for ref in result.matches] == ["T1"]
 
@@ -91,9 +91,9 @@ class TestListNotes:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        await sc_tools.note(ctx, title="T1", summary="S", body="B")
-        await sc_tools.note(ctx, title="T2", summary="S", body="B", pinned=True)
-        result = (await sc_tools.list_notes(ctx, pinned=True)).return_value
+        await tools.note(ctx, title="T1", summary="S", body="B")
+        await tools.note(ctx, title="T2", summary="S", body="B", pinned=True)
+        result = (await tools.list_notes(ctx, pinned=True)).return_value
         assert isinstance(result, NoteListResult)
         assert [ref.title for ref in result.matches] == ["T2"]
 
@@ -105,7 +105,7 @@ class TestListNotes:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        result = (await sc_tools.list_notes(ctx)).return_value
+        result = (await tools.list_notes(ctx)).return_value
         assert isinstance(result, NoteListResult)
         assert result.total_notes == 0
         assert result.matches == []
@@ -121,20 +121,20 @@ class TestSearchNotes:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        await sc_tools.note(
+        await tools.note(
             ctx,
             title="GenesByRNASeq candidate",
             summary="stage differential",
             body="gametocyte threshold 2",
         )
-        await sc_tools.note(
+        await tools.note(
             ctx,
             title="GenesByGO dead end",
             summary="lost specificity",
             body="irrelevant",
         )
         result = (
-            await sc_tools.search_notes(ctx, query="gametocyte threshold")
+            await tools.search_notes(ctx, query="gametocyte threshold")
         ).return_value
         assert isinstance(result, NoteSearchResult)
         titles = [ref.title for ref in result.matches]
@@ -149,7 +149,7 @@ class TestSearchNotes:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        result = (await sc_tools.search_notes(ctx, query="anything")).return_value
+        result = (await tools.search_notes(ctx, query="anything")).return_value
         assert isinstance(result, NoteSearchResult)
         assert result.total_notes == 0
         assert result.matches == []
@@ -163,10 +163,10 @@ class TestSearchNotes:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        await sc_tools.note(
+        await tools.note(
             ctx, title="unrelated", summary="s", body="nothing matches here"
         )
-        result = (await sc_tools.search_notes(ctx, query="zqzqzq")).return_value
+        result = (await tools.search_notes(ctx, query="zqzqzq")).return_value
         assert isinstance(result, NoteSearchResult)
         assert result.total_notes == 1
         assert result.matches == []
@@ -183,11 +183,11 @@ class TestReadNote:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        created = await sc_tools.note(ctx, title="T", summary="S", body="FULL BODY")
+        created = await tools.note(ctx, title="T", summary="S", body="FULL BODY")
         assert isinstance(created.return_value, dict)
         nid = created.return_value["id"]
         assert isinstance(nid, str)
-        full = (await sc_tools.read_note(ctx, note_id=nid)).return_value
+        full = (await tools.read_note(ctx, note_id=nid)).return_value
         assert full["body"] == "FULL BODY"
         assert full["bodyTokens"] == len("FULL BODY") // 4
 
@@ -200,4 +200,4 @@ class TestReadNote:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
         with pytest.raises(ModelRetry):
-            await sc_tools.read_note(ctx, note_id="n-nope")
+            await tools.read_note(ctx, note_id="n-nope")

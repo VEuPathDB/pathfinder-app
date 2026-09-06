@@ -4,8 +4,8 @@ from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
 
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
 from pathfinder.transport.http.schemas.site_id import SiteId
 
 

@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.tools import RunContext
+from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.domain.scratchpad.models import (
@@ -23,7 +24,6 @@ from pathfinder.domain.scratchpad.models import (
     NoteUpdate,
 )
 from pathfinder.platform.errors import ErrorCode
-from pathfinder.platform.tool_errors import ToolErrorPayload, tool_error
 from pathfinder.services.conversations.scratchpad_service import (
     ScratchpadNotebook,
 )

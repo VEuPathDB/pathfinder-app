@@ -37,6 +37,7 @@ const REGISTERED = [
   "edit_strategy",
   "export_gene_set",
   "frame_problem",
+  "get_ai_expression_summary",
   "get_confidence_scores",
   "get_download_url",
   "get_enrichment_results",

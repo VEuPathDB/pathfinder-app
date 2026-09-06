@@ -23,7 +23,10 @@ from pathfinder.ai.tools.standalone.frame_spec import (
     set_criterion,
 )
 from pathfinder.ai.tools.standalone.frame_structure import set_structure
-from pathfinder.ai.tools.standalone.gene import lookup_gene_records
+from pathfinder.ai.tools.standalone.gene import (
+    get_ai_expression_summary,
+    lookup_gene_records,
+)
 from pathfinder.ai.tools.standalone.memory_tools import remember, search_memory
 from pathfinder.ai.tools.standalone.research import literature_search, web_search
 from pathfinder.ai.tools.standalone.saved_strategies import list_saved_strategies
@@ -76,6 +79,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             web_search,
             literature_search,
             lookup_gene_records,
+            get_ai_expression_summary,
             get_strategy,
             think,
             search_memory,

@@ -8,9 +8,10 @@ worse, CREATE duplicates of steps it forgot were already pushed).
 """
 
 from assistant_core.platform.logging import get_logger
+from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk.step_tree import walk_wdk_step_tree
 
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.integrations.veupathdb.step_tree import walk_wdk_step_tree
 from pathfinder.platform.errors import AppError
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -44,7 +45,7 @@ async def reconcile_sync_state_with_wdk(
         return
     try:
         live_ids = await fetch_wdk_strategy_step_ids(site_id, wdk_strategy_id)
-    except (AppError, OSError) as exc:
+    except (AppError, VEuPathDBError, OSError) as exc:
         logger.warning(
             "WDK reconciliation read failed; proceeding with stale sync_state",
             wdk_strategy_id=wdk_strategy_id,

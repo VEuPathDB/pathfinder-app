@@ -21,6 +21,7 @@ from pathfinder.ai.agents.vocabulary import USER_FACING_VOCABULARY
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 
 _PATHFINDER = Path(__file__).resolve().parents[2]
+_CLIENT = _PATHFINDER.parents[3] / "veupathdb-py" / "src" / "veupathdb"
 
 _INTERNAL = re.compile(r"\b(EDA|WDK|FRAME|BUILD|VERIFY|sub-agent|ledger)\b")
 
@@ -28,7 +29,8 @@ _SUMMARY_BUILDERS = frozenset({"with_summary", "summary_chunks"})
 _REFUSALS = frozenset({"ModelRetry", "ToolErrorPayload"})
 _TITLE_KEYWORDS = frozenset({"title", "detail"})
 
-_ERROR_SOURCES = ("platform/errors.py", "integrations/eda/errors.py")
+_ERROR_SOURCES = ("platform/errors.py",)
+_CLIENT_ERROR_SOURCES = ("eda/errors.py", "errors.py")
 
 # An id the researcher never typed. A step id is their own step, so it stays.
 _INTERNAL_ID_SUFFIXES = (
@@ -62,6 +64,7 @@ def _error_sources() -> list[Path]:
     return sorted(
         [
             *(_PATHFINDER / name for name in _ERROR_SOURCES),
+            *(_CLIENT / name for name in _CLIENT_ERROR_SOURCES),
             *_PATHFINDER.glob("services/eda/*.py"),
         ]
     )

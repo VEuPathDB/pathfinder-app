@@ -14,6 +14,11 @@ from assistant_core.platform.types import JSONArray, JSONObject
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.build_outcome import BuildOutcome
+from veupathdb.domain.strategy.operations import GraphOperation
+from veupathdb.domain.strategy.operations.apply import ApplyError
+from veupathdb.domain.strategy.session import StrategyGraph
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._strategy_refusals import _no_graph
@@ -22,12 +27,7 @@ from pathfinder.ai.tools.standalone._stream_parts import (
     strategy_link_chunk,
 )
 from pathfinder.ai.tools.standalone._validation_helpers import get_graph
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.operations import GraphOperation
-from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies.commit import apply_operations_and_commit
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
 

@@ -10,19 +10,18 @@ from __future__ import annotations
 import pytest
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import TypeAdapter, ValidationError
-
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import rebuild_tree
-from pathfinder.domain.strategy.operations import (
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import rebuild_tree
+from veupathdb.domain.strategy.operations import (
     DeleteEdgeOp,
     DeleteEdgeResolution,
     DeleteResolution,
     DeleteStepOp,
     GraphOperation,
 )
-from pathfinder.domain.strategy.operations.apply import ApplyError, apply_operation
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.tree import walk
+from veupathdb.domain.strategy.operations.apply import ApplyError, apply_operation
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.tree import walk
 
 from ._builders import combine, graph_with, leaf
 

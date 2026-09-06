@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import pytest
-
-from pathfinder.domain.parameters.specs import find_missing_required_params
-from pathfinder.domain.parameters.values import MultiPickValue, StringValue
-from pathfinder.domain.search import SearchContext
-from pathfinder.integrations.veupathdb.factory import get_wdk_client
-from pathfinder.integrations.veupathdb.wdk_models import WDKSearchResponse
-from pathfinder.platform.errors import ValidationError
-from pathfinder.services.catalog.param_adapters import adapt_param_specs_from_search
-from pathfinder.services.catalog.param_validation import validate_parameters
-from pathfinder.services.catalog.validation_callbacks import make_validation_callbacks
+from veupathdb.domain.parameters.values import MultiPickValue, StringValue
+from veupathdb.domain.search import SearchContext
+from veupathdb.errors import ValidationError
+from veupathdb.wdk.factory import get_wdk_client
+from veupathdb.wdk.wdk_models import WDKSearchResponse
+from veupathdb_mcp.catalog.param_adapters import adapt_param_specs_from_search
+from veupathdb_mcp.catalog.param_validation import validate_parameters
+from veupathdb_mcp.catalog.validation_callbacks import make_validation_callbacks
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 
@@ -40,16 +38,7 @@ async def test_layer2_adapter_preserves_allow_empty_false(
     assert specs["text_expression"].allow_empty_value is False
 
 
-async def test_layer3_find_missing_flags_absent_required(
-    wdk_session: None,
-) -> None:
-    del wdk_session
-    response = await _fetch_response()
-    specs = adapt_param_specs_from_search(response.search_data)
-    assert "text_expression" in find_missing_required_params(specs, {})
-
-
-async def test_layer4_validate_parameters_raises_on_empty(
+async def test_layer3_validate_parameters_relays_wdks_refusal(
     wdk_session: None,
 ) -> None:
     del wdk_session
@@ -60,9 +49,11 @@ async def test_layer4_validate_parameters_raises_on_empty(
             callbacks=make_validation_callbacks("plasmodb"),
         )
 
-    # The refusal names the empty required parameter, whatever wording WDK
-    # or the local check gives it.
-    assert "text_expression" in str(raised.value)
+    # WDK judged these values while answering, and its bundle names the empty
+    # required parameter per key.
+    assert raised.value.errors == [
+        {"param": "text_expression", "messages": ["Cannot be empty."]}
+    ]
 
 
 async def test_document_type_is_hidden_required_with_fixed_default(

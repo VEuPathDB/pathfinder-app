@@ -12,6 +12,12 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, JsonValue, ValidationError, computed_field
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.strategy.graph_model import StrategyStep
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.types import SyncStateProtocol
+from veupathdb_mcp.catalog.eda_backed import EdaStepRequest
+from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import ConstraintCheck
@@ -21,14 +27,8 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     graph_not_found,
     step_not_found,
 )
-from pathfinder.domain.parameters.value_codec import to_wire
-from pathfinder.domain.strategy.graph_model import StrategyStep
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.platform.errors import ErrorCode
-from pathfinder.platform.tool_errors import ToolErrorPayload, tool_error
-from pathfinder.services.catalog.eda_backed import EdaStepRequest
 from pathfinder.services.eda.compute import VolcanoThresholds
 from pathfinder.services.eda.export import exported_thresholds
 from pathfinder.services.strategies.schemas import StepResponse

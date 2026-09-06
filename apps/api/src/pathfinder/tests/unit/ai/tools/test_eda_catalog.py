@@ -7,10 +7,10 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.eda.models import EdaPermissionEntry, EdaStudyDetail
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_catalog
-from pathfinder.integrations.eda.models import EdaPermissionEntry, EdaStudyDetail
 from pathfinder.services.eda.catalog import (
     NAME_MATCH_GUIDANCE,
     StudyCard,

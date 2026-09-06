@@ -9,7 +9,9 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[6]
 API_LOCK = _REPO_ROOT / "apps" / "api" / "uv.lock"
-CORE_LOCK = _REPO_ROOT / "packages" / "assistant-core" / "uv.lock"
+CORE_LOCK = (
+    _REPO_ROOT / "assistant-platform" / "packages" / "assistant-core" / "uv.lock"
+)
 
 # assistant_core owns the checkpoint serializer and its suite is the gate that
 # decides whether a state type survives a round trip. A gate that runs another

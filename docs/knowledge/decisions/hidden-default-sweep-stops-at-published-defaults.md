@@ -10,11 +10,12 @@ status: stable
 
 # What was decided
 
-`apps/api/src/pathfinder/tests/live/test_wdk_hidden_defaults.py` binds every
-required parameter of a transcript search from that parameter's own
-`initialDisplayValue` and records what WDK answered. **It stops there.** Where a
-visible parameter's published default is one WDK refuses, the search is recorded
-as a 422 and the hidden parameters behind it stay unmeasured. The sweep does not
+`veupathdb-py/tests/live/hidden_defaults.py`, run by the live check
+in `test_wdk_hidden_defaults.py`, binds every required parameter of a transcript
+search from that parameter's own `initialDisplayValue` and records what WDK
+answered. **It stops there.** Where a visible parameter's published default is
+one WDK refuses, the search is recorded as a 422 and the hidden parameters behind
+it stay unmeasured. The sweep does not
 compose a value of its own for `channel`, `dataset_url`, or any other parameter,
 and this item is closed by that ruling rather than by measuring them.
 
@@ -44,7 +45,7 @@ Two things the sweep already does make the study unnecessary:
   and every key in it is a visible parameter. The claim under test - that a
   hidden default silently returns nothing - is not what these searches do. They
   refuse, by name, before the query runs, which is
-  [WDK-PARAM-010](../wdk/rules/parameters-and-vocabularies.md) on the visible
+  WDK-PARAM-010 (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`) on the visible
   half.
 - **The artifact names every search by outcome.** `SweepReport.measured` holds one
   `SearchMeasurement` per search with its `status` and WDK's own message in
@@ -60,7 +61,7 @@ searches is not known today, and PathFinder would fill it
 (`domain/parameters/specs.py:fill_hidden_required_defaults`). The protection
 against that is not this sweep: it is that a filled hidden default is reported to
 the user as a value nobody chose
-([WDK-PARAM-008](../wdk/rules/parameters-and-vocabularies.md), through
+(WDK-PARAM-008 in `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`, through
 `filled_hidden_defaults`), and that a zero count is surfaced rather than
 narrated away. The sweep buys advance warning, and it buys it for the searches
 whose published defaults resolve.

@@ -8,7 +8,7 @@ verified: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
 status: stable
 ---
 
-Every permalink below is pinned to the sha recorded in [sources.md](../sources.md).
+Every permalink below is pinned to the sha recorded in sources.md (`veupathdb-py: docs/knowledge/wdk/sources.md`).
 
 # A divergence is not a defect, and the difference is testable
 
@@ -34,7 +34,7 @@ which is exactly the harm the test above exists to prevent.
 **WDK.** A strategy carries structure and data separately:
 [`stepTree`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L145-L150)
 is nested and holds only `stepId`
-([WDK-STRAT-001](../rules/strategies-and-steps.md)), and `steps` is a flat map.
+(WDK-STRAT-001, `veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`), and `steps` is a flat map.
 
 **PathFinder.** Flatter still: `StrategyGraph` holds a step map with parent
 pointers, and the nested form is rebuilt only when projecting to WDK.
@@ -51,9 +51,9 @@ nodes, which WDK's own model never does.
 The shape itself is not cosmetic - `A INTERSECT (B UNION C)` is a different
 question from `(A INTERSECT B) UNION C`, and a left fold lost a real gene
 ([structure-is-a-tree](../../decisions/structure-is-a-tree.md),
-[WDK-STRAT-006](../rules/strategies-and-steps.md)).
+WDK-STRAT-006 in `veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`).
 
-Rule: [WDK-MAP-003](../rules/pathfinder-mapping.md).
+Rule: [WDK-MAP-003](rules/pathfinder-mapping.md).
 
 # 2. A step has a status, which WDK has no field for
 
@@ -63,7 +63,7 @@ The
 is one chained expression with no status key, and the only field added outside it
 is [`estimatedSize`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/StepFormatter.java#L106-L116),
 whose absence means four different things and never means "unbuilt"
-([WDK-VALID-005](../rules/validation.md)). WDK does not need a status: a step
+(WDK-VALID-005, `veupathdb-py: docs/knowledge/wdk/rules/validation.md`). WDK does not need a status: a step
 exists from the moment it is `POST`ed, so "not yet built" is not a state it can be
 in.
 
@@ -85,7 +85,7 @@ from the built strategy.
 # 3. The local edit is the truth; a WDK rejection is that step's problem
 
 **WDK.** A rejected write is a status code. `PUT .../search-config` answers 4xx
-with a validation bundle ([WDK-VALID-006](../rules/validation.md)), and the
+with a validation bundle (WDK-VALID-006, `veupathdb-py: docs/knowledge/wdk/rules/validation.md`), and the
 reference client's model is that WDK is the store of record.
 
 **PathFinder.** The edit is applied in memory and persisted first, then pushed.
@@ -130,7 +130,7 @@ it at all.
 [`StepTree.stepId`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L145-L150)
 and `Step.id` are both `number`, and an `input-step` value is
 `Long.toString(step.getStepId())` on the wire
-([WDK-PARAM-009](../rules/parameters-and-vocabularies.md)).
+(WDK-PARAM-009, `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`).
 
 **PathFinder.** `StepResponse.id` is a `str` and `StepResponse.wdkStepId` is a
 separate `int | None`. A locally created step gets `step_<8 hex>`; a step imported
@@ -145,7 +145,7 @@ the same space - which is the same root as divergence 2.
 code rather than from a recorded choice. The `isdigit()` reinterpretation in
 particular deserves a decision or a test of its own.
 
-Rule: [WDK-MAP-006](../rules/pathfinder-mapping.md).
+Rule: [WDK-MAP-006](rules/pathfinder-mapping.md).
 
 # 6. `@pathfinder/shared` has no WDK type in it
 
@@ -174,7 +174,7 @@ how the types that do exist are produced.
 **WDK.** Under `countOnlyLeaves` - the default for tree parameters - selecting a
 branch term counts as selecting nothing, and the resulting error names neither the
 branch nor the count as the problem
-([WDK-VOCAB-002](../rules/parameters-and-vocabularies.md)).
+(WDK-VOCAB-002, `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`).
 
 **PathFinder.** Parent terms are expanded to their leaves at the WDK boundary, so
 the value sent is not the value the user chose.
@@ -193,8 +193,8 @@ it is worth restating that it is a divergence at all.
 
 **WDK.** Every parameter value is a string, including the structured ones, and a
 multi-pick value is `json.dumps(list_of_terms)`
-([WDK-PARAM-002](../rules/parameters-and-vocabularies.md),
-[WDK-PARAM-004](../rules/parameters-and-vocabularies.md)).
+(WDK-PARAM-002 and WDK-PARAM-004,
+`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`).
 
 **PathFinder.** The agent-facing tool slot is a list, not a pre-encoded string,
 and `MultiPickValue.to_wire` does the encoding.
@@ -211,8 +211,8 @@ other direction turned a whole array into one candidate option.
 # 9. A strategy may hold components WDK has nowhere to put
 
 **WDK.** Every step a strategy holds is reachable from its root
-([WDK-STRAT-003](../rules/strategies-and-steps.md)), and a strategy has exactly
-one root ([WDK-STRAT-002](../rules/strategies-and-steps.md)). There is no
+(WDK-STRAT-003, `veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`), and a strategy has exactly
+one root (WDK-STRAT-002, `veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`). There is no
 representation of a second, unattached component.
 
 **PathFinder.** `StrategyAst.detached_roots` is a list of exactly that: components

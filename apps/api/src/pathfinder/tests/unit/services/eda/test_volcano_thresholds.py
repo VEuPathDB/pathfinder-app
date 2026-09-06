@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
-from pathfinder.integrations.eda.models import VolcanoStatsResponse
+from veupathdb.eda.models import VolcanoStatsResponse
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
+
 from pathfinder.services.eda.compute import (
     VolcanoThresholds,
     retained_point_ids,
@@ -13,7 +14,7 @@ from pathfinder.services.eda.compute import (
     volcano_view,
 )
 
-FIXTURES = Path(__file__).resolve().parents[2] / "integrations" / "eda" / "fixtures"
+FIXTURES = FIXTURE_DIR
 
 _CUT = VolcanoThresholds(effect_size_threshold=1.0, significance_threshold=0.05)
 

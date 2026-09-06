@@ -15,8 +15,8 @@ from pathfinder.ai.tools.standalone._variant_targets import reject_combine_varia
 from pathfinder.services.experiment.variant_comparison import (
     VariantComparison,
     VariantSpec,
-    run_variant_comparison,
 )
+from pathfinder.services.workbench.comparisons import run_variant_comparison
 
 _MIN_VARIANTS = 2
 

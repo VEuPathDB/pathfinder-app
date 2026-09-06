@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import pytest
-
-from pathfinder.domain.parameters.values import MultiPickValue, StringValue
-from pathfinder.domain.search import SearchContext
-from pathfinder.platform.errors import ValidationError
-from pathfinder.services.catalog.param_validation import validate_parameters
-from pathfinder.services.catalog.validation_callbacks import make_validation_callbacks
+from veupathdb.domain.parameters.values import MultiPickValue, StringValue
+from veupathdb.domain.search import SearchContext
+from veupathdb.errors import ValidationError
+from veupathdb_mcp.catalog.param_validation import validate_parameters
+from veupathdb_mcp.catalog.validation_callbacks import make_validation_callbacks
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 

@@ -11,10 +11,10 @@ from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.memory.store import MemoryStore
 from assistant_core.memory.tombstones import TombstoneRepository
 from assistant_core.platform.db import async_session_factory
+from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.persistence.models import User
 
 

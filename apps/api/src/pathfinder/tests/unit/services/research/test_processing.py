@@ -11,13 +11,13 @@ isolation wrapper and killed the whole aggregated search.
 from __future__ import annotations
 
 import pytest
+from veupathdb.errors import ExternalServiceError
 
 from pathfinder.domain.research.citations import (
     LiteratureFilters,
     LiteratureOutputOptions,
 )
 from pathfinder.domain.research.papers import ParsedPaper
-from pathfinder.platform.errors import ExternalServiceError
 from pathfinder.services.research.clients._base import SearchResponse
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.processing import (

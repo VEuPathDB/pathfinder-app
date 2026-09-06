@@ -16,11 +16,11 @@ from assistant_core.platform.context import user_id_ctx
 from assistant_core.platform.logging import get_logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb_mcp.wdk.enrichment.ranking import probability_cell, ratio_cell
+from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult
 
 from pathfinder.persistence.models import Export
 from pathfinder.platform.context import request_base_url_ctx
-from pathfinder.services.enrichment.ranking import probability_cell, ratio_cell
-from pathfinder.services.enrichment.types import EnrichmentResult
 from pathfinder.services.gene_sets.types import GeneSet
 
 logger = get_logger(__name__)

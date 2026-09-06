@@ -17,13 +17,12 @@ from itertools import combinations
 import httpx
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
-
-from pathfinder.domain.parameters.value_codec import wire_map
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.integrations.veupathdb.factory import get_wdk_client
-from pathfinder.integrations.veupathdb.wdk_models import WDKAnswer, WDKSearchConfig
-from pathfinder.platform.errors import WDKError
-from pathfinder.services.wdk.helpers import extract_record_ids
+from veupathdb.domain.parameters.value_codec import wire_map
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.errors import WDKError
+from veupathdb.wdk.factory import get_wdk_client
+from veupathdb.wdk.wdk_models import WDKAnswer, WDKSearchConfig
+from veupathdb_mcp.wdk.helpers import extract_record_ids
 
 _CONCURRENCY = 4
 _MAX_RECORDS = 50_000

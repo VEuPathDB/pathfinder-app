@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from assistant_core.persistence.models import Conversation
+from veupathdb_mcp.wdk.gene_set_steps import GeneSetWdkContext
 
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories.conversation_update import (
@@ -19,7 +20,6 @@ from pathfinder.persistence.repositories.conversation_update import (
 )
 from pathfinder.services.gene_sets.operations import EmptyGeneSetError
 from pathfinder.services.gene_sets.types import GeneSet
-from pathfinder.services.gene_sets.wdk_helpers import GeneSetWdkContext
 from pathfinder.services.strategies.auto_import import auto_import_gene_sets
 
 

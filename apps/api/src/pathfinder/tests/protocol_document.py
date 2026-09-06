@@ -1,4 +1,4 @@
-"""Read PROTOCOL.md, which ships beside the runtime package that defines it."""
+"""Read PROTOCOL.md, which ships beside the packages that speak it."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 
 import assistant_core
 
-PROTOCOL = Path(assistant_core.__file__).parents[2] / "PROTOCOL.md"
+PROTOCOL = Path(assistant_core.__file__).parents[4] / "PROTOCOL.md"
 
 _SECTION = re.compile(r"<!-- (\w+):begin -->\n(.*?)\n<!-- \1:end -->", re.DOTALL)
 

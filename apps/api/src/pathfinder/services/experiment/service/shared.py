@@ -4,15 +4,16 @@ Small utility functions that don't belong to any single phase but are
 called from several.
 """
 
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.services.control_tests import (
-    IntersectionConfig,
-    run_positive_negative_controls,
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb_mcp.controls.control_tests import run_positive_negative_controls
+from veupathdb_mcp.controls.control_types import ControlTestResult
+
+from pathfinder.services.experiment.helpers import (
+    extract_and_hydrate_genes,
+    intersection_config_from_config,
 )
-from pathfinder.services.experiment.helpers import extract_and_hydrate_genes
 from pathfinder.services.experiment.metrics import metrics_from_control_result
 from pathfinder.services.experiment.types import (
-    ControlTestResult,
     Experiment,
     ExperimentConfig,
     ExperimentMetrics,
@@ -25,7 +26,7 @@ async def run_single_step_controls(
 ) -> ControlTestResult:
     """Run single-step control tests with the given parameters."""
     return await run_positive_negative_controls(
-        IntersectionConfig.from_experiment_config(config, target_parameters=parameters),
+        intersection_config_from_config(config, target_parameters=parameters),
         positive_controls=config.positive_controls or None,
         negative_controls=config.negative_controls or None,
     )

@@ -9,6 +9,12 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
+from veupathdb.domain.eda_study import walk_entities
+from veupathdb.eda.models import (
+    EdaDistributionResponse,
+    EdaFilter,
+    EdaStudyDetail,
+)
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.tools.standalone._eda_stream_parts import (
@@ -21,12 +27,6 @@ from pathfinder.domain.eda_parts import (
     EdaAnalysisState,
     EdaEntityCount,
     EdaVolcanoPoint,
-)
-from pathfinder.domain.eda_study import walk_entities
-from pathfinder.integrations.eda.models import (
-    EdaDistributionResponse,
-    EdaFilter,
-    EdaStudyDetail,
 )
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.authoring import SubsetPreview

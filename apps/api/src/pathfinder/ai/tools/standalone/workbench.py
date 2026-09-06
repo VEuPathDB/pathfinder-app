@@ -19,6 +19,10 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
+from veupathdb_mcp.wdk.enrichment.types import (
+    EnrichmentAnalysisType,
+    EnrichmentResult,
+)
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.stream_events import enrichment_results_event
@@ -31,12 +35,8 @@ from pathfinder.ai.tools.standalone._workbench_models import (
     GeneSetListResponse,
     WdkSourceSpec,
 )
-from pathfinder.services.enrichment.types import (
-    EnrichmentAnalysisType,
-    EnrichmentResult,
-)
-from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
+from pathfinder.services.workbench.gene_sets import list_gene_sets, save_gene_set
 
 logger = get_logger(__name__)
 
@@ -84,7 +84,7 @@ async def create_workbench_gene_set(
         record_type=record_type,
         parameters=src.parameters,
     )
-    get_gene_set_store().save(gs)
+    save_gene_set(gs)
     logger.info(
         "AI created workbench gene set",
         gene_set_id=gs.id,
@@ -204,11 +204,7 @@ async def list_workbench_gene_sets(
     running analyses.
     """
     deps = ctx.deps
-    store = get_gene_set_store()
-    if deps.user_id is not None:
-        sets = await store.alist_for_user(deps.user_id, site_id=deps.site_id)
-    else:
-        sets = await store.alist_all(site_id=deps.site_id)
+    sets = await list_gene_sets(site_id=deps.site_id, user_id=deps.user_id)
     return with_summary(
         GeneSetListResponse(
             gene_sets=[

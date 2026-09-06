@@ -31,7 +31,7 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.lead_agent import LeadResponse
 from pathfinder.ai.models.catalog import context_window_for
-from pathfinder.services import quota as quota_service
+from pathfinder.services import quota
 
 logger = get_logger(__name__)
 
@@ -161,7 +161,7 @@ async def _charge_token_delta(
     )
     try:
         async with context.db_session_factory() as session:
-            await quota_service.accumulate(
+            await quota.accumulate(
                 session,
                 user_id=state.user_id,
                 tokens=delta_tokens,
@@ -214,7 +214,7 @@ async def _persist_residual_quota(
         return
     async with context.db_session_factory() as session:
         try:
-            await quota_service.accumulate(
+            await quota.accumulate(
                 session,
                 user_id=state.user_id,
                 tokens=total_tokens,

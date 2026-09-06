@@ -19,8 +19,6 @@ export type PanelId =
   | "sweep"
   | "batch"
   | "results-table"
-  | "step-analysis"
-  | "ai-insights"
   | "custom-enrichment"
   | "ensemble"
   | "confidence"

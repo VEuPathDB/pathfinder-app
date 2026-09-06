@@ -10,9 +10,9 @@ from collections.abc import Generator
 from uuid import UUID
 
 import pytest
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.wdk.auth_login import VEuPathDBClaims
 
-from pathfinder.integrations.veupathdb.auth_login import VEuPathDBClaims
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.platform.errors import ErrorCode, WDKIdentityMismatchError
 from pathfinder.platform.principal import CredentialKind, Principal
 from pathfinder.services import wdk_identity

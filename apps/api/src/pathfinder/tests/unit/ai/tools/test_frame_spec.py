@@ -10,6 +10,39 @@ from unittest.mock import MagicMock
 
 import pytest
 from pydantic_ai import ModelRetry
+from veupathdb.domain.parameters.values import (
+    MultiPickValue,
+    ParamValue,
+    StringValue,
+)
+from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.domain.search import SearchContext
+from veupathdb.domain.strategy.operational_spec import (
+    AssumedValue,
+    Criterion,
+    OpenSlot,
+    SpecStructure,
+    StructureNode,
+)
+from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.errors import ValidationError
+from veupathdb.wdk.wdk_models import WDKSearch, WDKSearchResponse
+from veupathdb.wdk.wdk_parameters import (
+    WDKParameter,
+    WDKStringParam,
+)
+from veupathdb_mcp.catalog import param_validation, search_inspection, searches
+from veupathdb_mcp.catalog.eda_backed import (
+    COMPUTE_QUERY,
+    EDA_ANALYSIS_SPEC_PARAM,
+    EDA_DATASET_ID_PARAM,
+)
+from veupathdb_mcp.catalog.param_dag import ParamFetcher, ResolvedParams
+from veupathdb_mcp.catalog.param_formatting import (
+    ParameterInfo,
+    format_param_info_typed,
+)
+from veupathdb_mcp.catalog.param_validation import ResolvedSearch, ValidatedParams
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone import frame_spec
@@ -18,40 +51,6 @@ from pathfinder.ai.tools.standalone.frame_spec import (
     drop_criterion,
     set_criterion,
 )
-from pathfinder.domain.parameters.values import (
-    MultiPickValue,
-    ParamValue,
-    StringValue,
-)
-from pathfinder.domain.parameters.wdk_vocab import VocabOption
-from pathfinder.domain.search import SearchContext
-from pathfinder.domain.strategy.operational_spec import (
-    AssumedValue,
-    Criterion,
-    OpenSlot,
-    SpecStructure,
-    StructureNode,
-)
-from pathfinder.domain.strategy.validation import StepValidation
-from pathfinder.integrations.veupathdb.wdk_models import WDKSearch, WDKSearchResponse
-from pathfinder.integrations.veupathdb.wdk_parameters import (
-    WDKParameter,
-    WDKStringParam,
-)
-from pathfinder.platform.errors import ValidationError
-from pathfinder.services.catalog import param_validation as pv
-from pathfinder.services.catalog import search_inspection, searches
-from pathfinder.services.catalog.eda_backed import (
-    COMPUTE_QUERY,
-    EDA_ANALYSIS_SPEC_PARAM,
-    EDA_DATASET_ID_PARAM,
-)
-from pathfinder.services.catalog.param_dag import ParamFetcher, ResolvedParams
-from pathfinder.services.catalog.param_formatting import (
-    ParameterInfo,
-    format_param_info_typed,
-)
-from pathfinder.services.catalog.param_validation import ValidatedParams
 
 ParamsAt = Callable[[dict[str, str]], list[ParameterInfo]]
 Proposals = dict[str, str | list[str] | None]
@@ -418,15 +417,17 @@ async def _eda_details(
     return _eda_response(), ctx.record_type
 
 
-async def _eda_resolved(_ctx: SearchContext, **_kw: object) -> pv.ResolvedSearch:
-    return pv.ResolvedSearch(response=_eda_response(), values_were_read=True)
+async def _eda_resolved(_ctx: SearchContext, **_kw: object) -> ResolvedSearch:
+    return ResolvedSearch(response=_eda_response(), values_were_read=True)
 
 
 async def _eda_no_refresh(_ctx: SearchContext, **_kw: object) -> list[WDKParameter]:
     return []
 
 
-def _eda_callbacks(_site_id: str, **_kw: object) -> pv.ValidationCallbacks:
+def _eda_callbacks(
+    _site_id: str, **_kw: object
+) -> param_validation.ValidationCallbacks:
     async def _record_type(
         record_type: str | None, _search_name: str | None
     ) -> str | None:
@@ -435,7 +436,7 @@ def _eda_callbacks(_site_id: str, **_kw: object) -> pv.ValidationCallbacks:
     async def _hint(_search_name: str, _record_type: str | None) -> str | None:
         return None
 
-    return pv.ValidationCallbacks(
+    return param_validation.ValidationCallbacks(
         resolve_record_type_for_search=_record_type, find_record_type_hint=_hint
     )
 
@@ -455,8 +456,10 @@ class TestAProposedEdaSpecComesBackAsARetry:
         )
         monkeypatch.setattr(frame_spec, "fetch_search_details", _eda_details)
         monkeypatch.setattr(frame_spec, "make_validation_callbacks", _eda_callbacks)
-        monkeypatch.setattr(pv, "_resolve_search_details", _eda_resolved)
-        monkeypatch.setattr(pv, "get_refreshed_dependent_params", _eda_no_refresh)
+        monkeypatch.setattr(param_validation, "_resolve_search_details", _eda_resolved)
+        monkeypatch.setattr(
+            param_validation, "get_refreshed_dependent_params", _eda_no_refresh
+        )
 
     async def _call(self, state: AgentToolState) -> SetCriterionResult:
         return await bind(

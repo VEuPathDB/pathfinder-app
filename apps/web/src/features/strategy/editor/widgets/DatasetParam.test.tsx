@@ -211,9 +211,7 @@ describe("DatasetParam — file upload", () => {
       type: "text/plain",
     });
     fireEvent.change(fileInput, { target: { files: [file] } });
-    // Wait a tick for FileReader.onload to fire
-    await new Promise((r) => setTimeout(r, 50));
-    expect(screen.getAllByText(/ids\.txt/i).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/ids\.txt/i)).length).toBeGreaterThan(0);
   });
 });
 

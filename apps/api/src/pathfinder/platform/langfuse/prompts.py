@@ -9,7 +9,7 @@ from typing import Literal
 
 import langfuse.api
 from assistant_core.platform.logging import get_logger
-from langfuse.api.commons import errors as langfuse_errors
+from langfuse.api.commons import errors
 
 from pathfinder.platform.langfuse.client import get_langfuse
 
@@ -41,11 +41,11 @@ _LOCAL_FILES: dict[str, str] = {
 # All of them are recoverable: prompt loading falls back to local files.
 _LANGFUSE_ERRORS = (
     langfuse.api.Error,
-    langfuse_errors.Error,
-    langfuse_errors.NotFoundError,
-    langfuse_errors.UnauthorizedError,
-    langfuse_errors.AccessDeniedError,
-    langfuse_errors.MethodNotAllowedError,
+    errors.Error,
+    errors.NotFoundError,
+    errors.UnauthorizedError,
+    errors.AccessDeniedError,
+    errors.MethodNotAllowedError,
     ValueError,
     OSError,
 )
@@ -73,7 +73,7 @@ def load_prompt_result(name: str, *, label: str = "production") -> LoadedPrompt:
     if client is not None:
         try:
             prompt = client.get_prompt(name, label=label)
-        except langfuse_errors.NotFoundError:
+        except errors.NotFoundError:
             logger.info(
                 "Langfuse prompt not found, falling back to local",
                 name=name,
@@ -110,7 +110,7 @@ def seed_prompts() -> None:
     for name, filename in _LOCAL_FILES.items():
         try:
             client.get_prompt(name)
-        except langfuse_errors.NotFoundError:
+        except errors.NotFoundError:
             text = (_PROMPTS_DIR / filename).read_text()
             try:
                 client.create_prompt(

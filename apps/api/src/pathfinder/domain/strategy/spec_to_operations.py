@@ -9,18 +9,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from pathfinder.domain.strategy.ast import (
+from veupathdb.domain.strategy.ast import (
     COMBINE_SEARCH_NAME,
     StrategyStepNode,
     generate_step_id,
 )
-from pathfinder.domain.strategy.graph_model import StepKind, rebuild_tree
-from pathfinder.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.graph_model import StepKind, rebuild_tree
+from veupathdb.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     StructureNode,
 )
-from pathfinder.domain.strategy.operations import (
+from veupathdb.domain.strategy.operations import (
     AddCombineOp,
     AddLeafOp,
     AddTransformOp,
@@ -32,12 +32,12 @@ from pathfinder.domain.strategy.operations import (
     UpdateStepParamsOp,
     WireInputOp,
 )
-from pathfinder.domain.strategy.operations.apply import apply_operation
-from pathfinder.domain.strategy.operations.resolutions import compute_delete_choices
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.spec_diff import SpecDiff
-from pathfinder.domain.strategy.tree import subtree_ids
+from veupathdb.domain.strategy.operations.apply import apply_operation
+from veupathdb.domain.strategy.operations.resolutions import compute_delete_choices
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.spec_diff import SpecDiff
+from veupathdb.domain.strategy.tree import subtree_ids
 
 __all__ = ["UnsupportedEditError", "operations_for"]
 

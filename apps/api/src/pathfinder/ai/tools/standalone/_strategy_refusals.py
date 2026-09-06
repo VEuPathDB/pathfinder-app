@@ -8,13 +8,13 @@ from assistant_core.graph.tool_summary import with_summary
 from assistant_core.platform.types import JSONObject
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb_mcp.tool_errors import ToolErrorPayload
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._validation_helpers import (
     StepOkResponse,
     graph_not_found,
 )
-from pathfinder.platform.tool_errors import ToolErrorPayload
 
 
 def _refused(

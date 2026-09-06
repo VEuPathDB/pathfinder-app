@@ -5,28 +5,29 @@ fetches param specs from WDK.
 """
 
 from assistant_core.platform.logging import get_logger
-
-from pathfinder.domain.parameters.canonicalize import ParameterCanonicalizer
-from pathfinder.domain.parameters.value_codec import as_param_kind
-from pathfinder.domain.parameters.values import ParamKind
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.ops import parse_op
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import walk
-from pathfinder.integrations.veupathdb.step_tree import walk_wdk_step_tree
-from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
-from pathfinder.integrations.veupathdb.value_decoding import decode_params
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.parameters.canonicalize import ParameterCanonicalizer
+from veupathdb.domain.parameters.value_codec import as_param_kind
+from veupathdb.domain.parameters.values import ParamKind
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.ops import parse_op
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import walk
+from veupathdb.errors import DataParsingError, VEuPathDBError
+from veupathdb.wdk.step_tree import walk_wdk_step_tree
+from veupathdb.wdk.strategy_api import StrategyAPI
+from veupathdb.wdk.value_decoding import decode_params
+from veupathdb.wdk.wdk_models import (
     WDKSearch,
     WDKStep,
     WDKStepTree,
     WDKStrategyDetails,
 )
-from pathfinder.platform.errors import AppError, DataParsingError
-from pathfinder.services.catalog.param_adapters import adapt_param_specs_from_search
-from pathfinder.services.catalog.search_context import (
+from veupathdb_mcp.catalog.param_adapters import adapt_param_specs_from_search
+from veupathdb_mcp.catalog.search_context import (
     get_search_params_under_context,
 )
+
+from pathfinder.platform.errors import AppError
 
 logger = get_logger(__name__)
 
@@ -199,7 +200,7 @@ async def _load_search_spec(
         response = await get_search_params_under_context(
             api.client, record_type, search_name, context
         )
-    except AppError as exc:
+    except (AppError, VEuPathDBError) as exc:
         logger.warning(
             "Failed to load search details during WDK sync",
             record_type=record_type,
@@ -251,7 +252,7 @@ async def canonicalize_synced_parameters(
         try:
             canonicalizer = ParameterCanonicalizer(specs)
             canonical = canonicalizer.canonicalize(decoded)
-        except AppError as exc:
+        except (AppError, VEuPathDBError) as exc:
             logger.warning(
                 "Failed to canonicalize synced parameters",
                 record_type=record_type,

@@ -6,12 +6,12 @@ from collections.abc import AsyncGenerator, Iterator
 
 import httpx
 import pytest
-from assistant_core.embeddings.embedder import EmbeddingUnavailableError
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.eda.models import EdaPermissionEntry, EdaStudyOverview
+from veupathdb_mcp.embeddings.embedder import EmbeddingUnavailableError
+from veupathdb_mcp.embeddings.study_index import sync_study_index
 
-from pathfinder.integrations.eda.models import EdaPermissionEntry, EdaStudyOverview
-from pathfinder.integrations.embeddings.study_index import sync_study_index
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.services.eda import catalog
 from pathfinder.services.eda.catalog import (
     NAME_MATCH_GUIDANCE,

@@ -9,12 +9,12 @@ from __future__ import annotations
 import pytest
 from assistant_core.platform.types import JSONArray, JSONObject
 from pydantic import TypeAdapter
-
-from pathfinder.services.enrichment.types import (
+from veupathdb_mcp.wdk.enrichment.types import (
     EnrichmentAnalysisType,
     EnrichmentResult,
     EnrichmentTerm,
 )
+
 from pathfinder.services.export.service import ExportResult
 from pathfinder.services.gene_sets import enrichment
 from pathfinder.services.gene_sets.enrichment import run_enrichment_for_gene_set

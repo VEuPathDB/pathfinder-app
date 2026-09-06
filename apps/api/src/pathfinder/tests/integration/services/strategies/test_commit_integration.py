@@ -10,23 +10,23 @@ from uuid import UUID, uuid4
 import pytest
 from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
-from pathfinder.domain.parameters.values import MultiPickValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.operations import (
+from veupathdb.domain.parameters.values import MultiPickValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.operations import (
     AddLeafOp,
     AttachNewRoot,
     DeleteResolution,
     DeleteStepOp,
     UpdateStepMetaOp,
 )
-from pathfinder.domain.strategy.operations.apply import ApplyError
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import walk
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.strategy.operations.apply import ApplyError
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import walk
+from veupathdb.errors import WDKError
+from veupathdb.wdk.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
     PatchStepSpec,
@@ -34,17 +34,13 @@ from pathfinder.integrations.veupathdb.wdk_models import (
     WDKSearchConfig,
     WDKStep,
 )
+
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
-from pathfinder.platform.errors import WDKError
 from pathfinder.services.strategies import (
-    commit as commit_module,
-)
-from pathfinder.services.strategies import (
+    commit,
     step_wdk_push,
-)
-from pathfinder.services.strategies import (
-    sync as sync_module,
+    sync,
 )
 from pathfinder.services.strategies.commit import (
     apply_and_commit,
@@ -176,9 +172,9 @@ class _CountingAPI:
 @pytest.fixture
 def stub_api(monkeypatch: pytest.MonkeyPatch) -> _CountingAPI:
     api = _CountingAPI()
-    monkeypatch.setattr(commit_module, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(sync_module, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: api)
 
     async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
         """No step is incomplete, so nothing is deferred as a draft."""
@@ -189,7 +185,7 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _CountingAPI:
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
         return None
 
-    monkeypatch.setattr(commit_module, "reconcile_sync_state_with_wdk", _noop_reconcile)
+    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
 
     async def _fake_sync(
         *,
@@ -209,7 +205,7 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _CountingAPI:
             step_count=0,
         )
 
-    monkeypatch.setattr(commit_module, "sync_strategy_for_site", _fake_sync)
+    monkeypatch.setattr(commit, "sync_strategy_for_site", _fake_sync)
     return api
 
 
@@ -655,9 +651,9 @@ async def test_a_partial_push_leaves_every_store_agreeing(
     The edit is local truth, so memory, Postgres, and the response all agree.
     """
     api = _FailingAPI()
-    monkeypatch.setattr(commit_module, "get_strategy_api", lambda _s: api)
+    monkeypatch.setattr(commit, "get_strategy_api", lambda _s: api)
     monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _s: api)
-    monkeypatch.setattr(sync_module, "get_strategy_api", lambda _s: api)
+    monkeypatch.setattr(sync, "get_strategy_api", lambda _s: api)
 
     async def _noop_validate(*_a: Any, **_k: Any) -> set[str]:
         return set()
@@ -667,7 +663,7 @@ async def test_a_partial_push_leaves_every_store_agreeing(
     async def _noop_reconcile(*_a: Any, **_k: Any) -> None:
         return None
 
-    monkeypatch.setattr(commit_module, "reconcile_sync_state_with_wdk", _noop_reconcile)
+    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
 
     a = _leaf("step_a")
     conv_id = await _seed_conversation(

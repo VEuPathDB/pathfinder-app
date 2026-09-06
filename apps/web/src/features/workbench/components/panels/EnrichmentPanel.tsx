@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Dna, Play, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EnrichmentSection } from "@/features/analysis";
+import { EnrichmentSection } from "@/features/workbench/analysis";
 import { toUserMessage } from "@/lib/api/errors";
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";

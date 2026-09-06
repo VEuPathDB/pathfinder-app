@@ -13,14 +13,17 @@ test.describe("Settings", () => {
   test("switch between settings tabs", async ({ settingsPage }) => {
     await settingsPage.open();
 
-    await settingsPage.openTab("Data");
-    await settingsPage.openTab("Advanced");
-    await settingsPage.openTab("Seeding");
-    await settingsPage.openTab("Model");
+    for (const tab of ["Data", "Advanced", "Seeding", "Model"] as const) {
+      await settingsPage.openTab(tab);
+      await settingsPage.expectOnlyTabActive(tab);
+    }
   });
 
   test("close settings modal", async ({ settingsPage }) => {
     await settingsPage.open();
     await settingsPage.close();
+
+    await settingsPage.open();
+    await settingsPage.expectAllTabsVisible();
   });
 });

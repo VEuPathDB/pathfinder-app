@@ -5,20 +5,20 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry
-
-from pathfinder.ai.agents.state import AgentToolState, SearchOverview
-from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
-from pathfinder.domain.parameters.wdk_vocab import VocabOption
-from pathfinder.domain.strategy.operational_spec import AssumedValue
-from pathfinder.integrations.veupathdb.wdk_parameters import (
+from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.domain.strategy.operational_spec import AssumedValue
+from veupathdb.wdk.wdk_parameters import (
     WDKEnumParam,
     WDKParameter,
     WDKStringParam,
 )
-from pathfinder.services.catalog.param_formatting import (
+from veupathdb_mcp.catalog.param_formatting import (
     FilterFieldInfo,
     ParameterInfo,
 )
+
+from pathfinder.ai.agents.state import AgentToolState, SearchOverview
+from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     KINASE_PARAMS,
     Proposals,

@@ -9,9 +9,9 @@ from uuid import UUID
 
 from assistant_core.platform.logging import get_logger
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.wdk.factory import get_strategy_api
 
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.persistence.repositories import (
     ConversationRepository,
 )

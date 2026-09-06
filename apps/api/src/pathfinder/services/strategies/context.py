@@ -11,8 +11,7 @@ from uuid import UUID
 
 from assistant_core.platform.db import DBSessionFactory
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from pathfinder.domain.strategy.session import StrategySession
+from veupathdb.domain.strategy.session import StrategySession
 
 
 @dataclass(frozen=True)

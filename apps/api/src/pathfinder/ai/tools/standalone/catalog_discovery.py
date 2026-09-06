@@ -13,22 +13,22 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
-
-from pathfinder.ai.agents.state import ParamVocabSnapshot
-from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone._catalog_models import register_search
-from pathfinder.domain.parameters.value_codec import coerce_context_values
-from pathfinder.services.catalog.overview_formatting import SearchOverviewResult
-from pathfinder.services.catalog.param_formatting import (
+from veupathdb.domain.parameters.value_codec import coerce_context_values
+from veupathdb_mcp.catalog.overview_formatting import SearchOverviewResult
+from veupathdb_mcp.catalog.param_formatting import (
     GetParameterOptionsResult,
     ParameterInfo,
 )
-from pathfinder.services.catalog.search_inspection import (
+from veupathdb_mcp.catalog.search_inspection import (
     UnknownSearchError,
     VocabNarrowing,
     inspect_search,
     read_parameter_options,
 )
+
+from pathfinder.ai.agents.state import ParamVocabSnapshot
+from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone._catalog_models import register_search
 
 
 class AlreadyReadNotice(CamelModel):

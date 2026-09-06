@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-`services/gene_sets/enrichment.py:enrich_gene_ids` takes genes by value, with no
+`veupathdb_mcp/wdk/enrichment/gene_ids.py:enrich_gene_ids_by_value` takes genes by value, with no
 stored gene set. It builds a temporary WDK dataset addressed by `GeneByLocusTag`,
 and hands that search to `EnrichmentService`, which is the same path a stored
 gene set takes. The background is a `BackgroundSource`, and its only field is an
@@ -18,7 +18,7 @@ organism, which reaches WDK as the enrichment form's `organism` parameter.
 
 The result names, per analysis type, the two wire columns its terms were read
 from, because a wrong column name yields an empty column rather than an error
-([WDK-ANS-007](../wdk/rules/searches-and-answers.md)).
+(WDK-ANS-007, `veupathdb-py: docs/knowledge/wdk/rules/searches-and-answers.md`).
 
 # Rejected: computing the over-representation in process
 
@@ -48,8 +48,9 @@ narrows the result to that organism before the test runs. A background gene list
 would have to be discarded or approximated, and either one is a number nobody
 can reproduce.
 
-An unnamed organism keeps the value the analysis form offers, so a caller states
-the background either way.
+An unnamed organism keeps the value the analysis form offers when the form offers
+one; a form offering several is refused
+([decision](an-enrichment-over-several-organisms-is-refused.md)).
 
 # Consequences
 

@@ -17,9 +17,8 @@ from typing import Any
 from assistant_core.models.scripted import scripted_call
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic_ai.messages import ToolCallPart, ToolReturnPart
-
-from pathfinder.domain.strategy.operational_spec import StructureNode
-from pathfinder.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.operational_spec import StructureNode
+from veupathdb.domain.strategy.ops import CombineOp
 
 # One organism per site, each an entry of that site's GenesByTaxon vocabulary.
 # The portal and any unlisted site take the plasmo organism.

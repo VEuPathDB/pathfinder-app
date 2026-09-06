@@ -16,11 +16,10 @@ from __future__ import annotations
 import hashlib
 import json
 
-from assistant_core.platform.logging import get_logger
-from assistant_core.platform.types import JSONObject
-
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.json_types import JSONObject
+from veupathdb.logging import get_logger
 
 __all__ = [
     "parse_strategy_ast",

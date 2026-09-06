@@ -8,14 +8,14 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from pathfinder.domain.eda_filter_checks import (
+from veupathdb.domain.eda_filter_checks import (
     CHECKS,
     DeclaredRanges,
     FilterFacts,
     Site,
     strings_of,
 )
-from pathfinder.domain.eda_study import (
+from veupathdb.domain.eda_study import (
     VEUPATHDB_GENE_ID,
     StudyFacts,
     VariableFacts,

@@ -12,8 +12,8 @@ from contextlib import asynccontextmanager
 from uuid import UUID
 
 from assistant_core.platform.context import application_id_ctx, user_id_ctx
+from veupathdb.auth_context import veupathdb_auth_token_ctx
 
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.services.conversations.authz import conversation_application_id
 
 

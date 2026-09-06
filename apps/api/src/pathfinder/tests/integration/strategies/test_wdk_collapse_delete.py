@@ -9,21 +9,21 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
-from pathfinder.domain.parameters.values import MultiPickValue, StringValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.operations import (
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.domain.parameters.values import MultiPickValue, StringValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.operations import (
     DeleteEdgeOp,
     DeleteEdgeResolution,
     DeleteResolution,
     DeleteStepOp,
 )
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.strategy_ast import PersistedStrategyGraph, StrategyAst
-from pathfinder.domain.strategy.tree import walk
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.strategy_ast import PersistedStrategyGraph, StrategyAst
+from veupathdb.domain.strategy.tree import walk
+from veupathdb.wdk.factory import get_strategy_api
+
 from pathfinder.persistence.models import ConversationStrategy, User
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.session_factory import build_strategy_session

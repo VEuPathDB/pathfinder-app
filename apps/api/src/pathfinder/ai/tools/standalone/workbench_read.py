@@ -19,8 +19,8 @@ from pathfinder.ai.tools.standalone._workbench_models import (
     SampleGeneIds,
     WorkbenchError,
 )
-from pathfinder.services.experiment.store import get_experiment_store
 from pathfinder.services.experiment.types import Experiment
+from pathfinder.services.workbench.experiments import get_experiment
 
 type WorkbenchRead[T] = ToolReturn[T | WorkbenchError]
 
@@ -42,8 +42,7 @@ async def _get_experiment(ctx: RunContext[AgentDeps]) -> Experiment | None:
     experiment_id = ctx.deps.experiment_id
     if not experiment_id:
         return None
-    store = get_experiment_store()
-    return await store.aget(experiment_id)
+    return await get_experiment(experiment_id)
 
 
 async def get_evaluation_summary(

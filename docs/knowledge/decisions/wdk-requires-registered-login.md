@@ -90,7 +90,7 @@ worker signs in as `worker-N` and shares one registered VEuPathDB test account,
 so the gate answers 401 `WDK_IDENTITY_MISMATCH` on every WDK-backed route.
 
 **The service account is the application, never a user.** `VEUPATHDB_AUTH_TOKEN`
-is the fallback in `integrations/veupathdb/_http.py`, and it may serve only
+is the fallback in `veupathdb/wdk/_http.py`, and it may serve only
 user-independent reads: record types, searches, parameter metadata and
 vocabularies, catalog warmup and semantic-index builds. The transport enforces
 it rather than trusting call sites: a request whose path starts `/users/` and

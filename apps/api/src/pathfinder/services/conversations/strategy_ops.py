@@ -11,14 +11,15 @@ from uuid import UUID
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import JSONObject
+from veupathdb.domain.strategy.operations import GraphOperation
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.errors import ValidationError
 
-from pathfinder.domain.strategy.operations import GraphOperation
-from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
 )
-from pathfinder.platform.errors import ErrorCode, NotFoundError, ValidationError
+from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.conversations.authz import (
     get_owned_conversation_or_404,
     get_owned_thread_or_404,

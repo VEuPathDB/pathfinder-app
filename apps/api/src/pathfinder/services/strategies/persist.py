@@ -8,10 +8,11 @@ transaction; a caller that does not takes the lock for the write alone.
 from __future__ import annotations
 
 from assistant_core.platform.logging import get_logger
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import walk
+from veupathdb.errors import VEuPathDBError
 
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import walk
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import (
@@ -72,7 +73,7 @@ async def persist_strategy_ast_to_conversation(
                     step_count=_total_step_count(merged_ast),
                 ),
             )
-    except (AppError, OSError, RuntimeError) as exc:
+    except (AppError, VEuPathDBError, OSError, RuntimeError) as exc:
         logger.warning(
             "Failed to persist strategy AST to conversation",
             conversation_id=str(deps.conversation_id),
@@ -98,7 +99,7 @@ async def _clear_persisted_strategy(deps: StrategyMutationContext) -> None:
             await ConversationRepository(session).clear_strategy(
                 deps.conversation_id,
             )
-    except (AppError, OSError, RuntimeError) as exc:
+    except (AppError, VEuPathDBError, OSError, RuntimeError) as exc:
         logger.warning(
             "Failed to clear strategy AST on conversation",
             conversation_id=str(deps.conversation_id),

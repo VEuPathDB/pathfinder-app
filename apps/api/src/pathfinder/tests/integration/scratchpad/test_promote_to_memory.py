@@ -12,10 +12,10 @@ from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.scratchpad import tools as sc_tools
-from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.ai.scratchpad import tools
 from pathfinder.persistence.models import User
 
 
@@ -70,7 +70,7 @@ async def test_promote_creates_memory_and_keeps_note(
         user_id=seed_user.id,
         memory_store=memory_store,
     )
-    created = await sc_tools.note(
+    created = await tools.note(
         ctx,
         title="Gametocyte stage-specific markers",
         summary="PF3D7 ring/trophozoite vs mature stage V",
@@ -81,12 +81,12 @@ async def test_promote_creates_memory_and_keeps_note(
     nid = created.return_value["id"]
     assert isinstance(nid, str)
 
-    key = (await sc_tools.promote_to_memory(ctx, note_id=nid)).return_value
+    key = (await tools.promote_to_memory(ctx, note_id=nid)).return_value
     assert isinstance(key, str)
     assert key
 
     # Scratchpad note still exists
-    read = (await sc_tools.read_note(ctx, note_id=nid)).return_value
+    read = (await tools.read_note(ctx, note_id=nid)).return_value
     assert read["title"] == "Gametocyte stage-specific markers"
 
     # Memory is actually in the store under the knowledge namespace
@@ -121,7 +121,7 @@ async def test_promote_missing_note_raises(
         memory_store=memory_store,
     )
     with pytest.raises(ModelRetry):
-        await sc_tools.promote_to_memory(ctx, note_id="n-nope")
+        await tools.promote_to_memory(ctx, note_id="n-nope")
 
 
 async def test_promote_missing_memory_store_raises(
@@ -146,4 +146,4 @@ async def test_promote_missing_memory_store_raises(
         tool_call_id="tc-1",
     )
     with pytest.raises(ModelRetry):
-        await sc_tools.promote_to_memory(ctx, note_id="n-whatever")
+        await tools.promote_to_memory(ctx, note_id="n-whatever")

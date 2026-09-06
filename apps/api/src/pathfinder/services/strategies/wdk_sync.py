@@ -5,11 +5,12 @@ from uuid import UUID
 
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.logging import get_logger
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import walk
+from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk.strategy_api import StrategyAPI
 
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import walk
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import (
     ConversationRepository,
@@ -67,7 +68,7 @@ async def fetch_and_convert(
 
     try:
         await canonicalize_synced_parameters(payload, api, wire_by_step_id)
-    except AppError as exc:
+    except (AppError, VEuPathDBError) as exc:
         logger.warning(
             "Parameter normalization failed, storing raw values",
             wdk_id=wdk_id,
@@ -190,7 +191,7 @@ async def lazy_fetch_wdk_detail(
         updated = await conv_repo.get_with_strategy(conversation.id)
         if updated is not None:
             return updated
-    except (AppError, RuntimeError) as exc:
+    except (AppError, VEuPathDBError, RuntimeError) as exc:
         logger.warning(
             "Lazy WDK detail fetch failed",
             conversation_id=str(conversation.id),
@@ -219,7 +220,7 @@ async def sync_is_saved_to_wdk(
     try:
         api = get_strategy_api(site_id)
         await api.set_saved(wdk_id, is_saved=strategy.is_saved)
-    except AppError as exc:
+    except (AppError, VEuPathDBError) as exc:
         logger.warning(
             "Failed to sync isSaved to WDK",
             conversation_id=str(conversation.id),

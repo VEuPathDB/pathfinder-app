@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from pathfinder.domain.eda_parts import EdaEffectDirection
-from pathfinder.integrations.eda.models import (
+from veupathdb.eda.models import (
     EdaAnalysisDetail,
     EdaComputation,
     EdaNewAnalysis,
@@ -11,7 +10,9 @@ from pathfinder.integrations.eda.models import (
     EdaVolcanoConfiguration,
     EdaVolcanoDescriptor,
 )
-from pathfinder.services.catalog.eda_backed import EdaStepRequest
+from veupathdb_mcp.catalog.eda_backed import EdaStepRequest
+
+from pathfinder.domain.eda_parts import EdaEffectDirection
 from pathfinder.services.eda.authoring import serialize_spec
 from pathfinder.services.eda.compute import NoComputationError, VolcanoThresholds
 

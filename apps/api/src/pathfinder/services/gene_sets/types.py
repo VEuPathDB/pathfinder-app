@@ -6,9 +6,8 @@ from typing import Literal
 from uuid import UUID
 
 from assistant_core.platform.context import calling_application
-
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.services.enrichment.types import EnrichmentResult
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult
 
 GeneSetSource = Literal["strategy", "paste", "upload", "derived", "saved"]
 
@@ -34,6 +33,8 @@ class GeneSet:
     parent_set_ids: list[str] = field(default_factory=list)
     operation: str | None = None  # "intersect" | "union" | "minus"
     step_count: int = 1
+    vdi_id: str | None = None
+    """The VEuPathDB user dataset this set was published to, when it was."""
     enrichment_results: list[EnrichmentResult] = field(default_factory=list)
     """Enrichment the researcher has already run on this set.
 

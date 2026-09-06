@@ -16,13 +16,13 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 import httpx
 import procrastinate
 import pytest
 import schemathesis
 from assistant_core.conversation.checkpointer import to_psycopg_url
 from assistant_core.memory.lifespan import lifespan_memory_store
+from assistant_core.platform import db
 from fastapi import FastAPI
 from hypothesis import HealthCheck, settings
 from schemathesis import Case
@@ -145,8 +145,8 @@ async def patched_app(
     """Build the app once per session against the test database, seed one
     user, and attach the memory store.
     """
-    session_module._engine = db_engine
-    session_module._session_factory_instance = session_maker
+    db._engine = db_engine
+    db._session_factory_instance = session_maker
 
     get_settings.cache_clear()
     test_connector = procrastinate.PsycopgConnector(
@@ -261,7 +261,7 @@ def test_schema_loads_and_covers_documented_surface(
     assert operation_count >= 50
 
     # Every fuzzed case needs the patched engine.
-    assert session_module._engine is not None
+    assert db._engine is not None
 
 
 async def test_memory_endpoints_have_store_in_conformance_app(

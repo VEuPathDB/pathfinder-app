@@ -32,6 +32,7 @@ describe("createExperimentStream serialization", () => {
       controlsValueFormat: "newline",
       enableCrossValidation: true,
       kFolds: 5,
+      targetGeneIds: ["PF3D7_0100100", "PF3D7_0300300"],
       name: "set (evaluation)",
     };
     await drain(createExperimentStream(config));
@@ -44,5 +45,6 @@ describe("createExperimentStream serialization", () => {
     expect(body["controlsValueFormat"]).toBe("newline");
     expect(body["positiveControls"]).toEqual(["PF3D7_0100100"]);
     expect(body["kFolds"]).toBe(5);
+    expect(body["targetGeneIds"]).toEqual(["PF3D7_0100100", "PF3D7_0300300"]);
   });
 });

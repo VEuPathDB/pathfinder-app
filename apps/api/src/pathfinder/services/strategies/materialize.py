@@ -12,16 +12,17 @@ from uuid import UUID
 
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
+from veupathdb.domain.strategy.strategy_ast import (
+    PersistedStrategyGraph,
+    StrategyAst,
+)
+from veupathdb.domain.strategy.tree import walk
+from veupathdb.errors import VEuPathDBError
 
 from pathfinder.domain.strategy.revision import (
     parse_strategy_ast,
     without_wdk_ids,
 )
-from pathfinder.domain.strategy.strategy_ast import (
-    PersistedStrategyGraph,
-    StrategyAst,
-)
-from pathfinder.domain.strategy.tree import walk
 from pathfinder.platform.errors import AppError
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.step_push_planner import plan_step_pushes
@@ -143,7 +144,7 @@ async def materialize_strategy_snapshot(
             site_id=site_id,
             strategy_name=name,
         )
-    except (AppError, ValueError) as exc:
+    except (AppError, VEuPathDBError, ValueError) as exc:
         logger.warning(
             "snapshot materialization failed; the thread keeps the plan only",
             conversation_id=str(conversation_id),

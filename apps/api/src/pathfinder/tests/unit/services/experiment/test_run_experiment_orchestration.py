@@ -13,13 +13,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from pathfinder.services.experiment import service as service_module
+from pathfinder.services.experiment import service
 from pathfinder.services.experiment.metrics import (
     evaluate_gene_ids_against_controls,
 )
 from pathfinder.services.experiment.service import run_experiment, shared
-from pathfinder.services.experiment.service.phases import evaluate as evaluate_phase
-from pathfinder.services.experiment.service.phases import validate as validate_phase
+from pathfinder.services.experiment.service.phases import evaluate, validate
 from pathfinder.services.experiment.types.experiment import (
     Experiment,
     ExperimentConfig,
@@ -50,17 +49,15 @@ def _known_result() -> Any:
 
 def _mock_seams(monkeypatch: pytest.MonkeyPatch, *, controls: Any) -> None:
     monkeypatch.setattr(
-        evaluate_phase, "run_single_step_controls", AsyncMock(return_value=controls)
+        evaluate, "run_single_step_controls", AsyncMock(return_value=controls)
     )
     monkeypatch.setattr(
-        evaluate_phase, "_persist_experiment_strategy", AsyncMock(return_value={})
+        evaluate, "_persist_experiment_strategy", AsyncMock(return_value={})
     )
     monkeypatch.setattr(
         shared, "extract_and_hydrate_genes", AsyncMock(return_value=([], [], [], []))
     )
-    monkeypatch.setattr(
-        validate_phase, "phase_robustness", AsyncMock(return_value=None)
-    )
+    monkeypatch.setattr(validate, "phase_robustness", AsyncMock(return_value=None))
 
 
 @pytest.mark.asyncio
@@ -90,7 +87,7 @@ async def test_run_experiment_error_sets_status_and_reraises(
 ) -> None:
     _mock_seams(monkeypatch, controls=_known_result())
     monkeypatch.setattr(
-        evaluate_phase,
+        evaluate,
         "run_single_step_controls",
         AsyncMock(side_effect=RuntimeError("WDK down")),
     )
@@ -121,7 +118,7 @@ async def test_run_experiment_calls_the_five_phases_in_order(
         async def _record(*_args: Any, **_kwargs: Any) -> None:
             called.append(name)
 
-        monkeypatch.setattr(service_module, name, _record)
+        monkeypatch.setattr(service, name, _record)
 
     for name in (
         "phase_evaluate",

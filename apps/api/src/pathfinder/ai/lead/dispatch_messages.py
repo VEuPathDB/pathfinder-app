@@ -8,11 +8,12 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from veupathdb.domain.strategy.build_outcome import BuildOutcome
+from veupathdb.domain.strategy.operational_spec import OperationalSpec
+from veupathdb.domain.strategy.spec_diff import CriterionChange, SpecDiff
+
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.phase_stop import PhaseStop
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 
 
 def frame_result_from_draft(spec: OperationalSpec | None) -> FrameResult:

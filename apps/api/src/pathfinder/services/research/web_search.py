@@ -12,6 +12,7 @@ import httpx
 from assistant_core.platform.pydantic_base import CamelModel
 from ddgs import DDGS
 from pydantic import Field
+from veupathdb.errors import ExternalServiceError
 
 from pathfinder.domain.research.citations import (
     Citation,
@@ -19,7 +20,6 @@ from pathfinder.domain.research.citations import (
     _now_iso,
     ensure_unique_citation_tags,
 )
-from pathfinder.platform.errors import ExternalServiceError
 from pathfinder.services.research.utils import (
     BROWSER_USER_AGENT,
     fetch_page_summary,

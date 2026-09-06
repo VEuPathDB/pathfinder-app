@@ -8,14 +8,22 @@ from typing import Literal, get_origin
 
 from assistant_core.platform.config import RuntimeSettings, use_settings_source
 from assistant_core.platform.types import ModelProvider, TierName
-from pydantic import Field, computed_field, field_validator
+from pydantic import Field, computed_field
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
 )
-
-from pathfinder.platform.principal import ServiceTokenRegistry
+from veupathdb.settings import (
+    VEuPathDBSettings,
+    use_veupathdb_settings_source,
+)
+from veupathdb_mcp.embeddings.settings import (
+    EmbeddingSettings,
+    use_embedding_settings_source,
+)
+from veupathdb_mcp.service_tokens import ServiceTokenRegistry
+from veupathdb_mcp.settings import McpSettings, use_mcp_settings_source
 
 _API_DIR = Path(__file__).resolve().parents[3]  # apps/api/
 _REPO_ROOT = _API_DIR.parents[1]  # repo root
@@ -28,7 +36,6 @@ _PLACEHOLDER_SECRET_MARKERS = (
     "example",
 )
 _ALLOWED_CHAT_PROVIDERS = {"default", "mock"}
-_DEFAULT_VEUPATHDB_OAUTH_URL = "https://auth.veupathdb.org"
 
 
 class TomlConfigSettingsSource(PydanticBaseSettingsSource):
@@ -76,7 +83,7 @@ class TomlConfigSettingsSource(PydanticBaseSettingsSource):
         return data
 
 
-class Settings(RuntimeSettings):
+class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
@@ -102,35 +109,11 @@ class Settings(RuntimeSettings):
 
     # VEuPathDB
     veupathdb_default_site: str = "veupathdb"
-    veupathdb_sites_config: str | None = Field(
-        default=None,
-        description="Optional path to a YAML file for site list and base URLs; defaults to bundled sites.yaml if unset.",
-    )
-    # Accounted megabytes of per-site catalogs and semantic indexes one process
-    # holds. The least recently used site leaves when the budget is reached.
-    site_catalog_budget_mb: int = 512
-    # Whether this process rebuilds a stale catalog. A process that only serves
-    # reads the snapshot the refreshing process saved.
-    catalog_refresh_enabled: bool = True
-    # Whether this process syncs an embedding index. A process that only reads
-    # searches what the syncing process wrote.
-    embedding_index_sync_enabled: bool = True
-    veupathdb_auth_token: str | None = Field(default=None, repr=False)
-
     # Semantic Scholar
     s2_api_key: str = Field(default="", repr=False)
 
-    # OAuth server that signs VEuPathDB bearer tokens. One server serves every site.
-    veupathdb_oauth_url: str = _DEFAULT_VEUPATHDB_OAUTH_URL
-
     # Application identities, as "app_id:secret[,app_id:secret...]".
     pathfinder_service_tokens: str = Field(default="", repr=False)
-
-    # veupathdb-wdk-mcp: its own public URL, and the applications it serves in
-    # service mode. The secrets are separate from pathfinder_service_tokens,
-    # because a credential sent to an MCP server must not authenticate to the API.
-    pathfinder_mcp_base_url: str = ""
-    pathfinder_mcp_service_tokens: str = Field(default="", repr=False)
 
     # The veupathdb-wdk-mcp endpoint this deployment's assistants call, and the
     # credential it presents there. An empty URL admits the server for nobody.
@@ -204,12 +187,6 @@ class Settings(RuntimeSettings):
     # Default monthly usage quota in USD. The `users` row can override it.
     pathfinder_user_monthly_cost_limit_usd: float = 20.0
 
-    @field_validator("veupathdb_oauth_url", mode="before")
-    @classmethod
-    def _blank_oauth_url_means_the_default(cls, value: object) -> object:
-        """A config file may declare the key empty; that is not a URL."""
-        return _DEFAULT_VEUPATHDB_OAUTH_URL if value in (None, "") else value
-
     @computed_field
     def is_development(self) -> bool:
         """Check if running in development mode."""
@@ -282,11 +259,6 @@ class Settings(RuntimeSettings):
         """The application identities, parsed once per settings instance."""
         return ServiceTokenRegistry.parse(self.pathfinder_service_tokens)
 
-    @cached_property
-    def mcp_service_tokens(self) -> ServiceTokenRegistry:
-        """The applications veupathdb-wdk-mcp serves without a user."""
-        return ServiceTokenRegistry.parse(self.pathfinder_mcp_service_tokens)
-
     def _validate_service_tokens(self) -> None:
         _ = self.service_tokens
         _ = self.mcp_service_tokens
@@ -335,3 +307,6 @@ def get_settings() -> Settings:
 
 
 use_settings_source(get_settings)
+use_veupathdb_settings_source(get_settings)
+use_mcp_settings_source(get_settings)
+use_embedding_settings_source(get_settings)

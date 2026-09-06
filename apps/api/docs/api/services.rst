@@ -1,69 +1,54 @@
 Services
 ========
 
-Core business logic for gene lookup, parameter optimization, control tests,
-and catalog access. Services are stateless and orchestrated by the chat layer.
+Core business logic for parameter optimization, export and seeding. Services
+are stateless and orchestrated by the chat layer.
 
 Overview
 --------
 
-- **Gene lookup** — Resolve gene names/symbols to VEuPathDB IDs via site-search
-  or the WDK stateless reporter. Used when the user mentions genes from literature.
 - **Parameter optimization** — Optimize search parameters against positive/negative
   control lists using Bayesian optimization (TPE), grid, or random search.
-- **Control tests** — Run temporary WDK strategies with known gene lists and
-  compute precision, recall, F1. Used by optimization and validation.
-- **Catalog** — Get parameter specs, validate values, list sites/searches.
-- **Strategy session** — Load and merge strategy state with conversation messages.
+- **Export** — Generate a downloadable file from strategy results, gene sets and
+  enrichment results.
+- **Experiment seeds** — Demo experiments with pre-built strategies and controls.
+- **Workbench facade** — The one door the agent and the jobs use to reach gene
+  sets, experiments, control sets, variant comparisons and parameter sweeps.
 
-Gene Lookup
------------
+The catalog, gene lookup, control tests and tool payloads are the
+``veupathdb-mcp`` sibling distribution, imported as ``veupathdb_mcp``; its
+README is the reference for them.
 
-**Purpose:** Resolve gene names and IDs via VEuPathDB site-search and the WDK
-stateless reporter. Used by the agent to validate gene references from
-literature or user input.
+Workbench Facade
+----------------
 
-**Key functions:**
+**Purpose:** ``pathfinder.ai`` and ``pathfinder.jobs`` reach the workbench only
+through this package. Every name here is a function with a body; a result type
+is imported from the module that defines it. The import-linter contract "The
+agent and the jobs reach the workbench only through its facade" names the
+modules the facade owns.
 
-- :py:func:`lookup_genes_by_text` — Search by free text (name, symbol, description)
-- :py:func:`resolve_gene_ids` — Resolve a list of known IDs to full records via WDK
-
-.. automodule:: pathfinder.services.gene_lookup
+.. automodule:: pathfinder.services.workbench.gene_sets
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.gene_lookup.lookup
+.. automodule:: pathfinder.services.workbench.experiments
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.gene_lookup.hydrate
+.. automodule:: pathfinder.services.workbench.control_sets
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.gene_lookup.organism
+.. automodule:: pathfinder.services.workbench.comparisons
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.gene_lookup.result
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.gene_lookup.scoring
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.gene_lookup.site_search
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.gene_lookup.wdk
+.. automodule:: pathfinder.services.workbench.optimization
    :members:
    :undoc-members:
    :show-inheritance:
@@ -97,18 +82,6 @@ trial runs a temporary WDK strategy and scores the result.
    :undoc-members:
    :show-inheritance:
 
-Catalog (Parameter Validation)
--------------------------------
-
-**Purpose:** Validation of search parameter values. Normalizes, canonicalizes,
-and validates parameter values against WDK search specs before step creation
-or strategy execution.
-
-.. automodule:: pathfinder.services.catalog.param_validation
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Export Service
 --------------
 
@@ -120,113 +93,6 @@ enrichment results, storing them briefly in Redis for client retrieval.
    :members:
    :undoc-members:
    :show-inheritance:
-
-Control Tests
--------------
-
-**Purpose:** Run positive/negative control gene lists against a WDK strategy
-and compute precision, recall, F1, and related metrics. Used by parameter
-optimization and for validation.
-
-**Key function:** :py:func:`run_positive_negative_controls`
-
-.. automodule:: pathfinder.services.control_tests
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Control Helpers
----------------
-
-**Purpose:** Formatting and parsing utilities for control test evaluation.
-Encodes gene ID lists in various formats (newline, comma, JSON) and handles
-temporary strategy cleanup.
-
-.. automodule:: pathfinder.services.control_helpers
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Tool Payloads
--------------
-
-**Purpose:** The result shapes the MCP server and the agent toolsets both
-render, so one catalog listing, one download URL and one control outcome
-serve both adapters.
-
-.. automodule:: pathfinder.services.tool_payloads
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Search Reranking
-----------------
-
-**Purpose:** Reusable "fetch wide, rerank narrow" pattern for search results.
-Robust fuzzy matching with exactness bonuses for gene ID lookups. Used to
-improve relevance of WDK search results.
-
-.. automodule:: pathfinder.services.search_rerank
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Catalog (Parameters & Searches)
---------------------------------
-
-**Purpose:** Retrieve and validate search parameters from VEuPathDB. Handles
-parameter specs, dependent vocabularies, and search details. Used by tools
-when the agent needs to discover or validate parameters.
-
-**Key functions:**
-
-- :py:func:`get_search_parameters` — Full parameter specs for a search
-- :py:func:`validate_search_params` — Validate parameter values
-- :py:func:`get_refreshed_dependent_params` — Refresh dependent parameter options
-
-.. automodule:: pathfinder.services.catalog.parameters
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Catalog (Sites & Record Types)
-------------------------------
-
-**Purpose:** Sites, record types, and search listing. Entry point for discovery.
-
-.. automodule:: pathfinder.services.catalog.sites
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.catalog.searches
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Catalog (Parameter Resolution)
--------------------------------
-
-**Purpose:** WDK parameter fetching, caching, and vocabulary expansion.
-Resolves search parameter specs with allowed values, handles dependent
-vocabularies, and flattens nested parameter structures for agent consumption.
-
-.. automodule:: pathfinder.services.catalog.param_resolution
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Strategy Session
-----------------
-
-**Purpose:** Load and merge strategy state with conversation messages. Used
-when switching strategies or restoring sessions.
-
-.. automodule:: pathfinder.domain.strategy.session
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :no-index:
 
 Experiment Seed Data
 --------------------

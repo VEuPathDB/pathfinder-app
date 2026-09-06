@@ -1,10 +1,9 @@
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Discriminator
-
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import walk
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import walk
 
 
 class SkipAction(BaseModel):

@@ -9,11 +9,10 @@ from __future__ import annotations
 import pytest
 from hypothesis import given
 from pydantic import ValidationError
-
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from pathfinder.domain.strategy.ops import ColocationParams, CombineOp
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import walk
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.strategy.ops import ColocationParams, CombineOp
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import walk
 
 from ._builders import ANY_TREE, PROFILE
 

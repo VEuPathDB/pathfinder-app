@@ -7,10 +7,10 @@ manages graph topology only.
 
 from dataclasses import dataclass, field
 
-from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.validation import StepValidation
-from pathfinder.integrations.veupathdb.wdk_models import WDKStepTree
+from veupathdb.domain.strategy.session import StrategySession
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.wdk.wdk_models import WDKStepTree
 
 
 @dataclass

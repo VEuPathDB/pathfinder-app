@@ -1,9 +1,10 @@
 """Public HTTP schema exports."""
 
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.services.catalog.param_validation import (
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb_mcp.catalog.param_validation import (
     ValidationResponse,
 )
+
 from pathfinder.services.strategies.schemas import (
     StepResponse,
 )

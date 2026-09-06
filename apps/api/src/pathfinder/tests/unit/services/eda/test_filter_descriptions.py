@@ -3,18 +3,17 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
-from pathfinder.integrations.eda.models import (
+from veupathdb.eda.models import (
     EdaStringSetFilter,
     EdaStudyDetail,
     EdaStudyDetailResponse,
 )
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
+
 from pathfinder.services.eda.description import display_names, filter_summaries
 
-FIXTURES = (
-    Path(__file__).resolve().parents[3] / "unit" / "integrations" / "eda" / "fixtures"
-)
+FIXTURES = FIXTURE_DIR
 
 _ENTITY = "GENE_PHENOTYPE_DATA_ENTITY"
 _SPECIES = "VAR_035294d0"

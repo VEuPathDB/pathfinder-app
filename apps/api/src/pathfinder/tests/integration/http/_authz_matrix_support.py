@@ -146,13 +146,38 @@ WDK_BACKED: dict[tuple[str, str], str] = {
     ): "the record comes from WDK",
 }
 
-# Routes whose owner request cannot reach a non-404 answer in this suite.
-NO_OWNER_CONTRAST: dict[tuple[str, str], str] = {
+
+@dataclass(frozen=True)
+class OwnerContrastWaiver:
+    """Why the owner half of a case does not run, and the one status a non-owner may get.
+
+    A 404 is only unambiguous when the owned resource is the request's sole
+    lookup; a request that also names another id could be missing that id.
+    """
+
+    reason: str
+    non_owner_status: int
+
+
+# Routes whose owner request cannot run in this suite.
+NO_OWNER_CONTRAST: dict[tuple[str, str], OwnerContrastWaiver] = {
     (
         "POST",
         "/api/v1/conversations/{conversation_id:uuid}/insert-saved",
-    ): "The owner needs a saved WDK strategy id, which only a live WDK write "
-    "produces. WDK answers 404 for the placeholder id.",
+    ): OwnerContrastWaiver(
+        "The owner needs a saved WDK strategy id, which only a live WDK write "
+        "produces. WDK answers 404 for the placeholder id.",
+        non_owner_status=403,
+    ),
+    (
+        "POST",
+        "/api/v1/gene-sets/{gene_set_id}/vdi-publication",
+    ): OwnerContrastWaiver(
+        "The owner request creates a dataset in the researcher's VEuPathDB "
+        "account. The set lookup is the route's first step and the only id "
+        "the request names, so the non-owner's 404 is the ownership refusal.",
+        non_owner_status=404,
+    ),
 }
 
 

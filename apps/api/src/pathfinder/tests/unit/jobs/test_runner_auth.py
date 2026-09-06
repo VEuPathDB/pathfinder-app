@@ -9,12 +9,11 @@ from uuid import UUID, uuid4
 import pytest
 from assistant_core.graph.turn_state import DurableTaskResult
 from assistant_core.platform.context import application_id_ctx
+from veupathdb.auth_context import veupathdb_auth_token_ctx
 
-from pathfinder.jobs import auth_context as auth_context_mod
-from pathfinder.jobs import runner as runner_mod
+from pathfinder.jobs import auth_context, runner
 from pathfinder.jobs.completion_turn import CompletionOutcome
 from pathfinder.jobs.runner import run_durable_task
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 
 HOLDING_APPLICATION = "companion"
 
@@ -70,7 +69,7 @@ async def _holding_application(conversation_id: UUID) -> str:
 def _conversation_application(monkeypatch: pytest.MonkeyPatch) -> None:
     """The row lookup the worker uses to name its application."""
     monkeypatch.setattr(
-        auth_context_mod,
+        auth_context,
         "conversation_application_id",
         _holding_application,
     )
@@ -129,20 +128,20 @@ def _reset_observer() -> None:
 @pytest.fixture(autouse=True)
 def _stubbed_runner(monkeypatch: pytest.MonkeyPatch) -> None:
     """Every I/O seam the runner drives, replaced. The ctxvars are the subject."""
-    monkeypatch.setitem(runner_mod.TOOL_REGISTRY, "stub_tool", _observing_impl)
-    monkeypatch.setattr(runner_mod, "BackgroundTaskRepository", _FakeRepo)
+    monkeypatch.setitem(runner.TOOL_REGISTRY, "stub_tool", _observing_impl)
+    monkeypatch.setattr(runner, "BackgroundTaskRepository", _FakeRepo)
     monkeypatch.setattr(
-        runner_mod,
+        runner,
         "lifespan_memory_store",
         _fake_lifespan_memory_store,
     )
     monkeypatch.setattr(
-        runner_mod,
+        runner,
         "build_worker_runtime_context",
         _fake_build_worker_runtime_context,
     )
-    monkeypatch.setattr(runner_mod, "safe_completion_turn", _fake_completion_turn)
-    monkeypatch.setattr(runner_mod, "append_chunk", _record_chunk)
+    monkeypatch.setattr(runner, "safe_completion_turn", _fake_completion_turn)
+    monkeypatch.setattr(runner, "append_chunk", _record_chunk)
 
 
 @pytest.mark.asyncio

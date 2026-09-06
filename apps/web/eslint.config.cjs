@@ -123,7 +123,7 @@ module.exports = defineConfig([
           rules: { "react-hooks/rules-of-hooks": "off" },
         },
         {
-          files: ["src/features/analysis/components/ResultsTable/**"],
+          files: ["src/features/workbench/analysis/components/ResultsTable/**"],
           rules: { "react-hooks/incompatible-library": "off" },
         },
         {

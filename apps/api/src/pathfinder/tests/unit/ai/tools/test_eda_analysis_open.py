@@ -8,13 +8,13 @@ import httpx
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.eda import factory
+from veupathdb.eda.client import EdaClient
+from veupathdb.eda.models import EdaPermissionEntry, EdaStudyDetail
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis
-from pathfinder.integrations.eda import factory as eda_factory
-from pathfinder.integrations.eda.client import EdaClient
-from pathfinder.integrations.eda.models import EdaPermissionEntry, EdaStudyDetail
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.services.eda import authoring, binding, catalog
 from pathfinder.services.eda.catalog import UnknownEdaDatasetError
 from pathfinder.tests._support.eda_doubles import (
@@ -118,7 +118,7 @@ async def test_open_eda_analysis_cuts_a_long_purpose_before_the_wire(
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)
-    monkeypatch.setattr(eda_factory, "get_eda_client", lambda _s: client)
+    monkeypatch.setattr(factory, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(authoring, "resolve_eda_user_id", _fake_user_id)
     monkeypatch.setattr(binding, "bind_conversation_analysis", _noop_bind)
     monkeypatch.setattr(binding, "read_analysis", read_analysis_detail)

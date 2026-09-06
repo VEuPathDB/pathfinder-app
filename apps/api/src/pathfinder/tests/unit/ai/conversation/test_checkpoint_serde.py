@@ -24,6 +24,26 @@ from assistant_core.graph.turn_state import (
 )
 from assistant_core.memory.schemas import MemoryEntryDraft, MemoryValue
 from pydantic_ai.ui.vercel_ai.request_types import TextUIPart, ToolApprovalResponded
+from veupathdb.domain.parameters.values import StringValue
+from veupathdb.domain.strategy.build_outcome import (
+    BuildOutcome,
+    NodeResult,
+    StepPushFailure,
+)
+from veupathdb.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
+from veupathdb.domain.strategy.operational_spec import (
+    Criterion,
+    DroppedCriterion,
+    OpenSlot,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
+from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.graph.state import (
@@ -36,26 +56,6 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.assistants.pathfinder_spec import PATHFINDER_CHECKPOINT_TYPES
-from pathfinder.domain.parameters.values import StringValue
-from pathfinder.domain.strategy.build_outcome import (
-    BuildOutcome,
-    NodeResult,
-    StepPushFailure,
-)
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
-)
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-    DroppedCriterion,
-    OpenSlot,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
-from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.staleness import StaleBuild
 
 

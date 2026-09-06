@@ -16,8 +16,8 @@ from assistant_core.memory.store import MemoryStore
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.wdk.factory import get_site
 
-from pathfinder.integrations.veupathdb.factory import get_site
 from pathfinder.platform.config import get_settings
 from pathfinder.services.users import get_or_create_user_id
 from pathfinder.tests._support.veupathdb_tokens import (

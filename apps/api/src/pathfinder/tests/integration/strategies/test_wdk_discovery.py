@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import pytest
+from veupathdb.domain.parameters.wdk_vocab import vocab_keys
+from veupathdb.domain.search import SearchContext
+from veupathdb.wdk.wdk_parameters import WDKEnumParam
+from veupathdb_mcp.catalog.discovery_service import get_discovery_service
 
-from pathfinder.domain.parameters.wdk_vocab import vocab_keys
-from pathfinder.domain.search import SearchContext
-from pathfinder.integrations.veupathdb.discovery_service import get_discovery_service
-from pathfinder.integrations.veupathdb.wdk_parameters import WDKEnumParam
 from pathfinder.platform.errors import AppError
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]

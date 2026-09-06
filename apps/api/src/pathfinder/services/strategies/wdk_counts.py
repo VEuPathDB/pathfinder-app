@@ -12,25 +12,26 @@ from collections.abc import Iterable
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from cachetools import LRUCache
-
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.ops import DEFAULT_COMBINE_OPERATOR, CombineOp
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import leaves, walk
-from pathfinder.integrations.veupathdb.client import (
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.ops import DEFAULT_COMBINE_OPERATOR, CombineOp
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import leaves, walk
+from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk.client import (
     VEuPathDBClient,
 )
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
-from pathfinder.integrations.veupathdb.value_decoding import encode_params
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk.strategy_api import StrategyAPI
+from veupathdb.wdk.value_decoding import encode_params
+from veupathdb.wdk.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
     WDKSearchConfig,
 )
+from veupathdb_mcp.controls.control_helpers import delete_temp_strategy
+
 from pathfinder.platform.errors import AppError
-from pathfinder.services.control_helpers import delete_temp_strategy
 from pathfinder.services.strategies.sync import build_step_tree_from_graph
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -76,7 +77,7 @@ async def _count_via_anonymous_report(
         answer = await client.run_search_report(
             record_type, search_name, config, report_config
         )
-    except AppError as e:
+    except (AppError, VEuPathDBError) as e:
         logger.warning(
             "Anonymous report count failed",
             record_type=record_type,
@@ -220,7 +221,7 @@ async def _create_wdk_step(
                 primary_wdk_id,
                 secondary_wdk_id,
             )
-    except AppError as exc:
+    except (AppError, VEuPathDBError) as exc:
         logger.warning(
             "Failed to create step for count computation",
             step_id=step.id,
@@ -246,7 +247,7 @@ async def _read_counts_from_strategy(
             wdk_step = wdk_strategy.steps.get(str(wdk_id))
             if wdk_step is not None and wdk_step.estimated_size is not None:
                 counts[step.id] = wdk_step.estimated_size
-    except AppError as e:
+    except (AppError, VEuPathDBError) as e:
         logger.warning("Failed to read counts from strategy payload", error=str(e))
 
 
@@ -276,7 +277,7 @@ async def _compute_counts_via_temp_strategy(
 
     try:
         step_tree = build_step_tree_from_graph(payload.root, wdk_step_ids)
-    except AppError:
+    except AppError, VEuPathDBError:
         return counts
 
     temp_strategy_id: int | None = None
@@ -288,7 +289,7 @@ async def _compute_counts_via_temp_strategy(
             is_internal=True,
         )
         temp_strategy_id = created.id
-    except AppError as exc:
+    except (AppError, VEuPathDBError) as exc:
         logger.exception(
             "Failed to create temporary WDK strategy for step counts",
             error=str(exc),

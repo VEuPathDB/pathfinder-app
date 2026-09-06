@@ -18,7 +18,7 @@ const sharedDir = fileURLToPath(
   new URL("../../packages/shared-ts/src", import.meta.url),
 );
 const clientDir = fileURLToPath(
-  new URL("../../packages/assistant-client-ts/src", import.meta.url),
+  new URL("../../assistant-platform/packages/assistant-client-ts/src", import.meta.url),
 );
 const webNodeModules = fileURLToPath(new URL("./node_modules", import.meta.url));
 

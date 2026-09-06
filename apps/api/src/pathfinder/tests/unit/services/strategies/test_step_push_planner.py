@@ -1,13 +1,14 @@
 from collections.abc import Iterable
 
-from pathfinder.domain.parameters.values import (
+from veupathdb.domain.parameters.values import (
     MultiPickValue,
     ParamValue,
     StringValue,
 )
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+
 from pathfinder.services.strategies.step_push_planner import (
     CreateAction,
     PatchAction,

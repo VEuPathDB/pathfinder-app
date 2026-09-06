@@ -19,8 +19,6 @@ ExperimentProgressPhase = Literal[
     "error",
 ]
 
-ControlValueFormat = Literal["newline", "json_list", "comma"]
-
 OptimizationObjective = Literal[
     "f1",
     "f_beta",

@@ -1,4 +1,0 @@
-# Existing weak-assertion offenders; trim as tests get fixed.
-# Each line: <relative_path>::<test_title>
-e2e/feature/settings.spec.ts::close settings modal
-e2e/feature/settings.spec.ts::switch between settings tabs

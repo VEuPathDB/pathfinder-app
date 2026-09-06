@@ -10,16 +10,14 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import count
-from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 import httpx
 import pytest
-
-from pathfinder.integrations.eda import factory
-from pathfinder.integrations.eda.client import EdaClient
-from pathfinder.integrations.eda.models import (
+from veupathdb.eda import factory
+from veupathdb.eda.client import EdaClient
+from veupathdb.eda.models import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
     EdaComputation,
@@ -27,14 +25,14 @@ from pathfinder.integrations.eda.models import (
     EdaStringSetFilter,
     EdaSubsetDescriptor,
 )
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
+
 from pathfinder.jobs.impls import eda_compute_impl
 from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.services.eda import authoring, binding, catalog, compute
 from pathfinder.tests._support.eda_wire import AnalysisStore
 
-FIXTURES = (
-    Path(__file__).resolve().parents[2] / "unit" / "integrations" / "eda" / "fixtures"
-)
+FIXTURES = FIXTURE_DIR
 
 STUDY = "STUDY_e973eadd57"
 DATASET = "DS_e973eadd57"

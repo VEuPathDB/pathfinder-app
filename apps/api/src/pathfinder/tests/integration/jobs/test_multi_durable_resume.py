@@ -35,12 +35,13 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 from sqlalchemy import select
+from veupathdb_mcp.tool_payloads import ControlOutcome
 
-import pathfinder.assistants.registry as registry_mod
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone.experiment import run_control_tests_on_step
+from pathfinder.assistants import registry
 from pathfinder.assistants.pathfinder_spec import build_turn_context
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.assistants.site_help.spec import (
@@ -51,7 +52,6 @@ from pathfinder.assistants.site_help.spec import (
 from pathfinder.jobs.impls import control_tests_impl, register_all_tools
 from pathfinder.jobs.runner import run_durable_task
 from pathfinder.persistence.models import BackgroundTask, User
-from pathfinder.services.tool_payloads import ControlOutcome
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -211,7 +211,7 @@ def _build_spec() -> AssistantSpec:
 
 @pytest.fixture
 def controls_assistant(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setattr(registry_mod, "build_site_help_spec", _build_spec)
+    monkeypatch.setattr(registry, "build_site_help_spec", _build_spec)
     get_assistant_registry.cache_clear()
     yield
     get_assistant_registry.cache_clear()

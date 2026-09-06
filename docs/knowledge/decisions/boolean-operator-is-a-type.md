@@ -35,4 +35,4 @@ Every field whose value ends up in a boolean search config uses `BooleanOperator
 
 # Anchor
 
-`domain/strategy/ops.py` owns `BOOLEAN_OPERATORS` and `BooleanOperator`. Guarded by `tests/unit/integrations/veupathdb/test_wdk_models.py` and the two refine-route tests in `tests/integration/transport/test_experiment_results_routes.py`.
+`veupathdb-py/src/veupathdb/domain/strategy/ops.py` owns `BOOLEAN_OPERATORS` and `BooleanOperator`. Guarded by `veupathdb-py/tests/unit/wdk/test_wdk_models.py` and the two refine-route tests in `tests/integration/transport/test_experiment_results_routes.py`.

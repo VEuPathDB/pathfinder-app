@@ -5,8 +5,9 @@ from __future__ import annotations
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, Field
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.errors import VEuPathDBError
 
-from pathfinder.domain.parameters.values import ParamValue
 from pathfinder.platform.errors import AppError
 from pathfinder.services.export import get_export_service
 from pathfinder.services.parameter_optimization.config import ParameterSpec
@@ -88,5 +89,5 @@ async def _attach_export(result_json: JSONObject, search_name: str) -> None:
             "jsonUrl": export.url,
             "expiresInSeconds": export.expires_in_seconds,
         }
-    except (AppError, OSError) as e:
+    except (AppError, VEuPathDBError, OSError) as e:
         logger.warning("Optimization export failed", error=str(e))

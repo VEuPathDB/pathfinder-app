@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from pydantic_ai import ModelRetry, RunContext
-
-from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
     OpenSlot,
     SavedStrategyRef,
 )
+
+from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.services.strategies.insert_saved import clone_saved_strategy
 from pathfinder.services.strategies.saved_library import (
     SavedStrategyListing,

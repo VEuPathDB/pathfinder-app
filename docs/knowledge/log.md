@@ -1,12 +1,479 @@
 # Log
 
+## 2026-09-05
+
+* **An enrichment over a result of several organisms is refused.** Measured on toxodb.org: the
+  journey's unfiltered `invasion` search returns 10 genes of 7 organisms, and the WDK enrichment
+  form for that step offers an `organism` vocabulary of those 7 with `Eimeria falciformis Bayer
+  Haberkorn 1970` as its default, so the workbench tested 1 gene and reported "0 significant terms"
+  over "10 genes analyzed". `EnrichmentService._execute_analysis` now raises
+  `AmbiguousBackgroundError` naming every organism when the form offers several and no
+  `BackgroundSource` organism was given; the journey seed narrows each site's search to its
+  organism. Recorded in `decisions/an-enrichment-over-several-organisms-is-refused.md`. In the same
+  verification pass: the eslint override for `react-hooks/incompatible-library` now names
+  `features/workbench/analysis/components/ResultsTable/**` (the move left the old path);
+  `describe_eda_study` builds `EdaStudyDescription` with `model_dump(exclude={"variables"})` so
+  pyright 1.1.411 reports 0 errors like 1.1.408; the durable enrichment integration test runs the
+  real facade and the real `EnrichmentService` over recorded WDK step answers; every first-party
+  `import ... as` is gone (119 across four trees, 34 third-party conflicts kept).
+
+* **The two folders became pushable: the bundles cite each other, the platform is its own Yarn
+  project, the library's fixtures ship in its wheel, a catalog loads without its vector index, and
+  every unit-test directory names a package that exists.** Copied outside this checkout,
+  `veupathdb-py/`'s own `check-knowledge` step exited 1 with **45** unresolved links into
+  `docs/knowledge/{decisions,wdk/pathfinder}`. `eda/pathfinder-architecture-fit.md` and
+  `eda/pathfinder-integration-concept.md` were PathFinder proposals, not EDA facts, and are back at
+  `docs/knowledge/eda/`; the remaining 30 links, and the 98 in the other direction, are backticked
+  citations of the sibling repository path, because the two repositories are never checked out
+  together. The outside copy now reports `41 files conform to OKF v0.2 (0 violations)`. Recorded as
+  [the knowledge bundles cite each other](decisions/the-knowledge-bundles-cite-each-other-they-do-not-link.md).
+  `assistant-platform/` is its own Yarn project - `package.json`, `.yarnrc.yml`, `yarn.lock`,
+  `.github/workflows/ci.yml` with the three lanes and `.pre-commit-config.yaml` with their hooks -
+  and the monorepo root's `workspaces` no longer names the TypeScript client; `apps/web` reaches it
+  through `portal:../../assistant-platform/packages/assistant-client-ts`. With the folder's own lock
+  the client's 262 conformance cases pass at `ai` 6.0.154, the version `@ai-sdk/react@3.0.156` pins;
+  at 6.0.271 two of them fail, because `ai` 6.0.250 made `resumeStream` a fresh response instead of a
+  continuation of the held assistant message, which is the opposite of what section 6.1 of
+  `PROTOCOL.md` requires of a turn suspended on a durable task. The pin carries that reason and
+  [a backlog item](backlog/adopt-the-new-ai-sdk-resume-semantics.md). The recorded WDK and EDA stores
+  moved from `veupathdb-py/tests/fixtures/` to `src/veupathdb/testing/fixtures/{wdk,eda}/`, read
+  through `importlib.resources`, and a wheel test installs the built wheel into a fresh venv and
+  reads one fixture of each: `unzip -l dist/*.whl | grep -c fixtures` went from 3 to 76.
+  `SearchCatalog` now collects its semantic index and starts the sync beside the load instead of
+  awaiting it, and `record_manager` opens every session through one boundary that turns a driver
+  refusal into `IndexStoreUnavailableError` under the shared `SemanticIndexUnavailableError`; an
+  `asyncpg` `PostgresError` is a relation of neither `SQLAlchemyError` nor `OSError`, which is how a
+  Postgres refusal used to reach a gene search. The `apps/api` live lane is **27 passed** with
+  `DATABASE_URL` unset and no `EMBEDDING_INDEX_SYNC_ENABLED=false`. Seven `apps/api` unit-test
+  directories that mirrored no `src` package are gone: two modules that name only `veupathdb_mcp`
+  are that folder's suite (35 cases), one that names only `veupathdb.domain.eda_study` is the
+  library's (9 cases), and the rest sit under the mirror of what they test, held by
+  `tests/unit/test_tests_mirror_the_source.py`. ToxoDB's primary button was 3.84:1 against white in
+  its `hover:bg-primary/90` state; `clampLightnessForForeground` now measures that composite, so all
+  fifteen sites clear 4.5 in both states on both grounds.
+
+* **The workbench became one module on both sides, and each boundary became a gate.**
+  `features/analysis` (78 files) is `features/workbench/analysis`, so the
+  `["workbench", new Set(["analysis"])]` exception row is gone and the 8 import lines
+  that named `@/features/analysis` name the workbench. `check-boundaries.mjs` gained
+  `FEATURE_ENTRYPOINTS` and rule 6: a feature that publishes entry paths is reachable
+  through them and nothing else, so `"workbench"` left the `conversation` exception row
+  too - `conversation -> @/features/workbench/api/geneSets` passes on the path and
+  `conversation -> @/features/workbench/components/panels/BatchPanel` fails, where the
+  old exception admitted `@/features/analysis/components/ResultsTable`. The
+  checker is now a `checkSource` function with 12 `node --test` cases, run by pre-commit
+  and CI beside the check. Two e2e specs stopped being cross-feature and moved to
+  `e2e/feature/`. On the backend, the 24 lines in 12 files under `ai/` and `jobs/` that
+  named a workbench service are 15 type imports and 9 facade imports:
+  `services/workbench/{gene_sets,experiments,control_sets,comparisons,optimization}.py`
+  hold 15 functions with bodies, and import-linter contract 8 (the fifth in the file,
+  direct-only) forbids the six modules whose behaviour they own. **Five contracts.**
+  `SweepTarget` and `SweepControls` moved to `parameter_optimization/config.py` so the
+  worker impl can name them without naming the forbidden module. The measured answer to
+  "should the workbench be its own repository" is no: a repository when a second consumer
+  or a second container exists, a module with two gates until then.
+
+* **The MCP server is a distribution, the three platform packages are a grouping, and a site's
+  gene search stopped answering with other sites' genes.** `pathfinder/{mcp, services/catalog,
+  services/wdk, services/gene_lookup, services/control_*, services/tool_payloads,
+  integrations/embeddings}` are `veupathdb-mcp/` (90 modules), imported as `veupathdb_mcp`, with
+  its own pyproject, lock, README, Dockerfile, alembic chain and CI lane; 565 import lines were
+  rewritten across 267 files. `apps/api` installs it as an editable path dependency and calls it
+  in process (132 production edges), so import-linter contract 7 is deleted and the empty
+  `pathfinder/integrations/` package with it: **four contracts remain**. The unit's boundary is an
+  installation fact - `rm -rf .venv && uv sync --frozen && uv run pytest tests/unit` resolves a
+  lock naming no application, and 710 tests pass with `pathfinder` unimportable. The embedding
+  migration moved to a chain of its own recorded in `alembic_version_veupathdb_mcp`; both chains
+  were driven up, down and up again on clean `pgvector/pgvector:pg16` databases, together and
+  apart, and the two table dumps are identical across the trip. `packages/{assistant-core,
+  assistant-client-ts, mcp-conformance}` and `PROTOCOL.md` moved under `assistant-platform/` with
+  **zero import rewrites** - only paths: two `uv.sources` rows, five `COPY` lines, the yarn
+  workspace, eight pre-commit `files:` patterns, twenty CI working directories, `pyrightconfig`,
+  two vitest configs and the client's `sync:protocol`. The `wdk-mcp` image is now built from
+  `veupathdb-mcp/Dockerfile` and carries no PIGuard model and no `pathfinder`. **The site gene
+  search fix**: one SOLR index serves every VEuPathDB site and the deployed service does not
+  filter gene documents by `restrictToProject`, so plasmodb's `kinase` query answered
+  `totalCount 1175519` led by Cordyceps, Aspergillus, Blumeria and Trypanosoma genes.
+  `list_organisms` now reads the leaves of the site's own `SequencesByTaxon` organism parameter
+  (64 on plasmodb) rather than site-search's `organismCounts` (831, every organism in the index),
+  and both request forms send it: the same query answers `totalCount 17516` over Plasmodium
+  genes. The two served tests read `veupathdb_mcp.__version__` instead of PathFinder's.
+
+* **The client library became a distribution.** `pathfinder/{veupathdb, integrations/veupathdb, integrations/eda}`, the WDK-shaped half of
+  `domain/` and the three WDK/EDA devtools are `veupathdb-py/`, imported as `veupathdb` and
+  consumed by `apps/api` as an editable path dependency. The WDK and EDA knowledge bundles
+  moved with the code; `wdk/pathfinder/` stayed and now holds the eight `WDK-MAP` rules.
+  Import-linter contracts 1 and 4 are deleted. See
+  [the client library is a distribution](decisions/the-client-library-is-a-distribution.md).
+
+* **A gene set can be published to the researcher's VEuPathDB workspace.**
+  VDI accepts PathFinder's own registered token: `GET https://plasmodb.org/vdi/datasets`
+  answers 200 for `Authorization: Bearer <token>`, for the `Authorization` cookie and for
+  `?access_token=`, and 401 with no credential, with a raw header and with `Auth-Key`.
+  One probe `genelist` of five genes reached `install: complete` on PlasmoDB 7.6 s after
+  the 202 and was deleted. `integrations/veupathdb/vdi/` (client + wire models) now calls
+  five endpoints, `services/gene_sets/vdi.py` publishes and reads status, `gene_sets` gains
+  a nullable `vdi_id` (alembic 2026_09_05_0001), and the workbench header carries one
+  confirm-first button. Replacing the `gene_sets` table with VDI, feeding a `VdiId` into a
+  WDK `DatasetParam` and giving an agent the action were all rejected; see the decision and
+  `wdk/rest/vdi-surface.md`.
+
+* **PathFinder now reads VEuPathDB's own per-gene AI expression summary instead
+  of having none: `get_ai_expression_summary` is an agent tool and an MCP tool
+  over the `aiExpression` WDK reporter, and it can never ask the site to
+  generate one.** The 2026-09-04 survey could not settle whether the reporter
+  answers a service credential, because every probe hit the API-key 401. It
+  does. Measured on plasmodb on 2026-09-04: anonymous is **401** `Valid API Key
+  required for this endpoint`, and the deployment's service token and a
+  registered user's token both answer **200**, whether the token travels as a
+  bearer header or as the `Authorization` cookie the client already sets. So the
+  call is a user-independent read and needs no login gate. Two other facts moved
+  with it. `primaryKeys` needs both primary key columns - `"PF3D7_1133400"`
+  alone is a 422 naming `[ source_id, project_id ]`, `"PF3D7_1133400,PlasmoDB"`
+  is a 200 - so the service appends the site's configured `project_id`. And a
+  cache miss is a 200 carrying a status, never a 404: PF3D7_1133400 answered
+  `"expired"` with 41 of 41 experiments cached and PF3D7_0709000 answered
+  `"experiments_incomplete"` with 0 of 41, and neither carried an
+  `expressionSummary`. No site answered `"present"` for any of the 40 genes
+  probed across seven sites, so the generated-summary shape is read from
+  `aiExpressionTypes.ts` and `Summarizer.java`'s response schema rather than
+  from a live body; the client models it and a unit test pins it.
+  **`populateIfNotPresent` is `Literal[False]`**, because `true` runs Claude over
+  every experiment of the gene and a deployment-wide `DailyCostMonitor` answers
+  503 for everyone until midnight once the day's dollar cap is passed - the new
+  WDK-ANS-009 (`veupathdb-py: docs/knowledge/wdk/rules/searches-and-answers.md`), pinned to
+  `SingleGeneAiExpressionReporter.java` and `DailyCostMonitor.java`. The reporter
+  row in the endpoint surface (`veupathdb-py: docs/knowledge/wdk/rest/endpoint-surface.md`) is no longer
+  `unused`. Two fixtures record the two miss shapes, and the live lane checks
+  both plus the 422.
+
+* **The embedding index left the assistant runtime: the last 9 upward edges out
+  of the future `veupathdb-mcp` module set became 0, and the served closure now
+  names no `assistant_core` module at all (133 modules, 17869 -> 15027 -> 14840
+  meaningful LOC).** `assistant_core/embeddings/record_manager.py` and the two
+  tables it reads, `embedding_vectors` and `embedding_index_entries`, were
+  declared in the assistant platform, created by a PathFinder migration and read
+  by nobody inside `assistant_core`: the measurement that decided the move is
+  that no module under `assistant-platform/packages/assistant-core/src/` imported the record
+  manager, while six PathFinder modules did. They now live in
+  `apps/api/src/pathfinder/integrations/embeddings/` - `record_manager.py`, and
+  `tables.py` mapping both rows on a new declarative `EmbeddingBase`, which is
+  possible where the runtime's shared `Base` was not because these two tables
+  carry no foreign key. `alembic/env.py`'s `target_metadata` is the list of both
+  metadatas and the test tree runs `create_all` on both; the migration itself
+  writes frozen DDL and imports no model, so it needed no rewrite and stays
+  PathFinder's. **The embedder is copied, not shared**: `assistant_core` keeps
+  `embeddings/embedder.py` (protocol, `get_embedder`, `EMBEDDING_DIMENSIONS`,
+  `EmbeddingUnavailableError`, OpenAI and fake) because `memory/{embedding,store,
+  lifespan}.py` read it, and the MCP unit has its own copy of all four modules -
+  the duplication `the-runtime-is-a-package.md` already accepted for
+  `RuntimeSettings`, about 230 lines against a distribution edge, with no
+  re-export and no alias. `RuntimeSettings.embedding_input_char_limit` stays,
+  because `assistant_core/embeddings/openai_embedder.py` still reads it.
+  **Settings and sessions come from the host, in the shape batches 1 and 2
+  used**: `EmbeddingSettings` carries `DATABASE_URL`, `OPENAI_API_KEY` and the
+  five `EMBEDDING_*` variables under unchanged names, with
+  `use_embedding_settings_source` / `get_embedding_settings` and `Settings`
+  subclassing it; `integrations/embeddings/db.py` is the same shape for sessions,
+  so the API and the worker install `async_session_factory` and the index shares
+  their pool, while a standalone MCP process builds its own engine from
+  `DATABASE_URL` instead of opening a second pool beside one it does not have.
+  `tests/unit/test_veupathdb_mcp_unit_boundary.py` dropped its
+  `assistant_core.embeddings` / `assistant_core.platform.config` allowance and is
+  the acceptance criterion; `grep -rn record_manager assistant-platform/packages/assistant-core/src`
+  is empty and the package's own suite is green in its own environment (354
+  unit). Two hand-offs closed with it: `NonFiniteToNone` and
+  `NonFiniteToNoneRounded` lost their last consumer when batch 2 copied them into
+  `veupathdb/model.py`, and are deleted from
+  `assistant_core/platform/pydantic_base.py`; and the two sha256 pin-drift checks
+  in `devtools/{wdk_fixtures,eda_schemas}.py` are folded into one
+  `devtools/pins.py` holding `VendoredPin` and `pin_drift`, with `SchemaPin` and
+  `VendoredRaml` subclassing the model and `schema_pin_drift` /
+  `raml_pin_drift` supplying their own directory and glob. Recorded as [the
+  embedding index belongs to the MCP
+  unit](decisions/the-embedding-index-belongs-to-the-mcp-unit.md). Verified:
+  `final_edges.py` reports 0 for `U1 U2`, `U1 U4`, `U3 U4` and `U3 U2`;
+  ruff, ruff-format, mypy (`634` files), pyright, import-linter 7 kept / 0 broken,
+  vulture, the weak-assertion and file-size gates, `openapi check` with no spec
+  change, both vendor `verify` commands, and 4961 unit tests.
+
+## 2026-09-04
+
+* **The MCP server no longer imports anything above itself: 54 upward edges
+  became 0, and its served closure fell from 162 modules / 17869 LOC to 133 /
+  15027.** The module set that becomes the `veupathdb-mcp` distribution
+  (`mcp/**`, `services/{catalog,wdk,gene_lookup}/**`,
+  `services/tool_payloads.py`, `services/control_{tests,helpers,types}.py`,
+  `integrations/embeddings/**`) reached `pathfinder.platform`,
+  `pathfinder.persistence` and the application's half of `pathfinder.services`
+  54 times; the count is now 0, and the only `assistant_core` edges left are the
+  nine into `embeddings.{embedder,record_manager}` plus one runtime-settings
+  read, which the embedding move takes next. The two paths from the served
+  entrypoint to `pathfinder.persistence` are cut: `mcp/auth.py` now verifies
+  the ES512 signature through the client library's own `validate_oauth_token`
+  and names the caller by the OAuth subject (cached per token for five minutes
+  in `mcp/identity.py`), where it used to map the token onto a `users` row and
+  stringify the id; and `attach_control_downloads`, which wrote the `exports`
+  table, moved up to `services/export/control_downloads.py` beside the agent
+  tool and the durable job that want the links. `services/gene_sets/__init__.py`
+  is empty, which drops 1009 LOC of gene-set store and `platform/store.py` out
+  of the closure. The server's own foundation lives under `pathfinder/mcp/`:
+  `locks.py`, `tool_errors.py` (which `ai/tools/**` now imports from there),
+  `service_tokens.py`, `settings.py` (`McpSettings`, which
+  `pathfinder.platform.config.Settings` subclasses, env var names unchanged),
+  `identity.py`, `logging_setup.py` and `__version__ = "0.1.0a1"`. The catalog
+  machinery takes its process concerns as arguments -
+  `DiscoveryService(cache_dir=, budget_bytes=, policy=, spawn=)` and
+  `preload_all(readiness)` - so no unit-3 module reads `platform.config`,
+  `platform.tasks` or `platform.readiness`. Misplaced code moved down:
+  `services/enrichment/{types,params,parser,ranking,html,service}.py` ->
+  `services/wdk/enrichment/`, the by-value half of
+  `services/gene_sets/enrichment.py` -> `services/wdk/enrichment/gene_ids.py`,
+  `services/gene_sets/wdk_helpers.py` -> `services/wdk/gene_set_steps.py`,
+  `services/search_rerank.py` -> `services/gene_lookup/rerank.py`,
+  `get_estimated_size_for_site` -> `services/wdk/step_size.py`, and the control
+  result and context types -> `services/control_types.py`.
+  `tests/unit/test_veupathdb_mcp_unit_boundary.py` (247 cases) is the gate: it
+  walks the unit and it walks the entrypoint closure. Recorded as
+  [the MCP server writes no PathFinder table](decisions/the-mcp-server-writes-no-pathfinder-table.md).
+
+* **The VEuPathDB client library no longer imports anything above itself: 84
+  upward edges became 0.** The module set that becomes the `veupathdb`
+  distribution (`integrations/veupathdb/**`, `integrations/eda/**`,
+  `domain/{parameters,strategy,search,wdk_values}`, the `domain/eda*` modules)
+  reached `assistant_core` 56 times and `pathfinder.platform` 28 times; both
+  counts are now 0, with every file still where it was, so the later folder
+  move is a prefix rename and nothing else. A new package
+  `pathfinder/veupathdb/` holds the foundation: `model.py` (`CamelModel`),
+  `json_types.py`, `logging.py` (a bound `structlog` logger and nothing else),
+  `errors.py` (`VEuPathDBError`, a seven-member `VEuPathDBErrorCode`, and the
+  classes the client raises), `settings.py` (`VEuPathDBSettings` plus a
+  settings source that `pathfinder.platform.config.Settings` installs itself
+  into, env var names unchanged), `auth_context.py`
+  (`veupathdb_auth_token_ctx`, deleted from `platform/context.py`), `text.py`
+  (`platform/text.py` deleted) and `observer.py`. The six WDK and site-search
+  instruments are now an `Observer` protocol with a no-op default;
+  `platform/metrics.py` holds the OpenTelemetry adapter and `main.py`'s
+  lifespan installs it, with the instrument names and full attribute sets
+  asserted through an in-memory reader. The transport gains one handler
+  mapping `VEuPathDBError` to `ProblemDetail` under the same code string and
+  status, so the wire and `packages/spec/openapi.json` are unchanged. Four
+  catalog modules (`discovery`, `discovery_service`, `disk_cache`,
+  `catalog_metadata`) and `get_discovery_service` moved down to
+  `services/catalog/`, so `integrations/veupathdb/factory.py` imports no
+  embeddings, sqlalchemy, readiness or task spawner. The catalog snapshot that
+  `api` and `wdk-mcp` share through the `catalogs_cache` volume now carries
+  `SNAPSHOT_FORMAT_VERSION`; a snapshot of another format, or of none, is
+  refused with a warning naming both and the caller rebuilds cold.
+  `tests/unit/test_veupathdb_unit_boundary.py` is the acceptance criterion.
+  Reasoning and the rejected fifth distribution:
+  `decisions/the-client-library-owns-its-foundation.md`.
+
+* **Gene lookup reads site-search's streaming form, so a page past record 50
+  exists.** Site-search declares `POST /site-search` twice on one path and the
+  `Accept` header picks the form: the JSON one is capped at
+  `MAX_RECORDS_IN_PAGED_RESPONSE = 50` and the ND_JSON one carries the whole
+  match set. `services/gene_lookup` sat exactly on that cap, so
+  `GET /sites/{id}/genes/search` reported a count it could not page to and the
+  workbench's infinite scroll stopped at the first pool. `stream_records` on
+  `SiteSearchClient` reads the streaming form line by line into
+  `SiteSearchStreamRecord`, bounded by the caller, and `lookup_genes_by_text`
+  calls it only when `offset + limit` passes 50; the paged form still serves
+  the first page, the organism facets and every 50-bounded caller, because a
+  streamed record carries an identifier, a score and a project and nothing
+  else. The window is described from WDK after it is cut instead of the whole
+  pool being described before it. Measured on plasmodb for a query matching
+  352 genes: 8 paged requests, 10.54 s, 588,186 bytes against 1 streamed
+  request, 0.55 s, 10,044 bytes, for the same 352 identifiers in the same
+  order. The declared 100,000 record ceiling is **not** enforced by the
+  deployment - the same service streamed 1,175,519 records and 32,886,583
+  bytes for an unrestricted gene query - so the bound is ours
+  (`SITE_SEARCH_STREAM_LIMIT`). Contract, both forms, and every measurement in
+  `wdk/rest/site-search-contract.md`; the pinned response is
+  `veupathdb-py/src/veupathdb/testing/fixtures/wdk/site_search_stream_genes.json`, checked against the live
+  service by `tests/live/test_site_search_stream_drift.py`.
+
+* **The recorded EDA bodies now answer to the EDA service's own spec.**
+  `VEuPathDB/service-eda` publishes one merged RAML 1.0 type library,
+  `schema/library.raml`, 414 types, and it is the only machine-readable
+  description of the surface `integrations/eda` calls: no OpenAPI artifact
+  exists anywhere in the org, and the org's own generators emit Java and
+  Kotlin from this same file. It is now vendored with its one include
+  (`lib-hash-id` v1.1.0 `hash-id.raml`) at
+  `b3bb8bac06de4340b4b2c21d9aa4a94d9b3de61f`, sha256 per file, under
+  `veupathdb-py/src/veupathdb/testing/fixtures/eda/upstream/`, and
+  `python -m veupathdb.devtools.eda_schemas verify` converts it to JSON
+  Schema draft-07 offline and validates all **9** recorded bodies against the
+  type their endpoint returns. The 9 bound types reach **40** of the 414. No
+  maintained RAML 1.0 parser exists to lean on - `ramlfications` 0.2.2 is
+  RAML 0.8 only and `pyraml-parser` last shipped in 2019 - so the converter is
+  ours: 10 RAML built-ins, `?` and `required: false`, `[]`, `|`, `enum`,
+  inheritance, `discriminator`/`discriminatorValue` resolved to the leaf set,
+  `additionalProperties: false`, and the `//` any-name property, with a strict
+  declaration model that fails the parse on a nineteenth facet rather than
+  dropping it. **Ten specification defects** are declared and excluded, each
+  measured: `API_Variable.isCategory` absent on 13 of 13 variables;
+  `API_StudyOverview.shortDisplayName` absent on 14 of 757 studies;
+  `DatasetPermissionEntry.shortDisplayName` absent on 22 of 878 entries; the
+  two matching `description` members absent only in the recorded copies;
+  `DifferentialExpressionPoint.pointId` sent as **`pointID`** on 5511 of 5511
+  rows and as `pointId` on 0; `pValue` and `adjustedPValue` absent on 1 of
+  those 5511; and `pValueFloor`/`adjustedPValueFloor` sent on every statistics
+  response and declared nowhere. All ten are defects in the spec, not in
+  `integrations/eda/models.py`, which already matches the wire at every one -
+  nothing in the models changed. Without the exclusions the same bodies raise
+  3, 9, 13, 203 and 24 draft-07 errors; with them, zero. An eleventh error
+  fails the gate, and so does a row the pinned library stops contradicting, so
+  a fix upstream forces the table to shrink. Recorded in
+  `eda/rest-surface.md`, anchored to
+  `tests/unit/devtools/test_eda_fixture_schemas.py` and
+  `test_eda_raml_converter.py`.
+
+* **The two live-lane reds were measured, and neither was the fault it looked
+  like.** The enrichment check asked for 200 gene ids off a transcript step and
+  compared the answer to 200; a transcript step lists one row per transcript, so
+  the raw slice held four repeats and `enrich_gene_ids` correctly analysed 196
+  distinct genes - the same 196 WDK reported for the dataset step it built. The
+  check now takes 200 distinct ids. The hidden-default sweep died on a transport
+  failure in its metadata phase, which looked like a timeout that was too small:
+  measured over the 359 transcript searches on plasmodb at six concurrent reads,
+  `GET .../searches/{name}?expandParams=true` answered 200 for 355 of them with a
+  median of 0.19 s, a 95th percentile of 1.83 s and a slowest of 6.46 s, so
+  nothing came near the 30 s budget. The phase now names a search whose metadata
+  never arrived instead of ending a resumable sweep, which is what the measure
+  phase already did. Sweep machinery moved beside `summary.py` in
+  `tests/live/hidden_defaults.py`, its two `isinstance` readers became models,
+  and the new seam has hermetic tests. A third finding fell out: `word-enrichment`
+  no longer completes on plasmodb or toxodb - the analysis validates `RUNNABLE`
+  and its status settles on `ERROR` - so the live column check records the
+  analyses a site cannot complete and holds the other four to their pinned
+  columns. Both measurements and the outage are in
+  transport-quirks (`veupathdb-py: docs/knowledge/wdk/rest/transport-quirks.md`); WDK-ANS-007's word row now
+  rests on the source alone.
+
+* **The pre-flight now keeps only the checks WDK cannot make, and the census
+  grammar is judged where the criterion is stated.** `validate_parameters`
+  already read WDK's validation bundle before it ran its own checks, so the
+  local second opinion sat downstream of a verdict: measured over 104 recorded
+  turns holding 798 `set_criterion` calls, the pre-flight ran **339** times
+  (median 2 per turn, mean 3.3, max 12) and 31 refusals in the whole artifact
+  corpus carried its payload - **28 vocabulary membership, 3 missing-required,
+  and 0 from every other local check**. Retired with tests proving the
+  surviving path: `find_missing_required_params`,
+  `find_dependent_value_violations`, `unknown_params_error`,
+  `missing_params_error`, `invalid_dependents_error` and their payload models,
+  the five never-fired value validators (`validate_numeric_range`,
+  `validate_string_length`, `validate_multi_count`,
+  `validate_single_required`, `handle_empty`) and the eight-dataclass
+  `ProcessedParam` union that existed to route values to them.
+  `domain/parameters/_value_helpers.py` is gone: `canonicalize.py` decodes and
+  vocabulary-matches directly, keeping the shape guards WDK answers with a 500
+  or a 200. `unknown_params_error` was unreachable - the canonicalizer raises
+  on the same condition first - and the missing-required and dependent-value
+  checks are WDK's `byKey`, relayed. `wdk_rejection_error` now takes the
+  `StepValidation` and builds its rows from
+  `integrations/veupathdb/_failures.py:bundle_rows`, the one place a bundle
+  becomes an agent payload, and `validate_search_params` reads the same bundle
+  through `_resolve_search_details`, so the UI route and the tool path share
+  one resolver, one seam and one refusal shape. **A definition WDK built
+  without the caller's values casts no verdict either way** - level `NONE`, or
+  a contextual read that fell back - and the push carries the values to the
+  endpoint that judges them.
+
+  Four of ten faults probed live on plasmodb.org are ones WDK reports nothing
+  about: an unknown parameter name is a 200 with the parameter dropped from the
+  stored step and `isValid:true` at RUNNABLE; a non-ISO date bound is a 500
+  with no bundle; a wrong-typed filter value is a 500 with no bundle; and a
+  `profile_pattern` in prose is a 200, stored, reported valid. That last one
+  was refused by `create_step` and accepted by the pre-flight, so the model
+  learned about it one tool call late. `read_census`, `census_states`,
+  `sort_profile_pattern` and `validate_phyletic_codes` now live in
+  `domain/parameters/phyletic.py` beside `encode_profile_pattern`, and both the
+  push path and the pre-flight call them. The parameter-sweep DTOs
+  (`SweepVariantSpec`, `SweepVariantResult`, `SweepResult`) moved out of
+  `domain/parameters/optimization.py`, which was not parameter code, into
+  `services/parameter_optimization/config.py` beside the config and input types
+  their only consumers already read; the two of them that shared a name with the
+  variant-comparison DTOs are now `SweepVariantSpec` and `SweepVariantResult`.
+  `domain/parameters` went from 2,033 lines
+  to 1,745 and the three pre-flight modules in `services/catalog` from 670 to
+  475. WDK-PARAM-005 (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`) claimed in
+  prose to be `UNENFORCED` while its own status field named the test that
+  enforces it; the prose now states what `close_open_range` does and the anchor
+  points at it. WDK-SITE-002 (`veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`), `WDK-SITE-004`
+  and `WDK-SITE-005` name the moved symbols and the pre-flight call site.
+
+* **The test suite now mirrors the code it tests, and the checkers carry less
+  memory of their own past.** Under `apps/api/src/pathfinder/tests/unit` there is
+  one test module per production module in the mirrored path; the tree went
+  from 506 files to 381 with the collected count unchanged (every dropped test
+  a proven duplicate, every merge checked by an assertion diff). Tests are no
+  longer exempt from the 400-line cap: `scripts/check_max_lines.py` reads a
+  ratchet baseline, eleven entries today, that only shrinks. The integration
+  tier is hermetic: `tests/conftest.py` falls back to a Postgres testcontainer
+  on any probe failure, no integration file stubs the module it claims to
+  integrate (the EDA revision tests run through the recorded wire in
+  `tests/_support/eda_wire.py`), the recorded EDA fixtures carry provenance and
+  a live drift test, and `tests/integration/http/_authz_matrix_support.py`
+  counts a streaming route as answered when it starts streaming instead of
+  cancelling it. The web checker `scripts/check-weak-assertions.mjs` has no
+  baseline any more: every vitest and e2e test states a value, and the timing
+  dependent tests that failed under host load await their condition instead of
+  sleeping. E2E lost its dead page-object members, has one credentials skip
+  (`e2e/fixtures/wdk-account.ts`), and the thread-surgery journeys run on
+  plasmodb (see the portal listing backlog card). The four inline enums the
+  frontend used to hand-write (`ModelProvider`, `ReasoningEffort`,
+  `Classification`, `EnrichmentAnalysisType`) are named on the backend and
+  generated, and `EnrichmentResultsChunk.results` is typed. CLAUDE.md, the
+  READMEs, `docs/DEVELOPMENT.md` and the package READMEs describe the tree as
+  it is, with the gate list equal to CI and pre-commit. The final verification
+  found and fixed two Evaluate-panel defects the restored route made reachable:
+  the form posted `kFolds: 0` when cross-validation was off (every evaluation
+  a 422), and a pasted gene set was evaluated as an empty-named WDK search
+  instead of through `targetGeneIds`; both are pinned in
+  `features/workbench/components/panels/EvaluatePanel.test.tsx`.
+  A network capture of the same flow then found the workbench still mounting
+  the chat surface the log declared deleted, with the experiment id as its
+  conversation id (a 404 and a 422 on every evaluation), and the Gene Confidence
+  panel sending `maxEnrichmentTerms: 0` against a `ge=1` contract; both are gone,
+  pinned by `WorkbenchMain.test.tsx` and `ConfidencePanel.test.tsx`, and the
+  `workbench -> conversation` boundary exception left `scripts/check-boundaries.mjs`.
+
+* **Generating the WDK wire models from WDK's own JSON Schemas was measured and
+  rejected; a drift gate was built instead.** `datamodel-codegen` 0.76.2 over
+  the 78 schema files at `Service/doc/schema` can honestly replace 170 of the
+  785 hand-written lines in `wdk_models.py` and `wdk_parameters.py` - the 17
+  classes that match a schema field for field - and emits 2,646 lines to do it,
+  207 classes for 110 distinct names, a 15.6x replacement for the deletable
+  part. It would also touch 141 importing files, rewrite 15 gated rule anchors,
+  need three unverifiable workaround stages (a `$ref` pre-bundler, a
+  post-processor, a 121-name rename table), leave 17 `mypy --strict` errors no
+  flag combination removes, and invert `extra="ignore"` in 110 of 110 generated
+  models, where `--base-class` does not override the per-model
+  `ConfigDict(extra='forbid')`. The parameter union cannot be generated at all:
+  all eight `includes/params/*.json` are unsatisfiable, and 0 of the 20
+  parameters across the recorded search fixtures validates against any of them,
+  while all 6 of those fixtures plus a 4.3 MB live record type pass PathFinder's
+  hand-written models. What was worth taking from the spike is now a gate:
+  `python -m veupathdb.devtools.fixtures verify` validates recorded fixture
+  bodies against the 41 vendored schema files that make up the transitive
+  closure of the 14 names WDK's `@InSchema`/`@OutSchema` annotations bind on
+  endpoints PathFinder calls, offline, at
+  `f0a04136b658617a07c66151a49dd0787688084f`. Three fixtures were recorded to
+  feed it (`record_types`, `record_type_build`,
+  `answer_report_by_molecular_weight`) and the other nine endpoints of the
+  twelve were measured once against a live site: nine schemas hold, and
+  `wdk.answer.post-response` does not - a live 200 fails its own `@OutSchema`
+  with 5 draft-04 errors. Rule `WDK-HTTP-004`, coverage table in
+  `wdk/rest/endpoint-surface.md`.
+
 ## 2026-09-03
 
 * **The second and third lean-down batches: one of everything.** The frontend
   keeps one UI kit (`src/components/ui`, the shadcn tree; the hand-rolled
   `lib/components/ui` twin and five direct Radix packages are gone), one chart
   library (echarts; the three recharts components are option builders under
-  `features/analysis` with their option objects pinned by tests, and recharts
+  `features/workbench/analysis` with their option objects pinned by tests, and recharts
   left `package.json`), and one source for wire types: every hand-written
   mirror of a generated type in `packages/shared-ts/src/types.ts` is gone,
   the ledger rail reads the generated `InvestigationLedger` through its zod
@@ -66,7 +533,7 @@
   day the last batch was accepted; `check-knowledge` cannot see the violation
   because it enforces shape and links, not admissibility. What the plans pinned
   is where it belongs: the live-verified EDA facts are the thirteen reference
-  documents in [eda/](eda/) (the filter algebra, the six-state job lifecycle,
+  documents in `veupathdb-py: docs/knowledge/eda/` (the filter algebra, the six-state job lifecycle,
   the bridge, the REST divergences), the architecture is
   [architecture fit](eda/pathfinder-architecture-fit.md), and every wire value
   the batch cards carried is asserted in the EDA tests under `apps/api` and
@@ -83,7 +550,7 @@
   line in the bundle root index are gone too.
 
 * **The frozen acceptance layer is retired.** The four suites the two programs
-  built - `apps/web/src/acceptance/`, `packages/assistant-client-ts/tests/acceptance/`,
+  built - `apps/web/src/acceptance/`, `assistant-platform/packages/assistant-client-ts/tests/acceptance/`,
   `apps/web/e2e/acceptance/` and `apps/api/src/pathfinder/tests/acceptance/` -
   were collected by no script, hook or CI job, and every module skipped clean
   when its target was absent. They are deleted, along with the `eda_acceptance`
@@ -1166,7 +1633,7 @@
   `tuple[str, str, str | None]` and exposes the third element as `parent`, which
   is what `EnumParamVocabInstance.getFullVocab` writes; the reference client
   types that column `null` and is wrong about its own platform
-  ([WDK-VOCAB-007](wdk/rules/parameters-and-vocabularies.md)). Before the change
+  (WDK-VOCAB-007, `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`). Before the change
   `GenesByOrthologPattern` failed with **1802 validation errors** on plasmodb and
   no route could read its parameters; after it the live document parses and
   `phyletic_tree_of` builds **903 nodes under 3 roots**, with
@@ -1189,8 +1656,8 @@
   and the display name gone, so the old text comparison reported the parameter as
   substituted. An `input-step` is now excluded by name: its value is the wiring
   the caller made, never a choice WDK made, and `canonicalize` says so where it
-  skips it ([WDK-PARAM-008](wdk/rules/parameters-and-vocabularies.md),
-  [WDK-PARAM-009](wdk/rules/parameters-and-vocabularies.md)).
+  skips it (WDK-PARAM-008 and WDK-PARAM-009,
+  `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`).
 
 * **A step carries its own record class, and the strategy's is the root's.**
   `StrategyStep.record_class` holds the record type WDK lists that step's search
@@ -1204,7 +1671,7 @@
   plasmodb: `GenesByMolecularWeight` is listed under `transcript` and
   `GenesFromTranscripts` ("Transform Transcripts to Genes") under `gene`, and each
   404s under the other - `There is no search "GenesFromTranscripts" associated
-  with record type "TranscriptRecordClass"`. **[WDK-STRAT-004](wdk/rules/strategies-and-steps.md)
+  with record type "TranscriptRecordClass"`. **WDK-STRAT-004 (`veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`)
   is `ENFORCED`, and the bundle's `UNENFORCED` column is now empty**: 84 rules, 80
   enforced, 4 partial. The persisted AST gains no field, so there is no migration:
   the class is derived from the catalog on the push and the sync that use it.
@@ -1218,7 +1685,7 @@
   `wdk-hidden-defaults.json` the nightly lane uploads, and none of the 158
   refusals names a hidden parameter. Recorded as
   [the sweep stops at published defaults](decisions/hidden-default-sweep-stops-at-published-defaults.md)
-  and linked from [WDK-PARAM-010](wdk/rules/parameters-and-vocabularies.md); no
+  and linked from WDK-PARAM-010 (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`); no
   code changed.
 
 * **The two EDA subset searches count the same genes; the 46 that separated
@@ -1261,7 +1728,7 @@
 
 * **A dispatch card ends in a terminal state (protocol 1.5.1).** Closing a
   phase card is a reader rule, not a chunk: `buildTrace` in
-  `packages/assistant-client-ts/src/core/trace.ts` resolves every dispatch its
+  `assistant-platform/packages/assistant-client-ts/src/core/trace.ts` resolves every dispatch its
   turn left `started` to `cancelled` when the parts carry `data-turn-stopped`,
   to `failed` when they carry `data-turn-failed`, and to `superseded` when the
   host says the turn ended and neither is there. Nothing the graph writes after
@@ -1485,7 +1952,7 @@
   triggers on that package but runs `prettier --check .` inside `apps/web`.
   The package gains `format`/`format:check` scripts, a `prettier-shared-ts`
   pre-commit hook and a CI step in `check-shared-ts`. The two identical
-  `.prettierrc.json` copies in `apps/web` and `packages/assistant-client-ts`
+  `.prettierrc.json` copies in `apps/web` and `assistant-platform/packages/assistant-client-ts`
   are replaced by one at the repository root, which every package resolves.
   The package's `lint` script named an eslint it does not install and nothing
   ran it; it is gone.
@@ -2659,28 +3126,28 @@
   encodes them all before readiness closes.
 
 * **The EDA bundle grew from orientation to a full specification.** Four
-  parallel research passes deepened [EDA](eda/) from 4 documents to 13, every
+  parallel research passes deepened EDA (`veupathdb-py: docs/knowledge/eda/`) from 4 documents to 13, every
   claim verified against commit-pinned upstream source or live calls on three
   deployments, then re-verified by a second pass. New:
-  [data model](eda/data-model.md) (66664 variables scanned; the single-entity
+  data model (`veupathdb-py: docs/knowledge/eda/data-model.md`) (66664 variables scanned; the single-entity
   GET is lossy; `isCategory` never on the wire),
-  [subsetting semantics](eda/subsetting-and-tabular.md) (cross-entity
+  subsetting semantics (`veupathdb-py: docs/knowledge/eda/subsetting-and-tabular.md`) (cross-entity
   propagation proven in both directions and across sibling subtrees;
   root-vocab is not subset-sensitive; a 20-row preview tier),
-  [filter algebra](eda/filters.md) (all 7 deployed types with exact error
+  filter algebra (`veupathdb-py: docs/knowledge/eda/filters.md`) (all 7 deployed types with exact error
   classes; out-of-vocabulary values return 200 count 0),
-  [derived variables and merging](eda/derived-variables-and-merging.md)
+  derived variables and merging (`veupathdb-py: docs/knowledge/eda/derived-variables-and-merging.md`)
   (12 plugins, 10 proven live; `relativeObservationMinTimeInterval` is dead
   upstream; `resultsAll` gates merge output with 403),
-  [computes and jobs](eda/computes-and-jobs.md) (job id is a client-derivable
+  computes and jobs (`veupathdb-py: docs/knowledge/eda/computes-and-jobs.md`) (job id is a client-derivable
   MD5 shared across users; a real DESeq run observed queued to complete),
-  [visualizations](eda/visualizations.md) (volcano thresholds are
+  visualizations (`veupathdb-py: docs/knowledge/eda/visualizations.md`) (volcano thresholds are
   client-side, network thresholds server-side),
-  [notebook presets](eda/notebook-presets.md) (the compute bridge is
+  notebook presets (`veupathdb-py: docs/knowledge/eda/notebook-presets.md`) (the compute bridge is
   volcano-only by construction; the delayed answer is HTTP 202
   WDK-DELAYED-RESULT and the WDK call auto-starts the job; WGCNA exports
   genes through plain SQL, not EDA),
-  [genomics and WDK relations](eda/genomics-and-wdk-relations.md) (four
+  genomics and WDK relations (`veupathdb-py: docs/knowledge/eda/genomics-and-wdk-relations.md`) (four
   relations, not one; per-dataset searches derive from
   SHA-1(datasetName)[:10]; the EDAUD_ sentinel vocabulary term 400s), and
   [architecture fit](eda/pathfinder-architecture-fit.md) (layer placement,
@@ -2765,7 +3232,7 @@
   rather than five.
 
 * **MCP program batches E and F: the suite a foreign team can run, and the
-  packages publish alone.** `packages/mcp-conformance` ships 32 checks in six
+  packages publish alone.** `assistant-platform/packages/mcp-conformance` ships 32 checks in six
   families as a pytest plugin that never imports pathfinder or
   assistant_core, proven by fifteen planted defects that each name their
   exact failing checks; run against our own served endpoint it answers
@@ -3091,12 +3558,12 @@
   unenforced entry left.** Per-PR: 31 of the 32 untested rules became hermetic tests over a
   pinned fixture store, so `check-wdk-rules` reports **78 enforced, 4 partial, 1
   unenforced** where it reported 32 unenforced, and three `PARTIAL` entries closed with it
-  ([WDK-STRAT-002](wdk/rules/strategies-and-steps.md), `-003` and
-  [WDK-MAP-003](wdk/rules/pathfinder-mapping.md), all three by one test that runs the
+  (WDK-STRAT-002 in `veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`, `-003` and
+  [WDK-MAP-003](wdk/pathfinder/rules/pathfinder-mapping.md), all three by one test that runs the
   projection to its third function and asserts on the serialized `WDKStepTree`). Nightly:
   `pytest -m live_wdk` collects **139** tests, skips cleanly with no credential, deletes
   every strategy and step it creates, and writes a JSON summary of outcomes, per-site
-  tallies and drift. The recording path is `pathfinder.devtools.wdk_fixtures`: a
+  tallies and drift. The recording path is `veupathdb.devtools.fixtures`: a
   declarative manifest of 12 exchanges, provenance stored as data rather than as a comment,
   and one command - `yarn wdk:record` - that refreshes the store a confirmed drift
   invalidates. The gate now fails a rule whose status is `UNENFORCED` and whose block
@@ -3106,16 +3573,16 @@
   `get_duplicated_step_tree` parsed WDK's `{"stepTree": ...}` envelope with a model that
   declared no camelCase alias, so the only supported way to graft one strategy's branch
   into another raised on every call
-  ([WDK-STRAT-007](wdk/rules/strategies-and-steps.md)). `StepValidation` defaulted `level`
+  (WDK-STRAT-007, `veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`). `StepValidation` defaulted `level`
   to `NONE` and `is_valid` to `True`, and `WDKStep.validation` defaulted to that model, so
   a step document carrying no validation object at all read as a positive claim of
   validity - both defaults are gone, and an absent bundle is now `None`
-  ([WDK-VALID-001](wdk/rules/validation.md)). A 4xx body was truncated to 200 characters
+  (WDK-VALID-001, `veupathdb-py: docs/knowledge/wdk/rules/validation.md`). A 4xx body was truncated to 200 characters
   and its `byKey` messages discarded, where a validating endpoint answers with a validation
   bundle; `integrations/veupathdb/_failures.py` now parses it and carries the per-parameter
-  messages on the error ([WDK-VALID-006](wdk/rules/validation.md)). And a `date-range`
+  messages on the error (WDK-VALID-006, `veupathdb-py: docs/knowledge/wdk/rules/validation.md`). And a `date-range`
   bound in any format was accepted locally and sent to WDK, where a badly formatted one is
-  a **500** that names nothing ([WDK-PARAM-006](wdk/rules/parameters-and-vocabularies.md));
+  a **500** that names nothing (WDK-PARAM-006, `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`);
   a bound is now an ISO date or a local refusal. `step_status` also read `is_valid` without
   its level, so a `NONE` bundle - which WDK emits as `isValid: false` - read as INVALID.
 
@@ -3127,7 +3594,7 @@
   `wgcnaDataset`. Of the 158 refusals, **not one names a hidden parameter** - every
   parameter WDK named is visible, `samples_percentile_generic` 77 times - so no hidden
   default was refused, and what blocks the remaining measurement is the visible half of
-  [WDK-PARAM-010](wdk/rules/parameters-and-vocabularies.md). `channel` (75 searches) and
+  WDK-PARAM-010 (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`). `channel` (75 searches) and
   `dataset_url` (56) stay unmeasured for that reason, and
   the hidden-required-defaults item now carries the
   numbers instead of the question.
@@ -3140,7 +3607,7 @@
   the whole lane - 94 rule and sentinel checks plus the 45 that existed - is **139 green**.
 
 * **One live drift, measured rather than assumed.**
-  [WDK-FILTER-006](wdk/rules/filters.md) recorded a **400** naming the column when
+  WDK-FILTER-006 (`veupathdb-py: docs/knowledge/wdk/rules/filters.md`) recorded a **400** naming the column when
   `byValue` is applied where the record-type document advertises it and the step will not
   take it. On 2026-08-22 the same four columns answer **500 `Internal Error`**, and
   `gene_product` still answers 200. The refusal holds, the diagnosis is gone, and a 500 is
@@ -3149,15 +3616,15 @@
   which is why the recording command needs `VEUPATHDB_AUTH_TOKEN` and why the bundle's
   "most live checks need no credential" note no longer holds.
 
-* **WS-V batch 2: the runtime proves the conversation works, and the wire has a written spec.** `packages/assistant-core/tests/synthetic.py` is a complete `AssistantSpec` built from runtime code alone - `single_agent_graph` over bare `TurnState`, an `Agent` whose model is a `ScriptedModel` with four arcs (plain answer, `add` tool call, an approval-required `wipe_everything`, and a `stop_turn` that sets the cancel from inside the run), a `UsageLedger` as the `charge_usage` hook, and a `turn_epilogue`. The suite drives it through the package's public surfaces only, so 128 tests became **192**: turn lifecycle (the graph's chunks reach `conversation_events`, reduce to the `UIMessage` a client renders, and leave one `messages` row whose `usage.totalTokens` equals what the ledger was charged), durability (a reader that reconnects at cursor N gets the remainder **byte for byte**, cursors are strictly increasing and unique, the snapshot equals the live accumulation, two turns split cleanly on `done`), resume (a turn with `is_resume=True` names no prompt field at all, so `turn_input` omits it and the checkpointed prompt survives - the resumed turn answers from it), cancellation, cost, tenancy (two threads driven with `asyncio.gather` share no event id and neither sees the other's chunks), SSE framing against a real Postgres LISTEN channel (a strict `tests/sse.py` parser that accepts `id`/`data` frames and comment frames and nothing else), and a strict-msgpack round trip of every `CORE_CHECKPOINT_TYPES` entry plus the state type a spec declares - which the package could not prove alone before, because the only such suite lived in `apps/api`. **One real bug, found by the suite and fixed**: `_stream_answer` returned on the first event seen after the cancel was set, and pydantic-ai runs the agent in a background task that had already executed the tool and produced its `FunctionToolResultEvent`, so a stopped turn discarded a result it was holding and persisted the call in state `input-available` forever - a tool part that spins after a reload for a tool that finished. The rule is now *a cancelled turn ends before the next part the model starts*: the step already in flight reports its outcome, and the existing guarantee that no further model call is streamed is unchanged (`test_a_cancelled_turn_makes_no_further_model_call_and_finalizes` still passes beside the new `..._still_reports_the_tool_that_already_ran`). **One real gap, named not fixed**: the shipped turn graph resolves no deferred tool call, so `Tool(x, requires_approval=True)` on a one-agent assistant produces `tool-output-error` plus an `error` chunk reading "`DeferredToolRequests` is not among output types" instead of a `tool-approval-request` card, and `TurnState.pending_approval` is a channel no turn ever writes; PathFinder's Lead implements the cycle, `assistants/site_help` cannot - a backlog item with the fix and the chunk sequence it would produce (closed in WS-V batch P1). **`packages/assistant-core/PROTOCOL.md` is version 1.0.0** of the wire: frame grammar, cursor semantics (`after` is exclusive, cursors are per-deployment and not dense), the snapshot/tail contract and the `204` fallback, the `start ... finish done` turn shape, the three `finishReason` values and the rule that an `error` chunk does not end a turn, the full chunk vocabulary, the reduction rules, and the additive-only versioning rule. Its examples are captured from real turns and its tables are compared to `register_core_stream_parts` and to pydantic-ai's `vercel_ai.response_types`, so a new chunk kind or a changed payload fails `test_protocol_document.py`; only generated ids and instants are edited. Recorded as [the wire protocol is a written spec, verified against captured frames](decisions/the-wire-protocol-is-a-written-spec.md), which names the rejected alternatives: generating the page from the models (true by construction, and with nowhere to put a rule) and leaving it hand-written (silent drift). **Where the boundary cuts**: `run_turn`, the cancel watcher that polls `chat_turn_cancellations`, the durable-tool interrupt stream, the title generator, `identity_gate` and the user-message envelope all live in `apps/api`, so the suite composes their package-side equivalent in `drive_turn` (start chunk, `astream`, epilogue, finish, done) and says so; `turn_epilogue` is exercised, `identity_gate` is not reachable without a transport. `docs/knowledge/conventions/verification-gates.md` gained the package lane. Verified: from the package, `uv run pytest` 192 passed with `find_spec("pathfinder") is None`, ruff over `src tests`, ruff-format, mypy --strict 53 files; from `apps/api` - untouched this batch - ruff, ruff-format, mypy --strict 557 files, pyright 0/0/0, import-linter 7 kept 0 broken, 2392 unit and 379 integration tests, `python -m pathfinder.devtools.openapi check` exit 0; knowledge gate clean at 110 files. No file under `apps/web/` was touched.
+* **WS-V batch 2: the runtime proves the conversation works, and the wire has a written spec.** `assistant-platform/packages/assistant-core/tests/synthetic.py` is a complete `AssistantSpec` built from runtime code alone - `single_agent_graph` over bare `TurnState`, an `Agent` whose model is a `ScriptedModel` with four arcs (plain answer, `add` tool call, an approval-required `wipe_everything`, and a `stop_turn` that sets the cancel from inside the run), a `UsageLedger` as the `charge_usage` hook, and a `turn_epilogue`. The suite drives it through the package's public surfaces only, so 128 tests became **192**: turn lifecycle (the graph's chunks reach `conversation_events`, reduce to the `UIMessage` a client renders, and leave one `messages` row whose `usage.totalTokens` equals what the ledger was charged), durability (a reader that reconnects at cursor N gets the remainder **byte for byte**, cursors are strictly increasing and unique, the snapshot equals the live accumulation, two turns split cleanly on `done`), resume (a turn with `is_resume=True` names no prompt field at all, so `turn_input` omits it and the checkpointed prompt survives - the resumed turn answers from it), cancellation, cost, tenancy (two threads driven with `asyncio.gather` share no event id and neither sees the other's chunks), SSE framing against a real Postgres LISTEN channel (a strict `tests/sse.py` parser that accepts `id`/`data` frames and comment frames and nothing else), and a strict-msgpack round trip of every `CORE_CHECKPOINT_TYPES` entry plus the state type a spec declares - which the package could not prove alone before, because the only such suite lived in `apps/api`. **One real bug, found by the suite and fixed**: `_stream_answer` returned on the first event seen after the cancel was set, and pydantic-ai runs the agent in a background task that had already executed the tool and produced its `FunctionToolResultEvent`, so a stopped turn discarded a result it was holding and persisted the call in state `input-available` forever - a tool part that spins after a reload for a tool that finished. The rule is now *a cancelled turn ends before the next part the model starts*: the step already in flight reports its outcome, and the existing guarantee that no further model call is streamed is unchanged (`test_a_cancelled_turn_makes_no_further_model_call_and_finalizes` still passes beside the new `..._still_reports_the_tool_that_already_ran`). **One real gap, named not fixed**: the shipped turn graph resolves no deferred tool call, so `Tool(x, requires_approval=True)` on a one-agent assistant produces `tool-output-error` plus an `error` chunk reading "`DeferredToolRequests` is not among output types" instead of a `tool-approval-request` card, and `TurnState.pending_approval` is a channel no turn ever writes; PathFinder's Lead implements the cycle, `assistants/site_help` cannot - a backlog item with the fix and the chunk sequence it would produce (closed in WS-V batch P1). **`assistant-platform/PROTOCOL.md` is version 1.0.0** of the wire: frame grammar, cursor semantics (`after` is exclusive, cursors are per-deployment and not dense), the snapshot/tail contract and the `204` fallback, the `start ... finish done` turn shape, the three `finishReason` values and the rule that an `error` chunk does not end a turn, the full chunk vocabulary, the reduction rules, and the additive-only versioning rule. Its examples are captured from real turns and its tables are compared to `register_core_stream_parts` and to pydantic-ai's `vercel_ai.response_types`, so a new chunk kind or a changed payload fails `test_protocol_document.py`; only generated ids and instants are edited. Recorded as [the wire protocol is a written spec, verified against captured frames](decisions/the-wire-protocol-is-a-written-spec.md), which names the rejected alternatives: generating the page from the models (true by construction, and with nowhere to put a rule) and leaving it hand-written (silent drift). **Where the boundary cuts**: `run_turn`, the cancel watcher that polls `chat_turn_cancellations`, the durable-tool interrupt stream, the title generator, `identity_gate` and the user-message envelope all live in `apps/api`, so the suite composes their package-side equivalent in `drive_turn` (start chunk, `astream`, epilogue, finish, done) and says so; `turn_epilogue` is exercised, `identity_gate` is not reachable without a transport. `docs/knowledge/conventions/verification-gates.md` gained the package lane. Verified: from the package, `uv run pytest` 192 passed with `find_spec("pathfinder") is None`, ruff over `src tests`, ruff-format, mypy --strict 53 files; from `apps/api` - untouched this batch - ruff, ruff-format, mypy --strict 557 files, pyright 0/0/0, import-linter 7 kept 0 broken, 2392 unit and 379 integration tests, `python -m pathfinder.devtools.openapi check` exit 0; knowledge gate clean at 110 files. No file under `apps/web/` was touched.
 
-* **WS-V batch 1: the runtime is a package, and the boundary is now an installation fact.** `packages/assistant-core` is its own distribution - own `pyproject.toml`, own `uv.lock`, `src/assistant_core` importable with no `pathfinder.` prefix, own `tests/` tree, own CI job - and `apps/api` consumes it as an editable path dependency beside `pathfinder-shared`. The eleven-module surface that batch D pinned as "what the runtime may reach outside itself" moved with it, because every entry was runtime-owned by nature: `platform/{config,context,db,logging,pydantic_base,types}.py`, `integrations/embeddings/{model,prefixes}.py` (now `assistant_core/embeddings/`), and the four tables the runtime reads and writes - `conversations`, `messages`, `conversation_events`, `memory_tombstones` - with `MessagesRepository`, `MessageMetadata`, the `GUID` type, the application-id column and the declarative `Base`. **Three modules split rather than moved, each along what it imports**: `config.py` became `RuntimeSettings` (database URL, engine echo, SSE keep-alive, log level and format) in the package with `Settings` subclassing it in the product and installing itself through `use_settings_source`, so one instance still serves the process and `get_settings.cache_clear()` still works in tests; `context.py` kept `veupathdb_auth_token_ctx` and `request_base_url_ctx` product-side and moved the six the runtime and its logger read; `db.py` moved the engine, the session factory and the request-scoped session, and left `init_db` - which runs alembic against `alembic.ini` - as `platform/migrations.py`. `errors.py` and `principal.py` stayed, because their taxonomies name WDK, VEuPathDB bearers and PathFinder service tokens; the one thing `db.py` took from `errors.py` was a sqlite guard, which now raises `ValueError` with the same detail (both reach the client as a 500). **One declarative base, not two metadatas.** A cross-package foreign key resolves only inside the `MetaData` that holds both tables, and the keys cross in both directions (`conversations.user_id` and `conversation_events.task_id` point at host tables; `conversation_strategies`, `background_tasks`, `chat_turn_cancellations` and the two scratchpad tables point back at `conversations`), so the package exports `Base` and the product maps its twelve tables on it. `alembic/env.py` is untouched, `target_metadata` still lists all sixteen tables, and every migration stays hand-written. The package's own test kit declares stub `users` and `background_tasks` tables so `create_all` works with nothing else installed. **The thread lost its relationship to the science**: `Conversation.strategy` and `Conversation.strategy_view` named `ConversationStrategy`, which a package class cannot, so `ConversationRepository.get_with_strategy` and the two listings now select the thread beside its projection through one outer join (one query where `selectinload` issued two), `get_strategy` reads the projection alone, `get_owned_thread_or_404` returns both, and `build_conversation_response`/`build_conversation_summary` take the projection as an argument; `build_conversation_summaries` states the list mapping once. `Conversation.user` was deleted, because a package class cannot name `User`; `User.conversations` stayed as a **one-directional** relationship, because the unit of work reads it to insert a user before the thread that references it, and dropping it turned 22 integration tests into `conversations_user_id_fkey` violations. `TurnContextFactory` became `Callable[[TurnContextRequest], Awaitable[TurnContext]]`, because PathFinder's factory read `strategy_view` off the row it was handed and now has to read its own projection. **Contract 7 was replaced, not deleted twice over**: the package's pyproject names no dependency on this application (the enforcement), `tests/unit/test_package_boundary.py` walks every module in the package and fails on an import naming `pathfinder` while pinning the two `shared_py` wire-type modules it does read (the belt), and the seventh in-repo contract now says *the science never imports an assistant's composition root* - direct-only, like the six layer contracts, because the chat dispatcher still reaches the registry through the job runner. `test_core_boundary.py` moved to composition level and reads the installed distributions instead of the import graph: the science requires the runtime, the runtime requires no part of the science, and the two source trees do not nest. Recorded as [the runtime is a package, so the boundary is an installation fact](decisions/the-runtime-is-a-package.md), which names the rejected alternatives: keeping the runtime in-repo behind contracts only, and leaving `conversations` product-side. Verified: `cd packages/assistant-core && uv run pytest` passes 128 tests with **no `pathfinder` installed** (the isolation proof, testcontainers Postgres, `importlib.util.find_spec("pathfinder") is None`), plus its own ruff and mypy --strict (53 files); from `apps/api`, import-linter 7 kept 0 broken, ruff, ruff-format, mypy --strict (557 files) and pyright zero findings, 2771 tests green in one run (2392 unit, 379 integration, 50 skipped, 98 subtests), `packages/spec/openapi.json` byte-identical, the file-size gate reporting the same five known files (it now scans the package too), and the knowledge gate clean at 108 files. No file under `apps/web/` was touched.
+* **WS-V batch 1: the runtime is a package, and the boundary is now an installation fact.** `assistant-platform/packages/assistant-core` is its own distribution - own `pyproject.toml`, own `uv.lock`, `src/assistant_core` importable with no `pathfinder.` prefix, own `tests/` tree, own CI job - and `apps/api` consumes it as an editable path dependency beside `pathfinder-shared`. The eleven-module surface that batch D pinned as "what the runtime may reach outside itself" moved with it, because every entry was runtime-owned by nature: `platform/{config,context,db,logging,pydantic_base,types}.py`, `integrations/embeddings/{model,prefixes}.py` (now `assistant_core/embeddings/`), and the four tables the runtime reads and writes - `conversations`, `messages`, `conversation_events`, `memory_tombstones` - with `MessagesRepository`, `MessageMetadata`, the `GUID` type, the application-id column and the declarative `Base`. **Three modules split rather than moved, each along what it imports**: `config.py` became `RuntimeSettings` (database URL, engine echo, SSE keep-alive, log level and format) in the package with `Settings` subclassing it in the product and installing itself through `use_settings_source`, so one instance still serves the process and `get_settings.cache_clear()` still works in tests; `context.py` kept `veupathdb_auth_token_ctx` and `request_base_url_ctx` product-side and moved the six the runtime and its logger read; `db.py` moved the engine, the session factory and the request-scoped session, and left `init_db` - which runs alembic against `alembic.ini` - as `platform/migrations.py`. `errors.py` and `principal.py` stayed, because their taxonomies name WDK, VEuPathDB bearers and PathFinder service tokens; the one thing `db.py` took from `errors.py` was a sqlite guard, which now raises `ValueError` with the same detail (both reach the client as a 500). **One declarative base, not two metadatas.** A cross-package foreign key resolves only inside the `MetaData` that holds both tables, and the keys cross in both directions (`conversations.user_id` and `conversation_events.task_id` point at host tables; `conversation_strategies`, `background_tasks`, `chat_turn_cancellations` and the two scratchpad tables point back at `conversations`), so the package exports `Base` and the product maps its twelve tables on it. `alembic/env.py` is untouched, `target_metadata` still lists all sixteen tables, and every migration stays hand-written. The package's own test kit declares stub `users` and `background_tasks` tables so `create_all` works with nothing else installed. **The thread lost its relationship to the science**: `Conversation.strategy` and `Conversation.strategy_view` named `ConversationStrategy`, which a package class cannot, so `ConversationRepository.get_with_strategy` and the two listings now select the thread beside its projection through one outer join (one query where `selectinload` issued two), `get_strategy` reads the projection alone, `get_owned_thread_or_404` returns both, and `build_conversation_response`/`build_conversation_summary` take the projection as an argument; `build_conversation_summaries` states the list mapping once. `Conversation.user` was deleted, because a package class cannot name `User`; `User.conversations` stayed as a **one-directional** relationship, because the unit of work reads it to insert a user before the thread that references it, and dropping it turned 22 integration tests into `conversations_user_id_fkey` violations. `TurnContextFactory` became `Callable[[TurnContextRequest], Awaitable[TurnContext]]`, because PathFinder's factory read `strategy_view` off the row it was handed and now has to read its own projection. **Contract 7 was replaced, not deleted twice over**: the package's pyproject names no dependency on this application (the enforcement), `tests/unit/test_package_boundary.py` walks every module in the package and fails on an import naming `pathfinder` while pinning the two `shared_py` wire-type modules it does read (the belt), and the seventh in-repo contract now says *the science never imports an assistant's composition root* - direct-only, like the six layer contracts, because the chat dispatcher still reaches the registry through the job runner. `test_core_boundary.py` moved to composition level and reads the installed distributions instead of the import graph: the science requires the runtime, the runtime requires no part of the science, and the two source trees do not nest. Recorded as [the runtime is a package, so the boundary is an installation fact](decisions/the-runtime-is-a-package.md), which names the rejected alternatives: keeping the runtime in-repo behind contracts only, and leaving `conversations` product-side. Verified: `cd assistant-platform/packages/assistant-core && uv run pytest` passes 128 tests with **no `pathfinder` installed** (the isolation proof, testcontainers Postgres, `importlib.util.find_spec("pathfinder") is None`), plus its own ruff and mypy --strict (53 files); from `apps/api`, import-linter 7 kept 0 broken, ruff, ruff-format, mypy --strict (557 files) and pyright zero findings, 2771 tests green in one run (2392 unit, 379 integration, 50 skipped, 98 subtests), `packages/spec/openapi.json` byte-identical, the file-size gate reporting the same five known files (it now scans the package too), and the knowledge gate clean at 108 files. No file under `apps/web/` was touched.
 
 * **WS3 batch 2: a second assistant answers through the same runtime, and its diff contains no orchestration.** `pathfinder/assistants/site_help/` is 3 modules - a spec, one pydantic-ai agent with two read-only catalog tools (`list_veupathdb_sites` over `services.catalog.sites.list_sites`, `describe_site` over `get_record_types` plus `get_raw_searches` for the per-record-type search count), and a ScriptedModel script - registered beside PathFinder in the one registry. It declares `TurnState` with no domain field, a bare `TurnContext` with no strategy session and no research clients, no stream parts, no memory kinds, no checkpoint types, no turn epilogue and **no identity gate**, so a signed-in application user with no VEuPathDB login is served; PathFinder's 401 `WDK_LOGIN_REQUIRED` on the same route with the same body is re-asserted byte for byte in the same test file. A boundary test walks the pilot's modules and fails on a single import of `pathfinder.ai`, and pins the eleven modules it does reach. **Lifted into core to serve it, each because the single-agent path needed it and none of it names a product**: `cost_for_run` moved from `ai/cost.py` to `assistant_core/cost.py` (token-to-USD is the runtime's accounting, and the module imported only `genai_prices`); the chunk-emit primitive became `assistant_core/graph/emit.py`, which also collapsed the two identical copies `_lead_capture.py` and `sub_agent_stream.py` each carried; and the assistant-message write became `assistant_core/graph/turn_message.py`, which read no PathFinder field before the move and now guards its own `SQLAlchemyError` so both finalize paths inherit it. `ScriptedModel` scripts may return a `TextPart`, because an agent whose output is prose has no `final_result` tool to call. `assistant_core/graph/single_agent.py::single_agent_graph` compiles the reusable turn graph: it streams the agent's text and tool calls through the same `PhaseStreamEmitter` the Lead uses, accumulates `RunUsage` into `turn_total_tokens`/`turn_total_cost_usd`, stops on the turn's cancel event without a further model call, and ends in the runtime's finalize step. It compiles **two** nodes, not one: the message row is reduced from chunks the durable log only holds after the agent's step has ended, so a same-node finalize would race the writer. Quota persistence stays product-side - `services.quota` is forbidden to core by contract 7 - so the helper takes the charger as a declared hook and the pilot's turns count against the same monthly budget. The pinned core surface grew by exactly `persistence.repositories.message` and its `_message_metadata`. **Creation paths**: `POST /api/v1/conversations/{id}/begin` takes an optional `assistantId` with the chat route's semantics (new thread takes it, existing thread keeps its own, mismatch 409, unknown 404) and the seed-title generation now uses that assistant's mock rather than the default's; `devtools/chat.py` takes `--assistant`. Verified: import-linter 7 kept 0 broken, ruff, mypy strict (596 files) and pyright zero findings, 2489 unit and 388 integration tests, openapi drift additive only (`BeginConversationRequest.assistantId`), types regenerated, `tsc --noEmit` and 2177 vitest clean, file-size gate reports the same five known files.
 
 * **WS3 batch 0/1: the assistant declares its own architecture, and the runtime routes to it.** `assistant_core/spec.py::AssistantSpec` is a frozen model with `assistant_id` and eight declarations - a graph factory (`checkpointer -> CompiledStateGraph`), an initial-state factory (`TurnStart -> TurnState`), a turn-context factory (`TurnContextRequest -> TurnContext`), a mock-model factory, `checkpoint_types`, a stream-part hook, `memory_kinds`, an identity gate and a turn epilogue - and each one replaces something the pipeline previously hard-coded about PathFinder: `build_pathfinder_graph` named by four processes, `_build_turn_input`'s dict, `_turn_helpers._build_runtime_context` with its two stub research clients, `title_generator`'s `get_mock_model` import, the import-time `register_checkpoint_types` call in `ai/graph/state.py`, `_stream_parts_schemas`'s direct `register_strategy_stream_parts`, `PRODUCT_MEMORY_KINDS`, the chat route's `require_registered_wdk_identity` dependency, and `turn_runner._emit_strategy_revision`. The spec module imports `persistence.models` and `platform.types` and nothing else outside core, pinned by an extension to the core-surface test; `pathfinder.assistants` joined contract 7's forbidden list, so the runtime cannot reach the composition root either. `pathfinder/assistants/` builds PathFinder's spec from the existing `ai/` pieces and `registry.py` is the one composition root that main, the worker, the durable-resume runner and devtools consume. **Routing**: `conversations.assistant_id` (`NOT NULL DEFAULT 'pathfinder'`, indexed, alembic `2026_08_22_0001`, both directions tested against a real database) is the record; an optional `assistantId` on the chat body is read only when the thread is created, an unknown id is 404 `ASSISTANT_NOT_FOUND` and naming another assistant on an existing thread is 409 `ASSISTANT_MISMATCH` rather than a silent substitution - a caller that believes it is talking to B and reads A's answers has no way to notice. The `ChatTurnPayload` carries the resolved id to the worker and `jobs/runner.py` reads it off the row on a durable resume; `dispatch` re-checks the row `begin_conversation` returned against what it resolved, so a concurrent first turn that created the thread under another assistant is refused rather than deferred under the wrong one. **Identity**: the chat route's gate is now `resolve_chat_assistant`, a dependency that resolves the assistant and runs `spec.identity_gate` when one is declared; PathFinder declares `require_registered_wdk_login`, so the refusal is the same 401 `WDK_LOGIN_REQUIRED` with the same title and detail, and `test_wdk_login_required.py` passes untouched. The route table gained a `SPEC_GATED` section with the reason and two cases that fail if the chat route ever carries both gates or stops resolving an assistant. The state factory returns a model and the runtime sends only `model_fields_set`, so an approval resume still leaves the checkpointed prompt alone. Recorded as [the orchestration belongs to the assistant, not to the platform](decisions/the-orchestration-is-the-assistants.md), which names the rejected alternative: one platform graph parameterized by config, rejected because a config-shaped Lead is still a Lead - a simpler app declares a different graph, not a defanged one. Verified: import-linter 7 kept 0 broken, ruff, ruff-format, mypy strict (594 files) and pyright zero findings, 2460 unit and 380 integration tests (98 subtests), openapi drift additive only (`ChatRequestBody.assistantId`, `ConversationResponse.assistantId`, two `ErrorCode` members; the chat request body `$ref` is byte-identical), types regenerated, `yarn tsc --noEmit` and 2177 vitest clean, knowledge gate clean.
 
-* **WS2 batch D: the assistant runtime is a directory, and a contract keeps it one.** The last batch of the platform program (`docs/superpowers/specs/2026-08-21-ws2-in-repo-seams.md`) moved the runtime-generic modules into `apps/api/src/pathfinder/assistant_core/` - 25 modules across `capabilities/`, `conversation/` (chunk reducer, AI SDK adapter, event writer and stream, checkpoint serde and saver, stream-part registry), `graph/` (`TurnState`, `TurnContext`/`AssistantDeps`, the pre-turn and agent-factory hook types, the runtime chunk builders), `memory/` and `models/scripted.py` - and 210 references in 106 files followed, with no alias and no re-export shim. Membership was decided by walking each candidate's transitive imports, not by its name: what reaches nothing of PathFinder's moved, and what does not stayed and is named below. Three files held both halves and split along the line batch A drew: `ai/graph/runtime.py` (`TurnContext`/`AssistantDeps` to core, `Context`/`AgentDeps`/`build_node_deps` product), `ai/graph/stream_events.py` (the chunk builders whose kinds the core registry registers to core; enrichment, strategy revision and ledger stay product), and `integrations/embeddings/semantic_index.py`, whose fastembed singleton was the runtime's only indirect route to a WDK type and is now `integrations/embeddings/model.py` - the cache key still hashes the same model-name string, so no stored `.npz` row was invalidated. `PreTurnHook` and `TurnAgentFactory` became PEP 695 generic aliases bound to `TurnState`, `TurnContext` and `Agent`, so core states the hook shape and `builder.py`, `lead_node.py` and `composition.py` name `PipelineState`, `Context` and `LeadAgent` at the call. **Contract 7** (`The assistant runtime never imports the science, directly or indirectly`) is the only one of the seven that also rejects indirect chains, because a runtime that reaches the science through one hop is not a runtime a second assistant can take; it was proved to bite by planting `from pathfinder.ai.graph.state import PipelineState` in `event_writer.py`, which it reported both as a direct violation and as a two-hop chain to `pathfinder.domain.strategy.staleness`. What stays reachable is the whole allowed surface and nothing else - `pathfinder.platform`, `pathfinder.persistence.models`, `pathfinder.integrations.embeddings` - pinned as an exact set by `tests/unit/assistant_core/test_core_boundary.py`, which caught its own batch when the `ReasoningEffort` de-duplication added `platform.types` to it. That de-duplication collapsed three identical `Literal["none", "low", "medium", "high"]` declarations (`graph/runtime.py`, `conversation/request_body.py`, `platform/types.py`) onto the platform one. Left product-side deliberately, with the blocking import named: `ai/graph/builder.py` names `make_lead_node` and `finalize_turn_node`, and injecting a graph's node set is a seam this batch did not design; `ai/conversation/dispatcher.py` defers `jobs.tasks.run_chat_turn_job` and opens the thread through `services.conversations.begin`; `turn_runner.py` and `_turn_helpers.py` reach `services.conversations.responses` and `graph.runtime.Context`; `request_body.py` publishes `PhaseRole`; `title_generator.py` calls `get_mock_model()`. Recorded as [the assistant runtime is a package boundary, not a contract over scattered modules](decisions/assistant-core-is-a-package-boundary.md), which names the rejected alternative: a contract over a module list with no move, which leaves the extraction an archaeology exercise over a 100-file tree. Verified: import-linter 7 kept 0 broken, ruff, ruff-format, mypy strict (587 files) and pyright zero findings, 2423 unit tests (33 of them the new boundary cases) and 369 integration tests with 98 subtests, `packages/spec/openapi.json` byte-identical, the knowledge gate clean at 105 files, and no file under `apps/web/` or `packages/` touched.
+* **WS2 batch D: the assistant runtime is a directory, and a contract keeps it one.** The last batch of the platform program (`docs/superpowers/specs/2026-08-21-ws2-in-repo-seams.md`) moved the runtime-generic modules into `apps/api/src/pathfinder/assistant_core/` - 25 modules across `capabilities/`, `conversation/` (chunk reducer, AI SDK adapter, event writer and stream, checkpoint serde and saver, stream-part registry), `graph/` (`TurnState`, `TurnContext`/`AssistantDeps`, the pre-turn and agent-factory hook types, the runtime chunk builders), `memory/` and `models/scripted.py` - and 210 references in 106 files followed, with no alias and no re-export shim. Membership was decided by walking each candidate's transitive imports, not by its name: what reaches nothing of PathFinder's moved, and what does not stayed and is named below. Three files held both halves and split along the line batch A drew: `ai/graph/runtime.py` (`TurnContext`/`AssistantDeps` to core, `Context`/`AgentDeps`/`build_node_deps` product), `ai/graph/stream_events.py` (the chunk builders whose kinds the core registry registers to core; enrichment, strategy revision and ledger stay product), and `integrations/embeddings/semantic_index.py`, whose fastembed singleton was the runtime's only indirect route to a WDK type and is now `integrations/embeddings/model.py` - the cache key still hashes the same model-name string, so no stored `.npz` row was invalidated. `PreTurnHook` and `TurnAgentFactory` became PEP 695 generic aliases bound to `TurnState`, `TurnContext` and `Agent`, so core states the hook shape and `builder.py`, `lead_node.py` and `composition.py` name `PipelineState`, `Context` and `LeadAgent` at the call. **Contract 7** (`The assistant runtime never imports the science, directly or indirectly`) is the only one of the seven that also rejects indirect chains, because a runtime that reaches the science through one hop is not a runtime a second assistant can take; it was proved to bite by planting `from pathfinder.ai.graph.state import PipelineState` in `event_writer.py`, which it reported both as a direct violation and as a two-hop chain to `pathfinder.domain.strategy.staleness`. What stays reachable is the whole allowed surface and nothing else - `pathfinder.platform`, `pathfinder.persistence.models`, `veupathdb_mcp.embeddings` - pinned as an exact set by `tests/unit/test_core_boundary.py`, which caught its own batch when the `ReasoningEffort` de-duplication added `platform.types` to it. That de-duplication collapsed three identical `Literal["none", "low", "medium", "high"]` declarations (`graph/runtime.py`, `conversation/request_body.py`, `platform/types.py`) onto the platform one. Left product-side deliberately, with the blocking import named: `ai/graph/builder.py` names `make_lead_node` and `finalize_turn_node`, and injecting a graph's node set is a seam this batch did not design; `ai/conversation/dispatcher.py` defers `jobs.tasks.run_chat_turn_job` and opens the thread through `services.conversations.begin`; `turn_runner.py` and `_turn_helpers.py` reach `services.conversations.responses` and `graph.runtime.Context`; `request_body.py` publishes `PhaseRole`; `title_generator.py` calls `get_mock_model()`. Recorded as [the assistant runtime is a package boundary, not a contract over scattered modules](decisions/assistant-core-is-a-package-boundary.md), which names the rejected alternative: a contract over a module list with no move, which leaves the extraction an archaeology exercise over a 100-file tree. Verified: import-linter 7 kept 0 broken, ruff, ruff-format, mypy strict (587 files) and pyright zero findings, 2423 unit tests (33 of them the new boundary cases) and 369 integration tests with 98 subtests, `packages/spec/openapi.json` byte-identical, the knowledge gate clean at 105 files, and no file under `apps/web/` or `packages/` touched.
 
 ## 2026-08-21
 
@@ -3219,19 +3686,19 @@
 
 * **Done and removed: the unit tier could reach the network, so an inert stub passed against a live server.** An autouse fixture in `tests/unit/conftest.py` now patches `socket.socket.connect`, `connect_ex`, `socket.getaddrinfo` and the event loop's `create_connection` and `getaddrinfo` for the duration of every unit test, so the tier refuses every connection made through Python's socket module, and a refusal names the test, the target and the two ways out. It derives from `BaseException` rather than `Exception`, which is the difference between a guard and a suggestion: the research clients retry under `except Exception`, and a refusal they could swallow would restore the hazard. No dependency was added - `pytest-socket` is not in the project, and the guard is one fixture and five patched call sites in a file that already exists. The block is total rather than remote-only, because a rule with an exception nobody can see is not a rule. Running the suite under it exposed **zero** inert stubs, which is the honest result and not a null one: the class was found once, fixed once, and is now closed by construction rather than by inspection. What it did expose is that **two files in the unit tier were integration tests** - `test_wdk_identity.py` and `test_saved_strategy_consumers.py`, ten tests that read and write the database - and they have moved to `tests/integration/`, so no production test carries the opt-in marker at all. **2,058 unit tests pass with every socket refused**, ten of them covering the guard, including that `except Exception` cannot swallow it and that `AF_UNIX` is not the network. Two limits are recorded rather than papered over: collection-time downloads happen before the fixture runs, and a C extension holding its own socket is not covered. The [verification-gates convention](conventions/verification-gates.md) carries both, plus `ruff format --check src/`, which does not overlap `ruff check` and was silently drifting on eight files.
 
-* **Four deferred minors from the parameter-resolution and phyletic-contract ledgers, closed.** A `profile_pattern` that states one species code twice was taking the "not a census pattern" wording, which sends the reader to look for a malformed token that is not there; `_read_census` now returns the repeated code beside the states, and the 422 names it and quotes the two ways to state it once. Both paths to the wire raise it: the expansion path and `_normalize_parameters`, which reaches WDK without expanding. The unreadable-tree fallback in the same function re-parsed the pattern it had already parsed, and now encodes the states in hand. [WDK-PARAM-008](wdk/rules/parameters-and-vocabularies.md) anchored at `domain/parameters/values.py:to_wire`, which is not where the substitution comparison lives; it now anchors at `services/catalog/wdk_substitution.py:substituted_params`, and the enforcing test is unchanged. The `_word_weights` docstring in `param_sheet.py` claimed a rare word "must outweigh any number of common words", which the arithmetic does not do: a word `n` labels hold is worth `1/n`, so a unique word is worth 1.0 and three words of weight 0.5 beat it. The comment now states that bound. Left alone and recorded here rather than half-done: `_vocab_signature` in `param_dag.py` is recomputed per call, and memoizing it is not the two-line change it looks like, because `ParameterInfo` is a mutable Pydantic model that is neither hashable nor safe to key by identity, and the dominant cost is `vocabulary()` itself, which three of the same call sites invoke directly.
+* **Four deferred minors from the parameter-resolution and phyletic-contract ledgers, closed.** A `profile_pattern` that states one species code twice was taking the "not a census pattern" wording, which sends the reader to look for a malformed token that is not there; `_read_census` now returns the repeated code beside the states, and the 422 names it and quotes the two ways to state it once. Both paths to the wire raise it: the expansion path and `_normalize_parameters`, which reaches WDK without expanding. The unreadable-tree fallback in the same function re-parsed the pattern it had already parsed, and now encodes the states in hand. WDK-PARAM-008 (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`) anchored at `domain/parameters/values.py:to_wire`, which is not where the substitution comparison lives; it now anchors at `services/catalog/wdk_substitution.py:substituted_params`, and the enforcing test is unchanged. The `_word_weights` docstring in `param_sheet.py` claimed a rare word "must outweigh any number of common words", which the arithmetic does not do: a word `n` labels hold is worth `1/n`, so a unique word is worth 1.0 and three words of weight 0.5 beat it. The comment now states that bound. Left alone and recorded here rather than half-done: `_vocab_signature` in `param_dag.py` is recomputed per call, and memoizing it is not the two-line change it looks like, because `ParameterInfo` is a mutable Pydantic model that is neither hashable nor safe to key by identity, and the dominant cost is `vocabulary()` itself, which three of the same call sites invoke directly.
 
-* **The half of a criterion nobody wrote into is now switched off rather than asked about, and the half that widens the search is refused.** A `radio-params` pair is two required parameters one query ORs, so the intuition that filling both narrows the search is exactly backwards ([WDK-SITE-007](wdk/rules/site-model-params.md)). `set_criterion` reads the pair off the search definition - the same cached read the phyletic derivation uses, so it costs no extra GET - and binds `N/A` into the free-text half of every declared pair. A criterion written into the free text comes back as a retry that names the pair, says the vocabulary half cannot be switched off and quotes its default, lists the vocabulary entries nearest to the value with the wildcards stripped, and sends a wildcard to `get_parameter_options(query=...)` to be expanded into the entries it covers. The off value is reported in `defaulted_params`, so the user is told about a value the request never stated. Measured on plasmodb.org for *P. falciparum* 3D7: `ec_number_pattern=2.7.-.-` beside `ec_wildcard=N/A` returns **364**, and so does the published default `2.7.11.1` beside `2.7.*`, because that wildcard happens to cover the default; `2.7.11.1` beside `N/A` returns **136**, and beside `*protease*` returns **141** - the 133 protein kinases of the default carried into a search asking only for proteases. Two live behaviours this replaces: a turn that bound `ec_wildcard=2.7.*` next to a default it did not choose, and a turn that left it null and got an open slot, because the walk refuses to inherit a free-text default. The FRAME procedure states the same rule, the resolver bench arm records a refused free-text half and continues so the guard is measured, and the rule is `ENFORCED`, which empties the `SILENT` column for the third time: **32 of 83 untested, all of them HARD or CONTRACT.**
+* **The half of a criterion nobody wrote into is now switched off rather than asked about, and the half that widens the search is refused.** A `radio-params` pair is two required parameters one query ORs, so the intuition that filling both narrows the search is exactly backwards (WDK-SITE-007, `veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`). `set_criterion` reads the pair off the search definition - the same cached read the phyletic derivation uses, so it costs no extra GET - and binds `N/A` into the free-text half of every declared pair. A criterion written into the free text comes back as a retry that names the pair, says the vocabulary half cannot be switched off and quotes its default, lists the vocabulary entries nearest to the value with the wildcards stripped, and sends a wildcard to `get_parameter_options(query=...)` to be expanded into the entries it covers. The off value is reported in `defaulted_params`, so the user is told about a value the request never stated. Measured on plasmodb.org for *P. falciparum* 3D7: `ec_number_pattern=2.7.-.-` beside `ec_wildcard=N/A` returns **364**, and so does the published default `2.7.11.1` beside `2.7.*`, because that wildcard happens to cover the default; `2.7.11.1` beside `N/A` returns **136**, and beside `*protease*` returns **141** - the 133 protein kinases of the default carried into a search asking only for proteases. Two live behaviours this replaces: a turn that bound `ec_wildcard=2.7.*` next to a default it did not choose, and a turn that left it null and got an open slot, because the walk refuses to inherit a free-text default. The FRAME procedure states the same rule, the resolver bench arm records a refused free-text half and continues so the guard is measured, and the rule is `ENFORCED`, which empties the `SILENT` column for the third time: **32 of 83 untested, all of them HARD or CONTRACT.**
 
-* **The search whose criterion nobody could state now states it once.** `GenesByOrthologPattern` carries one criterion - which species must have an ortholog and which must not - in three parameters: two visible free-text lists the query never reads, and a hidden required SQL `LIKE` pattern that is the only one it does read. The model could propose the lists and could not touch the pattern, so the pattern came from `initialDisplayValue`, which is `hsap=1T`, a well-formed expression in a different parameter's grammar on a different site. **The two lists are now the proposal, the pattern is derived from them, and all three are written together.** The sheet gives both lists the clade tree as their vocabulary, so the model names species and clades by code or by label; `derive_phyletic_overrides` resolves them against that tree, pushes each clade down to the species the census holds, sorts the tokens into census order, and returns the pattern beside the two canonical lists for `set_criterion` to bind. An unknown term is a retry naming the nearest labels, a code in both lists is a conflict, and two empty lists are a retry rather than a binding - the bare `%` matches every census, so it reads as a phyletic answer and is not one. Live on plasmodb.org for *P. falciparum* 3D7: the derived `%hsap:N%pfal:Y%` returns **3,347** genes, `%pfal:Y%` returns 5,389, and the published default returns **0**. On the 20 gold strategies, 332 parameters, the propose arm moves from 285 exact / 18 wrong to **288 exact (stated 226, defaulted 62) / 15 wrong**, questions and unset values unchanged at 20 and 9, with the pattern and both lists exact on both gold steps of that search; the one wrong value left there is the organism strain, which is a model choice. One live turn bound the same three values after a single retry that named the nearest labels. Deleted with the work: `_build_phyletic_tree`, `_expand_entries`, the quantifier tokens and `is_census_pattern` from the wire layer, which now reads a value through `_read_census` and refuses a code that states two states; `integrations/veupathdb/phyletic_tree.py:phyletic_tree_of` is the one tree builder and the sheet, the binding and the wire guard all use it. [WDK-SITE-005](wdk/rules/site-model-params.md) and `WDK-SITE-006` are `ENFORCED` by backend tests, so the untested count is **33 of 83** and the `SILENT` column is unchanged at one. Recorded as [the two lists are the proposal](decisions/phyletic-lists-are-the-proposal.md). The hidden-required-defaults item keeps only its unmeasured tail: whether the hidden defaults on the other 181 searches return rows.
+* **The search whose criterion nobody could state now states it once.** `GenesByOrthologPattern` carries one criterion - which species must have an ortholog and which must not - in three parameters: two visible free-text lists the query never reads, and a hidden required SQL `LIKE` pattern that is the only one it does read. The model could propose the lists and could not touch the pattern, so the pattern came from `initialDisplayValue`, which is `hsap=1T`, a well-formed expression in a different parameter's grammar on a different site. **The two lists are now the proposal, the pattern is derived from them, and all three are written together.** The sheet gives both lists the clade tree as their vocabulary, so the model names species and clades by code or by label; `derive_phyletic_overrides` resolves them against that tree, pushes each clade down to the species the census holds, sorts the tokens into census order, and returns the pattern beside the two canonical lists for `set_criterion` to bind. An unknown term is a retry naming the nearest labels, a code in both lists is a conflict, and two empty lists are a retry rather than a binding - the bare `%` matches every census, so it reads as a phyletic answer and is not one. Live on plasmodb.org for *P. falciparum* 3D7: the derived `%hsap:N%pfal:Y%` returns **3,347** genes, `%pfal:Y%` returns 5,389, and the published default returns **0**. On the 20 gold strategies, 332 parameters, the propose arm moves from 285 exact / 18 wrong to **288 exact (stated 226, defaulted 62) / 15 wrong**, questions and unset values unchanged at 20 and 9, with the pattern and both lists exact on both gold steps of that search; the one wrong value left there is the organism strain, which is a model choice. One live turn bound the same three values after a single retry that named the nearest labels. Deleted with the work: `_build_phyletic_tree`, `_expand_entries`, the quantifier tokens and `is_census_pattern` from the wire layer, which now reads a value through `_read_census` and refuses a code that states two states; `integrations/veupathdb/phyletic_tree.py:phyletic_tree_of` is the one tree builder and the sheet, the binding and the wire guard all use it. WDK-SITE-005 (`veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`) and `WDK-SITE-006` are `ENFORCED` by backend tests, so the untested count is **33 of 83** and the `SILENT` column is unchanged at one. Recorded as [the two lists are the proposal](decisions/phyletic-lists-are-the-proposal.md). The hidden-required-defaults item keeps only its unmeasured tail: whether the hidden defaults on the other 181 searches return rows.
 
-* **Two findings that work produced on the way, both kept.** First, "display purposes only" is a statement about the query and not about the metadata read: the contextual `POST` for that search answers **500** when the context carries `organism` and `profile_pattern` and omits the two structural maps, and either map alone is still a 500, while both together are a 200 with `validation: {level: SEMANTIC, isValid: true}`. Every hidden parameter that allows empty now goes into a metadata read's context at its published default, by shape rather than by name, at all three read sites. Second, that fix could not land until substitution detection was corrected. When the contextual read fails, the client falls back to the static `GET`, whose echoed values are the published defaults, so every value the caller set differs from the echo and none of those differences is WDK substituting anything ([WDK-PARAM-008](wdk/rules/parameters-and-vocabularies.md)). The comparison is now against the canonical values actually sent, a vocabulary echo is compared as a set, a hidden parameter this read supplies is never reported, and `values_were_read` gates both the comparison and the validation verdict when the read fell back.
+* **Two findings that work produced on the way, both kept.** First, "display purposes only" is a statement about the query and not about the metadata read: the contextual `POST` for that search answers **500** when the context carries `organism` and `profile_pattern` and omits the two structural maps, and either map alone is still a 500, while both together are a 200 with `validation: {level: SEMANTIC, isValid: true}`. Every hidden parameter that allows empty now goes into a metadata read's context at its published default, by shape rather than by name, at all three read sites. Second, that fix could not land until substitution detection was corrected. When the contextual read fails, the client falls back to the static `GET`, whose echoed values are the published defaults, so every value the caller set differs from the echo and none of those differences is WDK substituting anything (WDK-PARAM-008, `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`). The comparison is now against the canonical values actually sent, a vocabulary echo is compared as a set, a hidden parameter this read supplies is never reported, and `values_were_read` gates both the comparison and the validation verdict when the read fell back.
 
 * **Fixed: `PF00069` was not `PF00069 : Pkinase`, and the retry pointed away from it.** A typeahead vocabulary writes its terms as `<accession> : <label>`, and a proposal of the accession alone was refused as off-vocabulary. The nearest-entry list that came back was ranked by character similarity, so it offered `PF00569 : ZZ` and `PF00169 : PH` and not the one entry the accession identifies; two retries later the model changed `domain_database` to `INTERPRO` and bound `IPR000023 : Phosphofructokinase_dom`, which is the wrong science. Three changes, together: `match_exact_option` accepts a proposal that is the leading accession of exactly one entry, and refuses it when two entries share it; the nearest entries lead with the ones the proposal starts, so `PF0006` answers `PF00069 : Pkinase`; and the sheet pins an entry whose accession appears in the request as a word, not only one whose whole term appears. A shared accession is refused by naming the entries that share it, so the ambiguity is recoverable in the same turn rather than reading as an absent value. An accession holds a digit and is at least four characters, so a leading word such as `Plasmodium` is a label and matches nothing. [The decision](decisions/unmatched-accession-stops-the-chain.md) is amended again.
 
 * **Done and removed: parameter resolution had three proposers and no contract.** There is one now, and it is the model. `set_criterion` with no `params` returns a parameter sheet - every visible parameter with its type, help, default, bounds, dependency and vocabulary - beside a `params_template`, the object to copy and fill, and the next call takes a value or an explicit null for each of them. A second sheet for the same criterion carries the parameters without the vocabularies, which the model already holds. The walk validates and binds: unknown names and off-vocabulary values are did-you-mean retries, numbers and JSON-encoded lists are coerced, a null binds the disclosed default or opens a slot, a dependent whose vocabulary changes under the bound parents comes back to be decided once, and a numeric parameter left null while the criterion states a quantity comes back unread rather than defaulting in silence. Measured on the same 20 gold strategies, 332 parameters: **exact 285 (stated 222, defaulted 63), wrong 18, asked 20, unset 9**, against a floor of **154 exact (all of them defaults), wrong 48, asked 115, unset 15** for the walk with no proposer at all. The four arms recorded before this work - 168/48/101 as the recorded baseline, 184/58/75 for production with the resolvers discarded, 205/62/56 with the resolvers allowed to bind, and the experiment harness at 255/54/14 and 276/27/20 - were measured before a held-back numeric default counted as a question and before the scorer compared wire values by kind, so they are history and not a column beside the new floor. Deleted with the work: both resolver agents and `ai/agents/vocab_resolver.py`, `ValueResolvers`, `bind_inferred`, `Provenance.INFERRED`, `map_intent_to_value` and every rule in it that read English, `narrow_candidates` and `vocab_narrowing.py`, the dead `resolve_search_parameters` and `get_parameter_dependencies` tools with the `DagResolution` half of the walk, and `organism_scope`, `direction` and `param_overrides` from the tool surface. The sheet does **not** embed, which is the one place the design changed under measurement: embedding a 5,461-entry vocabulary takes 238 seconds in the api container, so a shortlist is by word overlap with the goal, with anything the request names verbatim pinned. Recorded as [one proposer, one validator](decisions/one-proposer-one-validator.md); [the 2026-08-10 resolver decision](decisions/the-model-reads-the-request-not-a-cosine-score.md) is amended rather than deleted, because embeddings still may not decide a value - and its evidence section had claimed a profileset "binds correctly" that never bound, which is now struck. [An unmatched accession](decisions/unmatched-accession-stops-the-chain.md) and [a value the request already states](decisions/a-value-in-the-request-is-not-a-question.md) keep their principles and lost their rules; both now name what carries them. The live DeRisi prompt then built end to end, 16 steps, with zero invented parameter names, on the fourth run - the sheet arriving from `set_criterion` itself and the repeat losing its vocabularies are the two changes between that run and the third.
 
-* **Also from the measurement: a search can offer the same criterion twice, and both halves are ORed.** [WDK-SITE-007](wdk/rules/site-model-params.md). ApiCommonModel declares the pairs in a `radio-params` property list - `go_typeahead`/`go_term`, `domain_typeahead`/`domain_accession`, `ec_number_pattern`/`ec_wildcard`, `metabolic_pathway_id_with_genes`/`pathway_wildcard` - and the property is published on the wire. The intuition a form gives is that filling both narrows the search; the query unions them. Measured on plasmodb.org for *P. falciparum* 3D7: `GO:0004672` alone returns 105 genes and the same pick beside the wildcard `*kinase*` returns **192**; `PF00069 : Pkinase` alone returns 81 and beside `*kinase*` returns **144**. Both halves are `allowEmptyValue: false`, and two of the published defaults are refused by the search that published them, so there is no off position - only a value that matches nothing. The worst case is `GenesByEcNumber`, whose typeahead half cannot be empty and whose published default is a real EC number: a search asking only for proteases carries 133 protein kinases and nothing in the response says so. The rule says which half is authoritative; the guard that enforces it is the entry above.
+* **Also from the measurement: a search can offer the same criterion twice, and both halves are ORed.** WDK-SITE-007 (`veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`). ApiCommonModel declares the pairs in a `radio-params` property list - `go_typeahead`/`go_term`, `domain_typeahead`/`domain_accession`, `ec_number_pattern`/`ec_wildcard`, `metabolic_pathway_id_with_genes`/`pathway_wildcard` - and the property is published on the wire. The intuition a form gives is that filling both narrows the search; the query unions them. Measured on plasmodb.org for *P. falciparum* 3D7: `GO:0004672` alone returns 105 genes and the same pick beside the wildcard `*kinase*` returns **192**; `PF00069 : Pkinase` alone returns 81 and beside `*kinase*` returns **144**. Both halves are `allowEmptyValue: false`, and two of the published defaults are refused by the search that published them, so there is no off position - only a value that matches nothing. The worst case is `GenesByEcNumber`, whose typeahead half cannot be empty and whose published default is a real EC number: a search asking only for proteases carries 133 protein kinases and nothing in the response says so. The rule says which half is authoritative; the guard that enforces it is the entry above.
 
 ## 2026-08-16
 
@@ -3259,11 +3726,11 @@
 
 ## 2026-08-14
 
-* **A hidden parameter was choosing the science, and the bundle covered none of it. Added `WDK-SITE`, a rule family whose falsifier is ApiCommonModel rather than WDK.** `GenesByOrthologPattern.profile_pattern` is hidden, required, 4000 characters of free text, and it is a **SQL `LIKE` pattern** matched against a colon-joined species census - `%code:Y%` for present, `%code:N%` for absent, `%` being the wildcard rather than a separator. Nothing upstream states that grammar in prose; it was reconstructed from [the query's own SQL](wdk/rules/site-model-params.md) and confirmed by measurement on plasmodb.org and toxodb.org. Four things follow and none of them is a refusal: a wrong pattern is not refused, tokens out of ascending code order match nothing (`%atum:Y%bant:Y%` returns 387 and the reverse returns 0, on three separate pairs chosen because tree order and code order disagree), a clade code matches nothing, and **WDK's own published default returns nothing** - `initialDisplayValue` is `hsap=1T`, which is a valid expression in OrthoMCL's *different* `phyletic_expression` grammar (it returns 9691 groups there) and is meaningless here. Six `WDK-SITE` rules plus [two `WDK-PARAM` rules](wdk/rules/parameters-and-vocabularies.md) for the general lesson: `initialDisplayValue` is whatever the spec holds, the model default behind it is stored by [a setter whose javadoc promises validation and whose body does not](wdk/rules/parameters-and-vocabularies.md), and `isVisible: false` is presentation only - a grep of the whole WDK repository finds `Param.isVisible()` read in exactly two places, one of which just publishes it. The new explainer is [site-model parameters](wdk/model/site-model-parameters.md); `scripts/check-wdk-rules.mjs` learned the `SITE` namespace and its suite went from 27 tests to 28. ApiCommonModel had been pinned since the bundle was created with a note admitting nothing cited it; that note is now deleted rather than softened.
+* **A hidden parameter was choosing the science, and the bundle covered none of it. Added `WDK-SITE`, a rule family whose falsifier is ApiCommonModel rather than WDK.** `GenesByOrthologPattern.profile_pattern` is hidden, required, 4000 characters of free text, and it is a **SQL `LIKE` pattern** matched against a colon-joined species census - `%code:Y%` for present, `%code:N%` for absent, `%` being the wildcard rather than a separator. Nothing upstream states that grammar in prose; it was reconstructed from the query's own SQL (`veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`) and confirmed by measurement on plasmodb.org and toxodb.org. Four things follow and none of them is a refusal: a wrong pattern is not refused, tokens out of ascending code order match nothing (`%atum:Y%bant:Y%` returns 387 and the reverse returns 0, on three separate pairs chosen because tree order and code order disagree), a clade code matches nothing, and **WDK's own published default returns nothing** - `initialDisplayValue` is `hsap=1T`, which is a valid expression in OrthoMCL's *different* `phyletic_expression` grammar (it returns 9691 groups there) and is meaningless here. Six `WDK-SITE` rules plus two `WDK-PARAM` rules (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`) for the general lesson: `initialDisplayValue` is whatever the spec holds, the model default behind it is stored by a setter whose javadoc promises validation and whose body does not (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`), and `isVisible: false` is presentation only - a grep of the whole WDK repository finds `Param.isVisible()` read in exactly two places, one of which just publishes it. The new explainer is site-model parameters (`veupathdb-py: docs/knowledge/wdk/model/site-model-parameters.md`); `scripts/check-wdk-rules.mjs` learned the `SITE` namespace and its suite went from 27 tests to 28. ApiCommonModel had been pinned since the bundle was created with a note admitting nothing cited it; that note is now deleted rather than softened.
 
 * **Filed two defects the research found, both PathFinder's rather than WDK's.** The phyletic profile widget writes a pattern that matches nothing is ranked first in the WDK section because the trigger is an ordinary user action: pick species in the step editor, submit a valid form, get zero genes and no error. `encodeProfilePattern` emits `code>=1T` / `code=0T` - OrthoMCL syntax, measured at 0 on both sites - and three separate faults have to be fixed together, since the token grammar, the ordering and the clade-versus-leaf expansion each independently yield zero. Its own test file asserts `pfal>=1T` literally in three places, so **the test pins the defect and has to be rewritten rather than patched around**; `decodeProfilePattern` cannot read the correct form either, so a step built by PathFinder's own backend opens in the editor reading "0 included, 0 excluded". Second, filling a hidden required parameter from `initialDisplayValue` chooses the science: the fill is the right shape - WDK demands these parameters and the model cannot supply them - and the value it fills carries no guarantee at any layer. The same belief is written into `param_dag.py:_is_free_text_query` as a comment, and both have to move together.
 
-* **Review caught the worst of it, and it made the finding worse rather than smaller.** The query is a `UNION`, and its **first** branch never touches `LIKE`: it inspects the pattern *string* with `not like '%:Y%'` and, when the string carries no `:Y`, returns every ortholog-less protein-coding gene for the selected organism. So "a wrong pattern returns zero" was the wrong statement of the hazard. **A wrong pattern returns whatever that branch yields for that organism**, which is zero here and is guaranteed nowhere - and a plausible non-zero count from a meaningless pattern is the worst answer this product can give. Four of the measured forms carry no `:Y` (`hsap=1T`, `hsap>=1T`, `hsap=0T`, prose) and their zeros are a property of the data; the two `:Y`-bearing zeros (`%zzzz:Y%`, `%MAMM:Y%`) are intrinsic. **Every string PathFinder's widget can emit lacks `:Y`**, so it never reaches the matching branch at all. I isolated that branch with `hsap=1T` on **eleven organisms across both sites** and it was empty on all eleven - recorded as a limit of the measurement, not as a refutation. A residue argument that had been offered as reassurance was deleted rather than repaired: it was vacuous, since both patterns it compared lack `:Y` and so both include the same branch. Also from review: `WDK-SITE-001`, `-002`, `-004` and `-005` are **live-only** - `profile_string` is built outside all four pinned repositories - so each now says so in the rule itself, and [sources.md](wdk/sources.md) gained the mirror image of its source-only ledger, with a re-run instruction per rule. A rule with no upstream and no re-run is unfalsifiable, which the charter forbids. Vocabulary counts were re-derived with `jq`: 865 terms, 818 lowercase, 47 uppercase, no duplicates, every term four characters except the three-character root `ALL` - so `three_letter_abbrev` is wrong about its own contents for 864 of 865 rows.
+* **Review caught the worst of it, and it made the finding worse rather than smaller.** The query is a `UNION`, and its **first** branch never touches `LIKE`: it inspects the pattern *string* with `not like '%:Y%'` and, when the string carries no `:Y`, returns every ortholog-less protein-coding gene for the selected organism. So "a wrong pattern returns zero" was the wrong statement of the hazard. **A wrong pattern returns whatever that branch yields for that organism**, which is zero here and is guaranteed nowhere - and a plausible non-zero count from a meaningless pattern is the worst answer this product can give. Four of the measured forms carry no `:Y` (`hsap=1T`, `hsap>=1T`, `hsap=0T`, prose) and their zeros are a property of the data; the two `:Y`-bearing zeros (`%zzzz:Y%`, `%MAMM:Y%`) are intrinsic. **Every string PathFinder's widget can emit lacks `:Y`**, so it never reaches the matching branch at all. I isolated that branch with `hsap=1T` on **eleven organisms across both sites** and it was empty on all eleven - recorded as a limit of the measurement, not as a refutation. A residue argument that had been offered as reassurance was deleted rather than repaired: it was vacuous, since both patterns it compared lack `:Y` and so both include the same branch. Also from review: `WDK-SITE-001`, `-002`, `-004` and `-005` are **live-only** - `profile_string` is built outside all four pinned repositories - so each now says so in the rule itself, and sources.md (`veupathdb-py: docs/knowledge/wdk/sources.md`) gained the mirror image of its source-only ledger, with a re-run instruction per rule. A rule with no upstream and no re-run is unfalsifiable, which the charter forbids. Vocabulary counts were re-derived with `jq`: 865 terms, 818 lowercase, 47 uppercase, no duplicates, every term four characters except the three-character root `ALL` - so `three_letter_abbrev` is wrong about its own contents for 864 of 865 rows.
 
 * Recounted the rule bundle honestly afterwards. **81 rules, 45 UNENFORCED**, and the number that matters is that the `SILENT` untested column went from **0 to 5**: four of the new site rules and the `initialDisplayValue` rule. The backlog item that claimed the `SILENT` class was closed no longer claims it.
 
@@ -3271,7 +3738,7 @@
 
 * **Read what WDK already answers, and stop reporting numbers it did not give.** Five changes, all from the pinned rule set rather than from a failing run. (1) One named count: the two count paths returned different quantities, because `estimatedSize` tracks `displayTotalCount` while the fallback read `totalCount`, and only the view pair matches the records returned. (2) The four counts became optional, so an absent count can no longer read as a scientific zero; the response schema and generated types were made honest rather than kept convenient. (3) A negative `estimatedSize` now reads as no count instead of surfacing as a gene count. (4) The validation bundle returned by the search endpoint is read instead of discarded, honouring the rule that a false verdict at level `NONE` means nobody checked. (5) WDK reports which values it substituted, so provenance is now corrected by the server that already knew it. Writing the first rule test also found a live contradiction: the model was told to send the synthetic tree root as a select-all shortcut, and the canonicalizer rejects it, as WDK does. Also closed: the delayed-result sentinel is recognised by shape and retried.
 
-* **Added `docs/knowledge/wdk/`, a falsifiable WDK reference, and a gate that fails when its evidence stops resolving.** Four groups - [rules](wdk/rules/), [model](wdk/model/), [rest](wdk/rest/) and [pathfinder](wdk/pathfinder/) - carrying **73 assertions** about WDK, each with a GitHub link pinned to a 40-character sha and an anchor naming the PathFinder symbol it governs. Most are confirmed live on plasmodb.org and toxodb.org rather than reasoned about; six are source-only and [sources.md](wdk/sources.md) lists them by name. The new gate `scripts/check-wdk-rules.mjs` (pre-commit and CI, with its own fixture suite) fails on an unpinned citation, a moved anchor, a named test that no longer exists, and prose citing a withdrawn rule. Every `ENFORCED` and `PARTIAL` status was then audited against one standard - would the named test go red if the rule were broken - which downgraded three: [WDK-VOCAB-002](wdk/rules/parameters-and-vocabularies.md), whose test drove the canonicalizer while its anchor is a second, untested expansion in `integrations/`, and [WDK-STRAT-002 and WDK-STRAT-003](wdk/rules/strategies-and-steps.md), whose hypothesis trees came out of `flatten_tree` and so satisfied single-rootedness and reachability by construction. The honest tally is **8 ENFORCED, 9 PARTIAL, 56 UNENFORCED**, and the number that matters is that **19 `SILENT` rules have no test** - the class where WDK answers 200 and the science is wrong. Filed as one item, 56 of the 73 WDK rules have no test, which ranks the conversion `SILENT` first and carries the open questions the research left behind, including a `JSESSIONID` belief that did not reproduce on three live probes.
+* **Added `docs/knowledge/wdk/`, a falsifiable WDK reference, and a gate that fails when its evidence stops resolving.** Four groups - rules (`veupathdb-py: docs/knowledge/wdk/rules/`), model (`veupathdb-py: docs/knowledge/wdk/model/`), rest (`veupathdb-py: docs/knowledge/wdk/rest/`) and [pathfinder](wdk/pathfinder/) - carrying **73 assertions** about WDK, each with a GitHub link pinned to a 40-character sha and an anchor naming the PathFinder symbol it governs. Most are confirmed live on plasmodb.org and toxodb.org rather than reasoned about; six are source-only and sources.md (`veupathdb-py: docs/knowledge/wdk/sources.md`) lists them by name. The new gate `scripts/check-wdk-rules.mjs` (pre-commit and CI, with its own fixture suite) fails on an unpinned citation, a moved anchor, a named test that no longer exists, and prose citing a withdrawn rule. Every `ENFORCED` and `PARTIAL` status was then audited against one standard - would the named test go red if the rule were broken - which downgraded three: WDK-VOCAB-002 (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`), whose test drove the canonicalizer while its anchor is a second, untested expansion in `integrations/`, and WDK-STRAT-002 and WDK-STRAT-003 (`veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`), whose hypothesis trees came out of `flatten_tree` and so satisfied single-rootedness and reachability by construction. The honest tally is **8 ENFORCED, 9 PARTIAL, 56 UNENFORCED**, and the number that matters is that **19 `SILENT` rules have no test** - the class where WDK answers 200 and the science is wrong. Filed as one item, 56 of the 73 WDK rules have no test, which ranks the conversion `SILENT` first and carries the open questions the research left behind, including a `JSESSIONID` belief that did not reproduce on three live probes.
 
 * **Root-caused the recurring crash, correctly this time, and fixed the seam behind three earlier bugs.** Pushed back on: the same issues kept returning, which was right. Two findings. (1) `No tool invocation found for tool call ID` is thrown by the Vercel AI SDK **client**, not OpenAI, when a `tool-output-error` names a call the client never saw announced -- it never reaches a backend log, which is why it read as a silent provider rejection. [no-openai-item-ids](decisions/no-openai-item-ids.md) misattributed it and now carries a correction; the real one is [chunk suppression follows the call, not a list of chunk types](decisions/suppression-follows-the-call-not-the-chunk-type.md), since fixed and verified in the browser. (2) "Get a search's parameters under a context" had **no owner**: six call sites, four exception types caught, five recoveries, two with no handling at all -- and the two with none are exactly where B16, the default-vocabulary read, and the abandoned criterion landed. One owner now: [a contextualized param view is an enrichment](decisions/contextualizing-params-is-an-enrichment.md). Verified against the live 500: WDK fails, we log once and return all 6 params.
 
@@ -3323,7 +3790,7 @@
   there (`23 Hour`, `29 Hour` are 3D7-only), and a branch term instead of leaves
   is the `countOnlyLeaves` 422. The step in the strategy that prompted the item
   reads **942**, not 0. The zero in that conversation was the phyletic-profile
-  step, which is [WDK-SITE-002](wdk/rules/site-model-params.md) and understood.
+  step, which is WDK-SITE-002 (`veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`) and understood.
   What survives is smaller and already filed elsewhere: that step bound
   `profileset_generic` to WDK's default `DeRisi HB3 Smoothed` rather than the
   3D7 set the request named.

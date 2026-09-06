@@ -9,9 +9,14 @@ from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.errors import ValidationError
+from veupathdb_mcp.wdk.login import (
+    end_veupathdb_session,
+    start_veupathdb_session,
+)
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import UnauthorizedError, ValidationError
+from pathfinder.platform.errors import UnauthorizedError
 from pathfinder.platform.security import (
     create_user_token,
     decode_session_token,
@@ -19,10 +24,6 @@ from pathfinder.platform.security import (
     limiter,
 )
 from pathfinder.services.users import get_or_create_user_id
-from pathfinder.services.wdk.login import (
-    end_veupathdb_session,
-    start_veupathdb_session,
-)
 from pathfinder.services.wdk_identity import (
     WDKCurrentUser,
     fetch_wdk_user,

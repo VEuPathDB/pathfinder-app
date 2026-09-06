@@ -7,8 +7,7 @@ from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-
-from pathfinder.services.enrichment.types import EnrichmentResult
+from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult
 
 # Matches WDK BooleanOperator (canonical 7) and the frontend `CombineOperator`
 # union in `packages/shared-ts/src/types.ts`. Narrowing to a subset would silently

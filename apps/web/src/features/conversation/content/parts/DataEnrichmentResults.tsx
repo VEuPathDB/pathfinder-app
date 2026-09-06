@@ -1,5 +1,5 @@
 import type { EnrichmentResultsChunk } from "@pathfinder/shared";
-import { EnrichmentSection } from "@/features/analysis";
+import { EnrichmentSection } from "@/features/workbench/analysis";
 import { Figure } from "@/features/conversation/thread/Figure";
 
 export function DataEnrichmentResults({ data }: { data: EnrichmentResultsChunk }) {

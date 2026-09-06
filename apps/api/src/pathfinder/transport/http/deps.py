@@ -7,10 +7,10 @@ from assistant_core.platform.db import get_db_session
 from fastapi import Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import pathfinder.services.quota
 from pathfinder.platform.errors import ForbiddenError, NotFoundError
 from pathfinder.platform.principal import Principal
 from pathfinder.platform.security import resolve_principal
-from pathfinder.services import quota as quota_service
 from pathfinder.services.experiment.store import get_experiment_store
 from pathfinder.services.experiment.types import Experiment
 from pathfinder.services.users import ensure_user_exists
@@ -69,7 +69,7 @@ async def require_quota_available(
     session: DBSession,
     user_id: CurrentUser,
 ) -> UUID:
-    quota = await quota_service.check_allowed(session, user_id)
+    quota = await pathfinder.services.quota.check_allowed(session, user_id)
     if quota.used_usd >= quota.limit_usd:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

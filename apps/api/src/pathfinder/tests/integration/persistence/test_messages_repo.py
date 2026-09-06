@@ -1,8 +1,8 @@
 from uuid import uuid4
 
-import assistant_core.platform.db as session_module
 from assistant_core.persistence.models import Conversation
 from assistant_core.persistence.repositories.message import MessagesRepository
+from assistant_core.platform import db
 
 from pathfinder.persistence.models import User
 
@@ -20,7 +20,7 @@ async def test_insert_and_fetch_message(
         "model": "anthropic:claude-sonnet-4-5",
     }
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
         session.add(Conversation(id=conversation_id, user_id=user_id))
@@ -35,7 +35,7 @@ async def test_insert_and_fetch_message(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         repo = MessagesRepository(session)
         rows = await repo.list_messages_for_conversation(conversation_id)
 

@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from pathfinder.devtools import chat as chat_cli
+from pathfinder.devtools import chat
 from pathfinder.platform.errors import AssistantMismatchError, AssistantNotFoundError
 
 _RUN_ARGV = ["hi", "--site", "plasmodb", "--mock"]
@@ -27,12 +27,12 @@ def _install_existing(
 
 
 def test_the_flag_is_absent_by_default() -> None:
-    assert chat_cli.parse_run_args(_RUN_ARGV).assistant is None
+    assert chat.parse_run_args(_RUN_ARGV).assistant is None
 
 
 def test_the_flag_is_parsed_on_run_and_respond(tmp_path: Path) -> None:
-    run = chat_cli.parse_run_args([*_RUN_ARGV, "--assistant", "site_help"])
-    respond = chat_cli.parse_respond_args(
+    run = chat.parse_run_args([*_RUN_ARGV, "--assistant", "site_help"])
+    respond = chat.parse_respond_args(
         [
             "--site",
             "plasmodb",
@@ -54,7 +54,7 @@ async def test_a_new_conversation_runs_under_the_named_assistant(
 ) -> None:
     _install_existing(monkeypatch, None)
 
-    spec = await chat_cli.resolve_run_assistant(uuid4(), "site_help")
+    spec = await chat.resolve_run_assistant(uuid4(), "site_help")
 
     assert spec.assistant_id == "site_help"
     assert spec.identity_gate is None
@@ -65,7 +65,7 @@ async def test_no_flag_still_runs_under_the_default(
 ) -> None:
     _install_existing(monkeypatch, None)
 
-    spec = await chat_cli.resolve_run_assistant(uuid4())
+    spec = await chat.resolve_run_assistant(uuid4())
 
     assert spec.assistant_id == "pathfinder"
 
@@ -76,7 +76,7 @@ async def test_an_unknown_assistant_is_refused(
     _install_existing(monkeypatch, None)
 
     with pytest.raises(AssistantNotFoundError):
-        await chat_cli.resolve_run_assistant(uuid4(), "no_such_assistant")
+        await chat.resolve_run_assistant(uuid4(), "no_such_assistant")
 
 
 async def test_naming_another_assistant_than_the_thread_s_is_refused(
@@ -85,4 +85,4 @@ async def test_naming_another_assistant_than_the_thread_s_is_refused(
     _install_existing(monkeypatch, "pathfinder")
 
     with pytest.raises(AssistantMismatchError):
-        await chat_cli.resolve_run_assistant(uuid4(), "site_help")
+        await chat.resolve_run_assistant(uuid4(), "site_help")

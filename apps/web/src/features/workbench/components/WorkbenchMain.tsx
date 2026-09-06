@@ -7,10 +7,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Layers, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ChatView } from "@/features/conversation/ChatView";
 import { useInvalidateGeneSets } from "@/features/workbench/hooks/useInvalidateGeneSets";
 import { retakeGeneSet } from "../api/geneSets";
 import { canRetakeGeneSet } from "./canRetakeGeneSet";
+import { PublishToVdiButton } from "./PublishToVdiButton";
 import { SOURCE_CONFIG } from "./geneSetSourceConfig";
 import {
   EnrichmentPanel,
@@ -85,6 +85,7 @@ function ActiveSetHeader() {
         </span>
         <span className="text-xs text-muted-foreground">{activeSet.siteId}</span>
         {canRetakeGeneSet(activeSet) && <RetakeButton geneSetId={activeSet.id} />}
+        <PublishToVdiButton geneSet={activeSet} />
       </div>
       {activeSet.searchName != null && activeSet.searchName !== "" && (
         <p className="mt-1 text-xs text-muted-foreground">
@@ -124,7 +125,6 @@ export const WORKBENCH_PANELS = [
 
 export function WorkbenchMain() {
   const activeSetId = useWorkbenchStore((s) => s.activeSetId);
-  const lastExperiment = useWorkbenchStore((s) => s.lastExperiment);
 
   if (activeSetId == null) {
     return (
@@ -141,9 +141,6 @@ export function WorkbenchMain() {
       {/* Key on activeSetId so all panels remount (reset local state) on gene set switch */}
       <div key={activeSetId} className="mx-auto w-full max-w-5xl space-y-3 p-6">
         <ActiveSetHeader />
-        {lastExperiment?.id != null && lastExperiment.id !== "" && (
-          <ChatView conversationId={lastExperiment.id} allowMissing />
-        )}
         {WORKBENCH_PANELS.map((Panel, i) => (
           <div
             key={i}

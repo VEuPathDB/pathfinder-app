@@ -262,8 +262,27 @@ different provider.
 | `wdk_capture.py` | opt-in WDK httpx capture (`--capture-wdk`) |
 | `gates.py` | the gate the CLI detects after a step, and the parts `respond` sends to answer it |
 | `openapi.py` | CLI: `generate`/`check` for `packages/spec/openapi.{json,yaml}` |
-| `wdk_fixtures.py` | CLI: `list`/`record` for the WDK fixtures the tests replay |
+| `wdk_fixtures.py` | CLI: `list`/`record`/`verify`/`vendor` for the WDK fixtures the tests replay and the pinned WDK schemas `verify` reads |
+| `eda_schemas.py` | CLI: `types`/`verify`/`vendor` for the pinned `service-eda` RAML type library the recorded EDA bodies answer to |
+
+`wdk_fixtures verify` needs no network and no credential. It validates every recorded
+fixture body against the WDK schema its endpoint annotates, using the copy vendored under
+`veupathdb-py/src/veupathdb/testing/fixtures/wdk/schema/` at the commit `schema-pin.json` names, and it
+fails when a vendored file no longer matches the sha256 the pin records. `vendor`
+re-downloads that tree at the pinned commit, deletes what the `$ref` closure no longer
+reaches, and rewrites the pin only when a byte changed; bump the `sha` field first, then
+run it. Only the schemas WDK actually enforces are pinned, which is a small
+part of the tree: see `docs/knowledge/wdk/rules/auth-and-transport.md` (WDK-HTTP-004).
+
+`eda_schemas verify` needs no network and no credential either. It converts the RAML 1.0
+type library `VEuPathDB/service-eda` publishes to JSON Schema draft-07 and validates every
+recorded EDA body under `src/pathfinder/tests/unit/integrations/eda/fixtures/` against the
+type its endpoint returns, reading the copy vendored under that directory's `upstream/` at
+the commit `schema-pin.json` names. Ten specification defects are declared and excluded, each
+measured: see `docs/knowledge/eda/rest-surface.md`. `vendor` re-downloads the library and its
+one include at the pinned commit and rewrites the pin only when a byte changed; bump the
+`sha` field first, then run it.
 
 `RunCapture` implements the `ChatWriter` protocol
-(`packages/assistant-core/.../conversation/event_writer.py`) — the same surface as the production
+(`assistant-platform/packages/assistant-core/.../conversation/event_writer.py`) — the same surface as the production
 `ChatEventWriter`, so the CLI exercises the real turn pipeline.

@@ -7,6 +7,13 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from veupathdb.domain.parameters.values import SinglePickValue
+from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.domain.strategy.session import StrategySession
+from veupathdb.testing.wdk_fixtures import load_recorded
+from veupathdb.wdk.wdk_models import WDKSearchResponse
+from veupathdb_mcp.catalog import search_inspection, searches
+from veupathdb_mcp.catalog.param_formatting import ParameterInfo
 
 from pathfinder.ai.agents.state import (
     AgentToolState,
@@ -16,13 +23,6 @@ from pathfinder.ai.agents.state import (
 from pathfinder.ai.agents.strategy_instructions import pinned_discovered_searches
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import catalog_discovery
-from pathfinder.devtools.wdk_fixtures import load_recorded
-from pathfinder.domain.parameters.values import SinglePickValue
-from pathfinder.domain.parameters.wdk_vocab import VocabOption
-from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.integrations.veupathdb.wdk_models import WDKSearchResponse
-from pathfinder.services.catalog import search_inspection, searches
-from pathfinder.services.catalog.param_formatting import ParameterInfo
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_state_ctx,
     patch_search_details,

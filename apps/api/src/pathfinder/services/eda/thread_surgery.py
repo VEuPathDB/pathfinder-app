@@ -17,10 +17,11 @@ from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict, TypeAdapter
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.eda.errors import EdaNotFoundError
+from veupathdb.eda.models import EdaFilter
+from veupathdb.errors import VEuPathDBError
 
 from pathfinder.domain.eda_parts import EdaAnalysisState
-from pathfinder.integrations.eda.errors import EdaNotFoundError
-from pathfinder.integrations.eda.models import EdaFilter
 from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.persistence.repositories.conversation_analysis import (
     bind_analysis_row,
@@ -252,7 +253,7 @@ async def restore_thread_binding(
         case AdoptBinding():
             try:
                 await _adopt(session, conversation_id=conversation_id, plan=plan)
-            except AppError as exc:
+            except (AppError, VEuPathDBError) as exc:
                 logger.warning(
                     "revert kept the EDA binding: the study service refused",
                     conversation_id=str(conversation_id),
@@ -277,7 +278,7 @@ async def branch_thread_binding(
     filters = _FILTERS.validate_python(recorded.filters)
     try:
         analysis_id = await _fresh_document(recorded, filters)
-    except AppError as exc:
+    except (AppError, VEuPathDBError) as exc:
         logger.warning(
             "branch opened with no study: the study service refused a document",
             conversation_id=str(conversation_id),

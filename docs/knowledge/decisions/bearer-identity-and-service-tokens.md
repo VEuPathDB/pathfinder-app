@@ -75,7 +75,7 @@ of two rows for one person. The mapping is remembered per token hash for five
 minutes so a bearer client does not pay a WDK round trip on every request.
 
 Guest tokens are refused on the bearer path. A guest is a new identity per
-uncredentialed request ([WDK-AUTH-001](../wdk/rules/auth-and-transport.md)), so
+uncredentialed request (WDK-AUTH-001, `veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`), so
 it names nobody durable to own conversations and memories. The cookie flow
 refuses them too now: every WDK-backed route requires a registered login, and
 the persisted per-user guest token is deleted

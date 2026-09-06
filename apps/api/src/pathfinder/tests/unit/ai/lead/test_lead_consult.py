@@ -19,10 +19,10 @@ from assistant_core.graph.turn_state import (
     UserQuestionAnswer,
 )
 from pydantic_ai import Tool
+from veupathdb.domain.strategy.constraints import ConstraintKind, ConstraintSource
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.lead_consult import consult_user
-from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintSource
 
 
 def _ctx(state: PipelineState) -> Any:

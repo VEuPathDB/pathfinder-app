@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
-
-from pathfinder.ai.lead.dispatch_messages import (
-    build_not_ready_message,
-    build_would_replace_the_strategy,
-    frame_result_from_draft,
-)
-from pathfinder.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
     OperationalSpec,
     SpecStructure,
     StructureNode,
+)
+
+from pathfinder.ai.lead.dispatch_messages import (
+    build_not_ready_message,
+    build_would_replace_the_strategy,
+    frame_result_from_draft,
 )
 
 

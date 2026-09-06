@@ -8,17 +8,17 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
-
-from pathfinder.ai.tools.standalone import catalog_discovery
-from pathfinder.ai.tools.standalone.catalog_discovery import AlreadyReadNotice
-from pathfinder.domain.parameters.wdk_vocab import VocabOption
-from pathfinder.integrations.veupathdb.wdk_parameters import WDKStringParam
-from pathfinder.platform.errors import WDKError
-from pathfinder.services.catalog import search_inspection, searches
-from pathfinder.services.catalog.param_formatting import (
+from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.errors import WDKError
+from veupathdb.wdk.wdk_parameters import WDKStringParam
+from veupathdb_mcp.catalog import search_inspection, searches
+from veupathdb_mcp.catalog.param_formatting import (
     ParameterInfo,
     ParameterNotOnSearch,
 )
+
+from pathfinder.ai.tools.standalone import catalog_discovery
+from pathfinder.ai.tools.standalone.catalog_discovery import AlreadyReadNotice
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_state_ctx,
     patch_search_details,

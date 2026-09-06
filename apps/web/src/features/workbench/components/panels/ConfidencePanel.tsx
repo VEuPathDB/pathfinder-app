@@ -2,7 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, ShieldCheck } from "lucide-react";
-import type { Experiment, EnrichmentResult } from "@pathfinder/shared";
+import type {
+  Experiment,
+  EnrichmentResult,
+  GeneConfidenceRequest,
+} from "@pathfinder/shared";
 import { geneConfidenceScoreResponseSchema } from "@pathfinder/shared/generated/zod/geneConfidenceScoreResponseSchema";
 import { z } from "zod";
 
@@ -68,7 +72,7 @@ export function ConfidencePanel() {
     lastExperimentSetId === activeSetId &&
     hasClassifiedGenes(lastExperiment) === true;
 
-  const requestBody = (() => {
+  const requestBody = ((): GeneConfidenceRequest | null => {
     if (!lastExperiment || !hasClassifiedGenes(lastExperiment)) return null;
     const { enrichmentGeneCounts, maxEnrichmentTerms } = extractEnrichmentCounts(
       lastExperiment.enrichmentResults ?? [],
@@ -78,9 +82,9 @@ export function ConfidencePanel() {
       fpIds: (lastExperiment.falsePositiveGenes ?? []).map((g) => g.id),
       fnIds: (lastExperiment.falseNegativeGenes ?? []).map((g) => g.id),
       tnIds: (lastExperiment.trueNegativeGenes ?? []).map((g) => g.id),
-      enrichmentGeneCounts:
-        Object.keys(enrichmentGeneCounts).length > 0 ? enrichmentGeneCounts : undefined,
-      maxEnrichmentTerms,
+      ...(Object.keys(enrichmentGeneCounts).length > 0 ? { enrichmentGeneCounts } : {}),
+      // The field is the enrichment divisor, so it needs at least one term.
+      ...(maxEnrichmentTerms > 0 ? { maxEnrichmentTerms } : {}),
     };
   })();
 

@@ -28,6 +28,8 @@ touch ollama_models.yaml
 
 podman build -t pathfinder-api:latest -f apps/api/Dockerfile .
 
+podman build -t veupathdb-mcp:latest -f veupathdb-mcp/Dockerfile .
+
 podman build -t pathfinder-web:latest -f apps/web/Dockerfile \
   --build-arg NEXT_PUBLIC_API_URL=http://pathfinder-api:8000 .
 ```
@@ -152,6 +154,9 @@ line.
 podman build -t pathfinder-api:latest -f apps/api/Dockerfile .
 systemctl --user restart pathfinder-api
 
+podman build -t veupathdb-mcp:latest -f veupathdb-mcp/Dockerfile .
+systemctl --user restart pathfinder-wdk-mcp
+
 podman build -t pathfinder-web:latest -f apps/web/Dockerfile \
   --build-arg NEXT_PUBLIC_API_URL=http://pathfinder-api:8000 .
 systemctl --user restart pathfinder-web
@@ -176,5 +181,5 @@ podman volume rm pathfinder-postgres-data
 | pathfinder-db | pgvector/pgvector:pg16 | — (internal) | — |
 | pathfinder-api | localhost/pathfinder-api:latest | 8000 | db |
 | pathfinder-worker | localhost/pathfinder-api:latest | — (internal) | db |
-| pathfinder-wdk-mcp | localhost/pathfinder-api:latest | 8100 | db |
+| pathfinder-wdk-mcp | localhost/veupathdb-mcp:latest | 8100 | db |
 | pathfinder-web | localhost/pathfinder-web:latest | 3000 | api |

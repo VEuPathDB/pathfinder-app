@@ -10,6 +10,7 @@ can import without violating architecture boundaries.
 """
 
 from opentelemetry import metrics
+from veupathdb.observer import MetricAttrs
 
 _pipeline_meter = metrics.get_meter("pathfinder.pipeline")
 _wdk_meter = metrics.get_meter("pathfinder.wdk")
@@ -181,3 +182,21 @@ site_search_request_duration_s = _site_search_meter.create_histogram(
     description="Site-search HTTP request duration including retries",
     unit="s",
 )
+
+
+class OpenTelemetryObserver:
+    """Feeds the WDK and site-search instruments the client reports to."""
+
+    def on_wdk_request(self, seconds: float, attrs: MetricAttrs, /) -> None:
+        wdk_requests.add(1, attrs)
+        wdk_request_duration_s.record(seconds, attrs)
+
+    def on_wdk_retry(self, attrs: MetricAttrs, /) -> None:
+        wdk_request_retries.add(1, attrs)
+
+    def on_site_search_request(self, seconds: float, attrs: MetricAttrs, /) -> None:
+        site_search_requests.add(1, attrs)
+        site_search_request_duration_s.record(seconds, attrs)
+
+    def on_site_search_retry(self, attrs: MetricAttrs, /) -> None:
+        site_search_request_retries.add(1, attrs)

@@ -3,11 +3,11 @@ from __future__ import annotations
 import asyncio
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.conversation.event_stream import replay_and_tail
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.persistence.models import Conversation
+from assistant_core.platform import db
 
 from pathfinder.persistence.models import User
 
@@ -16,7 +16,7 @@ async def _seed_conversation() -> tuple[UUID, UUID]:
     user_id = uuid4()
     conv_id = uuid4()
     turn_id = uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         session.add(
             Conversation(

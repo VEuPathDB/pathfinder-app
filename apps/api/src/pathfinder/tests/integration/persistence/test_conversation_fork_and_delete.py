@@ -4,11 +4,11 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.persistence.models import Conversation, ConversationEvent, Message
 from assistant_core.persistence.repositories.message import MessagesRepository
+from assistant_core.platform import db
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import (
     ChannelVersions,
@@ -52,7 +52,7 @@ async def _langgraph_checkpoint_tables(
 async def _truncate_langgraph_tables() -> AsyncIterator[None]:
     """Clears the checkpoint tables between tests."""
     yield
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await session.execute(
             text(
                 "TRUNCATE TABLE checkpoints, checkpoint_blobs, "
@@ -182,18 +182,18 @@ async def test_fork_copies_prefix_and_sets_parent_refs(
     user_id = uuid4()
     source_id = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(session, conversation_id=source_id, user_id=user_id)
         await session.commit()
 
     # A separate commit per message gives each message a distinct created_at.
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         messages = MessagesRepository(session)
         await _insert_message(messages, conv_id=source_id, role="user", text="hi")
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         messages = MessagesRepository(session)
         anchor_id = await _insert_message(
             messages,
@@ -203,14 +203,14 @@ async def test_fork_copies_prefix_and_sets_parent_refs(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         messages = MessagesRepository(session)
         await _insert_message(
             messages, conv_id=source_id, role="user", text="follow-up"
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         messages = MessagesRepository(session)
         await _insert_message(
             messages,
@@ -220,7 +220,7 @@ async def test_fork_copies_prefix_and_sets_parent_refs(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -233,7 +233,7 @@ async def test_fork_copies_prefix_and_sets_parent_refs(
         assert fork.parent_message_id == anchor_id
         assert fork.site_id == "plasmodb"
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         rows = await MessagesRepository(session).list_messages_for_conversation(fork_id)
         assert len(rows) == 2
         roles = [r.role for r in rows]
@@ -245,7 +245,7 @@ async def test_fork_rejects_unknown_source(
     db_cleaner: None,
 ) -> None:
     del patch_app_db_engine, db_cleaner
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         try:
             await fork_conversation(
                 session,
@@ -268,7 +268,7 @@ async def test_fork_rejects_wrong_owner(
     other_id = uuid4()
     source_id = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, owner_id)
         await _seed_user(session, other_id)
         await _seed_conversation(
@@ -284,7 +284,7 @@ async def test_fork_rejects_wrong_owner(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         try:
             await fork_conversation(
                 session,
@@ -309,7 +309,7 @@ async def test_delete_non_cascade_promotes_children(
     anchor_msg = uuid4()
     fork_anchor = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(
             session, conversation_id=a_id, user_id=user_id, name="a"
@@ -355,12 +355,12 @@ async def test_delete_non_cascade_promotes_children(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         repo = ConversationRepository(session)
         await repo.delete(b_id)
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         c = await session.scalar(select(Conversation).where(Conversation.id == c_id))
         a_gone = await session.scalar(
             select(Conversation).where(Conversation.id == b_id),
@@ -380,7 +380,7 @@ async def test_delete_cascade_wipes_subtree(
     user_id = uuid4()
     a_id, b_id, c_id, d_id = uuid4(), uuid4(), uuid4(), uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(
             session, conversation_id=a_id, user_id=user_id, name="a"
@@ -414,12 +414,12 @@ async def test_delete_cascade_wipes_subtree(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         repo = ConversationRepository(session)
         await repo.delete(b_id, cascade=True)
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         remaining = (
             await session.scalars(
                 select(Conversation.id).where(
@@ -440,7 +440,7 @@ async def test_delete_root_non_cascade_promotes_children_to_roots(
     root_id, child_id = uuid4(), uuid4()
     anchor_msg = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(
             session,
@@ -469,12 +469,12 @@ async def test_delete_root_non_cascade_promotes_children_to_roots(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         repo = ConversationRepository(session)
         await repo.delete(root_id)
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         child = await session.scalar(
             select(Conversation).where(Conversation.id == child_id),
         )
@@ -548,7 +548,7 @@ async def _two_turn_source(
     ]
     message_ids: list[UUID] = []
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(
             session,
@@ -559,7 +559,7 @@ async def _two_turn_source(
         await session.commit()
 
     for cp_id, parent, cp_time, role, body, msg_time in turns:
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             await _seed_checkpoint(
                 session,
                 thread_id=str(source_id),
@@ -568,7 +568,7 @@ async def _two_turn_source(
                 ts=cp_time,
             )
             await session.commit()
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             msg_id = await _insert_message_at(
                 session,
                 conv_id=source_id,
@@ -579,7 +579,7 @@ async def _two_turn_source(
             message_ids.append(msg_id)
             await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_blob(
             session,
             thread_id=str(source_id),
@@ -699,10 +699,10 @@ async def test_fork_from_latest_count_matches_source(
     source_id = uuid4()
     message_ids, _ = await _two_turn_source(user_id=user_id, source_id=source_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         source_count = await _count_checkpoints(session, str(source_id))
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -712,7 +712,7 @@ async def test_fork_from_latest_count_matches_source(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         assert await _count_checkpoints(session, str(fork_id)) == source_count
         assert await _chain_is_valid(session, str(fork_id))
 
@@ -727,10 +727,10 @@ async def test_fork_from_mid_chat_drops_later_turn_count(
     source_id = uuid4()
     message_ids, _ = await _two_turn_source(user_id=user_id, source_id=source_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         source_count = await _count_checkpoints(session, str(source_id))
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -740,7 +740,7 @@ async def test_fork_from_mid_chat_drops_later_turn_count(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork_count = await _count_checkpoints(session, str(fork_id))
         assert 0 < fork_count < source_count
         assert await _chain_is_valid(session, str(fork_id))
@@ -763,7 +763,7 @@ async def test_fork_cutoff_is_strictly_less_than(
     boundary_ts = base + timedelta(seconds=20)
     next_msg_ts = boundary_ts
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(
             session,
@@ -786,7 +786,7 @@ async def test_fork_cutoff_is_strictly_less_than(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         messages = MessagesRepository(session)
         anchor = await _insert_message(
             messages,
@@ -814,7 +814,7 @@ async def test_fork_cutoff_is_strictly_less_than(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -824,7 +824,7 @@ async def test_fork_cutoff_is_strictly_less_than(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         result = await session.execute(
             text(
                 "SELECT checkpoint_id FROM checkpoints WHERE thread_id = :t",
@@ -848,7 +848,7 @@ async def test_fork_identical_message_timestamps_deterministic(
     base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
     shared_ts = base + timedelta(seconds=10)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(
             session,
@@ -864,7 +864,7 @@ async def test_fork_identical_message_timestamps_deterministic(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         messages = MessagesRepository(session)
         anchor = await _insert_message(
             messages,
@@ -883,7 +883,7 @@ async def test_fork_identical_message_timestamps_deterministic(
         await _set_message_created_at(session, message_id=other, ts=shared_ts)
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -893,7 +893,7 @@ async def test_fork_identical_message_timestamps_deterministic(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         assert await _count_checkpoints(session, str(fork_id)) >= 0
         assert await _chain_is_valid(session, str(fork_id))
 
@@ -907,7 +907,7 @@ async def test_fork_with_no_checkpoints(
     user_id = uuid4()
     source_id = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(
             session,
@@ -923,7 +923,7 @@ async def test_fork_with_no_checkpoints(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -933,7 +933,7 @@ async def test_fork_with_no_checkpoints(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         assert await _count_checkpoints(session, str(fork_id)) == 0
         assert await _chain_is_valid(session, str(fork_id))
 
@@ -948,7 +948,7 @@ async def test_fork_messages_are_copied_in_order(
     source_id = uuid4()
     message_ids, _ = await _two_turn_source(user_id=user_id, source_id=source_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -958,7 +958,7 @@ async def test_fork_messages_are_copied_in_order(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         source_rows = await MessagesRepository(session).list_messages_for_conversation(
             source_id,
         )
@@ -979,7 +979,7 @@ async def test_fork_cascade_delete_removes_descendants(
     source_id = uuid4()
     message_ids, _ = await _two_turn_source(user_id=user_id, source_id=source_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -989,11 +989,11 @@ async def test_fork_cascade_delete_removes_descendants(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await ConversationRepository(session).delete(source_id, cascade=True)
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         remaining = await session.scalar(
             select(Conversation).where(Conversation.id == fork_id),
         )
@@ -1010,7 +1010,7 @@ async def test_fork_survives_noncascade_delete_of_source(
     source_id = uuid4()
     message_ids, _ = await _two_turn_source(user_id=user_id, source_id=source_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1021,11 +1021,11 @@ async def test_fork_survives_noncascade_delete_of_source(
         fork_id = fork.id
         fork_count_before = await _count_checkpoints(session, str(fork_id))
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await ConversationRepository(session).delete(source_id)
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         surviving = await session.scalar(
             select(Conversation).where(Conversation.id == fork_id),
         )
@@ -1045,7 +1045,7 @@ async def test_fork_of_fork_scopes_to_parent_branch(
     source_id = uuid4()
     message_ids, _ = await _two_turn_source(user_id=user_id, source_id=source_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         mid = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1055,13 +1055,13 @@ async def test_fork_of_fork_scopes_to_parent_branch(
         await session.commit()
         mid_id = mid.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         mid_count = await _count_checkpoints(session, str(mid_id))
         mid_msgs = await MessagesRepository(session).list_messages_for_conversation(
             mid_id,
         )
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         grand = await fork_conversation(
             session,
             source_conversation_id=mid_id,
@@ -1071,7 +1071,7 @@ async def test_fork_of_fork_scopes_to_parent_branch(
         await session.commit()
         grand_id = grand.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         assert await _count_checkpoints(session, str(grand_id)) == mid_count
         assert await _chain_is_valid(session, str(grand_id))
 
@@ -1086,7 +1086,7 @@ async def test_fork_resume_returns_anchor_state(
     source_id = uuid4()
     base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(
             session,
@@ -1124,7 +1124,7 @@ async def test_fork_resume_returns_anchor_state(
     anchor_ts = base + timedelta(seconds=19)
     next_ts = base + timedelta(seconds=40)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         messages = MessagesRepository(session)
         anchor = await _insert_message(
             messages,
@@ -1143,7 +1143,7 @@ async def test_fork_resume_returns_anchor_state(
         await _set_message_created_at(session, message_id=following, ts=next_ts)
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1164,7 +1164,7 @@ async def test_fork_resume_returns_anchor_state(
     assert fork_tuple.checkpoint["channel_values"]["turn_total_tokens"] == 250
     assert fork_tuple.checkpoint["channel_values"]["current_phase"] == "verification"
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         assert await _chain_is_valid(session, str(fork_id))
 
 
@@ -1181,7 +1181,7 @@ async def test_fork_resume_latest_matches_source_exactly(
     source_id = uuid4()
     base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(
             session,
@@ -1200,7 +1200,7 @@ async def test_fork_resume_latest_matches_source_exactly(
             channel_values={"turn_total_tokens": 800, "current_phase": "planning"},
         )
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         messages = MessagesRepository(session)
         anchor = await _insert_message(
             messages,
@@ -1216,7 +1216,7 @@ async def test_fork_resume_latest_matches_source_exactly(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1249,7 +1249,7 @@ async def test_fork_scales_to_many_turns(
     base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
     turns = 8
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(
             session,
@@ -1274,7 +1274,7 @@ async def test_fork_scales_to_many_turns(
 
     msg_ids: list[UUID] = []
     for turn in range(turns):
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             messages = MessagesRepository(session)
             msg = await _insert_message(
                 messages,
@@ -1291,7 +1291,7 @@ async def test_fork_scales_to_many_turns(
             msg_ids.append(msg)
             await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1301,7 +1301,7 @@ async def test_fork_scales_to_many_turns(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         assert await _chain_is_valid(session, str(fork_id))
         source_count = await _count_checkpoints(session, str(source_id))
         fork_count = await _count_checkpoints(session, str(fork_id))
@@ -1325,7 +1325,7 @@ async def test_fork_writes_only_reference_surviving_checkpoints(
     source_id = uuid4()
     message_ids, _ = await _two_turn_source(user_id=user_id, source_id=source_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1335,7 +1335,7 @@ async def test_fork_writes_only_reference_surviving_checkpoints(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         result = await session.execute(
             text(
                 "SELECT COUNT(*) FROM checkpoint_writes w "
@@ -1367,7 +1367,7 @@ async def test_fork_preserves_blob_bytes_exactly(
     source_id = uuid4()
     base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(
             session,
@@ -1391,7 +1391,7 @@ async def test_fork_preserves_blob_bytes_exactly(
             },
         )
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         messages = MessagesRepository(session)
         anchor = await _insert_message(
             messages,
@@ -1407,7 +1407,7 @@ async def test_fork_preserves_blob_bytes_exactly(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1417,7 +1417,7 @@ async def test_fork_preserves_blob_bytes_exactly(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         result = await session.execute(
             text(
                 """
@@ -1476,12 +1476,12 @@ async def test_fork_copies_scratchpad_notes_with_fresh_ids(
     user_id = uuid4()
     source_id = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(session, conversation_id=source_id, user_id=user_id)
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         sc = ScratchpadRepository(session)
         src_note_1 = await sc.create(
             conversation_id=source_id,
@@ -1503,7 +1503,7 @@ async def test_fork_copies_scratchpad_notes_with_fresh_ids(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         anchor_id = await _insert_message(
             MessagesRepository(session),
             conv_id=source_id,
@@ -1512,7 +1512,7 @@ async def test_fork_copies_scratchpad_notes_with_fresh_ids(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1522,7 +1522,7 @@ async def test_fork_copies_scratchpad_notes_with_fresh_ids(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         sc = ScratchpadRepository(session)
         fork_notes = await sc.list_notes(conversation_id=fork_id, limit=100)
         src_notes = await sc.list_notes(conversation_id=source_id, limit=100)
@@ -1652,7 +1652,7 @@ async def test_fork_copies_ast_as_independent_deep_structure(
     source_id = uuid4()
     ast = _three_step_combine_ast()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation_with_ast(
             session,
@@ -1668,7 +1668,7 @@ async def test_fork_copies_ast_as_independent_deep_structure(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1678,7 +1678,7 @@ async def test_fork_copies_ast_as_independent_deep_structure(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         forked = await session.get(ConversationStrategy, fork_id)
         assert forked is not None
         fork_view = _AstView.model_validate(forked.strategy_ast)
@@ -1704,7 +1704,7 @@ async def test_fork_copies_ast_as_independent_deep_structure(
         }
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         parent = await ConversationRepository(session).get_strategy(source_id)
         parent_view = _AstView.model_validate(parent.strategy_ast)
         assert parent_view.root.operator == "INTERSECT", (
@@ -1730,7 +1730,7 @@ async def test_fork_imported_saved_strategy_ids_is_independent_list(
     user_id = uuid4()
     source_id = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation_with_ast(
             session,
@@ -1747,7 +1747,7 @@ async def test_fork_imported_saved_strategy_ids_is_independent_list(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1757,14 +1757,14 @@ async def test_fork_imported_saved_strategy_ids_is_independent_list(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         forked = await session.get(ConversationStrategy, fork_id)
         assert forked is not None
         assert forked.imported_saved_strategy_ids == [5001, 5002]
         forked.imported_saved_strategy_ids = [*forked.imported_saved_strategy_ids, 5003]
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         parent = await ConversationRepository(session).get_strategy(source_id)
         assert parent.imported_saved_strategy_ids == [5001, 5002], (
             "fork's consumer-id append leaked into the parent conversation"
@@ -1780,14 +1780,14 @@ async def test_fork_at_middle_message_excludes_later_messages(
     user_id = uuid4()
     source_id = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(session, conversation_id=source_id, user_id=user_id)
         await session.commit()
 
     msg_ids: list[UUID] = []
     for role in ("user", "assistant", "user", "assistant"):
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             mid = await _insert_message(
                 MessagesRepository(session),
                 conv_id=source_id,
@@ -1799,7 +1799,7 @@ async def test_fork_at_middle_message_excludes_later_messages(
 
     anchor_id = msg_ids[1]
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1809,7 +1809,7 @@ async def test_fork_at_middle_message_excludes_later_messages(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         rows = await MessagesRepository(session).list_messages_for_conversation(fork_id)
         assert [r.role for r in rows] == ["user", "assistant"], (
             "fork must copy exactly the anchor prefix, not later messages"
@@ -1833,12 +1833,12 @@ async def test_fork_rewrites_scratchpad_ids_in_copied_chunks(
     user_id = uuid4()
     source_id = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await _seed_user(session, user_id)
         await _seed_conversation(session, conversation_id=source_id, user_id=user_id)
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         sc = ScratchpadRepository(session)
         src_note = await sc.create(
             conversation_id=source_id,
@@ -1851,7 +1851,7 @@ async def test_fork_rewrites_scratchpad_ids_in_copied_chunks(
         await session.commit()
     src_note_id = src_note.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         msg_id = uuid4()
         session.add(
             Message(
@@ -1893,7 +1893,7 @@ async def test_fork_rewrites_scratchpad_ids_in_copied_chunks(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_id,
@@ -1903,7 +1903,7 @@ async def test_fork_rewrites_scratchpad_ids_in_copied_chunks(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         sc = ScratchpadRepository(session)
         fork_notes = await sc.list_notes(conversation_id=fork_id, limit=10)
         fork_chunks = (

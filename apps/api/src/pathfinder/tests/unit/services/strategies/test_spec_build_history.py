@@ -12,10 +12,11 @@ what the user asked for. What it must not be is irreversible.
 
 from __future__ import annotations
 
-from pathfinder.domain.parameters.values import StringValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.session import StrategyGraph
+from veupathdb.domain.parameters.values import StringValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.session import StrategyGraph
+
 from pathfinder.services.strategies import spec_build
 
 

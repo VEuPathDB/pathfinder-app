@@ -1,8 +1,8 @@
 import httpx
+from veupathdb.domain.parameters.values import SinglePickValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
 
-from pathfinder.domain.parameters.values import SinglePickValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
 from pathfinder.transport.http.schemas import StepCountsRequest
 
 

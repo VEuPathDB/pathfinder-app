@@ -10,6 +10,7 @@ dependencies = [
     "pydantic-settings>=2.14.2", # GHSA-4xgf-cpjx-pc3j
     "sqlalchemy[asyncio]>=2.0.49",
     "asyncpg>=0.31.0",
+    "pgvector>=0.5.0",
     "alembic>=1.18.0",
     "httpx>=0.28.1",
     "pydantic-ai>=2.22.0,<3",
@@ -27,8 +28,9 @@ dependencies = [
     "structlog>=25.0.0",
     "pyyaml>=6.0.3",
     "tenacity>=9.1.0",
-    "json5>=0.14.0",
     "onnxruntime>=1.19.0",
+    "numpy>=2.0.0",
+    "openai>=2.0.0",
     "tokenizers>=0.21.0",
     "rapidfuzz>=3.14.0",
     "pyjwt>=2.13.0", # PYSEC-2026-175/177/178/179
@@ -38,6 +40,8 @@ dependencies = [
     "procrastinate>=3.8.1",
     "ddgs>=9.14.1",
     "pydantic-evals>=2.22.0,<3",
+    "veupathdb-py",
+    "veupathdb-mcp",
 ]
 
 [tool.uv]
@@ -58,8 +62,10 @@ constraint-dependencies = [
 ]
 
 [tool.uv.sources]
-assistant-core = { path = "../../packages/assistant-core", editable = true }
-veupathdb-mcp-conformance = { path = "../../packages/mcp-conformance", editable = true }
+assistant-core = { path = "../../assistant-platform/packages/assistant-core", editable = true }
+veupathdb-py = { path = "../../veupathdb-py", editable = true }
+veupathdb-mcp = { path = "../../veupathdb-mcp", editable = true }
+veupathdb-mcp-conformance = { path = "../../assistant-platform/packages/mcp-conformance", editable = true }
 
 [build-system]
 requires = ["hatchling"]
@@ -239,44 +245,14 @@ root_packages = ["pathfinder"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
-name = "Domain layer is pure (no I/O, no other layers)"
-type = "forbidden"
-source_modules = ["pathfinder.domain"]
-forbidden_modules = [
-    "pathfinder.integrations",
-    "pathfinder.services",
-    "pathfinder.transport",
-    "pathfinder.persistence",
-    "pathfinder.ai",
-    "httpx",
-    "sqlalchemy",
-    "asyncpg",
-    "fastapi",
-]
-
-# The WDK search definition is the vocabulary the FRAME tools are written in,
-# and it is a frozen response model that opens no connection. It sits in the
-# integration only because the whole wire-model module does. The four edges are
-# named here rather than laundered through a re-export, and the symbol each one
-# may name is pinned by a test.
-[[tool.importlinter.contracts]]
-name = "Transport and AI never import integrations or persistence directly"
+name = "Transport and AI never import persistence directly"
 type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
     "pathfinder.transport",
     "pathfinder.ai",
 ]
-forbidden_modules = [
-    "pathfinder.integrations",
-    "pathfinder.persistence",
-]
-ignore_imports = [
-    "pathfinder.ai.tools.standalone._catalog_models -> pathfinder.integrations.veupathdb.wdk_models",
-    "pathfinder.ai.tools.standalone._frame_proposals -> pathfinder.integrations.veupathdb.wdk_models",
-    "pathfinder.ai.tools.standalone._frame_sheet -> pathfinder.integrations.veupathdb.wdk_models",
-    "pathfinder.ai.tools.standalone.frame_spec -> pathfinder.integrations.veupathdb.wdk_models",
-]
+forbidden_modules = ["pathfinder.persistence"]
 
 [[tool.importlinter.contracts]]
 name = "Services never import transport or AI"
@@ -290,18 +266,7 @@ forbidden_modules = [
 ]
 
 [[tool.importlinter.contracts]]
-name = "Integrations never import services, transport, or AI"
-type = "forbidden"
-allow_indirect_imports = true
-source_modules = ["pathfinder.integrations"]
-forbidden_modules = [
-    "pathfinder.services",
-    "pathfinder.transport",
-    "pathfinder.ai",
-]
-
-[[tool.importlinter.contracts]]
-name = "Persistence never imports services, transport, AI, or integrations"
+name = "Persistence never imports services, transport, or AI"
 type = "forbidden"
 allow_indirect_imports = true
 source_modules = ["pathfinder.persistence"]
@@ -309,7 +274,6 @@ forbidden_modules = [
     "pathfinder.services",
     "pathfinder.transport",
     "pathfinder.ai",
-    "pathfinder.integrations",
 ]
 
 # The runtime is the `assistant-core` distribution, so no contract here can
@@ -317,7 +281,7 @@ forbidden_modules = [
 # on this application. What stays enforceable here is the direction of the
 # assembly: an assistant is built FROM the science, never the other way, so a
 # science module that reaches the composition root has inverted the wiring.
-# Direct-only, like the six above: the chat dispatcher still reaches the
+# Direct-only, like the three above: the chat dispatcher still reaches the
 # registry through the job runner, which is the turn-pipeline seam WS3 named.
 [[tool.importlinter.contracts]]
 name = "The science never imports an assistant's composition root"
@@ -325,23 +289,31 @@ type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
     "pathfinder.ai",
-    "pathfinder.domain",
-    "pathfinder.integrations",
-    "pathfinder.mcp",
     "pathfinder.persistence",
     "pathfinder.services",
 ]
 forbidden_modules = ["pathfinder.assistants"]
 
-# The MCP server is stateless and serves one call at a time, so it reaches the
-# services and nothing that carries a turn.
+# The workbench is one module: gene sets, experiments, control sets, variant
+# comparisons and parameter sweeps. `services/workbench/` is its facade, and it
+# holds functions with bodies, not re-export lines. What is forbidden below is
+# every module whose behaviour the facade owns; a result type stays importable
+# from the module that defines it, because a facade that re-exports a type is a
+# re-export. Direct-only, like the four above.
 [[tool.importlinter.contracts]]
-name = "The MCP server never imports the agents or the API transport"
+name = "The agent and the jobs reach the workbench only through its facade"
 type = "forbidden"
 allow_indirect_imports = true
-source_modules = ["pathfinder.mcp"]
-forbidden_modules = [
+source_modules = [
     "pathfinder.ai",
-    "pathfinder.transport",
+    "pathfinder.jobs",
+]
+forbidden_modules = [
+    "pathfinder.services.control_sets",
+    "pathfinder.services.experiment.control_sourcing",
+    "pathfinder.services.experiment.store",
+    "pathfinder.services.gene_sets.enrichment",
+    "pathfinder.services.gene_sets.store",
+    "pathfinder.services.parameter_optimization.sweep",
 ]
 

@@ -7,21 +7,21 @@ behind it survive.
 from __future__ import annotations
 
 import pytest
-
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import StepKind, StrategyStep
-from pathfinder.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
+from veupathdb.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SpecStructure,
     StructureNode,
 )
-from pathfinder.domain.strategy.operations import (
+from veupathdb.domain.strategy.operations import (
     AddLeafOp,
     DeleteStepOp,
     ReplaceSubtreeOp,
 )
-from pathfinder.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.ops import CombineOp
+
 from pathfinder.domain.strategy.spec_to_operations import UnsupportedEditError
 
 from ._builders import (

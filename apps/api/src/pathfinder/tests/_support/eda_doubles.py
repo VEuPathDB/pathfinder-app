@@ -11,20 +11,20 @@ from pydantic_ai import RunContext
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from pathfinder.ai.graph.runtime import Context
-from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.eda_parts import EdaEntityCount
-from pathfinder.domain.eda_study import walk_entities
-from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.integrations.eda.models import (
+from veupathdb.domain.eda_study import walk_entities
+from veupathdb.domain.strategy.session import StrategySession
+from veupathdb.eda.models import (
     EdaAnalysisDetail,
     EdaFilter,
     EdaPermissionEntry,
     EdaStudyDetail,
     EdaStudyDetailResponse,
 )
+
+from pathfinder.ai.graph.runtime import Context
+from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.eda_parts import EdaEntityCount
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.tests._support.eda_wire import (

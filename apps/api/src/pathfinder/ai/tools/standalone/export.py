@@ -22,7 +22,7 @@ from pathfinder.ai.tools.standalone._export_models import (
     GeneSetSummaryItem,
 )
 from pathfinder.services.export import get_export_service
-from pathfinder.services.gene_sets.store import get_gene_set_store
+from pathfinder.services.workbench.gene_sets import get_gene_set, list_gene_sets
 
 
 async def _available_gene_sets(
@@ -30,11 +30,7 @@ async def _available_gene_sets(
     user_id: UUID | None,
 ) -> list[JSONObject]:
     """Return summary of available gene sets for error messages."""
-    store = get_gene_set_store()
-    if user_id is not None:
-        sets = await store.alist_for_user(user_id, site_id=site_id)
-    else:
-        sets = await store.alist_all(site_id=site_id)
+    sets = await list_gene_sets(site_id=site_id, user_id=user_id)
     return [
         GeneSetSummaryItem(
             id=gs.id, name=gs.name, gene_count=len(gs.gene_ids)
@@ -62,8 +58,7 @@ async def export_gene_set(
         raise ModelRetry(msg)
 
     deps = ctx.deps
-    store = get_gene_set_store()
-    gs = await store.aget(gene_set_id)
+    gs = await get_gene_set(gene_set_id)
     if gs is None:
         available = await _available_gene_sets(deps.site_id, deps.user_id)
         msg = (

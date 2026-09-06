@@ -22,8 +22,6 @@ alphabetical index of all documented objects.
    tools
    services
    gene_sets
-   integrations
-   wdk_services
    domain
    strategies
    chat

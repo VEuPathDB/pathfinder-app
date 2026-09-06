@@ -11,8 +11,9 @@ from __future__ import annotations
 import os
 from collections.abc import Awaitable, Callable, Sequence
 
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.platform.context import veupathdb_auth_token_ctx
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.wdk.factory import get_strategy_api
+
 from pathfinder.tests.integration.mcp._served import SITE
 
 BEARER_VARIABLE = "MCP_CONFORMANCE_BEARER"

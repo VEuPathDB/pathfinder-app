@@ -9,16 +9,16 @@ from uuid import UUID
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone import eda_analysis
-from pathfinder.domain.eda_parts import EdaAnalysisState
-from pathfinder.integrations.eda.models import (
+from veupathdb.eda.models import (
     EdaFilter,
     EdaPermissionEntry,
     EdaStringSetFilter,
     EdaStudyDetail,
 )
+
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone import eda_analysis
+from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.authoring import SubsetRejectedError
 from pathfinder.services.eda.binding import ConversationAnalysisView

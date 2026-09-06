@@ -14,7 +14,7 @@ import {
   GeneListsSection,
   MetricsOverview,
   RobustnessSection,
-} from "@/features/analysis";
+} from "@/features/workbench/analysis";
 import { createExperimentStream } from "@/features/workbench/api";
 import type { ExperimentRunConfig } from "@/features/workbench/api/streaming";
 import { Button } from "@/components/ui/button";
@@ -71,12 +71,12 @@ export function EvaluatePanel() {
 
   useUnmount(() => abortRef.current?.abort());
 
+  const strategyBacked =
+    activeSet?.searchName != null &&
+    activeSet.searchName !== "" &&
+    activeSet.parameters != null;
   const hasSearchContext = Boolean(
-    activeSet != null &&
-    (activeSet.geneIds.length > 0 ||
-      (activeSet.searchName !== null &&
-        activeSet.searchName !== "" &&
-        activeSet.parameters !== null)),
+    activeSet != null && (activeSet.geneIds.length > 0 || strategyBacked),
   );
 
   const handleRun = async () => {
@@ -103,7 +103,8 @@ export function EvaluatePanel() {
       controlsSearchName: CONTROLS_SEARCH_NAME,
       controlsParamName: CONTROLS_PARAM_NAME,
       enableCrossValidation: enableCV,
-      kFolds: enableCV ? kFolds : 0,
+      kFolds,
+      targetGeneIds: strategyBacked ? undefined : activeSet.geneIds,
       enrichmentTypes,
       name: `${activeSet.name} (evaluation)`,
     } satisfies ExperimentRunConfig;

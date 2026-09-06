@@ -32,9 +32,9 @@ rather than a matter of opinion.
 
 **Leave WDK knowledge where it already is.** It is not hidden. Take the JSESSIONID
 silent-zero, where a process query without a Tomcat session cookie returns zero results
-instead of an error. It is written down in at least six places: a Key Technical Note in
-`CLAUDE.md`, two docstrings in `integrations/veupathdb/_http.py` (`_init_wdk_session` and
-`close`), a design dropdown in `apps/api/docs/api/integrations.rst`, the `silent_zero`
+instead of an error. It was written down in at least six places: a Key Technical Note in
+`CLAUDE.md`, two docstrings in `veupathdb/wdk/_http.py` (`_init_wdk_session` and
+`close`), a design dropdown in the api Sphinx page for the integrations (since deleted), the `silent_zero`
 anomaly in `devtools/diagnosis.py`, and its row in `devtools/README.md`.
 
 This document originally said "each of those is true". It should not have, because nothing
@@ -63,7 +63,7 @@ older deployment, and it is not an argument for deleting the workaround. It is p
 nobody could tell either way, which is the point.
 
 There is a mechanism that produces the same observable signature and that did verify:
-[`WDK-AUTH-001`](../wdk/rules/auth-and-transport.md). A request with no `Authorization`
+`WDK-AUTH-001` (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`). A request with no `Authorization`
 credential is not rejected; WDK mints a brand new guest user for it. Three consecutive
 unauthenticated `GET /users/current` calls returned three different user ids, and the same
 three sharing a cookie jar returned one. A client that drops its token is a stream of
@@ -84,7 +84,7 @@ capable of raising a hand. Each of the six failed in its own way:
   describes `JSESSIONID` purely as the auth cookie mechanism and never mentions the silent
   zero at all. A reader gets a different confidence level depending on which file they
   happen to open, and no file knows the others exist.
-- **The test pins us, not WDK.** `tests/unit/integrations/veupathdb/test_http.py`
+- **The test pins us, not WDK.** `veupathdb-py/tests/unit/wdk/test_http.py`
   asserts that our client re-initializes the session when the token changes. That is our
   conformance, and it passed on every commit throughout, including every commit for which
   the upstream behavior it exists for may not have been happening at all. No test asserts
@@ -98,7 +98,7 @@ capable of raising a hand. Each of the six failed in its own way:
 That is the actual failure: not that the knowledge is missing, but that as a body it is
 unlocatable and unverifiable. Scattering is what a pinned, gated bundle fixes, and the
 first thing the bundle did was falsify its own motivating example. The claim now lives in
-one place, [wdk/rest/transport-quirks.md](../wdk/rest/transport-quirks.md), recorded as an
+one place, `veupathdb-py: docs/knowledge/wdk/rest/transport-quirks.md`, recorded as an
 open question with its evidence attached rather than as a rule, because a rule here must be
 sourceable and this one is not.
 
@@ -124,6 +124,6 @@ which asserts each failure mode independently. The convention it implements is i
 
 The live evidence above is itself falsifiable and unpinned by nature: it is a request, not
 a line of source. Both checks are written out in full in
-[wdk/rest/transport-quirks.md](../wdk/rest/transport-quirks.md) so anyone can repeat them,
+`veupathdb-py: docs/knowledge/wdk/rest/transport-quirks.md` so anyone can repeat them,
 and both are anonymous, so repeating them needs no credential. A reproduction of the
 silent zero would overturn this section, which is the outcome this document wants.

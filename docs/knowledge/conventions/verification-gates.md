@@ -47,25 +47,25 @@ project environment: an older interpreter on `PATH` reports every PEP 758, PEP
 
 `pyright` is not redundant with `mypy`: it catches variance and invariance errors mypy misses. `ruff format --check` is not redundant with `ruff check` either: the two rule sets do not overlap, and formatting drift is invisible to the linter.
 
-`lint-imports` enforces seven layering contracts, declared in `apps/api/pyproject.toml` under `[tool.importlinter]`, and it is the gate that keeps Domain pure:
+`lint-imports` enforces four layering contracts, declared in `apps/api/pyproject.toml` under `[tool.importlinter]`:
 
-1. Domain is pure: no I/O, no other layer.
-2. Transport and AI never import integrations or persistence directly.
-3. Services never import transport or AI.
-4. Integrations never import services, transport or AI.
-5. Persistence never imports services, transport, AI or integrations.
-6. The science never imports an assistant's composition root.
-7. The MCP server never imports the agents or the API transport.
+1. Transport and AI never import persistence directly.
+2. Services never import transport or AI.
+3. Persistence never imports services, transport or AI.
+4. The science never imports an assistant's composition root.
 
-Contract 2 was two contracts, one over `pathfinder.transport` and
-`pathfinder.ai.tools` and one over `pathfinder.ai`, which between them stated
-one rule twice and left the rest of `pathfinder.ai` free to open a database
-session. It carries the only exception in the file: four FRAME tool modules
-annotate a WDK search definition with a wire model, and each edge is a line in
-`ignore_imports`. A contract cannot see which name an edge imports, so
-`tests/unit/services/wdk/test_no_integration_facade.py` pins the symbol and
-fails any other import from `pathfinder.integrations` in either layer. See
-[the WDK service-layer decision](../decisions/the-wdk-service-layer-holds-functions-not-re-exports.md).
+Domain purity, the integration direction and the MCP server's isolation are no
+longer contracts. They are installation facts of `veupathdb-py` and
+`veupathdb-mcp`, whose `tests/unit/test_package_boundary.py` suites assert them
+per module; see [the client library is a
+distribution](../decisions/the-client-library-is-a-distribution.md). The four
+`ignore_imports` that let four FRAME tool modules annotate a WDK search
+definition with a wire model went with them: a third-party module needs no
+exemption. The embedding index left with the MCP server, and
+`pathfinder.integrations` with it, so the contract that forbade it and the test
+that named the offending module are both deleted; what holds the property now is
+`veupathdb-mcp`'s own `tests/unit/test_package_boundary.py`. See [the MCP server
+is a distribution](../decisions/the-mcp-server-is-a-distribution.md).
 
 The unit tier refuses every connection made through Python's socket module. An autouse fixture in `src/pathfinder/tests/unit/conftest.py` patches `socket.socket.connect`, `connect_ex`, `socket.getaddrinfo` and the event loop's `create_connection`/`getaddrinfo`, so a stub that no longer covers its seam fails there instead of passing against a live server. The refusal derives from `BaseException`, because every HTTP client here retries under `except Exception` and would otherwise swallow it.
 
@@ -77,19 +77,27 @@ A unit test that needs a real connection carries `@pytest.mark.allow_network`. N
 
 The WDK rules answer to two suites, and which lane a rule lands in follows from what can falsify it.
 
-**Per-PR, hermetic, hard gate.** Every rule that a pinned response can settle is a test in `tests/unit/`, reading a recorded fixture through `pathfinder.devtools.wdk_fixtures`. It runs in the ordinary unit tier, needs no network and no credential, and blocks a merge. A rule's `status` line names one of these tests, and `node scripts/check-wdk-rules.mjs` resolves the name and reports how many rules are still unenforced.
+**Per-PR, hermetic, hard gate.** Every rule that a pinned response can settle is a test reading a recorded fixture through `veupathdb.testing.wdk_fixtures`, in `veupathdb-py/tests/unit/` when the client alone can settle it and in `apps/api/src/pathfinder/tests/unit/` when it needs a service. It runs in the ordinary unit tier, needs no network and no credential, and blocks a merge. A rule's `status` line names one of these tests, and `node scripts/check-wdk-rules.mjs` resolves the name and reports how many rules are still unenforced.
 
-**Nightly, live, never blocking.** `pytest -m live_wdk` is the second lane: the same rules against running sites, plus the checks a fixture cannot answer - a search still exists, a vocabulary still carries a pinned term, a sentinel count is still in band, and the pinned fixtures still describe the wire. It skips without `WDK_TEST_EMAIL`/`WDK_TEST_PASSWORD` (or `WDK_TEST_TOKEN`), runs on a schedule in `.github/workflows/wdk-nightly.yml`, and files an issue rather than failing a build. Every resource a live check creates is deleted in teardown: the account is a researcher's own.
+The same tier holds the schema half. `wdk_fixtures verify` validates each body PathFinder sends or has recorded against the WDK JSON Schema its endpoint annotates, reading the copy vendored under `veupathdb-py/src/veupathdb/testing/fixtures/wdk/schema/`; it is offline, it fails when a vendored file no longer matches the sha256 in `schema-pin.json`, and `veupathdb-py/tests/unit/devtools/` runs it as a test as well as the CLI running it as a gate. Which schemas WDK enforces, and which of its own annotations the service breaks, is WDK-HTTP-004 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`).
+
+**Nightly, live, never blocking.** `pytest -m live_wdk` is the second lane: the same rules against running sites, plus the checks a fixture cannot answer - a search still exists, a vocabulary still carries a pinned term, a sentinel count is still in band, and the pinned fixtures still describe the wire. It skips without `WDK_TEST_EMAIL`/`WDK_TEST_PASSWORD` (or `WDK_TEST_TOKEN`), runs on a schedule in `.github/workflows/wdk-nightly.yml`, and files an issue rather than failing a build. The `apps/api` half of the lane loads site catalogs. A catalog load starts the semantic index sync beside itself and never waits on it, so the lane needs no database: an unreachable one leaves ranking lexical and is logged once. Every resource a live check creates is deleted in teardown: the account is a researcher's own.
 
 ```
 yarn wdk:live       # run the nightly lane by hand
 yarn wdk:record     # re-record the pinned fixtures from live WDK
 yarn check:wdk-rules
+cd apps/api && uv run python -m veupathdb.devtools.fixtures verify   # offline
+cd apps/api && uv run python -m veupathdb.devtools.fixtures vendor   # re-pin
+cd apps/api && uv run python -m veupathdb.devtools.eda_schemas verify    # offline
+cd apps/api && uv run python -m veupathdb.devtools.eda_schemas vendor    # re-pin
 ```
 
-**A confirmed drift is answered by re-recording, not by editing a fixture.** No fixture is written by hand. `apps/api/src/pathfinder/devtools/wdk_fixtures.py` holds the manifest - what to ask, where, and which rules read it - and `record` refreshes the store. Each file carries its own provenance as data: site, method, url, status, content type, and the date it was recorded. Recording needs `VEUPATHDB_AUTH_TOKEN`, because VEuPathDB refuses anonymous service calls; every manifest entry is user-independent, so no account is addressed.
+**A confirmed drift is answered by re-recording, not by editing a fixture.** No fixture is written by hand. `veupathdb-py/src/veupathdb/devtools/fixtures.py` holds the manifest - what to ask, where, which rules read it, and which schema each direction binds - and `record` refreshes the store. Each file carries its own provenance as data: site, method, url, status, content type, and the date it was recorded. Recording needs `VEUPATHDB_AUTH_TOKEN`, because VEuPathDB refuses anonymous service calls; every manifest entry is user-independent, so no account is addressed.
 
-**The EDA fixtures answer the same way.** The recorded EDA bodies under `apps/api/src/pathfinder/tests/unit/integrations/eda/fixtures/` are trimmed by hand, so `record` refreshes their provenance rather than their content. `apps/api/src/pathfinder/tests/_support/eda_fixtures.py` holds the manifest - what to ask, where, and what the stored copy drops - and writes `provenance.json` beside the bodies: site, deployment, method, url, status, content type, body shape and the date. `tests/live/test_eda_fixture_drift.py` runs in the `live_wdk` lane and fails when the deployment's body shape no longer matches what a fixture pins, or when a fixture on disk is not in the manifest. Recording needs the same registered account the lane skips without.
+**A vendored schema is re-downloaded, not edited either.** `vendor` fetches the enforced schemas and their transitive `$ref` closure at the commit the pin names, deletes what the closure no longer reaches, and rewrites the pin only when a byte changed. Moving to a newer WDK is one edit to the pin's `sha` followed by `vendor`; a hand-edited copy fails `verify` instead of passing quietly.
+
+**The EDA fixtures answer the same way.** The recorded EDA bodies under `veupathdb-py/src/veupathdb/testing/fixtures/eda/` are trimmed by hand, so `record` refreshes their provenance rather than their content. `apps/api/src/pathfinder/tests/_support/eda_fixtures.py` holds the manifest - what to ask, where, and what the stored copy drops - and writes `provenance.json` beside the bodies: site, deployment, method, url, status, content type, body shape and the date. `tests/live/test_eda_fixture_drift.py` runs in the `live_wdk` lane and fails when the deployment's body shape no longer matches what a fixture pins, or when a fixture on disk is not in the manifest. Recording needs the same registered account the lane skips without. The schema half is `veupathdb.devtools.eda_schemas verify`: it reads the `service-eda` RAML type library vendored under `veupathdb-py/src/veupathdb/testing/fixtures/eda/upstream/`, converts it to JSON Schema, and validates every recorded EDA body against the type its resource declares; it is offline, fails on a sha256 drift from its own `schema-pin.json`, and absorbs only the divergences `veupathdb-py: docs/knowledge/eda/rest-surface.md` records as defects in the spec.
 
 The lane writes `wdk-live-summary.json`: the run's outcomes, a per-site tally, and the drift list. It is the science layer's feed into the observability contract.
 
@@ -133,7 +141,7 @@ credential.
 
 The run writes `EvalRunSummary`: harness, provider, assistant, per-case verdict and named differences. It is the logic layer's feed into the observability contract.
 
-# Assistant runtime (`packages/assistant-core`)
+# Assistant runtime (`assistant-platform/packages/assistant-core`)
 
 ```
 uv run ruff check src tests
@@ -156,7 +164,7 @@ LISTEN/NOTIFY, so an in-memory substitute will not do.
 that changes without the page changing fails
 `tests/integration/conversation/test_protocol_document.py`.
 
-# Assistant client (`packages/assistant-client-ts`)
+# Assistant client (`assistant-platform/packages/assistant-client-ts`)
 
 ```
 yarn typecheck
@@ -175,7 +183,7 @@ package through its tsconfig `paths` and its vitest aliases, both of which name
 `src`, so only this command and a `yarn pack` exercise the artifact a host
 installs.
 
-# MCP conformance suite (`packages/mcp-conformance`)
+# MCP conformance suite (`assistant-platform/packages/mcp-conformance`)
 
 ```
 uv run ruff check src tests
@@ -225,11 +233,10 @@ node scripts/check-no-first-nth.mjs
 npx vitest run
 ```
 
-The two ratchets are green on the trunk, so a red line names the test the
-change just added. `check-weak-assertions.mjs` fails a test whose only matchers
-pin nothing (`toBeTruthy`, `toBeNull`, `toBeUndefined`);
-`scripts/.weak-baseline.txt` suppresses 62 older offenders, and an entry leaves
-it when its test gains a value assertion. `check-no-first-nth.mjs` fails an
+Both checks are green on the trunk, so a red line names the test the change
+just added. `check-weak-assertions.mjs` fails a test whose only matchers pin
+nothing (`toBeTruthy`, `toBeNull`, `toBeUndefined`); it carries no baseline,
+because every web test now states a value. `check-no-first-nth.mjs` fails an
 index-based Playwright locator: `.first()` and `.nth()` hide a strict-mode
 collision instead of fixing it, so a spec names what it means to click.
 

@@ -1,21 +1,6 @@
-"""Shared data types for the Experiment Lab.
+"""The shapes an experiment run takes and returns."""
 
-This package consolidates all experiment-related dataclasses, type aliases,
-and serialization helpers. All public symbols are re-exported here.
-"""
-
-from pathfinder.services.enrichment.types import (
-    EnrichmentAnalysisType,
-    EnrichmentResult,
-    EnrichmentTerm,
-)
-from pathfinder.services.experiment.types.control_result import (
-    ControlSetData,
-    ControlTargetData,
-    ControlTestResult,
-)
 from pathfinder.services.experiment.types.core import (
-    ControlValueFormat,
     ExperimentMode,
     ExperimentProgressPhase,
     ExperimentStatus,
@@ -50,16 +35,7 @@ __all__ = [
     "ConfidenceInterval",
     # Metrics
     "ConfusionMatrix",
-    # Control result
-    "ControlSetData",
-    "ControlTargetData",
-    "ControlTestResult",
-    "ControlValueFormat",
     "CrossValidationResult",
-    "EnrichmentAnalysisType",
-    # Enrichment
-    "EnrichmentResult",
-    "EnrichmentTerm",
     "Experiment",
     "ExperimentConfig",
     "ExperimentMetrics",

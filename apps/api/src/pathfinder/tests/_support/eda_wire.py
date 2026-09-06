@@ -8,23 +8,19 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
-
-from pathfinder.integrations.eda import factory
-from pathfinder.integrations.eda.client import EdaClient
-from pathfinder.integrations.eda.models import (
+from veupathdb.eda import factory
+from veupathdb.eda.client import EdaClient
+from veupathdb.eda.models import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
 )
-from pathfinder.services.eda import authoring, binding, catalog, compute
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
-FIXTURE_DIR = (
-    Path(__file__).resolve().parents[1] / "unit" / "integrations" / "eda" / "fixtures"
-)
+from pathfinder.services.eda import authoring, binding, catalog, compute
 
 BASE_URL = "https://plasmodb.org/eda"
 EDA_USER_ID = "9001"

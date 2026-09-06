@@ -28,10 +28,10 @@ no agent plans from stale facts:
    8.2 and Appendix B4) blocks P1 on "`single_agent_graph` cannot ask for
    approval". That backlog item no longer exists; the runtime now owns the
    deferred-tool cycle in
-   `packages/assistant-core/src/assistant_core/graph/approvals.py:25-76`,
+   `assistant-platform/packages/assistant-core/src/assistant_core/graph/approvals.py:25-76`,
    `single_agent_graph` runs it (`graph/single_agent.py:90-106` builds the
    resume turn, `:220` parks the approval), and PROTOCOL.md 1.2.0 records the
-   change (`packages/assistant-core/PROTOCOL.md:732`). The debt inverted: the
+   change (`assistant-platform/PROTOCOL.md:732`). The debt inverted: the
    cycle now exists **twice**, because the Lead still carries its own copy
    (`apps/api/src/pathfinder/ai/graph/_lead_turn.py:82-308`;
    `docs/knowledge/backlog/approval-cycle-is-written-twice.md`). Batch A folds
@@ -58,7 +58,7 @@ no agent plans from stale facts:
 ### 1.1 What exists when the program is done
 
 ```
-packages/assistant-core            the runtime (existing, version 0.2.0a1)
+assistant-platform/packages/assistant-core            the runtime (existing, version 0.2.0a1)
   src/assistant_core/mcp/          NEW: declarations, admission, approval
                                    predicate, wrapper stack, per-turn
                                    resolution. Imports pydantic-ai + mcp only.
@@ -67,10 +67,10 @@ packages/assistant-core            the runtime (existing, version 0.2.0a1)
                                    two runtime stream-part models move in
                                    (batch F1), so the package publishes alone.
 
-packages/assistant-client-ts       the headless client (existing, 0.1.0-alpha.1)
+assistant-platform/packages/assistant-client-ts       the headless client (existing, 0.1.0-alpha.1)
   dist/ build + publish pipeline   NEW (batch F2). ./legacy ring KEPT (1.4.2).
 
-packages/mcp-conformance           NEW package: the conformance suite as a
+assistant-platform/packages/mcp-conformance           NEW package: the conformance suite as a
                                    runnable pytest plugin (design doc section
                                    4). Depends on mcp/httpx/pytest only; never
                                    imports pathfinder or assistant_core.
@@ -79,7 +79,7 @@ apps/api/src/pathfinder/mcp/       NEW module: veupathdb-wdk-mcp, a FastMCP
                                    streamable-HTTP server over the extracted
                                    service functions. Runs as its own
                                    container on the api image with its own
-                                   entrypoint (python -m pathfinder.mcp).
+                                   entrypoint (python -m veupathdb_mcp).
 
 apps/api, apps/web                 existing apps; batch A/B4/C/F3/F4/G changes.
 ```
@@ -90,7 +90,7 @@ apps/api, apps/web                 existing apps; batch A/B4/C/F3/F4/G changes.
   `assistant_core/mcp/`. The three reasons are the design doc's own (section
   2.1): the credential is the runtime's, the approval predicate is a
   deployment safety property, and admission is operator configuration. The
-  package boundary is already physical: `packages/assistant-core/pyproject.toml`
+  package boundary is already physical: `assistant-platform/packages/assistant-core/pyproject.toml`
   names no pathfinder dependency (`pyproject.toml:6-20`), and
   `tests/unit/test_package_boundary.py` pins its import surface. New code
   there inherits both proofs.
@@ -101,7 +101,7 @@ apps/api, apps/web                 existing apps; batch A/B4/C/F3/F4/G changes.
   assessment rejected (assessment section 3, "a Python package would have
   exactly one consumer"). The server is not the runtime and never imports
   `pathfinder.assistants` (import-linter contract 7,
-  `apps/api/pyproject.toml:329-340`, gains `pathfinder.mcp` as a source
+  `apps/api/pyproject.toml:329-340`, gains `veupathdb_mcp` as a source
   module).
 - **It runs as its own container, not a route on the api app.** Same image,
   second entrypoint. Isolation of memory (the per-site catalogs and semantic
@@ -128,7 +128,7 @@ The program's point is a consumer outside this repo. Today neither package can
 be handed over:
 
 - `assistant-core` 0.2.0a1 depends on `pathfinder-shared` as an editable path
-  (`packages/assistant-core/pyproject.toml:19,22-23`). The dependency carries
+  (`assistant-platform/packages/assistant-core/pyproject.toml:19,22-23`). The dependency carries
   exactly two modules - `shared_py.stream_parts.background_task` and
   `shared_py.stream_parts.turn_usage` - pinned by
   `tests/unit/test_package_boundary.py:24-25` and imported only from
@@ -140,7 +140,7 @@ be handed over:
   which point the package builds and publishes alone (hatchling build already
   configured, `pyproject.toml:25-30`).
 - `@pathfinder/assistant-client` 0.1.0-alpha.1 exports raw TypeScript sources
-  (`packages/assistant-client-ts/package.json`, `"exports"` mapping to
+  (`assistant-platform/packages/assistant-client-ts/package.json`, `"exports"` mapping to
   `./src/*.ts`) and has no build step. **Batch F2 adds a `dist/` emit and
   points `exports` at it**, keeping the three-ring shape recorded in
   `docs/knowledge/decisions/the-client-is-a-package-with-three-rings.md`.
@@ -186,7 +186,7 @@ seams it cites (`frame_spec.py` binding tools; strategy mutation in
 |---|---|---|---|
 | `assistant_core/mcp/` | assistant_core, pydantic-ai, mcp, fastmcp (tests only) | pathfinder, shared_py (after F1) | package ladder (section 3, ladder R) + boundary test |
 | `pathfinder/mcp/` | pathfinder.services, pathfinder.platform, fastmcp, mcp | pathfinder.assistants, pathfinder.transport, pathfinder.ai | api ladder (ladder P) + contract 7 extended + its own integration lane |
-| `packages/mcp-conformance` | mcp, httpx, pytest, pydantic | pathfinder, assistant_core | own pyproject ladder (ladder C, defined in E1) + boundary test |
+| `assistant-platform/packages/mcp-conformance` | mcp, httpx, pytest, pydantic | pathfinder, assistant_core | own pyproject ladder (ladder C, defined in E1) + boundary test |
 | `assistant-client-ts` | none at runtime (core ring) | react, app code | yarn test / typecheck / lint (ladder T) |
 
 ---
@@ -199,7 +199,7 @@ is the artifact that fails when the separation breaks.
 | # | Boundary | Separated today (proof) | This program | Stays coupled on purpose |
 |---|---|---|---|---|
 | 1 | Runtime vs science | Package boundary: `assistant-core` pyproject names no pathfinder; `tests/unit/test_package_boundary.py`; contract 7 (`apps/api/pyproject.toml:329-340`) | MCP resolution, admission, approval predicate and credential attach all land runtime-side (`assistant_core/mcp/`), so an assistant declares and never holds | The wdk-mcp server itself is science and imports services freely; it is a product artifact, not a runtime one |
-| 2 | Wire protocol vs both UIs | `PROTOCOL.md` 1.2.2 pinned by `tests/integration/conversation/test_protocol_document.py`; consumer side pinned by `packages/assistant-client-ts/tests/conformance/` (11 suites) | One additive part (`data-turn-failed`, F3); packages become installable outside the repo (F1, F2) | The AI SDK chunk vocabulary itself; changing it is a protocol major and out of scope |
+| 2 | Wire protocol vs both UIs | `PROTOCOL.md` 1.2.2 pinned by `tests/integration/conversation/test_protocol_document.py`; consumer side pinned by `assistant-platform/packages/assistant-client-ts/tests/conformance/` (11 suites) | One additive part (`data-turn-failed`, F3); packages become installable outside the repo (F1, F2) | The AI SDK chunk vocabulary itself; changing it is a protocol major and out of scope |
 | 3 | Approval cycle: runtime vs Lead | HALF-separated - the defect this program cannot ship over. Runtime copy: `assistant_core/graph/approvals.py:25-76`, run by `single_agent.py:90-106,220`. Lead's second copy: `_lead_turn.py:82-149` (`pending_approval`, `resume_message_history`, `resume_deferred_hint` duplicate the runtime's three) | Batch A2 folds the duplicated halves onto the runtime functions. An external consumer cannot trust a predicate the flagship bypasses | The four Lead-only behaviours stay in `ai/`: sub-agent re-entry (`resolve_pending_approval`, `_lead_turn.py:255-308`; decided in `docs/knowledge/decisions/sub-agent-approvals-re-enter-the-sub-agent.md`), dispatch-answer fan-out, `typed_reply` + `is_pure_approval` (`_lead_turn.py:180-191`), sibling answers (`:206-227`). They are product approval *semantics*, not the cycle |
 | 4 | Tool retrieval vs discovery gate | NOT separated: four tools do a WDK read then write `agent_state` (section 1.4 rows) | Batch C1 extracts pure service halves (site + args -> result); the in-process wrappers keep the gate; the MCP server calls the same service functions | The gate itself (`record_catalog_searches`, `register_search`, read-dedup): it is the turn |
 | 5 | Credential vs assistant code | Runtime/worker hold the WDK token (`jobs/payloads.py` carries it; `attach_wdk_auth` context); assistants never read it | MCP credential attaches at `MCPToolset` construction inside the runtime resolver (B3); `credential_mode` is admission config; the deny-list of things a server must never receive (design doc 2.4) becomes a test | `veupathdb_user` passthrough remains a named spec deviation until VEuPathDB answers Ask 3; implemented but refused unless an admission record explicitly names it |
@@ -234,7 +234,7 @@ alone; F-eviction extends, not repairs).
 `docs/knowledge/conventions/verification-gates.md`, restated so a blank-slate
 agent needs no other file):
 
-- **Ladder R (runtime package)**, from `packages/assistant-core/`:
+- **Ladder R (runtime package)**, from `assistant-platform/packages/assistant-core/`:
   `uv run ruff check src tests` ; `uv run ruff format --check src tests` ;
   `uv run mypy --strict src` ; `uv run pytest` (starts a
   `pgvector/pgvector:pg16` testcontainer unless `DATABASE_URL` is set).
@@ -244,9 +244,9 @@ agent needs no other file):
   `uv run pytest src/pathfinder/tests/ -q`.
 - **Ladder W (web)**, from `apps/web/`: `npx tsc --noEmit` ;
   `npx eslint src/` ; `node scripts/check-boundaries.mjs` ; `npx vitest run`.
-- **Ladder T (client package)**, from `packages/assistant-client-ts/`:
+- **Ladder T (client package)**, from `assistant-platform/packages/assistant-client-ts/`:
   `yarn test` ; `yarn typecheck` ; `yarn lint`.
-- **Ladder C (conformance package)**, from `packages/mcp-conformance/`
+- **Ladder C (conformance package)**, from `assistant-platform/packages/mcp-conformance/`
   (created in E1): `uv run ruff check src tests` ; `uv run mypy --strict src` ;
   `uv run pytest`.
 - **Ladder K (knowledge)**, from repo root: `node scripts/check-knowledge.mjs`.
@@ -452,7 +452,7 @@ capability), sibling answers (`:206-227`). Rationale: the first four are
 protocol mechanics PROTOCOL 6.2 specifies; the rest is Lead orchestration the
 protocol does not know.
 
-**Files.** `packages/assistant-core/src/assistant_core/graph/approvals.py`
+**Files.** `assistant-platform/packages/assistant-core/src/assistant_core/graph/approvals.py`
 (extend: `pending_approval` gains optional `sub_agent` and `user_message_id`
 pass-throughs OR - preferred - the Lead constructs `PendingApproval` via the
 runtime function and `model_copy(update=...)`s its product fields; pick
@@ -461,7 +461,7 @@ whichever leaves ONE construction of the shared fields, and record the choice),
 `pending_approval`'s duplicated body, `resume_message_history`,
 `resume_deferred_hint`; import the runtime functions), the Lead node that
 calls them (follow the imports; `ai/graph/lead_node.py`), plus
-`packages/assistant-core/tests/unit/graph/` for the extended shapes. Backlog
+`assistant-platform/packages/assistant-core/tests/unit/graph/` for the extended shapes. Backlog
 file + index line deleted.
 
 **Types.** `PendingApproval` lives in `assistant_core/graph/turn_state.py` and
@@ -515,7 +515,7 @@ finding into the task report with file:line from the venv.
 
 **Files.** `apps/api/src/pathfinder/assistants/pathfinder_spec.py:51-65`
 (`PATHFINDER_CHECKPOINT_TYPES` gains `CombineOp` - import from
-`pathfinder.domain.strategy.ops` - and `PhaseDisposition` is already there at
+`veupathdb.domain.strategy.ops` - and `PhaseDisposition` is already there at
 `:53`; verify against the warning list in the backlog item and add exactly
 what reaches a checkpoint), whatever the investigation names
 (`assistant_core/conversation/checkpointer.py` and/or the devtools/eval read
@@ -564,10 +564,10 @@ is operator configuration a request can never supply. This task creates both
 shapes and the loading path, with no network behaviour yet.
 
 **Files (new).**
-`packages/assistant-core/src/assistant_core/mcp/__init__.py`,
+`assistant-platform/packages/assistant-core/src/assistant_core/mcp/__init__.py`,
 `mcp/declaration.py`, `mcp/admission.py`;
-`packages/assistant-core/src/assistant_core/spec.py` (one field);
-`packages/assistant-core/pyproject.toml` (dependency: whichever extra
+`assistant-platform/packages/assistant-core/src/assistant_core/spec.py` (one field);
+`assistant-platform/packages/assistant-core/pyproject.toml` (dependency: whichever extra
 provides `pydantic_ai.mcp` - READ
 `apps/api/.venv/lib/python3.14/site-packages/pydantic_ai-2.22.0.dist-info/METADATA`
 to find it, plus `fastmcp` in the dev group for the in-process test server);
@@ -764,7 +764,7 @@ before `spec.build_turn_context`, exit after `_drive_graph` returns, in a
 `finally`). The package test harness (`tests/synthetic.py` + the drive path
 the V2 batch built) gains the same entry so the package proves it without the
 app. Tests:
-`packages/assistant-core/tests/integration/mcp/test_in_process_server.py`.
+`assistant-platform/packages/assistant-core/tests/integration/mcp/test_in_process_server.py`.
 
 **The in-process server for tests** (fastmcp dev dependency): a `FastMCP` app
 with three tools - `read_thing` (`readOnlyHint=True`, an `outputSchema` and a
@@ -892,7 +892,7 @@ overview variant: `format_search_overview` takes the FRAME draft goal at
 instead, and the in-process wrapper passes the draft goal.
 
 **Tests first.** Per service function: a hermetic unit test against the pinned
-WDK fixture store (`pathfinder.devtools.wdk_fixtures` - the recording path,
+WDK fixture store (`veupathdb.devtools.fixtures` - the recording path,
 `verification-gates.md:36-46`; add manifest entries only if an existing
 fixture does not cover the read, and record with `yarn wdk:record` which
 needs `VEUPATHDB_AUTH_TOKEN` set in the environment, never printed). Per
@@ -1015,8 +1015,8 @@ registration and HTTP mounting surface before writing any code),
 `pathfinder/mcp/tools/` (one module per group: `catalog.py`, `records.py`,
 `steps.py`, `evidence.py`), `pathfinder/mcp/schemas.py` (typed
 result models where D's tools do not already return one). Contract 7 source
-list gains `pathfinder.mcp` (`apps/api/pyproject.toml:333-339`) and a new
-forbidden edge: `pathfinder.mcp` never imports `pathfinder.ai` or
+list gains `veupathdb_mcp` (`apps/api/pyproject.toml:333-339`) and a new
+forbidden edge: `veupathdb_mcp` never imports `pathfinder.ai` or
 `pathfinder.transport` (new import-linter contract in the same block).
 
 **Per-tool requirements (the brief's checklist, one row per tool of section
@@ -1063,7 +1063,7 @@ service, which is the uncontroversial half of the worker-memory backlog item
 (the kill must land on the process that grew, not on the api).
 
 **Files.** `apps/api/src/pathfinder/mcp/__main__.py`
-(`python -m pathfinder.mcp`, uvicorn serving the FastMCP HTTP app + a
+(`python -m veupathdb_mcp`, uvicorn serving the FastMCP HTTP app + a
 `/health` route); `docker-compose.yml`: new `wdk-mcp` service (api image,
 own port, `mem_limit`, healthcheck) and `mem_limit` on `worker` (the
 measured appetite: worker hit 5.26 GiB while api needs ~5-6 GiB warm on an
@@ -1143,7 +1143,7 @@ report (design doc 4.2); the suite must be runnable by a Java team on its
 own CI, which means: a pip-installable pytest plugin, configured by URL +
 credential, importing nothing of ours.
 
-**Files (new).** `packages/mcp-conformance/pyproject.toml` (name
+**Files (new).** `assistant-platform/packages/mcp-conformance/pyproject.toml` (name
 `veupathdb-mcp-conformance`, deps: `mcp`, `httpx`, `pytest`, `pydantic`;
 NO pathfinder, NO assistant_core - boundary test included, modeled on
 `assistant-core/tests/unit/test_package_boundary.py`), `src/mcp_conformance/`
@@ -1240,13 +1240,13 @@ nine-chunk log through both reducers and see the third part.
 #### F1. assistant-core sheds `pathfinder-shared`
 
 **Why.** The runtime cannot be a second consumer's dependency while it
-path-depends on `pathfinder-shared` (`packages/assistant-core/pyproject.toml:19,22-23`);
+path-depends on `pathfinder-shared` (`assistant-platform/packages/assistant-core/pyproject.toml:19,22-23`);
 the two modules it actually uses are runtime-part payloads that belong in
 the package (section 1.3). After this task the package builds alone.
 
 **Files.** MOVE `packages/shared-py/src/shared_py/stream_parts/background_task.py`
 and `turn_usage.py` into
-`packages/assistant-core/src/assistant_core/conversation/stream_parts/`
+`assistant-platform/packages/assistant-core/src/assistant_core/conversation/stream_parts/`
 (as `task_parts.py` and `turn_usage.py`, or one module - keep names
 `TaskProgress`, `TaskCompleted`, `TurnUsage` unchanged: they are wire-adjacent
 and PROTOCOL-named); update the two package importers
@@ -1255,7 +1255,7 @@ DELETE the originals from shared-py and migrate every `apps/api` importer of
 those two modules (grep `shared_py.stream_parts.background_task\|shared_py.stream_parts.turn_usage`
 across apps/ and packages/ - as of this writing the only importers are the
 two package files and the boundary test, but re-grep at execution time);
-`packages/assistant-core/pyproject.toml` drops `pathfinder-shared` and its
+`assistant-platform/packages/assistant-core/pyproject.toml` drops `pathfinder-shared` and its
 uv source; `tests/unit/test_package_boundary.py:24-25` drops the shared_py
 allowance entirely (the allowed-import set shrinks - the test gets STRICTER);
 `apps/api/pyproject.toml` keeps its own `pathfinder-shared` dep for the
@@ -1281,13 +1281,13 @@ pin it).
 #### F2. assistant-client-ts builds and packs
 
 **Why.** The client's `exports` point at `./src/*.ts`
-(`packages/assistant-client-ts/package.json`), which only a TypeScript
+(`assistant-platform/packages/assistant-client-ts/package.json`), which only a TypeScript
 consumer inside this repo can use; a VEuPathDB host needs a packed artifact
 with JS + d.ts. The three-ring shape and the zero-dependency core are
 load-bearing and must survive the build
 (`docs/knowledge/decisions/the-client-is-a-package-with-three-rings.md`).
 
-**Files.** `packages/assistant-client-ts/`: `tsconfig.build.json` (declaration
+**Files.** `assistant-platform/packages/assistant-client-ts/`: `tsconfig.build.json` (declaration
 emit to `dist/`), package.json `exports` for the three entries mapping to
 `dist/` (types + import conditions), `files: ["dist"]`, a `build` script,
 `prepack` wiring; `apps/web`'s consumption must keep working (it resolves
@@ -1353,7 +1353,7 @@ IN ADDITION, and PROTOCOL 6's rule ("A client MUST use the error chunk, not
 finishReason") gains the part as the durable footprint; wording additive.
 The stalled-turn sweep writes from the WORKER - rebuild + force-recreate
 before any manual check. Version bump discipline: PROTOCOL minor 1.3.0, one
-changelog row, `packages/assistant-client-ts` version minor-bumps with it.
+changelog row, `assistant-platform/packages/assistant-client-ts` version minor-bumps with it.
 
 #### F4. The task card reads the thread (closes `web-still-reads-the-per-task-sse-dialect.md`)
 

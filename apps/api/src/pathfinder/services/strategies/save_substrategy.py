@@ -19,17 +19,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from assistant_core.platform.logging import get_logger
-
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import (
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import (
     flatten_tree,
     rebuild_tree,
     wdk_search_name,
 )
-from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.domain.strategy.tree import clone_with_fresh_ids, subtree_ids
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.platform.errors import ErrorCode, NotFoundError, ValidationError
+from veupathdb.domain.strategy.session import StrategySession
+from veupathdb.domain.strategy.tree import clone_with_fresh_ids, subtree_ids
+from veupathdb.errors import ValidationError
+from veupathdb.wdk.factory import get_strategy_api
+
+from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.strategies.step_wdk_push import push_step_to_wdk
 from pathfinder.services.strategies.sync import build_step_tree_from_graph
 from pathfinder.services.strategies.sync_state import WDKSyncState

@@ -7,12 +7,20 @@ from limits import parse
 from slowapi.errors import RateLimitExceeded
 from slowapi.wrappers import Limit
 from starlette.requests import Request
+from veupathdb.errors import (
+    ValidationError,
+    VEuPathDBError,
+    VEuPathDBErrorCode,
+    WDKError,
+    WDKLoginRequiredError,
+)
 
 from pathfinder.platform.error_handlers import (
     app_error_handler,
     http_exception_handler,
     rate_limit_handler,
     request_validation_handler,
+    veupathdb_error_handler,
 )
 from pathfinder.platform.errors import AppError, ErrorCode
 
@@ -48,6 +56,49 @@ async def test_app_error_handler_returns_problem_json() -> None:
     assert body["status"] == 502
     assert body["code"] == "WDK_ERROR"
     assert body["detail"] == "upstream"
+
+
+async def test_veupathdb_error_handler_keeps_the_code_and_the_status() -> None:
+    resp = await veupathdb_error_handler(
+        _request(), WDKError("upstream refused", status=502)
+    )
+    assert resp.media_type == _PROBLEM_JSON
+    assert resp.status_code == 502
+    body = _body(resp)
+    assert body["status"] == 502
+    assert body["code"] == "WDK_ERROR"
+    assert body["type"] == "/errors/WDK_ERROR"
+    assert body["detail"] == "upstream refused"
+
+
+async def test_veupathdb_error_handler_carries_the_parameter_rows() -> None:
+    resp = await veupathdb_error_handler(
+        _request(),
+        ValidationError(
+            title="Invalid parameter value",
+            detail="organism is not an option",
+            errors=[{"param": "organism", "value": "nope"}],
+        ),
+    )
+    assert resp.status_code == 422
+    body = _body(resp)
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["errors"] == [{"param": "organism", "value": "nope"}]
+
+
+async def test_veupathdb_error_handler_renders_a_login_refusal() -> None:
+    resp = await veupathdb_error_handler(_request(), WDKLoginRequiredError())
+    assert resp.status_code == 401
+    assert _body(resp)["code"] == "WDK_LOGIN_REQUIRED"
+
+
+async def test_every_client_code_is_a_code_the_wire_already_names() -> None:
+    for code in VEuPathDBErrorCode:
+        resp = await veupathdb_error_handler(
+            _request(), VEuPathDBError(code=code, title="x", status=400)
+        )
+        assert _body(resp)["code"] == code.value
+        assert ErrorCode(code.value).value == code.value
 
 
 async def test_http_exception_handler_returns_problem_json() -> None:

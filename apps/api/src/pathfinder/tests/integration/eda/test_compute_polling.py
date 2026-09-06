@@ -6,26 +6,24 @@ import asyncio
 import json
 import time
 from collections.abc import Iterator
-from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
-
-from pathfinder.integrations.eda.client import EdaClient
-from pathfinder.integrations.eda.errors import EdaComputeNotReadyError, EdaError
-from pathfinder.integrations.eda.models import (
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.eda.client import EdaClient
+from veupathdb.eda.errors import EdaComputeNotReadyError, EdaError
+from veupathdb.eda.models import (
     EdaComparator,
     EdaDifferentialExpressionConfig,
     EdaLabeledRange,
     EdaVariableSpec,
 )
-from pathfinder.platform.context import veupathdb_auth_token_ctx
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
+
 from pathfinder.services.eda import compute
 
-FIXTURES = (
-    Path(__file__).resolve().parents[2] / "unit" / "integrations" / "eda" / "fixtures"
-)
+FIXTURES = FIXTURE_DIR
 
 pytestmark = pytest.mark.asyncio
 

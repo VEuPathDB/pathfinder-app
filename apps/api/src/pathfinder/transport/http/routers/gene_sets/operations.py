@@ -1,8 +1,8 @@
 """Set algebra, reverse search and ensemble scoring over stored gene sets."""
 
 from fastapi import APIRouter
+from veupathdb.errors import ValidationError
 
-from pathfinder.platform.errors import ValidationError
 from pathfinder.services.gene_sets.ensemble import (
     EnsembleScore,
     compute_ensemble_scores,

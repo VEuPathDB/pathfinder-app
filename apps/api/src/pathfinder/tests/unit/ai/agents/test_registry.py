@@ -12,8 +12,8 @@ from types import ModuleType
 from typing import get_type_hints
 from uuid import uuid4
 
-import assistant_core.graph.turn_state as turn_state_mod
 import pytest
+from assistant_core.graph import turn_state
 from assistant_core.graph.runtime import TurnContext
 from assistant_core.graph.turn_state import (
     PendingApproval,
@@ -22,13 +22,13 @@ from assistant_core.graph.turn_state import (
 from assistant_core.platform.types import ReasoningEffort
 from pydantic import ValidationError
 
-import pathfinder.ai.agents.registry as registry_mod
-import pathfinder.ai.conversation._turn_helpers as turn_helpers_mod
-import pathfinder.ai.graph.runtime as runtime_mod
-import pathfinder.ai.models.tiers as tiers_mod
+from pathfinder.ai.agents import registry
 from pathfinder.ai.agents.registry import phase_defaults
 from pathfinder.ai.agents.roles import PHASE_ROLES
+from pathfinder.ai.conversation import _turn_helpers
 from pathfinder.ai.conversation.request_body import ChatRequestBody
+from pathfinder.ai.graph import runtime
+from pathfinder.ai.models import tiers
 from pathfinder.ai.models.tiers import (
     TIER_PRESETS,
     TierPreset,
@@ -36,11 +36,11 @@ from pathfinder.ai.models.tiers import (
 )
 
 CORE_MODULES: tuple[ModuleType, ...] = (
-    runtime_mod,
-    turn_state_mod,
-    tiers_mod,
-    registry_mod,
-    turn_helpers_mod,
+    runtime,
+    turn_state,
+    tiers,
+    registry,
+    _turn_helpers,
 )
 
 ROLE_NAMES: frozenset[str] = frozenset({"lead", "frame", "execution", "verification"})

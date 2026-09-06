@@ -4,14 +4,13 @@
   "packageManager": "yarn@4.13.0+sha512.5c20ba010c99815433e5c8453112165e673f1c7948d8d2b267f4b5e52097538658388ebc9f9580656d9b75c5cc996f990f611f99304a2197d4c56d21eea370e7",
   "workspaces": [
     "apps/web",
-    "packages/shared-ts",
-    "packages/assistant-client-ts"
+    "packages/shared-ts"
   ],
   "scripts": {
     "generate:types": "cd apps/api && uv run python -m pathfinder.devtools.openapi generate && cd ../.. && yarn --cwd packages/shared-ts generate",
     "check:knowledge": "node scripts/check-knowledge.mjs",
     "check:wdk-rules": "node scripts/check-wdk-rules.mjs",
     "wdk:live": "cd apps/api && uv run pytest src/pathfinder/tests -m live_wdk -q",
-    "wdk:record": "cd apps/api && uv run python -m pathfinder.devtools.wdk_fixtures record"
+    "wdk:record": "cd apps/api && uv run python -m veupathdb.devtools.fixtures record"
   }
 }

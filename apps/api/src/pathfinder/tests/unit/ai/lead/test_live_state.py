@@ -11,15 +11,15 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from veupathdb.domain.parameters.values import NumberValue, SinglePickValue
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.wdk.strategy_api import StrategyAPI
+from veupathdb.wdk.wdk_models import WDKStrategyDetails
 
 from pathfinder.ai.lead.live_state import read_live_state
-from pathfinder.domain.parameters.values import NumberValue, SinglePickValue
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
-from pathfinder.integrations.veupathdb.wdk_models import WDKStrategyDetails
 from pathfinder.services.strategies import live_counts
 from pathfinder.services.strategies.sync_state import WDKSyncState
 

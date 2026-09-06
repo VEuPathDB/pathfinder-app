@@ -12,6 +12,7 @@ from langgraph.runtime import Runtime
 from pydantic_ai import Agent
 from pydantic_ai.models.test import TestModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.agents.compactor import (
     CompactionResult,
@@ -28,7 +29,6 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.scratchpad.compactor import maybe_compact_scratchpad
 from pathfinder.domain.scratchpad.models import NoteCreate
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
 from pathfinder.services.research.literature_search import LiteratureSearchService

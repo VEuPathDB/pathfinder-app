@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import pytest
-
-from pathfinder.domain.parameters.values import (
+from veupathdb.domain.parameters.values import (
     MultiPickValue,
     SinglePickValue,
     StringValue,
 )
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.integrations.veupathdb.factory import get_results_api
-from pathfinder.services.control_tests import run_step_control_tests
-from pathfinder.services.enrichment.service import EnrichmentService
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.wdk.factory import get_results_api
+from veupathdb_mcp.controls.control_tests import run_step_control_tests
+from veupathdb_mcp.wdk.enrichment.service import EnrichmentService
+
 from pathfinder.tests.integration.strategies.conftest import BuildAndRead, RoundTrip
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]

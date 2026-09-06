@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The client package has three rings, and the innermost one has no dependencies
-description: packages/assistant-client-ts splits into a dependency-free protocol core, one AI-SDK-coupled transport module, and a legacy module for the task dialect the protocol does not define. React stays in the app. Publishing one module that imports the AI SDK everywhere was rejected, because a host that does not use the SDK would inherit it to parse a frame.
+description: assistant-platform/packages/assistant-client-ts splits into a dependency-free protocol core, one AI-SDK-coupled transport module, and a legacy module for the task dialect the protocol does not define. React stays in the app. Publishing one module that imports the AI SDK everywhere was rejected, because a host that does not use the SDK would inherit it to parse a frame.
 tags: [assistant-client, ws-v, protocol, sse, packaging]
 generated: { by: claude-code/opus-5, at: 2026-08-23T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-25T00:00:00Z }
@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-`packages/assistant-client-ts` publishes `@pathfinder/assistant-client` as three
+`assistant-platform/packages/assistant-client-ts` publishes `@pathfinder/assistant-client` as three
 entry points, and a consumer takes only the ring it needs.
 
 **The core (`.`) has no runtime dependencies.** It is the whole of
@@ -48,7 +48,7 @@ TypeScript source through path mappings, the way `@pathfinder/shared` is.
 entries into `dist/`; `exports` names `types` and `import` per ring against
 those files, `files` ships `dist` alone, and `prepack` rebuilds so a pack is
 never stale. `apps/web` resolves the package through its own tsconfig `paths` and
-its vitest aliases, both of which name `packages/assistant-client-ts/src`.
+its vitest aliases, both of which name `assistant-platform/packages/assistant-client-ts/src`.
 `exports` therefore governs the packed artifact only: `next build`, `tsc` and
 the app's suite all pass with no `dist` on disk. The build keeps the
 core ring's claim literal: `importHelpers` is off, so the emitted core imports

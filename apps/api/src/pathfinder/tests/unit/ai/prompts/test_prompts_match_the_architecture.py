@@ -13,10 +13,10 @@ import re
 from pathlib import Path
 from typing import get_args
 
-import pathfinder.ai.lead.deltas as deltas_module
+from pathfinder.ai.lead import deltas
 from pathfinder.ai.lead.ledger_sections import SubAgentName
 
-_PROMPTS = Path(deltas_module.__file__).parents[1] / "prompts"
+_PROMPTS = Path(deltas.__file__).parents[1] / "prompts"
 
 # Named in prose as illustrations of the contract, not as dispatchable roles.
 _NON_ROLE_WORDS = frozenset({"lead"})
@@ -35,7 +35,7 @@ def test_there_are_prompts_to_check() -> None:
 
 
 def test_every_schema_named_in_a_prompt_exists() -> None:
-    known = {name for name in dir(deltas_module) if not name.startswith("_")}
+    known = {name for name in dir(deltas) if not name.startswith("_")}
     # Schemas owned elsewhere but legitimately named in prompts.
     known |= {"LeadResponse", "ToolReturn", "FrameResult"}
 

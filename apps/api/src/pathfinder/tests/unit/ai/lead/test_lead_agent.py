@@ -21,11 +21,12 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
+from veupathdb.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 
-import pathfinder.ai.graph.lead_node as lead_node_mod
-import pathfinder.ai.lead.lead_agent as lead_agent_mod
 from pathfinder.ai.agents._instructions import pinned_user_memories
+from pathfinder.ai.graph import lead_node
 from pathfinder.ai.graph.lead_node import make_lead_node
+from pathfinder.ai.lead import lead_agent
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.lead_agent import (
@@ -37,7 +38,6 @@ from pathfinder.ai.lead.lead_agent import (
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.models.settings import baked_model_id
-from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     lead_run_context,
@@ -99,11 +99,11 @@ _NUDGE_PROSE = "I added the step."
 
 
 def test_the_lead_module_owns_no_agent_singleton() -> None:
-    assert "lead_agent" not in vars(lead_agent_mod)
+    assert "lead_agent" not in vars(lead_agent)
 
 
 def test_the_turn_node_owns_no_agent_singleton() -> None:
-    assert "lead_agent" not in vars(lead_node_mod)
+    assert "lead_agent" not in vars(lead_node)
 
 
 def test_each_build_returns_its_own_agent() -> None:

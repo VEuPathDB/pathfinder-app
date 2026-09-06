@@ -15,8 +15,9 @@ import httpx
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic import ValidationError as PydanticValidationError
+from veupathdb.errors import WDKError
+from veupathdb_mcp.wdk.helpers import extract_record_ids
 
-from pathfinder.platform.errors import WDKError
 from pathfinder.services.experiment.service import run_experiment
 from pathfinder.services.experiment.types.experiment import (
     Experiment,
@@ -26,7 +27,6 @@ from pathfinder.services.experiment.variant_comparison import (
     VariantSpec,
     run_variant_search,
 )
-from pathfinder.services.wdk.helpers import extract_record_ids
 
 CONTROLS_SEARCH_NAME = "GeneByLocusTag"
 CONTROLS_PARAM_NAME = "ds_gene_ids"

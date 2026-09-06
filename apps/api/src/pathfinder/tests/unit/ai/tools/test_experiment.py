@@ -5,15 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-
-from pathfinder.ai.tools.standalone import experiment
-from pathfinder.domain.parameters.values import StringValue
-from pathfinder.services.experiment.types.control_result import (
+from veupathdb.domain.parameters.values import StringValue
+from veupathdb_mcp.controls.control_types import (
     ControlSetData,
     ControlTargetData,
     ControlTestResult,
 )
-from pathfinder.services.tool_payloads import ControlOutcome
+from veupathdb_mcp.tool_payloads import ControlOutcome
+
+from pathfinder.ai.tools.standalone import experiment
 from pathfinder.tests.unit.ai.tools.conftest import agent_state_ctx, summary_of
 
 

@@ -3355,6 +3355,91 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/gene-sets/{gene_set_id}/vdi-publication:
+    post:
+      tags:
+      - gene-sets
+      summary: Publish Gene Set To Vdi
+      description: Publish a gene set as a user dataset on the site it was built against.
+      operationId: publish_gene_set_to_vdi_api_v1_gene_sets__gene_set_id__vdi_publication_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: gene_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Gene Set Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VdiPublicationRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VdiPublication'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+    get:
+      tags:
+      - gene-sets
+      summary: Get Gene Set Vdi Publication
+      description: Read where a published gene set stands on the site that holds it.
+      operationId: get_gene_set_vdi_publication_api_v1_gene_sets__gene_set_id__vdi_publication_get
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: gene_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Gene Set Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VdiPublicationStatus'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/exports/{export_id}:
     get:
       tags:
@@ -7317,6 +7402,11 @@ components:
             $ref: '#/components/schemas/EnrichmentResult'
           type: array
           title: Enrichmentresults
+        vdiId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Vdiid
       type: object
       required:
       - id
@@ -10245,6 +10335,110 @@ components:
       - isValid
       title: ValidationResult
       description: Single validation result with normalized values.
+    VdiImportStatus:
+      type: string
+      enum:
+      - queued
+      - in-progress
+      - complete
+      - invalid
+      - failed
+      title: VdiImportStatus
+      description: 'The import axis: whether the plugin accepted the file.'
+    VdiPublication:
+      properties:
+        vdiId:
+          type: string
+          title: Vdiid
+        datasetUrl:
+          type: string
+          title: Dataseturl
+        siteId:
+          type: string
+          title: Siteid
+        geneCount:
+          type: integer
+          title: Genecount
+      type: object
+      required:
+      - vdiId
+      - datasetUrl
+      - siteId
+      - geneCount
+      title: VdiPublication
+      description: The dataset a publish created, and where the researcher reads it.
+    VdiPublicationRequest:
+      properties:
+        name:
+          type: string
+          maxLength: 1024
+          minLength: 3
+          title: Name
+        visibility:
+          $ref: '#/components/schemas/VdiVisibility'
+          default: private
+      type: object
+      required:
+      - name
+      title: VdiPublicationRequest
+      description: What the researcher chooses when publishing a set.
+    VdiPublicationStatus:
+      properties:
+        vdiId:
+          type: string
+          title: Vdiid
+        datasetUrl:
+          type: string
+          title: Dataseturl
+        siteId:
+          type: string
+          title: Siteid
+        upload:
+          $ref: '#/components/schemas/VdiUploadStatus'
+        importStatus:
+          anyOf:
+          - $ref: '#/components/schemas/VdiImportStatus'
+          - type: 'null'
+        installedTargets:
+          items:
+            type: string
+          type: array
+          title: Installedtargets
+        installed:
+          type: boolean
+          title: Installed
+        isTerminal:
+          type: boolean
+          title: Isterminal
+      type: object
+      required:
+      - vdiId
+      - datasetUrl
+      - siteId
+      - upload
+      - installedTargets
+      - installed
+      - isTerminal
+      title: VdiPublicationStatus
+      description: Where a published dataset stands on the three axes VDI reports.
+    VdiUploadStatus:
+      type: string
+      enum:
+      - running
+      - success
+      - rejected
+      - failed
+      title: VdiUploadStatus
+      description: 'The ingestion axis: whether the service took the bytes.'
+    VdiVisibility:
+      type: string
+      enum:
+      - private
+      - protected
+      - public
+      - controlled
+      title: VdiVisibility
+      description: Who may see a dataset once it is installed.
     VolcanoThresholds:
       properties:
         effectSizeThreshold:

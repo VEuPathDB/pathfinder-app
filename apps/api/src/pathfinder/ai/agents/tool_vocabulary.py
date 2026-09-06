@@ -29,6 +29,7 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "get_parameter_options",
         "lookup_phyletic_codes",
         "lookup_gene_records",
+        "get_ai_expression_summary",
         # Strategy inspection
         "get_strategy",
         "get_estimated_size",

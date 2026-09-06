@@ -6,13 +6,14 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from veupathdb.domain.strategy.session import StrategySession
+from veupathdb_mcp import catalog
+from veupathdb_mcp.catalog import searches
+from veupathdb_mcp.catalog.models import RecordTypeInfo, SearchMatch
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone import catalog as catalog_tools
-from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.services import catalog as catalog_service
-from pathfinder.services.catalog.models import RecordTypeInfo, SearchMatch
+from pathfinder.ai.tools import standalone
 
 
 def _ctx(state: AgentToolState) -> Any:
@@ -50,8 +51,18 @@ def _match(name: str, display_name: str, relevance: float) -> SearchMatch:
 
 
 def _serve(monkeypatch: pytest.MonkeyPatch, name: str, value: object) -> AsyncMock:
+    """Answer a catalog read the tools reach through the package."""
     mock = AsyncMock(return_value=value)
-    monkeypatch.setattr(catalog_service, name, mock)
+    monkeypatch.setattr(catalog, name, mock)
+    return mock
+
+
+def _serve_listing(
+    monkeypatch: pytest.MonkeyPatch, name: str, value: object
+) -> AsyncMock:
+    """Answer a listing the payload builders reach through the searches module."""
+    mock = AsyncMock(return_value=value)
+    monkeypatch.setattr(searches, name, mock)
     return mock
 
 
@@ -77,7 +88,7 @@ class TestGetRecordTypes:
         )
 
         result = (
-            await catalog_tools.get_record_types(_ctx(AgentToolState()))
+            await standalone.catalog.get_record_types(_ctx(AgentToolState()))
         ).return_value
 
         assert [row["name"] for row in result] == ["transcript", "isolate"]
@@ -102,7 +113,7 @@ class TestSearchForSearches:
         state.register_search("GenesByGoTerm", _inspected("GenesByGoTerm"))
 
         result = (
-            await catalog_tools.search_for_searches(
+            await standalone.catalog.search_for_searches(
                 _ctx(state), query="gametocyte RNA-Seq differential expression"
             )
         ).return_value
@@ -129,7 +140,7 @@ class TestSearchForSearches:
         state = AgentToolState()
 
         result = (
-            await catalog_tools.search_for_searches(
+            await standalone.catalog.search_for_searches(
                 _ctx(state),
                 query="find genes by organism taxonomy plasmodium falciparum",
             )
@@ -156,7 +167,7 @@ class TestSearchForSearches:
         state.register_search("GenesByTaxon", _inspected("GenesByTaxon"))
 
         result = (
-            await catalog_tools.search_for_searches(
+            await standalone.catalog.search_for_searches(
                 _ctx(state),
                 query="find genes by organism taxonomy or go term plasmodium",
             )
@@ -169,7 +180,7 @@ class TestSearchForSearches:
 
     async def test_a_vague_query_is_refused(self) -> None:
         result = (
-            await catalog_tools.search_for_searches(
+            await standalone.catalog.search_for_searches(
                 _ctx(AgentToolState()), query="genes"
             )
         ).return_value
@@ -182,7 +193,7 @@ class TestListSearches:
     async def test_it_records_the_visible_names(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        _serve(
+        _serve_listing(
             monkeypatch,
             "list_searches",
             [
@@ -193,7 +204,7 @@ class TestListSearches:
         state = AgentToolState()
         state.register_search("GenesByGoTerm", _inspected("GenesByGoTerm"))
 
-        result = (await catalog_tools.list_searches(_ctx(state))).return_value
+        result = (await standalone.catalog.list_searches(_ctx(state))).return_value
 
         assert [row["name"] for row in result] == ["GenesByTaxon", "GenesByGoTerm"]
         assert state.catalog_search_names == {"GenesByTaxon", "GenesByGoTerm"}
@@ -201,7 +212,7 @@ class TestListSearches:
     async def test_one_record_type_narrows_the_listing(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        mock = _serve(
+        mock = _serve_listing(
             monkeypatch,
             "list_searches",
             [
@@ -212,7 +223,7 @@ class TestListSearches:
         )
 
         result = (
-            await catalog_tools.list_searches(
+            await standalone.catalog.list_searches(
                 _ctx(AgentToolState()), record_type="transcript"
             )
         ).return_value
@@ -227,7 +238,7 @@ class TestListSearches:
     async def test_an_inspected_search_stays_in_the_listing(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        _serve(
+        _serve_listing(
             monkeypatch,
             "list_searches",
             [
@@ -239,7 +250,9 @@ class TestListSearches:
         state.register_search("GenesByTaxon", _inspected("GenesByTaxon"))
 
         result = (
-            await catalog_tools.list_searches(_ctx(state), record_type="transcript")
+            await standalone.catalog.list_searches(
+                _ctx(state), record_type="transcript"
+            )
         ).return_value
 
         assert [row["name"] for row in result] == ["GenesByTaxon", "GenesByText"]

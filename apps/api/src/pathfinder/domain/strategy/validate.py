@@ -3,11 +3,10 @@
 from dataclasses import dataclass
 
 from pydantic import JsonValue
-
-from pathfinder.domain.parameters.value_codec import to_decoded_map
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.organism import extract_output_organisms
+from veupathdb.domain.parameters.value_codec import to_decoded_map
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.organism import extract_output_organisms
 
 
 @dataclass

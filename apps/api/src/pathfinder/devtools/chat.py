@@ -27,6 +27,7 @@ from assistant_core.spec import AssistantSpec
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from veupathdb.wdk.auth_login import password_login
 
 from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.conversation.assistant_routing import resolve_turn_assistant
@@ -46,7 +47,6 @@ from pathfinder.devtools.gates import (
     user_body,
 )
 from pathfinder.devtools.wdk_capture import capture_wdk
-from pathfinder.integrations.veupathdb.auth_login import password_login
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.auth_context import attach_user_id, attach_wdk_auth
 from pathfinder.jobs.payloads import ChatTurnPayload

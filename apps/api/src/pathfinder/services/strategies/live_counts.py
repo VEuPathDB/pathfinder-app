@@ -8,9 +8,10 @@ counts has to be checked against the server to mean anything.
 from __future__ import annotations
 
 from assistant_core.platform.logging import get_logger
+from veupathdb.domain.strategy.types import SyncStateProtocol
+from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk.factory import get_strategy_api
 
-from pathfinder.domain.strategy.types import SyncStateProtocol
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.platform.errors import AppError
 
 logger = get_logger(__name__)
@@ -33,7 +34,7 @@ async def read_wdk_step_counts(
 
     try:
         details = await get_strategy_api(site_id).get_strategy(strategy_id)
-    except AppError, OSError:
+    except AppError, VEuPathDBError, OSError:
         logger.warning("Live step count read failed", strategy_id=strategy_id)
         return {}
 

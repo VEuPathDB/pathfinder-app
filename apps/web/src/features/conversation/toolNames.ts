@@ -71,6 +71,7 @@ export const TOOL_LABELS: Record<string, string> = {
   list_workbench_gene_sets: "List gene sets",
   export_gene_set: "Export gene set",
   lookup_gene_records: "Look up genes",
+  get_ai_expression_summary: "Read expression summary",
   resolve_gene_ids_to_records: "Resolve gene ids",
   // Verification and durable jobs
   run_control_tests_on_search: "Run control tests",

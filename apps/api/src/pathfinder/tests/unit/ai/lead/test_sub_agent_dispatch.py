@@ -9,23 +9,23 @@ from uuid import uuid4
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-
-from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead import sub_agent_dispatch
-from pathfinder.ai.lead.sub_agent_dispatch import build_strategy
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.parameters.values import MultiPickValue
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.operational_spec import (
+from veupathdb.domain.parameters.values import MultiPickValue
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.strategy.build_outcome import BuildOutcome
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SpecStructure,
     StructureNode,
 )
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+
+from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.lead import sub_agent_dispatch
+from pathfinder.ai.lead.sub_agent_dispatch import build_strategy
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     lead_run_context,

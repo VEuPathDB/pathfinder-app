@@ -5,18 +5,18 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
+from veupathdb.domain.parameters.values import NumberValue, SinglePickValue
+from veupathdb.domain.search import SearchContext
+from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.wdk.wdk_models import WDKSearch, WDKSearchResponse
+from veupathdb_mcp.catalog import searches
+from veupathdb_mcp.catalog.param_dag import ParamFetcher, ResolvedParams
+from veupathdb_mcp.catalog.param_formatting import ParameterInfo
+from veupathdb_mcp.catalog.param_intent import Provenance
+from veupathdb_mcp.catalog.param_validation import ValidatedParams
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone import frame_spec
-from pathfinder.domain.parameters.values import NumberValue, SinglePickValue
-from pathfinder.domain.search import SearchContext
-from pathfinder.domain.strategy.validation import StepValidation
-from pathfinder.integrations.veupathdb.wdk_models import WDKSearch, WDKSearchResponse
-from pathfinder.services.catalog import searches
-from pathfinder.services.catalog.param_dag import ParamFetcher, ResolvedParams
-from pathfinder.services.catalog.param_formatting import ParameterInfo
-from pathfinder.services.catalog.param_intent import Provenance
-from pathfinder.services.catalog.param_validation import ValidatedParams
 
 
 def _ctx(state: AgentToolState) -> MagicMock:

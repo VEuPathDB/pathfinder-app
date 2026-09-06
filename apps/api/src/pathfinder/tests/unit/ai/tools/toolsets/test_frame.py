@@ -28,6 +28,7 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
         ),
         frozenset({"parameter_id", "search_name"}),
     ),
+    "get_ai_expression_summary": (frozenset({"gene_id"}), frozenset({"gene_id"})),
     "get_record_types": (frozenset(), frozenset()),
     "get_search_overview": (
         frozenset({"record_type", "search_name"}),

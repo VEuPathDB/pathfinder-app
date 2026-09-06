@@ -2,6 +2,8 @@
 
 from uuid import UUID
 
+from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult, EnrichmentTerm
+
 from pathfinder.ai.graph.stream_events import (
     enrichment_results_event,
     ledger_update_event,
@@ -13,7 +15,6 @@ from pathfinder.ai.lead.ledger_sections import (
     VerificationSection,
 )
 from pathfinder.ai.stream_part_payloads import EnrichmentResultsChunk
-from pathfinder.services.enrichment.types import EnrichmentResult, EnrichmentTerm
 
 
 def _required_keys(model: type[InvestigationLedger]) -> frozenset[str]:

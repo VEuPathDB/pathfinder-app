@@ -9,9 +9,9 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import AgentDepsT, RunContext
 from pydantic_ai.toolsets.abstract import ToolsetTool
 from pydantic_ai.toolsets.wrapper import WrapperToolset
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.domain.strategy.session import StrategySession
 
 EnumOverrides = dict[tuple[str, str], list[Any]]
 EnumOverrideBuilder = Callable[[RunContext[AgentDepsT]], EnumOverrides]

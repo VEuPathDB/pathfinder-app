@@ -6,10 +6,10 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from veupathdb.domain.strategy.session import StrategyGraph
 
-from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.platform.errors import AppError, ErrorCode
-from pathfinder.services.strategies import materialize as materialize_module
+from pathfinder.services.strategies import materialize
 from pathfinder.services.strategies.materialize import materialize_strategy_snapshot
 from pathfinder.services.strategies.step_push_planner import CreateAction, StepPushPlan
 from pathfinder.services.strategies.step_wdk_push import PushOutcome
@@ -57,8 +57,8 @@ async def test_the_snapshot_is_pushed_with_no_wdk_ids_of_its_own(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     push = _RecordingPush()
-    monkeypatch.setattr(materialize_module, "push_steps_with_plan", push)
-    monkeypatch.setattr(materialize_module, "sync_strategy_for_site", _fake_sync)
+    monkeypatch.setattr(materialize, "push_steps_with_plan", push)
+    monkeypatch.setattr(materialize, "sync_strategy_for_site", _fake_sync)
     snapshot = three_step_ast(dict(_SOURCE_IDS)).model_dump(
         by_alias=True,
         exclude_none=True,
@@ -89,8 +89,8 @@ async def test_a_wdk_failure_leaves_the_thread_with_the_plan_alone(
         del args, kwargs
         raise AppError(code=ErrorCode.WDK_ERROR, title="boom")
 
-    monkeypatch.setattr(materialize_module, "push_steps_with_plan", _failing_push)
-    monkeypatch.setattr(materialize_module, "sync_strategy_for_site", _fake_sync)
+    monkeypatch.setattr(materialize, "push_steps_with_plan", _failing_push)
+    monkeypatch.setattr(materialize, "sync_strategy_for_site", _fake_sync)
     snapshot = three_step_ast(dict(_SOURCE_IDS)).model_dump(
         by_alias=True,
         exclude_none=True,
@@ -113,7 +113,7 @@ async def test_a_snapshot_with_no_tree_materializes_nothing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     push = _RecordingPush()
-    monkeypatch.setattr(materialize_module, "push_steps_with_plan", push)
+    monkeypatch.setattr(materialize, "push_steps_with_plan", push)
 
     result = await materialize_strategy_snapshot(
         site_id="plasmodb",

@@ -15,6 +15,10 @@
  *
  *   5. src/state/ owns global stores: it may not import @/features/ or @/app/.
  *
+ *   6. A feature that publishes entry paths (FEATURE_ENTRYPOINTS) is reachable
+ *      through them and nothing else. Naming one is the permission, so rule 1
+ *      needs no exception row for such a target; naming a file inside it fails.
+ *
  * Exit code 1 on violations, 0 if clean.
  */
 
@@ -47,38 +51,21 @@ function isTsLike(filePath) {
   return /\.(ts|tsx|mts|cts)$/.test(filePath);
 }
 
-function isTestOrFixture(filePath) {
-  const rel = path.relative(ROOT, filePath);
-  return rel.includes(".test.") || rel.includes("__fixtures__/");
+function isTestOrFixture(srcRelPath) {
+  return srcRelPath.includes(".test.") || srcRelPath.includes("__fixtures__/");
 }
 
 /**
- * Given an absolute file path inside src/features/<name>/..., return the
- * feature name. Returns null if the file is not inside a feature directory.
+ * Given a path relative to src/, return the feature name for a file under
+ * features/<name>/. Returns null outside a feature directory.
  */
-function featureOf(filePath) {
-  const rel = path.relative(SRC, filePath);
-  const parts = rel.split(path.sep);
+function featureOf(srcRelPath) {
+  const parts = srcRelPath.split("/");
   if (parts[0] === "features" && parts.length >= 2) {
     return parts[1];
   }
   return null;
 }
-
-// ---------------------------------------------------------------------------
-// Violation collection
-// ---------------------------------------------------------------------------
-
-const violations = [];
-
-function addViolation(rule, filePath, lineNum, message) {
-  const rel = path.relative(ROOT, filePath);
-  violations.push({ rule, file: rel, line: lineNum, message });
-}
-
-// ---------------------------------------------------------------------------
-// Rule checks
-// ---------------------------------------------------------------------------
 
 const AS_ANY_RE = /\bas\s+any\b/g;
 
@@ -155,13 +142,21 @@ function isAllowedFeatureImport(specifier, selfFeature) {
 
 // `conversation` is the app shell: it owns the rail, the thread, the composer
 // and the slash commands, so it reaches into the surfaces it hosts. Rule 1 does
-// not constrain it, and this map says so.
+// not constrain it, and this map says so. An exception admits the whole tree of
+// the target, which is why a feature with an API belongs in FEATURE_ENTRYPOINTS
+// instead.
 const CROSS_FEATURE_EXCEPTIONS = new Map([
-  // workbench renders the analysis ResultsTable and the conversation ChatView.
-  ["workbench", new Set(["analysis", "conversation"])],
-  ["conversation", new Set(["settings", "strategy", "workbench", "saved", "analysis"])],
+  ["conversation", new Set(["settings", "strategy", "saved"])],
   // sidebar awaits pending strategy pushes before it switches conversations.
   ["sidebar", new Set(["strategy"])],
+]);
+
+// The paths a feature publishes. Naming one of them is the permission, and the
+// only permission: any feature may import an entry path, and no feature may
+// import anything else of a feature that publishes. A feature absent from this
+// map is closed by rule 1 unless an exception row above admits it.
+const FEATURE_ENTRYPOINTS = new Map([
+  ["workbench", new Set(["api/geneSets", "analysis"])],
 ]);
 
 /** Layers that may not import a higher layer, keyed by src/ subdirectory. */
@@ -170,18 +165,24 @@ const LAYER_BANS = new Map([
   ["state", { rule: 5, banned: ["@/features/", "@/app/"] }],
 ]);
 
-function layerOf(filePath) {
-  const rel = path.relative(SRC, filePath);
-  return rel.split(path.sep)[0];
+function layerOf(srcRelPath) {
+  return srcRelPath.split("/")[0];
 }
 
-function checkFile(filePath) {
-  const source = fs.readFileSync(filePath, "utf8");
-  const selfFeature = featureOf(filePath);
-  const isProduction = !isTestOrFixture(filePath);
+/**
+ * Check one source text. `srcRelPath` is the file's path relative to src/.
+ * Returns the violations it holds, each as { rule, line, message }.
+ * Exported so the checker has tests.
+ */
+export function checkSource(source, srcRelPath) {
+  const violations = [];
+  const add = (rule, line, message) => violations.push({ rule, line, message });
+
+  const selfFeature = featureOf(srcRelPath);
+  const isProduction = !isTestOrFixture(srcRelPath);
   const imports = extractImports(source);
 
-  // ------ Rule 1 & 3: cross-feature imports + allowed imports ------
+  // ------ Rules 1, 3 & 6: cross-feature imports + allowed imports ------
   if (selfFeature) {
     const allowedCrossTargets = CROSS_FEATURE_EXCEPTIONS.get(selfFeature) ?? new Set();
 
@@ -190,42 +191,56 @@ function checkFile(filePath) {
       const crossMatch = specifier.match(/^@\/features\/([^/]+)/);
       if (crossMatch) {
         const targetFeature = crossMatch[1];
-        if (targetFeature !== selfFeature && !allowedCrossTargets.has(targetFeature)) {
-          addViolation(
+        if (targetFeature === selfFeature) continue;
+        const entryPaths = FEATURE_ENTRYPOINTS.get(targetFeature);
+        if (entryPaths) {
+          // Rule 6: a feature that publishes is reachable through its entry
+          // paths and nothing else.
+          const entry = specifier.slice(`@/features/${targetFeature}/`.length);
+          if (!entryPaths.has(entry)) {
+            add(
+              6,
+              lineNum,
+              `Not an entry path: features/${selfFeature} imports "${specifier}"; features/${targetFeature} publishes ${[
+                ...entryPaths,
+              ]
+                .map((p) => `@/features/${targetFeature}/${p}`)
+                .join(", ")}`,
+            );
+          }
+          continue;
+        }
+        if (!allowedCrossTargets.has(targetFeature)) {
+          add(
             1,
-            filePath,
             lineNum,
             `Cross-feature import: features/${selfFeature} imports from features/${targetFeature} ("${specifier}")`,
           );
         }
+        continue;
       }
 
       // Rule 3: only allowed import sources (production code only)
       if (isProduction && !isAllowedFeatureImport(specifier, selfFeature)) {
-        // Don't double-report what rule 1 already caught
-        if (!specifier.startsWith("@/features/")) {
-          addViolation(
-            3,
-            filePath,
-            lineNum,
-            `Disallowed import source: "${specifier}" (features may only import from @/lib/, @/state/, @pathfinder/shared, own feature, or third-party)`,
-          );
-        }
+        add(
+          3,
+          lineNum,
+          `Disallowed import source: "${specifier}" (features may only import from @/lib/, @/state/, @pathfinder/shared, own feature, or third-party)`,
+        );
       }
     }
   }
 
   // ------ Rules 4 & 5: layer purity ------
-  const ban = LAYER_BANS.get(layerOf(filePath));
+  const ban = LAYER_BANS.get(layerOf(srcRelPath));
   if (ban) {
     for (const { specifier, lineNum } of imports) {
       const hit = ban.banned.find((p) => specifier.startsWith(p));
       if (hit) {
-        addViolation(
+        add(
           ban.rule,
-          filePath,
           lineNum,
-          `src/${layerOf(filePath)}/ may not import ${hit} ("${specifier}")`,
+          `src/${layerOf(srcRelPath)}/ may not import ${hit} ("${specifier}")`,
         );
       }
     }
@@ -236,49 +251,55 @@ function checkFile(filePath) {
     const lines = source.split("\n");
     for (let i = 0; i < lines.length; i++) {
       if (AS_ANY_RE.test(lines[i])) {
-        addViolation(2, filePath, i + 1, `\`as any\` in production code`);
+        add(2, i + 1, `\`as any\` in production code`);
       }
       // Reset lastIndex since we reuse the regex
       AS_ANY_RE.lastIndex = 0;
     }
   }
+
+  return violations;
 }
 
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
-const allFiles = walk(SRC).filter(isTsLike);
+const RULE_NAMES = {
+  1: "No cross-feature imports",
+  2: 'No "as any" in production code',
+  3: "Features: allowed import sources only",
+  4: "lib/ is pure (no features, state or app)",
+  5: "state/ may not import features or app",
+  6: "A cross-feature import names an entry path",
+};
 
-for (const f of allFiles) {
-  checkFile(f);
-}
+function main() {
+  const violations = [];
+  for (const filePath of walk(SRC).filter(isTsLike)) {
+    const srcRel = path.relative(SRC, filePath).split(path.sep).join("/");
+    const source = fs.readFileSync(filePath, "utf8");
+    for (const v of checkSource(source, srcRel)) {
+      violations.push({ ...v, file: path.relative(ROOT, filePath) });
+    }
+  }
 
-// ---------------------------------------------------------------------------
-// Report
-// ---------------------------------------------------------------------------
+  if (violations.length === 0) {
+    console.log("check-boundaries: all clear (0 violations)");
+    return 0;
+  }
 
-if (violations.length > 0) {
   console.error(`\nBoundary violations found: ${violations.length}\n`);
 
-  // Group by rule
   const byRule = new Map();
   for (const v of violations) {
     if (!byRule.has(v.rule)) byRule.set(v.rule, []);
     byRule.get(v.rule).push(v);
   }
 
-  const ruleNames = {
-    1: "No cross-feature imports",
-    2: 'No "as any" in production code',
-    3: "Features: allowed import sources only",
-    4: "lib/ is pure (no features, state or app)",
-    5: "state/ may not import features or app",
-  };
-
   for (const [rule, items] of [...byRule.entries()].sort((a, b) => a[0] - b[0])) {
     console.error(
-      `--- Rule ${rule}: ${ruleNames[rule]} (${items.length} violation${items.length > 1 ? "s" : ""}) ---`,
+      `--- Rule ${rule}: ${RULE_NAMES[rule]} (${items.length} violation${items.length > 1 ? "s" : ""}) ---`,
     );
     for (const v of items) {
       console.error(`  ${v.file}:${v.line}  ${v.message}`);
@@ -287,7 +308,8 @@ if (violations.length > 0) {
   }
 
   console.error(`Total: ${violations.length} violation(s)`);
-  process.exit(1);
-} else {
-  console.log("check-boundaries: all clear (0 violations)");
+  return 1;
 }
+
+const invokedDirectly = process.argv[1]?.endsWith("check-boundaries.mjs");
+if (invokedDirectly) process.exit(main());

@@ -7,11 +7,6 @@ from contextvars import ContextVar
 from assistant_core.platform.types import ReasoningEffort
 from pydantic import BaseModel, ConfigDict, Field
 
-# VEuPathDB auth token (from request cookies/headers)
-veupathdb_auth_token_ctx: ContextVar[str | None] = ContextVar(
-    "veupathdb_auth_token", default=None
-)
-
 # Request base URL (e.g. "http://localhost:3000") for constructing full download URLs.
 # Set from the Origin or Referer header so export URLs resolve correctly for the user.
 request_base_url_ctx: ContextVar[str | None] = ContextVar(

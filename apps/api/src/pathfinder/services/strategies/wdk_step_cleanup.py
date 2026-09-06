@@ -1,8 +1,9 @@
 import asyncio
 
 from assistant_core.platform.logging import get_logger
+from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk.strategy_api import StrategyAPI
 
-from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
 from pathfinder.platform.errors import AppError
 
 logger = get_logger(__name__)
@@ -24,7 +25,7 @@ async def delete_orphaned_wdk_steps(
     async def _one(step_id: int) -> int | None:
         try:
             await api.delete_step(step_id)
-        except AppError as exc:
+        except (AppError, VEuPathDBError) as exc:
             logger.warning(
                 "Failed to delete orphaned WDK step",
                 step_id=step_id,

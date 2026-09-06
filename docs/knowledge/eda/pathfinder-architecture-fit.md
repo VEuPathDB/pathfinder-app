@@ -16,9 +16,9 @@ states the two seams; this document states where each piece of code goes, which
 existing mechanism it reuses, and what it must not duplicate.
 
 Every PathFinder claim below cites a file read in this repository on
-2026-08-27. Every EDA claim cites [what-eda-is.md](what-eda-is.md),
-[eda-wdk-bridge.md](eda-wdk-bridge.md), [rest-surface.md](rest-surface.md) or
-[genomics-and-wdk-relations.md](genomics-and-wdk-relations.md), each of which
+2026-08-27. Every EDA claim cites `veupathdb-py: docs/knowledge/eda/what-eda-is.md`,
+`veupathdb-py: docs/knowledge/eda/eda-wdk-bridge.md`, `veupathdb-py: docs/knowledge/eda/rest-surface.md` or
+`veupathdb-py: docs/knowledge/eda/genomics-and-wdk-relations.md`, each of which
 names its upstream.
 
 ## The position in one paragraph
@@ -59,7 +59,7 @@ makes a fetched study tree safe to share across a turn, and the camel alias
 generator matches EDA's wire casing as it matches WDK's.
 
 Modules, and the endpoints each covers (see
-[rest-surface.md](rest-surface.md)):
+`veupathdb-py: docs/knowledge/eda/rest-surface.md`):
 
 | Module | Owns |
 |---|---|
@@ -73,7 +73,7 @@ PathFinder already holds: `integrations/veupathdb/auth_login.py:60`
 `veupathdb_auth_token_ctx` carries it per request,
 `platform/security.py:75` sets it, and the worker re-installs it with
 `jobs/auth_context.py::attach_wdk_auth`. Guest calls to `/eda` are 401
-(measured, [rest-surface.md](rest-surface.md)), so
+(measured, `veupathdb-py: docs/knowledge/eda/rest-surface.md`), so
 [the registered-login rule](../decisions/wdk-requires-registered-login.md)
 covers EDA unchanged.
 
@@ -118,7 +118,7 @@ filter names an entity and a variable that exist, whether a `stringSet` value
 is in that variable's vocabulary, whether a `numberRange` is inside the
 variable's range, and whether the tree contains exactly one
 `VEUPATHDB_GENE_ID` variable (the bridge's hard requirement,
-[eda-wdk-bridge.md](eda-wdk-bridge.md)). Those are functions of two values with
+`veupathdb-py: docs/knowledge/eda/eda-wdk-bridge.md`). Those are functions of two values with
 no I/O, they are the checks that decide whether a step is worth creating, and
 they need unit tests without a network. `domain/eda.py` holds them; it takes the
 integration models as arguments and imports nothing.
@@ -137,13 +137,13 @@ Bound by "Services never import transport or AI"
   `DS_<suffix>` for only 684 of 747 curated studies, and a shipped search
   (`GenesByRNASeqpfal3D7_Lee_Gambian_ebi_rnaSeq_RSRCWGCNAModules`, dataset
   `DS_eeca6a5476`, study `STUDY_fd06cb37d3`) is a counterexample
-  ([genomics-and-wdk-relations.md](genomics-and-wdk-relations.md)). Owns study
+  (`veupathdb-py: docs/knowledge/eda/genomics-and-wdk-relations.md`). Owns study
   search and the entity/variable browse an agent needs at run time.
 - **`authoring.py` - analysis authoring.** Builds a `NewAnalysis` from live
   study metadata, runs the `domain/eda.py` predicates, then verifies with
   `POST /count` before anything is created. This is the same trust posture as
   parameter validation: one proposer, one validator
-  ([../decisions/one-proposer-one-validator.md](../decisions/one-proposer-one-validator.md)).
+  ([the decision](../decisions/one-proposer-one-validator.md)).
 - **`compute.py` - compute orchestration.** Submits and polls
   `/computes/{name}?autostart=true`, reads
   `/apps/{app}/visualizations/{viz}`. Called from the worker impl, not from a
@@ -188,8 +188,8 @@ analysis on the VEuPathDB site.
 ### 1.6 What must not go in `assistant-core`
 
 The boundary is an installation fact, not a convention:
-`packages/assistant-core/pyproject.toml` names no `pathfinder` dependency, and
-`packages/assistant-core/packages/assistant-core/tests/unit/test_package_boundary.py` pins the import
+`assistant-platform/packages/assistant-core/pyproject.toml` names no `pathfinder` dependency, and
+`assistant-platform/packages/assistant-core/tests/unit/test_package_boundary.py` pins the import
 surface ([the runtime is a package](../decisions/the-runtime-is-a-package.md)).
 CLAUDE.md states the placement rule directly: "anything that names a gene, a
 strategy, a WDK search or a phase role goes in `ai/`".
@@ -210,11 +210,11 @@ The two runtime seams EDA uses are already generic:
 
 ## 2. An EDA compute is a durable tool, piece by piece
 
-[what-eda-is.md](what-eda-is.md) records the job lifecycle:
+`veupathdb-py: docs/knowledge/eda/what-eda-is.md` records the job lifecycle:
 `POST /computes/{name}?autostart=true` returns a status in
 `queued | in-progress | complete | failed | expired | no-such-job`, and the job
 is keyed by a hash of its inputs so identical requests share a cached result.
-[eda-wdk-bridge.md](eda-wdk-bridge.md) records what happens if a step is
+`veupathdb-py: docs/knowledge/eda/eda-wdk-bridge.md` records what happens if a step is
 created too early: `GeneEdaVizWithComputePlugin` throws WDK's
 `DelayedResultException` on `queued` or `in-progress`.
 
@@ -256,7 +256,7 @@ Two notes on the open edges:
   is a different workload; whether it wants its own queue is a capacity
   question no measurement here answers. `UNVERIFIED:` the right queue.
 - The delayed state the two-phase shape avoids is now measured
-  ([notebook-presets.md](notebook-presets.md)): the answer API returns
+  (`veupathdb-py: docs/knowledge/eda/notebook-presets.md`): the answer API returns
   HTTP 202 `{"message":"WDK-DELAYED-RESULT","status":"accepted"}` while the
   compute runs, and the WDK request itself auto-starts the job. The two-phase
   shape stands, now on evidence rather than caution.
@@ -361,7 +361,7 @@ study; that is an admission-record question
 
 ### 3.4 What belongs in the headless SDK: nothing EDA-specific
 
-`packages/assistant-client-ts` has three rings and the core ring has no runtime
+`assistant-platform/packages/assistant-client-ts` has three rings and the core ring has no runtime
 dependencies
 ([the client package has three rings](../decisions/the-client-is-a-package-with-three-rings.md)).
 The core ring is the whole of `PROTOCOL.md` and nothing else. EDA adds no frame,
@@ -464,7 +464,7 @@ live in the shared record manager under `catalog:{site_id}`, not in a per-site
 `.npz` file, and there are no query and document prefixes. The consumer is
 `services/catalog/semantic_matching.py::apply_semantic_bonus:41`, which reads
 the index off the site catalog via `catalog.get_semantic_index()`
-(`integrations/veupathdb/discovery.py:251`).
+(`services/catalog/discovery.py:264`).
 
 A study index is the same object over different text:
 `displayName + shortDisplayName + description` per study. Two things must
@@ -524,7 +524,7 @@ Pydantic models are a mirror, and a mirror drifts.
    entries omit one or both. **The RAML is a document, not a validator for the
    wire.**
 
-**The mitigation is the shape `packages/assistant-client-ts` already uses
+**The mitigation is the shape `assistant-platform/packages/assistant-client-ts` already uses
 against `PROTOCOL.md`.** That package vendors a capture of the document,
 regenerates it with `yarn sync:protocol`, and a suite test regenerates and
 compares, so a document change fails the gate rather than passing silently
@@ -549,7 +549,7 @@ PathFinder already mirrors WDK. Five reasons, the first two decisive:
    entries omit a declared-required field. Generating and then patching the
    output is the "one way to generate types" failure this repository already
    ruled against
-   ([../decisions/one-way-to-generate-types.md](../decisions/one-way-to-generate-types.md)).
+   ([the decision](../decisions/one-way-to-generate-types.md)).
 2. **The existing pattern is hand-written and load-bearing.**
    `integrations/veupathdb/wdk_models.py` carries roughly forty `WDKModel`
    subclasses over WDK's REST surface, by hand, on a `CamelModel` base. Two

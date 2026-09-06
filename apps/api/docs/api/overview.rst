@@ -195,7 +195,8 @@ Architecture Layers
        T["Transport<br/><small>FastAPI routers, SSE, schemas</small>"] --> S["Services<br/><small>Business logic orchestration</small>"]
        AT["AI tools<br/><small>thin wrappers</small>"] --> S
        S --> D["Domain<br/><small>Strategy AST, parameters - pure, no I/O</small>"]
-       S --> I["Integrations<br/><small>WDK client, embeddings</small>"]
+       S --> I["Integrations<br/><small>embedding index</small>"]
+       S --> V["veupathdb-py<br/><small>WDK and EDA clients</small>"]
        S --> P["Persistence<br/><small>PostgreSQL repositories</small>"]
 
        style T fill:#2563eb,color:#fff
@@ -213,7 +214,8 @@ Architecture Layers
   is a layering break.
 - **Services** orchestrate Domain, Integrations and Persistence.
 - **Domain** is pure: no I/O, no side effects, no imports from other layers.
-- **Integrations** are HTTP clients; business logic lives in Services.
+- **Integrations** holds the embedding index. The WDK and EDA HTTP clients are
+  ``veupathdb-py``, a distribution of its own; business logic lives in Services.
 - **Persistence** uses the repository pattern; services never write raw SQL.
 
 The runtime itself lives outside ``pathfinder``. ``assistant_core`` is a

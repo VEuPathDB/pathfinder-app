@@ -82,11 +82,12 @@ JSONArray, JSONValue. Owned by the runtime package and used throughout.
 Errors
 ------
 
-**Purpose:** Error codes and exception types. WDKError for WDK API failures,
-ValidationError for plan validation, ErrorCode enum. Used for consistent
-HTTP error responses.
+**Purpose:** PathFinder's own exception types, the wire's ``ErrorCode`` enum and
+the ``ProblemDetail`` body. A VEuPathDB refusal lives in
+``veupathdb.errors`` and reaches the wire through
+:py:func:`veupathdb_error_handler`.
 
-**Key classes:** :py:class:`WDKError`, :py:class:`ValidationError`
+**Key classes:** :py:class:`AppError`, :py:class:`ProblemDetail`
 
 .. automodule:: pathfinder.platform.errors
    :members:
@@ -120,8 +121,9 @@ JSON/structlog output. Used by all modules.
 Context
 -------
 
-**Purpose:** Context variables for request-scoped state. The VEuPathDB auth
-token and the request base URL; the runtime package owns the rest.
+**Purpose:** Context variables for request-scoped state. The request base URL
+and this turn's model picks; the runtime package and the client library own the
+rest.
 
 .. automodule:: pathfinder.platform.context
    :members:
@@ -165,16 +167,6 @@ Tasks
 **Purpose:** Background task infrastructure and management.
 
 .. automodule:: pathfinder.platform.tasks
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Tool Errors
------------
-
-**Purpose:** Tool-specific error formatting and handling utilities.
-
-.. automodule:: pathfinder.platform.tool_errors
    :members:
    :undoc-members:
    :show-inheritance:

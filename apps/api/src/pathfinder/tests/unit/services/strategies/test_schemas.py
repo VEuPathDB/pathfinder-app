@@ -1,6 +1,7 @@
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+
 from pathfinder.services.strategies.schemas import step_response_from_strategy_ast
 
 

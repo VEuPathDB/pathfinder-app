@@ -5,8 +5,7 @@ because OTEL accepts a provider only once.
 """
 
 import logging
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as importlib_version
+from importlib.metadata import PackageNotFoundError, version
 from uuid import uuid4
 
 from assistant_core.platform.context import request_id_ctx, site_id_ctx, user_id_ctx
@@ -57,7 +56,7 @@ _otel = _OtelState()
 def _get_version() -> str:
     """Read the package version from installed metadata."""
     try:
-        return importlib_version("pathfinder-api")
+        return version("pathfinder-api")
     except PackageNotFoundError:
         return "0.0.0-dev"
 

@@ -5,8 +5,7 @@ from __future__ import annotations
 import json
 
 import pytest
-
-from pathfinder.integrations.eda.models import (
+from veupathdb.eda.models import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
     EdaComparator,
@@ -21,6 +20,7 @@ from pathfinder.integrations.eda.models import (
     EdaVolcanoConfiguration,
     EdaVolcanoDescriptor,
 )
+
 from pathfinder.services.eda.export import (
     NoComputationError,
     eda_step_request,

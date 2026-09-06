@@ -3,12 +3,12 @@
 from typing import cast, get_args
 
 from fastapi import Depends
+from veupathdb_mcp.wdk.gene_set_steps import SetOperation
 
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.services.gene_sets.types import GeneSet
-from pathfinder.services.gene_sets.wdk_helpers import SetOperation
 from pathfinder.transport.http.deps import require_registered_wdk_identity
 from pathfinder.transport.http.schemas.gene_sets import GeneSetResponse
 
@@ -43,6 +43,7 @@ def to_response(gs: GeneSet) -> GeneSetResponse:
         created_at=gs.created_at.isoformat(),
         step_count=gs.step_count,
         enrichment_results=gs.enrichment_results,
+        vdi_id=gs.vdi_id,
     )
 
 

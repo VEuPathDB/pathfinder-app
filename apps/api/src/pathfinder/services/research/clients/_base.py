@@ -5,13 +5,13 @@ import asyncio
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import JsonValue
+from veupathdb.errors import ExternalServiceError
 
 from pathfinder.domain.research.citations import (
     Citation,
     ensure_unique_citation_tags,
 )
 from pathfinder.domain.research.papers import ParsedPaper
-from pathfinder.platform.errors import ExternalServiceError
 
 logger = get_logger(__name__)
 

@@ -13,12 +13,12 @@ from datetime import UTC, datetime
 from assistant_core.memory.autowrite import MemoryCandidate
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.memory.tombstones import compute_content_hash
+from veupathdb.domain.strategy.build_outcome import BuildOutcome
+from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 from pathfinder.ai.graph.state import PipelineState, ZeroResultStep
 from pathfinder.ai.lead.ledger_sections import render_structure
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 __all__ = ["collect_case_candidates"]
 

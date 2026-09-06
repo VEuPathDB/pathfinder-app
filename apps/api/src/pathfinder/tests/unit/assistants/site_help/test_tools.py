@@ -7,14 +7,14 @@ from typing import Any, cast
 import pytest
 from pydantic_ai import ModelRetry
 from pydantic_ai.tools import RunContext
+from veupathdb_mcp.catalog.models import RecordTypeInfo
 
-from pathfinder.assistants.site_help import agent as agent_module
+from pathfinder.assistants.site_help import agent
 from pathfinder.assistants.site_help.agent import (
     SiteHelpDeps,
     describe_site,
     list_veupathdb_sites,
 )
-from pathfinder.services.catalog.models import RecordTypeInfo
 
 
 class _Ctx:
@@ -58,8 +58,8 @@ async def test_it_counts_the_searches_of_each_record_type(
         del site_id
         return ["a", "b", "c"] if record_type == "transcript" else []
 
-    monkeypatch.setattr(agent_module, "get_record_types", _record_types)
-    monkeypatch.setattr(agent_module, "get_raw_searches", _searches)
+    monkeypatch.setattr(agent, "get_record_types", _record_types)
+    monkeypatch.setattr(agent, "get_raw_searches", _searches)
 
     detail = (await describe_site(_ctx(), "plasmodb")).return_value
 

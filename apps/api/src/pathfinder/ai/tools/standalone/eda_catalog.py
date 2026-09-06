@@ -164,7 +164,8 @@ async def describe_eda_study(
     # at a time and the tree call carries none of them.
     variables = [] if entity_id is None else described.variables
     description = EdaStudyDescription(
-        **described.model_dump() | {"variables": variables},
+        **described.model_dump(exclude={"variables"}),
+        variables=variables,
         guidance=_FILTER_GUIDANCE if entity_id is not None else _ENTITY_GUIDANCE,
     )
     shape = (

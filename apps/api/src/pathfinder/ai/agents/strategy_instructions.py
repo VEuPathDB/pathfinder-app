@@ -5,14 +5,14 @@ FRAME inspected."""
 from __future__ import annotations
 
 from pydantic_ai.tools import RunContext
+from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.strategy.graph_model import StrategyStep
+from veupathdb.domain.strategy.types import SyncStateProtocol
 
 from pathfinder.ai.agents.param_vocab_render import render_param_vocab
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.prompts.loader import load_system_prompt
-from pathfinder.domain.parameters.value_codec import to_wire
-from pathfinder.domain.strategy.graph_model import StrategyStep
-from pathfinder.domain.strategy.types import SyncStateProtocol
 
 
 def base_system_prompt(ctx: RunContext[AgentDeps]) -> str:

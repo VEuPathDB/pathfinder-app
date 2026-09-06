@@ -143,3 +143,14 @@ precision, and F1 for given positive controls.
    :members:
    :undoc-members:
    :show-inheritance:
+
+VDI Publication
+---------------
+
+**Purpose:** Publish a gene set to the researcher's VEuPathDB workspace and read
+the publication's status.
+
+.. automodule:: pathfinder.services.gene_sets.vdi
+   :members:
+   :undoc-members:
+   :show-inheritance:

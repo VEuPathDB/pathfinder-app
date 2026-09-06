@@ -6,6 +6,7 @@ import re
 import httpx
 from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
+from veupathdb.errors import ExternalServiceError
 
 from pathfinder.domain.research.citations import (
     Citation,
@@ -17,7 +18,6 @@ from pathfinder.domain.research.papers import (
     PubMedRawArticle,
     _PubMedSummaryAuthor,
 )
-from pathfinder.platform.errors import ExternalServiceError
 from pathfinder.services.research.clients._base import (
     API_USER_AGENT,
     BaseClient,

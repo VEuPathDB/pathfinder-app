@@ -7,22 +7,22 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
-from pathfinder.ai.tools.standalone import catalog_discovery
-from pathfinder.domain.parameters.values import SinglePickValue
-from pathfinder.domain.parameters.wdk_vocab import WDKVocabTerm
-from pathfinder.domain.strategy.operational_spec import Criterion
-from pathfinder.integrations.veupathdb.wdk_parameters import (
+from veupathdb.domain.parameters.values import SinglePickValue
+from veupathdb.domain.parameters.wdk_vocab import WDKVocabTerm
+from veupathdb.domain.strategy.operational_spec import Criterion
+from veupathdb.wdk.wdk_parameters import (
     WDKEnumParam,
     WDKParameter,
     WDKStringParam,
 )
-from pathfinder.services.catalog import search_inspection
-from pathfinder.services.catalog.param_formatting import (
+from veupathdb_mcp.catalog import search_inspection
+from veupathdb_mcp.catalog.param_formatting import (
     ParameterInfo,
     ParameterNotOnSearch,
     ParentContextRequired,
 )
+
+from pathfinder.ai.tools.standalone import catalog_discovery
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_state_ctx,
     patch_search_details,

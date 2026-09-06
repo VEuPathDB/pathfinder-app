@@ -5,6 +5,7 @@ import collections.abc
 from typing import ClassVar, Literal
 
 import httpx
+from veupathdb.errors import ExternalServiceError
 
 from pathfinder.domain.research.citations import (
     LiteratureFilters,
@@ -12,7 +13,6 @@ from pathfinder.domain.research.citations import (
     LiteratureSort,
     LiteratureSource,
 )
-from pathfinder.platform.errors import ExternalServiceError
 from pathfinder.services.research.clients import (
     ArxivClient,
     CrossrefClient,

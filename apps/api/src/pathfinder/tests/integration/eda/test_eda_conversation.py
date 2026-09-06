@@ -12,7 +12,6 @@ import asyncio
 import json
 from collections.abc import Iterator
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -40,14 +39,21 @@ from pydantic_ai import Agent
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models.function import FunctionModel
 from sqlalchemy import select
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.eda import factory
+from veupathdb.eda.client import EdaClient
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
+from veupathdb.wdk.factory import get_site
+from veupathdb_mcp.embeddings.study_index import sync_study_index
 
-import pathfinder.assistants.registry as registry_mod
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._eda_models import EdaSubsetPreviewResult
 from pathfinder.ai.tools.standalone.eda_step import EdaStepCreated
 from pathfinder.ai.tools.toolsets.eda import build_toolset
+from pathfinder.assistants import registry
 from pathfinder.assistants.pathfinder_spec import (
     _register_product_stream_parts,
     build_turn_context,
@@ -58,14 +64,8 @@ from pathfinder.assistants.site_help.spec import (
     build_initial_state,
     charge_usage,
 )
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.integrations.eda import factory
-from pathfinder.integrations.eda.client import EdaClient
-from pathfinder.integrations.embeddings.study_index import sync_study_index
-from pathfinder.integrations.veupathdb.factory import get_site
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.services.eda import authoring, binding, catalog
 from pathfinder.services.eda.binding import bound_conversation_analysis
 from pathfinder.services.strategies import commit
@@ -80,9 +80,7 @@ from pathfinder.tests.integration.http.conftest import WDK_AUTH_HEADER, client_f
 
 pytestmark = pytest.mark.asyncio
 
-FIXTURES = (
-    Path(__file__).resolve().parents[2] / "unit" / "integrations" / "eda" / "fixtures"
-)
+FIXTURES = FIXTURE_DIR
 
 _PROMPT = "look at the rodent malaria phenotypes and keep the P. berghei rows"
 _DATASET = "DS_53f554ec6a"
@@ -318,7 +316,7 @@ async def seam(
     store = _AnalysesStore()
     client = EdaClient(base_url="https://plasmodb.org/eda", transport=_wire(store))
     monkeypatch.setitem(factory._clients, "plasmodb", client)
-    monkeypatch.setattr(registry_mod, "build_site_help_spec", _build_spec)
+    monkeypatch.setattr(registry, "build_site_help_spec", _build_spec)
     get_assistant_registry.cache_clear()
     # The api syncs the study index at warm-up; the turn only searches it.
     token = veupathdb_auth_token_ctx.set("t")

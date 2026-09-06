@@ -11,14 +11,14 @@ from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.session import StrategySession
+from veupathdb_mcp.tool_errors import ToolErrorPayload
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.scratchpad import tools as sc_tools
-from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.ai.scratchpad import tools
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
 from pathfinder.platform.errors import ErrorCode
-from pathfinder.platform.tool_errors import ToolErrorPayload
 
 
 @pytest.fixture
@@ -63,7 +63,7 @@ class TestNote:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        result = await sc_tools.note(
+        result = await tools.note(
             ctx,
             title="Candidate",
             summary="Summary.",
@@ -95,11 +95,11 @@ class TestUpdateAndDeleteAndPin:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        created = await sc_tools.note(ctx, title="T", summary="S", body="B")
+        created = await tools.note(ctx, title="T", summary="S", body="B")
         assert isinstance(created.return_value, dict)
         nid = created.return_value["id"]
         assert isinstance(nid, str)
-        updated = await sc_tools.update_note(ctx, note_id=nid, body="B2")
+        updated = await tools.update_note(ctx, note_id=nid, body="B2")
         assert isinstance(updated.return_value, dict)
         assert updated.return_value["title"] == "T"
 
@@ -111,11 +111,11 @@ class TestUpdateAndDeleteAndPin:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        created = await sc_tools.note(ctx, title="T", summary="S", body="B")
+        created = await tools.note(ctx, title="T", summary="S", body="B")
         assert isinstance(created.return_value, dict)
         nid = created.return_value["id"]
         assert isinstance(nid, str)
-        result = await sc_tools.delete_note(ctx, note_id=nid)
+        result = await tools.delete_note(ctx, note_id=nid)
         assert result.return_value == "deleted"
 
     async def test_pin_toggle(
@@ -126,14 +126,14 @@ class TestUpdateAndDeleteAndPin:
     ) -> None:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
-        created = await sc_tools.note(ctx, title="T", summary="S", body="B")
+        created = await tools.note(ctx, title="T", summary="S", body="B")
         assert isinstance(created.return_value, dict)
         nid = created.return_value["id"]
         assert isinstance(nid, str)
-        pinned = await sc_tools.pin_note(ctx, note_id=nid)
+        pinned = await tools.pin_note(ctx, note_id=nid)
         assert isinstance(pinned.return_value, dict)
         assert pinned.return_value["pinned"] is True
-        unpinned = await sc_tools.unpin_note(ctx, note_id=nid)
+        unpinned = await tools.unpin_note(ctx, note_id=nid)
         assert isinstance(unpinned.return_value, dict)
         assert unpinned.return_value["pinned"] is False
 
@@ -148,7 +148,7 @@ class TestErrorDiscipline:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
         with pytest.raises(ModelRetry):
-            await sc_tools.update_note(ctx, note_id="n-missing", title="x")
+            await tools.update_note(ctx, note_id="n-missing", title="x")
 
     async def test_delete_missing_raises_modelretry(
         self,
@@ -159,7 +159,7 @@ class TestErrorDiscipline:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
         with pytest.raises(ModelRetry):
-            await sc_tools.delete_note(ctx, note_id="n-missing")
+            await tools.delete_note(ctx, note_id="n-missing")
 
     async def test_pin_missing_raises_modelretry(
         self,
@@ -170,7 +170,7 @@ class TestErrorDiscipline:
         del db_session
         ctx = _run_ctx(conv_id=conv_id, db_session_factory=db_session_factory)
         with pytest.raises(ModelRetry):
-            await sc_tools.pin_note(ctx, note_id="n-missing")
+            await tools.pin_note(ctx, note_id="n-missing")
 
     async def test_missing_context_returns_error_payload(
         self,
@@ -189,7 +189,7 @@ class TestErrorDiscipline:
             tool_name="note",
             tool_call_id="tc-1",
         )
-        result = await sc_tools.note(ctx, title="t", summary="s", body="b")
+        result = await tools.note(ctx, title="t", summary="s", body="b")
         assert isinstance(result.return_value, ToolErrorPayload)
         assert result.return_value.ok is False
         assert result.return_value.code == ErrorCode.NOT_FOUND.value

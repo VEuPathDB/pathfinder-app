@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { Experiment } from "@pathfinder/shared";
+import { geneConfidenceRequestSchema } from "@pathfinder/shared/generated/zod/geneConfidenceRequestSchema";
 
 // ---------------------------------------------------------------------------
 // Mock the workbench store so AnalysisPanelContainer renders children
@@ -294,6 +295,33 @@ describe("ConfidencePanel", () => {
     expect(body["enrichmentGeneCounts"]).toEqual({ G1: 2, OTHER: 1 });
     // 2 significant terms total
     expect(body["maxEnrichmentTerms"]).toBe(2);
+  });
+
+  it("sends a body the API contract accepts when no enrichment term is significant", async () => {
+    mockRequestJson.mockResolvedValueOnce([]);
+
+    storeState["lastExperiment"] = makeExperiment({
+      truePositiveGenes: [{ id: "G1" }],
+      enrichmentResults: [],
+    });
+    storeState["lastExperimentSetId"] = "set-1";
+
+    render(<ConfidencePanel />);
+
+    await waitFor(() => {
+      expect(mockRequestJson).toHaveBeenCalled();
+    });
+
+    const body = (
+      mockRequestJson.mock.calls[0] as [
+        unknown,
+        string,
+        { body: Record<string, unknown> },
+      ]
+    )[2].body;
+
+    const parsed = geneConfidenceRequestSchema.safeParse(body);
+    expect(parsed.error?.issues ?? []).toEqual([]);
   });
 
   it("renders all four score columns including Ensemble", async () => {

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import pytest
+from veupathdb.domain.parameters.values import MultiPickValue, StringValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.ops import CombineOp
 
-from pathfinder.domain.parameters.values import MultiPickValue, StringValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.tests.integration.strategies.conftest import BuildRaw
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]

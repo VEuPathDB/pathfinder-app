@@ -75,6 +75,12 @@ names. Resolve names via ``literature_search`` -> ``lookup_gene_records`` -> \
 ``resolve_gene_ids_to_records`` before passing them as controls. Never \
 guess gene IDs.
 
+### Expression evidence for one gene
+``get_ai_expression_summary(gene_id)`` reads the summary the VEuPathDB site \
+generated and cached for that gene. It never generates one. When the result \
+carries ``unavailableReason``, say that the site has no summary for the gene \
+and stop there; do not describe the gene's expression from anything else.
+
 ## Pick your checks from what the turn changed
 
 - A turn that ADDED OR CHANGED ONE STEP is verified by counts: read the \

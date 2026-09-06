@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart3 } from "lucide-react";
-import { DistributionExplorer } from "@/features/analysis";
+import { DistributionExplorer } from "@/features/workbench/analysis";
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { useSessionStore } from "@/state/useSessionStore";

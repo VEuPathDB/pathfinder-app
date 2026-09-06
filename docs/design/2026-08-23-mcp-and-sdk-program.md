@@ -12,7 +12,7 @@
 
 **Five design calls carry the weight.**
 
-1. **`AssistantSpec` grows exactly one field, conceptually: a list of declared tool sources.** The assistant asks for a named server; the runtime grants a wrapped, credentialed toolset. This is the same split the spec already uses for identity - the assistant declares `identity_gate`, the runtime enforces it (`packages/assistant-core/src/assistant_core/spec.py:131`, `docs/knowledge/decisions/the-orchestration-is-the-assistants.md`).
+1. **`AssistantSpec` grows exactly one field, conceptually: a list of declared tool sources.** The assistant asks for a named server; the runtime grants a wrapped, credentialed toolset. This is the same split the spec already uses for identity - the assistant declares `identity_gate`, the runtime enforces it (`assistant-platform/packages/assistant-core/src/assistant_core/spec.py:131`, `docs/knowledge/decisions/the-orchestration-is-the-assistants.md`).
 
 2. **Approval is denied by default and granted by annotation, and the annotation is only believed from an admitted server.** A tool runs without a click only when it declares `readOnlyHint: true` and does not declare `destructiveHint: true`. Everything else asks. The mapping is one predicate over `ToolDefinition.metadata["annotations"]`, which is exactly what the library hands us (`pydantic_ai/mcp.py:1160-1164`, `pydantic_ai/toolsets/approval_required.py:29`).
 
@@ -24,7 +24,7 @@
 
 **What we build, what they build.** Ours: the declaration and resolution path, the approval predicate, the untrusted-output wrapper, the part-binding convention, `veupathdb-wdk-mcp` over PathFinder's genuinely standalone WDK tools, and the conformance suite as a package a team can run against its own server (**4-6 engineer-weeks**, up from the assessment's WS4 estimate of 2-3, because the conformance suite and the untrusted-output work were priced thin there). Theirs: one reference MCP server on `lib-jaxrs-container-core` that the next five copy (**3-6 engineer-weeks**, unchanged).
 
-**How much less speculative this is than on 2026-08-17.** The assessment's WS4 depended on WS3, which depended on WS2, which depended on WS1. All three have landed (assessment "Status addendum", updated 2026-08-22): the bearer identity path accepts a VEuPathDB token, `application_id` tenancy is enforced through the ownership helpers, the runtime is a package with its own CI lane, `AssistantSpec` exists and two assistants run through one runtime, and the wire protocol is a written, test-pinned document (`packages/assistant-core/PROTOCOL.md`, version 1.0.0). On 2026-08-17 this program waited on eleven things we had not built. Today it waits on three things we cannot build: their pilot choice, their authorization server's behaviour, and their operational ownership.
+**How much less speculative this is than on 2026-08-17.** The assessment's WS4 depended on WS3, which depended on WS2, which depended on WS1. All three have landed (assessment "Status addendum", updated 2026-08-22): the bearer identity path accepts a VEuPathDB token, `application_id` tenancy is enforced through the ownership helpers, the runtime is a package with its own CI lane, `AssistantSpec` exists and two assistants run through one runtime, and the wire protocol is a written, test-pinned document (`assistant-platform/PROTOCOL.md`, version 1.0.0). On 2026-08-17 this program waited on eleven things we had not built. Today it waits on three things we cannot build: their pilot choice, their authorization server's behaviour, and their operational ownership.
 
 ---
 
@@ -38,11 +38,11 @@ Those four facts set the whole design. MCP because they chose it. Streamable HTT
 
 ### 1.2 What PathFinder already has
 
-- `AssistantSpec` (`packages/assistant-core/src/assistant_core/spec.py:116-133`) is a frozen model with `assistant_id` and eight declarations: a graph factory, an initial-state factory, an async turn-context factory, a mock-model factory, `checkpoint_types`, a stream-part hook, `memory_kinds`, an identity gate and a turn epilogue. It imports no product module.
+- `AssistantSpec` (`assistant-platform/packages/assistant-core/src/assistant_core/spec.py:116-133`) is a frozen model with `assistant_id` and eight declarations: a graph factory, an initial-state factory, an async turn-context factory, a mock-model factory, `checkpoint_types`, a stream-part hook, `memory_kinds`, an identity gate and a turn epilogue. It imports no product module.
 - Two assistants run through it: PathFinder (`apps/api/src/pathfinder/assistants/pathfinder_spec.py`) and a pilot (`apps/api/src/pathfinder/assistants/site_help/spec.py`), the latter a single agent with two read-only catalog tools over the bare `TurnState`.
-- The `data-*` taxonomy is an open registry on both sides (`packages/assistant-core/src/assistant_core/conversation/stream_parts/registry.py`), and it already accepts a dotted, namespaced kind: `_schema_name` maps `data-<ns>.<name>` to an identifier by replacing `.` and `-`.
+- The `data-*` taxonomy is an open registry on both sides (`assistant-platform/packages/assistant-core/src/assistant_core/conversation/stream_parts/registry.py`), and it already accepts a dotted, namespaced kind: `_schema_name` maps `data-<ns>.<name>` to an identifier by replacing `.` and `-`.
 - In-process tools already emit typed parts by returning `ToolReturn(return_value=..., metadata=[DataChunk(...)])` - see `apps/api/src/pathfinder/ai/tools/standalone/workbench.py:87-106` and the chunk builders in `apps/api/src/pathfinder/ai/tools/standalone/_stream_parts.py`.
-- Approval already reaches the user: four tools carry `requires_approval=True` (`ai/lead/lead_agent.py:268`, `ai/tools/toolsets/execution.py:112,119`, `ai/tools/toolsets/verification.py:101`), the chunk is `tool-approval-request` (`packages/assistant-core/PROTOCOL.md` section 5.1), and a sub-agent's approval answer re-enters the sub-agent (`docs/knowledge/decisions/sub-agent-approvals-re-enter-the-sub-agent.md`).
+- Approval already reaches the user: four tools carry `requires_approval=True` (`ai/lead/lead_agent.py:268`, `ai/tools/toolsets/execution.py:112,119`, `ai/tools/toolsets/verification.py:101`), the chunk is `tool-approval-request` (`assistant-platform/PROTOCOL.md` section 5.1), and a sub-agent's approval answer re-enters the sub-agent (`docs/knowledge/decisions/sub-agent-approvals-re-enter-the-sub-agent.md`).
 - Identity resolves to one `Principal` in one function: a VEuPathDB ES512 bearer verified against the OAuth server's JWKS, PathFinder's own HS256 bearer, or the session cookie; plus `X-PathFinder-Service-Token` naming the calling application (`docs/knowledge/decisions/bearer-identity-and-service-tokens.md`).
 
 ### 1.3 The one library fact that shapes everything
@@ -348,11 +348,11 @@ Read on 2026-08-23 from the SDK's repository and documentation:
 
 ### 6.1 The protocol document is the contract
 
-`packages/assistant-core/PROTOCOL.md` is version 1.0.0 and it is a real specification, not a summary: RFC 2119 keywords, a framing grammar, cursor semantics, the chunk vocabulary, the turn shape, and a reducer written as five rules. Every example in it is captured from a real turn by `tests/integration/conversation/test_protocol_document.py`, which fails when the runtime and the page disagree. Its versioning rule is the same one the runtime package uses: additive within a minor version, and removing or retyping anything is a major version with every registered assistant migrated in the same change.
+`assistant-platform/PROTOCOL.md` is version 1.0.0 and it is a real specification, not a summary: RFC 2119 keywords, a framing grammar, cursor semantics, the chunk vocabulary, the turn shape, and a reducer written as five rules. Every example in it is captured from a real turn by `tests/integration/conversation/test_protocol_document.py`, which fails when the runtime and the page disagree. Its versioning rule is the same one the runtime package uses: additive within a minor version, and removing or retyping anything is a major version with every registered assistant migrated in the same change.
 
 That is what a Java or R consumer builds against. It exists today.
 
-### 6.2 `packages/assistant-client-ts`
+### 6.2 `assistant-platform/packages/assistant-client-ts`
 
 The TypeScript headless client is batch V5 of the verification and separation program, being built in a parallel batch, and this document deliberately does not depend on its internals. Its role, from that spec: it is the client for hosts that write their own UI in their own stack, and **its tests double as protocol conformance from the consumer side** - which is the property that matters here. A protocol with one implementation on each side is a pair of programs that agree; a protocol with a specification, a producer test and an independent consumer test is a contract.
 
@@ -428,10 +428,10 @@ Section 2.6 says no for v1 and gives the three things that would have to be reco
 > `docs/design/2026-08-24-mcp-sdk-execution-plan.md`, batches A through G;
 > what each batch landed is in `docs/knowledge/log.md` under 2026-08-24 and
 > 2026-08-25. P1's exit criteria are met and each is named by a test:
-> `packages/assistant-core/src/assistant_core/mcp/` holds the declarations,
+> `assistant-platform/packages/assistant-core/src/assistant_core/mcp/` holds the declarations,
 > the admission record, the approval predicate, the untrusted-output wrapper
 > and the per-turn resolution. P2 serves the sixteen tools of section 3.1 from
-> a container of their own and ships `packages/mcp-conformance`, which answers
+> a container of their own and ships `assistant-platform/packages/mcp-conformance`, which answers
 > `incomplete` against our own endpoint with its six unsettled checks pinned
 > by name rather than skipped. P4's in-repo half is proven: `site_help`
 > answers a turn whose tools this deployment served over the network,
@@ -468,7 +468,7 @@ So: on 2026-08-17, WS4 was a plan resting on eleven unbuilt things. Today it res
 
 **Totals: ours 4-6 EW, theirs 3-6 EW.** The assessment priced WS4 at 2-3 ours plus 3-6 theirs; our half grows because two things were priced thin there - the conformance suite as a shipped package that a foreign team runs (it was "a skeleton"), and treating tool output as untrusted content, which is a real guard on a real call site and not a flag.
 
-**Prerequisites that are not in the table but block P1.** `single_agent_graph` cannot currently resolve a deferred tool call, so an assistant on the simple shape that marks a tool approval-required gets an `error` chunk instead of an approval card (`packages/assistant-core/PROTOCOL.md` section 11, and `docs/knowledge/backlog/single-agent-graph-cannot-ask-for-approval.md`). The gene-page pilot is exactly that shape and Section 3.1 gives it a writing tool. This program makes that backlog item load-bearing; it must close before P4 and ideally during P1.
+**Prerequisites that are not in the table but block P1.** `single_agent_graph` cannot currently resolve a deferred tool call, so an assistant on the simple shape that marks a tool approval-required gets an `error` chunk instead of an approval card (`assistant-platform/PROTOCOL.md` section 11, and `docs/knowledge/backlog/single-agent-graph-cannot-ask-for-approval.md`). The gene-page pilot is exactly that shape and Section 3.1 gives it a writing tool. This program makes that backlog item load-bearing; it must close before P4 and ideally during P1.
 
 ---
 
@@ -516,7 +516,7 @@ Nothing in this appendix was changed. Each is a candidate backlog item.
 1. **Three standalone tools are defined but registered in no toolset.** `browse_search_categories` (`ai/tools/standalone/catalog.py:106`) and `list_transforms` (`catalog.py:147`) are named in `ai/context/extractors.py:197,199` - a tool-name list used by the context extractor - but neither appears in the FRAME, EXECUTION or VERIFICATION tool lists nor on the Lead. The extractor therefore lists tools that can never produce an observation. `update_search_decision` (`catalog_selection.py:44`) is referenced nowhere outside its own module.
 2. **The VERIFY agent's instructions name two tools it cannot call.** `ai/agents/verification.py:65-68` tells the model to resolve gene names via `literature_search` then `lookup_gene_records` then `resolve_gene_ids_to_records` before passing controls. The verification toolset (`ai/tools/toolsets/verification.py:93-122`) contains none of those three, and `resolve_gene_ids_to_records` (`gene.py:45`) is in no toolset at all. A model that follows the instruction gets a tool-not-found retry. Costs at least one wasted model turn whenever controls are needed, and it is a plausible contributor to control-test friction.
 3. **The three sub-agents are module-level singletons with toolsets baked at import** (`ai/agents/frame.py:131`, `execution.py:179`, `verification.py:147`), while the Lead is built per turn (`ai/agents/registry.py`). A per-user, per-turn MCP toolset cannot reach a singleton. Named as P1 work rather than a defect, but it is the concrete blocker.
-4. **`single_agent_graph` cannot ask for approval**, so an assistant on the simple shape that marks a tool `requires_approval=True` receives an `error` chunk instead of an approval card (`packages/assistant-core/PROTOCOL.md` section 11; `docs/knowledge/backlog/single-agent-graph-cannot-ask-for-approval.md`). This program makes it load-bearing: the recommended pilot is exactly that shape and Section 3.1 gives it a writing tool.
+4. **`single_agent_graph` cannot ask for approval**, so an assistant on the simple shape that marks a tool `requires_approval=True` receives an `error` chunk instead of an approval card (`assistant-platform/PROTOCOL.md` section 11; `docs/knowledge/backlog/single-agent-graph-cannot-ask-for-approval.md`). This program makes it load-bearing: the recommended pilot is exactly that shape and Section 3.1 gives it a writing tool.
 5. **Tool output is still unscanned.** PIGuard runs on the last user message (`ai/conversation/dispatcher.py`) and web-search page text enters the context unchecked. Assessment gap 7, still listed as open in the status addendum. Section 2.5 turns it from a latent risk into a requirement.
 6. **pydantic-ai discards `CallToolResult.meta`.** Not a defect in this repository, and arguably not one upstream either, but it is a real constraint that shaped Section 2.3 and it is worth an upstream issue: the FastMCP client parses `meta` and the mapper never reads it.
 7. **The durable-task SSE dialect is still separate** from the v6 chunk vocabulary, which means any non-JS consumer implements two protocols (Section 6.4). Assessment 2.2 finding 6, unchanged.
@@ -528,11 +528,11 @@ The assessment froze its line numbers on 2026-08-17 and warned they would drift.
 | Assessment claim | Today |
 |---|---|
 | Entanglement 1: `ai/graph/state.py:147-184`, checkpointed `PipelineState` carries science, `extra="forbid"`, no slot for another product | Closed. `class PipelineState(TurnState)` at `ai/graph/state.py:114`, with the science in `StrategyDomainState` at `:95`. |
-| Entanglement 3: `ai/conversation/serde.py:29-43` enumerates 8 science types | Moved. The serializer is `packages/assistant-core/src/assistant_core/conversation/serde.py`; the allowlist is the union of the registered assistants' `checkpoint_types`. |
+| Entanglement 3: `ai/conversation/serde.py:29-43` enumerates 8 science types | Moved. The serializer is `assistant-platform/packages/assistant-core/src/assistant_core/conversation/serde.py`; the allowlist is the union of the registered assistants' `checkpoint_types`. |
 | Entanglement 4: `persistence/models.py:194-258`, `Conversation` is thread and strategy | Closed. Split into a thread plus a 1:1 `conversation_strategies` attachment. |
 | Entanglement 8: closed `data-*` union on both sides | Closed. Open registry at `assistant_core/conversation/stream_parts/registry.py`; the schema index now lives at `transport/http/routers/_stream_parts_schemas.py`. |
 | Entanglement 15: dead `_is_approval_reply` in `ai/conversation/dispatcher.py:80-87` | Deleted; no occurrence remains. |
 | `ai/memory/` package | Moved to `assistant_core/memory/`. |
 | Entanglement 5: `ai/agents/roles.py:7-12` leaks `PhaseRole` | Still present at `ai/agents/roles.py`; WS2 made roles an injected seam but the module remains. |
-| Appendix B: "own agent", "own deps", "own domain state", "own mock", "own identity" hard-coded | All five are now `AssistantSpec` declarations (`packages/assistant-core/src/assistant_core/spec.py:116-133`). |
+| Appendix B: "own agent", "own deps", "own domain state", "own mock", "own identity" hard-coded | All five are now `AssistantSpec` declarations (`assistant-platform/packages/assistant-core/src/assistant_core/spec.py:116-133`). |
 | Section 3.3: "expose PathFinder's WDK toolset as `veupathdb-wdk-mcp` so a consumer can call `find_searches`, `read_param_options`, `run_search`, `lookup_gene`" | Directionally right, names approximate. Section 3.1 of this document gives the measured inventory: the catalog and record reads export cleanly, `run_search` in the sense of building a step does not, and four tools split into a service half and a discovery-gate half that stays here. |

@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from . import confidence, crud, enrichment, operations, records
+from . import confidence, crud, enrichment, operations, records, vdi
 
 _PREFIX = "/api/v1/gene-sets"
 
@@ -15,5 +15,6 @@ for _sub in (
     enrichment.router,
     records.router,
     confidence.router,
+    vdi.router,
 ):
     router.include_router(_sub, prefix=_PREFIX)

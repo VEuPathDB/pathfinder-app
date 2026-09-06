@@ -6,10 +6,10 @@ from collections.abc import AsyncGenerator, Generator
 
 import httpx
 import pytest
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.eda.client import EdaClient
+from veupathdb.eda.models import EdaStudyOverview
 
-from pathfinder.integrations.eda.client import EdaClient
-from pathfinder.integrations.eda.models import EdaStudyOverview
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.services.eda import catalog
 
 pytestmark = pytest.mark.asyncio

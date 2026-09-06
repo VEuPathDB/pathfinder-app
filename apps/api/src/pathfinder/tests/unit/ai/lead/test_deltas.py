@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from veupathdb.domain.strategy.build_outcome import BuildOutcome
+
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.deltas import (
     ExecuteDelta,
@@ -9,7 +11,6 @@ from pathfinder.ai.lead.deltas import (
     RecoveryDelta,
     VerificationDelta,
 )
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
 
 
 def test_frame_result_disposition_default_spec_ready() -> None:

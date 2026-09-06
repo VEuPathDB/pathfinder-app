@@ -7,6 +7,8 @@ from collections.abc import Iterator
 
 import pytest
 from assistant_core.platform.types import ReasoningEffort
+from veupathdb.domain.strategy.constraints import Constraint, ConstraintKind
+from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.graph.runtime import Context
@@ -21,8 +23,6 @@ from pathfinder.ai.lead.sub_agent_tools import (
     phase_override_kwargs,
     phase_usage_limits,
 )
-from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.platform.config import get_settings
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_runtime,

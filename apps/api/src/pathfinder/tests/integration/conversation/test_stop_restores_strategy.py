@@ -8,10 +8,10 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.persistence.models import Conversation, ConversationEvent
+from assistant_core.platform import db
 from sqlalchemy import select
 
 from pathfinder.ai.conversation import turn_runner
@@ -62,7 +62,7 @@ class _HalfBuildThenHang:
 async def _write_half_built_plan(conversation_id: UUID) -> None:
     """The build phase writes the plan before WDK has answered."""
     ast = four_step_ast()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await ConversationRepository(session).update_conversation(
             conversation_id,
             ConversationUpdate(
@@ -78,7 +78,7 @@ async def _write_half_built_plan(conversation_id: UUID) -> None:
 
 async def _seed_thread() -> tuple[UUID, UUID]:
     user_id, conversation_id = uuid4(), uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
         session.add(
@@ -94,7 +94,7 @@ async def _seed_thread() -> tuple[UUID, UUID]:
 
 
 async def _write_three_step_strategy(conversation_id: UUID) -> None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await ConversationRepository(session).update_conversation(
             conversation_id,
             ConversationUpdate(
@@ -150,7 +150,7 @@ async def _run_stopped_turn(
 
 
 async def _chunk_types(conversation_id: UUID) -> list[str]:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         rows = (
             (
                 await session.execute(
@@ -176,7 +176,7 @@ async def test_stop_mid_build_puts_the_previous_strategy_back(
 
     await _run_stopped_turn(conversation_id, user_id, monkeypatch)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         strategy = await session.get(ConversationStrategy, conversation_id)
         assert strategy is not None
         assert strategy.step_count == 3
@@ -189,7 +189,7 @@ async def test_stop_mid_build_puts_the_previous_strategy_back(
     assert "data-turn-stopped" in types
     revision_index = types.index("data-strategy-revision")
     assert revision_index == types.index("data-turn-stopped") + 1
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         emitted = (
             (
                 await session.execute(
@@ -217,7 +217,7 @@ async def test_stop_mid_first_build_leaves_no_half_written_strategy(
 
     await _run_stopped_turn(conversation_id, user_id, monkeypatch)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         strategy = await session.get(ConversationStrategy, conversation_id)
         assert strategy is not None
         assert strategy.strategy_ast == {}

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from pathfinder.services.experiment.types import ControlTestResult
+from veupathdb_mcp.controls.control_types import ControlTestResult
 
 
 @dataclass(frozen=True, slots=True)

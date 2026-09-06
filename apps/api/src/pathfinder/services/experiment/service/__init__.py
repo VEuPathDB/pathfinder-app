@@ -12,8 +12,8 @@ from uuid import uuid4
 
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
+from veupathdb.domain.strategy.ast import StrategyStepNode
 
-from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.services.experiment.helpers import ProgressCallback
 from pathfinder.services.experiment.service.context import (
     PhaseContext,

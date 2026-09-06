@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Iterator
-from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
-
-from pathfinder.integrations.eda import factory as eda_factory
-from pathfinder.integrations.eda.client import EdaClient
-from pathfinder.integrations.eda.models import (
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.eda import factory
+from veupathdb.eda.client import EdaClient
+from veupathdb.eda.models import (
     EdaComparator,
     EdaComputation,
     EdaComputationDescriptor,
@@ -21,12 +20,11 @@ from pathfinder.integrations.eda.models import (
     EdaStringSetFilter,
     EdaVariableSpec,
 )
-from pathfinder.platform.context import veupathdb_auth_token_ctx
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
+
 from pathfinder.services.eda import authoring, catalog
 
-FIXTURES = (
-    Path(__file__).resolve().parents[2] / "unit" / "integrations" / "eda" / "fixtures"
-)
+FIXTURES = FIXTURE_DIR
 
 pytestmark = pytest.mark.asyncio
 
@@ -477,7 +475,7 @@ def _wire(
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)
-    monkeypatch.setattr(eda_factory, "get_eda_client", lambda _s: client)
+    monkeypatch.setattr(factory, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(authoring, "resolve_eda_user_id", _fake_user_id)
     return client
 

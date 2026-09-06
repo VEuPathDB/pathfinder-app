@@ -8,9 +8,9 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from veupathdb.errors import WDKError
+from veupathdb.wdk.wdk_models import WDKAnswer, WDKAnswerMeta
 
-from pathfinder.integrations.veupathdb.wdk_models import WDKAnswer, WDKAnswerMeta
-from pathfinder.platform.errors import WDKError
 from pathfinder.services.experiment import scored_comparison
 from pathfinder.services.experiment.metrics import (
     compute_confusion_matrix,

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pydantic_ai import RunContext
+from veupathdb.domain.strategy.operational_spec import OperationalSpec
+from veupathdb.domain.strategy.spec_diff import diff_specs
 
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.dispatch_context import (
@@ -31,8 +33,6 @@ from pathfinder.ai.lead.sub_agent_tools import (
     apply_agent_state,
     criteria_floor,
 )
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.domain.strategy.spec_diff import diff_specs
 
 
 def frame_work_order(reason: str, prompt: str) -> str:

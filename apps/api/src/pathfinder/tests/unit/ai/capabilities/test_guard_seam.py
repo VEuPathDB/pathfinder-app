@@ -12,7 +12,7 @@ import asyncio
 from typing import Any
 from uuid import uuid4
 
-import assistant_core.capabilities.repetition_guard as repetition_mod
+from assistant_core.capabilities import repetition_guard
 from assistant_core.capabilities.repetition_guard import (
     DEFAULT_REPETITION_THRESHOLD,
     ToolRepetitionGuard,
@@ -22,20 +22,20 @@ from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.session import StrategySession
 
-import pathfinder.ai.capabilities.resilience as resilience_mod
 from pathfinder.ai.agents.tool_vocabulary import (
     READ_ONLY_TOOLS,
     SEARCH_LOOKUP_TOOLS,
     build_tool_repetition_guard,
 )
+from pathfinder.ai.capabilities import resilience
 from pathfinder.ai.capabilities.resilience import ToolResilience
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import BUILD_SUB_AGENT_BY_ROLE, LeadDeps
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 
@@ -103,11 +103,11 @@ def _lead_deps() -> LeadDeps:
 
 
 def test_the_repetition_guard_module_names_no_product_tool() -> None:
-    assert PRODUCT_NAMES & set(vars(repetition_mod)) == set()
+    assert PRODUCT_NAMES & set(vars(repetition_guard)) == set()
 
 
 def test_the_resilience_module_names_no_product_tool() -> None:
-    assert PRODUCT_NAMES & set(vars(resilience_mod)) == set()
+    assert PRODUCT_NAMES & set(vars(resilience)) == set()
 
 
 def test_a_guard_with_no_vocabulary_watches_nothing() -> None:

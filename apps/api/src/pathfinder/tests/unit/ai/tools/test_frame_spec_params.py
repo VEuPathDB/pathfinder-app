@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry
+from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb_mcp.catalog import param_discovery
+from veupathdb_mcp.catalog.param_formatting import (
+    ParameterInfo,
+)
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
-from pathfinder.domain.parameters.value_codec import to_wire
-from pathfinder.domain.parameters.wdk_vocab import VocabOption
-from pathfinder.services.catalog import param_discovery
-from pathfinder.services.catalog.param_formatting import (
-    ParameterInfo,
-)
 from pathfinder.tests.unit.ai.tools.test_frame_proposals import (
     PHYLETIC_ORGANISM,
     propose,

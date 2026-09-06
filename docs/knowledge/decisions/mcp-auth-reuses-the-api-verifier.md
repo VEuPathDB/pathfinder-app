@@ -1,7 +1,7 @@
 ---
 type: Decision
-title: The MCP server verifies with the API's own bearer verifier, and publishes RFC 9728
-description: veupathdb-wdk-mcp reuses resolve_veupathdb_bearer for the ES512 VEuPathDB token, names three credential modes on the wire, keeps its service secrets in a registry separate from the API's, and builds its protected-resource document and 401 challenge from the mcp SDK. A second JWKS client, reusing PATHFINDER_SERVICE_TOKENS, accepting VEUPATHDB_AUTH_TOKEN from a caller, and hand-rolling the RFC 9728 document were all rejected.
+title: The MCP server verifies with the client library's bearer verifier, and publishes RFC 9728
+description: veupathdb-wdk-mcp reuses the client library's ES512 verifier for the VEuPathDB token, names the OAuth subject as the caller, names three credential modes on the wire, keeps its service secrets in a registry separate from the API's, and builds its protected-resource document and 401 challenge from the mcp SDK. A second JWKS client, reusing PATHFINDER_SERVICE_TOKENS, accepting VEUPATHDB_AUTH_TOKEN from a caller, and hand-rolling the RFC 9728 document were all rejected.
 tags: [security, auth, veupathdb, oauth, mcp, transport]
 generated: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-`pathfinder/mcp/auth.py` verifies one inbound `Authorization: Bearer` and
+`veupathdb_mcp/auth.py` verifies one inbound `Authorization: Bearer` and
 answers with an `McpCredential` naming one of three modes, the vocabulary the
 admission record uses:
 
@@ -26,10 +26,17 @@ that refuses a `/users/<id>/...` call without a request token still holds and
 the service account keeps its confinement
 ([a WDK-backed feature requires a registered VEuPathDB login](wdk-requires-registered-login.md)).
 
-The VEuPathDB half of the verification is `services/wdk_identity.py::resolve_veupathdb_bearer`,
-the same function `platform/security.py::resolve_principal` calls
-([a VEuPathDB bearer token is the user](bearer-identity-and-service-tokens.md)).
-`pathfinder/mcp/metadata.py` builds the RFC 9728 document route and the 401
+The VEuPathDB half of the verification is
+`veupathdb/wdk/auth_login.py::validate_oauth_token`, the client
+library's own ES512 check, wrapped by `veupathdb_mcp/identity.py::resolve_oauth_subject`,
+which caches the subject a token names for five minutes. The application's API
+calls the same verifier and then maps the user onto its `users` table
+([a VEuPathDB bearer token is the user](bearer-identity-and-service-tokens.md));
+the MCP server stops at the subject, so it reads no PathFinder table
+([the MCP server writes no PathFinder table](the-mcp-server-writes-no-pathfinder-table.md)).
+`McpCredential.client_id` is that subject string.
+
+`veupathdb_mcp/metadata.py` builds the RFC 9728 document route and the 401
 `WWW-Authenticate` challenge from the `mcp` SDK's own
 `create_protected_resource_routes` and `RequireAuthMiddleware`.
 
@@ -40,6 +47,10 @@ key and its own 120-second window, so one process could accept a token the
 other refuses, and a key rotation would be visible twice at different times.
 Reuse also carries the 503 rule for free: a JWKS that cannot be read names the
 identity provider rather than blaming the credential.
+
+**Naming the caller by PathFinder's internal user id.** It reads the `users`
+table on every admission, which a second deployment of the server cannot do,
+and the id was only ever stringified into `client_id`.
 
 **Reusing `PATHFINDER_SERVICE_TOKENS` for the MCP server's service mode.** A
 secret a caller sends to an MCP server would then also authenticate to the

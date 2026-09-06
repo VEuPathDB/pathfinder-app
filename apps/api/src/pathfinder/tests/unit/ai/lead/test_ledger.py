@@ -2,6 +2,20 @@
 
 from __future__ import annotations
 
+from veupathdb.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
+from veupathdb.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
+from veupathdb.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
+from veupathdb.domain.strategy.ops import CombineOp
+
 from pathfinder.ai.lead.ledger import (
     InvestigationLedger,
     blamed_the_site,
@@ -13,19 +27,6 @@ from pathfinder.ai.lead.ledger_sections import (
     FrameSection,
     VerificationSection,
 )
-from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
-)
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
-from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.staleness import StaleBuild
 
 _BLAMING_REPLY = (

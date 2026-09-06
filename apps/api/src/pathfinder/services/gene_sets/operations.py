@@ -4,30 +4,27 @@ from uuid import UUID, uuid4
 
 from assistant_core.platform.context import calling_application
 from assistant_core.platform.logging import get_logger
-
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.integrations.veupathdb.factory import (
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.errors import ValidationError
+from veupathdb.wdk.factory import (
     get_strategy_api,
 )
-from pathfinder.platform.errors import (
-    InternalError,
-    NotFoundError,
-    ValidationError,
-)
-from pathfinder.services.enrichment.service import EnrichmentService
-from pathfinder.services.enrichment.types import (
+from veupathdb_mcp.wdk.enrichment.service import EnrichmentService
+from veupathdb_mcp.wdk.enrichment.types import (
     EnrichmentAnalysisType,
     EnrichmentResult,
 )
-from pathfinder.services.gene_sets.frozen_step import frozen_step_id
-from pathfinder.services.gene_sets.store import GeneSetStore
-from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
-from pathfinder.services.gene_sets.wdk_helpers import (
+from veupathdb_mcp.wdk.gene_set_steps import (
     GeneSetWdkContext,
     build_enrichment_params_from_gene_ids,
     resolve_wdk_context,
 )
-from pathfinder.services.wdk.step_results import StepResultsService
+from veupathdb_mcp.wdk.step_results import StepResultsService
+
+from pathfinder.platform.errors import InternalError, NotFoundError
+from pathfinder.services.gene_sets.frozen_step import frozen_step_id
+from pathfinder.services.gene_sets.store import GeneSetStore
+from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
 
 logger = get_logger(__name__)
 
@@ -174,6 +171,17 @@ class GeneSetService:
             msg = f"Gene set not found: {gene_set_id}"
             raise NotFoundError(detail=msg)
         return refreshed
+
+    async def record_vdi_publication(
+        self, gene_set: GeneSet, vdi_id: str | None
+    ) -> None:
+        """Point a gene set at the VEuPathDB dataset it was published to.
+
+        The pointer must be durable before the caller reports the publication.
+        """
+        gene_set.vdi_id = vdi_id
+        self._store.save(gene_set)
+        await self.flush(gene_set.id)
 
     async def list_for_user(
         self,

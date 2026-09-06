@@ -12,17 +12,16 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.operations import DeleteResolution, DeleteStepOp
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.errors import WDKError
+from veupathdb.wdk.wdk_models import NewStepSpec, WDKIdentifier
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.operations import DeleteResolution, DeleteStepOp
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.integrations.veupathdb.wdk_models import NewStepSpec, WDKIdentifier
-from pathfinder.platform.errors import WDKError
-from pathfinder.services.strategies import commit as commit_module
-from pathfinder.services.strategies import step_wdk_push
+from pathfinder.services.strategies import commit, step_wdk_push
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -66,7 +65,7 @@ class _Recorder:
 @pytest.fixture
 def wdk(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
     api = _Recorder()
-    monkeypatch.setattr(commit_module, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(commit, "get_strategy_api", lambda _site: api)
     monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site: api)
 
     async def _no_validate(*_args: Any, **_kwargs: Any) -> set[str]:
@@ -92,11 +91,9 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
         return None
 
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_validate)
-    monkeypatch.setattr(commit_module, "reconcile_sync_state_with_wdk", _no_reconcile)
-    monkeypatch.setattr(commit_module, "sync_strategy_for_site", _sync)
-    monkeypatch.setattr(
-        commit_module, "persist_strategy_ast_to_conversation", _no_persist
-    )
+    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _no_reconcile)
+    monkeypatch.setattr(commit, "sync_strategy_for_site", _sync)
+    monkeypatch.setattr(commit, "persist_strategy_ast_to_conversation", _no_persist)
     return api
 
 

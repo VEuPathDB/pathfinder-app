@@ -6,8 +6,8 @@ rendered it, and the cut one export landed in the strategy.
 
 from __future__ import annotations
 
-from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
+from veupathdb.model import CamelModel
 
 from pathfinder.domain.eda_parts import EdaEffectDirection, EdaEntityCount
 

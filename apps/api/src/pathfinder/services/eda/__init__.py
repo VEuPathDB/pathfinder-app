@@ -1,6 +1,6 @@
 """The EDA service package, and the wire types its public signatures name."""
 
-from pathfinder.integrations.eda.models import (
+from veupathdb.eda.models import (
     EdaAnalysisDetail,
     EdaComputationDescriptor,
     EdaDistributionResponse,

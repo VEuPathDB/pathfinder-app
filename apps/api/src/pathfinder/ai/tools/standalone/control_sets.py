@@ -15,10 +15,12 @@ from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._id_arguments import parse_id_argument
-from pathfinder.services.control_sets import ControlSetService, NewControlSet
-from pathfinder.services.experiment.control_sourcing import (
+from pathfinder.services.workbench.control_sets import (
     control_ids_from_saved_gene_set,
     control_ids_from_strategy,
+    create_control_set,
+    list_control_sets_for_site,
+    new_control_set,
     validate_control_ids,
 )
 
@@ -61,8 +63,9 @@ async def build_control_set(
         raise ModelRetry(msg)
 
     async with runtime.db_session_factory() as session:
-        created = await ControlSetService(session).create(
-            NewControlSet(
+        created = await create_control_set(
+            session,
+            new_control_set(
                 name=name,
                 site_id=runtime.site_id,
                 record_type=record_type,
@@ -102,8 +105,8 @@ async def list_control_sets(
     as the scoring basis instead of asking for new IDs."""
     runtime = ctx.deps.runtime
     async with runtime.db_session_factory() as session:
-        sets = await ControlSetService(session).list_for_site(
-            site_id=runtime.site_id, user_id=runtime.user_id, tags=None
+        sets = await list_control_sets_for_site(
+            session, site_id=runtime.site_id, user_id=runtime.user_id
         )
     return with_summary(
         [

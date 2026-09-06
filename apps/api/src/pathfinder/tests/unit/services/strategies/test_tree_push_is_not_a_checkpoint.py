@@ -9,19 +9,19 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.validation import StepValidation
-from pathfinder.integrations.veupathdb.site_router import SiteInfo
-from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.wdk.site_router import SiteInfo
+from veupathdb.wdk.strategy_api import StrategyAPI
+from veupathdb.wdk.wdk_models import (
     WDKIdentifier,
     WDKStep,
     WDKStrategyDetails,
 )
-from pathfinder.services.strategies import sync as sync_module
+
+from pathfinder.services.strategies import sync
 from pathfinder.services.strategies.sync import SyncResult, sync_strategy_for_site
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -90,8 +90,8 @@ def _recording_api(calls: list[str]) -> StrategyAPI:
 def calls(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     recorded: list[str] = []
     api = _recording_api(recorded)
-    monkeypatch.setattr(sync_module, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(sync_module, "get_site", lambda _site_id: _SITE)
+    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(sync, "get_site", lambda _site_id: _SITE)
     return recorded
 
 

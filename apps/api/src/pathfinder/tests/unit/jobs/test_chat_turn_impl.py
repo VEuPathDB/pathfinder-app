@@ -10,14 +10,14 @@ from uuid import UUID, uuid4
 import pytest
 from assistant_core.platform.context import application_id_ctx
 from assistant_core.spec import AssistantSpec
+from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
-from pathfinder.jobs import auth_context as auth_context_mod
-from pathfinder.jobs.impls import chat_turn_impl as chat_turn_impl_mod
+from pathfinder.jobs import auth_context
+from pathfinder.jobs.impls import chat_turn_impl
 from pathfinder.jobs.impls.chat_turn_impl import run_chat_turn
 from pathfinder.jobs.payloads import ChatTurnPayload
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 
 HOLDING_APPLICATION = "companion"
 
@@ -97,7 +97,7 @@ async def _holding_application(conversation_id: UUID) -> str:
 def _conversation_application(monkeypatch: pytest.MonkeyPatch) -> None:
     """The row lookup the worker uses to name its application."""
     monkeypatch.setattr(
-        auth_context_mod,
+        auth_context,
         "conversation_application_id",
         _holding_application,
     )
@@ -108,20 +108,18 @@ async def test_run_chat_turn_sets_ctxvar_from_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     observer = _ObservingRunTurn()
-    monkeypatch.setattr(chat_turn_impl_mod, "run_turn", observer)
+    monkeypatch.setattr(chat_turn_impl, "run_turn", observer)
     monkeypatch.setattr(
-        chat_turn_impl_mod,
+        chat_turn_impl,
         "lifespan_checkpointer",
         _fake_checkpointer_ctx,
     )
     monkeypatch.setattr(
-        chat_turn_impl_mod,
+        chat_turn_impl,
         "lifespan_memory_store",
         _fake_memory_ctx,
     )
-    monkeypatch.setattr(
-        chat_turn_impl_mod, "resolve_assistant", _fake_resolve_assistant
-    )
+    monkeypatch.setattr(chat_turn_impl, "resolve_assistant", _fake_resolve_assistant)
 
     payload = ChatTurnPayload(
         body=_body(),
@@ -143,20 +141,18 @@ async def test_run_chat_turn_resets_ctxvar_after_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     observer = _ObservingRunTurn()
-    monkeypatch.setattr(chat_turn_impl_mod, "run_turn", observer)
+    monkeypatch.setattr(chat_turn_impl, "run_turn", observer)
     monkeypatch.setattr(
-        chat_turn_impl_mod,
+        chat_turn_impl,
         "lifespan_checkpointer",
         _fake_checkpointer_ctx,
     )
     monkeypatch.setattr(
-        chat_turn_impl_mod,
+        chat_turn_impl,
         "lifespan_memory_store",
         _fake_memory_ctx,
     )
-    monkeypatch.setattr(
-        chat_turn_impl_mod, "resolve_assistant", _fake_resolve_assistant
-    )
+    monkeypatch.setattr(chat_turn_impl, "resolve_assistant", _fake_resolve_assistant)
 
     assert veupathdb_auth_token_ctx.get() is None
     payload = ChatTurnPayload(
@@ -176,20 +172,18 @@ async def test_run_chat_turn_tolerates_missing_token(
     """An anonymous caller (no cookie) dispatches with token=None. The
     worker still runs — WDK calls fall through to settings (service)."""
     observer = _ObservingRunTurn()
-    monkeypatch.setattr(chat_turn_impl_mod, "run_turn", observer)
+    monkeypatch.setattr(chat_turn_impl, "run_turn", observer)
     monkeypatch.setattr(
-        chat_turn_impl_mod,
+        chat_turn_impl,
         "lifespan_checkpointer",
         _fake_checkpointer_ctx,
     )
     monkeypatch.setattr(
-        chat_turn_impl_mod,
+        chat_turn_impl,
         "lifespan_memory_store",
         _fake_memory_ctx,
     )
-    monkeypatch.setattr(
-        chat_turn_impl_mod, "resolve_assistant", _fake_resolve_assistant
-    )
+    monkeypatch.setattr(chat_turn_impl, "resolve_assistant", _fake_resolve_assistant)
 
     payload = ChatTurnPayload(
         body=_body(),

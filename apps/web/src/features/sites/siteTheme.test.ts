@@ -1,27 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 
-import { contrast, hslToRgb, type Rgb } from "@/lib/color/contrast";
+import { composite, contrast, hslToRgb, type Rgb } from "@/lib/color/contrast";
 
-import { applySiteTheme } from "./siteTheme";
-
-const SITE_IDS = [
-  "veupathdb",
-  "plasmodb",
-  "toxodb",
-  "cryptodb",
-  "giardiadb",
-  "amoebadb",
-  "microsporidiadb",
-  "piroplasmadb",
-  "tritrypdb",
-  "fungidb",
-  "hostdb",
-  "vectorbase",
-  "orthomcl",
-  "schistodb",
-  "trichdb",
-];
+import { applySiteTheme, SITE_IDS } from "./siteTheme";
 
 const WRITTEN = [
   "--primary",
@@ -34,6 +16,11 @@ const WRITTEN = [
 
 const WHITE: Rgb = [1, 1, 1];
 const AA_NORMAL_TEXT = 4.5;
+
+/** `hover:bg-primary/90` on the default button variant. */
+const HOVER_ALPHA = 0.9;
+
+const DARK_GROUND: Rgb = hslToRgb(215, 28, 9);
 
 /** plasmodb's brand hex #634697 is hsl(261 37% 43%). */
 const PLASMODB_BRAND_LIGHTNESS = 43;
@@ -73,6 +60,16 @@ describe("applySiteTheme on the light ground", () => {
     expect(h).toBeGreaterThan(90);
     expect(h).toBeLessThan(150);
   });
+
+  it.each(SITE_IDS)(
+    "keeps white legible on the hover:bg-primary/90 composite for %s",
+    (siteId) => {
+      applySiteTheme(siteId);
+      const [h, s, l] = written("--primary");
+      const hover = composite(hslToRgb(h, s, l), WHITE, HOVER_ALPHA);
+      expect(contrast(WHITE, hover)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+    },
+  );
 
   it("writes a white primary foreground and near-white tinted surfaces", () => {
     applySiteTheme("plasmodb");
@@ -127,6 +124,17 @@ describe("applySiteTheme on the dark ground", () => {
       contrast(hslToRgb(...foreground), hslToRgb(...primary)),
     ).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
   });
+
+  it.each(SITE_IDS)(
+    "keeps the dark foreground legible on the hover:bg-primary/90 composite for %s",
+    (siteId) => {
+      document.documentElement.setAttribute("data-theme", "dark");
+      applySiteTheme(siteId);
+      const [h, s, l] = written("--primary");
+      const hover = composite(hslToRgb(h, s, l), DARK_GROUND, HOVER_ALPHA);
+      expect(contrast(DARK_GROUND, hover)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+    },
+  );
 
   it("points --ring at the same value as --primary", () => {
     document.documentElement.setAttribute("data-theme", "dark");

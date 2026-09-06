@@ -14,15 +14,15 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy.build_outcome import BuildOutcome, NodeResult
+from veupathdb.domain.strategy.session import StrategySession
+from veupathdb.wdk.wdk_models import WDKStrategyDetails
 
-import pathfinder.ai.graph.lead_node as lead_node_mod
+from pathfinder.ai.graph import lead_node
 from pathfinder.ai.graph.lead_node import make_lead_node
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
-from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
-from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.integrations.veupathdb.wdk_models import WDKStrategyDetails
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -103,7 +103,7 @@ def _state() -> PipelineState:
 
 
 def test_the_turn_node_names_no_wdk_symbol() -> None:
-    assert WDK_NAMES & set(vars(lead_node_mod)) == set()
+    assert WDK_NAMES & set(vars(lead_node)) == set()
 
 
 def test_the_node_factory_takes_the_hook() -> None:

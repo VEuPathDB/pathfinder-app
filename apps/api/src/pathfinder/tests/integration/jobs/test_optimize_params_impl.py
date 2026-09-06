@@ -12,9 +12,9 @@ from assistant_core.platform.db import async_session_factory
 from sqlalchemy import select
 
 from pathfinder.jobs.impls import optimize_params_impl
-from pathfinder.jobs.impls.optimize_params_impl import VariantSpec
 from pathfinder.jobs.progress import TaskProgressEmitter
 from pathfinder.persistence.models import BackgroundTask, TaskProgress, User
+from pathfinder.services.parameter_optimization.config import SweepVariantSpec
 
 
 @dataclass(frozen=True)
@@ -186,7 +186,7 @@ async def test_parallel_fan_out_runs_variants_concurrently(
     max_in_flight = 0
 
     async def fake_run_trial(
-        variant: VariantSpec,
+        variant: SweepVariantSpec,
         *,
         progress: TaskProgressEmitter,
         **_kwargs: Any,
@@ -218,7 +218,7 @@ async def test_partial_failure_continues(
     del progress_sink
 
     async def flaky(
-        variant: VariantSpec,
+        variant: SweepVariantSpec,
         *,
         progress: TaskProgressEmitter,
         **_kwargs: Any,
@@ -250,7 +250,7 @@ async def test_per_variant_progress_tags(
     progress_sink: _ProgressSink,
 ) -> None:
     async def fast(
-        variant: VariantSpec,
+        variant: SweepVariantSpec,
         *,
         progress: TaskProgressEmitter,
         **_kwargs: Any,
@@ -284,7 +284,7 @@ async def test_concurrency_cap_respected(
     max_active = 0
 
     async def tracker(
-        variant: VariantSpec,
+        variant: SweepVariantSpec,
         *,
         progress: TaskProgressEmitter,
         **_kwargs: Any,

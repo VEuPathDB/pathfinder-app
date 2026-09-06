@@ -10,9 +10,9 @@ status: stable
 
 # What was decided
 
-**One embedder, and it is an HTTP call.** `assistant_core/embeddings/embedder.py`
-declares the `Embedder` protocol and `EMBEDDING_DIMENSIONS = 1024`, the one width
-this system stores. `OpenAIEmbedder` asks the API for that width, so nothing
+**One embedder, and it is an HTTP call.** `embeddings/embedder.py` declares the
+`Embedder` protocol and `EMBEDDING_DIMENSIONS = 1024`, the one width this system
+stores. `OpenAIEmbedder` asks the API for that width, so nothing
 truncates and nothing renormalizes: the API returns unit vectors, pgvector's
 `<=>` is cosine distance, and `1 - distance` is a cosine in `[-1, 1]` everywhere.
 Every input is cut at `EMBEDDING_INPUT_CHAR_LIMIT` (2000), grouped into requests
@@ -22,8 +22,8 @@ input order preserved. The client carries five retries and a 60 second timeout;
 a batch that still fails raises `EmbeddingUnavailableError`, which names the
 batch size and the cause.
 
-**The width is a constant, not a setting.** `EMBEDDING_DIMENSIONS` is the only
-place 1024 is written: the embedder asks the API for it, and
+**The width is a constant, not a setting.** `EMBEDDING_DIMENSIONS` is where 1024
+is written: the embedder asks the API for it, and
 `embedding_vectors.embedding` is declared `vector(1024)`. There is deliberately
 no `EMBEDDING_DIMENSIONS` environment override, because a process that asked
 for 512 would produce vectors the column rejects on every insert, and the
@@ -42,7 +42,7 @@ express, because it routes both a put and a search through
 `aembed_documents`. That trap is gone with the model.
 
 **One record manager, and it is Postgres.**
-`assistant_core/embeddings/record_manager.py` owns two tables.
+`veupathdb_mcp/embeddings/record_manager.py` owns two tables.
 `embedding_vectors(model, content_hash, embedding vector(1024), created_at)` holds
 one row per model and text, so two indexes carrying the same text share one
 vector. `embedding_index_entries(index_id, entry_id, content_hash, updated_at)`
@@ -125,3 +125,7 @@ warm-up to race.
 
 `onnxruntime` stays a dependency. PIGuard is an ONNX model and loads through it;
 only the fastembed text model left.
+
+The record manager and the two tables are the MCP unit's, and the embedder is
+declared once per unit; see [the embedding index belongs to the MCP
+unit](the-embedding-index-belongs-to-the-mcp-unit.md).

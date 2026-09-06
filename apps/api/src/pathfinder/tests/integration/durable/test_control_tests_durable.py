@@ -7,6 +7,7 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from sqlalchemy import select
+from veupathdb_mcp.tool_payloads import ControlOutcome, DownloadLinks
 
 from pathfinder.jobs.impls import control_tests_impl, register_all_tools
 from pathfinder.jobs.impls.control_tests_impl import (
@@ -20,7 +21,6 @@ from pathfinder.persistence.repositories.background_tasks import (
     BackgroundTaskRepository,
     NewBackgroundTask,
 )
-from pathfinder.services.tool_payloads import ControlOutcome, DownloadLinks
 
 
 async def _seed_user_chat(user_id: UUID, conversation_id: UUID) -> None:

@@ -12,9 +12,9 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from assistant_core.persistence.models import Conversation
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
 
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.services.conversations.responses import (
     build_conversation_response,

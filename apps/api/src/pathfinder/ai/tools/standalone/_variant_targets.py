@@ -7,8 +7,8 @@ has no search to run and WDK refuses it at execution time.
 from __future__ import annotations
 
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME
 
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME
 from pathfinder.services.experiment.variant_comparison import VariantSpec
 
 _COMBINE_NAMES = frozenset({COMBINE_SEARCH_NAME, "Combine", "combine"})

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from pathfinder.ai.agents.state import AgentToolState, SearchOverview
-from pathfinder.domain.parameters.values import (
+from veupathdb.domain.parameters.values import (
     MultiPickValue,
     ParamValue,
     SinglePickValue,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion
+from veupathdb.domain.strategy.operational_spec import Criterion
+
+from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 
 
 def _ov(

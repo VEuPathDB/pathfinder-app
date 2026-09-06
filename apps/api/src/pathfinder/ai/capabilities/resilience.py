@@ -14,6 +14,7 @@ from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import RunContext, ToolDefinition
+from veupathdb.errors import WDKError
 
 from pathfinder.ai.capabilities.error_classification import (
     ErrorCategory,
@@ -21,7 +22,6 @@ from pathfinder.ai.capabilities.error_classification import (
     classify_error,
 )
 from pathfinder.ai.graph.runtime import OUTAGE_GIVE_UP_THRESHOLD, AgentDeps
-from pathfinder.platform.errors import WDKError
 
 _WDK_STATUS_NOT_FOUND = 404
 _WDK_STATUS_UNPROCESSABLE = 422

@@ -25,18 +25,18 @@ from typing import Literal
 import structlog
 from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, Field, RootModel
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.eda.factory import get_eda_client
+from veupathdb.testing.wdk_credentials import (
+    NO_CREDENTIALS_REASON,
+    registered_wdk_token,
+)
 
-from pathfinder.integrations.eda.factory import get_eda_client
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.tests._support.eda_wire import (
     DE_STUDY,
     FIXTURE_DIR,
     PHENOTYPE_ENTITY,
     PHENOTYPE_STUDY,
-)
-from pathfinder.tests._support.wdk_credentials import (
-    NO_CREDENTIALS_REASON,
-    registered_wdk_token,
 )
 
 logger = structlog.get_logger(__name__)

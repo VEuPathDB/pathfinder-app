@@ -7,9 +7,9 @@ from collections.abc import Iterator
 import pytest
 from assistant_core.mcp.admission import AdmissionRecord
 from assistant_core.mcp.resolution import ToolSourceUnavailableError
+from veupathdb_mcp.metadata import RESOURCE_NAME
+from veupathdb_mcp.server import CONTROL_TESTS_MAX_CALL_SECONDS
 
-from pathfinder.mcp.metadata import RESOURCE_NAME
-from pathfinder.mcp.server import CONTROL_TESTS_MAX_CALL_SECONDS
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.tool_sources import (
     WDK_MCP_PART_NAMESPACE,

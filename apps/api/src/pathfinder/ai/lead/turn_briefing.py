@@ -9,22 +9,22 @@ them.
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
+from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.constraints import (
+    Constraint,
+    ConstraintStatus,
+)
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import walk
 
-from pathfinder.domain.parameters.value_codec import to_wire
-from pathfinder.domain.strategy.ast import StrategyStepNode
 from pathfinder.domain.strategy.ast_diff import (
     StepChange,
     StrategyAstDiff,
     diff_strategy_asts,
 )
 from pathfinder.domain.strategy.constraint_grounding import ground_constraints
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    ConstraintStatus,
-)
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import walk
 from pathfinder.services.conversations.thread_activity import (
     AnalysisDrift,
     FinishedTask,

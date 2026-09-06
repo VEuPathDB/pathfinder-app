@@ -1,7 +1,7 @@
 "use client";
 
 import { TrendingUp } from "lucide-react";
-import { ThresholdSweepSection } from "@/features/analysis";
+import { ThresholdSweepSection } from "@/features/workbench/analysis";
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 

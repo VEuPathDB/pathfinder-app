@@ -61,7 +61,7 @@ services:
       - ./apps/api/.pf-runs:/data/pf-runs
       # Per-site catalog snapshots. Without this every recreate serves the
       # image's snapshots, finds them stale, and refetches and re-encodes.
-      - catalogs_cache:/app/apps/api/src/data/catalogs
+      - catalogs_cache:/app/veupathdb-mcp/data/catalogs
 
   worker:
     build:
@@ -127,13 +127,12 @@ services:
       PATHFINDER_WDK_MCP_TOKEN: ${PATHFINDER_WDK_MCP_TOKEN:-}
     volumes:
       - ./apps/api/.pf-runs:/data/pf-runs
-      - catalogs_cache:/app/apps/api/src/data/catalogs
+      - catalogs_cache:/app/veupathdb-mcp/data/catalogs
 
   wdk-mcp:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
-    command: .venv/bin/python -m pathfinder.mcp
+      dockerfile: veupathdb-mcp/Dockerfile
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -150,14 +149,8 @@ services:
       start_period: 30s
       retries: 3
     environment:
-      API_ENV: ${API_ENV:-production}
-      API_SECRET_KEY: ${API_SECRET_KEY:-}
       DATABASE_URL: ${DATABASE_URL:-}
-      PATHFINDER_CHAT_PROVIDER: ${PATHFINDER_CHAT_PROVIDER:?Set PATHFINDER_CHAT_PROVIDER=default for real providers or use the test overlay for mock mode}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-}
       VEUPATHDB_AUTH_TOKEN: ${VEUPATHDB_AUTH_TOKEN:-}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
@@ -180,7 +173,7 @@ services:
       # "app_id:secret[,app_id:secret...]". Empty admits user bearers only.
       PATHFINDER_MCP_SERVICE_TOKENS: ${PATHFINDER_MCP_SERVICE_TOKENS:-}
     volumes:
-      - catalogs_cache:/app/apps/api/src/data/catalogs
+      - catalogs_cache:/app/veupathdb-mcp/data/catalogs
 
   web:
     build:

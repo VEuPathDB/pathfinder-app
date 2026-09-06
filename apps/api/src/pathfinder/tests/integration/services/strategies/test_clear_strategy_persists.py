@@ -16,17 +16,17 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from pydantic_ai.exceptions import ModelRetry
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
-from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone.conversation import clear_strategy
-from pathfinder.domain.parameters.values import MultiPickValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.strategy_ast import (
+from veupathdb.domain.parameters.values import MultiPickValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.strategy_ast import (
     PersistedStrategyGraph,
     StrategyAst,
 )
+
+from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone.conversation import clear_strategy
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.services.strategies.session_factory import build_strategy_session

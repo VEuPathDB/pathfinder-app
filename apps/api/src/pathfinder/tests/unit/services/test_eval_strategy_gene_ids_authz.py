@@ -9,9 +9,9 @@ import pytest
 from assistant_core.platform.context import DEFAULT_APPLICATION_ID
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import pathfinder.services.eval
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.platform.errors import NotFoundError
-from pathfinder.services import eval as eval_service
 
 _OWNER = UUID(int=1)
 _INTRUDER = UUID(int=2)
@@ -58,7 +58,7 @@ def _wire(
     strategy: ConversationStrategyView | None = None,
 ) -> None:
     repo = _Repo(conversation, strategy or ConversationStrategyView())
-    monkeypatch.setattr(eval_service, "ConversationRepository", repo)
+    monkeypatch.setattr(pathfinder.services.eval, "ConversationRepository", repo)
 
 
 async def test_another_users_conversation_is_not_found(
@@ -72,7 +72,7 @@ async def test_another_users_conversation_is_not_found(
     )
 
     with pytest.raises(NotFoundError) as raised:
-        await eval_service.get_strategy_gene_ids(
+        await pathfinder.services.eval.get_strategy_gene_ids(
             session,
             uuid4(),
             "plasmodb",
@@ -89,7 +89,7 @@ async def test_missing_conversation_is_not_found(
     _wire(monkeypatch, None)
 
     with pytest.raises(NotFoundError) as raised:
-        await eval_service.get_strategy_gene_ids(
+        await pathfinder.services.eval.get_strategy_gene_ids(
             session,
             uuid4(),
             "plasmodb",
@@ -105,7 +105,7 @@ async def test_owner_without_a_wdk_link_keeps_the_wire_shape(
 ) -> None:
     _wire(monkeypatch, _Conversation(user_id=_OWNER))
 
-    result = await eval_service.get_strategy_gene_ids(
+    result = await pathfinder.services.eval.get_strategy_gene_ids(
         session,
         uuid4(),
         "plasmodb",
@@ -122,7 +122,7 @@ async def test_owner_without_a_wdk_link_keeps_the_wire_shape(
 
 
 def test_a_populated_result_serializes_to_the_documented_wire_shape() -> None:
-    result = eval_service.StrategyGeneIdsResult(
+    result = pathfinder.services.eval.StrategyGeneIdsResult(
         gene_ids=["PF3D7_0100100", "PF3D7_0100200"],
         estimated_size=2,
     )

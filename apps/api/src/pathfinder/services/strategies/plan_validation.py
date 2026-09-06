@@ -1,10 +1,10 @@
 """Strategy plan validation helpers."""
 
 from assistant_core.platform.types import JSONObject
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.errors import ValidationError
 
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
 from pathfinder.domain.strategy.validate import validate_strategy
-from pathfinder.platform.errors import ValidationError
 
 
 def validate_plan_or_raise(plan: JSONObject) -> StrategyAst:

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, JsonValue, model_validator
+from veupathdb.model import CamelModel
 
 
 class EdaEntityCount(CamelModel):

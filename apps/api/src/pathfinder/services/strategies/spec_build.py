@@ -3,29 +3,30 @@
 from __future__ import annotations
 
 from assistant_core.platform.logging import get_logger
-
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.domain.search import SearchContext
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.build_outcome import (
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.search import SearchContext
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.build_outcome import (
     BuildOutcome,
     NodeResult,
     StepPushFailure,
     node_status,
 )
-from pathfinder.domain.strategy.graph_model import (
+from veupathdb.domain.strategy.graph_model import (
     StrategyStep,
     flatten_tree,
     runs_a_wdk_search,
     wdk_search_name,
 )
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.tree import subtree_ids
-from pathfinder.platform.errors import AppError, ValidationError
-from pathfinder.services.catalog.param_validation import validate_parameters
-from pathfinder.services.catalog.validation_callbacks import (
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.tree import subtree_ids
+from veupathdb.errors import ValidationError, VEuPathDBError
+from veupathdb_mcp.catalog.param_validation import validate_parameters
+from veupathdb_mcp.catalog.validation_callbacks import (
     make_validation_callbacks,
 )
+
+from pathfinder.platform.errors import AppError
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
@@ -145,7 +146,7 @@ async def build_strategy_from_spec(
             site_id=deps.site_id,
             strategy_name=graph.name,
         )
-    except AppError as exc:
+    except (AppError, VEuPathDBError) as exc:
         logger.warning("strategy sync failed", error=str(exc))
         await persist_strategy_ast_to_conversation(
             deps=deps,

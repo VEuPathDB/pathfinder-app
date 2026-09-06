@@ -6,10 +6,10 @@ from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from assistant_core.graph.runtime import AssistantDeps, TurnContext
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, SkipValidation
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies.context import StrategyMutationContext

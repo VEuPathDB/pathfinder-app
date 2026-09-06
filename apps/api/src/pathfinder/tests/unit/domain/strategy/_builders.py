@@ -7,26 +7,26 @@ from collections.abc import Iterable
 
 from hypothesis import HealthCheck, settings
 from hypothesis import strategies as st
-
-from pathfinder.domain.parameters.values import (
+from veupathdb.domain.parameters.values import (
     MultiPickValue,
     NumberValue,
     StringValue,
 )
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from pathfinder.domain.strategy.graph_model import StepKind, flatten_tree
-from pathfinder.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.strategy.graph_model import StepKind, flatten_tree
+from veupathdb.domain.strategy.operational_spec import (
     OperationalSpec,
     StructureNode,
 )
-from pathfinder.domain.strategy.operations import GraphOperation
-from pathfinder.domain.strategy.operations.apply import apply_operation
-from pathfinder.domain.strategy.ops import ColocationParams, CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.spec_diff import diff_specs
+from veupathdb.domain.strategy.operations import GraphOperation
+from veupathdb.domain.strategy.operations.apply import apply_operation
+from veupathdb.domain.strategy.ops import ColocationParams, CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.spec_diff import diff_specs
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.domain.strategy.spec_to_operations import operations_for
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
 
 
 def leaf(step_id: str, search_name: str = "geneById") -> StrategyStepNode:

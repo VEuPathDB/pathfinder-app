@@ -4,7 +4,7 @@ report what did not resolve, list what exists, and refuse a WDK id."""
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
@@ -48,9 +48,14 @@ async def test_build_control_set_validates_persists_and_reports_unresolved(
     created = MagicMock()
     created.id = "cs_123"
     created.name = "my controls"
-    service = MagicMock()
-    service.create = AsyncMock(return_value=created)
-    monkeypatch.setattr(control_sets, "ControlSetService", lambda _s: service)
+    persisted: list[Any] = []
+
+    async def _create(_session: Any, spec: Any, *, user_id: Any) -> Any:
+        del user_id
+        persisted.append(spec)
+        return created
+
+    monkeypatch.setattr(control_sets, "create_control_set", _create)
 
     out = (
         await build_control_set(
@@ -65,7 +70,9 @@ async def test_build_control_set_validates_persists_and_reports_unresolved(
     assert out.positive_count == 2
     assert out.negative_count == 1
     assert out.unresolved_positive == ["typo"]
-    service.create.assert_awaited_once()
+    assert [spec.positive_ids for spec in persisted] == [["g1", "g2"]]
+    assert persisted[0].negative_ids == ["n1"]
+    assert persisted[0].source == "chat"
 
 
 async def test_build_control_set_refuses_when_no_positive_resolves(
@@ -75,10 +82,20 @@ async def test_build_control_set_refuses_when_no_positive_resolves(
         monkeypatch,
         {"bad1,bad2": ResolvedControls(valid_ids=[], unresolved_ids=["bad1", "bad2"])},
     )
-    monkeypatch.setattr(control_sets, "ControlSetService", lambda _s: MagicMock())
+
+    persisted: list[Any] = []
+
+    async def _create(_session: Any, spec: Any, *, user_id: Any) -> Any:
+        del user_id
+        persisted.append(spec)
+        return MagicMock()
+
+    monkeypatch.setattr(control_sets, "create_control_set", _create)
 
     with pytest.raises(ModelRetry, match="No positive control"):
         await build_control_set(runtime_ctx(), name="x", positive_ids=["bad1", "bad2"])
+
+    assert persisted == []
 
 
 async def test_list_control_sets_summarizes(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -87,9 +104,12 @@ async def test_list_control_sets_summarizes(monkeypatch: pytest.MonkeyPatch) -> 
     stored.name = "set"
     stored.positive_ids = ["g1", "g2"]
     stored.negative_ids = ["n1"]
-    service = MagicMock()
-    service.list_for_site = AsyncMock(return_value=[stored])
-    monkeypatch.setattr(control_sets, "ControlSetService", lambda _s: service)
+
+    async def _list(_session: Any, *, site_id: str, user_id: Any) -> list[Any]:
+        del site_id, user_id
+        return [stored]
+
+    monkeypatch.setattr(control_sets, "list_control_sets_for_site", _list)
 
     out = (await list_control_sets(runtime_ctx())).return_value
 

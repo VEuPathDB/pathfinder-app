@@ -4,13 +4,7 @@
 src/pathfinder/tests/conftest.py::485
 src/pathfinder/tests/integration/ai/test_organism_swap_turn.py::405
 src/pathfinder/tests/integration/eda/test_authoring.py::626
-src/pathfinder/tests/integration/eda/test_client_hermetic.py::431
-src/pathfinder/tests/integration/eda/test_create_eda_step.py::434
 src/pathfinder/tests/integration/eda/test_eda_conversation.py::498
-src/pathfinder/tests/integration/eda/test_eda_tools.py::931
-src/pathfinder/tests/integration/http/test_conversation_eda_route.py::551
-src/pathfinder/tests/integration/http/test_eda_routes.py::545
-src/pathfinder/tests/integration/http/test_two_assistants_one_runtime.py::401
 src/pathfinder/tests/integration/jobs/test_multi_durable_resume.py::420
 src/pathfinder/tests/integration/persistence/_thread_surgery.py::541
 src/pathfinder/tests/integration/persistence/test_conversation_fork_and_delete.py::1685
@@ -18,6 +12,3 @@ src/pathfinder/tests/integration/persistence/test_conversation_revert.py::453
 src/pathfinder/tests/integration/persistence/test_fork_case_matrix.py::651
 src/pathfinder/tests/integration/persistence/test_revert_case_matrix.py::571
 src/pathfinder/tests/integration/services/strategies/test_commit_integration.py::605
-src/pathfinder/tests/unit/ai/graph/test_sub_agent_approval_turn.py::653
-src/pathfinder/tests/unit/capabilities/test_resilience.py::646
-src/pathfinder/tests/unit/services/gene_sets/test_enrich_gene_ids.py::402

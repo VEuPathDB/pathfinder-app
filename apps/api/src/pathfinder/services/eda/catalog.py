@@ -7,26 +7,27 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 import httpx
-from assistant_core.embeddings.embedder import EmbeddingUnavailableError
-from assistant_core.embeddings.record_manager import SyncReport
 from assistant_core.platform.logging import get_logger
-
-from pathfinder.integrations.eda.factory import get_eda_client
-from pathfinder.integrations.eda.models import (
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.eda.factory import get_eda_client
+from veupathdb.eda.models import (
     EdaPermissionEntry,
     EdaStudyDetail,
     EdaStudyOverview,
 )
-from pathfinder.integrations.embeddings.semantic_index import strip_markup
-from pathfinder.integrations.embeddings.study_index import (
+from veupathdb.errors import WDKLoginRequiredError
+from veupathdb.wdk.site_router import get_site_router
+from veupathdb_mcp.embeddings.errors import SemanticIndexUnavailableError
+from veupathdb_mcp.embeddings.record_manager import SyncReport
+from veupathdb_mcp.embeddings.semantic_index import strip_markup
+from veupathdb_mcp.embeddings.study_index import (
     search_study_index,
     study_index_is_built,
     sync_study_index,
 )
-from pathfinder.integrations.veupathdb.site_router import get_site_router
+
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.context import veupathdb_auth_token_ctx
-from pathfinder.platform.errors import NotFoundError, WDKLoginRequiredError
+from pathfinder.platform.errors import NotFoundError
 
 logger = get_logger(__name__)
 
@@ -163,7 +164,7 @@ async def preload_study_index() -> SyncReport | None:
             report = await sync_study_index(await list_studies(site_id))
         except (
             NotFoundError,
-            EmbeddingUnavailableError,
+            SemanticIndexUnavailableError,
             OSError,
             httpx.HTTPError,
         ) as exc:
@@ -227,7 +228,7 @@ async def search_studies(
         )
     try:
         hits = await search_study_index(query, top_k=len(by_dataset) or 1)
-    except EmbeddingUnavailableError as exc:
+    except SemanticIndexUnavailableError as exc:
         logger.warning("EDA study search fell back to names", error=str(exc))
         return StudySearch(
             cards=_by_name(query, per_dataset, by_dataset, limit),

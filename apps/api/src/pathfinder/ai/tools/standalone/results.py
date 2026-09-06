@@ -8,6 +8,11 @@ Provides:
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb.errors import VEuPathDBError
+from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
+from veupathdb_mcp.tool_payloads import StepDownloadUrl, gene_sample_attributes
+from veupathdb_mcp.wdk.step_preview import step_download_url, step_sample_records
+from veupathdb_mcp.wdk.step_results_models import SampleRecordsResult
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._result_models import (
@@ -15,10 +20,6 @@ from pathfinder.ai.tools.standalone._result_models import (
     _validate_sample_inputs,
 )
 from pathfinder.platform.errors import AppError, ErrorCode
-from pathfinder.platform.tool_errors import ToolErrorPayload, tool_error
-from pathfinder.services.tool_payloads import StepDownloadUrl, gene_sample_attributes
-from pathfinder.services.wdk.step_preview import step_download_url, step_sample_records
-from pathfinder.services.wdk.step_results_models import SampleRecordsResult
 
 
 async def get_download_url(
@@ -47,7 +48,7 @@ async def get_download_url(
             output_format=output_format,
             attributes=attributes,
         )
-    except (AppError, OSError) as exc:
+    except (AppError, VEuPathDBError, OSError) as exc:
         return _no_download(
             ctx,
             tool_error(ErrorCode.WDK_ERROR, str(exc)),
@@ -118,7 +119,7 @@ async def get_sample_records(
             limit=limit,
             attributes=gene_sample_attributes(record_type),
         )
-    except (AppError, OSError) as exc:
+    except (AppError, VEuPathDBError, OSError) as exc:
         return with_summary(
             tool_error(ErrorCode.WDK_ERROR, str(exc)),
             f"No sample records from step {wdk_step_id}",

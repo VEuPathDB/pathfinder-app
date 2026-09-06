@@ -9,10 +9,9 @@ trees rather than a handful of examples.
 from __future__ import annotations
 
 from hypothesis import given
-
-from pathfinder.domain.parameters.values import StringValue
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from pathfinder.domain.strategy.graph_model import (
+from veupathdb.domain.parameters.values import StringValue
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.strategy.graph_model import (
     StepKind,
     StrategyStep,
     flatten_tree,
@@ -22,9 +21,10 @@ from pathfinder.domain.strategy.graph_model import (
     runs_a_wdk_search,
     wdk_search_name,
 )
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.tree import root_ids, subtree_ids
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.tree import root_ids, subtree_ids
+
 from pathfinder.tests.fixtures.builders import add_step_to_graph
 
 from ._builders import FAST_PROFILE, combine, strategy_trees

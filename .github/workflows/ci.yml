@@ -19,6 +19,8 @@ jobs:
       assistant_core: ${{ steps.filter.outputs.assistant_core }}
       assistant_client: ${{ steps.filter.outputs.assistant_client }}
       mcp_conformance: ${{ steps.filter.outputs.mcp_conformance }}
+      veupathdb_py: ${{ steps.filter.outputs.veupathdb_py }}
+      veupathdb_mcp: ${{ steps.filter.outputs.veupathdb_mcp }}
       web: ${{ steps.filter.outputs.web }}
       knowledge: ${{ steps.filter.outputs.knowledge }}
       wdk: ${{ steps.filter.outputs.wdk }}
@@ -30,20 +32,33 @@ jobs:
           filters: |
             api:
               - 'apps/api/**'
-              - 'packages/assistant-core/**'
+              - 'assistant-platform/packages/assistant-core/**'
+              - 'veupathdb-py/**'
+              - 'veupathdb-mcp/**'
+            veupathdb_py:
+              - 'veupathdb-py/**'
+            # The server's lock names the client by path, so a client change
+            # runs the server's suite too.
+            veupathdb_mcp:
+              - 'veupathdb-mcp/**'
+              - 'veupathdb-py/**'
             assistant_core:
-              - 'packages/assistant-core/**'
+              - 'assistant-platform/packages/assistant-core/**'
             mcp_conformance:
-              - 'packages/mcp-conformance/**'
+              - 'assistant-platform/packages/mcp-conformance/**'
             # The client is built from the protocol document, so a change to
             # that page runs the consumer-side conformance suite.
             assistant_client:
-              - 'packages/assistant-client-ts/**'
-              - 'packages/assistant-core/PROTOCOL.md'
+              - 'assistant-platform/packages/assistant-client-ts/**'
+              - 'assistant-platform/PROTOCOL.md'
+              - 'assistant-platform/{package.json,yarn.lock,.yarnrc.yml,.prettierrc.json}'
+            # apps/web compiles the client's source and resolves its `ai` peer
+            # inside the platform project, so that project's lock is a web input.
             web:
               - 'apps/web/**'
               - 'packages/shared-ts/**'
-              - 'packages/assistant-client-ts/**'
+              - 'assistant-platform/packages/assistant-client-ts/**'
+              - 'assistant-platform/{package.json,yarn.lock,.yarnrc.yml,.prettierrc.json}'
             knowledge:
               - 'docs/knowledge/**'
               - 'scripts/check-knowledge.mjs'
@@ -56,6 +71,8 @@ jobs:
               - 'apps/**'
               - 'packages/**'
               - 'scripts/**'
+              - 'veupathdb-py/**'
+              - 'veupathdb-mcp/**'
 
   check-knowledge:
     name: Check knowledge bundle
@@ -111,26 +128,115 @@ jobs:
       # No `pathfinder` is installed in this environment. That is the point:
       # the suite passing here is the boundary, not a linter rule about it.
       - name: Install the package alone
-        working-directory: packages/assistant-core
+        working-directory: assistant-platform/packages/assistant-core
         run: uv sync
 
       - name: Run ruff
-        working-directory: packages/assistant-core
+        working-directory: assistant-platform/packages/assistant-core
         run: uv run ruff check src tests
 
       - name: Check formatting
-        working-directory: packages/assistant-core
+        working-directory: assistant-platform/packages/assistant-core
         run: uv run ruff format --check src tests
 
       - name: Run mypy
-        working-directory: packages/assistant-core
+        working-directory: assistant-platform/packages/assistant-core
         run: uv run mypy --strict src
 
       - name: Run tests
-        working-directory: packages/assistant-core
+        working-directory: assistant-platform/packages/assistant-core
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
         run: uv run pytest
+
+  veupathdb-py:
+    name: VEuPathDB client package
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.veupathdb_py == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No `pathfinder` is installed in this environment. That is the point:
+      # the suite passing here is the boundary, not a linter rule about it.
+      - name: Install the package alone
+        working-directory: veupathdb-py
+        run: uv sync --frozen
+
+      - name: Run ruff
+        working-directory: veupathdb-py
+        run: uv run ruff check src tests
+
+      - name: Check formatting
+        working-directory: veupathdb-py
+        run: uv run ruff format --check src tests
+
+      - name: Run mypy
+        working-directory: veupathdb-py
+        run: uv run mypy --strict src
+
+      - name: Run tests
+        working-directory: veupathdb-py
+        run: uv run pytest tests/unit
+
+      - name: Verify the recorded bodies against the vendored schemas
+        working-directory: veupathdb-py
+        run: |
+          uv run python -m veupathdb.devtools.fixtures verify
+          uv run python -m veupathdb.devtools.eda_schemas verify
+
+      - name: Check the knowledge bundle
+        working-directory: veupathdb-py
+        run: |
+          node scripts/check-knowledge.mjs
+          node scripts/check-wdk-rules.mjs
+
+  veupathdb-mcp:
+    name: VEuPathDB MCP server package
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.veupathdb_mcp == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v7
+
+      # No `pathfinder` is installed in this environment. That is the point:
+      # the suite passing here is the boundary, not a linter rule about it.
+      - name: Install the package alone
+        working-directory: veupathdb-mcp
+        run: uv sync --frozen
+
+      - name: Run ruff
+        working-directory: veupathdb-mcp
+        run: uv run ruff check src tests
+
+      - name: Check formatting
+        working-directory: veupathdb-mcp
+        run: uv run ruff format --check src tests
+
+      - name: Run mypy
+        working-directory: veupathdb-mcp
+        run: uv run mypy --strict src
+
+      - name: Run the hermetic suite
+        working-directory: veupathdb-mcp
+        run: uv run pytest tests/unit
+
+      # The index suite starts a pgvector container and runs this package's
+      # own alembic chain on it.
+      - name: Run the index suite
+        working-directory: veupathdb-mcp
+        run: uv run pytest tests/integration
 
   mcp-conformance:
     name: MCP conformance suite
@@ -147,19 +253,19 @@ jobs:
       # Nothing of this deployment is installed here: the suite is run by teams
       # whose servers we did not write, and a test walks every module to prove it.
       - name: Install the package alone
-        working-directory: packages/mcp-conformance
+        working-directory: assistant-platform/packages/mcp-conformance
         run: uv sync
 
       - name: Run ruff
-        working-directory: packages/mcp-conformance
+        working-directory: assistant-platform/packages/mcp-conformance
         run: uv run ruff check src tests
 
       - name: Run mypy
-        working-directory: packages/mcp-conformance
+        working-directory: assistant-platform/packages/mcp-conformance
         run: uv run mypy --strict src
 
       - name: Run tests
-        working-directory: packages/mcp-conformance
+        working-directory: assistant-platform/packages/mcp-conformance
         run: uv run pytest
 
   assistant-client:
@@ -172,28 +278,28 @@ jobs:
       - uses: ./.github/actions/setup-web
 
       - name: Type check
-        working-directory: packages/assistant-client-ts
+        working-directory: assistant-platform/packages/assistant-client-ts
         run: yarn typecheck
 
       - name: Run ESLint
-        working-directory: packages/assistant-client-ts
+        working-directory: assistant-platform/packages/assistant-client-ts
         run: yarn lint
 
       - name: Check formatting
-        working-directory: packages/assistant-client-ts
+        working-directory: assistant-platform/packages/assistant-client-ts
         run: yarn format:check
 
       # The suite is the protocol's consumer side: it fails when the vendored
       # capture and PROTOCOL.md disagree, and when a kind the document defines
       # has no reducer.
       - name: Run conformance tests
-        working-directory: packages/assistant-client-ts
+        working-directory: assistant-platform/packages/assistant-client-ts
         run: yarn test
 
       # The published artifact is JS and declarations under dist/, which the
       # repository itself never resolves: only this step reads it.
       - name: Build the package
-        working-directory: packages/assistant-client-ts
+        working-directory: assistant-platform/packages/assistant-client-ts
         run: yarn build
 
   lint-api:
@@ -324,6 +430,10 @@ jobs:
         working-directory: apps/web
         run: yarn check:boundaries
 
+      - name: Check the boundary checker
+        working-directory: apps/web
+        run: node --test scripts/check-boundaries.test.mjs
+
       # Both ratchets are green on the trunk, so a red line here names a test
       # added without a value assertion or an index-based locator.
       - name: Check test assertion strength
@@ -448,6 +558,8 @@ jobs:
       - assistant-client
       - check-knowledge
       - check-wdk-rules
+      - veupathdb-py
+      - veupathdb-mcp
       - mcp-conformance
       - lint-api
       - build-docs

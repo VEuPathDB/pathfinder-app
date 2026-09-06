@@ -2,22 +2,23 @@
 
 from __future__ import annotations
 
-from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
-from pathfinder.ai.lead.ledger_sections import (
-    BuildSection,
-    FrameSection,
-    VerificationSection,
-)
-from pathfinder.domain.parameters.values import MultiPickValue, SinglePickValue
-from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
-from pathfinder.domain.strategy.operational_spec import (
+from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
+from veupathdb.domain.strategy.build_outcome import BuildOutcome, NodeResult
+from veupathdb.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
     OperationalSpec,
     SpecStructure,
     StructureNode,
 )
-from pathfinder.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.ops import CombineOp
+
+from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
+from pathfinder.ai.lead.ledger_sections import (
+    BuildSection,
+    FrameSection,
+    VerificationSection,
+)
 
 
 def _fold_change_criterion(

@@ -13,16 +13,16 @@ import pytest
 from pydantic_ai import Tool
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
+from veupathdb.domain.parameters.values import StringValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.operations import UpdateStepMetaOp
+from veupathdb.domain.strategy.operations.apply import ApplyError
+from veupathdb.domain.strategy.session import StrategyGraph
 
 from pathfinder.ai.tools.standalone.strategy import apply_operations, build_strategy
 from pathfinder.ai.tools.toolsets.execution import build_toolset
-from pathfinder.domain.parameters.values import StringValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.operations import UpdateStepMetaOp
-from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 

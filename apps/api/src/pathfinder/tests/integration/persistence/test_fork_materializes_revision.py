@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from uuid import uuid4
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.persistence.models import (
@@ -13,6 +12,7 @@ from assistant_core.persistence.models import (
     ConversationEvent,
     Message,
 )
+from assistant_core.platform import db
 from sqlalchemy import select, text
 
 from pathfinder.persistence.models import (
@@ -51,7 +51,7 @@ async def _langgraph_checkpoint_tables(
 @pytest.fixture(autouse=True)
 async def _truncate_langgraph_tables() -> AsyncIterator[None]:
     yield
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await session.execute(
             text(
                 "TRUNCATE TABLE checkpoints, checkpoint_blobs, "
@@ -72,7 +72,7 @@ async def test_branch_at_turn_two_gets_the_three_step_tree_and_a_new_wdk_id(
     user_id = await seed_user()
     thread = await four_turn_thread(user_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=thread.conversation_id,
@@ -83,7 +83,7 @@ async def test_branch_at_turn_two_gets_the_three_step_tree_and_a_new_wdk_id(
         fork_id = fork.id
 
     assert step_ids_of(push.seen[0]) == THREE_STEPS
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         strategy = await session.get(ConversationStrategy, fork_id)
         assert strategy is not None
         assert strategy.step_count == 3
@@ -101,7 +101,7 @@ async def test_branch_before_the_build_has_no_strategy(
     user_id = await seed_user()
     thread = await four_turn_thread(user_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=thread.conversation_id,
@@ -112,7 +112,7 @@ async def test_branch_before_the_build_has_no_strategy(
         fork_id = fork.id
 
     assert push.seen == []
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         assert await session.get(ConversationStrategy, fork_id) is None
 
 
@@ -126,7 +126,7 @@ async def test_branch_of_a_thread_with_no_history_is_refused(
     install_fake_push(monkeypatch)
     user_id = await seed_user()
     thread = await four_turn_thread(user_id)
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await session.execute(
             StrategyRevision.__table__.delete().where(
                 StrategyRevision.conversation_id == thread.conversation_id,
@@ -134,7 +134,7 @@ async def test_branch_of_a_thread_with_no_history_is_refused(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         with pytest.raises(ForkRefusedError) as excinfo:
             await fork_conversation(
                 session,
@@ -155,7 +155,7 @@ async def test_branch_is_refused_while_a_durable_task_runs(
     install_fake_push(monkeypatch)
     user_id = await seed_user()
     thread = await four_turn_thread(user_id)
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             BackgroundTask(
                 id=uuid4(),
@@ -167,7 +167,7 @@ async def test_branch_is_refused_while_a_durable_task_runs(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         with pytest.raises(ForkRefusedError):
             await fork_conversation(
                 session,
@@ -194,7 +194,7 @@ async def test_a_branch_carries_no_parent_message_id_and_reverts_in_place(
         str(thread.answer_four),
     }
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=thread.conversation_id,
@@ -204,7 +204,7 @@ async def test_a_branch_carries_no_parent_message_id_and_reverts_in_place(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         rows = (
             (
                 await session.execute(
@@ -232,7 +232,7 @@ async def test_a_branch_carries_no_parent_message_id_and_reverts_in_place(
     assert chunk_ids <= fork_message_ids
 
     branch_user_message = next(mid for mid in chunk_ids if mid in fork_message_ids)
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         target = await session.scalar(
             select(Message).where(
                 Message.conversation_id == fork_id,
@@ -261,7 +261,7 @@ async def test_a_fork_log_survives_a_parent_revert_and_delete(
     user_id = await seed_user()
     thread = await four_turn_thread(user_id)
     task_id = uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             BackgroundTask(
                 id=task_id,
@@ -281,7 +281,7 @@ async def test_a_fork_log_survives_a_parent_revert_and_delete(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=thread.conversation_id,
@@ -294,7 +294,7 @@ async def test_a_fork_log_survives_a_parent_revert_and_delete(
     before = await event_count(fork_id)
     assert before > 0
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await revert_conversation_to_message(
             session,
             conversation_id=thread.conversation_id,
@@ -304,7 +304,7 @@ async def test_a_fork_log_survives_a_parent_revert_and_delete(
         await session.commit()
     assert await event_count(fork_id) == before
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await ConversationRepository(session).delete(thread.conversation_id)
         await session.commit()
     assert await event_count(fork_id) == before
@@ -321,7 +321,7 @@ async def test_a_branch_of_a_site_help_thread_stays_site_help(
     conversation_id = await seed_conversation(user_id, assistant_id="site_help")
     anchor = await add_assistant_message(conversation_id)
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=conversation_id,
@@ -331,7 +331,7 @@ async def test_a_branch_of_a_site_help_thread_stays_site_help(
         await session.commit()
         fork_id = fork.id
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         source = await session.get(Conversation, conversation_id)
         branch = await session.get(Conversation, fork_id)
         assert source is not None
@@ -349,7 +349,7 @@ async def test_fork_still_rejects_an_anchor_from_another_thread(
     install_fake_push(monkeypatch)
     user_id = await seed_user()
     conversation_id = await seed_conversation(user_id)
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         with pytest.raises(ForkError):
             await fork_conversation(
                 session,

@@ -5,10 +5,11 @@ from __future__ import annotations
 from collections.abc import Generator
 
 import pytest
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.errors import ExternalServiceError
+from veupathdb.wdk.auth_login import VEuPathDBClaims
 
-from pathfinder.integrations.veupathdb.auth_login import VEuPathDBClaims
-from pathfinder.platform.context import veupathdb_auth_token_ctx
-from pathfinder.platform.errors import ErrorCode, ExternalServiceError
+from pathfinder.platform.errors import ErrorCode
 from pathfinder.services import wdk_identity
 
 REGISTERED_TOKEN = "registered.veupathdb.token"

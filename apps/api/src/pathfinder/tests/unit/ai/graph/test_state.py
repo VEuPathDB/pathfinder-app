@@ -5,6 +5,13 @@ from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
+from veupathdb.domain.strategy.build_outcome import BuildOutcome
+from veupathdb.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
+from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.graph.state import (
@@ -15,7 +22,7 @@ from pathfinder.ai.graph.state import (
     StrategyDomainState,
     VerificationDigest,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 
 
 @pytest.fixture
@@ -211,3 +218,136 @@ def test_marking_a_dataset_records_only_that_dataset(
     base_state.domain.mark_eda_sheet_shown("DS_53f554ec6a")
     assert base_state.domain.was_eda_sheet_shown("DS_53f554ec6a") is True
     assert base_state.domain.was_eda_sheet_shown("DS_eeca6a5476") is False
+
+
+def _requirement(kind: ConstraintKind, label: str, value: str) -> Constraint:
+    return Constraint(
+        kind=kind,
+        label=label,
+        requested_value=value,
+        source=ConstraintSource.USER_EXPLICIT,
+    )
+
+
+def _intent(
+    raw_text: str,
+    classification: IntentClassification,
+    *constraints: Constraint,
+) -> UserIntent:
+    return UserIntent(
+        raw_text=raw_text,
+        classification=classification,
+        inferred_goal="what the user asked for",
+        explicit_constraints=list(constraints),
+    )
+
+
+_ASKED = "Find A. gambiae midgut protease genes near a regulatory motif."
+_ANSWERED = "Near = within 1 kb upstream of the motif. Go ahead."
+
+_ORGANISM = _requirement(ConstraintKind.ORGANISM, "organism", "Anopheles gambiae")
+_PROXIMITY = _requirement(
+    ConstraintKind.OTHER, "motif proximity", "within 1 kb upstream"
+)
+
+
+def _asked_intent() -> UserIntent:
+    return _intent(_ASKED, IntentClassification.NEW_STRATEGY, _ORGANISM)
+
+
+def _answered_intent() -> UserIntent:
+    return _intent(_ANSWERED, IntentClassification.CLARIFICATION_RESPONSE, _PROXIMITY)
+
+
+def _threaded(*intents: UserIntent) -> StrategyDomainState:
+    domain = StrategyDomainState()
+    for intent in intents:
+        domain.record_intent(intent, request_text=intent.raw_text)
+    return domain
+
+
+def test_the_thread_accumulates_every_stated_requirement() -> None:
+    domain = _threaded(_asked_intent(), _answered_intent())
+
+    assert [c.requested_value for c in domain.requirements] == [
+        "Anopheles gambiae",
+        "within 1 kb upstream",
+    ]
+
+
+def test_a_repeated_requirement_is_recorded_once() -> None:
+    domain = _threaded(_asked_intent(), _answered_intent(), _answered_intent())
+
+    assert [c.requested_value for c in domain.requirements].count(
+        "within 1 kb upstream"
+    ) == 1
+
+
+def test_a_clarification_never_becomes_the_original_request() -> None:
+    domain = _threaded(_answered_intent(), _asked_intent())
+
+    assert domain.original_request == _ASKED
+
+
+def test_a_new_strategy_on_an_empty_thread_starts_the_requirements_over() -> None:
+    domain = _threaded(_asked_intent(), _answered_intent())
+    third = _intent(
+        "Forget that. Find P. falciparum kinases.",
+        IntentClassification.NEW_STRATEGY,
+        _requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"),
+    )
+
+    domain.record_intent(third, request_text=third.raw_text)
+
+    assert [c.requested_value for c in domain.requirements] == ["Plasmodium falciparum"]
+    assert domain.original_request == third.raw_text
+
+
+def test_a_new_strategy_on_a_built_thread_keeps_the_requirements() -> None:
+    domain = _threaded(_asked_intent(), _answered_intent())
+    domain.last_build_outcome = BuildOutcome(pushed_step_ids=["s1"])
+    third = _intent("Also add the RNA-Seq filter.", IntentClassification.NEW_STRATEGY)
+
+    domain.record_intent(third, request_text=third.raw_text)
+
+    assert [c.requested_value for c in domain.requirements] == [
+        "Anopheles gambiae",
+        "within 1 kb upstream",
+    ]
+    assert domain.original_request == _ASKED
+
+
+def _recorded_combinations(*batches: list[Constraint]) -> list[Constraint]:
+    domain = StrategyDomainState()
+    for batch in batches:
+        domain.record_requirements(batch)
+    return [c for c in domain.requirements if c.kind is ConstraintKind.COMBINATION]
+
+
+def _combination(value: str) -> Constraint:
+    return _requirement(ConstraintKind.COMBINATION, "evidence combination", value)
+
+
+def test_a_new_combination_over_the_same_terms_supersedes_the_old_one() -> None:
+    combos = _recorded_combinations(
+        [_combination("mass spectrometry OR DeRisi expression")],
+        [_combination("mass spectrometry AND DeRisi expression")],
+    )
+
+    assert len(combos) == 1
+    assert combos[0].requested_value == "mass spectrometry AND DeRisi expression"
+
+
+def test_a_combination_over_different_terms_accrues() -> None:
+    combos = _recorded_combinations(
+        [
+            _combination("mass spectrometry OR DeRisi expression"),
+            _requirement(
+                ConstraintKind.COMBINATION,
+                "annotation combination",
+                "kinase annotation AND phyletic profile",
+            ),
+        ],
+    )
+
+    assert len(combos) == 2

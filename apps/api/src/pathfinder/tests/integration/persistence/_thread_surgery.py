@@ -6,28 +6,28 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.persistence.models import (
     Conversation,
     ConversationEvent,
     Message,
 )
+from assistant_core.platform import db
 from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
-
-from pathfinder.domain.eda_parts import EdaAnalysisState
-from pathfinder.domain.strategy.revision import parse_strategy_ast, without_wdk_ids
-from pathfinder.domain.strategy.tree import walk
-from pathfinder.integrations.eda.errors import EdaNotFoundError, EdaServerError
-from pathfinder.integrations.eda.models import (
+from veupathdb.domain.strategy.tree import walk
+from veupathdb.eda.errors import EdaNotFoundError, EdaServerError
+from veupathdb.eda.models import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
     EdaFilter,
     EdaStringSetFilter,
     EdaSubsetDescriptor,
 )
+
+from pathfinder.domain.eda_parts import EdaAnalysisState
+from pathfinder.domain.strategy.revision import parse_strategy_ast, without_wdk_ids
 from pathfinder.persistence.models import (
     ConversationAnalysisView,
     ConversationStrategy,
@@ -126,7 +126,7 @@ def install_fake_push(monkeypatch: pytest.MonkeyPatch) -> FakePush:
 
 async def seed_user() -> UUID:
     user_id = uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         await session.commit()
     return user_id
@@ -139,7 +139,7 @@ async def seed_conversation(
     name: str = "protease work",
 ) -> UUID:
     conversation_id = uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             Conversation(
                 id=conversation_id,
@@ -168,7 +168,7 @@ async def _add_message(
     chunks: Sequence[JSONObject] = (),
 ) -> UUID:
     message_id = uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             Message(id=message_id, conversation_id=conversation_id, role=role),
         )
@@ -187,7 +187,7 @@ async def _add_message(
 
 async def _stamp(conversation_id: UUID, message_id: UUID, *, key: str) -> None:
     """Write the message's own id into the chunk that names it."""
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         row = await session.scalar(
             select(ConversationEvent)
             .where(
@@ -233,7 +233,7 @@ async def write_strategy(conversation_id: UUID, step_ids: dict[str, int]) -> Non
         if len(step_ids) == len(THREE_STEPS)
         else four_step_ast(dict(step_ids))
     )
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await ConversationRepository(session).update_conversation(
             conversation_id,
             ConversationUpdate(
@@ -301,7 +301,7 @@ class _ChunkIdentity(BaseModel):
 
 
 async def event_count(conversation_id: UUID) -> int:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         return (
             await session.scalar(
                 select(func.count())
@@ -313,7 +313,7 @@ async def event_count(conversation_id: UUID) -> int:
 
 async def message_roles(conversation_id: UUID) -> list[str]:
     """The thread's messages, oldest first."""
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         return list(
             (
                 await session.execute(
@@ -326,7 +326,7 @@ async def message_roles(conversation_id: UUID) -> list[str]:
 
 
 async def message_ids(conversation_id: UUID) -> list[str]:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         return [
             str(mid)
             for mid in (
@@ -341,7 +341,7 @@ async def message_ids(conversation_id: UUID) -> list[str]:
 
 async def conversation_snapshot(conversation_id: UUID) -> JSONObject:
     """The thread's own row, as comparable values."""
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         row = await session.get(Conversation, conversation_id)
         assert row is not None
         return {
@@ -356,7 +356,7 @@ async def conversation_snapshot(conversation_id: UUID) -> JSONObject:
 
 async def thread_content_snapshot(conversation_id: UUID) -> JSONObject:
     """Every message, chunk, strategy and snapshot row of one thread."""
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         messages = (
             (
                 await session.execute(
@@ -430,7 +430,7 @@ async def thread_content_snapshot(conversation_id: UUID) -> JSONObject:
 async def add_note(conversation_id: UUID, title: str) -> str:
     """One scratchpad note, written at the moment it is added."""
     note_id = f"note-{uuid4().hex[:8]}"
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             ScratchpadNote(
                 id=note_id,
@@ -447,7 +447,7 @@ async def add_note(conversation_id: UUID, title: str) -> str:
 
 
 async def note_titles(conversation_id: UUID) -> list[str]:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         return list(
             (
                 await session.execute(
@@ -503,7 +503,7 @@ async def add_analysis_state(
         entity_counts=[],
         can_export_rows=True,
     )
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         turn = await session.get(Message, turn_id)
         assert turn is not None
         session.add(
@@ -603,7 +603,7 @@ def install_fake_eda(monkeypatch: pytest.MonkeyPatch) -> FakeEda:
 
 
 async def bound_analysis(conversation_id: UUID) -> ConversationAnalysisView | None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         return await read_analysis_row(session, conversation_id=conversation_id)
 
 
@@ -615,7 +615,7 @@ async def bind_analysis(
     revision: int = 1,
 ) -> None:
     """Bind an analysis to a thread and count ``revision`` mutations on it."""
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await bind_analysis_row(
             session,
             conversation_id=conversation_id,

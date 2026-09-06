@@ -10,14 +10,11 @@ import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
-
-from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone import strategy_edits as strategy_module
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.wdk.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
     PatchStepSpec,
@@ -25,9 +22,10 @@ from pathfinder.integrations.veupathdb.wdk_models import (
     WDKSearchConfig,
     WDKStep,
 )
-from pathfinder.services.strategies import commit as commit_module
-from pathfinder.services.strategies import step_wdk_push
-from pathfinder.services.strategies import sync as sync_module
+
+from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone import strategy_edits
+from pathfinder.services.strategies import commit, step_wdk_push, sync
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -161,12 +159,12 @@ async def _fake_sync(**_kwargs: Any) -> SyncResult:
 def install_stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     """Serve one StubAPI to every strategy write path and stub the side effects."""
     api = StubAPI()
-    for module in (commit_module, step_wdk_push, sync_module):
+    for module in (commit, step_wdk_push, sync):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(commit_module, "reconcile_sync_state_with_wdk", _noop)
-    monkeypatch.setattr(commit_module, "sync_strategy_for_site", _fake_sync)
-    monkeypatch.setattr(commit_module, "persist_strategy_ast_to_conversation", _noop)
-    monkeypatch.setattr(strategy_module, "validate_parameters", _echo_parameters)
+    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop)
+    monkeypatch.setattr(commit, "sync_strategy_for_site", _fake_sync)
+    monkeypatch.setattr(commit, "persist_strategy_ast_to_conversation", _noop)
+    monkeypatch.setattr(strategy_edits, "validate_parameters", _echo_parameters)
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_plan_params)
     return api
 

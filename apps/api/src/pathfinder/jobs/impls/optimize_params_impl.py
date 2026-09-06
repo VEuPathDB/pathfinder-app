@@ -8,6 +8,9 @@ from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from pydantic import JsonValue
+from veupathdb_mcp.controls.control_types import (
+    ControlValueFormat,
+)
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.tools.standalone._optimization_models import (
@@ -17,23 +20,19 @@ from pathfinder.ai.tools.standalone._optimization_models import (
     _attach_export,
     _parse_and_validate_inputs,
 )
-from pathfinder.domain.parameters.optimization import (
-    SweepResult,
-    VariantResult,
-    VariantSpec,
-)
 from pathfinder.jobs.progress import TaskProgressEmitter
 from pathfinder.services.experiment.types import (
-    ControlValueFormat,
     OptimizationObjective,
 )
-from pathfinder.services.parameter_optimization.config import OptimizationConfig
-from pathfinder.services.parameter_optimization.sweep import (
+from pathfinder.services.parameter_optimization.config import (
+    OptimizationConfig,
     SweepControls,
+    SweepResult,
     SweepTarget,
-    enumerate_variants,
-    run_trial,
+    SweepVariantResult,
+    SweepVariantSpec,
 )
+from pathfinder.services.workbench.optimization import enumerate_variants, run_trial
 
 logger = get_logger(__name__)
 
@@ -44,7 +43,7 @@ _DEFAULT_MAX_PARALLEL = 5
 
 
 async def run_single_trial(
-    variant: VariantSpec,
+    variant: SweepVariantSpec,
     *,
     progress: TaskProgressEmitter,
     context: Context,
@@ -94,7 +93,7 @@ async def optimize_search_parameters_impl(
     every per-variant progress event with ``variantId`` so the UI can
     render one lane per variant. One variant raising does NOT abort the
     others — each gated wrapper converts the exception into a
-    ``status="failed"`` :class:`VariantResult`.
+    ``status="failed"`` :class:`SweepVariantResult`.
     """
     del task_id, memory_store
 
@@ -166,7 +165,7 @@ async def optimize_search_parameters_impl(
     cap = settings_m.max_parallel or _DEFAULT_MAX_PARALLEL
     sem = asyncio.Semaphore(cap)
 
-    async def gated(v: VariantSpec) -> dict[str, Any]:
+    async def gated(v: SweepVariantSpec) -> dict[str, Any]:
         scoped = progress.scoped(variantId=v.id)
         async with sem:
             try:
@@ -188,7 +187,7 @@ async def optimize_search_parameters_impl(
                     percent=1.0,
                     message=f"Variant {v.id} failed: {exc}",
                 )
-                return VariantResult(
+                return SweepVariantResult(
                     variant_id=v.id,
                     status="failed",
                     params=v.params,

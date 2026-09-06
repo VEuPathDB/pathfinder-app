@@ -12,8 +12,9 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from veupathdb.errors import ValidationError
 
-from pathfinder.platform.errors import NotFoundError, ValidationError
+from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.types import GeneSet
 

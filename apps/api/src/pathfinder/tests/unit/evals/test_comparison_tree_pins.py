@@ -6,10 +6,11 @@ can hold. These values do not change when the traversal moves to the owner.
 
 from __future__ import annotations
 
-from pathfinder.domain.parameters.values import MultiPickValue, StringValue
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.parameters.values import MultiPickValue, StringValue
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+
 from pathfinder.evals.distance import COMBINE_LABEL, tree_from_ast
 from pathfinder.evals.scoring import structure_signature
 

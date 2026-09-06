@@ -7,12 +7,13 @@ Provides:
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb.errors import VEuPathDBError
+from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
+from veupathdb_mcp.wdk.step_size import get_estimated_size_for_site
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._result_models import EstimatedSizeResult
 from pathfinder.platform.errors import AppError, ErrorCode
-from pathfinder.platform.tool_errors import ToolErrorPayload, tool_error
-from pathfinder.services.strategies.build import get_estimated_size_for_site
 
 
 async def get_estimated_size(
@@ -33,7 +34,7 @@ async def get_estimated_size(
         result = await get_estimated_size_for_site(
             ctx.deps.strategy_session.site_id, wdk_step_id, wdk_strategy_id
         )
-    except (AppError, OSError) as e:
+    except (AppError, VEuPathDBError, OSError) as e:
         message = str(e)
         if wdk_strategy_id is None:
             message = f"{message} (try providing wdk_strategy_id)"

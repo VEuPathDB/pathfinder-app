@@ -2,12 +2,11 @@
 
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONArray, JSONObject
-
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk.strategy_api import StrategyAPI
+from veupathdb.wdk.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
     WDKDatasetConfigIdList,
@@ -15,21 +14,22 @@ from pathfinder.integrations.veupathdb.wdk_models import (
     WDKSearchConfig,
     WDKStepTree,
 )
-from pathfinder.services.control_helpers import delete_temp_strategy
-from pathfinder.services.control_tests import (
+from veupathdb_mcp.controls.control_helpers import delete_temp_strategy
+from veupathdb_mcp.controls.control_tests import (
     _extract_intersection_data,
     resolve_controls_param_type,
 )
-from pathfinder.services.experiment.helpers import ControlsContext
-from pathfinder.services.experiment.materialization import (
-    _materialize_step_tree,
-)
-from pathfinder.services.experiment.types import (
+from veupathdb_mcp.controls.control_types import (
+    ControlsContext,
     ControlSetData,
     ControlTargetData,
     ControlTestResult,
 )
-from pathfinder.services.wdk.helpers import extract_record_ids
+from veupathdb_mcp.wdk.helpers import extract_record_ids
+
+from pathfinder.services.experiment.materialization import (
+    _materialize_step_tree,
+)
 
 logger = get_logger(__name__)
 

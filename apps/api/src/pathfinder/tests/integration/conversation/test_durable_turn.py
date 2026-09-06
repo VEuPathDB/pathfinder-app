@@ -5,10 +5,10 @@ from __future__ import annotations
 import asyncio
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 import httpx
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.persistence.models import Conversation
+from assistant_core.platform import db
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
@@ -72,7 +72,7 @@ def _post_body(conv_id: UUID) -> dict:
 async def _seed_conversation(user_id: UUID) -> UUID:
     """Inserts a conversation row for a user that already exists."""
     conv_id = uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             Conversation(
                 id=conv_id,

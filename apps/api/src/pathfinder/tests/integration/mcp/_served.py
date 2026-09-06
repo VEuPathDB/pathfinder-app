@@ -13,17 +13,16 @@ from typing import Any
 
 from pydantic import BaseModel
 from pydantic_ai.mcp import MCPToolset
-
-from pathfinder.domain.parameters.values import MultiPickValue, NumberValue, ParamValue
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
-from pathfinder.integrations.veupathdb.value_decoding import encode_params
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.domain.parameters.values import MultiPickValue, NumberValue, ParamValue
+from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk.strategy_api import StrategyAPI
+from veupathdb.wdk.value_decoding import encode_params
+from veupathdb.wdk.wdk_models import (
     NewStepSpec,
     WDKSearchConfig,
     WDKStepTree,
 )
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 
 SITE = "plasmodb"
 RECORD_TYPE = "transcript"

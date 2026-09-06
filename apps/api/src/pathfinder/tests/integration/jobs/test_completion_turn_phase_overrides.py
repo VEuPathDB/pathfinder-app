@@ -41,7 +41,7 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone.eda_compute import run_eda_compute
-from pathfinder.assistants import registry as registry_module
+from pathfinder.assistants import registry
 from pathfinder.assistants.pathfinder_spec import build_turn_context
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.assistants.site_help.spec import (
@@ -197,7 +197,7 @@ def _build_spec() -> AssistantSpec:
 @pytest.fixture
 def recording_assistant(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     _SEEN.clear()
-    monkeypatch.setattr(registry_module, "build_site_help_spec", _build_spec)
+    monkeypatch.setattr(registry, "build_site_help_spec", _build_spec)
     get_assistant_registry.cache_clear()
     yield
     get_assistant_registry.cache_clear()

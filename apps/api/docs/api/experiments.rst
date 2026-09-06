@@ -323,47 +323,16 @@ Pydantic models for experiment configuration, metrics, enrichment, and results.
 Enrichment
 ----------
 
-**Purpose:** One entry point for running WDK enrichment analyses, shared by
-the experiment endpoints, the gene-set endpoints and the AI tools. Covers GO,
-pathway and word enrichment, a custom gene-set variant, cross-experiment
-comparison, ranking, and the statistics they share.
-
-.. automodule:: pathfinder.services.enrichment.service
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.enrichment.types
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.enrichment.params
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.enrichment.parser
-   :members:
-   :undoc-members:
-   :show-inheritance:
+**Purpose:** The custom gene-set variant and the statistics enrichment results
+share. Running an analysis by value is the ``veupathdb-mcp`` sibling
+distribution's ``veupathdb_mcp.wdk.enrichment``.
 
 .. automodule:: pathfinder.services.enrichment.custom
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.enrichment.ranking
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 .. automodule:: pathfinder.services.enrichment.stats
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.enrichment.html
    :members:
    :undoc-members:
    :show-inheritance:

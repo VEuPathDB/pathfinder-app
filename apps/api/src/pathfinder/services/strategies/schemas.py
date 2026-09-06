@@ -1,22 +1,21 @@
 """Service-layer strategy DTOs shared across services, AI, and transport."""
 
 from assistant_core.platform.pydantic_base import CamelModel
-
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.domain.strategy.ast import (
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.strategy.ast import (
     StepAnalysis,
     StepFilter,
     StepReport,
     StrategyStepNode,
 )
-from pathfinder.domain.strategy.graph_model import (
+from veupathdb.domain.strategy.graph_model import (
     StepStatus,
     flatten_tree,
     step_status,
 )
-from pathfinder.domain.strategy.ops import ColocationParams
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.validation import StepValidation
+from veupathdb.domain.strategy.ops import ColocationParams
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.validation import StepValidation
 
 
 class StepResponse(CamelModel):

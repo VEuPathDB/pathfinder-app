@@ -9,6 +9,15 @@ from uuid import uuid4
 
 import pytest
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
+from veupathdb.domain.strategy.session import StrategySession
+from veupathdb.wdk.ai_expression import AiExpressionStatus
+from veupathdb_mcp import catalog
+from veupathdb_mcp.catalog.param_formatting import ParameterInfo
+from veupathdb_mcp.gene_lookup import GeneSearchResult
+from veupathdb_mcp.wdk.ai_expression import (
+    NO_SUMMARY_ON_THE_SITE,
+    GeneExpressionSummary,
+)
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.lead import lead_tools
@@ -23,11 +32,7 @@ from pathfinder.ai.tools.standalone import (
     strategy_graph,
     workbench,
 )
-from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.services import catalog
-from pathfinder.services.catalog.param_formatting import ParameterInfo
 from pathfinder.services.eda.catalog import StudyCard
-from pathfinder.services.gene_lookup import GeneSearchResult
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_state_ctx,
     summary_chunks,
@@ -124,6 +129,26 @@ class TestASilentZeroReportsEmpty:
         returned = await standalone.gene.lookup_gene_records(ctx, "PfAP2-G")
         chunk = summary_of(returned)
         assert chunk.data["summary"] == "0 genes matched PfAP2-G"
+        assert chunk.data["status"] == "empty"
+
+    async def test_get_ai_expression_summary(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        async def _absent(site_id: str, gene_id: str) -> GeneExpressionSummary:
+            return GeneExpressionSummary(
+                site_id=site_id,
+                gene_id=gene_id,
+                result_status=AiExpressionStatus.EXPERIMENTS_INCOMPLETE,
+                num_experiments=41,
+                unavailable_reason=NO_SUMMARY_ON_THE_SITE,
+            )
+
+        monkeypatch.setattr(standalone.gene, "get_gene_expression_summary", _absent)
+        ctx = agent_state_ctx()
+        ctx.deps.site_id = "plasmodb"
+        returned = await standalone.gene.get_ai_expression_summary(ctx, "PF3D7_0709000")
+        chunk = summary_of(returned)
+        assert chunk.data["summary"] == "No expression summary for PF3D7_0709000"
         assert chunk.data["status"] == "empty"
 
     async def test_search_memory(self) -> None:

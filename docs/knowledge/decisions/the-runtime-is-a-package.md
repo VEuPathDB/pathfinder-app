@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The runtime is a package, so the boundary is an installation fact
-description: assistant_core moved out of apps/api into packages/assistant-core with its own pyproject, lock, tests and CI lane, consumed as an editable path dependency; import-linter contract 7 was replaced by the package's dependency list plus its own boundary suite. Keeping the runtime in-repo behind import contracts only was rejected, because the program owner ruled the boundary must be observable and real.
+description: assistant_core moved out of apps/api into assistant-platform/packages/assistant-core with its own pyproject, lock, tests and CI lane, consumed as an editable path dependency; import-linter contract 7 was replaced by the package's dependency list plus its own boundary suite. Keeping the runtime in-repo behind import contracts only was rejected, because the program owner ruled the boundary must be observable and real.
 tags: [assistant-core, ws-v, architecture, packaging, import-linter, persistence]
 generated: { by: claude-code/opus-5, at: 2026-08-22T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-22T00:00:00Z }
@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-The assistant runtime is `packages/assistant-core`: its own `pyproject.toml`,
+The assistant runtime is `assistant-platform/packages/assistant-core`: its own `pyproject.toml`,
 its own lock file, a `src/assistant_core` layout importable with no
 `pathfinder.` prefix, its own test tree, and `apps/api` consuming it as an
 editable path dependency. A module under
@@ -34,10 +34,15 @@ contents:
   request-scoped session are the runtime's; `init_db`, which runs alembic
   against `alembic.ini`, is the application's and became
   `platform/migrations.py`. `errors.py` and `principal.py` stayed: their
-  taxonomies name WDK, VEuPathDB bearers and PathFinder service tokens.
-- `integrations/embeddings/{model,prefixes}.py` became
+  taxonomies name WDK, VEuPathDB bearers and PathFinder service tokens. The
+  WDK half of both later moved down into the client library, and
+  `veupathdb_auth_token_ctx` with it; see [the client library owns its
+  foundation](the-client-library-owns-its-foundation.md).
+- `veupathdb_mcp/embeddings/{model,prefixes}.py` became
   `assistant_core/embeddings/`. `semantic_index.py` stayed, because it is
-  typed on `WDKSearch`.
+  typed on `WDKSearch`. The record manager and its two tables later moved back
+  down, because no runtime module read them; see [the embedding index belongs
+  to the MCP unit](the-embedding-index-belongs-to-the-mcp-unit.md).
 - The tables the runtime reads and writes: `conversations`, `messages`,
   `conversation_events`, `memory_tombstones`, plus the declarative `Base`, the
   `GUID` type, the application-id column and `MessagesRepository` /
@@ -95,9 +100,9 @@ Contract 7 forbade any chain from `pathfinder.assistant_core` to the science.
 The module no longer exists, so the contract cannot be written. Three things
 carry its weight:
 
-1. `packages/assistant-core/pyproject.toml` declares no dependency on this
+1. `assistant-platform/packages/assistant-core/pyproject.toml` declares no dependency on this
    application. This is the enforcement; the rest is instrumentation.
-2. `packages/assistant-core/packages/assistant-core/tests/unit/test_package_boundary.py` walks every
+2. `assistant-platform/packages/assistant-core/tests/unit/test_package_boundary.py` walks every
    module in the package and fails on an import naming `pathfinder`. The two
    wire-type modules it once read are now the package's own; see [the runtime's
    part payloads live in the runtime](runtime-part-payloads-live-in-the-runtime.md).
@@ -111,9 +116,14 @@ carry its weight:
 
 # What would falsify this
 
-`cd packages/assistant-core && uv run pytest` runs the package's whole suite
+`cd assistant-platform/packages/assistant-core && uv run pytest` runs the package's whole suite
 with no `pathfinder` installed; the day it needs one, the boundary is gone.
-`apps/api/src/pathfinder/tests/unit/assistant_core/test_core_boundary.py`
+`apps/api/src/pathfinder/tests/unit/test_core_boundary.py`
 fails if the dependency edge reverses or the two source trees merge.
 `uv run lint-imports` fails if the science starts importing the composition
 root.
+
+The same measurement drained the MCP server's outbound edges; see
+[the MCP server writes no PathFinder table](the-mcp-server-writes-no-pathfinder-table.md)
+and [the embedding index belongs to the MCP
+unit](the-embedding-index-belongs-to-the-mcp-unit.md).

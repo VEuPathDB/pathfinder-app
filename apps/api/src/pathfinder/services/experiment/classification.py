@@ -6,10 +6,10 @@ Handles WDK transcript ID version suffixes (e.g. "GENE.1" -> "GENE").
 """
 
 from assistant_core.platform.types import JSONObject
+from veupathdb.wdk.wdk_models import WDKRecordInstance
+from veupathdb_mcp.wdk.helpers import extract_pk
 
-from pathfinder.integrations.veupathdb.wdk_models import WDKRecordInstance
 from pathfinder.services.experiment.types.core import Classification
-from pathfinder.services.wdk.helpers import extract_pk
 
 
 def classify_records(

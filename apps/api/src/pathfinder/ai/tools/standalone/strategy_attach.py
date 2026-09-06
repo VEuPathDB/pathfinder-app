@@ -11,6 +11,14 @@ from assistant_core.platform.types import JSONObject
 from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb.domain.strategy.ast import (
+    StepAnalysis,
+    StepFilter,
+    StepReport,
+)
+from veupathdb.domain.strategy.graph_model import StrategyStep
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb_mcp.tool_errors import ToolErrorPayload
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._graph_helpers import step_ok_response
@@ -19,14 +27,6 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     StepOkResponse,
     get_graph_and_step,
 )
-from pathfinder.domain.strategy.ast import (
-    StepAnalysis,
-    StepFilter,
-    StepReport,
-)
-from pathfinder.domain.strategy.graph_model import StrategyStep
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.platform.tool_errors import ToolErrorPayload
 
 
 def _step_updated_return(

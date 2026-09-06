@@ -6,12 +6,12 @@ from typing import Any
 
 import pytest
 from pydantic_ai import RunContext
+from veupathdb.domain.strategy.operations.apply import apply_operation
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
-from pathfinder.domain.strategy.operations.apply import apply_operation
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests._support.eda_doubles import ANALYSIS_ID, lead_run_context
 from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET

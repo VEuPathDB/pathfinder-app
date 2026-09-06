@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.persistence.models import Conversation, Message
 from assistant_core.persistence.repositories.message import MessagesRepository
+from assistant_core.platform import db
 from sqlalchemy import select
 
 from pathfinder.persistence.models import User
@@ -21,7 +21,7 @@ async def test_upsert_replaces_metadata(
     conversation_id = uuid4()
     message_id = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         session.add(
             Conversation(
@@ -33,7 +33,7 @@ async def test_upsert_replaces_metadata(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await MessagesRepository(session).upsert_message(
             message_id=message_id,
             conversation_id=conversation_id,
@@ -42,7 +42,7 @@ async def test_upsert_replaces_metadata(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await MessagesRepository(session).upsert_message(
             message_id=message_id,
             conversation_id=conversation_id,
@@ -51,7 +51,7 @@ async def test_upsert_replaces_metadata(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         rows = (
             await session.scalars(
                 select(Message).where(Message.conversation_id == conversation_id),
@@ -75,7 +75,7 @@ async def test_sum_usage_reads_partial_turn_metadata(
     conversation_id = uuid4()
     message_id = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         session.add(
             Conversation(
@@ -87,7 +87,7 @@ async def test_sum_usage_reads_partial_turn_metadata(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         repo = MessagesRepository(session)
         await repo.upsert_message(
             message_id=message_id,
@@ -97,7 +97,7 @@ async def test_sum_usage_reads_partial_turn_metadata(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         total_tokens, total_cost = await MessagesRepository(
             session,
         ).sum_usage_for_conversation(conversation_id)
@@ -115,7 +115,7 @@ async def test_insert_message_is_idempotent_on_same_id(
     conversation_id = uuid4()
     message_id = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         session.add(
             Conversation(
@@ -129,7 +129,7 @@ async def test_insert_message_is_idempotent_on_same_id(
 
     original_meta = {"siteId": "plasmodb", "mode": "strategy"}
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await MessagesRepository(session).insert_message(
             message_id=message_id,
             conversation_id=conversation_id,
@@ -138,7 +138,7 @@ async def test_insert_message_is_idempotent_on_same_id(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await MessagesRepository(session).insert_message(
             message_id=message_id,
             conversation_id=conversation_id,
@@ -147,7 +147,7 @@ async def test_insert_message_is_idempotent_on_same_id(
         )
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         rows = (
             await session.scalars(
                 select(Message).where(Message.id == message_id),

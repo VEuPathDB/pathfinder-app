@@ -11,15 +11,17 @@ from typing import Any
 from uuid import UUID
 
 from assistant_core.memory.store import MemoryStore
-
-from pathfinder.ai.graph.runtime import Context
-from pathfinder.jobs.progress import TaskProgressEmitter
-from pathfinder.services.enrichment.types import (
+from veupathdb_mcp.wdk.enrichment.types import (
     ALL_ENRICHMENT_ANALYSIS_TYPES,
     EnrichmentAnalysisType,
 )
-from pathfinder.services.gene_sets.enrichment import run_enrichment_for_gene_set
-from pathfinder.services.gene_sets.store import get_gene_set_store
+
+from pathfinder.ai.graph.runtime import Context
+from pathfinder.jobs.progress import TaskProgressEmitter
+from pathfinder.services.workbench.gene_sets import (
+    get_gene_set,
+    run_gene_set_enrichment,
+)
 
 
 async def run_gene_set_enrichment_impl(
@@ -40,8 +42,7 @@ async def run_gene_set_enrichment_impl(
         message=f"Loading gene set {gene_set_id}",
         data={"gene_set_id": gene_set_id},
     )
-    store = get_gene_set_store()
-    gs = await store.aget(gene_set_id)
+    gs = await get_gene_set(gene_set_id)
     if gs is None:
         msg = f"gene set {gene_set_id} does not exist"
         raise LookupError(msg)
@@ -57,7 +58,7 @@ async def run_gene_set_enrichment_impl(
         data={"analyses": list(types), "gene_count": len(gs.gene_ids)},
     )
 
-    summary = await run_enrichment_for_gene_set(gs, types)
+    summary = await run_gene_set_enrichment(gs, types)
     await progress.update(
         percent=0.9,
         message="Finalising enrichment summary",

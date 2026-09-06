@@ -3,15 +3,17 @@
 from assistant_core.platform.context import calling_application
 from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat2
 from pydantic import Field
-
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.services.enrichment.types import (
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb_mcp.controls.control_types import (
+    ControlValueFormat,
+)
+from veupathdb_mcp.wdk.enrichment.types import (
     EnrichmentAnalysisType,
     EnrichmentResult,
 )
+
 from pathfinder.services.experiment.types.core import (
-    ControlValueFormat,
     ExperimentMode,
     ExperimentStatus,
 )

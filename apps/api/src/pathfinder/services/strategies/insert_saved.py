@@ -13,28 +13,24 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from assistant_core.platform.logging import get_logger
-
-from pathfinder.domain.strategy.ast import StrategyStepNode, generate_step_id
-from pathfinder.domain.strategy.graph_model import (
+from veupathdb.domain.strategy.ast import StrategyStepNode, generate_step_id
+from veupathdb.domain.strategy.graph_model import (
     StepKind,
     StrategyStep,
     flatten_tree,
     rebuild_tree,
 )
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.tree import clone_with_fresh_ids
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.tree import clone_with_fresh_ids
+from veupathdb.errors import ValidationError, VEuPathDBError
+from veupathdb.wdk.factory import get_strategy_api
+
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,
 )
-from pathfinder.platform.errors import (
-    AppError,
-    ErrorCode,
-    NotFoundError,
-    ValidationError,
-)
+from pathfinder.platform.errors import AppError, ErrorCode, NotFoundError
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.spec_build import (
     build_strategy_from_spec,
@@ -79,7 +75,7 @@ async def clone_saved_strategy(
     api = get_strategy_api(site_id)
     try:
         saved = await api.get_strategy(saved_wdk_strategy_id)
-    except AppError as exc:
+    except (AppError, VEuPathDBError) as exc:
         raise NotFoundError(
             code=ErrorCode.STRATEGY_NOT_FOUND,
             title="saved strategy not found",

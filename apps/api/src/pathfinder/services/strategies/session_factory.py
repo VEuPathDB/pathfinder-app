@@ -4,14 +4,14 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from pydantic import ValidationError
-
-from pathfinder.domain.conversation import DEFAULT_STREAM_NAME
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.strategy_ast import (
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.domain.strategy.strategy_ast import (
     PersistedStrategyGraph,
     StrategyAst,
 )
+
+from pathfinder.domain.conversation import DEFAULT_STREAM_NAME
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.platform.errors import StrategyAstCorruptError
 from pathfinder.services.strategies.sync_state import WDKSyncState

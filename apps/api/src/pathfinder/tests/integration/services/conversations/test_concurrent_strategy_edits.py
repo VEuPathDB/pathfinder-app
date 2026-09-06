@@ -11,17 +11,16 @@ from uuid import UUID, uuid4
 import pytest
 from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
-from pathfinder.domain.parameters.values import MultiPickValue, ParamValue, StringValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.operations import (
+from veupathdb.domain.parameters.values import MultiPickValue, ParamValue, StringValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.operations import (
     UpdateCombineOperatorOp,
     UpdateStepParamsOp,
 )
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import walk
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import walk
+from veupathdb.wdk.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
     PatchStepSpec,
@@ -29,14 +28,18 @@ from pathfinder.integrations.veupathdb.wdk_models import (
     WDKSearchConfig,
     WDKStep,
 )
+from veupathdb_mcp.catalog.param_validation import ValidatedParams
+
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
-from pathfinder.services.catalog.param_validation import ValidatedParams
 from pathfinder.services.conversations import strategy_ops
-from pathfinder.services.strategies import commit as commit_module
-from pathfinder.services.strategies import insert_saved as insert_saved_module
-from pathfinder.services.strategies import spec_build, step_wdk_push
-from pathfinder.services.strategies import sync as sync_module
+from pathfinder.services.strategies import (
+    commit,
+    insert_saved,
+    spec_build,
+    step_wdk_push,
+    sync,
+)
 from pathfinder.services.strategies.insert_saved import ClonedSavedStrategy
 from pathfinder.services.strategies.sync import SyncResult
 
@@ -157,16 +160,16 @@ async def _fake_sync(
 @pytest.fixture
 def slow_api(monkeypatch: pytest.MonkeyPatch) -> _SlowAPI:
     api = _SlowAPI()
-    monkeypatch.setattr(commit_module, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(sync_module, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: api)
 
     async def _no_incomplete(*_args: Any, **_kwargs: Any) -> set[str]:
         return set()
 
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_incomplete)
-    monkeypatch.setattr(commit_module, "reconcile_sync_state_with_wdk", _no_reconcile)
-    monkeypatch.setattr(commit_module, "sync_strategy_for_site", _fake_sync)
+    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _no_reconcile)
+    monkeypatch.setattr(commit, "sync_strategy_for_site", _fake_sync)
     return api
 
 
@@ -350,7 +353,7 @@ def slow_clone(monkeypatch: pytest.MonkeyPatch) -> asyncio.Event:
             wdk_strategy_id=saved_wdk_strategy_id,
         )
 
-    monkeypatch.setattr(insert_saved_module, "clone_saved_strategy", _clone)
+    monkeypatch.setattr(insert_saved, "clone_saved_strategy", _clone)
 
     async def _passthrough_validation(
         _ctx: Any,

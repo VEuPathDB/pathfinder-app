@@ -11,6 +11,7 @@ from pydantic_ai import RunContext, Tool
 from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.toolsets import FunctionToolset
 from pydantic_ai.usage import UsageLimits
+from veupathdb.domain.strategy.operational_spec import Criterion
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead import sub_agent_stream
@@ -20,7 +21,6 @@ from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_stream import PhaseRun, stream_sub_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentRunUsage
-from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.lead.conftest import (
     endless_tool_call_model,

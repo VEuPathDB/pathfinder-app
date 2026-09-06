@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from pathfinder.integrations.eda.models import (
+from veupathdb.eda.models import (
     EdaComparator,
     EdaComputation,
     EdaComputationDescriptor,
@@ -17,6 +17,7 @@ from pathfinder.integrations.eda.models import (
     EdaVolcanoConfiguration,
     EdaVolcanoDescriptor,
 )
+
 from pathfinder.services.eda.authoring import new_analysis, serialize_spec
 
 REPO = Path(__file__).resolve().parents[8]
@@ -115,6 +116,8 @@ def test_a_computation_serializes_with_its_volcano_thresholds() -> None:
 
 
 _PACKAGE = "apps/api/src/pathfinder"
+_CLIENT = "veupathdb-py/src/veupathdb"
+_SERVER = "veupathdb-mcp/src/veupathdb_mcp"
 
 _SEARCHED = (
     f"{_PACKAGE}/services",
@@ -122,7 +125,10 @@ _SEARCHED = (
     f"{_PACKAGE}/jobs",
     f"{_PACKAGE}/transport",
     f"{_PACKAGE}/persistence",
-    f"{_PACKAGE}/integrations",
+    f"{_SERVER}",
+    f"{_CLIENT}/wdk",
+    f"{_CLIENT}/eda",
+    f"{_CLIENT}/domain",
 )
 
 _AUTHORING = f"{_PACKAGE}/services/eda/authoring.py"
@@ -139,9 +145,14 @@ _ALLOWED: tuple[tuple[str, int, str], ...] = (
         "one SSE event dump and the docstring that names it",
     ),
     (
-        f"{_PACKAGE}/integrations/veupathdb/disk_cache.py",
+        f"{_SERVER}/catalog/disk_cache.py",
         1,
         "a WDK disk cache snapshot",
+    ),
+    (
+        f"{_CLIENT}/wdk/vdi/client.py",
+        1,
+        "the details part of a user-dataset upload",
     ),
 )
 

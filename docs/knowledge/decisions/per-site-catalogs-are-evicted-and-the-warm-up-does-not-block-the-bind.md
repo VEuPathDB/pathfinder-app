@@ -29,7 +29,7 @@ third term, `index.embeddings.nbytes`, worth 3.2 MB on plasmodb. The vectors now
 live in Postgres, so a catalog holds none of them and the term is gone.
 
 **One build at a time, and only in the api.** A module-level semaphore in
-`integrations/veupathdb/discovery.py` admits one `_fetch_from_api` per process,
+`veupathdb_mcp/catalog/discovery.py` admits one `_fetch_from_api` per process,
 and a `KeyedLock` in `DiscoveryService` admits one build per site. Both the
 cold load and the background refresh of a stale snapshot pass through them.
 `CATALOG_REFRESH_ENABLED` is `false` on `worker` and on `wdk-mcp`: a build of
@@ -40,9 +40,10 @@ restores in 0.3 s and costs about 10 MiB, and a build of a site whose snapshot
 was 84.8 days old exceeded the ceiling and the kernel killed the process.
 
 **The snapshots persist.** `catalogs_cache` mounts over
-`apps/api/src/data/catalogs` in all three services. Without it, every recreate
-served the image's snapshots, found them stale, and refetched all fourteen
-sites; the refreshed snapshots died with the container.
+`veupathdb-mcp/data/catalogs` in all three services, where the distribution that
+reads them keeps them. Without it, every recreate served the image's snapshots,
+found them stale, and refetched all fourteen sites; the refreshed snapshots died
+with the container.
 
 **Superseded 2026-08-29 by [embeddings are an API call and a Postgres record
 manager](embeddings-are-an-api-and-a-record-manager.md).** This paragraph named

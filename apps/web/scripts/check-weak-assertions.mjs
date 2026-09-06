@@ -25,12 +25,8 @@
  * `queryBy*` returns null and `findBy*` returns a promise, so neither
  * asserts anything on its own and both stay weak.
  *
- * Ratchet baseline: existing offenders in apps/web/scripts/.weak-baseline.txt
- * are ignored. Only NEW offenders fail. Trim the baseline as tests get fixed.
- *
  * Usage:
  *   node scripts/check-weak-assertions.mjs
- *   node scripts/check-weak-assertions.mjs --write-baseline
  */
 
 import fs from "node:fs";
@@ -39,7 +35,6 @@ import ts from "typescript";
 
 const ROOT = path.resolve(process.cwd());
 const SCAN_ROOTS = [path.join(ROOT, "src"), path.join(ROOT, "e2e")];
-const BASELINE = path.join(ROOT, "scripts", ".weak-baseline.txt");
 
 const WEAK_MATCHERS = new Set([
   "toBeTruthy",
@@ -263,24 +258,7 @@ function scanFile(filePath) {
   return scanSource(fs.readFileSync(filePath, "utf8"), filePath);
 }
 
-function loadBaseline() {
-  if (!fs.existsSync(BASELINE)) return new Set();
-  return new Set(
-    fs
-      .readFileSync(BASELINE, "utf8")
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l && !l.startsWith("#")),
-  );
-}
-
-function offenderKey(o) {
-  return `${o.file}::${o.title}`;
-}
-
 function main() {
-  const writeBaseline = process.argv.includes("--write-baseline");
-
   const offenders = [];
   for (const root of SCAN_ROOTS) {
     for (const file of walkFiles(root)) {
@@ -288,28 +266,11 @@ function main() {
     }
   }
 
-  if (writeBaseline) {
-    const keys = [...new Set(offenders.map(offenderKey))].sort();
-    fs.mkdirSync(path.dirname(BASELINE), { recursive: true });
-    fs.writeFileSync(
-      BASELINE,
-      "# Existing weak-assertion offenders; trim as tests get fixed.\n" +
-        "# Each line: <relative_path>::<test_title>\n" +
-        keys.join("\n") +
-        (keys.length ? "\n" : ""),
-    );
-    console.log(`Wrote ${keys.length} entries to ${path.relative(ROOT, BASELINE)}`);
-    return 0;
-  }
-
-  const baseline = loadBaseline();
-  const newOnes = offenders.filter((o) => !baseline.has(offenderKey(o)));
-
-  if (newOnes.length > 0) {
+  if (offenders.length > 0) {
     console.log(
-      `\n${newOnes.length} test(s) with weak-only or missing expectations:\n`,
+      `\n${offenders.length} test(s) with weak-only or missing expectations:\n`,
     );
-    for (const o of newOnes) {
+    for (const o of offenders) {
       console.log(`  ${o.file}:${o.line}  "${o.title}"  [${o.verdict}]`);
     }
     console.log(
@@ -317,17 +278,10 @@ function main() {
         "toMatchObject, toThrow, toHaveBeenCalledWith, toBeVisible, toHaveValue, " +
         "toHaveTextContent, toHaveLength, etc.",
     );
-    if (baseline.size > 0) {
-      console.log(
-        `\nBaseline at ${path.relative(ROOT, BASELINE)} suppresses ${baseline.size} pre-existing offender(s).`,
-      );
-    }
     return 1;
   }
 
-  console.log(
-    `weak-assertion check passed: ${offenders.length} pre-existing offender(s) ignored via baseline.`,
-  );
+  console.log("weak-assertion check passed: every test states a value.");
   return 0;
 }
 

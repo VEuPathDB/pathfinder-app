@@ -18,11 +18,13 @@ import pytest
 from pydantic_ai import Agent, PydanticAIDeprecationWarning, Tool
 from pydantic_ai.toolsets.function import FunctionToolset
 
-import pathfinder.ai.agents._instructions as generic_mod
-import pathfinder.ai.agents.execution as execution_mod
-import pathfinder.ai.agents.frame as frame_mod
-import pathfinder.ai.agents.strategy_instructions as strategy_mod
-import pathfinder.ai.agents.verification as verification_mod
+from pathfinder.ai.agents import (
+    _instructions,
+    execution,
+    frame,
+    strategy_instructions,
+    verification,
+)
 from pathfinder.ai.agents.execution import EXECUTION_MODEL, build_execution_agent
 from pathfinder.ai.agents.frame import FRAME_MODEL, build_frame_agent
 from pathfinder.ai.agents.registry import phase_defaults
@@ -56,6 +58,7 @@ SCRATCHPAD_TOOL_NAMES = frozenset(
 FRAME_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "browse_search_categories",
     "drop_criterion",
+    "get_ai_expression_summary",
     "get_parameter_options",
     "get_record_types",
     "get_search_overview",
@@ -100,6 +103,7 @@ VERIFICATION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "check_study_step",
     "create_workbench_gene_set",
     "export_gene_set",
+    "get_ai_expression_summary",
     "get_confidence_scores",
     "get_download_url",
     "get_enrichment_results",
@@ -144,9 +148,9 @@ TOOL_NAMES: dict[PhaseRole, frozenset[str]] = {
 }
 
 SINGLETONS: tuple[tuple[ModuleType, str], ...] = (
-    (frame_mod, "frame_agent"),
-    (execution_mod, "execution_agent"),
-    (verification_mod, "verification_agent"),
+    (frame, "frame_agent"),
+    (execution, "execution_agent"),
+    (verification, "verification_agent"),
 )
 
 
@@ -280,11 +284,11 @@ def _named(module: ModuleType) -> set[str]:
 
 
 def test_the_generic_module_renders_no_strategy_content() -> None:
-    assert _named(generic_mod) == GENERIC_RENDERERS
+    assert _named(_instructions) == GENERIC_RENDERERS
 
 
 def test_the_product_module_owns_every_strategy_renderer() -> None:
-    assert _named(strategy_mod) >= STRATEGY_RENDERERS
+    assert _named(strategy_instructions) >= STRATEGY_RENDERERS
 
 
 @pytest.mark.parametrize("role", sorted(BUILDERS))

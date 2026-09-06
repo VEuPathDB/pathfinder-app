@@ -4,12 +4,12 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.conversation.ui_message_reducer import user_message_chunk
 from assistant_core.persistence.models import Conversation, ConversationEvent, Message
 from assistant_core.persistence.repositories.message import MessagesRepository
+from assistant_core.platform import db
 from sqlalchemy import func, select, text
 
 from pathfinder.domain.scratchpad.models import NoteCreate
@@ -35,7 +35,7 @@ async def _langgraph_checkpoint_tables(
 @pytest.fixture(autouse=True)
 async def _truncate_langgraph_tables() -> AsyncIterator[None]:
     yield
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await session.execute(
             text(
                 "TRUNCATE TABLE checkpoints, checkpoint_blobs, "
@@ -46,7 +46,7 @@ async def _truncate_langgraph_tables() -> AsyncIterator[None]:
 
 
 async def _seed_user() -> User:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         user = User(id=uuid4(), external_id=f"u{uuid4()}")
         session.add(user)
         await session.commit()
@@ -54,7 +54,7 @@ async def _seed_user() -> User:
 
 
 async def _seed_conversation(user_id: UUID) -> Conversation:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         row = Conversation(
             user_id=user_id,
             site_id="plasmodb",
@@ -68,7 +68,7 @@ async def _seed_conversation(user_id: UUID) -> Conversation:
 
 async def _seed_message(conv_id: UUID, role: str, text_body: str) -> Message:
     del text_body
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         msg = Message(
             id=uuid4(),
             conversation_id=conv_id,
@@ -89,7 +89,7 @@ async def _seed_messages_distinct_ts(conv_id: UUID, roles: list[str]) -> list[Me
     """
     base = datetime.now(UTC)
     msgs: list[Message] = []
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         for i, role in enumerate(roles):
             msg = Message(
                 id=uuid4(),
@@ -107,7 +107,7 @@ async def _seed_messages_distinct_ts(conv_id: UUID, roles: list[str]) -> list[Me
 
 
 async def _seed_checkpoint(thread_id: UUID, ts: datetime, cid: str) -> None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await session.execute(
             text(
                 """
@@ -133,7 +133,7 @@ class TestRevertConversation:
         t3 = await _seed_message(conv.id, "user", "two")
         await _seed_message(conv.id, "assistant", "reply two")
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             await revert_conversation_to_message(
                 session,
                 conversation_id=conv.id,
@@ -142,7 +142,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             remaining = (
                 await session.scalars(
                     select(Message).where(Message.conversation_id == conv.id),
@@ -155,7 +155,7 @@ class TestRevertConversation:
         conv = await _seed_conversation(user.id)
         t1 = await _seed_message(conv.id, "user", "one")
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             repo = ScratchpadRepository(session)
             pre = await repo.create(
                 conversation_id=conv.id,
@@ -165,7 +165,7 @@ class TestRevertConversation:
 
         t2 = await _seed_message(conv.id, "user", "two")
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             repo = ScratchpadRepository(session)
             post = await repo.create(
                 conversation_id=conv.id,
@@ -173,7 +173,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             await revert_conversation_to_message(
                 session,
                 conversation_id=conv.id,
@@ -182,7 +182,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             repo = ScratchpadRepository(session)
             notes = await repo.list_notes(conversation_id=conv.id, limit=50)
         ids = {n.id for n in notes}
@@ -195,7 +195,7 @@ class TestRevertConversation:
         conv = await _seed_conversation(user.id)
         target = await _seed_message(conv.id, "user", "edit me")
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             session.add(
                 ConversationEvent(
                     conversation_id=conv.id,
@@ -208,7 +208,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             await revert_conversation_to_message(
                 session,
                 conversation_id=conv.id,
@@ -217,7 +217,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             remaining = (
                 await session.scalars(
                     select(ConversationEvent).where(
@@ -232,7 +232,7 @@ class TestRevertConversation:
         conv = await _seed_conversation(user.id)
         t1 = await _seed_message(conv.id, "user", "one")
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             session.add(
                 ConversationEvent(
                     conversation_id=conv.id,
@@ -244,7 +244,7 @@ class TestRevertConversation:
 
         t2 = await _seed_message(conv.id, "user", "two")
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             session.add(
                 ConversationEvent(
                     conversation_id=conv.id,
@@ -254,7 +254,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             await revert_conversation_to_message(
                 session,
                 conversation_id=conv.id,
@@ -263,7 +263,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             remaining = (
                 await session.scalars(
                     select(ConversationEvent).where(
@@ -281,7 +281,7 @@ class TestRevertConversation:
         t2 = await _seed_message(conv.id, "user", "two")
         await _seed_checkpoint(conv.id, t2.created_at, f"{1:032d}")
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             await revert_conversation_to_message(
                 session,
                 conversation_id=conv.id,
@@ -290,7 +290,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             rows = (
                 await session.execute(
                     text(
@@ -313,7 +313,7 @@ class TestRevertConversation:
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
         ids = sorted(uuid4() for _ in range(4))
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             session.add_all(
                 Message(id=mid, conversation_id=conv.id, role="user", metadata_={})
                 for mid in ids
@@ -321,7 +321,7 @@ class TestRevertConversation:
             await session.commit()
         target = ids[1]
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             await revert_conversation_to_message(
                 session,
                 conversation_id=conv.id,
@@ -330,7 +330,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             remaining = (
                 await session.scalars(
                     select(Message).where(Message.conversation_id == conv.id),
@@ -349,7 +349,7 @@ class TestRevertConversation:
             source.id, ["user", "assistant", "user", "assistant"]
         )
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             fork = await fork_conversation(
                 session,
                 source_conversation_id=source.id,
@@ -359,7 +359,7 @@ class TestRevertConversation:
             await session.commit()
             fork_id = fork.id
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             fork_rows = await MessagesRepository(
                 session
             ).list_messages_for_conversation(fork_id)
@@ -371,7 +371,7 @@ class TestRevertConversation:
         ]
         second_user = fork_rows[2]
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             await revert_conversation_to_message(
                 session,
                 conversation_id=fork_id,
@@ -380,7 +380,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             remaining = await MessagesRepository(
                 session
             ).list_messages_for_conversation(fork_id)
@@ -402,7 +402,7 @@ class TestRevertConversation:
         )
         branch_point = msgs[2]
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             fork = await fork_conversation(
                 session,
                 source_conversation_id=source.id,
@@ -412,7 +412,7 @@ class TestRevertConversation:
             await session.commit()
             fork_id = fork.id
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             await revert_conversation_to_message(
                 session,
                 conversation_id=source.id,
@@ -421,7 +421,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             child = await session.scalar(
                 select(Conversation).where(Conversation.id == fork_id),
             )
@@ -450,7 +450,7 @@ class TestRevertConversation:
         )
         await _seed_checkpoint(conv.id, target.created_at, f"{1:032d}")
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             await revert_conversation_to_message(
                 session,
                 conversation_id=conv.id,
@@ -459,7 +459,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             rows = (
                 await session.execute(
                     text(
@@ -481,7 +481,7 @@ class TestRevertConversation:
         conv = await _seed_conversation(user.id)
         t1 = await _seed_message(conv.id, "user", "one")
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             with pytest.raises(RevertError):
                 await revert_conversation_to_message(
                     session,
@@ -496,7 +496,7 @@ class TestRevertConversation:
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
         kept = await _seed_message(conv.id, "user", "one")
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             await revert_conversation_to_message(
                 session,
                 conversation_id=conv.id,
@@ -518,7 +518,7 @@ class TestRevertConversation:
         conv_a = await _seed_conversation(user.id)
         conv_b = await _seed_conversation(user.id)
         other = await _seed_message(conv_b.id, "user", "elsewhere")
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             with pytest.raises(RevertError):
                 await revert_conversation_to_message(
                     session,
@@ -533,7 +533,7 @@ class TestRevertConversation:
         await _seed_message(conv.id, "user", "one")
         t2 = await _seed_message(conv.id, "assistant", "reply")
 
-        async with session_module.async_session_factory() as session:
+        async with db.async_session_factory() as session:
             with pytest.raises(RevertError):
                 await revert_conversation_to_message(
                     session,

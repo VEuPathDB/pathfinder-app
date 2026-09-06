@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 
 import pytest
+from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.jobs.auth_context import attach_wdk_auth
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 
 
 class TestAttachWdkAuth:

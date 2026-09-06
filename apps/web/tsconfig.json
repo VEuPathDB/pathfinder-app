@@ -28,13 +28,13 @@
       "@pathfinder/shared": ["../../packages/shared-ts/src"],
       "@pathfinder/shared/generated/*": ["../../packages/shared-ts/src/generated/*"],
       "@pathfinder/assistant-client": [
-        "../../packages/assistant-client-ts/src/index.ts"
+        "../../assistant-platform/packages/assistant-client-ts/src/index.ts"
       ],
       "@pathfinder/assistant-client/ai-sdk": [
-        "../../packages/assistant-client-ts/src/ai-sdk.ts"
+        "../../assistant-platform/packages/assistant-client-ts/src/ai-sdk.ts"
       ],
       "@pathfinder/assistant-client/legacy": [
-        "../../packages/assistant-client-ts/src/legacy.ts"
+        "../../assistant-platform/packages/assistant-client-ts/src/legacy.ts"
       ]
     },
     "allowImportingTsExtensions": true

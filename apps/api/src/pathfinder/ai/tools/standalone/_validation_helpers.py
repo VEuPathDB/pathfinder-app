@@ -6,12 +6,13 @@ from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.domain.strategy.graph_model import StrategyStep
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.errors import ValidationError
+from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
 
-from pathfinder.domain.strategy.graph_model import StrategyStep
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.platform.errors import ErrorCode, ValidationError
-from pathfinder.platform.tool_errors import ToolErrorPayload, tool_error
+from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.schemas import StepResponse
 
 

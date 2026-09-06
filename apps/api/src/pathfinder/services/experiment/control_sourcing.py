@@ -12,10 +12,10 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb_mcp.gene_lookup.wdk import resolve_gene_ids
 
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.eval import get_strategy_gene_ids
-from pathfinder.services.gene_lookup.wdk import resolve_gene_ids
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
 

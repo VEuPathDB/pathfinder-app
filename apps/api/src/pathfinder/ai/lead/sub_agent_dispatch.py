@@ -10,6 +10,12 @@ from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.domain.strategy.build_outcome import BuildOutcome
+from veupathdb.domain.strategy.operational_spec import (
+    build_step_tree,
+    renumber_criteria,
+)
+from veupathdb.errors import VEuPathDBError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import ExecuteDelta, RecoveryDelta
@@ -30,11 +36,6 @@ from pathfinder.ai.lead.sub_agent_stream import (
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
 from pathfinder.ai.tools.standalone._stream_parts import graph_snapshot_chunk
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.operational_spec import (
-    build_step_tree,
-    renumber_criteria,
-)
 from pathfinder.platform.errors import AppError
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
@@ -179,7 +180,7 @@ async def _resync_outcome(agent_deps: AgentDeps, prior: BuildOutcome) -> BuildOu
             site_id=agent_deps.site_id,
             strategy_name=graph.name,
         )
-    except AppError:
+    except AppError, VEuPathDBError:
         return prior
     fresh = BuildOutcome(
         pushed_step_ids=list(prior.pushed_step_ids),

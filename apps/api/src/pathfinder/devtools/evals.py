@@ -24,7 +24,7 @@ from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
 
-from pathfinder.devtools.chat import RUN_ROOT as CHAT_RUN_ROOT
+from pathfinder.devtools import chat
 from pathfinder.devtools.chat import route_framework_logs_to_stderr
 from pathfinder.devtools.eval_runner import run_corpus
 from pathfinder.evals.case import ExpectedOutcome
@@ -40,7 +40,7 @@ from pathfinder.services.eval_data.extraction import extract_eval_candidates
 
 # Beside the chat debugger's artifacts, so an eval run is inspectable with the
 # same commands.
-RUN_ROOT = CHAT_RUN_ROOT / "evals"
+RUN_ROOT = chat.RUN_ROOT / "evals"
 
 
 def _staging() -> EvalStagingRepository:

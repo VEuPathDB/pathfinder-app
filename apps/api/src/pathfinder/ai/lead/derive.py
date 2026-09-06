@@ -1,5 +1,17 @@
 from __future__ import annotations
 
+from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.strategy.build_outcome import (
+    BuildOutcome,
+    StepPushFailure,
+)
+from veupathdb.domain.strategy.constraints import (
+    Constraint,
+    ConstraintSource,
+    merge_constraints,
+    provisional_constraints,
+)
+
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.ledger import InvestigationLedger
@@ -12,18 +24,7 @@ from pathfinder.ai.lead.ledger_sections import (
     assumption_constraints,
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop
-from pathfinder.domain.parameters.value_codec import to_wire
-from pathfinder.domain.strategy.build_outcome import (
-    BuildOutcome,
-    StepPushFailure,
-)
 from pathfinder.domain.strategy.constraint_grounding import ground_constraints
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    ConstraintSource,
-    merge_constraints,
-    provisional_constraints,
-)
 
 _TRANSIENT_MARKERS: frozenset[str] = frozenset(
     {

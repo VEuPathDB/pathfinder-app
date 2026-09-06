@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from pathfinder.domain.parameters.values import MultiPickValue, NumberValue
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.parameters.values import MultiPickValue, NumberValue
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+
 from pathfinder.domain.strategy.ast_diff import diff_strategy_asts
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
 
 
 def _leaf(step_id: str, percentile: int) -> StrategyStepNode:

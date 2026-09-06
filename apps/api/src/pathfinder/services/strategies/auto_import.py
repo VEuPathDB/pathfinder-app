@@ -9,6 +9,8 @@ from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
+from veupathdb.errors import VEuPathDBError
+from veupathdb_mcp.wdk.gene_set_steps import GeneSetWdkContext
 
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import (
@@ -19,10 +21,9 @@ from pathfinder.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,
 )
 from pathfinder.platform.errors import AppError, InternalError
-from pathfinder.services.gene_sets import GeneSet, GeneSetService
-from pathfinder.services.gene_sets.operations import EmptyGeneSetError
+from pathfinder.services.gene_sets.operations import EmptyGeneSetError, GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
-from pathfinder.services.gene_sets.wdk_helpers import GeneSetWdkContext
+from pathfinder.services.gene_sets.types import GeneSet
 
 logger = get_logger(__name__)
 
@@ -123,7 +124,7 @@ async def auto_import_gene_sets(
                 "Skipped gene set auto-import: strategy returned 0 genes",
                 wdk_strategy_id=wdk_id,
             )
-        except (AppError, RuntimeError) as exc:
+        except (AppError, VEuPathDBError, RuntimeError) as exc:
             logger.warning(
                 "Failed to auto-import gene set for chat",
                 wdk_strategy_id=wdk_id,
@@ -174,7 +175,7 @@ async def import_gene_set_for_conversation(
                 user_id=user_id,
             )
             await session.commit()
-        except (AppError, RuntimeError) as e:
+        except (AppError, VEuPathDBError, RuntimeError) as e:
             await session.rollback()
             logger.warning(
                 "Gene set auto-import for conversation failed",

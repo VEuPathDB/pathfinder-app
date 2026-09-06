@@ -8,18 +8,18 @@ goes through the same encoder the tree branch uses.
 from __future__ import annotations
 
 import pytest
-
-from pathfinder.domain.parameters.values import (
+from veupathdb.domain.parameters.values import (
     MultiPickValue,
     ParamValue,
     SinglePickValue,
     StringValue,
 )
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.wdk.wdk_models import (
     NewStepSpec,
     WDKIdentifier,
     WDKStepTree,
 )
+
 from pathfinder.services.experiment import materialization
 from pathfinder.services.experiment.materialization import (
     _persist_experiment_strategy,

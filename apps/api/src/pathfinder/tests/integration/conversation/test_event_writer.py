@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.persistence.models import Conversation, ConversationEvent
+from assistant_core.platform import db
 from sqlalchemy import select
 
 from pathfinder.persistence.models import User
@@ -21,7 +21,7 @@ async def test_writer_persists_and_notifies(
     conv_id = uuid4()
     turn_id = uuid4()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         session.add(
             Conversation(
@@ -39,7 +39,7 @@ async def test_writer_persists_and_notifies(
     )
     assert event_id > 0
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         rows = (
             await session.scalars(
                 select(ConversationEvent)

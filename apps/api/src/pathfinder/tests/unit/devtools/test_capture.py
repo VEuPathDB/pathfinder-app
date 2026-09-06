@@ -297,7 +297,7 @@ class TestDiagnosisReadsTheReply:
 
 
 def _fixture_run() -> list[dict]:
-    path = Path(__file__).parent / "fixtures" / "site_help_mock_run.events.jsonl"
+    path = Path(__file__).parent / "site_help_mock_run.events.jsonl"
     return [json.loads(line) for line in path.read_text().splitlines() if line]
 
 

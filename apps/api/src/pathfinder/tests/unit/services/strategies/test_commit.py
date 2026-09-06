@@ -3,33 +3,25 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-
-from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.operations import (
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.operations import (
     DeleteResolution,
     DeleteStepOp,
     UpdateStepMetaOp,
 )
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.wdk.wdk_models import (
     NewStepSpec,
     PatchStepSpec,
     WDKIdentifier,
     WDKSearchConfig,
     WDKStep,
 )
-from pathfinder.services.strategies import (
-    commit as commit_module,
-)
-from pathfinder.services.strategies import (
-    step_wdk_push,
-)
-from pathfinder.services.strategies import (
-    sync as sync_module,
-)
+
+from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.services.strategies import commit, step_wdk_push, sync
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -89,9 +81,9 @@ class _StubAPI:
 @pytest.fixture
 def stub_api(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
     api = _StubAPI()
-    monkeypatch.setattr(commit_module, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(commit, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(sync_module, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: api)
 
     async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
         return set()
@@ -101,7 +93,7 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
         return None
 
-    monkeypatch.setattr(commit_module, "reconcile_sync_state_with_wdk", _noop_reconcile)
+    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
 
     async def _fake_sync(
         *,
@@ -121,14 +113,12 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
             step_count=0,
         )
 
-    monkeypatch.setattr(commit_module, "sync_strategy_for_site", _fake_sync)
+    monkeypatch.setattr(commit, "sync_strategy_for_site", _fake_sync)
 
     async def _noop_persist(*_args: Any, **_kwargs: Any) -> None:
         return None
 
-    monkeypatch.setattr(
-        commit_module, "persist_strategy_ast_to_conversation", _noop_persist
-    )
+    monkeypatch.setattr(commit, "persist_strategy_ast_to_conversation", _noop_persist)
 
     return api
 

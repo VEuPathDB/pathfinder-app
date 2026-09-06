@@ -18,10 +18,10 @@ from uuid import UUID
 from assistant_core.persistence.models import DEFAULT_ASSISTANT_ID
 from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, Field
+from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.graph._llm_capture import current_capture_dir
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 
 
 class ChatTurnPayload(BaseModel):

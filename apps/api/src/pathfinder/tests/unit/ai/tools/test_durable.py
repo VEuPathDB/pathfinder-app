@@ -10,12 +10,12 @@ from uuid import UUID, uuid4
 import pytest
 from pydantic import BaseModel
 from pydantic_ai.exceptions import CallDeferred
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools import durable as durable_mod
+from pathfinder.ai.tools import durable
 from pathfinder.ai.tools.durable import DurableIdentity, durable_tool
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests.unit.ai.tools.conftest import lead_deps, turn_runtime
 
 _TASK_ID = UUID("00000000-0000-0000-0000-000000000001")
@@ -94,13 +94,11 @@ class _Writer:
 def _pin_seams(monkeypatch: pytest.MonkeyPatch) -> tuple[_FakeApp, _Writer]:
     _FakeRepo.created.clear()
     _FakeTask.deferred.clear()
-    monkeypatch.setattr(
-        durable_mod, "create_background_task", _fake_create_background_task
-    )
+    monkeypatch.setattr(durable, "create_background_task", _fake_create_background_task)
     app = _FakeApp()
-    monkeypatch.setattr(durable_mod, "procrastinate_app", app)
+    monkeypatch.setattr(durable, "procrastinate_app", app)
     writer = _Writer()
-    monkeypatch.setattr(durable_mod, "get_stream_writer", lambda: writer)
+    monkeypatch.setattr(durable, "get_stream_writer", lambda: writer)
     return app, writer
 
 

@@ -9,6 +9,14 @@ from assistant_core.conversation.stream_parts.registry import StreamPartRegistry
 from assistant_core.platform.db import async_session_factory
 from assistant_core.spec import AssistantSpec, TurnContextRequest, TurnStart
 from pydantic_ai.models import Model
+from veupathdb.domain.strategy.build_outcome import (
+    BuildOutcome,
+    NodeResult,
+    StepPushFailure,
+)
+from veupathdb.domain.strategy.constraints import ConstraintKind, ConstraintSource
+from veupathdb.domain.strategy.operational_spec import OperationalSpec
+from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.eda_stream_parts import register_eda_stream_parts
@@ -29,14 +37,6 @@ from pathfinder.assistants._stub_services import (
     StubLiteratureSearchService,
     StubWebSearchService,
 )
-from pathfinder.domain.strategy.build_outcome import (
-    BuildOutcome,
-    NodeResult,
-    StepPushFailure,
-)
-from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintSource
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.domain.strategy.ops import CombineOp
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.config import get_settings

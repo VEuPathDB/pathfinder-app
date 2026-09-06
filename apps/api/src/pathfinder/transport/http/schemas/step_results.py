@@ -6,13 +6,13 @@ from typing import Annotated
 from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import Query
 from pydantic import JsonValue
-
-from pathfinder.domain.wdk_values import (
+from veupathdb.domain.wdk_values import (
     WDKHistogramBin,
     WDKHistogramStatistics,
     WDKRecordIdPart,
     WDKSortDirection,
 )
+
 from pathfinder.services.experiment.types.core import Classification
 
 

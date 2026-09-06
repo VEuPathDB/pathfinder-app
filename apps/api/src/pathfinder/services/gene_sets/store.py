@@ -16,11 +16,11 @@ from assistant_core.platform.context import calling_application
 from assistant_core.platform.db import async_session_factory
 from pydantic import TypeAdapter
 from sqlalchemy import select
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult
 
-from pathfinder.domain.parameters.values import ParamValue
 from pathfinder.persistence.models import GeneSetRow
 from pathfinder.platform.store import WriteThruStore
-from pathfinder.services.enrichment.types import EnrichmentResult
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
 
 _PARAMS_ADAPTER: TypeAdapter[dict[str, ParamValue]] = TypeAdapter(dict[str, ParamValue])
@@ -54,6 +54,7 @@ def _row_from_gene_set(gs: GeneSet) -> dict[str, object]:
         "enrichment_results": [
             r.model_dump(by_alias=True, mode="json") for r in gs.enrichment_results
         ],
+        "vdi_id": gs.vdi_id,
         "created_at": gs.created_at,
     }
 
@@ -88,6 +89,7 @@ def _gene_set_from_row(row: GeneSetRow) -> GeneSet:
         parent_set_ids=parent_set_ids,
         operation=row.operation,
         step_count=row.step_count or 1,
+        vdi_id=row.vdi_id,
     )
 
 

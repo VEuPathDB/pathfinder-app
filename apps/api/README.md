@@ -12,7 +12,7 @@ services behind them, and the procrastinate worker that runs every chat turn.
 - **Graph**: `src/pathfinder/ai/graph/builder.py` (`lead` -> `finalize_turn`)
 - **Lead agent + ledger**: `src/pathfinder/ai/lead/lead_agent.py`, `src/pathfinder/ai/lead/ledger.py`
 - **Worker**: `python -m pathfinder.jobs.worker` (`src/pathfinder/jobs/worker.py`)
-- **MCP server**: `python -m pathfinder.mcp` (`src/pathfinder/mcp/server.py`)
+- **MCP server**: `python -m veupathdb_mcp` (the `veupathdb-mcp` sibling distribution)
 
 ### Package structure
 
@@ -37,20 +37,17 @@ src/pathfinder/
     scratchpad/              #   Scratchpad tools, toolset, rendering, compactor
     tools/                   #   standalone/ (one module per tool family), toolsets/ (what each
                              #     role mounts), durable.py (@durable_tool)
+    strategy_stream_parts.py eda_stream_parts.py stream_part_payloads.py   # The data-* parts PathFinder emits and their payloads
+    pricing.py               #   Per-1M-token price lookups for the Engine UI
   data/seeds/                # Per-site experiment seed JSON
-  domain/                    # Pure domain logic (no I/O)
-    parameters/              #   Parameter decoding, canonicalization, vocabulary, phyletic values
+  domain/                    # Pure domain logic this app owns (no I/O); the WDK-shaped half is veupathdb.domain
+    conversation.py          #   Thread-level defaults the persistence layer and the services share
+    eda.py eda_compute_config.py eda_parts.py eda_thread.py   # EDA predicates, compute-config checks, parts, thread state
     research/                #   Citation extraction and research helpers
     scratchpad/              #   Scratchpad note model
-    strategy/                #   Strategy AST, graph model, operations, spec, validation, explain
+    strategy/                #   Diffing, hydration, revision, staleness, validation
   evals/                     # Eval case and extract shapes, redaction, scoring, summary
     corpus/                  #   One JSON per pinned case
-  integrations/              # External clients
-    eda/                     #   EDA service client
-    embeddings/              #   Semantic search and EDA study indexes
-    veupathdb/               #   WDK HTTP client
-      strategy_api/          #     Strategy CRUD, steps, reports, helpers
-  mcp/                       # The PathFinder MCP server (catalog and user tools, auth, metadata)
   jobs/                      # Procrastinate worker: app, tasks, registry, runner, runtime,
                              #   impls/ (the real durable-tool bodies), progress, completion_turn
   persistence/               # Database layer
@@ -60,8 +57,11 @@ src/pathfinder/
     config.py                #   Settings (API keys, DB URL, feature flags)
     context.py               #   Request-scoped context variables
     errors.py                #   Error codes and exception types
+    error_handlers.py        #   Every error rendered as problem+json
     health.py                #   Health check logic
-    migrations.py            #   Alembic upgrade to head at startup
+    metrics.py               #   Application-level OTEL metric instruments
+    migrations.py            #   Alembic upgrade to head at startup (both chains)
+    notify_dispatcher.py     #   One LISTEN connection multiplexed over many subscribers
     observability.py         #   OTEL tracing, metrics, logs, library instrumentation
     langfuse/                #   Langfuse client, prompts, datasets, scoring
     principal.py             #   Who the caller is
@@ -69,24 +69,31 @@ src/pathfinder/
     security.py              #   Auth and authorization helpers
     store.py                 #   Cross-thread memory store wiring
     tasks.py                 #   Background task infrastructure
-    tool_errors.py           #   Tool-specific error formatting
     tool_sources.py          #   Declared MCP tool sources
-  services/                  # Application services
-    catalog/                 #   Catalog browsing, search specs, parameter resolution and validation
+    uuid_utils.py            #   UUID formatting
+  services/                  # Application services. The catalog, the WDK reads, gene lookup, the
+                             #   control tests and the tool payloads are veupathdb_mcp, not here.
+    control_sets.py          #   Control-set CRUD over the repository
     conversations/           #   Conversation lifecycle, fork, revert, cancellation, scratchpad
     eda/                     #   EDA study catalog, subsetting, compute, export
-    enrichment/              #   GO / pathway / word enrichment and its statistics
+    enrichment/              #   Custom enrichment and its statistics
+    eval.py                  #   Thesis evaluation: gold strategies and their gene ids
     eval_data/               #   Eval staging and promotion
     experiment/              #   Experiment engine (evaluate, persist, robustness, cross-validate,
                              #     enrich), sweeps, seeds, streaming
-    export/                  #   Data export and its sweeper
-    gene_lookup/             #   Gene ID resolution
+    export/                  #   Data export and its sweeper, incl. control downloads
     gene_sets/               #   Gene set CRUD, confidence, ensemble, enrichment
     parameter_optimization/  #   Parameter sweeps, scoring, builders
+    quota.py                 #   Per-user monthly USD quota
     research/                #   Literature retrieval
     strategies/              #   Strategy lifecycle: build, commit, materialize, push, sync, revisions
-    wdk/                     #   WDK-facing helpers: login, record types, step preview, step results
-    tool_payloads.py         #   The result shapes the MCP server and the agent toolsets both render
+    tasks/                   #   Background task rows and their queries
+    user_data.py             #   Purges a user's data
+    users.py                 #   User accounts
+    wdk_identity.py          #   Who a request is on VEuPathDB, and the internal user it maps to
+    workbench/               #   The facade ai/ and jobs/ reach the workbench through (gene_sets,
+                             #     experiments, control_sets, comparisons, optimization); functions
+                             #     with bodies, and the fifth import-linter contract forbids the rest
   transport/                 # HTTP layer
     http/
       routers/               #   FastAPI routers
@@ -151,11 +158,15 @@ that step has reported.
 - PostgreSQL via SQLAlchemy async sessions
 - Repositories in `persistence/repositories/`; tables in `persistence/models.py`
 - **Alembic** is the only path to the schema; `platform/migrations.py` upgrades to `head` at startup
+- It runs two chains on the one connection: this app's, and `veupathdb_mcp`'s over the two
+  embedding tables that distribution owns
 
 **VEuPathDB integration**:
 
-- `integrations/veupathdb/` wraps the WDK REST API
+- `veupathdb.wdk` (the `veupathdb-py` sibling distribution) wraps the WDK REST API
 - The strategy API client handles CRUD, step management and result reports
+- The catalog, the WDK reads, gene lookup and the served MCP tools are `veupathdb_mcp`
+  (the `veupathdb-mcp` sibling distribution), installed here and called in process
 - Every WDK-backed feature needs a registered VEuPathDB login; guest calls are refused upstream
 
 ### Configuration

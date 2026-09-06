@@ -3,21 +3,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
+
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.tests.integration.chat._helpers import parse_sse_body
 
 _LINE_SEPARATOR = "\u2028"
 
-_STUDIES_LIST = (
-    Path(__file__).resolve().parents[2]
-    / "unit"
-    / "integrations"
-    / "eda"
-    / "fixtures"
-    / "studies_list.json"
-)
+_STUDIES_LIST = FIXTURE_DIR / "studies_list.json"
 
 
 def _recorded_description_with_line_separator() -> str:

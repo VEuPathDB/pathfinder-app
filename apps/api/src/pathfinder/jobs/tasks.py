@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from assistant_core.embeddings.record_manager import prune_orphan_vectors
+from veupathdb_mcp.embeddings.record_manager import prune_orphan_vectors
 
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.impls.chat_turn_impl import run_chat_turn

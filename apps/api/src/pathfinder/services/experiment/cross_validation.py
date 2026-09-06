@@ -8,15 +8,19 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 from assistant_core.platform.logging import get_logger
-
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.platform.errors import AppError, ValidationError
-from pathfinder.services.control_tests import (
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.errors import ValidationError, VEuPathDBError
+from veupathdb_mcp.controls.control_tests import (
     IntersectionConfig,
     run_positive_negative_controls,
 )
-from pathfinder.services.experiment.helpers import ControlsContext
+from veupathdb_mcp.controls.control_types import (
+    ControlsContext,
+    ControlTestResult,
+)
+
+from pathfinder.platform.errors import AppError
 from pathfinder.services.experiment.metrics import (
     compute_confusion_matrix,
     compute_metrics,
@@ -27,7 +31,6 @@ from pathfinder.services.experiment.tree_evaluation import (
 )
 from pathfinder.services.experiment.types import (
     ConfusionMatrix,
-    ControlTestResult,
     CrossValidationResult,
     ExperimentMetrics,
     FoldMetrics,
@@ -213,7 +216,7 @@ async def _run_kfold(
                 holdout_neg or None,
             )
             fold_metrics = metrics_from_control_result(result)
-        except AppError as exc:
+        except (AppError, VEuPathDBError) as exc:
             logger.warning("Fold %d failed: %s", fold_idx, exc)
             cm = compute_confusion_matrix(
                 positive_hits=0,

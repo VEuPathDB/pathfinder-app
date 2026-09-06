@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import pytest
-
-from pathfinder.domain.parameters.values import MultiPickValue, StringValue
-from pathfinder.platform.errors import AppError
-from pathfinder.services.control_tests import (
+from veupathdb.domain.parameters.values import MultiPickValue, StringValue
+from veupathdb_mcp.controls.control_tests import (
     IntersectionConfig,
     run_positive_negative_controls,
 )
+
+from pathfinder.platform.errors import AppError
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 

@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
-from pathfinder.devtools import chat as chat_cli
+from pathfinder.devtools import chat
 from pathfinder.jobs.payloads import ChatTurnPayload
 
 
@@ -67,11 +67,11 @@ async def test_the_defer_carries_the_conversation_lock(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     job = _FakeJob()
-    monkeypatch.setattr(chat_cli, "procrastinate_app", _FakeApp())
-    monkeypatch.setattr(chat_cli, "run_chat_turn_job", job)
+    monkeypatch.setattr(chat, "procrastinate_app", _FakeApp())
+    monkeypatch.setattr(chat, "run_chat_turn_job", job)
     conversation_id = uuid4()
 
-    await chat_cli._defer_chat_turn(_payload(conversation_id))
+    await chat._defer_chat_turn(_payload(conversation_id))
 
     assert job.recorder["options"] == {"lock": str(conversation_id)}
     deferred = job.recorder["deferred"]

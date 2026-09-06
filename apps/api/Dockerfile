@@ -19,11 +19,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY apps/api/pyproject.toml apps/api/
 COPY apps/api/uv.lock apps/api/
 COPY apps/api/config.toml apps/api/
-COPY packages/assistant-core/pyproject.toml packages/assistant-core/
-COPY packages/assistant-core/src packages/assistant-core/src
-COPY packages/mcp-conformance/pyproject.toml packages/mcp-conformance/
-COPY packages/mcp-conformance/README.md packages/mcp-conformance/
-COPY packages/mcp-conformance/src packages/mcp-conformance/src
+COPY assistant-platform/packages/assistant-core/pyproject.toml assistant-platform/packages/assistant-core/
+COPY assistant-platform/packages/assistant-core/src assistant-platform/packages/assistant-core/src
+COPY assistant-platform/packages/mcp-conformance/pyproject.toml assistant-platform/packages/mcp-conformance/
+COPY assistant-platform/packages/mcp-conformance/README.md assistant-platform/packages/mcp-conformance/
+COPY assistant-platform/packages/mcp-conformance/src assistant-platform/packages/mcp-conformance/src
+COPY veupathdb-py/pyproject.toml veupathdb-py/
+COPY veupathdb-py/README.md veupathdb-py/
+COPY veupathdb-py/src veupathdb-py/src
+COPY veupathdb-mcp/pyproject.toml veupathdb-mcp/
+COPY veupathdb-mcp/README.md veupathdb-mcp/
+COPY veupathdb-mcp/src veupathdb-mcp/src
 
 # Install dependencies without the project itself (no source code needed).
 # Cache mount preserves uv's download cache across builds — even when deps
@@ -33,23 +39,20 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     UV_LINK_MODE=copy uv sync --frozen --no-install-project
 
 # Download PIGuard ONNX model + tokenizer for prompt-injection detection.
-# Cache mount on HF_HOME preserves the HuggingFace download across rebuilds;
-# hf_hub_download copies files from the HF cache into /app/models/piguard,
-# which is baked into the image layer.
+# hf_hub_download fills the HF cache on the mount, so a later build finds the
+# files there; the copy into /app/models/piguard is what the image layer keeps.
 ENV HF_HOME=/root/.cache/huggingface
 RUN --mount=type=cache,target=/root/.cache/huggingface \
     .venv/bin/python <<'PYEOF'
 from huggingface_hub import hf_hub_download
 import os
+import shutil
 model_dir = '/app/models/piguard'
 os.makedirs(model_dir, exist_ok=True)
 for fname in ('model.onnx', 'tokenizer.json'):
-    hf_hub_download(
-        repo_id='ahmedomuharram/piguard-onnx',
-        filename=fname,
-        local_dir=model_dir,
-    )
-print(f'PIGuard model downloaded to {model_dir}')
+    cached = hf_hub_download(repo_id='ahmedomuharram/piguard-onnx', filename=fname)
+    shutil.copyfile(cached, os.path.join(model_dir, fname))
+print(f'PIGuard model copied to {model_dir}')
 PYEOF
 
 # Verify PIGuard loads correctly at build time.
@@ -70,7 +73,8 @@ COPY apps/api/alembic.ini apps/api/
 COPY apps/api/alembic apps/api/alembic
 
 # Copy application code (exclude tests — they add ~300MB of VCR cassettes)
-COPY apps/api/src/data apps/api/src/data
+# The catalog snapshots ship with the server distribution that reads them.
+COPY veupathdb-mcp/data veupathdb-mcp/data
 COPY apps/api/src/pathfinder apps/api/src/pathfinder
 RUN rm -rf apps/api/src/pathfinder/tests
 
@@ -80,7 +84,7 @@ COPY ollama_models.yam[l] ./
 # Run from source inside the image. Avoid a second `uv sync` after copying app
 # code: installing the editable project needs the Hatchling build backend, and
 # build isolation may try to fetch it from PyPI during every code-layer rebuild.
-ENV PYTHONPATH=/app/apps/api/src:/app/packages/assistant-core/src
+ENV PYTHONPATH=/app/apps/api/src:/app/assistant-platform/packages/assistant-core/src
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app/apps/api
 

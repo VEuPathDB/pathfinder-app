@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import pytest
+from veupathdb_mcp.auth import CredentialMode, VEuPathDBTokenVerifier, wdk_identity
 
-from pathfinder.mcp.auth import CredentialMode, VEuPathDBTokenVerifier, wdk_identity
 from pathfinder.services.wdk_identity import fetch_wdk_user
 
 pytestmark = pytest.mark.live_wdk
@@ -12,16 +12,12 @@ pytestmark = pytest.mark.live_wdk
 
 async def test_a_registered_bearer_resolves_to_a_usable_identity(
     require_wdk_creds: str,
-    patch_app_db_engine: None,
-    db_cleaner: None,
 ) -> None:
-    del patch_app_db_engine, db_cleaner
-
     credential = await VEuPathDBTokenVerifier().verify_token(require_wdk_creds)
 
     assert credential is not None
     assert credential.mode is CredentialMode.VEUPATHDB_USER
-    assert credential.user_id is not None
+    assert credential.client_id
 
     with wdk_identity(credential):
         user = await fetch_wdk_user("plasmodb")

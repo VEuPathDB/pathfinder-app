@@ -8,6 +8,13 @@ import { geneSetResponseSchema } from "@pathfinder/shared/generated/zod/geneSetR
 import { z } from "zod";
 
 import { requestJson, requestVoid } from "@/lib/api/http";
+import type {
+  VdiPublication,
+  VdiPublicationRequest,
+  VdiPublicationStatus,
+} from "@pathfinder/shared";
+import { vdiPublicationSchema } from "@pathfinder/shared/generated/zod/vdiPublicationSchema";
+import { vdiPublicationStatusSchema } from "@pathfinder/shared/generated/zod/vdiPublicationStatusSchema";
 import { enrichmentResultSchema } from "@pathfinder/shared/generated/zod/enrichmentResultSchema";
 
 const EnrichmentResultListSchema = z.array(enrichmentResultSchema);
@@ -77,6 +84,25 @@ export function performSetOperation(req: SetOperationRequest): Promise<GeneSet> 
     method: "POST",
     body: req,
   });
+}
+
+/** Publish a gene set as a user dataset in the researcher's VEuPathDB workspace. */
+export function publishGeneSetToVdi(
+  id: string,
+  req: VdiPublicationRequest,
+): Promise<VdiPublication> {
+  return requestJson(vdiPublicationSchema, `/api/v1/gene-sets/${id}/vdi-publication`, {
+    method: "POST",
+    body: req,
+  });
+}
+
+/** Read where a published gene set stands on the site that holds it. */
+export function getGeneSetVdiPublication(id: string): Promise<VdiPublicationStatus> {
+  return requestJson(
+    vdiPublicationStatusSchema,
+    `/api/v1/gene-sets/${id}/vdi-publication`,
+  );
 }
 
 /** Run enrichment analysis on a gene set. */

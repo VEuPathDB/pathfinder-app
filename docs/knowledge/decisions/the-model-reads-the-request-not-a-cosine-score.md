@@ -102,7 +102,7 @@ With that in place a multi-criterion request builds end to end: the built strate
 steps, the intended genes, against a reference strategy of 16 steps and the intended genes. The empty
 DeRisi branch noted at the time did not reproduce: the same criterion measures
 871 genes live, and the zero belonged to the phyletic-profile step
-([WDK-SITE-002](../wdk/rules/site-model-params.md)).
+(WDK-SITE-002, `veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`).
 
 # Amended 2026-08-17
 

@@ -1,11 +1,10 @@
 from dataclasses import dataclass, field
 
 from pydantic import BaseModel, Field
-
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.domain.parameters.wdk_vocab import VocabOption
-from pathfinder.domain.strategy.constraints import Constraint
-from pathfinder.domain.strategy.operational_spec import (
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.domain.strategy.constraints import Constraint
+from veupathdb.domain.strategy.operational_spec import (
     Criterion,
     DroppedCriterion,
     OperationalSpec,

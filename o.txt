@@ -1,0 +1,5 @@
+Valid API Key required for this endpoint.
+
+Registered users can obtain their API key here: https://w1.toxodb.org/toxo/app/user/profile#serviceAccess
+
+For instructions on how to include the API key in your request, see: https://w1.toxodb.org/toxo/app/static-content/content/VEuPathDB/webServices.html

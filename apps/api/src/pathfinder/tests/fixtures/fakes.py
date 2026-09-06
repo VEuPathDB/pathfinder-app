@@ -5,9 +5,8 @@ Import from here instead of redefining in each test module.
 """
 
 import pydantic
-
-from pathfinder.integrations.veupathdb.wdk_models import WDKAnswer
-from pathfinder.platform.errors import DataParsingError
+from veupathdb.errors import DataParsingError
+from veupathdb.wdk.wdk_models import WDKAnswer
 
 
 class FakeResultToolsSession:

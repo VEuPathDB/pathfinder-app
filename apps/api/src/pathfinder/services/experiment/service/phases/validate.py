@@ -6,28 +6,29 @@ reliability and add biological context.
 """
 
 from assistant_core.platform.logging import get_logger
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk.factory import get_strategy_api
+from veupathdb_mcp.wdk.enrichment.parser import upsert_enrichment_result
+from veupathdb_mcp.wdk.enrichment.service import EnrichmentService
+from veupathdb_mcp.wdk.gene_set_steps import (
+    build_enrichment_params_from_gene_ids,
+)
+from veupathdb_mcp.wdk.helpers import extract_record_ids
 
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.platform.errors import AppError
-from pathfinder.services.enrichment.parser import upsert_enrichment_result
-from pathfinder.services.enrichment.service import EnrichmentService
 from pathfinder.services.experiment.cross_validation import (
     CrossValidationOptions,
     run_cross_validation,
 )
-from pathfinder.services.experiment.helpers import ControlsContext
+from pathfinder.services.experiment.helpers import controls_context_from_config
 from pathfinder.services.experiment.robustness import (
     BootstrapOptions,
     compute_robustness,
 )
 from pathfinder.services.experiment.service.context import PhaseContext
 from pathfinder.services.experiment.types import ExperimentConfig
-from pathfinder.services.gene_sets.wdk_helpers import (
-    build_enrichment_params_from_gene_ids,
-)
-from pathfinder.services.wdk.helpers import extract_record_ids
 
 logger = get_logger(__name__)
 
@@ -64,7 +65,7 @@ async def phase_robustness(pctx: PhaseContext) -> None:
                 options=BootstrapOptions(n_bootstrap=200),
             )
             pctx.store.save(experiment)
-    except (AppError, ZeroDivisionError) as exc:
+    except (AppError, VEuPathDBError, ZeroDivisionError) as exc:
         logger.warning(
             "Robustness computation failed",
             experiment_id=experiment.id,
@@ -91,7 +92,7 @@ async def phase_cross_validate(
             cvTotalFolds=total,
         )
 
-    ctx = ControlsContext.from_config(config)
+    ctx = controls_context_from_config(config)
     experiment.cross_validation = await run_cross_validation(
         ctx,
         final_tree,

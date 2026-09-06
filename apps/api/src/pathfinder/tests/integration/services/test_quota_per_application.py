@@ -12,7 +12,7 @@ from assistant_core.platform.db import async_session_factory
 from sqlalchemy import select
 
 from pathfinder.persistence.models import MonthlyUsage, User
-from pathfinder.services import quota as quota_service
+from pathfinder.services import quota
 
 HOME = "pathfinder"
 OTHER = "companion"
@@ -35,7 +35,7 @@ async def _accumulate(application_id: str, user_id: UUID, cost: str) -> None:
     token = application_id_ctx.set(application_id)
     try:
         async with async_session_factory() as session:
-            await quota_service.accumulate(
+            await quota.accumulate(
                 session,
                 user_id=user_id,
                 tokens=100,
@@ -88,7 +88,7 @@ async def test_the_cap_sums_every_application_of_one_user(
     await _accumulate(OTHER, user_id, "2.25")
 
     async with async_session_factory() as session:
-        status = await quota_service.get_current(session, user_id)
+        status = await quota.get_current(session, user_id)
 
     assert status.used_usd == Decimal("3.75")
     assert status.total_tokens == 200

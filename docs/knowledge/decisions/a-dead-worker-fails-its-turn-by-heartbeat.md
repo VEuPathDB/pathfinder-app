@@ -131,7 +131,7 @@ terminator sequence and one error text.
 `EMBEDDING_INDEX_SYNC_ENABLED=false` on the worker and on `wdk-mcp`, beside the
 `CATALOG_REFRESH_ENABLED=false` that already keeps them from rebuilding a stale
 WDK catalog. A process with the flag false never calls
-`assistant_core/embeddings/record_manager.py::sync_index`; it searches what the
+`veupathdb_mcp/embeddings/record_manager.py::sync_index`; it searches what the
 api wrote. A study search over an index with no membership rows degrades to a
 name match with guidance rather than writing, so a turn never blocks on a sync.
 

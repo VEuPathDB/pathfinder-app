@@ -1,4 +1,10 @@
-import { contrast, hslToRgb, relativeLuminance, type Rgb } from "@/lib/color/contrast";
+import {
+  composite,
+  contrast,
+  hslToRgb,
+  relativeLuminance,
+  type Rgb,
+} from "@/lib/color/contrast";
 import { hslTriple } from "@/lib/color/hsl";
 
 /** Each site's primary brand hex color, from VEuPathDB's official CSS. */
@@ -19,6 +25,9 @@ const SITE_COLORS: Record<string, string> = {
   schistodb: "#346079",
   trichdb: "#6e8446",
 };
+
+/** Every site the brand map paints; the theme suite iterates it. */
+export const SITE_IDS = Object.keys(SITE_COLORS);
 
 const DEFAULT_COLOR = "#2596b3";
 
@@ -85,10 +94,14 @@ const AA_WITH_MARGIN = 4.6;
 /** Above this luminance a foreground reads as light, so the fill must darken. */
 const LIGHT_FOREGROUND_LUMINANCE = 0.1791;
 
+/** The alpha `hover:bg-primary/90` paints the fill at. */
+const HOVER_ALPHA = 0.9;
+
 /**
- * Moves a brand color's lightness until its foreground text is legible on it.
- * A light foreground pushes the fill darker, a dark foreground pushes it
- * lighter. Hue and saturation are untouched, so the brand survives.
+ * Moves a brand color's lightness until its foreground text is legible on the
+ * weakest fill the button paints: the hover state, where the fill fades toward
+ * the ground the label is cut from. The resting fill then clears by more. Hue
+ * and saturation are untouched, so the brand survives.
  */
 function clampLightnessForForeground(
   h: number,
@@ -101,7 +114,8 @@ function clampLightnessForForeground(
   while (
     out > 0 &&
     out < 100 &&
-    contrast(foreground, hslToRgb(h, s, out)) < AA_WITH_MARGIN
+    contrast(foreground, composite(hslToRgb(h, s, out), foreground, HOVER_ALPHA)) <
+      AA_WITH_MARGIN
   ) {
     out += step;
   }

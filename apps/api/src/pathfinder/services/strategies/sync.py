@@ -3,28 +3,29 @@
 from dataclasses import dataclass
 
 from assistant_core.platform.logging import get_logger
-
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.graph_model import (
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.graph_model import (
     pushable_root_id,
     rebuild_tree,
     record_class_of,
 )
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.tree import fold, walk
-from pathfinder.domain.strategy.validate import validate_strategy
-from pathfinder.domain.strategy.validation import StepValidation
-from pathfinder.integrations.veupathdb.factory import get_site, get_strategy_api
-from pathfinder.integrations.veupathdb.strategy_api import StrategyAPI
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.domain.strategy.tree import fold, walk
+from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.errors import VEuPathDBError
+from veupathdb.wdk.factory import get_site, get_strategy_api
+from veupathdb.wdk.strategy_api import StrategyAPI
+from veupathdb.wdk.wdk_models import (
     WDKStepTree,
     WDKStrategyDetails,
 )
-from pathfinder.platform.errors import AppError, StrategyCompilationError
-from pathfinder.services.catalog.searches import (
+from veupathdb_mcp.catalog.searches import (
     assign_step_record_classes,
     make_record_type_resolver,
 )
+
+from pathfinder.domain.strategy.validate import validate_strategy
+from pathfinder.platform.errors import AppError, StrategyCompilationError
 from pathfinder.services.strategies.build import RootResolutionError, resolve_root_step
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -156,7 +157,7 @@ async def _create_or_update_wdk_strategy(
                 step_tree=step_tree,
                 name=name,
             )
-        except AppError as update_err:
+        except (AppError, VEuPathDBError) as update_err:
             logger.warning(
                 "Failed to update WDK strategy, creating new",
                 wdk_strategy_id=wdk_strategy_id,
@@ -190,7 +191,7 @@ async def _fetch_strategy_state(
     """
     try:
         strategy_info = await api.get_strategy(wdk_strategy_id)
-    except AppError as e:
+    except (AppError, VEuPathDBError) as e:
         logger.warning("Strategy count lookup failed", error=str(e))
         return {}, {}, None, step_tree.step_id
     else:
@@ -294,5 +295,5 @@ async def _maybe_apply_decorations(
         return
     try:
         await _apply_decorations(root_step, wdk_step_ids, api)
-    except AppError as e:
+    except (AppError, VEuPathDBError) as e:
         logger.warning("Step decoration failed (non-fatal)", error=str(e))

@@ -220,6 +220,13 @@ def _gene_set_cases(owned: Owned) -> tuple[Case, ...]:
         ),
         Case(
             "POST",
+            "/api/v1/gene-sets/{gene_set_id}/vdi-publication",
+            f"{base}/vdi-publication",
+            _GS,
+            {"name": "stolen set"},
+        ),
+        Case(
+            "POST",
             "/api/v1/gene-sets/ensemble",
             "/api/v1/gene-sets/ensemble",
             _GS,

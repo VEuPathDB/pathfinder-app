@@ -3,17 +3,17 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-
-from pathfinder.platform.errors import NotFoundError
-from pathfinder.services.experiment.classification import classify_records
-from pathfinder.services.wdk.step_results import (
+from veupathdb_mcp.wdk.step_results import (
     StepResultsService,
     step_results_service,
 )
-from pathfinder.services.wdk.step_results_models import (
+from veupathdb_mcp.wdk.step_results_models import (
     AttributesResponse,
     RecordDetailResponse,
 )
+
+from pathfinder.platform.errors import NotFoundError
+from pathfinder.services.experiment.classification import classify_records
 from pathfinder.transport.http.deps import (
     CurrentUser,
     ExperimentDep,

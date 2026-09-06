@@ -5,6 +5,9 @@ from collections.abc import Sequence
 from assistant_core.graph.tool_summary import count_noun
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
+from veupathdb.domain.strategy.combination_check import first_combination_violation
+from veupathdb.domain.strategy.constraints import Constraint
+from veupathdb.domain.strategy.operational_spec import OperationalSpec
 
 from pathfinder.ai.graph.state import FailureCause, VerificationDigest
 from pathfinder.ai.lead.intent import UserIntent
@@ -21,9 +24,6 @@ from pathfinder.ai.lead.ledger_sections import (
     VerificationSection,
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop
-from pathfinder.domain.strategy.combination_check import first_combination_violation
-from pathfinder.domain.strategy.constraints import Constraint
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
 
 
 def build_contradiction(build: BuildSection, *, built_step_count: int) -> str | None:

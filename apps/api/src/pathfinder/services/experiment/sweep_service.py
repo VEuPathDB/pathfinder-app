@@ -6,26 +6,29 @@ from typing import Literal
 
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat
-
-from pathfinder.domain.parameters.value_codec import from_wire
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.tree import walk
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.platform.errors import AppError, ValidationError
-from pathfinder.services.control_helpers import (
+from veupathdb.domain.parameters.value_codec import from_wire
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.tree import walk
+from veupathdb.errors import ValidationError, VEuPathDBError
+from veupathdb.wdk.factory import get_strategy_api
+from veupathdb_mcp.controls.control_helpers import (
     cleanup_internal_control_test_strategies,
 )
-from pathfinder.services.control_tests import (
-    IntersectionConfig,
-    run_positive_negative_controls,
+from veupathdb_mcp.controls.control_tests import run_positive_negative_controls
+from veupathdb_mcp.controls.control_types import (
+    ControlTestResult,
 )
-from pathfinder.services.experiment.helpers import ControlsContext
+
+from pathfinder.platform.errors import AppError
+from pathfinder.services.experiment.helpers import (
+    controls_context_from_config,
+    intersection_config_from_config,
+)
 from pathfinder.services.experiment.metrics import metrics_from_control_result
 from pathfinder.services.experiment.tree_evaluation import (
     run_controls_against_tree,
 )
 from pathfinder.services.experiment.types import (
-    ControlTestResult,
     Experiment,
     ExperimentMetrics,
 )
@@ -189,7 +192,7 @@ async def run_sweep_point(
             modified_params[param_name] = from_wire(kind, value)
             result = await asyncio.wait_for(
                 run_positive_negative_controls(
-                    IntersectionConfig.from_experiment_config(
+                    intersection_config_from_config(
                         exp.config, target_parameters=modified_params
                     ),
                     positive_controls=exp.config.positive_controls or None,
@@ -202,6 +205,7 @@ async def run_sweep_point(
         return SweepPoint(value=response_value, metrics=_metrics_to_sweep(m))
     except (
         AppError,
+        VEuPathDBError,
         OSError,
         RuntimeError,
         TimeoutError,
@@ -235,7 +239,7 @@ async def _run_sweep_point_tree(
 
     return await asyncio.wait_for(
         run_controls_against_tree(
-            ControlsContext.from_config(exp.config),
+            controls_context_from_config(exp.config),
             tree,
         ),
         timeout=SWEEP_POINT_TIMEOUT_S,
@@ -253,7 +257,7 @@ async def cleanup_before_sweep(site_id: str) -> None:
         api = get_strategy_api(site_id)
         strategies = await api.list_strategies()
         await cleanup_internal_control_test_strategies(api, strategies)
-    except (AppError, OSError, RuntimeError) as exc:
+    except (AppError, VEuPathDBError, OSError, RuntimeError) as exc:
         logger.warning(
             "Pre-sweep cleanup of leaked control-test strategies failed",
             site_id=site_id,

@@ -13,7 +13,6 @@ from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.conversation.event_writer import (
@@ -36,6 +35,7 @@ from assistant_core.models.scripted import (
 )
 from assistant_core.persistence.models import Conversation, Message
 from assistant_core.persistence.repositories.message import MessagesRepository
+from assistant_core.platform import db
 from assistant_core.spec import AssistantSpec, TurnContextRequest
 from pydantic_ai import Agent, Tool
 from pydantic_ai.messages import ModelMessage
@@ -144,7 +144,7 @@ def _spec(recorder: _Recorder, saver: Any) -> AssistantSpec:
 
 async def _seed_thread() -> tuple[UUID, UUID]:
     user_id, conversation_id = uuid4(), uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
         session.add(
@@ -193,7 +193,7 @@ async def _run_turn(
 ) -> _Turn:
     """Persist the user's message the way the dispatcher does, then drive it."""
     user_message_id = uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await MessagesRepository(session).insert_message(
             message_id=user_message_id,
             conversation_id=conversation_id,
@@ -207,7 +207,7 @@ async def _run_turn(
         message_id=user_message_id,
         parts=[{"type": "text", "text": text}],
     )
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         conversation = await session.get(Conversation, conversation_id)
     context = await spec.build_turn_context(
         TurnContextRequest(
@@ -248,7 +248,7 @@ def _no_title_and_no_cancel_watch(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 async def _assistant_message_ids(conversation_id: UUID) -> list[str]:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         return [
             str(mid)
             for mid in (
@@ -318,7 +318,7 @@ async def test_f2_a_turn_on_a_branch_sees_the_anchor_s_history_and_no_more(
         str(second_answer.assistant_message_id),
     ]
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=conversation_id,
@@ -362,7 +362,7 @@ async def test_r3_a_turn_after_a_revert_sees_the_target_s_history_and_no_more(
         spec=spec,
     )
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await revert_conversation_to_message(
             session,
             conversation_id=conversation_id,

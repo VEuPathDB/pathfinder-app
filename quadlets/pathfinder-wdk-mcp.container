@@ -5,8 +5,7 @@ Requires=pathfinder-db.service
 
 [Container]
 ContainerName=pathfinder-wdk-mcp
-Image=localhost/pathfinder-api:latest
-Exec=.venv/bin/python -m pathfinder.mcp
+Image=localhost/veupathdb-mcp:latest
 Network=pathfinder.network
 # Change the host port (left side) to use a different port
 PublishPort=8100:8100

@@ -28,6 +28,7 @@ import type {
   ExperimentConfig,
   ExperimentMetrics,
   Experiment,
+  GeneConfidenceRequest,
   GeneInfo,
   GeneResolveResponse,
   GeneSearchResponse,
@@ -70,6 +71,10 @@ import type {
   StrategyRevisionPayload,
   StrategyStepNode,
   UserQuestionAnswer,
+  VdiPublication,
+  VdiPublicationRequest,
+  VdiPublicationStatus,
+  VdiVisibility,
   SubAgentCallPayload,
   SubAgentStepPayload,
   TurnStatusPayload,
@@ -122,6 +127,13 @@ export type {
 export type { ValidationErrors, ValidationResponse, ValidationResult };
 
 export type {
+  VdiPublication,
+  VdiPublicationRequest,
+  VdiPublicationStatus,
+  VdiVisibility,
+};
+
+export type {
   BootstrapResult,
   ConfidenceInterval,
   ConfusionMatrix,
@@ -131,6 +143,7 @@ export type {
   Experiment,
   ExperimentConfig,
   ExperimentMetrics,
+  GeneConfidenceRequest,
   GeneInfo,
 };
 
@@ -288,12 +301,7 @@ const VEUPATHDB_SITES: SiteResponse[] = [
   },
 ];
 
-export type {
-  Classification,
-  EnrichmentAnalysisType,
-  ModelProvider,
-  ReasoningEffort,
-};
+export type { Classification, EnrichmentAnalysisType, ModelProvider, ReasoningEffort };
 
 export type StepKind = "search" | "transform" | "combine";
 

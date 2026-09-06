@@ -12,25 +12,21 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from pathfinder.domain.strategy.operations import GraphOperation
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.strategy_ast import (
+from veupathdb.domain.strategy.operations import GraphOperation
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.strategy_ast import (
     StrategyAst,
 )
-from pathfinder.domain.strategy.tree import walk
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
+from veupathdb.domain.strategy.tree import walk
+from veupathdb.errors import ValidationError, VEuPathDBError
+from veupathdb.wdk.factory import get_strategy_api
+
 from pathfinder.persistence.models import ConversationStrategy
 from pathfinder.persistence.repositories import (
     ConversationRepository,
     ConversationUpdate,
 )
-from pathfinder.platform.errors import (
-    AppError,
-    ErrorCode,
-    NotFoundError,
-    ValidationError,
-)
+from pathfinder.platform.errors import AppError, ErrorCode, NotFoundError
 from pathfinder.services.conversations import strategy_ops
 from pathfinder.services.conversations.authz import (
     get_owned_conversation_or_404,
@@ -264,7 +260,7 @@ class ConversationService:
             try:
                 api = get_strategy_api(conversation.site_id)
                 await api.delete_strategy(wdk_id)
-            except (AppError, OSError, RuntimeError) as e:
+            except (AppError, VEuPathDBError, OSError, RuntimeError) as e:
                 logger.warning(
                     "WDK strategy delete failed",
                     wdk_strategy_id=wdk_id,

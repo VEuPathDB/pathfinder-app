@@ -84,7 +84,7 @@ already knows the thread has no steps.
 
 # What would falsify this
 
-`apps/api/src/pathfinder/tests/unit/domain/strategy/test_operational_spec_saved.py`
+`veupathdb-py/tests/unit/domain/strategy/test_operational_spec_saved.py`
 fails if a saved criterion stops counting as bound, if the saved subtree stops
 landing on the secondary input with the operator mirrored, or if an open saved
 slot stops blocking the build.

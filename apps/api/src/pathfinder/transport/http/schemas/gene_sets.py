@@ -2,14 +2,14 @@
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-
-from pathfinder.domain.parameters.values import ParamValue
-from pathfinder.services.enrichment.types import (
+from veupathdb.domain.parameters.values import ParamValue
+from veupathdb_mcp.wdk.enrichment.types import (
     EnrichmentAnalysisType,
     EnrichmentResult,
 )
+from veupathdb_mcp.wdk.gene_set_steps import SetOperation
+
 from pathfinder.services.gene_sets.types import GeneSetSource
-from pathfinder.services.gene_sets.wdk_helpers import SetOperation
 from pathfinder.transport.http.schemas.site_id import SiteId
 
 
@@ -47,6 +47,8 @@ class GeneSetResponse(CamelModel):
     step_count: int = Field(1)
     enrichment_results: list[EnrichmentResult] = Field(default_factory=list)
     """Enrichment results already computed for this set."""
+    vdi_id: str | None = None
+    """The VEuPathDB user dataset this set was published to, when it was."""
 
 
 # A model's docstring is published as its schema description, so these two

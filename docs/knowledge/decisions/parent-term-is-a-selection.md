@@ -36,4 +36,4 @@ The alternative -- teaching the tree to render a parent as its own selection -- 
 
 # Anchor
 
-`expandToLeaves` in `features/strategy/editor/widgets/TreeBoxParam.tsx`, against `_expand_tree_params_to_leaves` in `integrations/veupathdb/strategy_api/steps.py`. Guarded by "a value stored as a parent term" in `TreeBoxParam.multiPick.test.tsx`, including the two mutation cases.
+`expandToLeaves` in `features/strategy/editor/widgets/TreeBoxParam.tsx`, against `_expand_tree_params_to_leaves` in `veupathdb/wdk/strategy_api/steps.py`. Guarded by "a value stored as a parent term" in `TreeBoxParam.multiPick.test.tsx`, including the two mutation cases.

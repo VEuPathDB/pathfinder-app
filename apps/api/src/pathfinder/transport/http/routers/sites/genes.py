@@ -3,8 +3,7 @@
 from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import APIRouter
 from pydantic import Field
-
-from pathfinder.services.gene_lookup import (
+from veupathdb_mcp.gene_lookup import (
     list_organisms,
     lookup_genes_by_text,
     resolve_gene_ids,

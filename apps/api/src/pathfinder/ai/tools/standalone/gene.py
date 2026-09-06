@@ -3,9 +3,8 @@
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
-
-from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.services.gene_lookup import (
+from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
+from veupathdb_mcp.gene_lookup import (
     MAX_GENE_IDS,
     GeneResolveResult,
     GeneSearchResult,
@@ -13,6 +12,13 @@ from pathfinder.services.gene_lookup import (
     normalize_gene_ids,
     resolve_gene_ids,
 )
+from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
+from veupathdb_mcp.wdk.ai_expression import (
+    GeneExpressionSummary,
+    get_gene_expression_summary,
+)
+
+from pathfinder.ai.graph.runtime import AgentDeps
 
 
 async def lookup_gene_records(
@@ -103,4 +109,41 @@ async def resolve_gene_ids_to_records(
         f"{found} of {len(ids)} ids resolved",
         ctx=ctx,
         status="ok" if found == len(ids) else "warn",
+    )
+
+
+async def get_ai_expression_summary(
+    ctx: RunContext[AgentDeps],
+    gene_id: str,
+) -> ToolReturn[GeneExpressionSummary | ToolErrorPayload]:
+    """Read the VEuPathDB site's own AI summary of one gene's expression data.
+
+    The site generates and caches these summaries itself; this tool only reads
+    what is already there. A gene the site has not summarized returns
+    `unavailable_reason`, which is the answer to relay.
+
+    Args:
+        ctx: Agent run context.
+        gene_id: A gene source id on this site, for example 'PF3D7_1133400'.
+    """
+    try:
+        found = await get_gene_expression_summary(ctx.deps.site_id, gene_id)
+    except (VEuPathDBError, OSError) as exc:
+        return with_summary(
+            tool_error(VEuPathDBErrorCode.WDK_ERROR, str(exc)),
+            f"No expression summary for {gene_id}",
+            ctx=ctx,
+            status="warn",
+        )
+    if found.summary is None:
+        return with_summary(
+            found,
+            f"No expression summary for {found.gene_id}",
+            ctx=ctx,
+            status="empty",
+        )
+    return with_summary(
+        found,
+        f"Expression summary for {found.gene_id}: {found.summary.headline}",
+        ctx=ctx,
     )

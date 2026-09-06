@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Protocol
 
-from pathfinder.domain.eda_study import (
+from veupathdb.domain.eda_study import (
     CATEGORY_TYPE,
     VEUPATHDB_GENE_ID,
     StudyFacts,

@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
+from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.graph._llm_capture import capture_llm
@@ -14,7 +15,6 @@ from pathfinder.jobs.payloads import (
     ChatTurnPayload,
     DurableTaskPayload,
 )
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 
 
 def _body() -> ChatRequestBody:

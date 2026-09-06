@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from pathfinder.services.research import web_search as web_search_module
+from pathfinder.services.research import web_search
 from pathfinder.services.research.web_search import WebSearchService
 
 
@@ -32,7 +32,7 @@ async def test_only_fetches_summaries_for_weak_snippets(
         fetched.append(url)
         return "enriched summary"
 
-    monkeypatch.setattr(web_search_module, "fetch_page_summary", fake_fetch)
+    monkeypatch.setattr(web_search, "fetch_page_summary", fake_fetch)
 
     resp = await svc.search("q", limit=5, include_summary=True)
 

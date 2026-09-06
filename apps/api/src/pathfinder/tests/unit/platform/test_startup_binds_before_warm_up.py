@@ -18,8 +18,8 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 
+import pathfinder.jobs.app
 from pathfinder import main
-from pathfinder.jobs import app as jobs_app
 from pathfinder.jobs import logging_filters
 from pathfinder.platform import notify_dispatcher
 from pathfinder.platform.langfuse import prompts
@@ -67,7 +67,7 @@ def isolated_lifespan(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(prompts, "seed_prompts", lambda: None)
     monkeypatch.setattr(notify_dispatcher, "lifespan_notify_dispatcher", _nothing)
-    monkeypatch.setattr(jobs_app, "procrastinate_app", _ProcrastinateApp())
+    monkeypatch.setattr(pathfinder.jobs.app, "procrastinate_app", _ProcrastinateApp())
     monkeypatch.setattr(sweeper, "run_sweeper_loop", _sweeper_loop)
 
 
@@ -125,8 +125,8 @@ async def test_the_blocking_model_load_leaves_the_event_loop_free(
         callers.append(threading.current_thread().name)
 
     class _Discovery:
-        async def preload_all(self) -> None:
-            return None
+        async def preload_all(self, readiness: object = None) -> None:
+            del readiness
 
     monkeypatch.setattr(main, "warm_up_scanner", record_model)
     monkeypatch.setattr(main, "get_discovery_service", _Discovery)

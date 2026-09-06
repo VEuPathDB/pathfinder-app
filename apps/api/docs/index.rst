@@ -33,13 +33,6 @@ PathFinder API
 .. grid:: 3
    :gutter: 3
 
-   .. grid-item-card:: VEuPathDB Integration
-      :link: api/integrations
-      :link-type: doc
-
-      WDK client, catalog discovery, strategy API, and multi-site support
-      across 15+ databases.
-
    .. grid-item-card:: Models
       :link: api/ai
       :link-type: doc

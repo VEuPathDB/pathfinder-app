@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from pathfinder.services.conversations import wdk_import as wdk_import_service
+from pathfinder.services.conversations import wdk_import
 from pathfinder.transport.http.deps import CurrentUser, DBSession
 from pathfinder.transport.http.schemas import (
     OpenConversationRequest,
@@ -19,7 +19,7 @@ async def open_strategy(
     user_id: CurrentUser,
 ) -> OpenConversationResponse:
     """Open a strategy by local id or WDK strategy id."""
-    conversation_id = await wdk_import_service.open_strategy(
+    conversation_id = await wdk_import.open_strategy(
         session,
         conversation_id=request.conversation_id,
         wdk_strategy_id=request.wdk_strategy_id,

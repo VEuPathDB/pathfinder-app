@@ -50,6 +50,9 @@ GATED: frozenset[tuple[str, str]] = frozenset(
             "/api/v1/gene-sets/{gene_set_id}/results/distributions/{attribute_name}",
         ),
         ("POST", "/api/v1/gene-sets/{gene_set_id}/results/record"),
+        # Publishing a set writes a dataset into the researcher's own account.
+        ("POST", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
+        ("GET", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
         # Experiments: the routes that run or read a WDK strategy.
         ("POST", "/api/v1/experiments"),
         ("POST", "/api/v1/experiments/batch"),

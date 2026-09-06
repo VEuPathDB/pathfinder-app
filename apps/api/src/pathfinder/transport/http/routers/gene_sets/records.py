@@ -3,11 +3,11 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-
-from pathfinder.services.wdk.step_results_models import (
+from veupathdb_mcp.wdk.step_results_models import (
     AttributesResponse,
     RecordDetailResponse,
 )
+
 from pathfinder.transport.http.deps import CurrentUser
 from pathfinder.transport.http.schemas.step_results import (
     ClassifiedRecord,

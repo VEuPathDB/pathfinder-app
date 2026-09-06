@@ -9,9 +9,8 @@ from __future__ import annotations
 
 import httpx
 import pytest
-
-from pathfinder.integrations.veupathdb.auth_login import password_logout
-from pathfinder.services.wdk import login as login_service
+from veupathdb.wdk.auth_login import password_logout
+from veupathdb_mcp.wdk import login
 
 _TOKEN = "eyJhbGciOiJFUzUxMiJ9.real-user.sig"
 
@@ -87,9 +86,9 @@ class TestTheServiceReportsWhatWDKDid:
             seen.append((site_id, token))
             return True
 
-        monkeypatch.setattr(login_service, "password_logout", _logout)
+        monkeypatch.setattr(login, "password_logout", _logout)
 
-        assert await login_service.end_veupathdb_session("plasmodb", _TOKEN) is True
+        assert await login.end_veupathdb_session("plasmodb", _TOKEN) is True
         assert seen == [("plasmodb", _TOKEN)]
 
     @pytest.mark.asyncio
@@ -106,9 +105,9 @@ class TestTheServiceReportsWhatWDKDid:
             called = True
             return True
 
-        monkeypatch.setattr(login_service, "password_logout", _logout)
+        monkeypatch.setattr(login, "password_logout", _logout)
 
-        assert await login_service.end_veupathdb_session("plasmodb", None) is False
+        assert await login.end_veupathdb_session("plasmodb", None) is False
         assert called is False
 
     @pytest.mark.asyncio
@@ -119,6 +118,6 @@ class TestTheServiceReportsWhatWDKDid:
             del site_id, token
             return False
 
-        monkeypatch.setattr(login_service, "password_logout", _logout)
+        monkeypatch.setattr(login, "password_logout", _logout)
 
-        assert await login_service.end_veupathdb_session("plasmodb", _TOKEN) is False
+        assert await login.end_veupathdb_session("plasmodb", _TOKEN) is False

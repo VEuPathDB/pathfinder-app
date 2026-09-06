@@ -60,7 +60,7 @@ jobs:
           }
           # A user bearer names an internal user, so the schema must exist first.
           uv run python -c "import asyncio; from pathfinder.platform.migrations import init_db; asyncio.run(init_db())"
-          uv run python -m pathfinder.mcp &
+          uv run python -m veupathdb_mcp &
           for _ in $(seq 1 60); do
             curl -fsS http://localhost:8100/health && exit 0
             sleep 2

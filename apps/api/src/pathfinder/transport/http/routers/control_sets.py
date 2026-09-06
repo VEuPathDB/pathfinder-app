@@ -3,8 +3,8 @@
 from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import APIRouter
 from pydantic import Field
+from veupathdb.errors import ValidationError
 
-from pathfinder.platform.errors import ValidationError as CoreValidationError
 from pathfinder.services.control_sets import (
     ControlSetResponse,
     ControlSetService,
@@ -40,7 +40,7 @@ async def list_control_sets(
     """List control sets visible to the current user."""
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else None
     if not site_id:
-        raise CoreValidationError(
+        raise ValidationError(
             title="Missing required parameter",
             detail="siteId query parameter is required",
         )

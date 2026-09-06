@@ -3,8 +3,8 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Query
+from veupathdb_mcp import catalog
 
-from pathfinder.services import catalog
 from pathfinder.transport.http.schemas import (
     RecordTypeResponse,
     SearchResponse,

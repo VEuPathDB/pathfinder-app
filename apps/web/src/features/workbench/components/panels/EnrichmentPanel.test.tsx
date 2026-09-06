@@ -73,7 +73,7 @@ vi.mock("@/features/workbench/hooks/useInvalidateGeneSets", () => ({
 // Mock EnrichmentSection to simplify rendering
 // ---------------------------------------------------------------------------
 
-vi.mock("@/features/analysis", () => ({
+vi.mock("@/features/workbench/analysis", () => ({
   EnrichmentSection: ({ results }: { results: { analysisType: string }[] }) => (
     <div data-testid="enrichment-results">
       {results.map((r) => r.analysisType).join()}

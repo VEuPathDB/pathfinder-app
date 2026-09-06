@@ -144,7 +144,7 @@ wheels = [
 [[package]]
 name = "assistant-core"
 version = "0.2.0a1"
-source = { editable = "../../packages/assistant-core" }
+source = { editable = "../../assistant-platform/packages/assistant-core" }
 dependencies = [
     { name = "asyncpg" },
     { name = "genai-prices" },
@@ -2252,17 +2252,19 @@ dependencies = [
     { name = "fastapi" },
     { name = "fastmcp-slim", extra = ["server"] },
     { name = "httpx" },
-    { name = "json5" },
     { name = "langfuse" },
     { name = "langgraph" },
     { name = "langgraph-checkpoint-postgres" },
+    { name = "numpy" },
     { name = "onnxruntime" },
+    { name = "openai" },
     { name = "opentelemetry-exporter-otlp-proto-grpc" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "opentelemetry-instrumentation-fastapi" },
     { name = "opentelemetry-instrumentation-httpx" },
     { name = "opentelemetry-instrumentation-sqlalchemy" },
     { name = "opentelemetry-sdk" },
+    { name = "pgvector" },
     { name = "procrastinate" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
@@ -2278,6 +2280,8 @@ dependencies = [
     { name = "tenacity" },
     { name = "tokenizers" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "veupathdb-mcp" },
+    { name = "veupathdb-py" },
 ]
 
 [package.dev-dependencies]
@@ -2309,24 +2313,26 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.18.0" },
-    { name = "assistant-core", editable = "../../packages/assistant-core" },
+    { name = "assistant-core", editable = "../../assistant-platform/packages/assistant-core" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "cachetools", specifier = ">=7.0.5" },
     { name = "ddgs", specifier = ">=9.14.1" },
     { name = "fastapi", specifier = ">=0.135.0" },
     { name = "fastmcp-slim", extras = ["server"], specifier = ">=3.3.0,<4" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "json5", specifier = ">=0.14.0" },
     { name = "langfuse", specifier = ">=4.0.0" },
     { name = "langgraph", specifier = "==1.1.6" },
     { name = "langgraph-checkpoint-postgres", specifier = "==3.1.1" },
+    { name = "numpy", specifier = ">=2.0.0" },
     { name = "onnxruntime", specifier = ">=1.19.0" },
+    { name = "openai", specifier = ">=2.0.0" },
     { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = ">=1.39.0" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.39.0" },
     { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.60b0" },
     { name = "opentelemetry-instrumentation-httpx", specifier = ">=0.60b0" },
     { name = "opentelemetry-instrumentation-sqlalchemy", specifier = ">=0.60b0" },
     { name = "opentelemetry-sdk", specifier = ">=1.39.0" },
+    { name = "pgvector", specifier = ">=0.5.0" },
     { name = "procrastinate", specifier = ">=3.8.1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.0" },
     { name = "pydantic", specifier = ">=2.12.0" },
@@ -2342,6 +2348,8 @@ requires-dist = [
     { name = "tenacity", specifier = ">=9.1.0" },
     { name = "tokenizers", specifier = ">=0.21.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.44.0" },
+    { name = "veupathdb-mcp", editable = "../../veupathdb-mcp" },
+    { name = "veupathdb-py", editable = "../../veupathdb-py" },
 ]
 
 [package.metadata.requires-dev]
@@ -2358,7 +2366,7 @@ dev = [
     { name = "ruff", specifier = ">=0.15.0" },
     { name = "schemathesis", specifier = ">=4.16.1" },
     { name = "testcontainers", specifier = ">=4.14.0" },
-    { name = "veupathdb-mcp-conformance", editable = "../../packages/mcp-conformance" },
+    { name = "veupathdb-mcp-conformance", editable = "../../assistant-platform/packages/mcp-conformance" },
     { name = "vulture", specifier = ">=2.16" },
 ]
 docs = [
@@ -3805,9 +3813,62 @@ wheels = [
 ]
 
 [[package]]
+name = "veupathdb-mcp"
+version = "0.1.0a1"
+source = { editable = "../../veupathdb-mcp" }
+dependencies = [
+    { name = "alembic" },
+    { name = "asyncpg" },
+    { name = "cachetools" },
+    { name = "fastmcp-slim", extra = ["server"] },
+    { name = "mcp" },
+    { name = "numpy" },
+    { name = "openai" },
+    { name = "pgvector" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "rapidfuzz" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "starlette" },
+    { name = "structlog" },
+    { name = "uvicorn", extra = ["standard"] },
+    { name = "veupathdb-py" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.18.0" },
+    { name = "asyncpg", specifier = ">=0.31.0" },
+    { name = "cachetools", specifier = ">=7.0.5" },
+    { name = "fastmcp-slim", extras = ["server"], specifier = ">=3.3.0,<4" },
+    { name = "mcp", specifier = ">=1.28.1" },
+    { name = "numpy", specifier = ">=2.0.0" },
+    { name = "openai", specifier = ">=2.0.0" },
+    { name = "pgvector", specifier = ">=0.5.0" },
+    { name = "pydantic", specifier = ">=2.12.0" },
+    { name = "pydantic-settings", specifier = ">=2.14.2" },
+    { name = "rapidfuzz", specifier = ">=3.14.0" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.49" },
+    { name = "starlette", specifier = ">=1.3.1" },
+    { name = "structlog", specifier = ">=25.0.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.44.0" },
+    { name = "veupathdb-py", editable = "../../veupathdb-py" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.20.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", specifier = ">=1.3.0" },
+    { name = "respx", specifier = ">=0.22.0" },
+    { name = "ruff", specifier = "==0.15.9" },
+    { name = "testcontainers", specifier = ">=4.14.0" },
+]
+
+[[package]]
 name = "veupathdb-mcp-conformance"
 version = "0.1.0"
-source = { editable = "../../packages/mcp-conformance" }
+source = { editable = "../../assistant-platform/packages/mcp-conformance" }
 dependencies = [
     { name = "httpx" },
     { name = "mcp" },
@@ -3829,6 +3890,46 @@ dev = [
     { name = "ruff", specifier = "==0.15.9" },
     { name = "starlette", specifier = ">=0.27" },
     { name = "uvicorn", specifier = ">=0.31.1" },
+]
+
+[[package]]
+name = "veupathdb-py"
+version = "0.1.0a1"
+source = { editable = "../../veupathdb-py" }
+dependencies = [
+    { name = "httpx" },
+    { name = "json5" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "pyjwt" },
+    { name = "pyyaml" },
+    { name = "structlog" },
+    { name = "tenacity" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "json5", specifier = ">=0.14.0" },
+    { name = "pydantic", specifier = ">=2.12.0" },
+    { name = "pydantic-settings", specifier = ">=2.14.2" },
+    { name = "pyjwt", specifier = ">=2.13.0" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "structlog", specifier = ">=25.0.0" },
+    { name = "tenacity", specifier = ">=9.1.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "cryptography", specifier = ">=50.0.0" },
+    { name = "hypothesis", specifier = ">=6.151.0" },
+    { name = "jsonschema", specifier = ">=4.26.0" },
+    { name = "mypy", specifier = ">=1.20.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", specifier = ">=1.3.0" },
+    { name = "referencing", specifier = ">=0.37.0" },
+    { name = "respx", specifier = ">=0.22.0" },
+    { name = "ruff", specifier = "==0.15.9" },
 ]
 
 [[package]]

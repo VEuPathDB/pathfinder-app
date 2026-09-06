@@ -7,10 +7,10 @@ from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
+from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult
 
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.stream_part_payloads import EnrichmentResultsChunk
-from pathfinder.services.enrichment.types import EnrichmentResult
 
 
 def enrichment_results_event(

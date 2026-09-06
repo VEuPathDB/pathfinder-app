@@ -13,12 +13,10 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._id_arguments import parse_id_argument
 from pathfinder.ai.tools.standalone._variant_targets import reject_combine_variants
-from pathfinder.services.control_sets import ControlSetService
-from pathfinder.services.experiment.scored_comparison import (
-    ScoredComparison,
-    run_scored_comparison,
-)
+from pathfinder.services.experiment.scored_comparison import ScoredComparison
 from pathfinder.services.experiment.variant_comparison import VariantSpec
+from pathfinder.services.workbench.comparisons import run_scored_comparison
+from pathfinder.services.workbench.control_sets import get_control_set
 
 _MIN_VARIANTS = 2
 
@@ -83,7 +81,7 @@ async def compare_variants_scored(
         control_set_id, argument="control_set_id", names="control set"
     )
     async with runtime.db_session_factory() as session:
-        control_set = await ControlSetService(session).get(parsed, runtime.user_id)
+        control_set = await get_control_set(session, parsed, runtime.user_id)
 
     result = await run_scored_comparison(
         runtime.site_id,

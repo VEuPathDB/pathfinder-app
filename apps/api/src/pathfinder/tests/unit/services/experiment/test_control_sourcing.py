@@ -9,14 +9,14 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+from veupathdb_mcp.gene_lookup.result import GeneResult
+from veupathdb_mcp.gene_lookup.wdk import GeneResolveResult
 
 from pathfinder.services.experiment import control_sourcing
 from pathfinder.services.experiment.control_sourcing import (
     control_ids_from_saved_gene_set,
     validate_control_ids,
 )
-from pathfinder.services.gene_lookup.result import GeneResult
-from pathfinder.services.gene_lookup.wdk import GeneResolveResult
 
 
 @pytest.mark.asyncio

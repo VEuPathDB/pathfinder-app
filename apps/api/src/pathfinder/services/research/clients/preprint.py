@@ -7,6 +7,7 @@ from typing import Literal
 import httpx
 from assistant_core.platform.logging import get_logger
 from pydantic import JsonValue, ValidationError
+from veupathdb.errors import ExternalServiceError
 
 from pathfinder.domain.research.citations import (
     Citation,
@@ -14,7 +15,6 @@ from pathfinder.domain.research.citations import (
     _now_iso,
 )
 from pathfinder.domain.research.papers import ParsedPaper, PreprintRawResult
-from pathfinder.platform.errors import ExternalServiceError
 from pathfinder.services.research.clients._base import (
     BaseClient,
     SearchResponse,

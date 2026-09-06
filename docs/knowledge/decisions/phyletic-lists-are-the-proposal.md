@@ -14,7 +14,7 @@ status: stable
 ortholog and which must not - through three parameters. Two of them are visible
 free text whose help says "for documentation only", and the third is hidden,
 required, and the only one the query reads
-([WDK-SITE-006](../wdk/rules/site-model-params.md)).
+(WDK-SITE-006, `veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`).
 
 **The two visible lists are what the model proposes. The pattern is derived from
 them. All three are written together.** No new tool and no new visible
@@ -29,8 +29,8 @@ against that tree and returns three values: the two lists canonicalized to
 comma-joined codes, and `profile_pattern` as the census the selection means -
 each clade pushed down to the species the census holds, an explicit species
 overriding the clade above it, tokens sorted into ascending code order
-([WDK-SITE-004](../wdk/rules/site-model-params.md),
-[WDK-SITE-005](../wdk/rules/site-model-params.md)). `set_criterion` binds all
+(WDK-SITE-004 and WDK-SITE-005,
+`veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`). `set_criterion` binds all
 three as stated values, so `resolved_params` shows the pattern the search will
 actually run.
 
@@ -45,7 +45,7 @@ default and bind by omission the one value this decision exists to derive.
 
 The wire guard stays as the last line rather than being replaced by this. A
 pattern that is not a census, or that names a code the tree does not carry, is
-still a 422 at build time ([WDK-SITE-002](../wdk/rules/site-model-params.md)),
+still a 422 at build time (WDK-SITE-002, `veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`),
 which is what protects a pattern that did not come from this path.
 
 # What was rejected: make the pattern visible and let the model write it
@@ -59,7 +59,7 @@ a 4000-character cap, handed to SQL `LIKE`. Every wrong value is a 200 with a
 count, and a value with no `:Y` in it runs a different branch of the query
 entirely and returns the ortholog-less genes of the chosen organism under a name
 that claims to be a phyletic result
-([WDK-SITE-002](../wdk/rules/site-model-params.md)). A proposer cannot be
+(WDK-SITE-002, `veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`). A proposer cannot be
 corrected by a grammar that never objects.
 
 **One free-text string carries four rules at once.** The codes come from an
@@ -73,7 +73,7 @@ in the rule bundle. Deriving the string obeys all four by construction.
 question form replaces the whole search form, seeds its state from the two lists,
 and regenerates the pattern on every change; `PROFILE_PATTERN_PARAM_NAME` appears
 twice in that file, at its declaration and inside the write, and there is no
-parser ([WDK-SITE-006](../wdk/rules/site-model-params.md)). Writing the pattern
+parser (WDK-SITE-006, `veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`). Writing the pattern
 without the lists produces a step that runs correctly and reopens empty.
 
 **It was measured before it was argued.** With the pattern hidden and filled from
@@ -131,14 +131,14 @@ either map alone is still a 500, both together are a 200 with
 statement about the query, not about the read. PathFinder now adds the published
 default of **every** hidden parameter that allows empty to a metadata read's
 context, by shape rather than by name, at all three read sites
-(`services/catalog/search_context.py:context_for_metadata_read`). The table is in
-[site-model parameters](../wdk/model/site-model-parameters.md).
+(`veupathdb_mcp/catalog/search_context.py:context_for_metadata_read`). The table is in
+site-model parameters (`veupathdb-py: docs/knowledge/wdk/model/site-model-parameters.md`).
 
 **Substitution detection had to be corrected in the same work.** When the
 contextual read fails, the client falls back to the static `GET`, whose echoed
 values are the published defaults - so every value the caller set differs from
 the echo, and none of those differences is WDK substituting anything
-([WDK-PARAM-008](../wdk/rules/parameters-and-vocabularies.md)). The comparison is
+(WDK-PARAM-008, `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`). The comparison is
 now against the canonical values actually sent, a vocabulary echo is compared as
 a set of values, a hidden allow-empty parameter this read supplies is never
 reported, and `ResolvedSearch.values_were_read` gates both the comparison and the
@@ -149,19 +149,19 @@ fix the 500 would have made them look like values WDK chose.
 
 `domain/parameters/phyletic.py` owns the tree, the resolution, the leaf states,
 the pattern and the two lists, tested in
-`tests/unit/domain/parameters/test_phyletic.py`;
-`integrations/veupathdb/phyletic_tree.py:phyletic_tree_of` is the only place that
+`veupathdb-py/tests/unit/domain/parameters/test_phyletic.py`;
+`veupathdb/wdk/phyletic_tree.py:phyletic_tree_of` is the only place that
 decides a search is phyletic and builds its tree, so the sheet, the binding and
 the wire guard cannot disagree about it;
-`services/catalog/param_phyletic.py:derive_phyletic_overrides` is the binding,
+`veupathdb_mcp/catalog/param_phyletic.py:derive_phyletic_overrides` is the binding,
 applied in `ai/tools/standalone/frame_spec.py:set_criterion` and by the bench.
 Conformance: `packages/spec/phyletic_conformance.json` is one clade tree and one
 expected binding per selection, read by
-`apps/api/src/pathfinder/tests/unit/domain/parameters/test_phyletic_conformance.py`
+`apps/api/src/pathfinder/tests/unit/test_phyletic_conformance.py`
 and `apps/web/src/features/strategy/editor/widgets/phyleticConformance.test.ts`,
 so the two encoders cannot drift apart without a red test on both sides.
 
-`tests/unit/services/catalog/test_param_phyletic.py` pins the other half of this
+`veupathdb-mcp/tests/unit/catalog/test_param_phyletic.py` pins the other half of this
 decision - every phyletic string the model reads says the pattern is derived and
 must not be written - because a help text that teaches the grammar re-opens the
 rejected alternative one prompt at a time.

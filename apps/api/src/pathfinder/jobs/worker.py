@@ -12,8 +12,10 @@ import logging
 from typing import Protocol
 
 from assistant_core.mcp.admission import install_admitted_sources
+from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import setup_logging
 from procrastinate.worker import Worker
+from veupathdb_mcp.embeddings.db import use_embedding_session_factory
 
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.heartbeat import HeartbeatThread, postgres_beat_writer
@@ -36,6 +38,8 @@ class _RunningWorker(Protocol):
 async def amain() -> None:
     setup_logging()
     install_procrastinate_redaction()
+    # The index shares this process's pool instead of opening a second one.
+    use_embedding_session_factory(async_session_factory)
     logging.getLogger(__name__).info("Pathfinder worker starting")
     # Turns run here, so this is the process where a declaration resolves.
     install_admitted_sources(admitted_tool_sources())

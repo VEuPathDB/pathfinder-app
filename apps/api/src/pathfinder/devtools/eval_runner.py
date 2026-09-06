@@ -28,11 +28,11 @@ from assistant_core.platform.db import async_session_factory
 from langchain_core.runnables import RunnableConfig
 from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.devtools.chat import RunArgs, drive_run, resolve_run_assistant
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
 from pathfinder.evals.case import EvalCase
 from pathfinder.evals.distance import tree_from_ast
 from pathfinder.evals.scoring import (

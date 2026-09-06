@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
+from veupathdb.domain.strategy.constraints import ConstraintKind
 
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.domain.strategy.constraints import ConstraintKind
 
 
 def test_user_intent_default_non_differential() -> None:

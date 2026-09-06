@@ -4,10 +4,11 @@ The fingerprint must change on parameter and topology edits, and stay the same
 on count refreshes.
 """
 
-from pathfinder.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.validation import StepValidation
+
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.validation import StepValidation
 
 
 def _leaf(fold_change: str = "1", step_id: str = "step_a") -> StrategyStepNode:

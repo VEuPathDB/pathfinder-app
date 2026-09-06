@@ -75,6 +75,7 @@ _TOOL_NAME_TOKENS = frozenset(
         "run_control_tests_on_step",
         "run_gene_set_enrichment",
         # Gene lookup and research
+        "get_ai_expression_summary",
         "literature_search",
         "lookup_gene_records",
         "resolve_gene_ids_to_records",

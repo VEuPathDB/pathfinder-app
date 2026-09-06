@@ -13,33 +13,39 @@ from assistant_core.embeddings.embedder import (
 )
 from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.platform.context import request_id_ctx
-from assistant_core.platform.db import close_db, get_engine
+from assistant_core.platform.db import async_session_factory, close_db, get_engine
 from assistant_core.platform.logging import get_logger, setup_logging
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.domain.strategy.operations.apply import ApplyError
+from veupathdb.eda.factory import close_all_eda_clients
+from veupathdb.errors import VEuPathDBError
+from veupathdb.observer import set_observer
+from veupathdb.wdk.factory import close_all_clients
+from veupathdb_mcp.catalog.discovery_service import (
+    get_discovery_service,
+)
+from veupathdb_mcp.embeddings.db import use_embedding_session_factory
 
 from pathfinder import __version__
 from pathfinder.ai.capabilities.security import warm_up_scanner
 from pathfinder.assistants.registry import get_assistant_registry
-from pathfinder.domain.strategy.operations.apply import ApplyError
-from pathfinder.integrations.eda.factory import close_all_eda_clients
-from pathfinder.integrations.veupathdb.discovery_service import (
-    get_discovery_service,
-)
-from pathfinder.integrations.veupathdb.factory import close_all_clients
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.context import request_base_url_ctx, veupathdb_auth_token_ctx
+from pathfinder.platform.context import request_base_url_ctx
 from pathfinder.platform.error_handlers import (
     app_error_handler,
     apply_error_handler,
     http_exception_handler,
     rate_limit_handler,
     request_validation_handler,
+    veupathdb_error_handler,
 )
 from pathfinder.platform.errors import AppError
+from pathfinder.platform.metrics import OpenTelemetryObserver
 from pathfinder.platform.migrations import init_db
 from pathfinder.platform.observability import (
     setup_observability,
@@ -94,6 +100,7 @@ async def _warm_up_subsystems() -> None:
     except (
         EmbeddingUnavailableError,
         AppError,
+        VEuPathDBError,
         OSError,
         RuntimeError,
         ValueError,
@@ -106,7 +113,7 @@ async def _warm_up_subsystems() -> None:
             logger.info("[warm-up] Loading PIGuard ONNX model")
             await asyncio.to_thread(warm_up_scanner)
             readiness.mark_ready("piguard")
-        except (AppError, OSError, RuntimeError) as e:
+        except (AppError, VEuPathDBError, OSError, RuntimeError) as e:
             logger.exception("[warm-up] PIGuard failed")
             readiness.mark_failed("piguard", str(e))
     else:
@@ -115,14 +122,14 @@ async def _warm_up_subsystems() -> None:
 
     try:
         logger.info("[warm-up] Preloading discovery catalogs (all sites)")
-        await get_discovery_service().preload_all()
-    except AppError, OSError, RuntimeError:
+        await get_discovery_service().preload_all(readiness)
+    except AppError, VEuPathDBError, OSError, RuntimeError:
         logger.exception("[warm-up] Discovery preload raised")
 
     try:
         logger.info("[warm-up] Syncing the EDA study index")
         await preload_study_index()
-    except AppError, OSError, RuntimeError:
+    except AppError, VEuPathDBError, OSError, RuntimeError:
         logger.exception("[warm-up] EDA study index sync raised")
 
 
@@ -150,16 +157,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     logger.info("Starting Pathfinder API", version=__version__, env=settings.api_env)
 
     readiness = get_readiness()
+    # The index shares this process's pool instead of opening a second one.
+    use_embedding_session_factory(async_session_factory)
 
     try:
         await init_db()
         readiness.mark_ready("database")
-    except (AppError, OSError, RuntimeError) as e:
+    except (AppError, VEuPathDBError, OSError, RuntimeError) as e:
         readiness.mark_failed("database", str(e))
         raise
 
     # Observability and the prompt seed both need a ready database.
     setup_observability(app=app, db_engine=get_engine())
+    set_observer(OpenTelemetryObserver())
     from pathfinder.platform.langfuse.prompts import seed_prompts  # noqa: PLC0415
 
     seed_prompts()
@@ -311,6 +321,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
 
     for exc_type, handler in (
         (AppError, app_error_handler),
+        (VEuPathDBError, veupathdb_error_handler),
         (ApplyError, apply_error_handler),
         (HTTPException, http_exception_handler),
         (RateLimitExceeded, rate_limit_handler),

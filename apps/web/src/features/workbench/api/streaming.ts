@@ -24,6 +24,7 @@ export type ExperimentRunConfig = {
   controlsValueFormat?: CreateExperimentRequestControlsValueFormatEnumKey | undefined;
   enableCrossValidation?: boolean | undefined;
   kFolds?: number | undefined;
+  targetGeneIds?: string[] | undefined;
   enrichmentTypes?: string[] | undefined;
   name?: string | undefined;
   description?: string | undefined;
@@ -122,6 +123,7 @@ function serializeConfig(config: ExperimentRunConfig): ExperimentRunConfig {
     controlsValueFormat: config.controlsValueFormat,
     enableCrossValidation: config.enableCrossValidation,
     kFolds: config.kFolds,
+    targetGeneIds: config.targetGeneIds,
     enrichmentTypes: config.enrichmentTypes,
     name: config.name,
     description: config.description,

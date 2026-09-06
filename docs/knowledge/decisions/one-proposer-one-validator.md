@@ -129,7 +129,7 @@ Eighteen wrong values, every one inspected.
 | a transform's target organism swapped with the seed's source | an ortholog transform over-selected its target | the criterion role is on the sheet and in `set_structure`; the bound value is disclosed in `resolved_params` |
 | multi-pick under-selection | one of two trophozoite assays; a subset of `text_fields` | sheet wording, and the bound list is disclosed rather than summarized |
 | genus against strain | `Plasmodium` against `Plasmodium falciparum 3D7` | the criterion text carries it, the value binds as stated and is visible; an ambiguity is a question, not a rule |
-| either/or parameter pairs | a free-text half filled beside a typeahead pick | [WDK-SITE-007](../wdk/rules/site-model-params.md), which names the authoritative half and measures what filling both costs |
+| either/or parameter pairs | a free-text half filled beside a typeahead pick | WDK-SITE-007 (`veupathdb-py: docs/knowledge/wdk/rules/site-model-params.md`), which names the authoritative half and measures what filling both costs |
 | `GenesByOrthologPattern` | 7 of the 18, six of them structural | caught by a contract of its own, taken after this measurement: the model proposes the two species lists against the clade tree and `profile_pattern` is derived from them, which moved the same arm to 288 exact and 15 wrong ([the two lists are the proposal](phyletic-lists-are-the-proposal.md)) |
 
 The two that are not on this list and were expected to be: no proposal named a
@@ -138,7 +138,7 @@ in the whole 70-step run.
 
 # Anchor
 
-`services/catalog/param_sheet.py:build_sheet` for the sheet;
+`veupathdb_mcp/catalog/param_sheet.py:build_sheet` for the sheet;
 `ai/tools/standalone/frame_spec.py:set_criterion` for the contract, guarded by
 `TestAProposedValueMustBeOnTheSheet`, `TestEveryVisibleRequiredParamIsDecided`,
 `TestADependentVocabularyIsRedecided`, `TestAStatedQuantityLeftNullIsARetry`,
@@ -147,7 +147,7 @@ in the whole 70-step run.
 in `tests/unit/ai/tools/test_frame_spec.py`;
 `ai/tools/standalone/_catalog_models.py:register_search` is the only write to the
 discovery gate from a WDK search definition;
-`services/catalog/param_dag.py` for the walk. The figures above were measured
+`veupathdb_mcp/catalog/param_dag.py` for the walk. The figures above were measured
 by hand against `thesis/eval/gold_strategies`, at one to two model calls per
 step; no gate re-runs them. This decision is wrong the day the tests named above
 stop holding, or the day a fresh scored run over that corpus stops beating the

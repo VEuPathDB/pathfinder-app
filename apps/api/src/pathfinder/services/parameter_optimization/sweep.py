@@ -1,29 +1,29 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
 from itertools import product
 
 from pydantic import JsonValue
-
-from pathfinder.domain.parameters.optimization import VariantResult, VariantSpec
-from pathfinder.domain.parameters.value_codec import to_decoded_map
-from pathfinder.domain.parameters.values import NumberValue, ParamValue, SinglePickValue
-from pathfinder.platform.errors import AppError
-from pathfinder.services.control_tests import (
+from veupathdb.domain.parameters.value_codec import to_decoded_map
+from veupathdb.domain.parameters.values import NumberValue, ParamValue, SinglePickValue
+from veupathdb.errors import VEuPathDBError
+from veupathdb_mcp.controls.control_tests import (
     IntersectionConfig,
     run_positive_negative_controls,
 )
-from pathfinder.services.experiment.types import (
-    ControlTestResult,
-    ControlValueFormat,
-)
+from veupathdb_mcp.controls.control_types import ControlTestResult
+
+from pathfinder.platform.errors import AppError
 from pathfinder.services.parameter_optimization.builders import (
     _extract_trial_metrics,
 )
 from pathfinder.services.parameter_optimization.config import (
     OptimizationConfig,
     ParameterSpec,
+    SweepControls,
+    SweepTarget,
+    SweepVariantResult,
+    SweepVariantSpec,
 )
 from pathfinder.services.parameter_optimization.scoring import _compute_score
 
@@ -33,29 +33,6 @@ from pathfinder.services.parameter_optimization.scoring import _compute_score
 _DEFAULT_NUMERIC_LEVELS = 5
 
 ProgressFn = Callable[[float, str, dict[str, JsonValue] | None], Awaitable[None]]
-
-
-@dataclass(frozen=True, slots=True)
-class SweepTarget:
-    """Inputs that define the WDK target search for every variant."""
-
-    site_id: str
-    record_type: str
-    search_name: str
-    fixed_parameters: dict[str, ParamValue]
-
-
-@dataclass(frozen=True, slots=True)
-class SweepControls:
-    """Inputs that define the controls intersection for scoring."""
-
-    controls_search_name: str
-    controls_param_name: str
-    controls_value_format: ControlValueFormat
-    controls_extra_parameters: dict[str, ParamValue]
-    positive_controls: list[str] | None
-    negative_controls: list[str] | None
-    id_field: str | None
 
 
 def _enumerate_spec_values(spec: ParameterSpec) -> list[ParamValue]:
@@ -90,11 +67,11 @@ def _enumerate_spec_values(spec: ParameterSpec) -> list[ParamValue]:
 def enumerate_variants(
     parameter_space: list[ParameterSpec],
     fixed_parameters: dict[str, ParamValue],
-) -> list[VariantSpec]:
+) -> list[SweepVariantSpec]:
     """Build the Cartesian product of the parameter grid.
 
     Each combination of per-parameter values becomes one
-    :class:`VariantSpec` whose ``params`` dict merges the fixed
+    :class:`SweepVariantSpec` whose ``params`` dict merges the fixed
     parameters under the swept values. Variants are id'd ``v0..vN-1``
     in iteration order so the UI lane order is stable.
     """
@@ -104,16 +81,16 @@ def enumerate_variants(
 
     names = [spec.name for spec in parameter_space]
     value_lists = [_enumerate_spec_values(spec) for spec in parameter_space]
-    variants: list[VariantSpec] = []
+    variants: list[SweepVariantSpec] = []
     for idx, combo in enumerate(product(*value_lists)):
         sweep_values = dict(zip(names, combo, strict=True))
         params: dict[str, ParamValue] = {**fixed_parameters, **sweep_values}
-        variants.append(VariantSpec(id=f"v{idx}", params=params))
+        variants.append(SweepVariantSpec(id=f"v{idx}", params=params))
     return variants
 
 
 async def _evaluate_variant_wdk(
-    variant: VariantSpec,
+    variant: SweepVariantSpec,
     target: SweepTarget,
     controls: SweepControls,
 ) -> tuple[ControlTestResult | None, str]:
@@ -121,7 +98,7 @@ async def _evaluate_variant_wdk(
 
     Returns ``(result, error_string)``. ``result`` is ``None`` when WDK
     raised an :class:`AppError`; the caller propagates the error string
-    into the :class:`VariantResult`.
+    into the :class:`SweepVariantResult`.
     """
     config = IntersectionConfig(
         site_id=target.site_id,
@@ -140,19 +117,19 @@ async def _evaluate_variant_wdk(
             positive_controls=controls.positive_controls,
             negative_controls=controls.negative_controls,
         )
-    except AppError as exc:
+    except (AppError, VEuPathDBError) as exc:
         return None, str(exc)
     return wdk_result, ""
 
 
 async def run_trial(
-    variant: VariantSpec,
+    variant: SweepVariantSpec,
     *,
     target: SweepTarget,
     controls: SweepControls,
     score_cfg: OptimizationConfig,
     progress_callback: ProgressFn | None = None,
-) -> VariantResult:
+) -> SweepVariantResult:
     """Evaluate a single variant against the controls and return a typed result.
 
     Public entry point for parallel sweep workers. Issues exactly one
@@ -160,7 +137,7 @@ async def run_trial(
     score from the controls intersection, and emits two progress events:
     ``percent=0.05`` at start and ``percent=1.0`` on completion.
 
-    On WDK failure the returned :class:`VariantResult` carries
+    On WDK failure the returned :class:`SweepVariantResult` carries
     ``status="failed"`` and ``error`` populated; the caller decides
     whether to count it as fan-out failure (the impl wraps catastrophic
     exceptions one level up).
@@ -181,7 +158,7 @@ async def run_trial(
                 f"Variant {variant.id} WDK error",
                 {"error": wdk_error},
             )
-        return VariantResult(
+        return SweepVariantResult(
             variant_id=variant.id,
             status="failed",
             params=variant.params,
@@ -197,7 +174,7 @@ async def run_trial(
         positive_hits=metrics.positive_hits,
         negative_hits=metrics.negative_hits,
     )
-    result = VariantResult(
+    result = SweepVariantResult(
         variant_id=variant.id,
         status="success",
         params=variant.params,

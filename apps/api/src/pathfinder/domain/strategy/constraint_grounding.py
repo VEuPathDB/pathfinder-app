@@ -5,15 +5,13 @@ from __future__ import annotations
 import re
 from collections.abc import Collection, Mapping, Sequence
 
-from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-
-from pathfinder.domain.strategy.combination_check import (
+from veupathdb.domain.strategy.combination_check import (
     combination_violation,
     match_terms,
     meeting_operator,
 )
-from pathfinder.domain.strategy.constraints import (
+from veupathdb.domain.strategy.constraints import (
     CombinationRequest,
     Constraint,
     ConstraintKind,
@@ -21,7 +19,8 @@ from pathfinder.domain.strategy.constraints import (
     GroundedConstraint,
     PercentileRequest,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion, SpecStructure
+from veupathdb.domain.strategy.operational_spec import Criterion, SpecStructure
+from veupathdb.model import CamelModel
 
 _SIGNIFICANCE_RE = re.compile(
     r"p_?value|p_?adj|fdr|q_?value|significance", re.IGNORECASE

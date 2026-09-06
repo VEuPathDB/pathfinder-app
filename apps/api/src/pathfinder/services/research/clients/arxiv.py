@@ -4,6 +4,7 @@ import re
 
 import httpx
 from pydantic import JsonValue, ValidationError
+from veupathdb.errors import ExternalServiceError
 
 from pathfinder.domain.research.citations import (
     Citation,
@@ -11,7 +12,6 @@ from pathfinder.domain.research.citations import (
     _now_iso,
 )
 from pathfinder.domain.research.papers import ArxivRawEntry, ParsedPaper
-from pathfinder.platform.errors import ExternalServiceError
 from pathfinder.services.research.clients._base import (
     API_USER_AGENT,
     StandardClient,

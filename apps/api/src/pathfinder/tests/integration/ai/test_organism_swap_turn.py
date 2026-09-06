@@ -17,6 +17,29 @@ from uuid import UUID, uuid4
 import pytest
 from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
+from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.domain.search import SearchContext
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.operational_spec import OperationalSpec
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.domain.strategy.spec_diff import CriterionChange
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.wdk.wdk_models import (
+    WDKSearch,
+    WDKSearchConfig,
+    WDKSearchResponse,
+    WDKStep,
+    WDKStepTree,
+    WDKStrategyDetails,
+)
+from veupathdb_mcp.catalog import param_discovery, searches
+from veupathdb_mcp.catalog.param_dag import ParamFetcher
+from veupathdb_mcp.catalog.param_formatting import ParameterInfo
+from veupathdb_mcp.catalog.param_validation import ValidatedParams
 
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
@@ -26,36 +49,11 @@ from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
-from pathfinder.domain.parameters.values import MultiPickValue, SinglePickValue
-from pathfinder.domain.parameters.wdk_vocab import VocabOption
-from pathfinder.domain.search import SearchContext
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.validation import StepValidation
-from pathfinder.integrations.veupathdb.wdk_models import (
-    WDKSearch,
-    WDKSearchConfig,
-    WDKSearchResponse,
-    WDKStep,
-    WDKStepTree,
-    WDKStrategyDetails,
-)
 from pathfinder.persistence.models import ConversationStrategy, User
-from pathfinder.services.catalog import param_discovery, searches
-from pathfinder.services.catalog.param_dag import ParamFetcher
-from pathfinder.services.catalog.param_formatting import ParameterInfo
-from pathfinder.services.catalog.param_validation import ValidatedParams
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
-from pathfinder.services.strategies import commit as commit_module
-from pathfinder.services.strategies import live_counts, step_wdk_push
-from pathfinder.services.strategies import sync as sync_module
+from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 _PF = "Plasmodium falciparum 3D7"
@@ -187,7 +185,7 @@ def _params_under(context: dict[str, str]) -> list[ParameterInfo]:
 @pytest.fixture
 def wdk(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     api = _RecordingAPI()
-    for module in (commit_module, step_wdk_push, sync_module, live_counts):
+    for module in (commit, step_wdk_push, sync, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
     async def _noop_validate_plan(*_a: Any, **_k: Any) -> set[str]:
@@ -198,7 +196,7 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     async def _noop_reconcile(*_a: Any, **_k: Any) -> None:
         return None
 
-    monkeypatch.setattr(commit_module, "reconcile_sync_state_with_wdk", _noop_reconcile)
+    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
     monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _chunk: None)
 
     def _fetch_at(*_args: object) -> ParamFetcher:

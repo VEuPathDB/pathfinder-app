@@ -12,12 +12,18 @@ WORKDIR /app
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared-ts/package.json ./packages/shared-ts/
-COPY packages/assistant-client-ts/package.json ./packages/assistant-client-ts/
 
-# Install all workspace dependencies.
+# The assistant platform is its own Yarn project, and `@pathfinder/assistant-client`
+# reaches this one as a portal. apps/web compiles that project's source, so its
+# toolchain is installed here too, from its own lock.
+COPY assistant-platform/package.json assistant-platform/yarn.lock assistant-platform/.yarnrc.yml ./assistant-platform/
+COPY assistant-platform/packages/assistant-client-ts/package.json ./assistant-platform/packages/assistant-client-ts/
+
+# Install both projects' dependencies.
 # Cache mount keeps yarn's download cache across builds.
 RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
-    yarn install --immutable
+    yarn install --immutable && \
+    cd assistant-platform && yarn install --immutable
 
 # Workspace source + generated shared-ts types (gitignored), shared by dev + builder.
 FROM base AS sources
@@ -25,7 +31,7 @@ WORKDIR /app
 COPY --from=deps /app ./
 COPY apps/web ./apps/web
 COPY packages/shared-ts ./packages/shared-ts
-COPY packages/assistant-client-ts ./packages/assistant-client-ts
+COPY assistant-platform/packages/assistant-client-ts ./assistant-platform/packages/assistant-client-ts
 COPY packages/spec ./packages/spec
 RUN yarn --cwd packages/shared-ts generate
 

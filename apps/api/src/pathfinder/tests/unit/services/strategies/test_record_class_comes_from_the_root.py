@@ -18,26 +18,26 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
-
-from pathfinder.domain.strategy.graph_model import (
+from veupathdb.domain.strategy.graph_model import (
     StepKind,
     StrategyStep,
     record_class_of,
 )
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph
+from veupathdb.wdk.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
     WDKIdentifier,
     WDKSearchConfig,
     WDKStep,
 )
-from pathfinder.services.catalog.param_validation import (
+from veupathdb_mcp.catalog.param_validation import (
     ValidatedParams,
     ValidationCallbacks,
 )
-from pathfinder.services.catalog.searches import assign_step_record_classes
+from veupathdb_mcp.catalog.searches import assign_step_record_classes
+
 from pathfinder.services.strategies import step_wdk_push
 from pathfinder.services.strategies.step_push_planner import CreateAction, StepPushPlan
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan

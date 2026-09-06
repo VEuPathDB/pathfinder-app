@@ -41,6 +41,7 @@ uv run python scripts/check_max_lines.py
 uv run python scripts/check_weak_assertions.py
 uv run python -m pathfinder.devtools.openapi check
 uv run pip-audit
+uv run sphinx-build -b html docs docs/_build/html  # the CI build-docs job
 
 uv run pytest src/pathfinder/tests/unit/ -v
 uv run pytest src/pathfinder/tests/ -v          # adds the integration tier; needs Docker
@@ -66,15 +67,26 @@ yarn test:e2e              # needs the API, the worker and the web app running
 ### Packages
 
 ```bash
-cd packages/assistant-core      && uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy --strict src && uv run pytest
-cd packages/assistant-client-ts && yarn lint && yarn typecheck && yarn format:check && yarn test && yarn build
-cd packages/mcp-conformance     && uv run ruff check src tests && uv run mypy --strict src && uv run pytest
+cd assistant-platform/packages/assistant-core      && uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy --strict src && uv run pytest
+cd assistant-platform/packages/assistant-client-ts && yarn lint && yarn typecheck && yarn format:check && yarn test && yarn build
+cd assistant-platform/packages/mcp-conformance     && uv run ruff check src tests && uv run mypy --strict src && uv run pytest
+cd veupathdb-py                                    && uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy --strict src && uv run pytest tests/unit
+cd veupathdb-mcp                                   && uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy --strict src && uv run pytest tests/unit && uv run pytest tests/integration
 ```
 
 `assistant-core`'s suite has an integration tier that starts Postgres through
 testcontainers, so the bare `uv run pytest` needs Docker. `uv run pytest tests/unit`
-is the hermetic run. Both run with no `pathfinder` installed, which is the point:
-the runtime must not have grown a dependency on the app.
+is the hermetic run. `veupathdb-mcp`'s index tier starts a pgvector container and
+runs that package's own alembic chain on it. All three run with no `pathfinder`
+installed, which is the point: a distribution must not have grown a dependency on
+the app.
+
+The api runs both alembic chains at startup. A database an earlier PathFinder
+built already holds `embedding_vectors` and `embedding_index_entries` under
+PathFinder's chain, so the api exits with `DuplicateTableError` until the MCP
+chain is stamped once on that database, from the `veupathdb-mcp` folder or the
+`wdk-mcp` container: `alembic -c alembic.ini stamp head`. The dev volume and the
+e2e volume (`pathfinder_test`) are such databases; a fresh one needs nothing.
 
 ### The bundle
 
@@ -101,7 +113,7 @@ build instead of being rewritten inside someone's commit.
 ### Docker
 
 ```bash
-docker compose --env-file .env.dev up -d --build --force-recreate api worker web
+docker compose --env-file .env.dev up -d --build --force-recreate api worker wdk-mcp web
 docker compose exec api uv run pytest src/pathfinder/tests/ -v
 ```
 
@@ -111,7 +123,7 @@ Three checks enforce structure beyond linting.
 
 **File size cap.** `apps/api/scripts/check_max_lines.py` fails when a Python
 source file under `apps/api/src/pathfinder` or
-`packages/assistant-core/src/assistant_core` exceeds 400 meaningful lines,
+`assistant-platform/packages/assistant-core/src/assistant_core` exceeds 400 meaningful lines,
 counting neither blanks nor comments. Devtools and two declared pure-model
 modules are exempt; the exemption set is in the script. Tests obey the cap:
 `src/pathfinder/tests/.max-lines-baseline.txt` ratchets the files that were

@@ -12,7 +12,6 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.memory.schemas import MemoryValue
@@ -21,13 +20,14 @@ from assistant_core.persistence.models import (
     Conversation,
     ConversationEvent,
 )
+from assistant_core.platform import db
 from langgraph.runtime import Runtime
 from sqlalchemy import select, text
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph import _lead_turn
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import (
     BackgroundTask,
     ConversationStrategy,
@@ -79,7 +79,7 @@ async def _langgraph_checkpoint_tables(
 @pytest.fixture(autouse=True)
 async def _truncate_langgraph_tables() -> AsyncIterator[None]:
     yield
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await session.execute(
             text(
                 "TRUNCATE TABLE checkpoints, checkpoint_blobs, "
@@ -95,7 +95,7 @@ async def _fork(
     from_message_id: UUID,
     user_id: UUID,
 ) -> UUID:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         fork = await fork_conversation(
             session,
             source_conversation_id=source_conversation_id,
@@ -107,7 +107,7 @@ async def _fork(
 
 
 async def _strategy_of(conversation_id: UUID) -> ConversationStrategy | None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         return await session.get(ConversationStrategy, conversation_id)
 
 
@@ -266,7 +266,7 @@ async def test_f4_a_branch_of_a_branch_obeys_f1_to_f3_against_its_own_parent(
     assert child_steps.isdisjoint(step_ids_of(parent.strategy_ast).values())
     assert child_steps.isdisjoint(step_ids_of(grandparent.strategy_ast).values())
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         branch_row = await session.get(Conversation, second)
         assert branch_row is not None
         assert branch_row.parent_conversation_id == first
@@ -286,7 +286,7 @@ async def test_f5_every_id_in_a_branch_is_the_branch_s_own(
     user_id = await seed_user()
     thread = await four_turn_thread(user_id)
     task_id = uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             BackgroundTask(
                 id=task_id,
@@ -315,7 +315,7 @@ async def test_f5_every_id_in_a_branch_is_the_branch_s_own(
 
     parent_message_ids = set(await message_ids(thread.conversation_id))
     fork_message_ids = set(await message_ids(fork_id))
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         rows = (
             (
                 await session.execute(
@@ -530,7 +530,7 @@ async def test_f7_a_study_service_refusal_leaves_the_branch_unbound(
 
 async def _seed_gene_set_and_experiment(user_id: UUID) -> tuple[str, str]:
     gene_set_id, experiment_id = str(uuid4())[:50], str(uuid4())[:50]
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             GeneSetRow(
                 id=gene_set_id,
@@ -562,7 +562,7 @@ async def _link_library_rows(
     gene_set_id: str,
     experiment_id: str,
 ) -> None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         row = await session.get(ConversationStrategy, conversation_id)
         assert row is not None
         row.gene_set_id = gene_set_id
@@ -605,7 +605,7 @@ async def test_f8_a_branch_owns_its_gene_set_and_keeps_reading_the_experiment(
     assert parent.gene_set_id == gene_set_id
     assert parent.gene_set_auto_imported is True
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         gene_set = await session.get(GeneSetRow, gene_set_id)
         assert gene_set is not None
         assert gene_set.wdk_strategy_id == SOURCE_WDK_STRATEGY_ID
@@ -641,7 +641,7 @@ def _context(user_id: UUID, memory_store: Any) -> Context:
         site_id="plasmodb",
         user_id=user_id,
         strategy_session=StrategySession(site_id="plasmodb"),
-        db_session_factory=session_module.async_session_factory,
+        db_session_factory=db.async_session_factory,
         web_search_service=WebSearchService(),
         literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),

@@ -15,7 +15,7 @@ program's plan, and a batch closed only when its module passed unmodified.
 Both programs are finished, and the four suites are deleted:
 
 - `apps/web/src/acceptance/**` and `apps/web/vitest.acceptance.config.ts`
-- `packages/assistant-client-ts/tests/acceptance/**`, its acceptance vitest
+- `assistant-platform/packages/assistant-client-ts/tests/acceptance/**`, its acceptance vitest
   config and its `test:acceptance` script
 - `apps/web/e2e/acceptance/**` and the `eda-acceptance` / `thread-acceptance`
   playwright projects

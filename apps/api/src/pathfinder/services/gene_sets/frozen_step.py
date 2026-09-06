@@ -11,15 +11,14 @@ from __future__ import annotations
 import hashlib
 
 from cachetools import LRUCache
-
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
-from pathfinder.integrations.veupathdb.value_decoding import encode_params
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk.value_decoding import encode_params
+from veupathdb.wdk.wdk_models import (
     NewStepSpec,
     WDKSearchConfig,
     WDKStepTree,
 )
-from pathfinder.services.gene_sets.wdk_helpers import (
+from veupathdb_mcp.wdk.gene_set_steps import (
     build_enrichment_params_from_gene_ids,
 )
 

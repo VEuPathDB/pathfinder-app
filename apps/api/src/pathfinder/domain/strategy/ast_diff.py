@@ -8,11 +8,10 @@ one of them was added or removed.
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
-
-from pathfinder.domain.parameters.value_codec import to_wire
-from pathfinder.domain.strategy.ast import StrategyStepNode
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.domain.strategy.tree import walk
+from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import walk
 
 __all__ = [
     "ParamChange",

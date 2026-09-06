@@ -94,20 +94,26 @@ vi.mock("@/state/useSessionStore", () => ({
   useSessionStore: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({ selectedSite: "plasmodb" }),
 }));
+const activeGeneSet: {
+  id: string;
+  siteId: string;
+  recordType: string;
+  searchName: string | null;
+  parameters: Record<string, never> | null;
+  name: string;
+  geneIds: string[];
+} = {
+  id: "set-1",
+  siteId: "plasmodb",
+  recordType: "transcript",
+  searchName: "GenesByTaxon",
+  parameters: {},
+  name: "My Set",
+  geneIds: ["PF3D7_0100100", "PF3D7_0200200"],
+};
+
 vi.mock("@/features/workbench/hooks/useGeneSetsQuery", () => ({
-  useGeneSetsQuery: () => ({
-    data: [
-      {
-        id: "set-1",
-        siteId: "plasmodb",
-        recordType: "transcript",
-        searchName: "GenesByTaxon",
-        parameters: {},
-        name: "My Set",
-        geneIds: ["PF3D7_0100100", "PF3D7_0200200"],
-      },
-    ],
-  }),
+  useGeneSetsQuery: () => ({ data: [activeGeneSet] }),
 }));
 vi.mock("@tanstack/react-query", async (importActual) => ({
   ...(await importActual<Record<string, unknown>>()),
@@ -175,6 +181,50 @@ describe("EvaluatePanel", () => {
     };
     expect(sentConfig.positiveControls).toEqual(["PF3D7_0709000", "PF3D7_1133400"]);
     expect(sentConfig.searchName).toBe("GenesByTaxon");
+  });
+
+  it("sends a wire-valid fold count when cross-validation is off", async () => {
+    createExperimentStream.mockReturnValue(completeStream());
+    render(
+      <TooltipProvider>
+        <EvaluatePanel />
+      </TooltipProvider>,
+    );
+
+    await userEvent.click(screen.getByText(/Run evaluation/i));
+
+    // CreateExperimentRequest.kFolds is 2..10; enableCrossValidation is the
+    // switch, so an "off" run still carries the panel's fold count.
+    const sentConfig = createExperimentStream.mock.calls[0]?.[0] as {
+      enableCrossValidation: boolean;
+      kFolds: number;
+      targetGeneIds: string[] | undefined;
+    };
+    expect(sentConfig.enableCrossValidation).toBe(false);
+    expect(sentConfig.kFolds).toBe(5);
+    expect(sentConfig.targetGeneIds).toBeUndefined();
+  });
+
+  it("evaluates a pasted set by its gene ids instead of an empty search", async () => {
+    activeGeneSet.searchName = null;
+    activeGeneSet.parameters = null;
+    createExperimentStream.mockReturnValue(completeStream());
+    render(
+      <TooltipProvider>
+        <EvaluatePanel />
+      </TooltipProvider>,
+    );
+
+    await userEvent.click(screen.getByText(/Run evaluation/i));
+
+    // A pasted set has no search to re-run; the wire's gene-set mode takes
+    // targetGeneIds and the backend makes no WDK step for it.
+    const sentConfig = createExperimentStream.mock.calls[0]?.[0] as {
+      targetGeneIds: string[] | undefined;
+    };
+    expect(sentConfig.targetGeneIds).toEqual(["PF3D7_0100100", "PF3D7_0200200"]);
+    activeGeneSet.searchName = "GenesByTaxon";
+    activeGeneSet.parameters = {};
   });
 
   it("surfaces a streamed experiment error", async () => {

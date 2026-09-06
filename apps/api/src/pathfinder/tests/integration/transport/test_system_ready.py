@@ -2,7 +2,7 @@ from collections.abc import AsyncIterator
 
 import httpx
 import pytest
-from assistant_core.platform import db as session_module
+from assistant_core.platform import db
 from sqlalchemy import text
 
 from pathfinder.platform.health import worker_is_alive
@@ -15,13 +15,13 @@ from pathfinder.transport.http.routers import health
 
 
 async def _clear_workers() -> None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await session.execute(text("DELETE FROM procrastinate_workers"))
         await session.commit()
 
 
 async def _insert_worker_heartbeat(*, age_seconds: float) -> None:
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await session.execute(
             text(
                 "INSERT INTO procrastinate_workers (last_heartbeat) "
@@ -48,7 +48,7 @@ async def test_worker_is_alive_true_for_fresh_heartbeat(
     del patch_app_db_engine, db_cleaner
     await _clear_workers()
     await _insert_worker_heartbeat(age_seconds=5)
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         assert await worker_is_alive(session) is True
     await _clear_workers()
 
@@ -60,7 +60,7 @@ async def test_worker_is_alive_false_for_stale_heartbeat(
     del patch_app_db_engine, db_cleaner
     await _clear_workers()
     await _insert_worker_heartbeat(age_seconds=120)
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         assert await worker_is_alive(session) is False
     await _clear_workers()
 
@@ -71,7 +71,7 @@ async def test_worker_is_alive_false_when_no_workers(
 ) -> None:
     del patch_app_db_engine, db_cleaner
     await _clear_workers()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         assert await worker_is_alive(session) is False
 
 

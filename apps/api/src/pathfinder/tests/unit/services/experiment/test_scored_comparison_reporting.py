@@ -12,13 +12,13 @@ from typing import Any
 
 import pytest
 from pydantic import ValidationError as PydanticValidationError
-
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.wdk.wdk_models import (
     WDKAnswer,
     WDKAnswerMeta,
     WDKRecordInstance,
     WDKSearchConfig,
 )
+
 from pathfinder.services.experiment import scored_comparison
 from pathfinder.services.experiment.metrics import (
     compute_confusion_matrix,

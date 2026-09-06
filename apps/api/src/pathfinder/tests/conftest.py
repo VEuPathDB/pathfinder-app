@@ -37,18 +37,17 @@ os.environ.setdefault("OPENAI_API_KEY", "")
 os.environ.setdefault("ANTHROPIC_API_KEY", "")
 os.environ.setdefault("GEMINI_API_KEY", "")
 
-import assistant_core.platform.db as session_module
+import assistant_core.embeddings.embedder
 import httpx
 import procrastinate
 import psycopg
 import pydantic_ai.models
 import pytest
 import structlog
+import veupathdb_mcp.embeddings.embedder
 from assistant_core.conversation.checkpointer import to_psycopg_url
-from assistant_core.embeddings import embedder
-from assistant_core.embeddings.embedder import get_embedder
-from assistant_core.embeddings.fake import FakeEmbedder
 from assistant_core.persistence.models import Base
+from assistant_core.platform import db
 from assistant_core.spec import AssistantSpec
 from fastapi import Depends, FastAPI
 from procrastinate.testing import InMemoryConnector
@@ -61,14 +60,22 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 from testcontainers.postgres import PostgresContainer
+from veupathdb.eda.factory import close_all_eda_clients
+from veupathdb.testing.wdk_credentials import (
+    NO_CREDENTIALS_REASON,
+    registered_wdk_token,
+)
+from veupathdb.wdk import auth_login
+from veupathdb.wdk.site_router import get_site_router
+from veupathdb_mcp.embeddings.db import use_embedding_session_factory
+from veupathdb_mcp.embeddings.embedder import get_embedder
+from veupathdb_mcp.embeddings.fake import FakeEmbedder
+from veupathdb_mcp.embeddings.tables import EmbeddingBase
 
 from pathfinder.ai.capabilities.security import warm_up_scanner
 from pathfinder.ai.conversation.assistant_routing import resolve_turn_assistant
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.registry import get_assistant_registry
-from pathfinder.integrations.eda.factory import close_all_eda_clients
-from pathfinder.integrations.veupathdb import auth_login
-from pathfinder.integrations.veupathdb.site_router import get_site_router
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.tasks import ensure_registered
 from pathfinder.main import create_app
@@ -78,10 +85,6 @@ from pathfinder.platform.security import create_user_token, limiter
 from pathfinder.services import wdk_identity
 from pathfinder.services.eda import catalog
 from pathfinder.tests._support.database import can_connect
-from pathfinder.tests._support.wdk_credentials import (
-    NO_CREDENTIALS_REASON,
-    registered_wdk_token,
-)
 from pathfinder.transport.http.deps import (
     get_current_user_with_db_row,
     require_registered_wdk_identity,
@@ -204,6 +207,7 @@ async def db_engine(
     async with engine.begin() as conn:
         await conn.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS vector")
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(EmbeddingBase.metadata.create_all)
 
     _apply_procrastinate_schema_sync(database_url)
 
@@ -232,8 +236,9 @@ def patch_app_db_engine(
     The job connector is built at import time, which can happen before the
     test database is known, so this rebuilds it.
     """
-    session_module._engine = db_engine
-    session_module._session_factory_instance = session_maker
+    db._engine = db_engine
+    db._session_factory_instance = session_maker
+    use_embedding_session_factory(db.async_session_factory)
 
     get_settings.cache_clear()
     test_connector = procrastinate.PsycopgConnector(
@@ -241,25 +246,6 @@ def patch_app_db_engine(
     )
     procrastinate_app.connector = test_connector
     procrastinate_app.job_manager.connector = test_connector
-
-
-@pytest.fixture
-async def embedding_index_cleaner(db_engine: AsyncEngine) -> AsyncGenerator[None]:
-    """Empty the shared vector store around a test that asserts on it.
-
-    The two tables are a content-addressed cache, so ``db_cleaner`` leaves
-    them: a test that re-embeds a whole catalog for every case is a slow test.
-    """
-    await _truncate_embedding_index(db_engine)
-    yield
-    await _truncate_embedding_index(db_engine)
-
-
-async def _truncate_embedding_index(db_engine: AsyncEngine) -> None:
-    async with db_engine.begin() as conn:
-        await conn.exec_driver_sql(
-            "TRUNCATE TABLE embedding_index_entries, embedding_vectors",
-        )
 
 
 @pytest.fixture(autouse=True)
@@ -279,11 +265,13 @@ def _restored_logger_config() -> Generator[None]:
 @pytest.fixture(autouse=True)
 def fake_embedder() -> Generator[FakeEmbedder]:
     """A fresh deterministic embedder, so one test never reads another's calls."""
-    embedder._holder.instance = None
+    assistant_core.embeddings.embedder._holder.instance = None
+    veupathdb_mcp.embeddings.embedder._holder.instance = None
     built = get_embedder()
     assert isinstance(built, FakeEmbedder)
     yield built
-    embedder._holder.instance = None
+    assistant_core.embeddings.embedder._holder.instance = None
+    veupathdb_mcp.embeddings.embedder._holder.instance = None
 
 
 @pytest.fixture
@@ -383,7 +371,7 @@ async def authed_user_id(
     """
     del patch_app_db_engine, db_cleaner
     user_id = uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         await session.commit()
     return user_id
@@ -505,7 +493,7 @@ async def _close_wdk_clients_after_test() -> AsyncGenerator[None]:
 
     Both are process-wide caches, so a test must not inherit them.
     """
-    from pathfinder.integrations.veupathdb.discovery_service import (  # noqa: PLC0415
+    from veupathdb_mcp.catalog.discovery_service import (  # noqa: PLC0415
         _discovery_holder,
     )
 

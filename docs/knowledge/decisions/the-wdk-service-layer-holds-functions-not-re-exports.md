@@ -10,8 +10,8 @@ status: stable
 
 # What was found
 
-`services/wdk/__init__.py` was seventy lines of `from
-pathfinder.integrations.veupathdb... import ...` plus a twenty-four name
+`veupathdb_mcp/wdk/__init__.py` was seventy lines of `from
+veupathdb.wdk... import ...` plus a twenty-four name
 `__all__`. Its own docstring said why: so that "AI tools and other higher-level
 consumers import from `services.wdk` instead of reaching into
 `integrations.veupathdb` directly".
@@ -29,17 +29,17 @@ reach something they were always allowed to name.
 
 # The decision
 
-The package exports nothing. `services/wdk/__init__.py` is an empty file.
+The package exports nothing. `veupathdb_mcp/wdk/__init__.py` is an empty file.
 
 - **Every caller that may import an integration does.** The service modules and
-  the MCP server name `pathfinder.integrations.veupathdb.factory`,
+  the MCP server name `veupathdb.wdk.factory`,
   `.discovery_service`, `.discovery` and `.wdk_models` directly.
 - **The client handouts became functions with a caller's signature.**
-  `services/wdk/step_results.py::step_results_service` builds the reader for one
+  `veupathdb_mcp/wdk/step_results.py::step_results_service` builds the reader for one
   built step, so a route no longer constructs a `StrategyAPI`.
-  `services/wdk/step_preview.py` owns the two reads a tool renders directly, and
+  `veupathdb_mcp/wdk/step_preview.py` owns the two reads a tool renders directly, and
   the agent tool and the MCP tool now share them.
-  `services/wdk/login.py` owns opening and ending a VEuPathDB session.
+  `veupathdb_mcp/wdk/login.py` owns opening and ending a VEuPathDB session.
 - **A wire scalar that transport needs moved to the domain layer.**
   `WDKSortDirection` is defined in `domain/wdk_values.py`, beside the record-id
   and histogram shapes that were already there for the same reason.
@@ -64,11 +64,10 @@ see that four modules and one type are the whole debt.
 
 # Anchor
 
-`apps/api/pyproject.toml` holds the contract and its four ignored edges.
-`apps/api/src/pathfinder/tests/unit/services/wdk/test_no_integration_facade.py`
-reads every module under `ai/` and `transport/` off the syntax tree and fails
-any import from `pathfinder.integrations` that is not `WDKSearch` from
-`wdk_models`, and fails a `services/wdk/__init__.py` that holds anything at all.
-The contract cannot see a symbol; that test can, so the exception cannot grow
-into a client. Done when the wire models live in `domain/`, the four lines leave
-the contract, and the test's allowed set is empty.
+The contract, its four ignored edges and the test that read the syntax tree are
+all gone, and not because the debt was paid: the modules they policed became two
+sibling distributions. `veupathdb.wdk.wdk_models` and `veupathdb_mcp.wdk` are
+third-party names from this application's point of view, so there is no
+integration layer left to except from and no facade left to forbid. What the
+decision below still holds is the shape it chose - a caller gets a function with
+its own signature, not a re-exported client - and that shape is what moved.

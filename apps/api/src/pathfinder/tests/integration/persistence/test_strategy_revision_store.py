@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-import assistant_core.platform.db as session_module
 from assistant_core.persistence.models import Conversation, Message
+from assistant_core.platform import db
 
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.persistence.models import User
@@ -23,7 +23,7 @@ from pathfinder.tests.integration.persistence._strategy_shapes import (
 
 async def _seed_thread() -> tuple[UUID, UUID]:
     user_id, conversation_id = uuid4(), uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
         session.add(
@@ -44,7 +44,7 @@ async def _write_strategy(conversation_id: UUID, ast_step_ids: dict[str, int]) -
         if len(ast_step_ids) == 3
         else four_step_ast(dict(ast_step_ids))
     )
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await ConversationRepository(session).update_conversation(
             conversation_id,
             ConversationUpdate(
@@ -60,7 +60,7 @@ async def _write_strategy(conversation_id: UUID, ast_step_ids: dict[str, int]) -
 
 async def _add_message(conversation_id: UUID, role: str) -> UUID:
     message_id = uuid4()
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         session.add(
             Message(id=message_id, conversation_id=conversation_id, role=role),
         )
@@ -83,7 +83,7 @@ async def test_every_strategy_write_appends_a_snapshot(
         {"orthologs": 16, "combine": 15, "protease": 13, "gameto": 14},
     )
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         repo = StrategyRevisionRepository(session)
         latest = await repo.latest(conversation_id)
         assert latest is not None
@@ -107,10 +107,10 @@ async def test_a_repeat_write_of_the_same_state_appends_nothing(
     ids = {"combine": 15, "protease": 13, "gameto": 14}
 
     await _write_strategy(conversation_id, ids)
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         first = await StrategyRevisionRepository(session).latest(conversation_id)
     await _write_strategy(conversation_id, ids)
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         second = await StrategyRevisionRepository(session).latest(conversation_id)
 
     assert first is not None
@@ -136,7 +136,7 @@ async def test_a_message_resolves_to_the_snapshot_in_force_when_it_was_written(
     )
     turn_four = await _add_message(conversation_id, "assistant")
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         for message_id, expected in ((turn_two, 3), (turn_four, 4)):
             message = await session.get(Message, message_id)
             assert message is not None
@@ -155,11 +155,11 @@ async def test_clearing_the_strategy_appends_an_empty_snapshot(
         conversation_id, {"combine": 15, "protease": 13, "gameto": 14}
     )
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         await ConversationRepository(session).clear_strategy(conversation_id)
         await session.commit()
 
-    async with session_module.async_session_factory() as session:
+    async with db.async_session_factory() as session:
         latest = await StrategyRevisionRepository(session).latest(conversation_id)
         assert latest is not None
         assert latest.revision == ""

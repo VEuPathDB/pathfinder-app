@@ -22,8 +22,8 @@ PILOT = site_help.__name__
 REACHED = {
     "pathfinder.platform.config",
     "pathfinder.platform.tool_sources",
-    "pathfinder.services.catalog.searches",
-    "pathfinder.services.catalog.sites",
+    "veupathdb_mcp.catalog.searches",
+    "veupathdb_mcp.catalog.sites",
     "pathfinder.services.quota",
 }
 
@@ -38,7 +38,7 @@ def _pilot_modules() -> list[ModuleType]:
     ]
 
 
-def _pathfinder_imports(module: ModuleType) -> set[str]:
+def _host_imports(module: ModuleType) -> set[str]:
     path = module.__file__
     assert path is not None
     names: set[str] = set()
@@ -50,7 +50,8 @@ def _pathfinder_imports(module: ModuleType) -> set[str]:
     return {
         name
         for name in names
-        if name.startswith("pathfinder") and not name.startswith(f"{PILOT}.")
+        if name.startswith(("pathfinder", "veupathdb_mcp"))
+        and not name.startswith(f"{PILOT}.")
     }
 
 
@@ -58,12 +59,10 @@ def _pathfinder_imports(module: ModuleType) -> set[str]:
 def test_no_pilot_module_imports_pathfinder_s_orchestration(
     module: ModuleType,
 ) -> None:
-    assert not any(
-        name.startswith("pathfinder.ai") for name in _pathfinder_imports(module)
-    )
+    assert not any(name.startswith("pathfinder.ai") for name in _host_imports(module))
 
 
 def test_the_surface_the_pilot_reaches_has_not_grown() -> None:
-    reached = {name for m in _pilot_modules() for name in _pathfinder_imports(m)}
+    reached = {name for m in _pilot_modules() for name in _host_imports(m)}
 
     assert reached == REACHED

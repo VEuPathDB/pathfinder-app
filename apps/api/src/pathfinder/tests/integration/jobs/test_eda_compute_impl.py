@@ -9,13 +9,13 @@ from uuid import uuid4
 
 import pytest
 from assistant_core.platform.db import async_session_factory
+from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph.runtime import Context
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.jobs.impls import eda_compute_impl
 from pathfinder.jobs.impls.eda_compute_impl import run_eda_compute_impl
 from pathfinder.jobs.progress import TaskProgressEmitter
-from pathfinder.platform.context import veupathdb_auth_token_ctx
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.tests.integration.jobs import _eda_wire

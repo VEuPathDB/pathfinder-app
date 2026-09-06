@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import ConversationStrategy, GeneSetRow, User
 from pathfinder.platform.security import create_user_token
-from pathfinder.services import user_data as user_data_service
+from pathfinder.services import user_data
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.tests.integration.http.conftest import (
@@ -48,7 +48,7 @@ class _FakeStrategyApi:
 @pytest.fixture
 def wdk_api(monkeypatch: pytest.MonkeyPatch) -> _FakeStrategyApi:
     api = _FakeStrategyApi()
-    monkeypatch.setattr(user_data_service, "get_strategy_api", lambda _site: api)
+    monkeypatch.setattr(user_data, "get_strategy_api", lambda _site: api)
     return api
 
 

@@ -13,12 +13,12 @@ from collections.abc import Sequence
 from uuid import uuid4
 
 import pytest
+from veupathdb.errors import ValidationError
+from veupathdb_mcp.wdk.gene_set_steps import GeneSetWdkContext
 
-from pathfinder.platform.errors import ValidationError
-from pathfinder.services.gene_sets import operations as ops
+from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import GeneSetStore
-from pathfinder.services.gene_sets.wdk_helpers import GeneSetWdkContext
 
 
 def _stub_resolve(
@@ -36,7 +36,7 @@ def _stub_resolve(
             return list(gene_ids), ctx, 1
         return resolved, ctx, 1
 
-    monkeypatch.setattr(ops, "resolve_wdk_context", _fake)
+    monkeypatch.setattr(operations, "resolve_wdk_context", _fake)
 
 
 async def test_creating_an_empty_gene_set_is_rejected(

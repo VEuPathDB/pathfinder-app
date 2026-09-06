@@ -16,23 +16,15 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from pydantic_ai.exceptions import ModelRetry
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
-from pathfinder.ai.graph.runtime import AgentDeps, Context
-from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead import edit_dispatch, frame_dispatch
-from pathfinder.ai.lead.deltas import EditDelta, FrameResult
-from pathfinder.ai.lead.edit_dispatch import run_edit
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.parameters.values import MultiPickValue, NumberValue
-from pathfinder.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from pathfinder.domain.strategy.graph_model import flatten_tree
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.domain.strategy.ops import CombineOp
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.spec_diff import CriterionChange
-from pathfinder.domain.strategy.spec_hydration import spec_from_ast
-from pathfinder.domain.strategy.strategy_ast import StrategyAst
-from pathfinder.integrations.veupathdb.wdk_models import (
+from veupathdb.domain.parameters.values import MultiPickValue, NumberValue
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
+from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.operational_spec import OperationalSpec
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.domain.strategy.spec_diff import CriterionChange
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.wdk.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
     PatchStepSpec,
@@ -42,12 +34,18 @@ from pathfinder.integrations.veupathdb.wdk_models import (
     WDKStepTree,
     WDKStrategyDetails,
 )
+
+from pathfinder.ai.graph.runtime import AgentDeps, Context
+from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
+from pathfinder.ai.lead import edit_dispatch, frame_dispatch
+from pathfinder.ai.lead.deltas import EditDelta, FrameResult
+from pathfinder.ai.lead.edit_dispatch import run_edit
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
-from pathfinder.services.strategies import commit as commit_module
-from pathfinder.services.strategies import live_counts, step_wdk_push
-from pathfinder.services.strategies import sync as sync_module
+from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 WDK_IDS = {"step_text": 100, "step_go": 200, "step_join": 300}
@@ -182,7 +180,7 @@ class _RecordingAPI:
 @pytest.fixture
 def stub_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     api = _RecordingAPI()
-    for module in (commit_module, step_wdk_push, sync_module, live_counts):
+    for module in (commit, step_wdk_push, sync, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
     async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
@@ -193,7 +191,7 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
         return None
 
-    monkeypatch.setattr(commit_module, "reconcile_sync_state_with_wdk", _noop_reconcile)
+    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
     monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _chunk: None)
     return api
 
@@ -407,7 +405,7 @@ async def test_edit_does_not_re_put_the_step_tree_when_topology_is_unchanged(
         del kwargs
         calls.append("sync")
 
-    monkeypatch.setattr(commit_module, "sync_strategy_for_site", _record_sync)
+    monkeypatch.setattr(commit, "sync_strategy_for_site", _record_sync)
     conv_id = await _seed(db_session, seed_user)
     deps = _deps(conv_id, session_maker)
     _stub_frame(monkeypatch, _organism_swap(_before()), _SWAP_CHANGES)

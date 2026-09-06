@@ -4,14 +4,14 @@ emit, the refusals they raise, and the Lead surface that reaches them."""
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.lead.lead_agent import build_lead_agent
-from pathfinder.ai.tools.standalone import scored_comparison as tool_mod
+from pathfinder.ai.tools.standalone import scored_comparison
 from pathfinder.ai.tools.standalone._variant_targets import reject_combine_variants
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
@@ -41,9 +41,11 @@ def _pin_control_set(
     control_set = MagicMock()
     control_set.positive_ids = positive_ids
     control_set.negative_ids = negative_ids
-    service = MagicMock()
-    service.get = AsyncMock(return_value=control_set)
-    monkeypatch.setattr(tool_mod, "ControlSetService", lambda _s: service)
+
+    async def _get(_session: Any, _control_set_id: Any, _user_id: Any) -> Any:
+        return control_set
+
+    monkeypatch.setattr(scored_comparison, "get_control_set", _get)
 
 
 def _pin_comparison(
@@ -58,7 +60,7 @@ def _pin_comparison(
         captured.update(kwargs)
         return comparison
 
-    monkeypatch.setattr(tool_mod, "run_scored_comparison", _run)
+    monkeypatch.setattr(scored_comparison, "run_scored_comparison", _run)
     return captured
 
 
@@ -94,7 +96,7 @@ async def test_it_emits_the_scored_card_and_the_summary(
 
 
 async def test_it_refuses_a_single_variant(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(tool_mod, "ControlSetService", lambda _s: MagicMock())
+    _pin_control_set(monkeypatch, positive_ids=["g1"], negative_ids=[])
 
     with pytest.raises(ModelRetry, match="at least 2"):
         await compare_variants_scored(

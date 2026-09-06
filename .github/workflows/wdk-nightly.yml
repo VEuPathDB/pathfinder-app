@@ -72,7 +72,7 @@ jobs:
               "",
               "The `wdk-live-summary` artifact names every measurement and the drift list.",
               "A confirmed drift is answered by re-recording the pinned fixtures:",
-              "`cd apps/api && uv run python -m pathfinder.devtools.wdk_fixtures record`.",
+              "`cd apps/api && uv run python -m veupathdb.devtools.fixtures record`.",
             ].join("\n");
             const existing = await github.rest.issues.listForRepo({
               owner: context.repo.owner,

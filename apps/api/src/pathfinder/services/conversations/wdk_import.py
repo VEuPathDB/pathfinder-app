@@ -4,17 +4,12 @@ from uuid import UUID
 
 from assistant_core.platform.logging import get_logger
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.errors import ValidationError, VEuPathDBError, WDKError
+from veupathdb.wdk.factory import get_strategy_api
 
 from pathfinder.domain.conversation import DEFAULT_STREAM_NAME
-from pathfinder.integrations.veupathdb.factory import get_strategy_api
 from pathfinder.persistence.repositories import ConversationRepository
-from pathfinder.platform.errors import (
-    AppError,
-    ErrorCode,
-    NotFoundError,
-    ValidationError,
-    WDKError,
-)
+from pathfinder.platform.errors import AppError, ErrorCode, NotFoundError
 from pathfinder.services.conversations.authz import owned_by_caller
 from pathfinder.services.strategies.wdk_sync import sync_to_chat
 
@@ -84,7 +79,7 @@ async def open_strategy(
             conv_repo=conv_repo,
             user_id=user_id,
         )
-    except AppError:
+    except AppError, VEuPathDBError:
         logger.exception("WDK fetch failed")
         raise
     except Exception as e:
