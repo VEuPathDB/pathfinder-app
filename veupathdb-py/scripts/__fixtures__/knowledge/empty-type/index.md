@@ -1,3 +1,0 @@
-# Bundle
-
-- [Typeless](typeless.md)

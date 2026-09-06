@@ -2,6 +2,46 @@
 
 ## 2026-09-06
 
+* **The api's live lane keeps its catalog snapshots out of the tree, and asserts the client's refusal.**
+  `tests/conftest.py` sets `CATALOG_CACHE_DIR` to a temporary directory for the session, because
+  the MCP distribution's default is the cwd-relative `data/catalogs` and a live discovery wrote a
+  7.7 MB `apps/api/data/catalogs/plasmodb.json` into the source tree under no ignore rule; the
+  unit test `test_catalog_cache_dir_is_outside_the_tree.py` holds the invariant. The two live tests
+  that expected PathFinder's `AppError` from `veupathdb_mcp` functions now expect `WDKError` with
+  the status WDK returned (404 for an unknown search, 422 for a bad parameter): the MCP
+  distribution cannot raise an exception of this app, so the nightly lane failed on both since
+  the MCP split.
+
+* **The three folders left the repository, so the four repositories are the cut-over.**
+  `veupathdb-py/`, `veupathdb-mcp/` and `assistant-platform/` are deleted here; the
+  repositories `VEuPathDB/ai-veupathdb-client`, `VEuPathDB/ai-wdk-mcp` and
+  `VEuPathDB/ai-assistant-platform` are the only copy. The platform pins moved to the
+  commit that carries `assistant_core/PROTOCOL.md`, so the six `test_request_body.py`
+  cases that read the document from a sibling folder are green from the installed
+  distribution and the api unit suite is 3236 passed, 0 failed. Every path that named a
+  folder was already gone; what remained and stayed is the bundle's citation form
+  (`assistant-platform: packages/assistant-core/...`), the dated entries above, and the
+  two `subdirectory` values in `[tool.uv.sources]`, which name a path inside the platform
+  repository and not a folder here.
+
+  Four claims the split had invalidated were corrected with it: `apps/web` compiles the
+  packed `dist` and holds no `tsconfig` path or vitest alias into the client's source
+  (`the-client-is-a-package-with-three-rings.md`, `conventions/verification-gates.md`);
+  `PROTOCOL.md` is package data of the runtime and not the grouping's root
+  (`the-assistant-platform-is-a-grouping.md`); the three distributions are consumed by
+  URL and not as editable path dependencies (the three distribution decisions, the last
+  of which gained the `Publishing` section the other two already had); and
+  `[tool.uv] override-dependencies` no longer exists, because the pinned MCP commit names
+  the client by the same URL and the same `rev`. `docs/DEVELOPMENT.md` said seven layer
+  contracts where `lint-imports` reports five, and put a sibling clone inside this
+  repository. The root README named `WDK_MCP_REV` in neither its fail-closed list nor
+  its e2e recipe, and `docker-compose.yml` demands it with `${WDK_MCP_REV:?}`, so both
+  documented bring-ups aborted before they built anything; both name it now.
+
+  The e2e CI job prints the stack's logs on failure per service (`--no-color api worker
+  web db`) over the same overlay set its bring-up names, because the first full-stack run
+  reported `container api exited (3)` and nothing else.
+
 * **PathFinder consumes the three libraries by URL at a commit, and copies none of them.**
   `apps/api/pyproject.toml` names `veupathdb-py`, `veupathdb-mcp`, `assistant-core` and
   `veupathdb-mcp-conformance` by repository and a 40-character `rev`; `apps/web/package.json`

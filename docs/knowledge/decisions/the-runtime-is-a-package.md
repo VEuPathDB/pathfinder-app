@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The runtime is a package, so the boundary is an installation fact
-description: assistant_core moved out of apps/api into assistant-platform: packages/assistant-core with its own pyproject, lock, tests and CI lane, consumed as an editable path dependency; import-linter contract 7 was replaced by the package's dependency list plus its own boundary suite. Keeping the runtime in-repo behind import contracts only was rejected, because the program owner ruled the boundary must be observable and real.
+description: assistant_core moved out of apps/api into assistant-platform: packages/assistant-core with its own pyproject, lock, tests and CI lane, consumed by repository URL at a commit; import-linter contract 7 was replaced by the package's dependency list plus its own boundary suite. Keeping the runtime in-repo behind import contracts only was rejected, because the program owner ruled the boundary must be observable and real.
 tags: [assistant-core, ws-v, architecture, packaging, import-linter, persistence]
 generated: { by: claude-code/opus-5, at: 2026-08-22T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-22T00:00:00Z }
@@ -12,8 +12,8 @@ status: stable
 
 The assistant runtime is `assistant-platform: packages/assistant-core`: its own `pyproject.toml`,
 its own lock file, a `src/assistant_core` layout importable with no
-`pathfinder.` prefix, its own test tree, and `apps/api` consuming it as an
-editable path dependency. A module under
+`pathfinder.` prefix, its own test tree, and `apps/api` consuming it as a
+dependency it installs. A module under
 `assistant_core/` cannot import `pathfinder` because the distribution it
 belongs to does not depend on it. The boundary stopped being a rule a linter
 applies and became a fact about what is installed.
@@ -113,6 +113,12 @@ carry its weight:
    wiring. It is direct-only, like the six layer contracts, because the chat
    dispatcher still reaches the registry through the job runner - the
    turn-pipeline seam WS3 named and did not close.
+
+# Publishing
+
+Done. The runtime is `VEuPathDB/ai-assistant-platform`, `packages/assistant-core`;
+`apps/api` names it by URL at a commit. See
+[the libraries are consumed by URL](the-libraries-are-consumed-by-git-url.md).
 
 # What would falsify this
 

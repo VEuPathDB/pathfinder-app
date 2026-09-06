@@ -3,10 +3,9 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.parameters.wdk_vocab import vocab_keys
 from veupathdb.domain.search import SearchContext
+from veupathdb.errors import WDKError
 from veupathdb.wdk.wdk_parameters import WDKEnumParam
 from veupathdb_mcp.catalog.discovery_service import get_discovery_service
-
-from pathfinder.platform.errors import AppError
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 
@@ -62,5 +61,6 @@ async def test_unknown_search_raises(wdk_session: None) -> None:
     ctx = SearchContext(
         site_id="plasmodb", record_type="transcript", search_name="NotARealSearch"
     )
-    with pytest.raises(AppError):
+    with pytest.raises(WDKError) as refusal:
         await get_discovery_service().get_search_details(ctx, expand_params=True)
+    assert refusal.value.status == 404

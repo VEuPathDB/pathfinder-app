@@ -137,6 +137,7 @@ The base profile is intentionally fail-closed. PathFinder will not boot until yo
 - `DATABASE_URL`
 - `NEXT_PUBLIC_API_URL`
 - `PATHFINDER_CHAT_PROVIDER=default`
+- `WDK_MCP_REV`, the commit of [ai-wdk-mcp](https://github.com/VEuPathDB/ai-wdk-mcp) the `wdk-mcp` image builds from
 - a real model backend (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `OLLAMA_BASE_URL`)
 
 Those two files are the only env templates. A direct app run copies one of
@@ -228,10 +229,16 @@ NEXT_PUBLIC_API_URL=http://api:8000
 DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/pathfinder
 DEFAULT_PROVIDER=anthropic
 DEFAULT_TIER=balanced
+WDK_MCP_REV=unused
 EOF
 printf 'API_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env.test
 docker compose --env-file .env.test -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.e2e.yml up -d --build --wait api worker web
 ```
+
+Compose interpolates the whole file, so `WDK_MCP_REV` needs a value even though
+this profile builds `api`, `web` and `worker` only. Put a real commit of
+[ai-wdk-mcp](https://github.com/VEuPathDB/ai-wdk-mcp) there to build the
+`wdk-mcp` image too.
 
 This is the only Docker profile that enables `PATHFINDER_CHAT_PROVIDER=mock`.
 The e2e overlay builds the web container's `runner` target, so port 3000 serves

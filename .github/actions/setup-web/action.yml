@@ -1,5 +1,5 @@
 name: Setup Web
-description: Enable Corepack, set up Node + Yarn cache, install both projects' deps, generate shared types.
+description: Enable Corepack, set up Node + Yarn cache, install dependencies, generate shared types.
 
 inputs:
   node-version:

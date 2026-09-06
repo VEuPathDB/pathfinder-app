@@ -128,7 +128,7 @@ inside the api's environment:
 
 ```bash
 cd apps/api
-uv pip install -e ../../ai-veupathdb-client
+uv pip install -e ../../../ai-veupathdb-client
 ```
 
 The override lasts until the next `uv sync`, which restores the pin. The runtime
@@ -166,7 +166,7 @@ already over it, and a baselined file fails as soon as it grows past its
 recorded count. Run `--write-baseline` only to regenerate the whole list.
 
 **Import linter.** `[tool.importlinter]` in `apps/api/pyproject.toml` holds the
-seven backend layer contracts. `uv run lint-imports` reports which one broke.
+five backend layer contracts. `uv run lint-imports` reports which one broke.
 
 **Boundary checker.** `apps/web/scripts/check-boundaries.mjs` refuses an import
 from one feature into another. Exemptions live in the script.

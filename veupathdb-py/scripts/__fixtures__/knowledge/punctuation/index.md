@@ -1,3 +1,0 @@
-# Bundle
-
-- [Prose](prose.md)

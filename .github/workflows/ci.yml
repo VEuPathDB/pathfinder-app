@@ -306,9 +306,14 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
         run: yarn test:e2e
 
+      # Names the same overlay set the bring-up used, so a stack that dies
+      # before Playwright starts still prints why.
       - name: Stack logs on failure
         if: failure()
-        run: docker compose --env-file .env.test -f docker-compose.yml -f docker-compose.e2e.yml logs --tail=120
+        run: |
+          docker compose --env-file .env.test \
+            -f docker-compose.yml -f docker-compose.e2e.yml \
+            logs --no-color api worker web db
 
       - name: Tear down
         if: always()

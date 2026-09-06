@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The client library is a distribution, so PathFinder cannot reach into it
-description: pathfinder/{veupathdb, integrations/veupathdb, integrations/eda} and the WDK-shaped half of domain/ moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, knowledge bundle and CI lane, consumed as an editable path dependency; import-linter contracts 1 and 4 were deleted and replaced by the package's dependency list plus its own boundary suite. Keeping the client in-repo behind import contracts was rejected, because the owner is publishing the folder as its own GitHub repository.
+description: pathfinder/{veupathdb, integrations/veupathdb, integrations/eda} and the WDK-shaped half of domain/ moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, knowledge bundle and CI lane, consumed by repository URL at a commit; import-linter contracts 1 and 4 were deleted and replaced by the package's dependency list plus its own boundary suite. Keeping the client in-repo behind import contracts was rejected, because the owner is publishing the folder as its own GitHub repository.
 tags: [veupathdb-py, split, architecture, packaging, import-linter, wdk, eda]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -14,7 +14,7 @@ The VEuPathDB client is its own repository: its own `pyproject.toml`, its own lo
 file, a `src/veupathdb` layout importable with no `pathfinder.` prefix, its own
 test tree with a hermetic lane and a live lane, its own README, its own copy of
 the WDK and EDA knowledge bundle with the two check scripts that keep it honest,
-and `apps/api` consuming it as an editable path dependency. This is the shape
+and `apps/api` consuming it as a dependency it installs. This is the shape
 [the runtime is a package](the-runtime-is-a-package.md) already argued for, applied
 to the second unit.
 

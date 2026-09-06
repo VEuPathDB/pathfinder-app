@@ -40,20 +40,19 @@ serves the experiment, sweep and seed routes too, which carry no thread
 events. The conversation and its durable tasks read the core ring only.
 
 **No React, in any ring.** The hook layer, the chat-helpers context and the
-per-task view-model folds stay in `apps/web`. The package is consumed as raw
-TypeScript source through path mappings, the way `@pathfinder/shared` is.
+per-task view-model folds stay in `apps/web`.
 
-**The rings are published from `dist`, and the repository still reads `src`.**
+**The rings are published from `dist`, and every consumer reads them.**
 `tsc -p tsconfig.build.json` emits JavaScript and declarations for the three
 entries into `dist/`; `exports` names `types` and `import` per ring against
 those files, `files` ships `dist` alone, and `prepack` rebuilds so a pack is
-never stale. `apps/web` resolves the package through its own tsconfig `paths` and
-its vitest aliases, both of which name `assistant-platform: packages/assistant-client-ts/src`.
-`exports` therefore governs the packed artifact only: `next build`, `tsc` and
-the app's suite all pass with no `dist` on disk. The build keeps the
-core ring's claim literal: `importHelpers` is off, so the emitted core imports
-nothing but its own relative modules, and a consumer that installs the tarball
-alone gets exactly one package in `node_modules`.
+never stale. `apps/web` installs the package from the platform repository at one
+commit and compiles that packed `dist`, so `exports` governs what the app sees:
+a ring that `exports` does not name is unreachable from the app, not merely
+unpublished. The build keeps the core ring's claim literal: `importHelpers` is
+off, so the emitted core imports nothing but its own relative modules, and a
+consumer that installs the tarball alone gets exactly one package in
+`node_modules`.
 
 # Why
 
@@ -88,5 +87,4 @@ package as callbacks with one caller.
 repository and at `dist` when published.** Rejected: it gives one import two
 meanings, so the app and a host would exercise different files under the same
 specifier, and the conformance suite would then prove nothing about the
-artifact a host installs. The path mappings already resolve the repository's
-own imports, so one honest `exports` map suffices.
+artifact a host installs. One honest `exports` map suffices.

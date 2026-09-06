@@ -57,5 +57,5 @@ services:
   db:
     environment:
       POSTGRES_DB: pathfinder_test
-    ports:
+    ports: !override
       - "5433:5432"

@@ -10,15 +10,14 @@ status: stable
 
 # What was decided
 
-`VEuPathDB/ai-assistant-platform` holds three distributions that already stood alone, plus
-the document that binds two of them:
+`VEuPathDB/ai-assistant-platform` holds three distributions that already stood
+alone, plus the document that binds two of them:
 
 | folder | distribution | import name |
 | --- | --- | --- |
 | `packages/assistant-core/` | `assistant-core` | `assistant_core` |
 | `packages/assistant-client-ts/` | `@pathfinder/assistant-client` | - |
 | `packages/mcp-conformance/` | `veupathdb-mcp-conformance` | `mcp_conformance` |
-| `PROTOCOL.md` | - | - |
 
 The move is a folder rename and nothing else: **zero import lines changed**,
 because none of the three ever imported through a path. What changed is every
@@ -28,13 +27,15 @@ hooks, twenty CI `working-directory` values, `pyrightconfig.json`, the two
 `vitest` configs, `apps/web/tsconfig.json`, and the client's `sync:protocol`
 script.
 
-`PROTOCOL.md` moved from beside `assistant-core` to the grouping's root,
-because it is the contract **between** two of the three and belongs to neither.
-The two readers follow it: `assistant-core`'s
-`test_protocol_document.py` compares it against the chunks the runtime emits,
-and the client's `tests/conformance/` compares it against the capture
-`yarn sync:protocol` produces. A change to the document that neither side
-implements fails both.
+`PROTOCOL.md` is package data of the runtime,
+`packages/assistant-core/src/assistant_core/PROTOCOL.md`, because a consumer
+that asserts against a document has to receive it with the distribution; see
+[the libraries are consumed by URL](the-libraries-are-consumed-by-git-url.md).
+It is still the contract **between** two of the three, and both readers follow
+it: `assistant-core`'s `test_protocol_document.py` compares it against the
+chunks the runtime emits, and the client's `tests/conformance/` compares it
+against the capture `yarn sync:protocol` produces. A change to the document that
+neither side implements fails both.
 
 # Why a grouping and not one distribution
 

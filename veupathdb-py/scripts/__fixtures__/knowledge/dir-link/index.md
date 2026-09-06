@@ -1,3 +1,0 @@
-# Bundle
-
-- [Empty dir](hollow/)

@@ -144,7 +144,7 @@ wheels = [
 [[package]]
 name = "assistant-core"
 version = "0.2.0a1"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&rev=e79f809eb8e38dbcc1d7b32dbc08a5b8bbcb781f#e79f809eb8e38dbcc1d7b32dbc08a5b8bbcb781f" }
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&rev=9416c6b3ad1855835ce4357380c0480042d981f9#9416c6b3ad1855835ce4357380c0480042d981f9" }
 dependencies = [
     { name = "asyncpg" },
     { name = "genai-prices" },
@@ -2284,7 +2284,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.18.0" },
-    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&rev=e79f809eb8e38dbcc1d7b32dbc08a5b8bbcb781f" },
+    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&rev=9416c6b3ad1855835ce4357380c0480042d981f9" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "cachetools", specifier = ">=7.0.5" },
     { name = "ddgs", specifier = ">=9.14.1" },
@@ -2338,7 +2338,7 @@ dev = [
     { name = "ruff", specifier = ">=0.15.0" },
     { name = "schemathesis", specifier = ">=4.16.1" },
     { name = "testcontainers", specifier = ">=4.14.0" },
-    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&rev=e79f809eb8e38dbcc1d7b32dbc08a5b8bbcb781f" },
+    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&rev=9416c6b3ad1855835ce4357380c0480042d981f9" },
     { name = "vulture", specifier = ">=2.16" },
 ]
 docs = [
@@ -3810,7 +3810,7 @@ dependencies = [
 [[package]]
 name = "veupathdb-mcp-conformance"
 version = "0.1.0"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&rev=e79f809eb8e38dbcc1d7b32dbc08a5b8bbcb781f#e79f809eb8e38dbcc1d7b32dbc08a5b8bbcb781f" }
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&rev=9416c6b3ad1855835ce4357380c0480042d981f9#9416c6b3ad1855835ce4357380c0480042d981f9" }
 dependencies = [
     { name = "httpx" },
     { name = "mcp" },

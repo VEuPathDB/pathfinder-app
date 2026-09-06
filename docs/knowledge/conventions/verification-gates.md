@@ -178,10 +178,9 @@ Run these from the package root. The suite is the protocol's consumer side, so
 a `PROTOCOL.md` change fails it until `yarn sync:protocol` regenerates the
 vendored capture and a reducer answers the new kind.
 
-`yarn build` is a gate because nothing else reads `dist/`. The app resolves the
-package through its tsconfig `paths` and its vitest aliases, both of which name
-`src`, so only this command and a `yarn pack` exercise the artifact a host
-installs.
+`yarn build` is a gate because it is what `prepack` runs: `apps/web` and every
+other host install the packed `dist`, so a build that fails here is a package
+nobody can consume.
 
 # MCP conformance suite (`assistant-platform: packages/mcp-conformance`)
 

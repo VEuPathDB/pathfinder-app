@@ -1,3 +1,0 @@
-# Bundle
-
-- [Bare](bare.md)

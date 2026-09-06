@@ -12,6 +12,9 @@ status: stable
 
 The three libraries are repositories. PathFinder names each one by URL and one
 commit, and nothing in this repository copies or resolves to a folder of theirs.
+On 2026-09-06 the folders `veupathdb-py/`, `veupathdb-mcp/` and
+`assistant-platform/` were deleted from this repository, so the repositories are
+the only copy.
 
 | Consumer | Declaration |
 | --- | --- |
@@ -33,17 +36,19 @@ uv lock --upgrade-package <name>
 uv sync
 ```
 
-For the TypeScript client, change `commit=` and run `yarn install` at the root.
+For the TypeScript client, change `commit=` and run `yarn install --no-immutable`
+at the root; the root enables immutable installs, so a plain install refuses to
+rewrite the lock for the new pin.
 For the `wdk-mcp` image, set `WDK_MCP_REV` in the env file.
 
 # What follows from it
 
 **A library's own pins reach the resolver.** uv reads `tool.uv.sources` out of a
 dependency that is itself a source tree, so the MCP repository's row for the
-client is resolved against its own checkout. The two repositories must therefore
-name the client the same way, and `[tool.uv] override-dependencies` in
-`apps/api/pyproject.toml` states the app's pin for every dependent while they
-disagree.
+client is resolved against its own checkout. A row naming a sibling path fails
+the lock here, because the path leaves the checkout. The two repositories
+therefore name the client by the same URL and the same `rev`, and a bump of the
+client is two commits: the MCP repository first, then this one.
 
 **A document that a consumer asserts against must ship in a distribution.**
 `PROTOCOL.md` lives at `packages/assistant-core/src/assistant_core/PROTOCOL.md`,
@@ -57,10 +62,10 @@ three repositories are public, so no token is involved.
 
 # What would falsify this
 
-A copy of this repository made without the three folders, in which
-`uv sync --frozen` fetches the three repositories and the api unit suite passes,
-and `yarn install --immutable` resolves the client from `node_modules` with the
-web typecheck, vitest and build green.
+A fresh copy of this repository in which `uv sync --frozen` fetches the three
+repositories and the api unit suite passes, and `yarn install --immutable`
+resolves the client from `node_modules` with the web typecheck, vitest and build
+green.
 
 # What was rejected
 

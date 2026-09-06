@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import os
+import tempfile
 from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
 from dataclasses import dataclass
 from pathlib import Path
@@ -25,6 +26,11 @@ if "PIGUARD_MODEL_DIR" not in os.environ:
 
 # The suite has no API key, so every embedding call is the deterministic one.
 os.environ["EMBEDDING_BACKEND"] = "fake"
+
+# A catalog snapshot the live lane builds stays out of the source tree.
+os.environ.setdefault(
+    "CATALOG_CACHE_DIR", tempfile.mkdtemp(prefix="pathfinder-catalogs-")
+)
 
 os.environ.setdefault("API_ENV", "test")
 os.environ.setdefault("API_SECRET_KEY", "test-secret-key-test-secret-key-test")

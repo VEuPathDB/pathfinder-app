@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import BaseModel, TypeAdapter
 from veupathdb.domain.parameters.values import MultiPickValue, StringValue
 from veupathdb.domain.search import SearchContext
 from veupathdb.errors import ValidationError
@@ -38,6 +39,11 @@ async def test_layer2_adapter_preserves_allow_empty_false(
     assert specs["text_expression"].allow_empty_value is False
 
 
+class _RefusedParam(BaseModel):
+    param: str
+    messages: list[str]
+
+
 async def test_layer3_validate_parameters_relays_wdks_refusal(
     wdk_session: None,
 ) -> None:
@@ -49,11 +55,15 @@ async def test_layer3_validate_parameters_relays_wdks_refusal(
             callbacks=make_validation_callbacks("plasmodb"),
         )
 
-    # WDK judged these values while answering, and its bundle names the empty
-    # required parameter per key.
-    assert raised.value.errors == [
-        {"param": "text_expression", "messages": ["Cannot be empty."]}
-    ]
+    # WDK judged the values while answering, and its bundle names every empty
+    # visible required parameter by key; only the hidden one is filled here.
+    rows = TypeAdapter(list[_RefusedParam]).validate_python(raised.value.errors)
+    assert {row.param for row in rows} == {
+        "text_expression",
+        "text_fields",
+        "text_search_organism",
+    }
+    assert all(row.messages == ["Cannot be empty."] for row in rows)
 
 
 async def test_document_type_is_hidden_required_with_fixed_default(

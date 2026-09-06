@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The MCP server is a distribution, and PathFinder is one of its consumers
-description: pathfinder/{mcp, services/catalog, services/wdk, services/gene_lookup, services/control_*, services/tool_payloads, integrations/embeddings} moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, alembic chain, Dockerfile and CI lane; PathFinder consumes it in process as an editable path dependency and import-linter contract 7 was deleted. Keeping the server inside apps/api, and making PathFinder an MCP client of the served process now, were both rejected.
+description: pathfinder/{mcp, services/catalog, services/wdk, services/gene_lookup, services/control_*, services/tool_payloads, integrations/embeddings} moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, alembic chain, Dockerfile and CI lane; PathFinder consumes it in process as a dependency it installs by repository URL and import-linter contract 7 was deleted. Keeping the server inside apps/api, and making PathFinder an MCP client of the served process now, were both rejected.
 tags: [veupathdb-mcp, split, architecture, packaging, import-linter, mcp, embeddings, alembic]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }

@@ -1,3 +1,0 @@
-# Bundle
-
-- [Name](name.md)

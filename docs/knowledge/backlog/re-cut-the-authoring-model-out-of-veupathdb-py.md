@@ -37,3 +37,7 @@ to `pathfinder.domain.strategy` beside the eight modules that already live there
 `spec_to_operations`, `staleness`, `validate`). This is a refactor of the client's call
 sites, not a folder move, which is why it was not done during the split. The decision
 that accepted it is [the client library is a distribution](../decisions/the-client-library-is-a-distribution.md).
+
+The client half of the work is in `VEuPathDB/ai-veupathdb-client`, which this repository
+consumes by URL at a commit; the PathFinder half lands here once that repository is
+tagged and the `veupathdb-py` `rev` in `apps/api/pyproject.toml` names the new commit.
