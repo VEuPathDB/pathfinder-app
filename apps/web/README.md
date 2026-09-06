@@ -119,8 +119,9 @@ live in `components/ui/` (shadcn, the `components.json` target). Per-site themin
 searches, enrichment and catalog browsing. Only the LLM chat call is mocked, and only through the
 dedicated test profile (`PATHFINDER_CHAT_PROVIDER=mock`). Worker isolation uses
 `/dev/login?user_id=worker-{N}` so parallel workers do not interfere. VEuPathDB refuses guest
-service calls, so every worker also carries the registered account's token (`WDK_TEST_TOKEN`) in
-its `Authorization` cookie.
+service calls, so every worker also carries the registered account's token in its
+`Authorization` cookie: the shell exports `WDK_TEST_TOKEN`, or exports `WDK_TEST_EMAIL` and
+`WDK_TEST_PASSWORD` and global setup signs in once to obtain it (CI passes those two as secrets).
 
 **SSE over WebSocket**: chat streaming uses Server-Sent Events (unidirectional server to client)
 rather than WebSockets. Messages are sent via POST; responses stream via SSE. Next.js has

@@ -9,8 +9,9 @@
 # dev overlay over the controls a spec clicks.
 #
 # VEuPathDB refuses guest service calls, so the Playwright process needs the
-# registered account's WDK token in its own shell as WDK_TEST_TOKEN. Playwright
-# sends it as the browser's Authorization cookie; no container reads it.
+# registered account in its own shell: WDK_TEST_TOKEN, or WDK_TEST_EMAIL and
+# WDK_TEST_PASSWORD for global setup to sign in with. Playwright sends the token
+# as the browser's Authorization cookie; no container reads it.
 #
 # Usage:
 #   docker compose --env-file .env.test \

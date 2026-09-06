@@ -38,11 +38,48 @@ async function waitForServer(api: APIRequestContext): Promise<void> {
   }).toPass({ timeout: LISTEN_BUDGET_MS, intervals: [1_000, 2_000, 5_000] });
 }
 
+const LOGIN_SITE = "plasmodb";
+
+/**
+ * Every worker acts as one registered VEuPathDB account through the
+ * `Authorization` cookie. A shell that exports `WDK_TEST_TOKEN` supplies it
+ * directly; a shell that exports the account's email and password instead
+ * signs in once here, and the cookie the API sets becomes the token the
+ * fixtures read. Environment set in global setup reaches every test.
+ */
+async function mintWdkTestToken(api: APIRequestContext): Promise<void> {
+  if ((process.env["WDK_TEST_TOKEN"] ?? "") !== "") {
+    return;
+  }
+  const email = process.env["WDK_TEST_EMAIL"] ?? "";
+  const password = process.env["WDK_TEST_PASSWORD"] ?? "";
+  if (email === "" || password === "") {
+    return;
+  }
+  const response = await api.post("/api/v1/veupathdb/auth/login", {
+    params: { siteId: LOGIN_SITE },
+    data: { email, password },
+    headers: { "X-Requested-With": "XMLHttpRequest" },
+  });
+  if (!response.ok()) {
+    throw new Error(
+      `VEuPathDB login for the e2e account answered ${response.status()}`,
+    );
+  }
+  const state = await api.storageState();
+  const cookie = state.cookies.find((c) => c.name === "Authorization");
+  if (cookie === undefined || cookie.value === "") {
+    throw new Error("VEuPathDB login set no Authorization cookie");
+  }
+  process.env["WDK_TEST_TOKEN"] = cookie.value;
+}
+
 export default async function warmRoutes(): Promise<void> {
   const baseURL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
   const api = await request.newContext({ baseURL });
   try {
     await waitForServer(api);
+    await mintWdkTestToken(api);
     for (const route of ROUTES) {
       await api.get(route, { timeout: COLD_RENDER_BUDGET_MS });
     }

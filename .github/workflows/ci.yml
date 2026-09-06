@@ -300,10 +300,14 @@ jobs:
         working-directory: apps/web
         run: yarn playwright install --with-deps
 
+      # The suite acts as a registered VEuPathDB account; global setup signs
+      # in with these and exports the token the fixtures read.
       - name: Run Playwright tests
         working-directory: apps/web
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
+          WDK_TEST_EMAIL: ${{ secrets.WDK_TEST_EMAIL }}
+          WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
         run: yarn test:e2e
 
       # Names the same overlay set the bring-up used, so a stack that dies

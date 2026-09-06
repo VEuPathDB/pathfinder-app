@@ -45,15 +45,17 @@ const turnDrivingFeatureSpecs = [
  *        -f docker-compose.e2e.yml \
  *        up -d --build --wait api worker web
  *
- * 2. Export the registered VEuPathDB token and run the tests:
+ * 2. Export the registered VEuPathDB account and run the tests. Either the
+ *    token itself, or the email and password, which global setup signs in
+ *    with once and exports as the token:
  *
  *      export WDK_TEST_TOKEN=...   # from .env.dev; never printed or committed
  *      yarn test:e2e
  *
  * ## CI
  *
- * The GitHub Actions workflow starts both servers and sets PLAYWRIGHT_BASE_URL
- * and WDK_TEST_TOKEN.
+ * The GitHub Actions workflow starts both servers, sets PLAYWRIGHT_BASE_URL,
+ * and passes the WDK_TEST_EMAIL and WDK_TEST_PASSWORD repository secrets.
  *
  * ## Authentication
  *
