@@ -2286,15 +2286,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@pathfinder/assistant-client@git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@pathfinder/assistant-client&commit=02a4833572357f058f5a3bdb9b154ad90bb5bcc6":
+"@pathfinder/assistant-client@git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@pathfinder/assistant-client&commit=e79f809eb8e38dbcc1d7b32dbc08a5b8bbcb781f":
   version: 0.2.0-alpha.1
-  resolution: "@pathfinder/assistant-client@https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=%40pathfinder%2Fassistant-client&commit=02a4833572357f058f5a3bdb9b154ad90bb5bcc6"
+  resolution: "@pathfinder/assistant-client@https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=%40pathfinder%2Fassistant-client&commit=e79f809eb8e38dbcc1d7b32dbc08a5b8bbcb781f"
   peerDependencies:
     ai: ">=6.0.154 <6.0.250"
   peerDependenciesMeta:
     ai:
       optional: true
-  checksum: 10/70ee8c7d4eb97b8762370d9b9201206fcbef6a54f3b846faef8f37e6dd27e4a91251e23a32a43072f106c3698c6c673a6a77578f30b521d493bb585d9d0fd4c3
+  checksum: 10/747cbec42a28109e240adbd4bb93c60b8b608ce4390e2a71b69fc5003fba5147e39b1611fc87dedb4243c77e858d4fe8e1de6b92225e92dfaeff747807a58b82
   languageName: node
   linkType: hard
 
@@ -11636,7 +11636,7 @@ __metadata:
     "@opentelemetry/resources": "npm:^2.6.1"
     "@opentelemetry/sdk-trace-web": "npm:^2.6.1"
     "@opentelemetry/semantic-conventions": "npm:^1.40.0"
-    "@pathfinder/assistant-client": "git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@pathfinder/assistant-client&commit=02a4833572357f058f5a3bdb9b154ad90bb5bcc6"
+    "@pathfinder/assistant-client": "git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@pathfinder/assistant-client&commit=e79f809eb8e38dbcc1d7b32dbc08a5b8bbcb781f"
     "@pathfinder/shared": "workspace:*"
     "@playwright/test": "npm:^1.58.2"
     "@radix-ui/react-use-controllable-state": "npm:^1.2.2"

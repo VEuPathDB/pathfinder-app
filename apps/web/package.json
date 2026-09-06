@@ -36,7 +36,7 @@
     "@opentelemetry/resources": "^2.6.1",
     "@opentelemetry/sdk-trace-web": "^2.6.1",
     "@opentelemetry/semantic-conventions": "^1.40.0",
-    "@pathfinder/assistant-client": "git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@pathfinder/assistant-client&commit=02a4833572357f058f5a3bdb9b154ad90bb5bcc6",
+    "@pathfinder/assistant-client": "git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@pathfinder/assistant-client&commit=e79f809eb8e38dbcc1d7b32dbc08a5b8bbcb781f",
     "@pathfinder/shared": "workspace:*",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@streamdown/cjk": "^1.0.3",

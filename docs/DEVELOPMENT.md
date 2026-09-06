@@ -145,7 +145,9 @@ uv sync
 ```
 
 For the TypeScript client, change the `commit=` in `apps/web/package.json` and
-run `yarn install` at the repository root. For the `wdk-mcp` image, set
+run `yarn install --no-immutable` at the repository root: the root `.yarnrc.yml`
+enables immutable installs, so a plain `yarn install` refuses to rewrite the lock
+for the new pin. For the `wdk-mcp` image, set
 `WDK_MCP_REV` in the env file.
 
 A repository that adopts the `v<version>` tag convention can be named by `rev`
