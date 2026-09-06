@@ -48,14 +48,16 @@ This repo is organized as:
   - Chat UI with strategy graph visualization, step editing, and result panes.
   - **Workbench** for gene set management and multi-panel analysis (enrichment, distributions, cross-validation).
   - Proxies API routes via Next rewrites (see `apps/web/next.config.ts`).
-- **`veupathdb-py/`**: the VEuPathDB WDK and EDA client (`veupathdb`), a distribution of its own that knows nothing about PathFinder. Its README documents the client; the WDK and EDA knowledge bundle lives with it at `veupathdb-py/docs/knowledge/`.
-- **`veupathdb-mcp/`**: the WDK catalog, parameter and gene tools served over MCP (`veupathdb_mcp`), with the semantic index they own. PathFinder installs it and calls the same functions in process.
-- **`assistant-platform/`**: the runtime (`assistant_core`), the TypeScript client and the conformance suite, with `PROTOCOL.md` as the wire protocol between them. It is its own Yarn project with its own `yarn.lock`, its own `ci.yml` and its own `.pre-commit-config.yaml`; `yarn install` runs there as well as at the repo root.
-- **`assistant-platform/packages/assistant-client-ts/`**: the headless TypeScript consumer of that protocol (`@pathfinder/assistant-client`). No React. `apps/web` depends on it through Yarn's `portal:` protocol, the JS analogue of the editable path dependency the API uses for the Python siblings.
 - **`packages/shared-ts/`**: shared TypeScript types (`@pathfinder/shared`) plus the Kubb-generated `src/generated/{types,zod,hooks}`.
   - The web app imports types via TS path mapping to `packages/shared-ts/src` (see `apps/web/tsconfig.json`).
-- **`assistant-platform/packages/mcp-conformance/`**: the conformance suite an MCP tool server passes before a deployment admits it.
 - **`packages/spec/`**: OpenAPI spec (`packages/spec/openapi.json` and `.yaml`)
+
+Three libraries are repositories of their own, consumed by URL at a commit
+(`apps/api/pyproject.toml` `[tool.uv.sources]`, `apps/web/package.json`):
+
+- **[ai-veupathdb-client](https://github.com/VEuPathDB/ai-veupathdb-client)**: the VEuPathDB WDK and EDA client (`veupathdb`), which knows nothing about PathFinder. Its README documents the client, and the WDK and EDA knowledge bundle lives with it.
+- **[ai-wdk-mcp](https://github.com/VEuPathDB/ai-wdk-mcp)**: the WDK catalog, parameter and gene tools served over MCP (`veupathdb_mcp`), with the semantic index they own. PathFinder installs it and calls the same functions in process.
+- **[ai-assistant-platform](https://github.com/VEuPathDB/ai-assistant-platform)**: the runtime (`assistant_core`), the headless TypeScript client (`@pathfinder/assistant-client`, no React), the conformance suite an MCP tool server passes before a deployment admits it, and `PROTOCOL.md`, the wire between the first two.
 
 The API also includes: gene set management, an experiment engine (metrics, cross-validation, enrichment), export tools, a model catalog with token metrics, cross-thread memory, and an MCP server.
 
@@ -89,7 +91,7 @@ Key entrypoints:
 - Turn runner (worker side): `apps/api/src/pathfinder/jobs/impls/chat_turn_impl.py`, `ai/conversation/turn_runner.py`
 - Graph and Lead: `apps/api/src/pathfinder/ai/graph/builder.py`, `ai/lead/lead_agent.py`
 - Tools: `apps/api/src/pathfinder/ai/tools/` (`standalone/` definitions, `toolsets/` per role)
-- Event log and SSE: `assistant-platform/packages/assistant-core/src/assistant_core/conversation/{event_writer,event_stream}.py`
+- Event log and SSE: `assistant_core.conversation.{event_writer,event_stream}` (ai-assistant-platform)
 
 ## Running locally
 
@@ -108,7 +110,6 @@ cd apps/api
 uv sync
 cd ../..
 yarn install
-yarn --cwd assistant-platform install
 uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
 
@@ -327,7 +328,6 @@ Web:
 cd apps/web
 cp ../../.env.dev.example .env
 yarn install
-yarn --cwd ../../assistant-platform install   # the portal target's own toolchain
 yarn dev
 ```
 

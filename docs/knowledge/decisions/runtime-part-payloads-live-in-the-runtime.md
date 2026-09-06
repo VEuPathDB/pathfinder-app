@@ -59,9 +59,9 @@ module a process reaches first, which is the worst kind.
 
 # What would falsify this
 
-`cd assistant-platform/packages/assistant-core && uv build`, then installing the wheel into a
+`cd assistant-platform: packages/assistant-core && uv build`, then installing the wheel into a
 venv with no path dependencies and importing
 `assistant_core.graph.stream_events`: the day that needs a module of
-PathFinder's, this is gone. `assistant-platform/packages/assistant-core/tests/unit/test_package_boundary.py` fails if any
+PathFinder's, this is gone. `assistant-platform: packages/assistant-core/tests/unit/test_package_boundary.py` fails if any
 module under `assistant_core` imports `pathfinder`, and pins the two payload
 modules to the model library alone.

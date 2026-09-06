@@ -96,11 +96,11 @@ Three things changed together, because each one alone leaves the loop open:
 `ai/tools/standalone/frame_spec.py:_refuse_unmatched_value`, ranking through
 `domain/parameters/wdk_vocab.py:nearest_entries`, which is the one ranker every
 did-you-mean uses, guarded by
-`veupathdb-py/tests/unit/domain/parameters/test_wdk_vocab.py`.
+`veupathdb-py: tests/unit/domain/parameters/test_wdk_vocab.py`.
 Guarded by `TestAProposedValueMustBeOnTheSheet::test_a_substring_of_an_entry_is_not_a_match`
 and `tests/unit/ai/tools/test_frame_proposals.py`.
 Matching is `veupathdb/domain/parameters/wdk_vocab.py:match_exact_option` over
 `leading_accession_token`, guarded by
-`veupathdb-py/tests/unit/domain/parameters/test_wdk_vocab.py`; the pin is
+`veupathdb-py: tests/unit/domain/parameters/test_wdk_vocab.py`; the pin is
 `veupathdb_mcp/catalog/param_sheet.py:_is_named`, guarded in
-`veupathdb-mcp/tests/unit/catalog/test_param_sheet.py`.
+`veupathdb-mcp: tests/unit/catalog/test_param_sheet.py`.

@@ -19,7 +19,7 @@ is then a prefix rename, `veupathdb` -> `veupathdb`, and nothing
 else; an edge that still pointed up could not be renamed.
 
 The foundation those modules rest on is a new package,
-`veupathdb-py/src/veupathdb/`. It was the only place both
+`veupathdb-py: src/veupathdb/`. It was the only place both
 `pathfinder.domain` and `pathfinder.integrations` could import from under the
 layer contracts of the time, because contract 1 forbade domain -> integrations.
 Its names carry no underscore: the other two units import them too.
@@ -127,7 +127,7 @@ no-op call.
 
 # What would falsify this
 
-`veupathdb-py/tests/unit/test_package_boundary.py` walks every module of the
+`veupathdb-py: tests/unit/test_package_boundary.py` walks every module of the
 installed distribution with `pkgutil`, parses each with `ast`, and fails on an
 import whose root is `pathfinder`, `assistant_core`, `veupathdb_mcp`,
 `sqlalchemy`, `asyncpg`, `pgvector`, `pydantic_ai`, `langgraph`, `fastapi`,

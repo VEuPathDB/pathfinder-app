@@ -22,4 +22,4 @@ Renaming today would make every stored chunk unrenderable - a saved conversation
 
 # Anchor
 
-`assistant-platform/packages/assistant-core/src/assistant_core/conversation/stream_parts/registry.py` holds the kind rules; `packages/shared-ts/src/types.ts` holds `KnownDataPartKind`. Done if a kind is renamed without a replay path for the rows already in `conversation_events`.
+`assistant-platform: packages/assistant-core/src/assistant_core/conversation/stream_parts/registry.py` holds the kind rules; `packages/shared-ts/src/types.ts` holds `KnownDataPartKind`. Done if a kind is renamed without a replay path for the rows already in `conversation_events`.

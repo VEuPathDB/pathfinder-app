@@ -33,6 +33,8 @@ services:
       # Accounted megabytes of per-site catalogs and semantic indexes one
       # process holds before the least recently used site is evicted.
       SITE_CATALOG_BUDGET_MB: ${SITE_CATALOG_BUDGET_MB:-512}
+      # The directory the three services exchange catalog snapshots through.
+      CATALOG_CACHE_DIR: /app/data/catalogs
       # This is the process that syncs the embedding indexes.
       EMBEDDING_INDEX_SYNC_ENABLED: "true"
       CORS_ORIGINS: ${CORS_ORIGINS:-}
@@ -61,7 +63,7 @@ services:
       - ./apps/api/.pf-runs:/data/pf-runs
       # Per-site catalog snapshots. Without this every recreate serves the
       # image's snapshots, finds them stale, and refetches and re-encodes.
-      - catalogs_cache:/app/veupathdb-mcp/data/catalogs
+      - catalogs_cache:/app/data/catalogs
 
   worker:
     build:
@@ -103,6 +105,8 @@ services:
       # Accounted megabytes of per-site catalogs and semantic indexes one
       # process holds before the least recently used site is evicted.
       SITE_CATALOG_BUDGET_MB: ${SITE_CATALOG_BUDGET_MB:-512}
+      # The directory the three services exchange catalog snapshots through.
+      CATALOG_CACHE_DIR: /app/data/catalogs
       # Only the api rebuilds a stale catalog. A build inside a served call
       # exceeds this container's ceiling, and the api saves what it refreshes
       # to the shared volume.
@@ -127,12 +131,13 @@ services:
       PATHFINDER_WDK_MCP_TOKEN: ${PATHFINDER_WDK_MCP_TOKEN:-}
     volumes:
       - ./apps/api/.pf-runs:/data/pf-runs
-      - catalogs_cache:/app/veupathdb-mcp/data/catalogs
+      - catalogs_cache:/app/data/catalogs
 
   wdk-mcp:
+    # The server is its own repository, built at the commit this deployment
+    # runs. Set WDK_MCP_REV in the env file.
     build:
-      context: .
-      dockerfile: veupathdb-mcp/Dockerfile
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#${WDK_MCP_REV:?}
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -159,6 +164,8 @@ services:
       # Accounted megabytes of per-site catalogs and semantic indexes one
       # process holds before the least recently used site is evicted.
       SITE_CATALOG_BUDGET_MB: ${SITE_CATALOG_BUDGET_MB:-512}
+      # The directory the three services exchange catalog snapshots through.
+      CATALOG_CACHE_DIR: /app/data/catalogs
       # Only the api rebuilds a stale catalog. A build inside a served call
       # exceeds this container's ceiling, and the api saves what it refreshes
       # to the shared volume.
@@ -173,7 +180,7 @@ services:
       # "app_id:secret[,app_id:secret...]". Empty admits user bearers only.
       PATHFINDER_MCP_SERVICE_TOKENS: ${PATHFINDER_MCP_SERVICE_TOKENS:-}
     volumes:
-      - catalogs_cache:/app/veupathdb-mcp/data/catalogs
+      - catalogs_cache:/app/data/catalogs
 
   web:
     build:

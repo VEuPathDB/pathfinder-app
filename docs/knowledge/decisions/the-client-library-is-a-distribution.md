@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The client library is a distribution, so PathFinder cannot reach into it
-description: pathfinder/{veupathdb, integrations/veupathdb, integrations/eda} and the WDK-shaped half of domain/ moved out of apps/api into veupathdb-py/ with its own pyproject, lock, tests, README, knowledge bundle and CI lane, consumed as an editable path dependency; import-linter contracts 1 and 4 were deleted and replaced by the package's dependency list plus its own boundary suite. Keeping the client in-repo behind import contracts was rejected, because the owner is publishing the folder as its own GitHub repository.
+description: pathfinder/{veupathdb, integrations/veupathdb, integrations/eda} and the WDK-shaped half of domain/ moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, knowledge bundle and CI lane, consumed as an editable path dependency; import-linter contracts 1 and 4 were deleted and replaced by the package's dependency list plus its own boundary suite. Keeping the client in-repo behind import contracts was rejected, because the owner is publishing the folder as its own GitHub repository.
 tags: [veupathdb-py, split, architecture, packaging, import-linter, wdk, eda]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-The VEuPathDB client is `veupathdb-py/`: its own `pyproject.toml`, its own lock
+The VEuPathDB client is its own repository: its own `pyproject.toml`, its own lock
 file, a `src/veupathdb` layout importable with no `pathfinder.` prefix, its own
 test tree with a hermetic lane and a live lane, its own README, its own copy of
 the WDK and EDA knowledge bundle with the two check scripts that keep it honest,
@@ -83,6 +83,6 @@ enforce locally is `UNENFORCED` there with a `reason` naming the consumer's test
 
 # Publishing
 
-One line. Delete the `veupathdb-py` row from `[tool.uv.sources]` in
-`apps/api/pyproject.toml` and pin `"veupathdb-py>=0.1.0"` in `[project].dependencies`.
-The `COPY veupathdb-py` lines in `apps/api/Dockerfile` go at the same time.
+Done. The library is `VEuPathDB/ai-veupathdb-client`, and `apps/api` names it by
+URL at a commit; see
+[the libraries are consumed by URL](the-libraries-are-consumed-by-git-url.md).

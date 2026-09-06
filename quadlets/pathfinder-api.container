@@ -13,6 +13,10 @@ PublishPort=8000:8000
 # API keys and app settings loaded from .env
 EnvironmentFile=%h/.config/pathfinder/.env
 
+Volume=pathfinder-catalogs.volume:/app/data/catalogs
+# The directory the three services exchange catalog snapshots through.
+Environment=CATALOG_CACHE_DIR=/app/data/catalogs
+
 # Infrastructure URLs, which must use container network hostnames, override .env
 Environment=DATABASE_URL=postgresql+asyncpg://postgres:postgres@pathfinder-db:5432/pathfinder
 # Uncomment to use a local Ollama instance on the host

@@ -5,9 +5,6 @@ const srcDir = fileURLToPath(new URL("./src", import.meta.url));
 const sharedDir = fileURLToPath(
   new URL("../../packages/shared-ts/src", import.meta.url),
 );
-const clientDir = fileURLToPath(
-  new URL("../../assistant-platform/packages/assistant-client-ts/src", import.meta.url),
-);
 const webNodeModules = fileURLToPath(new URL("./node_modules", import.meta.url));
 
 export default defineConfig({
@@ -19,11 +16,6 @@ export default defineConfig({
         replacement: `${sharedDir}/generated/$1`,
       },
       { find: "@pathfinder/shared", replacement: sharedDir },
-      {
-        find: /^@pathfinder\/assistant-client\/(.*)$/,
-        replacement: `${clientDir}/$1.ts`,
-      },
-      { find: "@pathfinder/assistant-client", replacement: `${clientDir}/index.ts` },
       {
         find: "@tanstack/react-query",
         replacement: `${webNodeModules}/@tanstack/react-query`,

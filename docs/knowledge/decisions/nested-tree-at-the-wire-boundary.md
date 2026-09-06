@@ -33,4 +33,4 @@ The frontend needed **zero** changes: it already read `Step.primaryInputStepId`.
 
 # Anchor
 
-`veupathdb-py/src/veupathdb/domain/strategy/graph_model.py` (`flatten_tree` / `rebuild_tree`, proven by a Hypothesis round-trip over 200 generated trees) and `strategy_ast.py`, which stays nested.
+`veupathdb-py: src/veupathdb/domain/strategy/graph_model.py` (`flatten_tree` / `rebuild_tree`, proven by a Hypothesis round-trip over 200 generated trees) and `strategy_ast.py`, which stays nested.

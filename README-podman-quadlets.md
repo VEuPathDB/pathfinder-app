@@ -28,7 +28,7 @@ touch ollama_models.yaml
 
 podman build -t pathfinder-api:latest -f apps/api/Dockerfile .
 
-podman build -t veupathdb-mcp:latest -f veupathdb-mcp/Dockerfile .
+podman build -t veupathdb-mcp:latest https://github.com/VEuPathDB/ai-wdk-mcp.git#<commit>
 
 podman build -t pathfinder-web:latest -f apps/web/Dockerfile \
   --build-arg NEXT_PUBLIC_API_URL=http://pathfinder-api:8000 .
@@ -154,7 +154,7 @@ line.
 podman build -t pathfinder-api:latest -f apps/api/Dockerfile .
 systemctl --user restart pathfinder-api
 
-podman build -t veupathdb-mcp:latest -f veupathdb-mcp/Dockerfile .
+podman build -t veupathdb-mcp:latest https://github.com/VEuPathDB/ai-wdk-mcp.git#<commit>
 systemctl --user restart pathfinder-wdk-mcp
 
 podman build -t pathfinder-web:latest -f apps/web/Dockerfile \
@@ -171,7 +171,7 @@ systemctl --user stop pathfinder-web pathfinder-api pathfinder-db
 ## 11. Remove persistent data
 
 ```bash
-podman volume rm pathfinder-postgres-data
+podman volume rm pathfinder-postgres-data pathfinder-catalogs
 ```
 
 ## Services overview

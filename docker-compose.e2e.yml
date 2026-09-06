@@ -55,5 +55,7 @@ services:
       target: runner
 
   db:
+    environment:
+      POSTGRES_DB: pathfinder_test
     ports:
       - "5433:5432"

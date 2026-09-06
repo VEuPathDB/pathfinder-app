@@ -19,7 +19,7 @@ the registered-login rule (`pathfinder: docs/knowledge/decisions/wdk-requires-re
 WDK-ANS-009 (`veupathdb-py: docs/knowledge/wdk/rules/searches-and-answers.md`)
 ```
 
-Inside `veupathdb-py/docs/knowledge/` the prefix is `pathfinder:`. Inside this
+Inside `veupathdb-py: docs/knowledge/` the prefix is `pathfinder:`. Inside this
 repository's `docs/knowledge/` it is `veupathdb-py:`. A relative path across the
 boundary never appears in either direction.
 
@@ -30,12 +30,18 @@ EDA, so they moved to `docs/knowledge/eda/` here. The library's `eda/index.md`
 lost its `## PathFinder` section; this bundle's root index gained an EDA section.
 
 The `- anchor:`, `- status:`, `- upstream:` and `- reason:` fields of a `rules/*.md`
-block are unchanged. Those are filesystem paths that `scripts/check-wdk-rules.mjs`
-resolves, not links a reader follows.
+block carry filesystem paths that `scripts/check-wdk-rules.mjs` resolves, not links
+a reader follows. A field naming a path in another repository carries the same
+citation prefix, and the checker reads it as a citation instead of resolving it;
+the run reports how many rules are anchored that way.
+
+A prefix names a repository: `veupathdb-py` is `VEuPathDB/ai-veupathdb-client`,
+`veupathdb-mcp` is `VEuPathDB/ai-wdk-mcp`, `assistant-platform` is
+`VEuPathDB/ai-assistant-platform`, and `pathfinder` is `VEuPathDB/pathfinder-app`.
 
 # The measurement
 
-`veupathdb-py/` is published as its own GitHub repository. Copied out of this
+The client is published as its own GitHub repository. Copied out of this
 checkout, its own `node scripts/check-knowledge.mjs` exited 1 with **45**
 `link does not resolve` errors, every one of them a relative path into this
 monorepo's `docs/knowledge/`. In place the same command reported 0 violations,
@@ -52,14 +58,14 @@ change owns.
 # What would falsify this
 
 `node scripts/check-knowledge.mjs` at the repository root, and the same command
-run inside a copy of `veupathdb-py/` made outside this checkout. Both must exit 0.
+run inside a copy of the client made outside this checkout. Both must exit 0.
 The second is the one that matters: it is the only invocation that sees what a
 reader of the published repository sees.
 
 # What was rejected
 
 **A GitHub URL into the other repository**, of the form
-`https://github.com/<org>/veupathdb-py/blob/main/docs/knowledge/wdk/rules/auth-and-transport.md`.
+`https://github.com/<org>/veupathdb-py: blob/main/docs/knowledge/wdk/rules/auth-and-transport.md`.
 An unpinned branch URL rots exactly as silently as a dead relative path: the file
 is renamed and the link 404s with nothing in either repository failing. A URL
 pinned to a sha is stale on the first edit of the target and cites text that no

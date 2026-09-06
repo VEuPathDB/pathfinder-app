@@ -1,5 +1,35 @@
 # Log
 
+## 2026-09-06
+
+* **PathFinder consumes the three libraries by URL at a commit, and copies none of them.**
+  `apps/api/pyproject.toml` names `veupathdb-py`, `veupathdb-mcp`, `assistant-core` and
+  `veupathdb-mcp-conformance` by repository and a 40-character `rev`; `apps/web/package.json`
+  names `@pathfinder/assistant-client` by repository, workspace and commit, and compiles the
+  packed `dist` instead of the folder's source, so the three `tsconfig` paths and the two
+  vitest aliases are gone; `docker-compose.yml` builds `wdk-mcp` from
+  `https://github.com/VEuPathDB/ai-wdk-mcp.git#${WDK_MCP_REV:?}`; both Dockerfiles install
+  `git` and copy no sibling. The five library lanes left `ci.yml` and the seventeen
+  library hooks left `.pre-commit-config.yaml`: each repository runs its own. Recorded in
+  `decisions/the-libraries-are-consumed-by-git-url.md`.
+
+  Two measurements changed the plan. uv reads `tool.uv.sources` out of a git dependency that
+  is a source tree, so the MCP repository's `path = "../veupathdb-py"` row reached the
+  resolver and `uv lock` failed with `has no subdirectory ../veupathdb-py`, on uv 0.8.13 and
+  on 0.12.10 alike; `[tool.uv] override-dependencies` states the app's client pin until the
+  re-exported MCP commit names the URL itself. And `PROTOCOL.md` sat at the platform
+  repository root, outside every distribution, so six `test_request_body.py` cases read
+  `.venv/PROTOCOL.md` and failed; the document is now
+  `packages/assistant-core/src/assistant_core/PROTOCOL.md`, which a source checkout, an
+  editable install and a wheel resolve identically, pinned by a new `tests/packaging`
+  wheel test.
+
+  `scripts/check-wdk-rules.mjs` reads an `- anchor:` or `- status:` naming one of the three
+  repositories as a citation rather than resolving it, and reports how many rules are
+  anchored that way (5 of 8). The catalog snapshot directory is a setting
+  (`CATALOG_CACHE_DIR`), because the api image no longer carries the MCP repository's `data`
+  and an installed package cannot resolve a writable directory from its own location.
+
 ## 2026-09-05
 
 * **An enrichment over a result of several organisms is refused.** Measured on toxodb.org: the

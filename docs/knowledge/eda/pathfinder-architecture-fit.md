@@ -188,8 +188,8 @@ analysis on the VEuPathDB site.
 ### 1.6 What must not go in `assistant-core`
 
 The boundary is an installation fact, not a convention:
-`assistant-platform/packages/assistant-core/pyproject.toml` names no `pathfinder` dependency, and
-`assistant-platform/packages/assistant-core/tests/unit/test_package_boundary.py` pins the import
+`assistant-platform: packages/assistant-core/pyproject.toml` names no `pathfinder` dependency, and
+`assistant-platform: packages/assistant-core/tests/unit/test_package_boundary.py` pins the import
 surface ([the runtime is a package](../decisions/the-runtime-is-a-package.md)).
 CLAUDE.md states the placement rule directly: "anything that names a gene, a
 strategy, a WDK search or a phase role goes in `ai/`".
@@ -361,7 +361,7 @@ study; that is an admission-record question
 
 ### 3.4 What belongs in the headless SDK: nothing EDA-specific
 
-`assistant-platform/packages/assistant-client-ts` has three rings and the core ring has no runtime
+`assistant-platform: packages/assistant-client-ts` has three rings and the core ring has no runtime
 dependencies
 ([the client package has three rings](../decisions/the-client-is-a-package-with-three-rings.md)).
 The core ring is the whole of `PROTOCOL.md` and nothing else. EDA adds no frame,
@@ -524,7 +524,7 @@ Pydantic models are a mirror, and a mirror drifts.
    entries omit one or both. **The RAML is a document, not a validator for the
    wire.**
 
-**The mitigation is the shape `assistant-platform/packages/assistant-client-ts` already uses
+**The mitigation is the shape `assistant-platform: packages/assistant-client-ts` already uses
 against `PROTOCOL.md`.** That package vendors a capture of the document,
 regenerates it with `yarn sync:protocol`, and a suite test regenerates and
 compares, so a document change fails the gate rather than passing silently

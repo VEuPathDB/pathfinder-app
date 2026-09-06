@@ -10,14 +10,14 @@ status: stable
 
 # What was decided
 
-`assistant-platform/PROTOCOL.md` is a specification in prose, versioned
+`assistant-platform: PROTOCOL.md` is a specification in prose, versioned
 `1.0.0` under the runtime package's additive-only rule. It states the frame
 grammar, cursor semantics, the turn's shape, the chunk vocabulary, the
 reduction rules and the versioning contract in MUST/SHOULD language, so a
 consumer in any language can implement a client from that page alone.
 
 Four gates in
-`assistant-platform/packages/assistant-core/tests/integration/conversation/test_protocol_document.py`
+`assistant-platform: packages/assistant-core/tests/integration/conversation/test_protocol_document.py`
 keep it true:
 
 - Every example in the document is captured from a real turn of the synthetic
@@ -57,6 +57,6 @@ in this repository: humans write the meaning, a gate owns the facts.
 - The synthetic assistant is the reference implementation of the producer
   side. A chunk kind no simple assistant can produce is documented but has no
   captured example, and the page says which those are and why.
-- V5's `assistant-platform/packages/assistant-client-ts` has a written contract to implement
+- V5's `assistant-platform: packages/assistant-client-ts` has a written contract to implement
   against rather than a codebase to read, and its tests become the consumer
   side of the same conformance question.

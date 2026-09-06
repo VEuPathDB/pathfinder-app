@@ -13,125 +13,6 @@ repos:
         files: ^apps/api/
   - repo: local
     hooks:
-      - id: ruff-assistant-core
-        name: ruff (assistant-core)
-        entry: bash -c "cd assistant-platform/packages/assistant-core && $HOME/.local/bin/uv run ruff check src tests && $HOME/.local/bin/uv run ruff format --check src tests"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^assistant-platform/packages/assistant-core/
-      - id: mypy-assistant-core
-        name: mypy (assistant-core)
-        entry: bash -c "cd assistant-platform/packages/assistant-core && $HOME/.local/bin/uv run mypy --strict src"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^assistant-platform/packages/assistant-core/
-      - id: pytest-assistant-core
-        name: pytest (assistant-core, no pathfinder installed)
-        entry: bash -c "cd assistant-platform/packages/assistant-core && $HOME/.local/bin/uv run pytest"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^assistant-platform/packages/assistant-core/
-        stages: [pre-push]
-      - id: ruff-veupathdb-py
-        name: ruff (veupathdb-py)
-        entry: bash -c "cd veupathdb-py && $HOME/.local/bin/uv run ruff check src tests && $HOME/.local/bin/uv run ruff format --check src tests"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^veupathdb-py/
-      - id: mypy-veupathdb-py
-        name: mypy (veupathdb-py)
-        entry: bash -c "cd veupathdb-py && $HOME/.local/bin/uv run mypy --strict src"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^veupathdb-py/
-      - id: pytest-veupathdb-py
-        name: pytest (veupathdb-py, no pathfinder installed)
-        entry: bash -c "cd veupathdb-py && $HOME/.local/bin/uv run pytest tests/unit"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^veupathdb-py/
-        stages: [pre-push]
-      - id: knowledge-veupathdb-py
-        name: check-knowledge + check-wdk-rules (veupathdb-py)
-        entry: bash -c "cd veupathdb-py && node scripts/check-knowledge.mjs && node scripts/check-wdk-rules.mjs"
-        language: system
-        pass_filenames: false
-        files: ^veupathdb-py/(docs/knowledge/|scripts/)
-      - id: ruff-veupathdb-mcp
-        name: ruff (veupathdb-mcp)
-        entry: bash -c "cd veupathdb-mcp && $HOME/.local/bin/uv run ruff check src tests && $HOME/.local/bin/uv run ruff format --check src tests"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^veupathdb-mcp/
-      - id: mypy-veupathdb-mcp
-        name: mypy (veupathdb-mcp)
-        entry: bash -c "cd veupathdb-mcp && $HOME/.local/bin/uv run mypy --strict src"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^veupathdb-mcp/
-      - id: pytest-veupathdb-mcp
-        name: pytest (veupathdb-mcp, no pathfinder installed)
-        entry: bash -c "cd veupathdb-mcp && $HOME/.local/bin/uv run pytest tests/unit"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^veupathdb-mcp/
-        stages: [pre-push]
-      - id: ruff-mcp-conformance
-        name: ruff (mcp-conformance)
-        entry: bash -c "cd assistant-platform/packages/mcp-conformance && $HOME/.local/bin/uv run ruff check src tests"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^assistant-platform/packages/mcp-conformance/
-      - id: mypy-mcp-conformance
-        name: mypy (mcp-conformance)
-        entry: bash -c "cd assistant-platform/packages/mcp-conformance && $HOME/.local/bin/uv run mypy --strict src"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^assistant-platform/packages/mcp-conformance/
-      - id: pytest-mcp-conformance
-        name: pytest (mcp-conformance, fixture servers on loopback)
-        entry: bash -c "cd assistant-platform/packages/mcp-conformance && $HOME/.local/bin/uv run pytest"
-        language: system
-        pass_filenames: false
-        types: [python]
-        files: ^assistant-platform/packages/mcp-conformance/
-        stages: [pre-push]
-      - id: typecheck-assistant-client
-        name: tsc --noEmit (assistant-client)
-        entry: bash -c "cd assistant-platform/packages/assistant-client-ts && yarn typecheck"
-        language: system
-        pass_filenames: false
-        files: ^(assistant-platform/packages/assistant-client-ts/|assistant-platform/PROTOCOL\.md)
-      - id: prettier-assistant-client
-        name: prettier (assistant-client)
-        entry: bash -c "cd assistant-platform/packages/assistant-client-ts && yarn format:check"
-        language: system
-        pass_filenames: false
-        files: ^assistant-platform/packages/assistant-client-ts/
-      - id: eslint-assistant-client
-        name: eslint (assistant-client)
-        entry: bash -c "cd assistant-platform/packages/assistant-client-ts && yarn lint"
-        language: system
-        pass_filenames: false
-        files: ^assistant-platform/packages/assistant-client-ts/
-      - id: vitest-assistant-client
-        name: vitest (assistant-client, protocol conformance)
-        entry: bash -c "cd assistant-platform/packages/assistant-client-ts && yarn test"
-        language: system
-        pass_filenames: false
-        files: ^(assistant-platform/packages/assistant-client-ts/|assistant-platform/PROTOCOL\.md)
-        stages: [pre-push]
       - id: mypy-api
         name: mypy (api)
         entry: bash -c "cd apps/api && $HOME/.local/bin/uv run --project . mypy src"
@@ -156,25 +37,25 @@ repos:
         entry: bash -c "cd apps/web && yarn format:check"
         language: system
         pass_filenames: false
-        files: ^(apps/web/|packages/shared-ts/|assistant-platform/packages/assistant-client-ts/).*
+        files: ^(apps/web/|packages/shared-ts/).*
       - id: eslint-web
         name: eslint (web)
         entry: bash -c "cd apps/web && yarn lint"
         language: system
         pass_filenames: false
-        files: ^(apps/web/|packages/shared-ts/|assistant-platform/packages/assistant-client-ts/).*
+        files: ^(apps/web/|packages/shared-ts/).*
       - id: typecheck-web
         name: tsc --noEmit (web)
         entry: bash -c "cd apps/web && yarn typecheck"
         language: system
         pass_filenames: false
-        files: ^(apps/web/|packages/shared-ts/|assistant-platform/packages/assistant-client-ts/).*
+        files: ^(apps/web/|packages/shared-ts/).*
       - id: boundaries-web
         name: check boundaries (web, and the checker)
         entry: bash -c "cd apps/web && yarn check:boundaries && node --test scripts/check-boundaries.test.mjs"
         language: system
         pass_filenames: false
-        files: ^(apps/web/|packages/shared-ts/|assistant-platform/packages/assistant-client-ts/).*
+        files: ^(apps/web/|packages/shared-ts/).*
       - id: weak-assertions-web
         name: weak-assertion check (web, and the checker)
         entry: bash -c "cd apps/web && yarn check:weak-assertions && node --test scripts/check-weak-assertions.test.mjs"
@@ -198,13 +79,13 @@ repos:
         entry: bash -c "node scripts/check-wdk-rules.mjs && node --test scripts/check-wdk-rules.test.mjs"
         language: system
         pass_filenames: false
-        files: ^(docs/|apps/|packages/|scripts/|veupathdb-py/)
+        files: ^(docs/|apps/|packages/|scripts/)
       - id: vitest-web
         name: vitest (web)
         entry: bash -c "cd apps/web && yarn vitest run"
         language: system
         pass_filenames: false
-        files: ^(apps/web/|packages/shared-ts/|assistant-platform/packages/assistant-client-ts/).*
+        files: ^(apps/web/|packages/shared-ts/).*
         stages: [pre-push]
       - id: pytest-api
         name: pytest (api)
@@ -219,7 +100,7 @@ repos:
         entry: bash -c "cd apps/web && NEXT_PUBLIC_API_URL='http://localhost:8000' yarn build"
         language: system
         pass_filenames: false
-        files: ^(apps/web/|packages/shared-ts/|assistant-platform/packages/assistant-client-ts/).*
+        files: ^(apps/web/|packages/shared-ts/).*
         stages: [pre-push]
       - id: openapi-check-api
         name: openapi spec freshness (api)

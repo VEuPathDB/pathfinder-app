@@ -7,10 +7,11 @@ COPY --from=uv /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
-# Install system dependencies
+# The lock names three repositories, so the install clones them.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Cached layer: dependencies + models (busted only by pyproject.toml/uv.lock) ──
@@ -19,17 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY apps/api/pyproject.toml apps/api/
 COPY apps/api/uv.lock apps/api/
 COPY apps/api/config.toml apps/api/
-COPY assistant-platform/packages/assistant-core/pyproject.toml assistant-platform/packages/assistant-core/
-COPY assistant-platform/packages/assistant-core/src assistant-platform/packages/assistant-core/src
-COPY assistant-platform/packages/mcp-conformance/pyproject.toml assistant-platform/packages/mcp-conformance/
-COPY assistant-platform/packages/mcp-conformance/README.md assistant-platform/packages/mcp-conformance/
-COPY assistant-platform/packages/mcp-conformance/src assistant-platform/packages/mcp-conformance/src
-COPY veupathdb-py/pyproject.toml veupathdb-py/
-COPY veupathdb-py/README.md veupathdb-py/
-COPY veupathdb-py/src veupathdb-py/src
-COPY veupathdb-mcp/pyproject.toml veupathdb-mcp/
-COPY veupathdb-mcp/README.md veupathdb-mcp/
-COPY veupathdb-mcp/src veupathdb-mcp/src
 
 # Install dependencies without the project itself (no source code needed).
 # Cache mount preserves uv's download cache across builds — even when deps
@@ -73,8 +63,6 @@ COPY apps/api/alembic.ini apps/api/
 COPY apps/api/alembic apps/api/alembic
 
 # Copy application code (exclude tests — they add ~300MB of VCR cassettes)
-# The catalog snapshots ship with the server distribution that reads them.
-COPY veupathdb-mcp/data veupathdb-mcp/data
 COPY apps/api/src/pathfinder apps/api/src/pathfinder
 RUN rm -rf apps/api/src/pathfinder/tests
 
@@ -84,7 +72,7 @@ COPY ollama_models.yam[l] ./
 # Run from source inside the image. Avoid a second `uv sync` after copying app
 # code: installing the editable project needs the Hatchling build backend, and
 # build isolation may try to fetch it from PyPI during every code-layer rebuild.
-ENV PYTHONPATH=/app/apps/api/src:/app/assistant-platform/packages/assistant-core/src
+ENV PYTHONPATH=/app/apps/api/src
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app/apps/api
 

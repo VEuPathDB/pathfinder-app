@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The embedding index belongs to the MCP unit, not to the assistant runtime
-description: No module inside assistant_core imports the record manager, so record_manager.py and the two tables embedding_vectors / embedding_index_entries moved to veupathdb-mcp/src/veupathdb_mcp/embeddings/ on a declarative base of their own, and the MCP unit ships its own copy of the embedder. Making veupathdb-mcp depend on assistant-core for a pgvector table was rejected.
+description: No module inside assistant_core imports the record manager, so record_manager.py and the two tables embedding_vectors / embedding_index_entries moved to veupathdb-mcp: src/veupathdb_mcp/embeddings/ on a declarative base of their own, and the MCP unit ships its own copy of the embedder. Making veupathdb-mcp depend on assistant-core for a pgvector table was rejected.
 tags: [embeddings, split, architecture, packaging, persistence, mcp]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -12,11 +12,11 @@ status: stable
 
 `assistant_core/embeddings/record_manager.py` and the two table declarations it
 reads are the `veupathdb-mcp` unit's, and they now live in
-`apps/api/src/veupathdb-mcp/src/veupathdb_mcp/embeddings/`, which is that unit's
+`apps/api/src/veupathdb-mcp: src/veupathdb_mcp/embeddings/`, which is that unit's
 in-repo territory.
 
 **The measurement that decided it.** No module under
-`assistant-platform/packages/assistant-core/src/assistant_core/` imported the record manager. Its
+`assistant-platform: packages/assistant-core/src/assistant_core/` imported the record manager. Its
 consumers were `veupathdb_mcp/embeddings/{semantic_index,study_index}.py`,
 `veupathdb_mcp/catalog/{discovery,public_strategy_search}.py`,
 `services/eda/catalog.py` and `jobs/tasks.py` - four in the MCP unit, two in the
@@ -79,7 +79,7 @@ it, and a refusal is logged once with the driver's error class. Every session th
 index opens goes through one boundary in `record_manager`, which turns a driver
 refusal into `IndexStoreUnavailableError`; that and `EmbeddingUnavailableError`
 share `SemanticIndexUnavailableError`, so a caller that ranks reads one type and
-never a bare `asyncpg` exception. `veupathdb-mcp/tests/unit/gene_lookup/test_catalog_without_the_index.py`
+never a bare `asyncpg` exception. `veupathdb-mcp: tests/unit/gene_lookup/test_catalog_without_the_index.py`
 holds it: with the sync enabled and a store that refuses this process,
 `list_organisms` still answers with the site's organisms.
 
@@ -113,13 +113,13 @@ standalone MCP process stand alone.
 
 # What would falsify this
 
-`grep -rn record_manager assistant-platform/packages/assistant-core/src` returns nothing.
-`veupathdb-mcp/tests/unit/test_package_boundary.py` fails if any module of the
+`grep -rn record_manager assistant-platform: packages/assistant-core/src` returns nothing.
+`veupathdb-mcp: tests/unit/test_package_boundary.py` fails if any module of the
 distribution, or the served entrypoint's closure, imports `assistant_core` at
 all; it carries no allowance.
-`cd assistant-platform/packages/assistant-core && uv run pytest tests/unit` fails if the runtime
+`cd assistant-platform: packages/assistant-core && uv run pytest tests/unit` fails if the runtime
 starts needing the two tables back.
-`veupathdb-mcp/tests/unit/gene_lookup/test_catalog_without_the_index.py` fails if a
+`veupathdb-mcp: tests/unit/gene_lookup/test_catalog_without_the_index.py` fails if a
 catalog load starts awaiting the sync again, or if a store refusal reaches the
 caller untranslated.
 

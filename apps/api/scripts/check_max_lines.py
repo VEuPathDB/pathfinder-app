@@ -17,10 +17,7 @@ from pathlib import Path
 
 DEFAULT_LIMIT = 400
 DEFAULT_BASELINE = Path("src/pathfinder/tests/.max-lines-baseline.txt")
-SRC_ROOTS = (
-    Path("src/pathfinder"),
-    Path("../../assistant-platform/packages/assistant-core/src/assistant_core"),
-)
+SRC_ROOTS = (Path("src/pathfinder"),)
 
 # Directories and files exempt from the line limit.
 EXEMPT_PATTERNS: set[str] = {

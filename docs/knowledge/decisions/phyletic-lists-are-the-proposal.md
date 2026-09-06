@@ -149,7 +149,7 @@ fix the 500 would have made them look like values WDK chose.
 
 `domain/parameters/phyletic.py` owns the tree, the resolution, the leaf states,
 the pattern and the two lists, tested in
-`veupathdb-py/tests/unit/domain/parameters/test_phyletic.py`;
+`veupathdb-py: tests/unit/domain/parameters/test_phyletic.py`;
 `veupathdb/wdk/phyletic_tree.py:phyletic_tree_of` is the only place that
 decides a search is phyletic and builds its tree, so the sheet, the binding and
 the wire guard cannot disagree about it;
@@ -161,7 +161,7 @@ expected binding per selection, read by
 and `apps/web/src/features/strategy/editor/widgets/phyleticConformance.test.ts`,
 so the two encoders cannot drift apart without a red test on both sides.
 
-`veupathdb-mcp/tests/unit/catalog/test_param_phyletic.py` pins the other half of this
+`veupathdb-mcp: tests/unit/catalog/test_param_phyletic.py` pins the other half of this
 decision - every phyletic string the model reads says the pattern is derived and
 must not be written - because a help text that teaches the grammar re-opens the
 rejected alternative one prompt at a time.

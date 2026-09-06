@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The assistant platform is a grouping of three distributions, not one
-description: packages/{assistant-core, assistant-client-ts, mcp-conformance} and PROTOCOL.md moved under assistant-platform/ with a README naming the three and the contract between them; merging them into one distribution was rejected because they ship to different consumers on different release clocks and in two languages.
+description: packages/{assistant-core, assistant-client-ts, mcp-conformance} and PROTOCOL.md moved into a repository of their own with a README naming the three and the contract between them; merging them into one distribution was rejected because they ship to different consumers on different release clocks and in two languages.
 tags: [assistant-core, assistant-client, mcp-conformance, split, architecture, packaging, protocol]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-`assistant-platform/` holds three distributions that already stood alone, plus
+`VEuPathDB/ai-assistant-platform` holds three distributions that already stood alone, plus
 the document that binds two of them:
 
 | folder | distribution | import name |
@@ -63,23 +63,20 @@ them.
 The two Python packages each carry a `uv.lock`, so each resolves alone. The
 TypeScript client carried none: its resolution lived in the monorepo root's
 `yarn.lock`, and installed anywhere else it took whatever a fresh resolve
-picked. `assistant-platform/package.json` is now a private Yarn root declaring
+picked. `assistant-platform: package.json` is now a private Yarn root declaring
 `packages/assistant-client-ts` as its only workspace, pinning the same Yarn
 release the monorepo root pins, with its own `.yarnrc.yml` and `yarn.lock`;
 `yarn install --immutable` is the first step of the client's lane in
-`assistant-platform/.github/workflows/ci.yml`, and
-`assistant-platform/.pre-commit-config.yaml` carries the same hooks the root
+`assistant-platform: .github/workflows/ci.yml`, and
+`assistant-platform: .pre-commit-config.yaml` carries the same hooks the root
 config runs for these three packages.
 
-The monorepo root's `workspaces` no longer names the client. `apps/web` reaches
-it through Yarn's `portal:` protocol, the JS analogue of the editable path
-dependency `apps/api` uses for the Python siblings: the target is read from disk
-at resolution time and symlinked rather than copied. A portal installs the
-target's `dependencies` and not its `devDependencies`, and the client's `ai`
-peer lives in the target's own tree, so `apps/web`, which compiles the client's
-source through its `tsconfig` paths and its vitest aliases, needs the platform
-project installed as well. `.github/actions/setup-web` and `apps/web/Dockerfile`
-run both installs, and both READMEs say so.
+The monorepo root's `workspaces` does not name the client. `apps/web` reaches it
+as a Yarn dependency on the platform repository, selecting the workspace and one
+commit; see
+[the libraries are consumed by URL](the-libraries-are-consumed-by-git-url.md).
+`apps/web` compiles the packed `dist`, so it needs no second install and no
+`tsconfig` path into the client's source.
 
 `ai` is pinned to `6.0.154` in the client's own lock, and its peer range stops
 below `6.0.250`, because that release changed `resumeStream` so a resumed stream

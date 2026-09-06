@@ -27,8 +27,8 @@ see is in [layer-ownership](../layer-ownership.md).
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/param/ParamFormatterFactory.java#L18-L55
-- anchor: veupathdb-py/src/veupathdb/domain/parameters/value_codec.py:_WIRE_BUILDERS
-- status: ENFORCED by veupathdb-py/tests/unit/domain/parameters/test_value_codec_wire.py::test_wdk_map_001_a_twelfth_kind_has_no_wire_form
+- anchor: veupathdb-py: src/veupathdb/domain/parameters/value_codec.py:_WIRE_BUILDERS
+- status: ENFORCED by veupathdb-py: tests/unit/domain/parameters/test_value_codec_wire.py::test_wdk_map_001_a_twelfth_kind_has_no_wire_form
 
 That there are eleven types, and that `ParamKind` is exactly those eleven, is
 WDK-PARAM-001 (`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`).
@@ -48,7 +48,7 @@ stop matching its own type.
 **Adding a twelfth is caught by nothing at all.** `_wire_payload` falls through to
 `{"type": kind, "value": wire}` for any kind without a builder, and the union
 rejects it at runtime with no test watching.
-`veupathdb-py/tests/unit/domain/parameters/test_values.py` looks like the test that
+`veupathdb-py: tests/unit/domain/parameters/test_values.py` looks like the test that
 would notice and is not: every case is `decode(encode(x)) == x`, which constrains
 the codec rather than the enumeration, and `[tool.mypy]` in
 `apps/api/pyproject.toml` excludes `src/pathfinder/tests/`, so its literals are
@@ -61,8 +61,8 @@ The correspondence, cell by cell, is in
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L54-L64
-- anchor: veupathdb-py/src/veupathdb/wdk/wdk_parameters.py:WDKParameter
-- status: ENFORCED by veupathdb-py/tests/unit/test_package_boundary.py::test_the_domain_opens_no_connection
+- anchor: veupathdb-py: src/veupathdb/wdk/wdk_parameters.py:WDKParameter
+- status: ENFORCED by veupathdb-py: tests/unit/test_package_boundary.py::test_the_domain_opens_no_connection
 
 Upstream keeps one type. `ParameterBase` carries `initialDisplayValue` alongside
 `dependentParams`, `isVisible` and the rest, so a wdk-client `Parameter` is the
@@ -99,7 +99,7 @@ live in `integrations/`, which is a fact about the file tree rather than a check
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/StepFormatter.java#L129-L140
-- anchor: veupathdb-py/src/veupathdb/domain/strategy/graph_model.py:flatten_tree
+- anchor: veupathdb-py: src/veupathdb/domain/strategy/graph_model.py:flatten_tree
 - status: ENFORCED by apps/api/src/pathfinder/tests/unit/services/strategies/test_wdk_pushed_step_tree.py::test_wdk_map_003_the_serialized_tree_carries_only_the_three_keys
 
 `formatAsStepTree` writes a node as `stepId` plus optional `primaryInput` and
@@ -131,7 +131,7 @@ branch survives onto the *secondary input* of a `StrategyStepNode`
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/filter/CheckLoginFilter.java#L135-L148
-- anchor: veupathdb-mcp/src/veupathdb_mcp/wdk/step_preview.py:step_sample_records
+- anchor: veupathdb-mcp: src/veupathdb_mcp/wdk/step_preview.py:step_sample_records
 - status: ENFORCED by apps/api/src/pathfinder/tests/unit/test_call_sites.py::test_wdk_map_005_no_pathfinder_module_builds_a_site_client
 
 The reason is WDK's, not ours. Identity travels on a cookie the *client object*
@@ -254,8 +254,8 @@ would notice if the id generator ever emitted digits.
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/formatter/param/TreeBoxEnumParamFormatter.java#L30-L51
-- anchor: veupathdb-py/src/veupathdb/domain/parameters/wdk_vocab.py:WDKTreeBoxVocabNode
-- status: ENFORCED by veupathdb-py/tests/unit/test_package_boundary.py::test_the_domain_opens_no_connection
+- anchor: veupathdb-py: src/veupathdb/domain/parameters/wdk_vocab.py:WDKTreeBoxVocabNode
+- status: ENFORCED by veupathdb-py: tests/unit/test_package_boundary.py::test_the_domain_opens_no_connection
 
 Some WDK shapes have to reach the browser, because the browser renders them: a
 tree vocabulary is `{data: {term, display}, children: [...]}` exactly as

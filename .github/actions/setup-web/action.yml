@@ -20,20 +20,10 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
         cache: "yarn"
-        cache-dependency-path: |
-          yarn.lock
-          assistant-platform/yarn.lock
+        cache-dependency-path: yarn.lock
 
     - name: Install dependencies
       shell: bash
-      run: yarn install --immutable
-
-    # `@pathfinder/assistant-client` is a portal, so this project installs the
-    # link and not the target's own toolchain. apps/web compiles that target's
-    # source, whose `ai` peer resolves inside the target's own tree.
-    - name: Install the assistant platform
-      shell: bash
-      working-directory: assistant-platform
       run: yarn install --immutable
 
     # shared-ts generated types are gitignored; every web job resolves them from source.

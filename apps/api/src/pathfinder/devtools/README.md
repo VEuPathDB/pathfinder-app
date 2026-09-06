@@ -267,7 +267,7 @@ different provider.
 
 `wdk_fixtures verify` needs no network and no credential. It validates every recorded
 fixture body against the WDK schema its endpoint annotates, using the copy vendored under
-`veupathdb-py/src/veupathdb/testing/fixtures/wdk/schema/` at the commit `schema-pin.json` names, and it
+`veupathdb.testing.fixtures/wdk/schema/` at the commit `schema-pin.json` names, and it
 fails when a vendored file no longer matches the sha256 the pin records. `vendor`
 re-downloads that tree at the pinned commit, deletes what the `$ref` closure no longer
 reaches, and rewrites the pin only when a byte changed; bump the `sha` field first, then
@@ -284,5 +284,5 @@ one include at the pinned commit and rewrites the pin only when a byte changed; 
 `sha` field first, then run it.
 
 `RunCapture` implements the `ChatWriter` protocol
-(`assistant-platform/packages/assistant-core/.../conversation/event_writer.py`) — the same surface as the production
+(`assistant_core.conversation.event_writer`) — the same surface as the production
 `ChatEventWriter`, so the CLI exercises the real turn pipeline.

@@ -84,7 +84,7 @@ capable of raising a hand. Each of the six failed in its own way:
   describes `JSESSIONID` purely as the auth cookie mechanism and never mentions the silent
   zero at all. A reader gets a different confidence level depending on which file they
   happen to open, and no file knows the others exist.
-- **The test pins us, not WDK.** `veupathdb-py/tests/unit/wdk/test_http.py`
+- **The test pins us, not WDK.** `veupathdb-py: tests/unit/wdk/test_http.py`
   asserts that our client re-initializes the session when the token changes. That is our
   conformance, and it passed on every commit throughout, including every commit for which
   the upstream behavior it exists for may not have been happening at all. No test asserts

@@ -50,7 +50,7 @@ the checked part of it. Treat them as a snapshot dated 2026-09-05, and read
 **Every remaining contract is about import statements, not reachability.** All
 four set `allow_indirect_imports = true`, so each fails only on a direct import
 statement. Domain purity left with the domain:
-`veupathdb-py/tests/unit/test_package_boundary.py` reads every module's import
+`veupathdb-py: tests/unit/test_package_boundary.py` reads every module's import
 statements, so a domain module that names `httpx`, or names `veupathdb.wdk` or
 `veupathdb.eda` (the two subpackages that open a connection), fails there.
 

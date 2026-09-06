@@ -41,7 +41,7 @@ uv run python scripts/check_max_lines.py
 uv run python scripts/check_weak_assertions.py
 uv run python -m pathfinder.devtools.openapi check
 uv run pip-audit
-uv run sphinx-build -b html docs docs/_build/html  # the CI build-docs job
+uv run --group docs sphinx-build -b html docs docs/_build/html  # the CI build-docs job
 
 uv run pytest src/pathfinder/tests/unit/ -v
 uv run pytest src/pathfinder/tests/ -v          # adds the integration tier; needs Docker
@@ -64,29 +64,17 @@ NEXT_PUBLIC_API_URL=http://localhost:8000 yarn build
 yarn test:e2e              # needs the API, the worker and the web app running
 ```
 
-### Packages
+### The libraries
 
-```bash
-cd assistant-platform/packages/assistant-core      && uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy --strict src && uv run pytest
-cd assistant-platform/packages/assistant-client-ts && yarn lint && yarn typecheck && yarn format:check && yarn test && yarn build
-cd assistant-platform/packages/mcp-conformance     && uv run ruff check src tests && uv run mypy --strict src && uv run pytest
-cd veupathdb-py                                    && uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy --strict src && uv run pytest tests/unit
-cd veupathdb-mcp                                   && uv run ruff check src tests && uv run ruff format --check src tests && uv run mypy --strict src && uv run pytest tests/unit && uv run pytest tests/integration
-```
-
-`assistant-core`'s suite has an integration tier that starts Postgres through
-testcontainers, so the bare `uv run pytest` needs Docker. `uv run pytest tests/unit`
-is the hermetic run. `veupathdb-mcp`'s index tier starts a pgvector container and
-runs that package's own alembic chain on it. All three run with no `pathfinder`
-installed, which is the point: a distribution must not have grown a dependency on
-the app.
+The three libraries are repositories of their own and run their own gates. Each
+one's README states them; none of them runs from this checkout.
 
 The api runs both alembic chains at startup. A database an earlier PathFinder
 built already holds `embedding_vectors` and `embedding_index_entries` under
 PathFinder's chain, so the api exits with `DuplicateTableError` until the MCP
-chain is stamped once on that database, from the `veupathdb-mcp` folder or the
-`wdk-mcp` container: `alembic -c alembic.ini stamp head`. The dev volume and the
-e2e volume (`pathfinder_test`) are such databases; a fresh one needs nothing.
+chain is stamped once on that database, from a checkout of the MCP repository or
+the `wdk-mcp` container: `alembic -c alembic.ini stamp head`. The dev volume and
+the e2e volume (`pathfinder_test`) are such databases; a fresh one needs nothing.
 
 ### The bundle
 
@@ -117,13 +105,58 @@ docker compose --env-file .env.dev up -d --build --force-recreate api worker wdk
 docker compose exec api uv run pytest src/pathfinder/tests/ -v
 ```
 
+## Working across the four repositories
+
+PathFinder is one of four repositories. The other three are libraries it
+consumes by URL at a commit:
+
+| Repository | Distribution | Consumed by |
+| --- | --- | --- |
+| [ai-veupathdb-client](https://github.com/VEuPathDB/ai-veupathdb-client) | `veupathdb-py` (import `veupathdb`) | `apps/api`, and the MCP repository |
+| [ai-wdk-mcp](https://github.com/VEuPathDB/ai-wdk-mcp) | `veupathdb-mcp` (import `veupathdb_mcp`) | `apps/api`, and the `wdk-mcp` image |
+| [ai-assistant-platform](https://github.com/VEuPathDB/ai-assistant-platform) | `assistant-core`, `veupathdb-mcp-conformance`, `@pathfinder/assistant-client` | `apps/api`, `apps/web` |
+
+The pins are `apps/api/pyproject.toml` `[tool.uv.sources]` (four rows, each a
+`rev` of 40 characters), `apps/web/package.json` (`@pathfinder/assistant-client`,
+a `commit=` of 40 characters) and `WDK_MCP_REV` in the env file, which the
+`wdk-mcp` compose service builds from.
+
+### Iterating on a library
+
+Clone the repositories you are changing beside this one, then override the pin
+inside the api's environment:
+
+```bash
+cd apps/api
+uv pip install -e ../../ai-veupathdb-client
+```
+
+The override lasts until the next `uv sync`, which restores the pin. The runtime
+carries its wire document inside the package (`assistant_core/PROTOCOL.md`), so
+an editable override of it serves the same document a wheel does.
+
+### Taking a new commit of a library
+
+```bash
+cd apps/api
+# change `rev` in [tool.uv.sources]
+uv lock --upgrade-package veupathdb-py    # or veupathdb-mcp, assistant-core, veupathdb-mcp-conformance
+uv sync
+```
+
+For the TypeScript client, change the `commit=` in `apps/web/package.json` and
+run `yarn install` at the repository root. For the `wdk-mcp` image, set
+`WDK_MCP_REV` in the env file.
+
+A repository that adopts the `v<version>` tag convention can be named by `rev`
+or `commit=` with the tag instead of the sha; the pin stays exact either way.
+
 ## Architectural enforcement
 
 Three checks enforce structure beyond linting.
 
 **File size cap.** `apps/api/scripts/check_max_lines.py` fails when a Python
-source file under `apps/api/src/pathfinder` or
-`assistant-platform/packages/assistant-core/src/assistant_core` exceeds 400 meaningful lines,
+source file under `apps/api/src/pathfinder` exceeds 400 meaningful lines,
 counting neither blanks nor comments. Devtools and two declared pure-model
 modules are exempt; the exemption set is in the script. Tests obey the cap:
 `src/pathfinder/tests/.max-lines-baseline.txt` ratchets the files that were

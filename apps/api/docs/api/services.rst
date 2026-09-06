@@ -16,7 +16,7 @@ Overview
   sets, experiments, control sets, variant comparisons and parameter sweeps.
 
 The catalog, gene lookup, control tests and tool payloads are the
-``veupathdb-mcp`` sibling distribution, imported as ``veupathdb_mcp``; its
+``veupathdb-mcp`` distribution, imported as ``veupathdb_mcp``; its
 README is the reference for them.
 
 Workbench Facade

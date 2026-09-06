@@ -1,17 +1,11 @@
-"""The app and the runtime package must install one checkpoint serializer."""
+"""The app installs the checkpoint chain the runtime package pins."""
 
 from __future__ import annotations
 
-import tomllib
-from pathlib import Path
+from importlib.metadata import distribution, version
 
 import pytest
-
-_REPO_ROOT = Path(__file__).resolve().parents[6]
-API_LOCK = _REPO_ROOT / "apps" / "api" / "uv.lock"
-CORE_LOCK = (
-    _REPO_ROOT / "assistant-platform" / "packages" / "assistant-core" / "uv.lock"
-)
+from packaging.requirements import Requirement
 
 # assistant_core owns the checkpoint serializer and its suite is the gate that
 # decides whether a state type survives a round trip. A gate that runs another
@@ -19,24 +13,30 @@ CORE_LOCK = (
 LANGGRAPH = "langgraph"
 
 
-def _locked_versions(lock: Path) -> dict[str, str]:
-    document = tomllib.loads(lock.read_text(encoding="utf-8"))
-    packages = document["package"]
-    return {str(entry["name"]): str(entry["version"]) for entry in packages}
+def _runtime_langgraph_requirements() -> list[Requirement]:
+    declared = distribution("assistant-core").requires or []
+    parsed = [Requirement(raw) for raw in declared]
+    return sorted(
+        (one for one in parsed if one.name.split("-")[0] == LANGGRAPH),
+        key=lambda one: one.name,
+    )
 
 
-def _langgraph_packages() -> list[str]:
-    api = _locked_versions(API_LOCK)
-    core = _locked_versions(CORE_LOCK)
-    shared = set(api) & set(core)
-    return sorted(name for name in shared if name.split("-")[0] == LANGGRAPH)
+def test_the_runtime_pins_the_checkpoint_chain() -> None:
+    names = {one.name for one in _runtime_langgraph_requirements()}
+
+    assert "langgraph-checkpoint" in names
+    assert "langgraph-checkpoint-postgres" in names
 
 
-def test_the_checkpoint_chain_is_locked_in_both_places() -> None:
-    assert "langgraph-checkpoint" in _langgraph_packages()
-    assert "langgraph-checkpoint-postgres" in _langgraph_packages()
-
-
-@pytest.mark.parametrize("package", _langgraph_packages())
-def test_both_locks_resolve_the_same_version(package: str) -> None:
-    assert _locked_versions(API_LOCK)[package] == _locked_versions(CORE_LOCK)[package]
+@pytest.mark.parametrize(
+    "requirement",
+    _runtime_langgraph_requirements(),
+    ids=lambda one: one.name,
+)
+def test_the_installed_version_is_the_one_the_runtime_names(
+    requirement: Requirement,
+) -> None:
+    """A range would let the app and the runtime's gate diverge."""
+    assert {str(one.operator) for one in requirement.specifier} == {"=="}
+    assert version(requirement.name) in requirement.specifier

@@ -9,7 +9,7 @@ status: superseded
 ---
 
 > Superseded by [the runtime is a package](the-runtime-is-a-package.md):
-> the directory became `assistant-platform/packages/assistant-core`, and contract 7 became the
+> the directory became `assistant-platform: packages/assistant-core`, and contract 7 became the
 > package's own dependency list. What follows is why the directory came first.
 
 # What was found

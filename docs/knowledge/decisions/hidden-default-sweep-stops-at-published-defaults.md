@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-`veupathdb-py/tests/live/hidden_defaults.py`, run by the live check
+`veupathdb-py: tests/live/hidden_defaults.py`, run by the live check
 in `test_wdk_hidden_defaults.py`, binds every required parameter of a transcript
 search from that parameter's own `initialDisplayValue` and records what WDK
 answered. **It stops there.** Where a visible parameter's published default is

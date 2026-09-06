@@ -3,7 +3,7 @@
  * Conformance check for PathFinder's own WDK mapping rules.
  *
  * The WDK model, REST and rule bundles are the client library's, under
- * `veupathdb-py/docs/knowledge/`; that tree carries its own copy of this
+ * the client repository's own bundle; that tree carries its own copy of this
  * script. What is checked here is the mapping PathFinder holds onto WDK.
  *
  * A WDK rule is admissible only because upstream can falsify it. This script
@@ -34,6 +34,11 @@ const PINNED_BLOB_RE =
 const PINNED_RAW_RE =
   /^https:\/\/raw\.githubusercontent\.com\/[^\s/]+\/[^\s/]+\/[0-9a-f]{40}\//;
 const STATUS_RE = /^(UNENFORCED|WITHDRAWN - .+|(?:ENFORCED|PARTIAL) by (.+))$/;
+// The repositories this bundle cites. A path prefixed by one of them lives in
+// that repository, which is never checked out beside this one, so it is read as
+// a citation and not resolved.
+const CITED_REPOSITORIES = ["veupathdb-py", "veupathdb-mcp", "assistant-platform"];
+const CITATION_RE = new RegExp(`^(?:${CITED_REPOSITORIES.join("|")}): `);
 const PROSE_DIRS = ["model", "rest", "pathfinder"];
 const GITHUB_URL_RE =
   /https:\/\/(?:github\.com|raw\.githubusercontent\.com)\/[^\s)<>"'`\]]+/g;
@@ -76,6 +81,11 @@ function splitAnchor(anchor) {
   const colon = anchor.indexOf(":");
   if (colon === -1) return { path: anchor.trim(), symbol: null };
   return { path: anchor.slice(0, colon).trim(), symbol: anchor.slice(colon + 1).trim() };
+}
+
+/** A path in one of the repositories this bundle cites. */
+function isCitation(value) {
+  return CITATION_RE.test(value.trim());
 }
 
 /** Word-bounded, so renaming `Step` to `WdkStep` does not keep the anchor green. */
@@ -170,9 +180,11 @@ export function collect(root, bundle = root, tally = null) {
       }
 
       const anchor = fields.anchor ?? "";
+      const cited = isCitation(anchor);
+      if (cited) tally?.cite(id);
       if (anchor === "") {
         errors.push(`${rel}: ${id} has no anchor`);
-      } else {
+      } else if (!cited) {
         const { path: anchorPath, symbol } = splitAnchor(anchor);
         const anchorFull = join(root, anchorPath);
         if (!existsSync(anchorFull)) {
@@ -184,7 +196,7 @@ export function collect(root, bundle = root, tally = null) {
         }
       }
 
-      if (statusMatch?.[2]) {
+      if (statusMatch?.[2] && !isCitation(statusMatch[2])) {
         const { path, selector } = splitTestId(statusMatch[2]);
         const testFull = join(root, path);
         if (!existsSync(testFull)) {
@@ -239,7 +251,12 @@ export class Coverage {
     this.enforced = 0;
     this.partial = 0;
     this.withdrawn = 0;
+    this.cited = 0;
     this.unenforced = [];
+  }
+
+  cite(_id) {
+    this.cited += 1;
   }
 
   count(id, file, ruleClass, status, reason) {
@@ -268,7 +285,7 @@ if (invokedDirectly) {
   console.log(
     `  ${coverage.total} rules: ${coverage.enforced} enforced, ` +
       `${coverage.partial} partial, ${coverage.unenforced.length} unenforced, ` +
-      `${coverage.withdrawn} withdrawn`,
+      `${coverage.withdrawn} withdrawn, ${coverage.cited} anchored in a cited repository`,
   );
   for (const rule of coverage.unenforced) {
     console.log(`  UNENFORCED ${rule.id} (${rule.ruleClass}): ${rule.reason}`);

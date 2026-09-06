@@ -11,6 +11,10 @@ Network=pathfinder.network
 PublishPort=8100:8100
 PodmanArgs=--memory=2g
 
+Volume=pathfinder-catalogs.volume:/app/data/catalogs
+# The directory the three services exchange catalog snapshots through.
+Environment=CATALOG_CACHE_DIR=/app/data/catalogs
+
 # API keys and app settings loaded from .env
 EnvironmentFile=%h/.config/pathfinder/.env
 

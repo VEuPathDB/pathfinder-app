@@ -28,7 +28,7 @@ thread-surgery audit records (I1 and I3): a reader connected across a revert
 sees a snapshot and a tail disagree. It was rejected for this batch because it
 is a protocol version, not a client patch: it needs a producer in
 `assistant_core`, a reducer rule for "drop everything at or after this cursor",
-a conformance case in `assistant-platform/packages/assistant-client-ts`, and an answer for the
+a conformance case in `assistant-platform: packages/assistant-client-ts`, and an answer for the
 cursor that now points past the end of the log. The re-snapshot costs one
 request and needs none of that.
 

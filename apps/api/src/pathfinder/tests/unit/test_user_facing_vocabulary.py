@@ -13,6 +13,7 @@ import re
 from pathlib import Path
 
 import pytest
+import veupathdb
 
 from pathfinder.ai.agents.execution import _EXECUTION_INSTRUCTIONS
 from pathfinder.ai.agents.frame import _FRAME_INSTRUCTIONS
@@ -21,7 +22,7 @@ from pathfinder.ai.agents.vocabulary import USER_FACING_VOCABULARY
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 
 _PATHFINDER = Path(__file__).resolve().parents[2]
-_CLIENT = _PATHFINDER.parents[3] / "veupathdb-py" / "src" / "veupathdb"
+_CLIENT = Path(veupathdb.__file__).parent
 
 _INTERNAL = re.compile(r"\b(EDA|WDK|FRAME|BUILD|VERIFY|sub-agent|ledger)\b")
 

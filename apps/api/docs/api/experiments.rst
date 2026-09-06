@@ -324,7 +324,7 @@ Enrichment
 ----------
 
 **Purpose:** The custom gene-set variant and the statistics enrichment results
-share. Running an analysis by value is the ``veupathdb-mcp`` sibling
+share. Running an analysis by value is the ``veupathdb-mcp``
 distribution's ``veupathdb_mcp.wdk.enrichment``.
 
 .. automodule:: pathfinder.services.enrichment.custom

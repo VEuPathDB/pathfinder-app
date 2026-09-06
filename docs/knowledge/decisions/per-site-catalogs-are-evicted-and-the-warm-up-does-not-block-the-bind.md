@@ -40,7 +40,7 @@ restores in 0.3 s and costs about 10 MiB, and a build of a site whose snapshot
 was 84.8 days old exceeded the ceiling and the kernel killed the process.
 
 **The snapshots persist.** `catalogs_cache` mounts over
-`veupathdb-mcp/data/catalogs` in all three services, where the distribution that
+`veupathdb-mcp: data/catalogs` in all three services, where the distribution that
 reads them keeps them. Without it, every recreate served the image's snapshots,
 found them stale, and refetched all fourteen sites; the refreshed snapshots died
 with the container.

@@ -25,7 +25,7 @@ turn's message; only then does a `start` open the continuation turn.
 held message, and holds back a `start` that names a different message so no part
 crosses the boundary.
 
-Measured on a copy of `assistant-platform/` with `ai` at `6.0.271`:
+Measured on a copy of the platform repository with `ai` at `6.0.271`:
 
 ```
 FAIL tests/conformance/resumedTurn.test.ts
@@ -54,8 +54,8 @@ rules of section 9 applied on the client's side of the seam.
 
 # What done looks like
 
-`assistant-platform/packages/assistant-client-ts/package.json` names `ai` at the
+`assistant-platform: packages/assistant-client-ts/package.json` names `ai` at the
 current 6.0.x with no upper bound in the peer range, its 262 conformance cases
 pass there, and `apps/web` runs the same version through `@ai-sdk/react`. The
-pin's paragraph leaves `assistant-platform/README.md` and
+pin's paragraph leaves `assistant-platform: README.md` and
 [the grouping decision](../decisions/the-assistant-platform-is-a-grouping.md).

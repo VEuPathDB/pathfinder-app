@@ -60,12 +60,16 @@ constraint-dependencies = [
     "starlette>=1.3.1",  # PYSEC-2026-248, PYSEC-2026-249
     "soupsieve>=2.8.4",  # PYSEC-2026-3071, PYSEC-2026-3072
 ]
+# Every dependent resolves the client at this pin, whatever source it declares.
+override-dependencies = [
+    "veupathdb-py @ git+https://github.com/VEuPathDB/ai-veupathdb-client@1c1b03dad61546dce85d83bafe5a9344da28b3f7",
+]
 
 [tool.uv.sources]
-assistant-core = { path = "../../assistant-platform/packages/assistant-core", editable = true }
-veupathdb-py = { path = "../../veupathdb-py", editable = true }
-veupathdb-mcp = { path = "../../veupathdb-mcp", editable = true }
-veupathdb-mcp-conformance = { path = "../../assistant-platform/packages/mcp-conformance", editable = true }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", rev = "02a4833572357f058f5a3bdb9b154ad90bb5bcc6" }
+veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", rev = "1c1b03dad61546dce85d83bafe5a9344da28b3f7" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", rev = "1fb773faf5b4a4a7810589721876247b7292dc5c" }
+veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", rev = "02a4833572357f058f5a3bdb9b154ad90bb5bcc6" }
 
 [build-system]
 requires = ["hatchling"]
@@ -212,6 +216,8 @@ ignore_names = ["CursorResult"]
 [dependency-groups]
 dev = [
     "hypothesis>=6.151.0",
+    # The suite reads an installed distribution's own requirement specifiers.
+    "packaging>=25.0",
     "import-linter>=2.11",
     "mypy>=1.20.0",
     "pyright>=1.1.408",

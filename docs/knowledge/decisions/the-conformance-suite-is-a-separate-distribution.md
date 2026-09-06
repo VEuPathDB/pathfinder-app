@@ -10,7 +10,7 @@ status: stable
 
 # What was decided
 
-`assistant-platform/packages/mcp-conformance` is its own distribution, `veupathdb-mcp-conformance`.
+`assistant-platform: packages/mcp-conformance` is its own distribution, `veupathdb-mcp-conformance`.
 It declares four dependencies (`mcp<2`, `httpx`, `pytest`, `pydantic`), targets
 Python 3.10 because that is the floor the `mcp` client supports, and names no
 package this repository owns. A test walks every module in it and fails on an
@@ -55,7 +55,7 @@ consumer is a team whose server we did not write: running it would mean
 installing `pathfinder`, its database and its fixtures on their CI to test a
 Java process. Our own server's run is a caller of this package, not its home.
 
-**The suite inside `assistant-platform/packages/assistant-core`.** The runtime already speaks MCP
+**The suite inside `assistant-platform: packages/assistant-core`.** The runtime already speaks MCP
 and already has an admission model, so the code would sit beside what it
 checks. Rejected because the runtime pins pydantic-ai, langgraph, psycopg, sqlalchemy
 and openai; a Java team's CI would install all of it to read a tool list. It
@@ -79,7 +79,7 @@ extension point is a hook.
 
 # What would falsify this
 
-`cd assistant-platform/packages/mcp-conformance && uv run pytest` runs the suite's own tests with
+`cd assistant-platform: packages/mcp-conformance && uv run pytest` runs the suite's own tests with
 no part of this deployment installed; the day one of them needs `pathfinder`,
 the boundary is gone. Each family is run there against a compliant fixture
 server and against a server carrying one planted defect, and the defect must

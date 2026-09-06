@@ -77,9 +77,9 @@ A unit test that needs a real connection carries `@pytest.mark.allow_network`. N
 
 The WDK rules answer to two suites, and which lane a rule lands in follows from what can falsify it.
 
-**Per-PR, hermetic, hard gate.** Every rule that a pinned response can settle is a test reading a recorded fixture through `veupathdb.testing.wdk_fixtures`, in `veupathdb-py/tests/unit/` when the client alone can settle it and in `apps/api/src/pathfinder/tests/unit/` when it needs a service. It runs in the ordinary unit tier, needs no network and no credential, and blocks a merge. A rule's `status` line names one of these tests, and `node scripts/check-wdk-rules.mjs` resolves the name and reports how many rules are still unenforced.
+**Per-PR, hermetic, hard gate.** Every rule that a pinned response can settle is a test reading a recorded fixture through `veupathdb.testing.wdk_fixtures`, in `veupathdb-py: tests/unit/` when the client alone can settle it and in `apps/api/src/pathfinder/tests/unit/` when it needs a service. It runs in the ordinary unit tier, needs no network and no credential, and blocks a merge. A rule's `status` line names one of these tests, and `node scripts/check-wdk-rules.mjs` resolves the name and reports how many rules are still unenforced.
 
-The same tier holds the schema half. `wdk_fixtures verify` validates each body PathFinder sends or has recorded against the WDK JSON Schema its endpoint annotates, reading the copy vendored under `veupathdb-py/src/veupathdb/testing/fixtures/wdk/schema/`; it is offline, it fails when a vendored file no longer matches the sha256 in `schema-pin.json`, and `veupathdb-py/tests/unit/devtools/` runs it as a test as well as the CLI running it as a gate. Which schemas WDK enforces, and which of its own annotations the service breaks, is WDK-HTTP-004 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`).
+The same tier holds the schema half. `wdk_fixtures verify` validates each body PathFinder sends or has recorded against the WDK JSON Schema its endpoint annotates, reading the copy vendored under `veupathdb-py: src/veupathdb/testing/fixtures/wdk/schema/`; it is offline, it fails when a vendored file no longer matches the sha256 in `schema-pin.json`, and `veupathdb-py: tests/unit/devtools/` runs it as a test as well as the CLI running it as a gate. Which schemas WDK enforces, and which of its own annotations the service breaks, is WDK-HTTP-004 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`).
 
 **Nightly, live, never blocking.** `pytest -m live_wdk` is the second lane: the same rules against running sites, plus the checks a fixture cannot answer - a search still exists, a vocabulary still carries a pinned term, a sentinel count is still in band, and the pinned fixtures still describe the wire. It skips without `WDK_TEST_EMAIL`/`WDK_TEST_PASSWORD` (or `WDK_TEST_TOKEN`), runs on a schedule in `.github/workflows/wdk-nightly.yml`, and files an issue rather than failing a build. The `apps/api` half of the lane loads site catalogs. A catalog load starts the semantic index sync beside itself and never waits on it, so the lane needs no database: an unreachable one leaves ranking lexical and is logged once. Every resource a live check creates is deleted in teardown: the account is a researcher's own.
 
@@ -93,11 +93,11 @@ cd apps/api && uv run python -m veupathdb.devtools.eda_schemas verify    # offli
 cd apps/api && uv run python -m veupathdb.devtools.eda_schemas vendor    # re-pin
 ```
 
-**A confirmed drift is answered by re-recording, not by editing a fixture.** No fixture is written by hand. `veupathdb-py/src/veupathdb/devtools/fixtures.py` holds the manifest - what to ask, where, which rules read it, and which schema each direction binds - and `record` refreshes the store. Each file carries its own provenance as data: site, method, url, status, content type, and the date it was recorded. Recording needs `VEUPATHDB_AUTH_TOKEN`, because VEuPathDB refuses anonymous service calls; every manifest entry is user-independent, so no account is addressed.
+**A confirmed drift is answered by re-recording, not by editing a fixture.** No fixture is written by hand. `veupathdb-py: src/veupathdb/devtools/fixtures.py` holds the manifest - what to ask, where, which rules read it, and which schema each direction binds - and `record` refreshes the store. Each file carries its own provenance as data: site, method, url, status, content type, and the date it was recorded. Recording needs `VEUPATHDB_AUTH_TOKEN`, because VEuPathDB refuses anonymous service calls; every manifest entry is user-independent, so no account is addressed.
 
 **A vendored schema is re-downloaded, not edited either.** `vendor` fetches the enforced schemas and their transitive `$ref` closure at the commit the pin names, deletes what the closure no longer reaches, and rewrites the pin only when a byte changed. Moving to a newer WDK is one edit to the pin's `sha` followed by `vendor`; a hand-edited copy fails `verify` instead of passing quietly.
 
-**The EDA fixtures answer the same way.** The recorded EDA bodies under `veupathdb-py/src/veupathdb/testing/fixtures/eda/` are trimmed by hand, so `record` refreshes their provenance rather than their content. `apps/api/src/pathfinder/tests/_support/eda_fixtures.py` holds the manifest - what to ask, where, and what the stored copy drops - and writes `provenance.json` beside the bodies: site, deployment, method, url, status, content type, body shape and the date. `tests/live/test_eda_fixture_drift.py` runs in the `live_wdk` lane and fails when the deployment's body shape no longer matches what a fixture pins, or when a fixture on disk is not in the manifest. Recording needs the same registered account the lane skips without. The schema half is `veupathdb.devtools.eda_schemas verify`: it reads the `service-eda` RAML type library vendored under `veupathdb-py/src/veupathdb/testing/fixtures/eda/upstream/`, converts it to JSON Schema, and validates every recorded EDA body against the type its resource declares; it is offline, fails on a sha256 drift from its own `schema-pin.json`, and absorbs only the divergences `veupathdb-py: docs/knowledge/eda/rest-surface.md` records as defects in the spec.
+**The EDA fixtures answer the same way.** The recorded EDA bodies under `veupathdb-py: src/veupathdb/testing/fixtures/eda/` are trimmed by hand, so `record` refreshes their provenance rather than their content. `apps/api/src/pathfinder/tests/_support/eda_fixtures.py` holds the manifest - what to ask, where, and what the stored copy drops - and writes `provenance.json` beside the bodies: site, deployment, method, url, status, content type, body shape and the date. `tests/live/test_eda_fixture_drift.py` runs in the `live_wdk` lane and fails when the deployment's body shape no longer matches what a fixture pins, or when a fixture on disk is not in the manifest. Recording needs the same registered account the lane skips without. The schema half is `veupathdb.devtools.eda_schemas verify`: it reads the `service-eda` RAML type library vendored under `veupathdb-py: src/veupathdb/testing/fixtures/eda/upstream/`, converts it to JSON Schema, and validates every recorded EDA body against the type its resource declares; it is offline, fails on a sha256 drift from its own `schema-pin.json`, and absorbs only the divergences `veupathdb-py: docs/knowledge/eda/rest-surface.md` records as defects in the spec.
 
 The lane writes `wdk-live-summary.json`: the run's outcomes, a per-site tally, and the drift list. It is the science layer's feed into the observability contract.
 
@@ -141,7 +141,7 @@ credential.
 
 The run writes `EvalRunSummary`: harness, provider, assistant, per-case verdict and named differences. It is the logic layer's feed into the observability contract.
 
-# Assistant runtime (`assistant-platform/packages/assistant-core`)
+# Assistant runtime (`assistant-platform: packages/assistant-core`)
 
 ```
 uv run ruff check src tests
@@ -164,7 +164,7 @@ LISTEN/NOTIFY, so an in-memory substitute will not do.
 that changes without the page changing fails
 `tests/integration/conversation/test_protocol_document.py`.
 
-# Assistant client (`assistant-platform/packages/assistant-client-ts`)
+# Assistant client (`assistant-platform: packages/assistant-client-ts`)
 
 ```
 yarn typecheck
@@ -183,7 +183,7 @@ package through its tsconfig `paths` and its vitest aliases, both of which name
 `src`, so only this command and a `yarn pack` exercise the artifact a host
 installs.
 
-# MCP conformance suite (`assistant-platform/packages/mcp-conformance`)
+# MCP conformance suite (`assistant-platform: packages/mcp-conformance`)
 
 ```
 uv run ruff check src tests

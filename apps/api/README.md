@@ -12,7 +12,7 @@ services behind them, and the procrastinate worker that runs every chat turn.
 - **Graph**: `src/pathfinder/ai/graph/builder.py` (`lead` -> `finalize_turn`)
 - **Lead agent + ledger**: `src/pathfinder/ai/lead/lead_agent.py`, `src/pathfinder/ai/lead/ledger.py`
 - **Worker**: `python -m pathfinder.jobs.worker` (`src/pathfinder/jobs/worker.py`)
-- **MCP server**: `python -m veupathdb_mcp` (the `veupathdb-mcp` sibling distribution)
+- **MCP server**: `python -m veupathdb_mcp` (the `veupathdb-mcp` distribution)
 
 ### Package structure
 
@@ -163,10 +163,10 @@ that step has reported.
 
 **VEuPathDB integration**:
 
-- `veupathdb.wdk` (the `veupathdb-py` sibling distribution) wraps the WDK REST API
+- `veupathdb.wdk` (the `veupathdb-py` distribution) wraps the WDK REST API
 - The strategy API client handles CRUD, step management and result reports
 - The catalog, the WDK reads, gene lookup and the served MCP tools are `veupathdb_mcp`
-  (the `veupathdb-mcp` sibling distribution), installed here and called in process
+  (the `veupathdb-mcp` distribution), installed here and called in process
 - Every WDK-backed feature needs a registered VEuPathDB login; guest calls are refused upstream
 
 ### Configuration

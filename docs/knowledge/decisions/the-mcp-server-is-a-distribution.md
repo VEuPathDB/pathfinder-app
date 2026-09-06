@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The MCP server is a distribution, and PathFinder is one of its consumers
-description: pathfinder/{mcp, services/catalog, services/wdk, services/gene_lookup, services/control_*, services/tool_payloads, integrations/embeddings} moved out of apps/api into veupathdb-mcp/ with its own pyproject, lock, tests, README, alembic chain, Dockerfile and CI lane; PathFinder consumes it in process as an editable path dependency and import-linter contract 7 was deleted. Keeping the server inside apps/api, and making PathFinder an MCP client of the served process now, were both rejected.
+description: pathfinder/{mcp, services/catalog, services/wdk, services/gene_lookup, services/control_*, services/tool_payloads, integrations/embeddings} moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, alembic chain, Dockerfile and CI lane; PathFinder consumes it in process as an editable path dependency and import-linter contract 7 was deleted. Keeping the server inside apps/api, and making PathFinder an MCP client of the served process now, were both rejected.
 tags: [veupathdb-mcp, split, architecture, packaging, import-linter, mcp, embeddings, alembic]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -11,7 +11,7 @@ status: stable
 # What was decided
 
 The WDK catalog, parameter and gene tools with their MCP transport are
-`veupathdb-mcp/`: its own `pyproject.toml`, its own lock file, a
+its own repository: its own `pyproject.toml`, its own lock file, a
 `src/veupathdb_mcp` layout importable with no `pathfinder.` prefix, its own test
 tree with a hermetic lane, a pgvector integration lane and a live lane, its own
 README, its own alembic chain, its own image and its own CI lane. This is the
@@ -108,7 +108,6 @@ WDK reads.
 
 # Publishing
 
-Delete the `veupathdb-mcp` row from `apps/api/pyproject.toml`'s
-`[tool.uv.sources]`, pin `"veupathdb-mcp>=0.1.0"`, and drop the three
-`COPY veupathdb-mcp ...` lines from `apps/api/Dockerfile` and the sibling copy
-from `veupathdb-mcp/Dockerfile`, whose context then becomes the folder itself.
+Done. The server is `VEuPathDB/ai-wdk-mcp`; `apps/api` names it by URL at a
+commit and the `wdk-mcp` image builds from that repository. See
+[the libraries are consumed by URL](the-libraries-are-consumed-by-git-url.md).
