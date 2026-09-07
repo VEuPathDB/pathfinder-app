@@ -26,6 +26,7 @@ from veupathdb.eda.factory import close_all_eda_clients
 from veupathdb.errors import VEuPathDBError
 from veupathdb.observer import set_observer
 from veupathdb.wdk.factory import close_all_clients
+from veupathdb.wdk.site_router import get_site_router
 from veupathdb_mcp.catalog.discovery_service import (
     get_discovery_service,
 )
@@ -57,6 +58,10 @@ from pathfinder.platform.security import (
     RejectNullBytesMiddleware,
     csrf_middleware,
     limiter,
+)
+from pathfinder.platform.site_catalogs import (
+    preload_catalogs,
+    run_catalog_retry_loop,
 )
 from pathfinder.services.eda.catalog import preload_study_index
 from pathfinder.transport.http.openapi import install_openapi_post_passes
@@ -122,7 +127,17 @@ async def _warm_up_subsystems() -> None:
 
     try:
         logger.info("[warm-up] Preloading discovery catalogs (all sites)")
-        await get_discovery_service().preload_all(readiness)
+        # One catalog builds at a time, so the slow portals go last and a
+        # component site's budget is not spent waiting behind them.
+        sites = sorted(
+            get_site_router().list_sites(), key=lambda site: (site.is_portal, site.id)
+        )
+        await preload_catalogs(
+            loader=get_discovery_service().get_catalog,
+            site_ids=[site.id for site in sites],
+            readiness=readiness,
+            budget_seconds=get_settings().site_preload_timeout_seconds,
+        )
     except AppError, VEuPathDBError, OSError, RuntimeError:
         logger.exception("[warm-up] Discovery preload raised")
 
@@ -141,7 +156,7 @@ def _report_warm_up_death(task: asyncio.Task[Any]) -> None:
     if error is None:
         return
     logger.error("[warm-up] Warm-up task died", exc_info=error)
-    get_readiness().fail_loading(f"{type(error).__name__}: {error}")
+    get_readiness().fail_loading(error)
 
 
 @asynccontextmanager
@@ -186,6 +201,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     if warm_up is not None:
         warm_up.add_done_callback(_report_warm_up_death)
 
+    catalog_retry = spawn(
+        run_catalog_retry_loop(
+            loader=get_discovery_service().get_catalog,
+            readiness=readiness,
+            budget_seconds=settings.site_preload_timeout_seconds,
+            interval_seconds=settings.site_retry_interval_seconds,
+        ),
+        name="catalog-retry",
+    )
+
     # The API process never runs a turn; it opens the checkpointer so the
     # tables exist before the worker writes them.
     async with (
@@ -215,6 +240,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             export_sweeper_task.cancel()
         if warm_up is not None:
             warm_up.cancel()
+        if catalog_retry is not None:
+            catalog_retry.cancel()
 
     reset_readiness()
     await close_all_clients()

@@ -51,6 +51,7 @@ from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.readiness import _FIXED_SUBSYSTEMS, get_readiness
 from pathfinder.platform.security import create_user_token
+from pathfinder.transport.http.routers import veupathdb_auth
 
 load_all_checks()
 
@@ -129,6 +130,16 @@ def schemathesis_config() -> SchemathesisConfig:
     )
 
 
+async def _reject_login(*args: object, **kwargs: object) -> str | None:
+    """Refuse the fuzzer's random credentials without a call to VEuPathDB.
+
+    The live sign-in would answer 5xx whenever a VEuPathDB site is down, and
+    the check cannot tell that from a fault of this server.
+    """
+    del args, kwargs
+    return None
+
+
 @asynccontextmanager
 async def _noop_lifespan(_: FastAPI) -> AsyncGenerator[None]:
     """Stand in for the app lifespan. The fixtures own the database and the
@@ -174,14 +185,18 @@ async def patched_app(
     readiness = get_readiness()
     for subsystem in _FIXED_SUBSYSTEMS:
         readiness.mark_ready(subsystem)
+    # Readiness also needs one loaded site catalog; this app loads none.
+    readiness.mark_catalog_ready("plasmodb")
 
-    async with (
-        # A cancel reads the job table, so the served app needs an open app.
-        procrastinate_app.open_async(),
-        lifespan_memory_store(get_settings().database_url) as memory_store,
-    ):
-        app.state.memory_store = memory_store
-        yield app, user_id
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(veupathdb_auth, "start_veupathdb_session", _reject_login)
+        async with (
+            # A cancel reads the job table, so the served app needs an open app.
+            procrastinate_app.open_async(),
+            lifespan_memory_store(get_settings().database_url) as memory_store,
+        ):
+            app.state.memory_store = memory_store
+            yield app, user_id
 
 
 @pytest.fixture(scope="session")

@@ -1,12 +1,12 @@
 import { test, expect } from "../fixtures/test";
 import { clearAllGeneSets } from "../fixtures/api-client";
+import { entrySiteId } from "../fixtures/entry-site";
 
 const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
 
 test.describe("Workbench routing", () => {
-  // Stay on the default site (veupathdb) so the bare `/workbench` and
-  // `/workbench/{id}` routes (which redirect to the default site) resolve
-  // against the same site the gene sets live on.
+  // The bare `/workbench` and `/workbench/{id}` routes redirect to the site
+  // the api reports available, so a gene set has to live on that same site.
   test.beforeEach(async ({ page }) => {
     await clearAllGeneSets(page.context(), BASE_URL);
     await page.goto("/workbench");
@@ -51,7 +51,7 @@ test.describe("Workbench routing", () => {
         name: "Direct Nav Set",
         source: "paste",
         geneIds: seedData.plasmoGenes.slice(0, 2),
-        siteId: "veupathdb",
+        siteId: await entrySiteId(page.context(), BASE_URL),
       },
     });
     expect(resp.ok()).toBeTruthy();
@@ -75,7 +75,7 @@ test.describe("Workbench routing", () => {
         name: "Back Nav Set",
         source: "paste",
         geneIds: seedData.plasmoGenes.slice(0, 2),
-        siteId: "veupathdb",
+        siteId: await entrySiteId(page.context(), BASE_URL),
       },
     });
     expect(resp.ok()).toBeTruthy();

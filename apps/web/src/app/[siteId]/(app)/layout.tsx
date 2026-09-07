@@ -9,7 +9,9 @@ import { AppNavRail } from "@/app/components/AppNavRail";
 import { AppShellError } from "@/app/components/AppShellError";
 import { EmbeddedToolbar } from "@/app/components/EmbeddedToolbar";
 import { LoadingScreen } from "@/app/components/LoadingScreen";
+import { QueryErrorToasts } from "@/app/components/QueryErrorToasts";
 import { SetupRequiredScreen } from "@/app/components/SetupRequiredScreen";
+import { SiteAvailabilityGate } from "@/app/components/SiteAvailabilityGate";
 import { VeupathdbSignInGate } from "@/app/components/VeupathdbSignInGate";
 import { TopBar } from "@/app/components/TopBar";
 import { useAuthRefresh } from "@/lib/query/hooks/useAuthRefresh";
@@ -21,9 +23,11 @@ import { EvalDataNotice } from "@/features/settings/components/EvalDataNotice";
 import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import { ConversationSidebar } from "@/features/sidebar/components/ConversationSidebar";
 import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
+import { sitesOptions } from "@/lib/api/sites";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { chatRoot } from "@/lib/routes";
+import { siteIsDown } from "@/lib/sites/availability";
 import { requiresFullScreenSignIn } from "@/state/useAuthGateStore";
 import { useLeftSidebarStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
@@ -70,6 +74,7 @@ function AppShellInner({
   }
 
   const { data: authStatus } = useSuspenseQuery(authStatusOptions(selectedSite));
+  const { data: sites } = useSuspenseQuery(sitesOptions());
   const veupathdbSignedIn = authStatus.signedIn;
   useAuthRefresh(selectedSite);
   useSiteTheme(selectedSite);
@@ -87,11 +92,12 @@ function AppShellInner({
 
   if (setupRequired) return <SetupRequiredScreen onRetry={retryConfig} />;
 
-  const forcedSignIn = requiresFullScreenSignIn({
-    embedded,
-    signedIn: veupathdbSignedIn,
-  });
-  const signInGate = (
+  // A site that answers nothing cannot authenticate anyone, so the notice
+  // takes the sign-in prompt's place.
+  const siteDown = siteIsDown(sites, selectedSite);
+  const forcedSignIn =
+    !siteDown && requiresFullScreenSignIn({ embedded, signedIn: veupathdbSignedIn });
+  const signInGate = siteDown ? null : (
     <VeupathdbSignInGate
       forced={forcedSignIn}
       selectedSite={selectedSite}
@@ -99,10 +105,18 @@ function AppShellInner({
     />
   );
 
-  if (forcedSignIn) return signInGate;
+  if (forcedSignIn) {
+    return (
+      <>
+        <QueryErrorToasts />
+        {signInGate}
+      </>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
+      <QueryErrorToasts />
       {signInGate}
       {embedded ? (
         <EmbeddedToolbar siteId={selectedSite} onOpenSettings={modals.openSettings} />
@@ -153,7 +167,9 @@ function AppShellInner({
           />
         )}
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <SiteAvailabilityGate siteId={selectedSite}>{children}</SiteAvailabilityGate>
+        </div>
       </div>
 
       <SettingsPage

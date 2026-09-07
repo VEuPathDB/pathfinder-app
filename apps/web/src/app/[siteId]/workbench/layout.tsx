@@ -9,19 +9,23 @@ import { AppNavRail } from "@/app/components/AppNavRail";
 import { TopBar } from "@/app/components/TopBar";
 import { VeupathdbSignInGate } from "@/app/components/VeupathdbSignInGate";
 import { LoadingScreen } from "@/app/components/LoadingScreen";
+import { QueryErrorToasts } from "@/app/components/QueryErrorToasts";
 import { EvalDataNotice } from "@/features/settings/components/EvalDataNotice";
 import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import { useAuthRefresh } from "@/lib/query/hooks/useAuthRefresh";
 import { useSystemConfig } from "@/app/hooks/useSystemConfig";
 import { useModalState } from "@/app/hooks/useModalState";
 import { SetupRequiredScreen } from "@/app/components/SetupRequiredScreen";
+import { SiteAvailabilityGate } from "@/app/components/SiteAvailabilityGate";
 import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
 import { WorkbenchSidebar } from "@/features/workbench/components/WorkbenchSidebar";
 import { GeneSearchSidebar } from "@/features/workbench/components/GeneSearchSidebar";
 import { SidebarEdgeTab } from "@/features/workbench/components/SidebarEdgeTab";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { requiresFullScreenSignIn } from "@/state/useAuthGateStore";
+import { sitesOptions } from "@/lib/api/sites";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
+import { siteIsDown } from "@/lib/sites/availability";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { AppShellError } from "@/app/components/AppShellError";
 import { Search } from "lucide-react";
@@ -56,6 +60,7 @@ function WorkbenchLayoutInner({
     useSessionStore.setState({ selectedSite: siteId });
   }
   const { data: authStatus } = useSuspenseQuery(authStatusOptions(selectedSite));
+  const { data: sites } = useSuspenseQuery(sitesOptions());
   const veupathdbSignedIn = authStatus.signedIn;
   const { setupRequired, retry: retryConfig } = useSystemConfig();
   useSiteTheme(selectedSite);
@@ -78,18 +83,23 @@ function WorkbenchLayoutInner({
 
   if (setupRequired) return <SetupRequiredScreen onRetry={retryConfig} />;
 
-  const forcedSignIn = requiresFullScreenSignIn({
-    embedded: false,
-    signedIn: veupathdbSignedIn,
-  });
+  // A site that answers nothing cannot authenticate anyone, so the notice
+  // takes the sign-in prompt's place.
+  const siteDown = siteIsDown(sites, selectedSite);
+  const forcedSignIn =
+    !siteDown &&
+    requiresFullScreenSignIn({ embedded: false, signedIn: veupathdbSignedIn });
 
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
-      <VeupathdbSignInGate
-        forced={forcedSignIn}
-        selectedSite={selectedSite}
-        onSiteChange={handleSiteChange}
-      />
+      <QueryErrorToasts />
+      {!siteDown && (
+        <VeupathdbSignInGate
+          forced={forcedSignIn}
+          selectedSite={selectedSite}
+          onSiteChange={handleSiteChange}
+        />
+      )}
       <TopBar selectedSite={selectedSite} />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -107,7 +117,9 @@ function WorkbenchLayoutInner({
           </div>
         )}
 
-        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-card">{children}</div>
+        <div className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-card">
+          <SiteAvailabilityGate siteId={selectedSite}>{children}</SiteAvailabilityGate>
+        </div>
 
         {geneSearchOpen ? (
           <div className="w-80 shrink-0 border-l border-border bg-sidebar">

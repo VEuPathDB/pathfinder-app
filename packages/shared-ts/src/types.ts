@@ -175,6 +175,12 @@ export const CombineOpBadgeLabels: Record<CombineOp, string> = {
 
 export type { StrategyAst, StrategyStepNode, SiteResponse };
 
+interface SiteName {
+  id: string;
+  name: string;
+  displayName: string;
+}
+
 export function siteDisplayName(siteId: string): string {
   const site = VEUPATHDB_SITES.find((s) => s.id === siteId);
   return site?.displayName ?? site?.name ?? siteId;
@@ -186,118 +192,77 @@ export function siteShortName(siteId: string): string {
   return site?.name ?? siteId;
 }
 
-const VEUPATHDB_SITES: SiteResponse[] = [
+/** The site names the UI shows, for a label with no live site list at hand. */
+const VEUPATHDB_SITES: SiteName[] = [
   {
     id: "veupathdb",
     name: "VEuPathDB",
     displayName: "VEuPathDB Portal (All organisms)",
-    baseUrl: "https://veupathdb.org",
-    projectId: "EuPathDB",
-    isPortal: true,
   },
   {
     id: "plasmodb",
     name: "PlasmoDB",
     displayName: "PlasmoDB (Plasmodium)",
-    baseUrl: "https://plasmodb.org",
-    projectId: "PlasmoDB",
-    isPortal: false,
   },
   {
     id: "toxodb",
     name: "ToxoDB",
     displayName: "ToxoDB (Toxoplasma)",
-    baseUrl: "https://toxodb.org",
-    projectId: "ToxoDB",
-    isPortal: false,
   },
   {
     id: "cryptodb",
     name: "CryptoDB",
     displayName: "CryptoDB (Cryptosporidium)",
-    baseUrl: "https://cryptodb.org",
-    projectId: "CryptoDB",
-    isPortal: false,
   },
   {
     id: "giardiadb",
     name: "GiardiaDB",
     displayName: "GiardiaDB (Giardia)",
-    baseUrl: "https://giardiadb.org",
-    projectId: "GiardiaDB",
-    isPortal: false,
   },
   {
     id: "amoebadb",
     name: "AmoebaDB",
     displayName: "AmoebaDB (Amoeba)",
-    baseUrl: "https://amoebadb.org",
-    projectId: "AmoebaDB",
-    isPortal: false,
   },
   {
     id: "microsporidiadb",
     name: "MicrosporidiaDB",
     displayName: "MicrosporidiaDB (Microsporidia)",
-    baseUrl: "https://microsporidiadb.org",
-    projectId: "MicrosporidiaDB",
-    isPortal: false,
   },
   {
     id: "piroplasmadb",
     name: "PiroplasmaDB",
     displayName: "PiroplasmaDB (Piroplasma)",
-    baseUrl: "https://piroplasmadb.org",
-    projectId: "PiroplasmaDB",
-    isPortal: false,
   },
   {
     id: "tritrypdb",
     name: "TriTrypDB",
     displayName: "TriTrypDB (Kinetoplastids)",
-    baseUrl: "https://tritrypdb.org",
-    projectId: "TriTrypDB",
-    isPortal: false,
   },
   {
     id: "trichdb",
     name: "TrichDB",
     displayName: "TrichDB (Trichomonas)",
-    baseUrl: "https://trichdb.org",
-    projectId: "TrichDB",
-    isPortal: false,
   },
   {
     id: "fungidb",
     name: "FungiDB",
     displayName: "FungiDB (Fungi)",
-    baseUrl: "https://fungidb.org",
-    projectId: "FungiDB",
-    isPortal: false,
   },
   {
     id: "hostdb",
     name: "HostDB",
     displayName: "HostDB (Hosts)",
-    baseUrl: "https://hostdb.org",
-    projectId: "HostDB",
-    isPortal: false,
   },
   {
     id: "vectorbase",
     name: "VectorBase",
     displayName: "VectorBase (Vectors)",
-    baseUrl: "https://vectorbase.org",
-    projectId: "VectorBase",
-    isPortal: false,
   },
   {
     id: "orthomcl",
     name: "OrthoMCL",
     displayName: "OrthoMCL (Orthologs)",
-    baseUrl: "https://orthomcl.org",
-    projectId: "OrthoMCL",
-    isPortal: false,
   },
 ];
 

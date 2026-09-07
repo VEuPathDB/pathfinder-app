@@ -1,6 +1,6 @@
 import { type Locator, type Page, expect } from "@playwright/test";
 
-import { waitForConversationRoute } from "./navigation";
+import { currentSiteId, waitForConversationRoute } from "./navigation";
 
 /**
  * Wall clock one mock turn needs end to end.
@@ -65,10 +65,7 @@ export class ChatPage {
     const baseUrl = url.origin;
     // Default to the site the test already switched to (from the URL), so the
     // new conversation lands on it rather than a hardcoded default.
-    const firstSegment = url.pathname.split("/")[1];
-    const selectedSite =
-      siteId ??
-      (firstSegment !== undefined && firstSegment !== "" ? firstSegment : "veupathdb");
+    const selectedSite = siteId ?? currentSiteId(this.page);
 
     const strategyCreated = await this.page
       .context()

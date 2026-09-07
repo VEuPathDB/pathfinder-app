@@ -66,6 +66,7 @@ src/pathfinder/
     langfuse/                #   Langfuse client, prompts, datasets, scoring
     principal.py             #   Who the caller is
     readiness.py             #   Readiness probe state
+    site_catalogs.py         #   Per-site catalog preload budget and the retry for degraded sites
     security.py              #   Auth and authorization helpers
     store.py                 #   Cross-thread memory store wiring
     tasks.py                 #   Background task infrastructure

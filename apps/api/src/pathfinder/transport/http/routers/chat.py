@@ -14,6 +14,7 @@ from pathfinder.transport.http.deps import (
     CurrentPrincipal,
     DBSession,
     QuotaCheckedUser,
+    refuse_degraded_site,
 )
 
 router = APIRouter(tags=["chat"])
@@ -36,11 +37,20 @@ async def resolve_chat_assistant(
     )
     if spec.identity_gate is not None:
         await spec.identity_gate()
-        await require_session_matches_wdk_identity(principal)
+        await require_session_matches_wdk_identity(principal, body.site_id)
     return spec
 
 
-@router.post("/api/v1/chat")
+async def require_available_chat_site(body: ChatRequestBody) -> None:
+    """Refuse a turn on a site whose catalog this process has not loaded.
+
+    The turn's site rides the body, so the parameter-shaped dependency cannot
+    read it.
+    """
+    refuse_degraded_site(body.site_id)
+
+
+@router.post("/api/v1/chat", dependencies=[Depends(require_available_chat_site)])
 async def chat(
     body: ChatRequestBody,
     session: DBSession,

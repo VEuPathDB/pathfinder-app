@@ -7,7 +7,7 @@ from veupathdb.domain.parameters.values import ParamValue
 
 
 class SiteResponse(CamelModel):
-    """VEuPathDB site information."""
+    """VEuPathDB site information, with what this process can reach of it."""
 
     id: str
     name: str
@@ -15,6 +15,8 @@ class SiteResponse(CamelModel):
     base_url: str
     project_id: str
     is_portal: bool
+    available: bool
+    unavailable_reason: str | None = None
 
 
 class RecordTypeResponse(CamelModel):

@@ -67,7 +67,10 @@ forbidden module.
 
 The catalog machinery takes its process concerns as arguments rather than
 reading them: `DiscoveryService(cache_dir=..., budget_bytes=..., policy=...,
-spawn=...)` and `preload_all(readiness)`. The settings come from
+spawn=...)` and `preload_all(readiness)`, which the served MCP process calls;
+PathFinder's warm-up drives `get_catalog` per site under its own budget instead
+([a site that is down is down on its own](a-site-that-is-down-is-down-on-its-own.md)).
+The settings come from
 `McpSettings` through the same host-installed source the client library uses
 ([the client library owns its foundation](the-client-library-owns-its-foundation.md)),
 and `pathfinder.platform.config.Settings` subclasses it, so one instance still

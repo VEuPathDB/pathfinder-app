@@ -67,16 +67,20 @@ paths:
       tags:
       - health
       summary: Readiness Check
-      description: 'Readiness check — is every subsystem actually ready?
+      description: 'Readiness check - can this process serve requests?
 
 
-        Returns 503 until lifespan startup has marked *all* subsystems ready
+        Returns 503 until every process subsystem is ready (database, embedding
 
-        (database, embedding model, PIGuard, graph checkpointer, every site
+        model, PIGuard, graph checkpointer) and at least one site catalog is
 
-        catalog). Also re-verifies the DB with a live ping so stale state
+        loaded. ``degraded`` names the sites whose catalog is not loaded; they are
 
-        doesn''t mask a broken dependency.'
+        refused on their own routes and retried in the background. Also
+
+        re-verifies the DB with a live ping so stale state does not mask a broken
+
+        dependency.'
       operationId: readiness_check_health_ready_get
       responses:
         '200':
@@ -90,7 +94,7 @@ paths:
       tags:
       - sites
       summary: List Sites
-      description: List all available VEuPathDB sites.
+      description: List every VEuPathDB site, and say which ones answer.
       operationId: list_sites_api_v1_sites_get
       responses:
         '200':
@@ -115,6 +119,8 @@ paths:
         required: true
         schema:
           type: string
+          minLength: 1
+          maxLength: 50
           title: Siteid
       responses:
         '200':
@@ -154,6 +160,8 @@ paths:
         required: true
         schema:
           type: string
+          minLength: 1
+          maxLength: 50
           title: Siteid
       - name: recordType
         in: query
@@ -196,12 +204,6 @@ paths:
       description: Validate search parameters (UI-friendly).
       operationId: validate_search_params_api_v1_sites__siteId__searches__recordType___searchName__validate_post
       parameters:
-      - name: siteId
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Siteid
       - name: recordType
         in: path
         required: true
@@ -214,6 +216,14 @@ paths:
         schema:
           type: string
           title: Searchname
+      - name: siteId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -250,12 +260,6 @@ paths:
       description: Return normalized parameter specs, using contextual WDK vocab when provided.
       operationId: get_param_specs_with_context_api_v1_sites__siteId__searches__recordType___searchName__param_specs_post
       parameters:
-      - name: siteId
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Siteid
       - name: recordType
         in: path
         required: true
@@ -268,6 +272,14 @@ paths:
         schema:
           type: string
           title: Searchname
+      - name: siteId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -308,12 +320,6 @@ paths:
       description: Refresh dependent parameter vocabularies after a param value changes.
       operationId: refresh_dependent_params_api_v1_sites__siteId__searches__recordType___searchName__refreshed_dependent_params_post
       parameters:
-      - name: siteId
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Siteid
       - name: recordType
         in: path
         required: true
@@ -326,6 +332,14 @@ paths:
         schema:
           type: string
           title: Searchname
+      - name: siteId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -358,19 +372,21 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/sites/{site_id}/organisms:
+  /api/v1/sites/{siteId}/organisms:
     get:
       tags:
       - sites
       summary: Get Organisms
-      operationId: get_organisms_api_v1_sites__site_id__organisms_get
+      operationId: get_organisms_api_v1_sites__siteId__organisms_get
       parameters:
-      - name: site_id
+      - name: siteId
         in: path
         required: true
         schema:
           type: string
-          title: Site Id
+          minLength: 1
+          maxLength: 50
+          title: Siteid
       responses:
         '200':
           description: Successful Response
@@ -393,19 +409,21 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/sites/{site_id}/genes/search:
+  /api/v1/sites/{siteId}/genes/search:
     get:
       tags:
       - sites
       summary: Search Genes
-      operationId: search_genes_api_v1_sites__site_id__genes_search_get
+      operationId: search_genes_api_v1_sites__siteId__genes_search_get
       parameters:
-      - name: site_id
+      - name: siteId
         in: path
         required: true
         schema:
           type: string
-          title: Site Id
+          minLength: 1
+          maxLength: 50
+          title: Siteid
       - name: q
         in: query
         required: false
@@ -457,19 +475,21 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/sites/{site_id}/genes/resolve:
+  /api/v1/sites/{siteId}/genes/resolve:
     post:
       tags:
       - sites
       summary: Resolve Genes
-      operationId: resolve_genes_api_v1_sites__site_id__genes_resolve_post
+      operationId: resolve_genes_api_v1_sites__siteId__genes_resolve_post
       parameters:
-      - name: site_id
+      - name: siteId
         in: path
         required: true
         schema:
           type: string
-          title: Site Id
+          minLength: 1
+          maxLength: 50
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -838,6 +858,16 @@ paths:
           type: string
           format: uuid
           title: Strategyid
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -1313,6 +1343,16 @@ paths:
           type: string
           format: uuid
           title: Conversation Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -1471,12 +1511,27 @@ paths:
       summary: Compute Step Counts
       description: Compute step counts by executing the plan in WDK.
       operationId: compute_step_counts_api_v1_conversations_step_counts_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/StepCountsRequest'
-        required: true
       responses:
         '200':
           description: Successful Response
@@ -1493,10 +1548,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
   /api/v1/conversations/{strategyId}/operations:
     post:
       tags:
@@ -1559,12 +1610,27 @@ paths:
       summary: Open Strategy
       description: Open a strategy by local id or WDK strategy id.
       operationId: open_strategy_api_v1_conversations_open_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/OpenConversationRequest'
-        required: true
       responses:
         '200':
           description: Successful Response
@@ -1581,10 +1647,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
   /api/v1/conversations/{conversation_id}/insert-saved:
     post:
       tags:
@@ -1647,120 +1709,12 @@ paths:
       summary: Create Experiment
       description: Create and run an experiment, streaming typed progress events directly.
       operationId: create_experiment_api_v1_experiments_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateExperimentRequest'
-        required: true
-      responses:
-        '200':
-          description: Server-sent event stream.
-          content:
-            application/json:
-              schema: {}
-            text/event-stream:
-              schema:
-                type: string
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-  /api/v1/experiments/batch:
-    post:
-      tags:
-      - experiments
-      summary: Create Batch Experiment
-      description: Run the same search across multiple organisms, streaming progress directly.
-      operationId: create_batch_experiment_api_v1_experiments_batch_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateBatchExperimentRequest'
-        required: true
-      responses:
-        '200':
-          description: Server-sent event stream.
-          content:
-            application/json:
-              schema: {}
-            text/event-stream:
-              schema:
-                type: string
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-  /api/v1/experiments/benchmark:
-    post:
-      tags:
-      - experiments
-      summary: Create Benchmark
-      description: Run the same strategy against multiple control sets, streaming progress directly.
-      operationId: create_benchmark_api_v1_experiments_benchmark_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateBenchmarkRequest'
-        required: true
-      responses:
-        '200':
-          description: Server-sent event stream.
-          content:
-            application/json:
-              schema: {}
-            text/event-stream:
-              schema:
-                type: string
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-  /api/v1/experiments/seed:
-    post:
-      tags:
-      - experiments
-      summary: Seed Strategies
-      description: 'Seed demo strategies and control sets across VEuPathDB sites.
-
-
-        If *site_id* is provided, only seeds for that database are created.'
-      operationId: seed_strategies_api_v1_experiments_seed_post
       security:
       - APIKeyCookie: []
       - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
-      - name: site_id
+      - name: siteId
         in: query
         required: false
         schema:
@@ -1769,7 +1723,148 @@ paths:
             minLength: 1
             maxLength: 50
           - type: 'null'
-          title: Site Id
+          title: Siteid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExperimentRequest'
+      responses:
+        '200':
+          description: Server-sent event stream.
+          content:
+            application/json:
+              schema: {}
+            text/event-stream:
+              schema:
+                type: string
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/experiments/batch:
+    post:
+      tags:
+      - experiments
+      summary: Create Batch Experiment
+      description: Run the same search across multiple organisms, streaming progress directly.
+      operationId: create_batch_experiment_api_v1_experiments_batch_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBatchExperimentRequest'
+      responses:
+        '200':
+          description: Server-sent event stream.
+          content:
+            application/json:
+              schema: {}
+            text/event-stream:
+              schema:
+                type: string
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/experiments/benchmark:
+    post:
+      tags:
+      - experiments
+      summary: Create Benchmark
+      description: Run the same strategy against multiple control sets, streaming progress directly.
+      operationId: create_benchmark_api_v1_experiments_benchmark_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBenchmarkRequest'
+      responses:
+        '200':
+          description: Server-sent event stream.
+          content:
+            application/json:
+              schema: {}
+            text/event-stream:
+              schema:
+                type: string
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/experiments/seed:
+    post:
+      tags:
+      - experiments
+      summary: Seed Strategies
+      description: 'Seed demo strategies and control sets across VEuPathDB sites.
+
+
+        With a site id, only seeds for that database are created.'
+      operationId: seed_strategies_api_v1_experiments_seed_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       responses:
         '200':
           description: Server-sent event stream.
@@ -1852,6 +1947,16 @@ paths:
         schema:
           type: string
           title: Experiment Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -1900,6 +2005,16 @@ paths:
         schema:
           type: string
           title: Experiment Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       responses:
         '200':
           description: Successful Response
@@ -1940,6 +2055,16 @@ paths:
         schema:
           type: string
           title: Experiment Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       - name: offset
         in: query
         required: false
@@ -2039,6 +2164,16 @@ paths:
         schema:
           type: string
           title: Experiment Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -2091,6 +2226,16 @@ paths:
         schema:
           type: string
           title: Experiment Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       responses:
         '200':
           description: Successful Response
@@ -2206,14 +2351,6 @@ paths:
       - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
-      - name: siteId
-        in: query
-        required: true
-        schema:
-          type: string
-          minLength: 1
-          maxLength: 50
-          title: Siteid
       - name: q
         in: query
         required: false
@@ -2231,6 +2368,14 @@ paths:
           minimum: 1
           default: 20
           title: Limit
+      - name: siteId
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
+          title: Siteid
       responses:
         '200':
           description: Successful Response
@@ -2265,14 +2410,6 @@ paths:
         schema:
           type: string
           title: Dataset Id
-      - name: siteId
-        in: query
-        required: true
-        schema:
-          type: string
-          minLength: 1
-          maxLength: 50
-          title: Siteid
       - name: entityId
         in: query
         required: false
@@ -2281,6 +2418,14 @@ paths:
           - type: string
           - type: 'null'
           title: Entityid
+      - name: siteId
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
+          title: Siteid
       responses:
         '200':
           description: Successful Response
@@ -2399,6 +2544,13 @@ paths:
       - HTTPBearer: []
       - APIKeyHeader: []
       parameters:
+      - name: conversationId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Conversationid
       - name: siteId
         in: query
         required: true
@@ -2407,13 +2559,6 @@ paths:
           minLength: 1
           maxLength: 50
           title: Siteid
-      - name: conversationId
-        in: query
-        required: true
-        schema:
-          type: string
-          format: uuid
-          title: Conversationid
       requestBody:
         required: true
         content:
@@ -2455,6 +2600,16 @@ paths:
           type: string
           format: uuid
           title: Conversation Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       responses:
         '200':
           description: Successful Response
@@ -2495,6 +2650,16 @@ paths:
           type: string
           format: uuid
           title: Conversation Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -2713,6 +2878,17 @@ paths:
       - APIKeyCookie: []
       - HTTPBearer: []
       - APIKeyHeader: []
+      parameters:
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -2793,6 +2969,16 @@ paths:
         schema:
           type: string
           title: Gene Set Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       responses:
         '200':
           description: Successful Response
@@ -3061,6 +3247,16 @@ paths:
         schema:
           type: string
           title: Gene Set Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -3110,6 +3306,16 @@ paths:
         schema:
           type: string
           title: Gene Set Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       responses:
         '200':
           description: Successful Response
@@ -3150,6 +3356,16 @@ paths:
         schema:
           type: string
           title: Gene Set Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       - name: offset
         in: query
         required: false
@@ -3255,6 +3471,16 @@ paths:
         schema:
           type: string
           title: Attribute Name
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       responses:
         '200':
           description: Successful Response
@@ -3295,6 +3521,16 @@ paths:
         schema:
           type: string
           title: Gene Set Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -3373,6 +3609,16 @@ paths:
         schema:
           type: string
           title: Gene Set Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
         required: true
         content:
@@ -3418,6 +3664,16 @@ paths:
         schema:
           type: string
           title: Gene Set Id
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       responses:
         '200':
           description: Successful Response
@@ -3593,12 +3849,27 @@ paths:
       summary: Build Gold Strategy Endpoint
       description: Materialize a gold strategy AST on WDK and fetch all result gene IDs.
       operationId: build_gold_strategy_endpoint_api_v1_eval_build_gold_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/BuildGoldRequest'
-        required: true
       responses:
         '200':
           description: Successful Response
@@ -3615,10 +3886,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
   /api/v1/eval/strategy-gene-ids:
     post:
       tags:
@@ -3626,20 +3893,35 @@ paths:
       summary: Strategy Gene Ids Endpoint
       description: Fetch all gene IDs from a PathFinder strategy's WDK root step.
       operationId: strategy_gene_ids_endpoint_api_v1_eval_strategy_gene_ids_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+            maxLength: 50
+          - type: 'null'
+          title: Siteid
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/FetchGeneIdsRequest'
-        required: true
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                additionalProperties: true
                 type: object
+                additionalProperties: true
                 title: Response Strategy Gene Ids Endpoint Api V1 Eval Strategy Gene Ids Post
         '422':
           description: Validation Error
@@ -3650,10 +3932,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
   /api/v1/memories:
     get:
       tags:
@@ -8300,6 +8578,11 @@ components:
             type: string
           type: array
           title: Notready
+        degraded:
+          items:
+            type: string
+          type: array
+          title: Degraded
       type: object
       required:
       - status
@@ -8893,6 +9176,14 @@ components:
         isPortal:
           type: boolean
           title: Isportal
+        available:
+          type: boolean
+          title: Available
+        unavailableReason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unavailablereason
       type: object
       required:
       - id
@@ -8901,8 +9192,9 @@ components:
       - baseUrl
       - projectId
       - isPortal
+      - available
       title: SiteResponse
-      description: VEuPathDB site information.
+      description: VEuPathDB site information, with what this process can reach of it.
     SourceDocumentUIPart:
       properties:
         type:
@@ -9490,6 +9782,11 @@ components:
             type: string
           type: array
           title: Notready
+        degraded:
+          items:
+            type: string
+          type: array
+          title: Degraded
       type: object
       required:
       - ready
@@ -10707,6 +11004,7 @@ components:
       - FORBIDDEN
       - RATE_LIMITED
       - SITE_NOT_FOUND
+      - SITE_UNAVAILABLE
       - SEARCH_NOT_FOUND
       - INVALID_PARAMETERS
       - WDK_ERROR

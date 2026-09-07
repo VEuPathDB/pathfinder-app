@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { APIError } from "./http";
-import { toUserMessage, wdkAuthRefusal } from "./errors";
+import { siteUnavailableRefusal, toUserMessage, wdkAuthRefusal } from "./errors";
 
 describe("lib/api/errors", () => {
   it("reads the title when the problem body carries no detail", () => {
@@ -142,5 +142,63 @@ describe("a body the transport rethrows as text", () => {
 
   it("leaves a plain message alone", () => {
     expect(toUserMessage(new Error("Failed to fetch"))).toBe("Failed to fetch");
+  });
+});
+
+const SITE_UNAVAILABLE_BODY = {
+  type: "/errors/SITE_UNAVAILABLE",
+  title: "Site is not responding",
+  status: 503,
+  detail: "veupathdb is not responding (ReadTimeout).",
+  code: "SITE_UNAVAILABLE",
+};
+
+describe("siteUnavailableRefusal", () => {
+  it("names the detail for a 503 that reports the site as down", () => {
+    const err = new APIError(SITE_UNAVAILABLE_BODY.detail, {
+      status: 503,
+      statusText: "Service Unavailable",
+      url: "http://localhost:3000/api/v1/veupathdb/auth/login",
+      data: SITE_UNAVAILABLE_BODY,
+    });
+    expect(siteUnavailableRefusal(err)).toEqual({
+      code: "SITE_UNAVAILABLE",
+      detail: "veupathdb is not responding (ReadTimeout).",
+    });
+  });
+
+  it("reads the body when the transport rethrows it as text", () => {
+    const err = new Error(JSON.stringify(SITE_UNAVAILABLE_BODY));
+    expect(siteUnavailableRefusal(err)).toEqual({
+      code: "SITE_UNAVAILABLE",
+      detail: "veupathdb is not responding (ReadTimeout).",
+    });
+  });
+
+  it("ignores a 503 that carries another code", () => {
+    const err = new APIError("Service Unavailable", {
+      status: 503,
+      statusText: "Service Unavailable",
+      url: "/x",
+      data: {
+        title: "External service error",
+        status: 503,
+        detail: "no",
+        code: "EXTERNAL_SERVICE_ERROR",
+      },
+    });
+    expect(siteUnavailableRefusal(err)).toBe(null);
+  });
+
+  it("ignores another status, a plain error and a non-error", () => {
+    const wrongStatus = new APIError("nope", {
+      status: 500,
+      statusText: "Internal Server Error",
+      url: "/x",
+      data: SITE_UNAVAILABLE_BODY,
+    });
+    expect(siteUnavailableRefusal(wrongStatus)).toBe(null);
+    expect(siteUnavailableRefusal(new Error("Failed to fetch"))).toBe(null);
+    expect(siteUnavailableRefusal(null)).toBe(null);
   });
 });

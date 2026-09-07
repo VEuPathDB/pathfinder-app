@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { BASE_URL, test, expect } from "../fixtures/test";
+import { entrySiteId } from "../fixtures/entry-site";
 
 const SIGNED_OUT_STATUS = { signedIn: false, name: null, email: null };
 
@@ -23,7 +24,8 @@ test.describe("VEuPathDB login gate", () => {
       storageState: { cookies: [], origins: [] },
     });
     const page = await context.newPage();
-    await page.goto(`${BASE_URL}/veupathdb/conversation`);
+    const siteId = await entrySiteId(context, BASE_URL);
+    await page.goto(`${BASE_URL}/${siteId}/conversation`);
 
     // The prompt replaces the app, so it is undismissable and has no composer.
     const prompt = page.getByRole("dialog", { name: "Sign in to VEuPathDB" });
@@ -37,12 +39,14 @@ test.describe("VEuPathDB login gate", () => {
 
   test("an embedded session with no VEuPathDB login cannot send and is offered sign-in", async ({
     page,
+    context,
   }) => {
+    const siteId = await entrySiteId(context, BASE_URL);
     // The auth-status route is the gate under test; the rest of the app is real.
     await page.route("**/api/v1/veupathdb/auth/status*", (route) =>
       route.fulfill({ json: SIGNED_OUT_STATUS }),
     );
-    await page.goto(`${BASE_URL}/veupathdb/conversation?embedded=true`);
+    await page.goto(`${BASE_URL}/${siteId}/conversation?embedded=true`);
 
     const prompt = page.getByTestId("veupathdb-signin-required");
     await expect(prompt).toBeVisible({ timeout: 20_000 });
@@ -74,6 +78,7 @@ test.describe("Auth", () => {
   test("authenticated state shows full UI with working API access", async ({
     chatPage,
     page,
+    context,
     sitePicker,
     settingsPage,
     apiClient,
@@ -83,8 +88,8 @@ test.describe("Auth", () => {
     // UI: Signed in — no login modal, composer visible
     await expectSignedIn(page);
 
-    // UI: Site picker shows default site
-    await sitePicker.expectCurrentSite("veupathdb");
+    // UI: Site picker shows the site the entry flow chose
+    await sitePicker.expectCurrentSite(await entrySiteId(context, BASE_URL));
 
     // UI: Settings accessible with all tabs
     await settingsPage.open();

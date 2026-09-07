@@ -15,6 +15,16 @@ def _reset() -> None:
     reset_readiness()
 
 
+def _process_ready() -> ReadinessState:
+    """Every fixed subsystem ready, no catalog registered yet."""
+    state = ReadinessState()
+    state.mark_ready("database")
+    state.mark_ready("embedding_backend")
+    state.mark_ready("piguard")
+    state.mark_ready("graph_checkpointer")
+    return state
+
+
 class TestSubsystemStatus:
     def test_default_not_ready(self) -> None:
         status = SubsystemStatus()
@@ -41,30 +51,100 @@ class TestReadinessState:
         assert "piguard" in state.not_ready
 
     def test_all_ready_requires_every_subsystem(self) -> None:
-        state = ReadinessState()
-        state.mark_ready("database")
-        state.mark_ready("embedding_backend")
-        state.mark_ready("piguard")
-        state.mark_ready("graph_checkpointer")
+        state = _process_ready()
+        state.register_catalog("plasmodb")
+        state.mark_catalog_ready("plasmodb")
         assert state.all_ready is True
         assert state.not_ready == []
+        assert state.degraded == []
 
-    def test_catalog_participation(self) -> None:
-        state = ReadinessState()
-        state.mark_ready("database")
-        state.mark_ready("embedding_backend")
-        state.mark_ready("piguard")
-        state.mark_ready("graph_checkpointer")
+    def test_one_ready_catalog_is_enough(self) -> None:
+        state = _process_ready()
         state.register_catalog("plasmodb")
-        state.register_catalog("toxodb")
+        state.register_catalog("veupathdb")
         assert state.all_ready is False
-        assert "catalog:plasmodb" in state.not_ready
-        assert "catalog:toxodb" in state.not_ready
 
         state.mark_catalog_ready("plasmodb")
-        assert state.all_ready is False
-        state.mark_catalog_ready("toxodb")
         assert state.all_ready is True
+
+    def test_a_registered_catalog_that_is_not_ready_is_degraded(self) -> None:
+        state = _process_ready()
+        state.register_catalog("plasmodb")
+        state.register_catalog("veupathdb")
+        state.mark_catalog_ready("plasmodb")
+        state.mark_catalog_failed("veupathdb", "ReadTimeout")
+
+        assert state.degraded == ["veupathdb"]
+        assert state.not_ready == []
+
+    def test_a_catalog_still_loading_is_degraded(self) -> None:
+        state = _process_ready()
+        state.register_catalog("plasmodb")
+        state.mark_catalog_ready("plasmodb")
+        state.register_catalog("veupathdb")
+
+        assert state.degraded == ["veupathdb"]
+
+    def test_no_ready_catalog_is_not_ready(self) -> None:
+        state = _process_ready()
+        state.register_catalog("plasmodb")
+        state.mark_catalog_failed("plasmodb", "ReadTimeout")
+
+        assert state.all_ready is False
+        assert state.not_ready == ["catalogs"]
+
+    def test_no_registered_catalog_is_not_ready(self) -> None:
+        state = _process_ready()
+
+        assert state.all_ready is False
+        assert state.not_ready == ["catalogs"]
+
+    def test_a_failed_subsystem_outranks_a_ready_catalog(self) -> None:
+        state = _process_ready()
+        state.mark_failed("piguard", "OSError")
+        state.register_catalog("plasmodb")
+        state.mark_catalog_ready("plasmodb")
+
+        assert state.all_ready is False
+        assert state.not_ready == ["piguard"]
+
+    def test_degraded_catalog_carries_the_last_error(self) -> None:
+        state = _process_ready()
+        state.register_catalog("veupathdb")
+        state.mark_catalog_failed("veupathdb", "ReadTimeout")
+
+        degraded = state.degraded_catalog("veupathdb")
+        assert degraded is not None
+        assert degraded.error == "ReadTimeout"
+
+    def test_a_ready_catalog_is_not_degraded(self) -> None:
+        state = _process_ready()
+        state.register_catalog("plasmodb")
+        state.mark_catalog_ready("plasmodb")
+
+        assert state.degraded_catalog("plasmodb") is None
+        assert state.degraded == []
+
+    def test_an_unregistered_site_is_not_degraded(self) -> None:
+        state = _process_ready()
+
+        assert state.degraded_catalog("plasmodb") is None
+        assert state.catalogs == {}
+
+    def test_the_first_loaded_catalog_is_named_in_id_order(self) -> None:
+        state = _process_ready()
+        for site_id in ("veupathdb", "toxodb", "plasmodb"):
+            state.register_catalog(site_id)
+        state.mark_catalog_ready("toxodb")
+        state.mark_catalog_ready("plasmodb")
+
+        assert state.first_ready_catalog == "plasmodb"
+
+    def test_no_loaded_catalog_names_nothing(self) -> None:
+        state = _process_ready()
+        state.register_catalog("veupathdb")
+
+        assert (state.first_ready_catalog, state.degraded) == (None, ["veupathdb"])
 
     def test_mark_failed_sets_error_and_keeps_not_ready(self) -> None:
         state = ReadinessState()
@@ -77,17 +157,23 @@ class TestReadinessState:
         state = ReadinessState()
         state.mark_ready("database")
         state.register_catalog("plasmodb")
-        state.fail_loading("warm-up died")
+        state.fail_loading(ZeroDivisionError("warm-up died"))
         assert state.database.ready is True
-        assert state.embedding_backend.error == "warm-up died"
-        assert state.piguard.error == "warm-up died"
-        assert state.catalogs["plasmodb"].error == "warm-up died"
+        assert state.embedding_backend.error == "ZeroDivisionError: warm-up died"
+        assert state.piguard.error == "ZeroDivisionError: warm-up died"
+
+    def test_fail_loading_gives_a_catalog_the_error_class_alone(self) -> None:
+        """The sites response reports this value, so it carries no message."""
+        state = ReadinessState()
+        state.register_catalog("plasmodb")
+        state.fail_loading(ZeroDivisionError("https://plasmodb.org refused"))
+        assert state.catalogs["plasmodb"].error == "ZeroDivisionError"
 
     def test_fail_loading_keeps_an_error_a_step_already_reported(self) -> None:
         state = ReadinessState()
         state.mark_failed("embedding_backend", "connection refused")
         state.mark_catalog_failed("plasmodb", "404")
-        state.fail_loading("warm-up died")
+        state.fail_loading(ZeroDivisionError("warm-up died"))
         assert state.embedding_backend.error == "connection refused"
         assert state.catalogs["plasmodb"].error == "404"
 

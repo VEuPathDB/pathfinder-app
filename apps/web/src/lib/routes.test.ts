@@ -3,7 +3,6 @@ import {
   chatRoot,
   chatUrl,
   edaTabUrl,
-  PORTAL_SITE_ID,
   strategyCanvasUrl,
   strategyStepUrl,
   workbenchGeneSetUrl,
@@ -16,12 +15,6 @@ describe("route builders", () => {
     expect(chatUrl("plasmodb", "c1")).toBe("/plasmodb/conversation/c1");
     expect(workbenchRoot("toxodb")).toBe("/toxodb/workbench");
     expect(workbenchGeneSetUrl("toxodb", "g1")).toBe("/toxodb/workbench/g1");
-  });
-
-  it("names the portal the site-less entry points redirect to", () => {
-    expect(PORTAL_SITE_ID).toBe("veupathdb");
-    expect(chatRoot(PORTAL_SITE_ID)).toBe("/veupathdb/conversation");
-    expect(workbenchRoot(PORTAL_SITE_ID)).toBe("/veupathdb/workbench");
   });
 
   it("builds the site-scoped conversation eda path", () => {

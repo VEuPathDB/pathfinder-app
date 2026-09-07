@@ -2,6 +2,7 @@
 
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   Bookmark,
   Brain,
   Layers,
@@ -17,6 +18,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 
 const ACTIVE_PILL = "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary";
+const NOT_RESPONDING = "Not responding";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +36,7 @@ import {
 } from "@/components/ui/tooltip";
 import { SiteIcon } from "@/features/sites/components/SiteIcon";
 import { sitesOptions } from "@/lib/api/sites";
+import { siteIsDown } from "@/lib/sites/availability";
 import { useSessionStore } from "@/state/useSessionStore";
 
 interface AppNavRailProps {
@@ -173,6 +176,10 @@ function SiteSwitcherButton({
 
   const components = sites.filter((s) => !s.isPortal);
   const portal = sites.filter((s) => s.isPortal);
+  const currentDown = siteIsDown(sites, siteId);
+  const triggerLabel = currentDown
+    ? `Switch database - ${NOT_RESPONDING}`
+    : "Switch database";
 
   const pick = (id: string) => {
     setSelectedSite(id);
@@ -187,14 +194,21 @@ function SiteSwitcherButton({
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Switch database"
-              className="p-0"
+              aria-label={triggerLabel}
+              className="relative p-0"
             >
               <SiteIcon siteId={siteId} size={22} />
+              {currentDown && (
+                <AlertTriangle
+                  className="absolute -right-0.5 -bottom-0.5 h-3 w-3 text-amber-500"
+                  aria-hidden
+                  data-testid="site-trigger-degraded"
+                />
+              )}
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
-        <TooltipContent side="right">Switch database</TooltipContent>
+        <TooltipContent side="right">{triggerLabel}</TooltipContent>
       </Tooltip>
       <DropdownMenuContent
         side="right"
@@ -212,6 +226,7 @@ function SiteSwitcherButton({
               id={site.id}
               label={site.displayName}
               active={site.id === siteId}
+              available={site.available}
               onPick={pick}
             />
           ))}
@@ -229,6 +244,7 @@ function SiteSwitcherButton({
                   id={site.id}
                   label={site.displayName}
                   active={site.id === siteId}
+                  available={site.available}
                   onPick={pick}
                 />
               ))}
@@ -244,21 +260,33 @@ function SiteMenuItem({
   id,
   label,
   active,
+  available,
   onPick,
 }: {
   id: string;
   label: string;
   active: boolean;
+  available: boolean;
   onPick: (id: string) => void;
 }) {
   return (
     <DropdownMenuItem
       onSelect={() => onPick(id)}
       data-testid={`site-menu-item-${id}`}
+      aria-label={available ? label : `${label} - ${NOT_RESPONDING}`}
       className={cn(active && "bg-primary/15 text-primary")}
     >
       <SiteIcon siteId={id} size={16} />
       <span className="flex-1 truncate">{label}</span>
+      {!available && (
+        <span
+          className="flex items-center gap-1 text-[10px] text-amber-600"
+          data-testid={`site-degraded-${id}`}
+        >
+          <AlertTriangle className="h-3 w-3" aria-hidden />
+          {NOT_RESPONDING}
+        </span>
+      )}
     </DropdownMenuItem>
   );
 }

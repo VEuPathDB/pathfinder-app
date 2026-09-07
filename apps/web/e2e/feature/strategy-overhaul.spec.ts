@@ -15,6 +15,7 @@ import { test, expect } from "../fixtures/test";
 import type { ChatPage } from "../pages/chat.page";
 import type { GraphPage } from "../pages/graph.page";
 import { MOCK_PLAN_PROMPT } from "../fixtures/mock-prompts";
+import { currentSiteId } from "../pages/navigation";
 
 /**
  * Build a strategy from the planning artifact so the rail panel + canvas
@@ -109,10 +110,11 @@ test.describe("Strategy overhaul — walkthrough", () => {
   test("editor sheet edits autosave and surface a 'Saved' state", async ({
     chatPage,
     graphPage,
+    page,
   }) => {
     const { conversationId, firstStepId } = await seedStrategy(chatPage, graphPage);
 
-    await graphPage.goToStrategy("veupathdb", conversationId);
+    await graphPage.goToStrategy(currentSiteId(page), conversationId);
     await graphPage.clickNode(firstStepId);
     await graphPage.expectEditorSheetOpen();
 
@@ -140,7 +142,7 @@ test.describe("Strategy overhaul — walkthrough", () => {
   }) => {
     const { conversationId, firstStepId } = await seedStrategy(chatPage, graphPage);
 
-    await graphPage.goToStrategy("veupathdb", conversationId);
+    await graphPage.goToStrategy(currentSiteId(page), conversationId);
     await graphPage.clickNode(firstStepId);
     await graphPage.expectEditorSheetOpen();
 
@@ -160,7 +162,7 @@ test.describe("Strategy overhaul — walkthrough", () => {
   }) => {
     const { conversationId, firstStepId } = await seedStrategy(chatPage, graphPage);
 
-    await graphPage.goToStrategy("veupathdb", conversationId);
+    await graphPage.goToStrategy(currentSiteId(page), conversationId);
     await graphPage.clickNode(firstStepId);
     await graphPage.expectEditorSheetOpen();
     await page.keyboard.press("Escape");
@@ -178,7 +180,7 @@ test.describe("Strategy overhaul — walkthrough", () => {
   }) => {
     const { conversationId } = await seedStrategy(chatPage, graphPage);
 
-    await graphPage.goToStrategy("veupathdb", conversationId);
+    await graphPage.goToStrategy(currentSiteId(page), conversationId);
     await graphPage.expectStrategyTopbar();
 
     // Capture node positions before relayout.
@@ -197,10 +199,11 @@ test.describe("Strategy overhaul — walkthrough", () => {
   test("validation alert is hidden when strategy validates cleanly", async ({
     chatPage,
     graphPage,
+    page,
   }) => {
     const { conversationId } = await seedStrategy(chatPage, graphPage);
 
-    await graphPage.goToStrategy("veupathdb", conversationId);
+    await graphPage.goToStrategy(currentSiteId(page), conversationId);
 
     // Single-step gold strategy should validate. The alert renders only on
     // mismatched record types; a clean strategy keeps it hidden.
@@ -215,7 +218,7 @@ test.describe("Strategy overhaul — walkthrough", () => {
     const { conversationId, firstStepId } = await seedStrategy(chatPage, graphPage);
 
     await page.goto(
-      `/veupathdb/conversation/${conversationId}/strategy/step/${firstStepId}`,
+      `/${currentSiteId(page)}/conversation/${conversationId}/strategy/step/${firstStepId}`,
     );
     await graphPage.expectOnStrategyRoute(conversationId);
     await graphPage.expectEditorSheetOpen();
@@ -224,10 +227,11 @@ test.describe("Strategy overhaul — walkthrough", () => {
   test("topbar 'Back to chat' returns to /conversation/[id]", async ({
     chatPage,
     graphPage,
+    page,
   }) => {
     const { conversationId } = await seedStrategy(chatPage, graphPage);
 
-    await graphPage.goToStrategy("veupathdb", conversationId);
+    await graphPage.goToStrategy(currentSiteId(page), conversationId);
     await graphPage.strategyPageBackButton.click();
     await graphPage.expectOnChatRoute(conversationId);
   });

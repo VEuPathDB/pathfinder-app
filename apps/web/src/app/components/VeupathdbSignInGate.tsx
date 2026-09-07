@@ -1,9 +1,6 @@
 "use client";
 
-import { toast } from "sonner";
-
-import { setQueryErrorHandler } from "@/lib/query/client";
-import { handleWdkAuthRefusal, useAuthGateStore } from "@/state/useAuthGateStore";
+import { useAuthGateStore } from "@/state/useAuthGateStore";
 import { LoginModal } from "./LoginModal";
 
 interface VeupathdbSignInGateProps {
@@ -14,9 +11,9 @@ interface VeupathdbSignInGateProps {
 }
 
 /**
- * The one sign-in prompt of an app shell. It also owns the query error
- * handler, so a route refused for want of a VEuPathDB login opens the prompt
- * from any shell that renders this.
+ * The one sign-in prompt of an app shell. ``QueryErrorToasts`` sets the store
+ * flag this reads, so a route refused for want of a VEuPathDB login opens the
+ * prompt from any shell that renders this.
  */
 export function VeupathdbSignInGate({
   forced,
@@ -26,11 +23,6 @@ export function VeupathdbSignInGate({
   const signInRequired = useAuthGateStore((s) => s.signInRequired);
   const signInReason = useAuthGateStore((s) => s.signInReason);
   const dismissSignIn = useAuthGateStore((s) => s.dismissSignIn);
-
-  setQueryErrorHandler((notice) => {
-    if (handleWdkAuthRefusal(notice.error, notice.retry)) return;
-    toast.error(notice.message);
-  });
 
   if (forced) {
     return <LoginModal open selectedSite={selectedSite} onSiteChange={onSiteChange} />;

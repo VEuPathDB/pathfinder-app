@@ -187,7 +187,7 @@ describe("seedExperiments", () => {
     expect(messages).toEqual(["one", "two", "three"]);
   });
 
-  it("forwards site_id as a query parameter when provided", async () => {
+  it("forwards siteId as a query parameter when provided", async () => {
     const fetchSpy = vi.fn(async () =>
       makeFetchResponse(true, 200, makeReadableStream(["data: [DONE]\n\n"])),
     );
@@ -196,7 +196,7 @@ describe("seedExperiments", () => {
     await seedExperiments(() => {}, "plasmodb");
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/experiments/seed?site_id=plasmodb",
+      "http://localhost:8000/api/v1/experiments/seed?siteId=plasmodb",
       expect.objectContaining({ method: "POST" }),
     );
   });

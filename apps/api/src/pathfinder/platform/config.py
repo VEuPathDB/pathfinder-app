@@ -109,6 +109,19 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
 
     # VEuPathDB
     veupathdb_default_site: str = "veupathdb"
+    site_preload_timeout_seconds: int = Field(
+        default=30,
+        ge=1,
+        description=(
+            "Budget for one site's catalog load, at startup and on every retry. "
+            "A site that does not answer inside it is degraded."
+        ),
+    )
+    site_retry_interval_seconds: int = Field(
+        default=60,
+        ge=1,
+        description="Seconds between two passes over the degraded sites.",
+    )
     # Semantic Scholar
     s2_api_key: str = Field(default="", repr=False)
 

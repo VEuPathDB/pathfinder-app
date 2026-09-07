@@ -151,6 +151,22 @@ Health
    :undoc-members:
    :show-inheritance:
 
+Readiness
+---------
+
+**Purpose:** The process-wide readiness record the health routes report, and
+the per-site catalog preload and retry the warm-up drives.
+
+.. automodule:: pathfinder.platform.readiness
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pathfinder.platform.site_catalogs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Store
 -----
 

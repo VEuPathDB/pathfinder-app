@@ -1,4 +1,5 @@
 import { test, expect } from "../fixtures/test";
+import { currentSiteId } from "../pages/navigation";
 
 /**
  * Feature: branching + switching between conversations.
@@ -25,7 +26,7 @@ test.describe("Branch Switch", () => {
     expect(branchId).not.toBe(originalId);
 
     // Switch back to the original conversation — its messages are intact.
-    await page.goto(`/veupathdb/conversation/${originalId}`);
+    await page.goto(`/${currentSiteId(page)}/conversation/${originalId}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 15_000 });
     await expect(
       page.locator(".is-user").filter({ hasText: "show me kinase genes" }),

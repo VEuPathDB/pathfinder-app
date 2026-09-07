@@ -33,6 +33,10 @@ services:
       # Accounted megabytes of per-site catalogs and semantic indexes one
       # process holds before the least recently used site is evicted.
       SITE_CATALOG_BUDGET_MB: ${SITE_CATALOG_BUDGET_MB:-512}
+      # Budget for one site's catalog load, and the gap between two passes over
+      # the sites that did not load. A site that misses the budget is degraded.
+      SITE_PRELOAD_TIMEOUT_SECONDS: ${SITE_PRELOAD_TIMEOUT_SECONDS:-30}
+      SITE_RETRY_INTERVAL_SECONDS: ${SITE_RETRY_INTERVAL_SECONDS:-60}
       # The directory the three services exchange catalog snapshots through.
       CATALOG_CACHE_DIR: /app/data/catalogs
       # This is the process that syncs the embedding indexes.
@@ -105,6 +109,10 @@ services:
       # Accounted megabytes of per-site catalogs and semantic indexes one
       # process holds before the least recently used site is evicted.
       SITE_CATALOG_BUDGET_MB: ${SITE_CATALOG_BUDGET_MB:-512}
+      # Budget for one site's catalog load, and the gap between two passes over
+      # the sites that did not load. A site that misses the budget is degraded.
+      SITE_PRELOAD_TIMEOUT_SECONDS: ${SITE_PRELOAD_TIMEOUT_SECONDS:-30}
+      SITE_RETRY_INTERVAL_SECONDS: ${SITE_RETRY_INTERVAL_SECONDS:-60}
       # The directory the three services exchange catalog snapshots through.
       CATALOG_CACHE_DIR: /app/data/catalogs
       # Only the api rebuilds a stale catalog. A build inside a served call

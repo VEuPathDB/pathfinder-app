@@ -9,6 +9,8 @@ from veupathdb_mcp.gene_lookup import (
     resolve_gene_ids,
 )
 
+from pathfinder.transport.http.deps import AvailableSite
+
 router = APIRouter(prefix="/api/v1/sites", tags=["sites"])
 
 
@@ -52,15 +54,15 @@ class OrganismsResponse(CamelModel):
     organisms: list[str]
 
 
-@router.get("/{site_id}/organisms", response_model=OrganismsResponse)
-async def get_organisms(site_id: str) -> OrganismsResponse:
+@router.get("/{siteId}/organisms", response_model=OrganismsResponse)
+async def get_organisms(site_id: AvailableSite) -> OrganismsResponse:
     orgs = await list_organisms(site_id)
     return OrganismsResponse(organisms=orgs)
 
 
-@router.get("/{site_id}/genes/search", response_model=GeneSearchResponse)
+@router.get("/{siteId}/genes/search", response_model=GeneSearchResponse)
 async def search_genes(
-    site_id: str,
+    site_id: AvailableSite,
     q: str = "",
     organism: str | None = None,
     limit: int = 50,
@@ -92,9 +94,9 @@ async def search_genes(
     )
 
 
-@router.post("/{site_id}/genes/resolve", response_model=GeneResolveResponse)
+@router.post("/{siteId}/genes/resolve", response_model=GeneResolveResponse)
 async def resolve_genes(
-    site_id: str,
+    site_id: AvailableSite,
     payload: GeneResolveRequest,
 ) -> GeneResolveResponse:
     result = await resolve_gene_ids(site_id, payload.gene_ids)

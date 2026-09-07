@@ -34,9 +34,11 @@ async def _insert_worker_heartbeat(*, age_seconds: float) -> None:
 
 @pytest.fixture
 async def api_ready() -> AsyncIterator[None]:
+    """Every process subsystem ready, and one site catalog loaded."""
     state = get_readiness()
     for name in _FIXED_SUBSYSTEMS:
         state.mark_ready(name)
+    state.mark_catalog_ready("plasmodb")
     yield
     reset_readiness()
 
@@ -162,3 +164,67 @@ async def test_a_failed_ping_records_a_non_empty_error(
     resp = await client.get("/health/ready")
     assert resp.status_code == 503
     assert resp.json()["readiness"]["database"]["error"] == "TimeoutError"
+
+
+async def test_readiness_is_ok_while_one_site_is_degraded(
+    client: httpx.AsyncClient,
+    api_ready: None,
+) -> None:
+    """One dead VEuPathDB site must not take the deployment down."""
+    del api_ready
+    get_readiness().mark_catalog_failed("veupathdb", "ReadTimeout")
+
+    resp = await client.get("/health/ready")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "healthy"
+    assert body["degraded"] == ["veupathdb"]
+    assert body["notReady"] == []
+
+
+async def test_readiness_is_503_when_no_catalog_loaded(
+    client: httpx.AsyncClient,
+    api_ready: None,
+) -> None:
+    del api_ready
+    state = get_readiness()
+    state.mark_catalog_failed("plasmodb", "ReadTimeout")
+    state.mark_catalog_failed("veupathdb", "ReadTimeout")
+
+    resp = await client.get("/health/ready")
+
+    assert resp.status_code == 503
+    body = resp.json()
+    assert body["notReady"] == ["catalogs"]
+    assert body["degraded"] == ["plasmodb", "veupathdb"]
+
+
+async def test_readiness_is_503_when_a_process_subsystem_failed(
+    client: httpx.AsyncClient,
+    api_ready: None,
+) -> None:
+    del api_ready
+    get_readiness().mark_failed("piguard", "OSError")
+
+    resp = await client.get("/health/ready")
+
+    assert resp.status_code == 503
+    assert resp.json()["notReady"] == ["piguard"]
+
+
+async def test_system_ready_names_the_degraded_sites(
+    client: httpx.AsyncClient,
+    api_ready: None,
+) -> None:
+    del api_ready
+    await _clear_workers()
+    await _insert_worker_heartbeat(age_seconds=2)
+    get_readiness().mark_catalog_failed("veupathdb", "ReadTimeout")
+
+    resp = await client.get("/health/system")
+
+    body = resp.json()
+    assert body["apiReady"] is True
+    assert body["degraded"] == ["veupathdb"]
+    await _clear_workers()

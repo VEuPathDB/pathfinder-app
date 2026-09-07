@@ -317,6 +317,14 @@ jobs:
         run: |
           docker compose --env-file .env.test \
             -f docker-compose.yml -f docker-compose.e2e.yml \
+            ps -a
+          for c in api worker web db; do
+            docker inspect --format "$c: {{json .State}}" "pathfinder-app-$c-1" || true
+          done
+          free -m
+          df -h /
+          docker compose --env-file .env.test \
+            -f docker-compose.yml -f docker-compose.e2e.yml \
             logs --no-color api worker web db
 
       # The page snapshot and trace of every failed spec, for a failure that

@@ -89,11 +89,16 @@ export async function validateSearchParams(
   );
 }
 
+// The api retries a degraded site on the same interval, so a recovered site
+// clears its warning without a reload.
+const SITE_AVAILABILITY_INTERVAL_MS = 60_000;
+
 export function sitesOptions() {
   return queryOptions({
     queryKey: ["sites"] as const,
     queryFn: listSites,
-    staleTime: Infinity,
+    staleTime: SITE_AVAILABILITY_INTERVAL_MS,
+    refetchInterval: SITE_AVAILABILITY_INTERVAL_MS,
   });
 }
 

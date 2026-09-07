@@ -21,7 +21,7 @@ export async function seedExperiments(
   onMessage: (message: string) => void,
   siteId?: string,
 ): Promise<void> {
-  const params = siteId != null && siteId !== "" ? `?site_id=${siteId}` : "";
+  const params = siteId != null && siteId !== "" ? `?siteId=${siteId}` : "";
   const url = buildUrl(`/api/v1/experiments/seed${params}`);
 
   for await (const event of streamTypedEvents<SeedStreamEvent>(url, {

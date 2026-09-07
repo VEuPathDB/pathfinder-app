@@ -90,17 +90,20 @@ async def system_ready() -> SystemReadyResponse:
         api_ready=api_ready,
         worker_alive=worker_alive,
         not_ready=not_ready,
+        degraded=state.degraded,
     )
 
 
 @router.get("/health/ready", response_model=ReadinessResponse)
 async def readiness_check() -> ReadinessResponse | JSONResponse:
-    """Readiness check — is every subsystem actually ready?
+    """Readiness check - can this process serve requests?
 
-    Returns 503 until lifespan startup has marked *all* subsystems ready
-    (database, embedding model, PIGuard, graph checkpointer, every site
-    catalog). Also re-verifies the DB with a live ping so stale state
-    doesn't mask a broken dependency.
+    Returns 503 until every process subsystem is ready (database, embedding
+    model, PIGuard, graph checkpointer) and at least one site catalog is
+    loaded. ``degraded`` names the sites whose catalog is not loaded; they are
+    refused on their own routes and retried in the background. Also
+    re-verifies the DB with a live ping so stale state does not mask a broken
+    dependency.
     """
     state = get_readiness()
 
@@ -119,10 +122,11 @@ async def readiness_check() -> ReadinessResponse | JSONResponse:
         timestamp=datetime.now(UTC),
         readiness=state,
         not_ready=state.not_ready,
+        degraded=state.degraded,
     )
     if not ready:
         return JSONResponse(
             status_code=503,
-            content=response.model_dump(mode="json"),
+            content=response.model_dump(mode="json", by_alias=True),
         )
     return response

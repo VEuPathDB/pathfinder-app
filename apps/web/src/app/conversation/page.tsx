@@ -1,7 +1,8 @@
-import { redirect } from "next/navigation";
+import { redirectToEntrySite } from "@/app/entrySiteRedirect";
+import { chatRoot } from "@/lib/routes";
 
-import { chatRoot, PORTAL_SITE_ID } from "@/lib/routes";
+export const dynamic = "force-dynamic";
 
-export default function BareConversationPage(): never {
-  redirect(chatRoot(PORTAL_SITE_ID));
+export default async function BareConversationPage() {
+  return await redirectToEntrySite(chatRoot);
 }

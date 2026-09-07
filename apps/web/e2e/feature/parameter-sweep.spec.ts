@@ -7,11 +7,11 @@
  */
 
 import { test, expect } from "../fixtures/test";
+import { entrySiteId } from "../fixtures/entry-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext } from "@playwright/test";
 
 const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
-const SITE_ID = "veupathdb";
 const TASK_ID = "00000000-0000-0000-0000-sweep0000001";
 
 interface OpenStrategyResponse {
@@ -20,9 +20,9 @@ interface OpenStrategyResponse {
   id?: string;
 }
 
-async function openStrategy(context: BrowserContext): Promise<string> {
+async function openStrategy(context: BrowserContext, siteId: string): Promise<string> {
   const resp = await context.request.post(`${BASE_URL}/api/v1/conversations/open`, {
-    data: { siteId: SITE_ID },
+    data: { siteId },
     headers: { "X-Requested-With": "XMLHttpRequest" },
   });
   if (!resp.ok()) {
@@ -43,7 +43,8 @@ test.describe("Parameter Sweep", () => {
     page,
     context,
   }) => {
-    const strategyId = await openStrategy(context);
+    const siteId = await entrySiteId(context, BASE_URL);
+    const strategyId = await openStrategy(context, siteId);
 
     const chatStream = [
       sseFrame({
@@ -85,7 +86,7 @@ test.describe("Parameter Sweep", () => {
       });
     });
 
-    await page.goto(`/${SITE_ID}/conversation/${strategyId}`);
+    await page.goto(`/${siteId}/conversation/${strategyId}`);
     const composer = page.getByPlaceholder("Ask about strategies", {
       exact: false,
     });
@@ -118,7 +119,8 @@ test.describe("Parameter Sweep", () => {
     page,
     context,
   }) => {
-    const strategyId = await openStrategy(context);
+    const siteId = await entrySiteId(context, BASE_URL);
+    const strategyId = await openStrategy(context, siteId);
 
     const chatStream = [
       sseFrame({
@@ -144,7 +146,7 @@ test.describe("Parameter Sweep", () => {
       });
     });
 
-    await page.goto(`/${SITE_ID}/conversation/${strategyId}`);
+    await page.goto(`/${siteId}/conversation/${strategyId}`);
     const composer = page.getByPlaceholder("Ask about strategies", {
       exact: false,
     });

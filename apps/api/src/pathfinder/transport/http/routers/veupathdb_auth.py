@@ -4,6 +4,7 @@ from typing import Annotated, TypedDict
 from urllib.parse import urlparse
 from uuid import UUID
 
+import httpx
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import APIRouter, Query, Request
@@ -16,7 +17,7 @@ from veupathdb_mcp.wdk.login import (
 )
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import UnauthorizedError
+from pathfinder.platform.errors import SiteUnavailableError, UnauthorizedError
 from pathfinder.platform.security import (
     create_user_token,
     decode_session_token,
@@ -27,6 +28,7 @@ from pathfinder.services.users import get_or_create_user_id
 from pathfinder.services.wdk_identity import (
     WDKCurrentUser,
     fetch_wdk_user,
+    identity_site,
     resolve_veupathdb_email,
 )
 from pathfinder.transport.http.deps import DBSession
@@ -137,12 +139,15 @@ async def login_with_password(
             ],
         )
 
-    token = await start_veupathdb_session(
-        site_id,
-        email=email,
-        password=password,
-        redirect_url=_pick_redirect_url(redirect_to),
-    )
+    try:
+        token = await start_veupathdb_session(
+            site_id,
+            email=email,
+            password=password,
+            redirect_url=_pick_redirect_url(redirect_to),
+        )
+    except httpx.HTTPError as e:
+        raise SiteUnavailableError(site_id, type(e).__name__) from e
 
     if not token:
         logger.warning(
@@ -254,7 +259,7 @@ async def auth_status(
                 "email": "e2e@test.local",
             }
 
-    user = await fetch_wdk_user(site_id)
+    user = await fetch_wdk_user(identity_site(site_id))
     if user is None:
         return {"signedIn": False, "name": None, "email": None}
 

@@ -1,12 +1,13 @@
-import { redirect } from "next/navigation";
+import { redirectToEntrySite } from "@/app/entrySiteRedirect";
+import { workbenchGeneSetUrl } from "@/lib/routes";
 
-import { PORTAL_SITE_ID, workbenchGeneSetUrl } from "@/lib/routes";
+export const dynamic = "force-dynamic";
 
 export default async function BareWorkbenchItemPage({
   params,
 }: {
   params: Promise<{ id: string }>;
-}): Promise<never> {
+}) {
   const { id } = await params;
-  redirect(workbenchGeneSetUrl(PORTAL_SITE_ID, id));
+  return await redirectToEntrySite((siteId) => workbenchGeneSetUrl(siteId, id));
 }

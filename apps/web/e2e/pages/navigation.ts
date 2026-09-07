@@ -36,3 +36,13 @@ export async function waitForDraftChatRoute(page: Page) {
     timeout: ROUTE_TIMEOUT_MS,
   });
 }
+
+/** The site the URL names. Every app route is site scoped, so a spec that
+ *  navigates by hand takes the site the app already opened. */
+export function currentSiteId(page: Page): string {
+  const siteId = new URL(page.url()).pathname.split("/")[1] ?? "";
+  if (siteId === "") {
+    throw new Error("the current URL names no site");
+  }
+  return siteId;
+}

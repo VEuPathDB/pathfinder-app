@@ -3,6 +3,21 @@ import { clearAllGeneSets } from "../fixtures/api-client";
 
 const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
 
+interface SiteRow {
+  id: string;
+  isPortal: boolean;
+  available: boolean;
+}
+
+/** The site the entry flow opens: the portal when it answers, else the first
+ *  site the API reports available, in the list's own order. */
+function entrySite(sites: SiteRow[]): SiteRow {
+  const available = sites.filter((s) => s.available);
+  const entry = available.find((s) => s.isPortal) ?? available[0];
+  if (entry === undefined) throw new Error("the API reports no available site");
+  return entry;
+}
+
 test.describe("Site Switching", () => {
   test.describe.configure({ mode: "serial" });
 
@@ -11,22 +26,20 @@ test.describe("Site Switching", () => {
     await chatPage.newChat();
   });
 
-  test("default site is VEuPathDB — verified in UI and API", async ({
+  test("the default site is the one the API reports available", async ({
     sitePicker,
     apiClient,
   }) => {
-    // UI: Site picker shows veupathdb
-    await sitePicker.expectCurrentSite("veupathdb");
-
-    // API: Sites endpoint returns all real VEuPathDB sites
     const resp = await apiClient.get("/api/v1/sites");
     expect(resp.ok()).toBeTruthy();
-    const sites = await resp.json();
+    const sites = (await resp.json()) as SiteRow[];
     expect(sites.length).toBeGreaterThan(0);
-    const siteIds = sites.map((s: { id: string }) => s.id);
+    const siteIds = sites.map((s) => s.id);
     expect(siteIds).toContain("plasmodb");
     expect(siteIds).toContain("toxodb");
     expect(siteIds).toContain("cryptodb");
+
+    await sitePicker.expectCurrentSite(entrySite(sites).id);
   });
 
   test("switch site updates UI and isolates gene sets per site", async ({

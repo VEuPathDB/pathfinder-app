@@ -34,9 +34,9 @@ from pathfinder.services.eda.compute import (
 from pathfinder.services.eda.description import describe_study, permission_facts
 from pathfinder.services.eda.steps import export_analysis_step
 from pathfinder.transport.http.deps import (
+    AvailableSite,
     CurrentUser,
     DBSession,
-    RequiredSiteIdQuery,
     require_registered_wdk_identity,
 )
 from pathfinder.transport.http.schemas.eda import (
@@ -68,7 +68,7 @@ _DEFAULT_STUDY_LIMIT = 20
 
 @studies_router.get("/studies", response_model=EdaStudyListResponse)
 async def list_eda_studies(
-    site_id: RequiredSiteIdQuery,
+    site_id: AvailableSite,
     user_id: CurrentUser,
     q: Annotated[str, Query(max_length=500)] = "",
     limit: Annotated[int, Query(ge=1, le=100)] = _DEFAULT_STUDY_LIMIT,
@@ -91,7 +91,7 @@ async def list_eda_studies(
 @studies_router.get("/studies/{dataset_id}", response_model=EdaStudyDetailResponse)
 async def get_eda_study(
     dataset_id: str,
-    site_id: RequiredSiteIdQuery,
+    site_id: AvailableSite,
     user_id: CurrentUser,
     entity_id: Annotated[str | None, Query(alias="entityId")] = None,
 ) -> EdaStudyDetailResponse:
@@ -110,7 +110,7 @@ async def get_eda_study(
 @studies_router.post("/count", response_model=EdaCountResponse)
 async def count_eda_subset(
     request: EdaCountRequest,
-    site_id: RequiredSiteIdQuery,
+    site_id: AvailableSite,
     user_id: CurrentUser,
 ) -> EdaCountResponse:
     """The subset's size on one entity, against that entity's whole size."""
@@ -127,7 +127,7 @@ async def count_eda_subset(
 @studies_router.post("/distribution", response_model=EdaDistributionSeries)
 async def read_eda_distribution(
     request: EdaDistributionRequest,
-    site_id: RequiredSiteIdQuery,
+    site_id: AvailableSite,
     user_id: CurrentUser,
 ) -> EdaDistributionSeries:
     """One variable's histogram under the subset the request names."""
@@ -144,7 +144,7 @@ async def read_eda_distribution(
 @studies_router.post("/viz", response_model=EdaVizResponse)
 async def read_eda_viz(
     request: EdaVizRequest,
-    site_id: RequiredSiteIdQuery,
+    site_id: AvailableSite,
     conversation_id: Annotated[UUID, Query(alias="conversationId")],
     session: DBSession,
     user_id: CurrentUser,

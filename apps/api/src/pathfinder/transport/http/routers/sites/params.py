@@ -10,6 +10,7 @@ from veupathdb_mcp.catalog.param_specs_formatting import (
 )
 from veupathdb_mcp.catalog.param_validation import ValidationResponse
 
+from pathfinder.transport.http.deps import AvailableSite
 from pathfinder.transport.http.schemas import (
     DependentParamsRequest,
     ParamSpecsRequest,
@@ -24,7 +25,7 @@ router = APIRouter(prefix="/api/v1/sites", tags=["sites"])
     response_model=ValidationResponse,
 )
 async def validate_search_params(
-    siteId: str,
+    siteId: AvailableSite,
     recordType: str,
     searchName: str,
     payload: SearchValidationRequest,
@@ -41,7 +42,7 @@ async def validate_search_params(
     response_model=list[ParamSpecResponse],
 )
 async def get_param_specs_with_context(
-    siteId: str,
+    siteId: AvailableSite,
     recordType: str,
     searchName: str,
     payload: ParamSpecsRequest,
@@ -59,7 +60,7 @@ async def get_param_specs_with_context(
     response_model=list[ParamSpecResponse],
 )
 async def refresh_dependent_params(
-    siteId: str,
+    siteId: AvailableSite,
     recordType: str,
     searchName: str,
     payload: DependentParamsRequest,

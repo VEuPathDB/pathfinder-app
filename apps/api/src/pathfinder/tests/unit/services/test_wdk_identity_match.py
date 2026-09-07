@@ -70,7 +70,9 @@ class TestTheTokenMustNameTheSessionUser:
         veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
 
         with pytest.raises(WDKIdentityMismatchError) as raised:
-            await wdk_identity.require_session_matches_wdk_identity(_session())
+            await wdk_identity.require_session_matches_wdk_identity(
+                _session(), "plasmodb"
+            )
 
         assert raised.value.status == 401
         assert raised.value.code == ErrorCode.WDK_IDENTITY_MISMATCH
@@ -85,7 +87,10 @@ class TestTheTokenMustNameTheSessionUser:
         veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
 
         assert (
-            await wdk_identity.require_session_matches_wdk_identity(_session()) is None
+            await wdk_identity.require_session_matches_wdk_identity(
+                _session(), "plasmodb"
+            )
+            is None
         )
 
     @pytest.mark.asyncio
@@ -95,7 +100,9 @@ class TestTheTokenMustNameTheSessionUser:
         seen = _token_names(monkeypatch, OTHER_USER)
 
         with pytest.raises(wdk_identity.WDKLoginRequiredError):
-            await wdk_identity.require_session_matches_wdk_identity(_session())
+            await wdk_identity.require_session_matches_wdk_identity(
+                _session(), "plasmodb"
+            )
 
         assert seen == []
 
@@ -108,7 +115,10 @@ class TestTheTokenMustNameTheSessionUser:
         veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
 
         assert (
-            await wdk_identity.require_session_matches_wdk_identity(_session()) is None
+            await wdk_identity.require_session_matches_wdk_identity(
+                _session(), "plasmodb"
+            )
+            is None
         )
 
 
@@ -124,7 +134,7 @@ class TestADevLoginSessionActsAsItsToken:
 
         assert (
             await wdk_identity.require_session_matches_wdk_identity(
-                _session("dev-login")
+                _session("dev-login"), "plasmodb"
             )
             is None
         )

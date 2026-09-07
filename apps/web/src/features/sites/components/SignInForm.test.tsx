@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 
+import { APIError } from "@/lib/api/http";
 import { createTestQueryClient } from "@/lib/query/testing";
 import { SignInForm } from "./SignInForm";
 import { getVeupathdbAuthStatus, loginVeupathdb } from "@/lib/api/veupathdb-auth";
@@ -81,6 +82,32 @@ describe("SignInForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     expect(await screen.findByText("Login failed. Please try again.")).toBeTruthy();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("shows the site notice inline when the login reports the site is down", async () => {
+    mockLogin.mockRejectedValue(
+      new APIError("veupathdb is not responding (ReadTimeout).", {
+        status: 503,
+        statusText: "Service Unavailable",
+        url: "http://localhost:3000/api/v1/veupathdb/auth/login",
+        data: {
+          type: "/errors/SITE_UNAVAILABLE",
+          title: "Site is not responding",
+          status: 503,
+          detail: "veupathdb is not responding (ReadTimeout).",
+          code: "SITE_UNAVAILABLE",
+        },
+      }),
+    );
+    const { onSuccess } = renderForm();
+
+    await fillCredentials("ahmed@upenn.edu", "hunter2");
+    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+
+    expect(await screen.findByTestId("site-unavailable-notice")).toBeTruthy();
+    expect(screen.getByText("plasmodb is not responding")).toBeTruthy();
+    expect(screen.queryByText("Login failed. Please try again.")).toBeNull();
     expect(onSuccess).not.toHaveBeenCalled();
   });
 

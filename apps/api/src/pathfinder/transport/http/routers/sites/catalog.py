@@ -5,6 +5,8 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 from veupathdb_mcp import catalog
 
+from pathfinder.platform.readiness import get_readiness
+from pathfinder.transport.http.deps import AvailableSite
 from pathfinder.transport.http.schemas import (
     RecordTypeResponse,
     SearchResponse,
@@ -14,27 +16,40 @@ from pathfinder.transport.http.schemas import (
 router = APIRouter(prefix="/api/v1/sites", tags=["sites"])
 
 
+def _availability(site_id: str) -> tuple[bool, str | None]:
+    """Whether the site's catalog is loaded, and the error class if it is not."""
+    degraded = get_readiness().degraded_catalog(site_id)
+    if degraded is None:
+        return True, None
+    return False, degraded.error or "loading"
+
+
 @router.get("", response_model=list[SiteResponse])
 async def list_sites() -> list[SiteResponse]:
-    """List all available VEuPathDB sites."""
+    """List every VEuPathDB site, and say which ones answer."""
     sites = await catalog.list_sites()
-    return [
-        SiteResponse.model_validate(
-            {
-                "id": s.id,
-                "name": s.name,
-                "displayName": s.display_name,
-                "baseUrl": s.base_url,
-                "projectId": s.project_id,
-                "isPortal": s.is_portal,
-            }
+    responses: list[SiteResponse] = []
+    for s in sites:
+        available, reason = _availability(s.id)
+        responses.append(
+            SiteResponse.model_validate(
+                {
+                    "id": s.id,
+                    "name": s.name,
+                    "displayName": s.display_name,
+                    "baseUrl": s.base_url,
+                    "projectId": s.project_id,
+                    "isPortal": s.is_portal,
+                    "available": available,
+                    "unavailableReason": reason,
+                }
+            )
         )
-        for s in sites
-    ]
+    return responses
 
 
 @router.get("/{siteId}/record-types", response_model=list[RecordTypeResponse])
-async def get_record_types(siteId: str) -> list[RecordTypeResponse]:
+async def get_record_types(siteId: AvailableSite) -> list[RecordTypeResponse]:
     """Get record types available on a site."""
     record_types = await catalog.get_record_types(siteId)
     return [
@@ -51,7 +66,7 @@ async def get_record_types(siteId: str) -> list[RecordTypeResponse]:
 
 @router.get("/{siteId}/searches", response_model=list[SearchResponse])
 async def get_searches(
-    siteId: str,
+    siteId: AvailableSite,
     record_type: Annotated[str | None, Query(alias="recordType")] = None,
 ) -> list[SearchResponse]:
     """Get searches available on a site, optionally filtered by record type."""

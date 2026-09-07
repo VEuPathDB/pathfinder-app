@@ -9,7 +9,7 @@ from pydantic import Field
 from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.services.conversations.service import ConversationService
-from pathfinder.transport.http.deps import CurrentUser, DBSession, RequiredSiteIdQuery
+from pathfinder.transport.http.deps import AvailableSite, CurrentUser, DBSession
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])
 
@@ -47,7 +47,7 @@ class InsertSavedResponse(CamelModel):
 async def insert_saved(
     conversation_id: UUID,
     request: InsertSavedRequest,
-    site_id: RequiredSiteIdQuery,
+    site_id: AvailableSite,
     session: DBSession,
     user_id: CurrentUser,
 ) -> InsertSavedResponse:

@@ -1,10 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import type { SiteResponse } from "@pathfinder/shared";
 
 const route = { pathname: "/plasmodb/conversation/abc-123" };
+const sites: { list: SiteResponse[] } = { list: [] };
 
 vi.mock("next/navigation", () => ({
   usePathname: () => route.pathname,
@@ -14,9 +17,32 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/api/sites", () => ({
   sitesOptions: () => ({
     queryKey: ["sites"],
-    queryFn: () => [],
+    queryFn: () => sites.list,
   }),
 }));
+
+function site(over: Partial<SiteResponse>): SiteResponse {
+  return {
+    id: "plasmodb",
+    name: "PlasmoDB",
+    displayName: "PlasmoDB (Plasmodium)",
+    baseUrl: "https://plasmodb.org/plasmo/service",
+    projectId: "PlasmoDB",
+    isPortal: false,
+    available: true,
+    unavailableReason: null,
+    ...over,
+  };
+}
+
+const PORTAL_DOWN = site({
+  id: "veupathdb",
+  name: "VEuPathDB",
+  displayName: "VEuPathDB Portal (All organisms)",
+  isPortal: true,
+  available: false,
+  unavailableReason: "ReadTimeout",
+});
 
 import { AppNavRail } from "./AppNavRail";
 
@@ -32,6 +58,24 @@ function draw() {
     />,
   );
 }
+
+function drawFor(siteId: string, onSiteChange: (id: string) => void = () => undefined) {
+  return render(
+    <AppNavRail
+      siteId={siteId}
+      onSiteChange={onSiteChange}
+      onOpenSettings={() => undefined}
+      onOpenModelSettings={() => undefined}
+      onToggleSidebar={() => undefined}
+      sidebarExpanded={false}
+    />,
+  );
+}
+
+beforeEach(() => {
+  sites.list = [];
+  route.pathname = "/plasmodb/conversation/abc-123";
+});
 
 afterEach(cleanup);
 
@@ -52,5 +96,64 @@ describe("AppNavRail section links", () => {
     expect(workbench).not.toHaveAttribute("aria-current");
     const click = fireEvent.click(workbench);
     expect(click).toBe(true);
+  });
+});
+
+describe("AppNavRail site selection", () => {
+  it("marks a site that is not responding, and keeps it selectable", async () => {
+    sites.list = [site({}), PORTAL_DOWN];
+    const picked = vi.fn();
+    drawFor("plasmodb", picked);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Switch database" }),
+    );
+
+    const down = await screen.findByTestId("site-menu-item-veupathdb");
+    expect(down.getAttribute("aria-label")).toBe(
+      "VEuPathDB Portal (All organisms) - Not responding",
+    );
+    expect(screen.getByTestId("site-degraded-veupathdb")).toHaveTextContent(
+      "Not responding",
+    );
+
+    await userEvent.click(down);
+    expect(picked).toHaveBeenCalledWith("veupathdb");
+  });
+
+  it("leaves a site that answers unmarked", async () => {
+    sites.list = [
+      site({}),
+      site({ ...PORTAL_DOWN, available: true, unavailableReason: null }),
+    ];
+    drawFor("plasmodb");
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Switch database" }),
+    );
+
+    const up = await screen.findByTestId("site-menu-item-veupathdb");
+    expect(up.getAttribute("aria-label")).toBe("VEuPathDB Portal (All organisms)");
+    expect(screen.queryByTestId("site-degraded-veupathdb")).toBeNull();
+  });
+
+  it("marks the trigger when the current site is the one that is down", async () => {
+    sites.list = [site({}), PORTAL_DOWN];
+    drawFor("veupathdb");
+
+    const trigger = await screen.findByRole("button", {
+      name: "Switch database - Not responding",
+    });
+    expect(trigger.getAttribute("aria-label")).toBe("Switch database - Not responding");
+    expect(trigger).toContainElement(screen.getByTestId("site-trigger-degraded"));
+  });
+
+  it("leaves the trigger unmarked when the current site answers", async () => {
+    sites.list = [site({}), PORTAL_DOWN];
+    drawFor("plasmodb");
+
+    const trigger = await screen.findByRole("button", { name: "Switch database" });
+    expect(trigger.getAttribute("aria-label")).toBe("Switch database");
+    expect(screen.queryByTestId("site-trigger-degraded")).toBeNull();
   });
 });

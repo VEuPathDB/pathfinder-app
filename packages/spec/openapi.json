@@ -78,7 +78,7 @@
           "health"
         ],
         "summary": "Readiness Check",
-        "description": "Readiness check \u2014 is every subsystem actually ready?\n\nReturns 503 until lifespan startup has marked *all* subsystems ready\n(database, embedding model, PIGuard, graph checkpointer, every site\ncatalog). Also re-verifies the DB with a live ping so stale state\ndoesn't mask a broken dependency.",
+        "description": "Readiness check - can this process serve requests?\n\nReturns 503 until every process subsystem is ready (database, embedding\nmodel, PIGuard, graph checkpointer) and at least one site catalog is\nloaded. ``degraded`` names the sites whose catalog is not loaded; they are\nrefused on their own routes and retried in the background. Also\nre-verifies the DB with a live ping so stale state does not mask a broken\ndependency.",
         "operationId": "readiness_check_health_ready_get",
         "responses": {
           "200": {
@@ -100,7 +100,7 @@
           "sites"
         ],
         "summary": "List Sites",
-        "description": "List all available VEuPathDB sites.",
+        "description": "List every VEuPathDB site, and say which ones answer.",
         "operationId": "list_sites_api_v1_sites_get",
         "responses": {
           "200": {
@@ -135,6 +135,8 @@
             "required": true,
             "schema": {
               "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
               "title": "Siteid"
             }
           }
@@ -197,6 +199,8 @@
             "required": true,
             "schema": {
               "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
               "title": "Siteid"
             }
           },
@@ -270,15 +274,6 @@
         "operationId": "validate_search_params_api_v1_sites__siteId__searches__recordType___searchName__validate_post",
         "parameters": [
           {
-            "name": "siteId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Siteid"
-            }
-          },
-          {
             "name": "recordType",
             "in": "path",
             "required": true,
@@ -294,6 +289,17 @@
             "schema": {
               "type": "string",
               "title": "Searchname"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Siteid"
             }
           }
         ],
@@ -356,15 +362,6 @@
         "operationId": "get_param_specs_with_context_api_v1_sites__siteId__searches__recordType___searchName__param_specs_post",
         "parameters": [
           {
-            "name": "siteId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Siteid"
-            }
-          },
-          {
             "name": "recordType",
             "in": "path",
             "required": true,
@@ -380,6 +377,17 @@
             "schema": {
               "type": "string",
               "title": "Searchname"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Siteid"
             }
           }
         ],
@@ -446,15 +454,6 @@
         "operationId": "refresh_dependent_params_api_v1_sites__siteId__searches__recordType___searchName__refreshed_dependent_params_post",
         "parameters": [
           {
-            "name": "siteId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Siteid"
-            }
-          },
-          {
             "name": "recordType",
             "in": "path",
             "required": true,
@@ -470,6 +469,17 @@
             "schema": {
               "type": "string",
               "title": "Searchname"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Siteid"
             }
           }
         ],
@@ -526,21 +536,23 @@
         }
       }
     },
-    "/api/v1/sites/{site_id}/organisms": {
+    "/api/v1/sites/{siteId}/organisms": {
       "get": {
         "tags": [
           "sites"
         ],
         "summary": "Get Organisms",
-        "operationId": "get_organisms_api_v1_sites__site_id__organisms_get",
+        "operationId": "get_organisms_api_v1_sites__siteId__organisms_get",
         "parameters": [
           {
-            "name": "site_id",
+            "name": "siteId",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Site Id"
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Siteid"
             }
           }
         ],
@@ -583,21 +595,23 @@
         }
       }
     },
-    "/api/v1/sites/{site_id}/genes/search": {
+    "/api/v1/sites/{siteId}/genes/search": {
       "get": {
         "tags": [
           "sites"
         ],
         "summary": "Search Genes",
-        "operationId": "search_genes_api_v1_sites__site_id__genes_search_get",
+        "operationId": "search_genes_api_v1_sites__siteId__genes_search_get",
         "parameters": [
           {
-            "name": "site_id",
+            "name": "siteId",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Site Id"
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Siteid"
             }
           },
           {
@@ -686,21 +700,23 @@
         }
       }
     },
-    "/api/v1/sites/{site_id}/genes/resolve": {
+    "/api/v1/sites/{siteId}/genes/resolve": {
       "post": {
         "tags": [
           "sites"
         ],
         "summary": "Resolve Genes",
-        "operationId": "resolve_genes_api_v1_sites__site_id__genes_resolve_post",
+        "operationId": "resolve_genes_api_v1_sites__siteId__genes_resolve_post",
         "parameters": [
           {
-            "name": "site_id",
+            "name": "siteId",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Site Id"
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Siteid"
             }
           }
         ],
@@ -1309,6 +1325,24 @@
               "type": "string",
               "format": "uuid",
               "title": "Strategyid"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
             }
           }
         ],
@@ -2117,6 +2151,24 @@
               "format": "uuid",
               "title": "Conversation Id"
             }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
           }
         ],
         "requestBody": {
@@ -2383,15 +2435,46 @@
         "summary": "Compute Step Counts",
         "description": "Compute step counts by executing the plan in WDK.",
         "operationId": "compute_step_counts_api_v1_conversations_step_counts_post",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/StepCountsRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -2419,18 +2502,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          },
-          {
-            "HTTPBearer": []
-          },
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/conversations/{strategyId}/operations": {
@@ -2532,15 +2604,46 @@
         "summary": "Open Strategy",
         "description": "Open a strategy by local id or WDK strategy id.",
         "operationId": "open_strategy_api_v1_conversations_open_post",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/OpenConversationRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -2568,18 +2671,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          },
-          {
-            "HTTPBearer": []
-          },
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/conversations/{conversation_id}/insert-saved": {
@@ -2681,15 +2773,46 @@
         "summary": "Create Experiment",
         "description": "Create and run an experiment, streaming typed progress events directly.",
         "operationId": "create_experiment_api_v1_experiments_post",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateExperimentRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -2720,18 +2843,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          },
-          {
-            "HTTPBearer": []
-          },
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/experiments/batch": {
@@ -2742,15 +2854,46 @@
         "summary": "Create Batch Experiment",
         "description": "Run the same search across multiple organisms, streaming progress directly.",
         "operationId": "create_batch_experiment_api_v1_experiments_batch_post",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateBatchExperimentRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -2781,18 +2924,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          },
-          {
-            "HTTPBearer": []
-          },
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/experiments/benchmark": {
@@ -2803,15 +2935,46 @@
         "summary": "Create Benchmark",
         "description": "Run the same strategy against multiple control sets, streaming progress directly.",
         "operationId": "create_benchmark_api_v1_experiments_benchmark_post",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateBenchmarkRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -2842,18 +3005,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          },
-          {
-            "HTTPBearer": []
-          },
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/experiments/seed": {
@@ -2862,7 +3014,7 @@
           "experiments"
         ],
         "summary": "Seed Strategies",
-        "description": "Seed demo strategies and control sets across VEuPathDB sites.\n\nIf *site_id* is provided, only seeds for that database are created.",
+        "description": "Seed demo strategies and control sets across VEuPathDB sites.\n\nWith a site id, only seeds for that database are created.",
         "operationId": "seed_strategies_api_v1_experiments_seed_post",
         "security": [
           {
@@ -2877,7 +3029,7 @@
         ],
         "parameters": [
           {
-            "name": "site_id",
+            "name": "siteId",
             "in": "query",
             "required": false,
             "schema": {
@@ -2891,7 +3043,7 @@
                   "type": "null"
                 }
               ],
-              "title": "Site Id"
+              "title": "Siteid"
             }
           }
         ],
@@ -3034,6 +3186,24 @@
               "type": "string",
               "title": "Experiment Id"
             }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
           }
         ],
         "requestBody": {
@@ -3116,6 +3286,24 @@
               "type": "string",
               "title": "Experiment Id"
             }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
           }
         ],
         "responses": {
@@ -3184,6 +3372,24 @@
             "schema": {
               "type": "string",
               "title": "Experiment Id"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
             }
           },
           {
@@ -3355,6 +3561,24 @@
               "type": "string",
               "title": "Experiment Id"
             }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
           }
         ],
         "requestBody": {
@@ -3442,6 +3666,24 @@
             "schema": {
               "type": "string",
               "title": "Experiment Id"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
             }
           }
         ],
@@ -3649,17 +3891,6 @@
         ],
         "parameters": [
           {
-            "name": "siteId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "title": "Siteid"
-            }
-          },
-          {
             "name": "q",
             "in": "query",
             "required": false,
@@ -3680,6 +3911,17 @@
               "minimum": 1,
               "default": 20,
               "title": "Limit"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Siteid"
             }
           }
         ],
@@ -3742,17 +3984,6 @@
             }
           },
           {
-            "name": "siteId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "title": "Siteid"
-            }
-          },
-          {
             "name": "entityId",
             "in": "query",
             "required": false,
@@ -3766,6 +3997,17 @@
                 }
               ],
               "title": "Entityid"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Siteid"
             }
           }
         ],
@@ -3971,6 +4213,16 @@
         ],
         "parameters": [
           {
+            "name": "conversationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversationid"
+            }
+          },
+          {
             "name": "siteId",
             "in": "query",
             "required": true,
@@ -3979,16 +4231,6 @@
               "minLength": 1,
               "maxLength": 50,
               "title": "Siteid"
-            }
-          },
-          {
-            "name": "conversationId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Conversationid"
             }
           }
         ],
@@ -4060,6 +4302,24 @@
               "format": "uuid",
               "title": "Conversation Id"
             }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
           }
         ],
         "responses": {
@@ -4127,6 +4387,24 @@
               "type": "string",
               "format": "uuid",
               "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
             }
           }
         ],
@@ -4462,6 +4740,26 @@
             "APIKeyHeader": []
           }
         ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -4598,6 +4896,24 @@
             "schema": {
               "type": "string",
               "title": "Gene Set Id"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
             }
           }
         ],
@@ -5060,6 +5376,24 @@
               "type": "string",
               "title": "Gene Set Id"
             }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
           }
         ],
         "requestBody": {
@@ -5143,6 +5477,24 @@
               "type": "string",
               "title": "Gene Set Id"
             }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
           }
         ],
         "responses": {
@@ -5211,6 +5563,24 @@
             "schema": {
               "type": "string",
               "title": "Gene Set Id"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
             }
           },
           {
@@ -5391,6 +5761,24 @@
               "type": "string",
               "title": "Attribute Name"
             }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
           }
         ],
         "responses": {
@@ -5459,6 +5847,24 @@
             "schema": {
               "type": "string",
               "title": "Gene Set Id"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
             }
           }
         ],
@@ -5590,6 +5996,24 @@
               "type": "string",
               "title": "Gene Set Id"
             }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
           }
         ],
         "requestBody": {
@@ -5666,6 +6090,24 @@
             "schema": {
               "type": "string",
               "title": "Gene Set Id"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
             }
           }
         ],
@@ -5924,15 +6366,46 @@
         "summary": "Build Gold Strategy Endpoint",
         "description": "Materialize a gold strategy AST on WDK and fetch all result gene IDs.",
         "operationId": "build_gold_strategy_endpoint_api_v1_eval_build_gold_post",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/BuildGoldRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -5960,18 +6433,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          },
-          {
-            "HTTPBearer": []
-          },
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/eval/strategy-gene-ids": {
@@ -5982,15 +6444,46 @@
         "summary": "Strategy Gene Ids Endpoint",
         "description": "Fetch all gene IDs from a PathFinder strategy's WDK root step.",
         "operationId": "strategy_gene_ids_endpoint_api_v1_eval_strategy_gene_ids_post",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Siteid"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/FetchGeneIdsRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -5998,8 +6491,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "type": "object",
+                  "additionalProperties": true,
                   "title": "Response Strategy Gene Ids Endpoint Api V1 Eval Strategy Gene Ids Post"
                 }
               }
@@ -6020,18 +6513,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyCookie": []
-          },
-          {
-            "HTTPBearer": []
-          },
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/memories": {
@@ -12974,6 +13456,13 @@
             },
             "type": "array",
             "title": "Notready"
+          },
+          "degraded": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Degraded"
           }
         },
         "type": "object",
@@ -13831,6 +14320,21 @@
           "isPortal": {
             "type": "boolean",
             "title": "Isportal"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "unavailableReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailablereason"
           }
         },
         "type": "object",
@@ -13840,10 +14344,11 @@
           "displayName",
           "baseUrl",
           "projectId",
-          "isPortal"
+          "isPortal",
+          "available"
         ],
         "title": "SiteResponse",
-        "description": "VEuPathDB site information."
+        "description": "VEuPathDB site information, with what this process can reach of it."
       },
       "SourceDocumentUIPart": {
         "properties": {
@@ -14841,6 +15346,13 @@
             },
             "type": "array",
             "title": "Notready"
+          },
+          "degraded": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Degraded"
           }
         },
         "type": "object",
@@ -16797,6 +17309,7 @@
           "FORBIDDEN",
           "RATE_LIMITED",
           "SITE_NOT_FOUND",
+          "SITE_UNAVAILABLE",
           "SEARCH_NOT_FOUND",
           "INVALID_PARAMETERS",
           "WDK_ERROR",

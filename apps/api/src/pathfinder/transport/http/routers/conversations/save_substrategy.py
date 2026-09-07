@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 
 from pathfinder.services.conversations.service import ConversationService
 from pathfinder.transport.http.deps import (
+    AvailableSite,
     CurrentUser,
     DBSession,
     RequiredSiteIdQuery,
@@ -35,7 +36,7 @@ router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])
 async def save_substrategy(
     conversation_id: UUID,
     request: SaveSubstrategyRequest,
-    site_id: RequiredSiteIdQuery,
+    site_id: AvailableSite,
     session: DBSession,
     user_id: CurrentUser,
 ) -> SaveSubstrategyResponse:

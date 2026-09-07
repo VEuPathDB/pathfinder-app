@@ -8,8 +8,14 @@ from fastapi import Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import pathfinder.services.quota
-from pathfinder.platform.errors import ForbiddenError, NotFoundError
+from pathfinder.platform.config import get_settings
+from pathfinder.platform.errors import (
+    ForbiddenError,
+    NotFoundError,
+    SiteUnavailableError,
+)
 from pathfinder.platform.principal import Principal
+from pathfinder.platform.readiness import get_readiness
 from pathfinder.platform.security import resolve_principal
 from pathfinder.services.experiment.store import get_experiment_store
 from pathfinder.services.experiment.types import Experiment
@@ -28,6 +34,27 @@ SiteIdQuery = Annotated[SiteId | None, Query(alias="siteId")]
 
 # Required ``siteId`` query param for endpoints that write with it.
 RequiredSiteIdQuery = Annotated[SiteId, Query(alias="siteId")]
+
+
+def refuse_degraded_site(site_id: str) -> None:
+    """Refuse a request for a site whose catalog this process has not loaded."""
+    degraded = get_readiness().degraded_catalog(site_id)
+    if degraded is not None:
+        raise SiteUnavailableError(site_id, degraded.error)
+
+
+async def require_available_site(siteId: SiteId) -> SiteId:
+    """Resolve the request's site and refuse it while it is degraded.
+
+    ``siteId`` binds to the path parameter on a route that declares one, and
+    to the ``siteId`` query parameter everywhere else.
+    """
+    refuse_degraded_site(siteId)
+    return siteId
+
+
+# The site a request names, refused while its catalog is not loaded.
+AvailableSite = Annotated[SiteId, Depends(require_available_site)]
 
 
 async def get_current_principal_with_db_row(
@@ -54,14 +81,23 @@ async def get_current_user_with_db_row(principal: CurrentPrincipal) -> UUID:
 CurrentUser = Annotated[UUID, Depends(get_current_user_with_db_row)]
 
 
-async def require_registered_wdk_identity(principal: CurrentPrincipal) -> UUID:
+async def require_registered_wdk_identity(
+    principal: CurrentPrincipal,
+    siteId: SiteId | None = None,
+) -> UUID:
     """Refuse a request that acts on WDK without a registered VEuPathDB login.
 
     Routes that read or write a WDK account attach this. The token must also
-    name the session's own user, so one session writes to one WDK account.
+    name the session's own user, so one session writes to one WDK account. The
+    account is read on the site the request names, and a request that names a
+    degraded site is refused before that read.
     """
+    if siteId is not None:
+        refuse_degraded_site(siteId)
     await require_registered_wdk_login()
-    await require_session_matches_wdk_identity(principal)
+    await require_session_matches_wdk_identity(
+        principal, siteId or get_settings().veupathdb_default_site
+    )
     return principal.user_id
 
 

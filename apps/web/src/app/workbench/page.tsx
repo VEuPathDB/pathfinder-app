@@ -1,7 +1,8 @@
-import { redirect } from "next/navigation";
+import { redirectToEntrySite } from "@/app/entrySiteRedirect";
+import { workbenchRoot } from "@/lib/routes";
 
-import { PORTAL_SITE_ID, workbenchRoot } from "@/lib/routes";
+export const dynamic = "force-dynamic";
 
-export default function BareWorkbenchPage(): never {
-  redirect(workbenchRoot(PORTAL_SITE_ID));
+export default async function BareWorkbenchPage() {
+  return await redirectToEntrySite(workbenchRoot);
 }

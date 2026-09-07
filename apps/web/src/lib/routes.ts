@@ -5,9 +5,6 @@
  * path format stays in one place.
  */
 
-/** The cross-species portal, which a site-less entry point redirects to. */
-export const PORTAL_SITE_ID = "veupathdb";
-
 export function chatRoot(siteId: string): string {
   return `/${siteId}/conversation`;
 }

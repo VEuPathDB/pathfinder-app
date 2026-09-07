@@ -19,6 +19,7 @@
 import type { BrowserContext, Route } from "@playwright/test";
 
 import { test, expect } from "../fixtures/test";
+import { entrySiteId } from "../fixtures/entry-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 
 const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
@@ -33,9 +34,12 @@ interface OpenConversationResponse {
   id?: string;
 }
 
-async function openConversation(context: BrowserContext): Promise<string> {
+async function openConversation(
+  context: BrowserContext,
+  siteId: string,
+): Promise<string> {
   const resp = await context.request.post(`${BASE_URL}/api/v1/conversations/open`, {
-    data: { siteId: "veupathdb" },
+    data: { siteId },
     headers: { "X-Requested-With": "XMLHttpRequest" },
   });
   if (!resp.ok()) {
@@ -110,7 +114,8 @@ test.describe("Scratchpad rail", () => {
     page,
     context,
   }) => {
-    const conversationId = await openConversation(context);
+    const siteId = await entrySiteId(context, BASE_URL);
+    const conversationId = await openConversation(context, siteId);
     const notesUrl = `**/api/v1/conversations/${conversationId}/scratchpad/notes`;
 
     // State machine: GET returns [] until the agent "creates" the note, then
@@ -144,7 +149,7 @@ test.describe("Scratchpad rail", () => {
       });
     });
 
-    await page.goto(`/veupathdb/conversation/${conversationId}`);
+    await page.goto(`/${siteId}/conversation/${conversationId}`);
 
     const composer = page.getByPlaceholder(/Ask about/i);
     await expect(composer).toBeVisible({ timeout: 30_000 });
@@ -179,7 +184,8 @@ test.describe("Scratchpad rail", () => {
   });
 
   test("user can pin and delete a scratchpad note", async ({ page, context }) => {
-    const conversationId = await openConversation(context);
+    const siteId = await entrySiteId(context, BASE_URL);
+    const conversationId = await openConversation(context, siteId);
     const notesUrl = `**/api/v1/conversations/${conversationId}/scratchpad/notes`;
     const noteUrl = `**/api/v1/conversations/${conversationId}/scratchpad/notes/${NOTE_ID}`;
 
@@ -224,7 +230,7 @@ test.describe("Scratchpad rail", () => {
       await route.continue();
     });
 
-    await page.goto(`/veupathdb/conversation/${conversationId}`);
+    await page.goto(`/${siteId}/conversation/${conversationId}`);
 
     const composer = page.getByPlaceholder(/Ask about/i);
     await expect(composer).toBeVisible({ timeout: 30_000 });

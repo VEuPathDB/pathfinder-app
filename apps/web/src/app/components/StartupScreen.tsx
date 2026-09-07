@@ -4,6 +4,7 @@ import type { SystemReadyResponse } from "@pathfinder/shared/generated/types/Sys
 export type StartupStatus =
   | { kind: "booting"; notReady: string[] }
   | { kind: "degraded"; notReady: string[] }
+  | { kind: "no-sites"; sites: string[] }
   | { kind: "unreachable" }
   | { kind: "busy-worker" };
 
@@ -29,6 +30,28 @@ export function startupStatus(args: {
   return { kind: "degraded", notReady };
 }
 
+function fatalText(status: Exclude<BlockingStatus, { kind: "booting" }>): {
+  title: string;
+  detail: string;
+} {
+  if (status.kind === "unreachable") {
+    return { title: "Can't reach the server", detail: "The API isn't responding." };
+  }
+  if (status.kind === "no-sites") {
+    return {
+      title: "No database is responding",
+      detail:
+        status.sites.length > 0
+          ? `None of these databases answered: ${status.sites.join(", ")}.`
+          : "No database is configured.",
+    };
+  }
+  return {
+    title: "Some services failed to start",
+    detail: `These subsystems aren't ready: ${status.notReady.join(", ")}.`,
+  };
+}
+
 export function StartupScreen({ status }: { status: BlockingStatus }) {
   if (status.kind === "booting") {
     return (
@@ -44,14 +67,7 @@ export function StartupScreen({ status }: { status: BlockingStatus }) {
     );
   }
 
-  const title =
-    status.kind === "unreachable"
-      ? "Can't reach the server"
-      : "Some services failed to start";
-  const detail =
-    status.kind === "unreachable"
-      ? "The API isn't responding."
-      : `These subsystems aren't ready: ${status.notReady.join(", ")}.`;
+  const { title, detail } = fatalText(status);
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 bg-background px-6 text-center text-foreground">

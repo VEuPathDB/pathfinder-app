@@ -7,6 +7,8 @@ import {
   getVeupathdbAuthStatus,
   loginVeupathdb,
 } from "@/lib/api/veupathdb-auth";
+import { siteUnavailableRefusal } from "@/lib/api/errors";
+import { SiteUnavailableNotice } from "@/features/sites/components/SiteUnavailableNotice";
 import { useSessionStore } from "@/state/useSessionStore";
 import { Input } from "@/components/ui/input";
 
@@ -15,22 +17,21 @@ interface SignInFormProps {
   onSuccess?: () => void;
 }
 
-/**
- * VEuPathDB sign-in form (email + password).
- *
- * Always authenticates against the VEuPathDB portal.
- */
+/** What the form says after a refused sign-in. */
+type SignInRefusal = { kind: "message"; text: string } | { kind: "site-unavailable" };
+
+/** VEuPathDB sign-in form: email and password against the selected site. */
 export function SignInForm({ onSuccess }: SignInFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [refusal, setRefusal] = useState<SignInRefusal | null>(null);
   const [authBusy, setAuthBusy] = useState(false);
 
   const selectedSite = useSessionStore((state) => state.selectedSite);
   const queryClient = useQueryClient();
 
   const handleSubmit = async () => {
-    setAuthError(null);
+    setRefusal(null);
     setAuthBusy(true);
     try {
       await loginVeupathdb(email, password, selectedSite);
@@ -39,10 +40,17 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
         queryClient.setQueryData(authStatusOptions(selectedSite).queryKey, status);
         onSuccess?.();
       } else {
-        setAuthError("Login failed. Please check your credentials.");
+        setRefusal({
+          kind: "message",
+          text: "Login failed. Please check your credentials.",
+        });
       }
-    } catch {
-      setAuthError("Login failed. Please try again.");
+    } catch (err) {
+      setRefusal(
+        siteUnavailableRefusal(err) !== null
+          ? { kind: "site-unavailable" }
+          : { kind: "message", text: "Login failed. Please try again." },
+      );
     } finally {
       setAuthBusy(false);
     }
@@ -67,10 +75,13 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
           }}
         />
       </div>
-      {authError != null && (
+      {refusal?.kind === "message" && (
         <div className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {authError}
+          {refusal.text}
         </div>
+      )}
+      {refusal?.kind === "site-unavailable" && (
+        <SiteUnavailableNotice siteId={selectedSite} />
       )}
       <button
         type="button"

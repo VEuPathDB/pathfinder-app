@@ -17,6 +17,7 @@ from typing import Any
 
 import pytest
 from fastapi import FastAPI
+from veupathdb.errors import WDKError
 
 import pathfinder.jobs.app
 from pathfinder import main
@@ -40,6 +41,34 @@ class _Registry:
 class _ProcrastinateApp:
     def open_async(self) -> Any:
         return _nothing()
+
+
+class _Site:
+    def __init__(self, site_id: str, *, is_portal: bool = False) -> None:
+        self.id = site_id
+        self.is_portal = is_portal
+
+
+class _Router:
+    def list_sites(self) -> list[_Site]:
+        return [_Site("veupathdb", is_portal=True), _Site("plasmodb")]
+
+
+class _Embedder:
+    async def embed_query(self, text: str) -> list[float]:
+        del text
+        return [0.0]
+
+
+@pytest.fixture
+def offline_warm_up(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The two warm-up steps that reach a network service."""
+
+    async def _study_index() -> None:
+        return None
+
+    monkeypatch.setattr(main, "get_embedder", _Embedder)
+    monkeypatch.setattr(main, "preload_study_index", _study_index)
 
 
 @pytest.fixture
@@ -116,18 +145,21 @@ async def test_the_lifespan_leaves_the_process_s_logging_alone(
 
 
 async def test_the_blocking_model_load_leaves_the_event_loop_free(
+    offline_warm_up: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """``warm_up_scanner`` holds the CPU for seconds, so it belongs on a thread."""
+    del offline_warm_up
     callers: list[str] = []
 
     def record_model() -> None:
         callers.append(threading.current_thread().name)
 
     class _Discovery:
-        async def preload_all(self, readiness: object = None) -> None:
-            del readiness
+        async def get_catalog(self, site_id: str) -> None:
+            del site_id
 
+    monkeypatch.setattr(main, "get_site_router", _Router)
     monkeypatch.setattr(main, "warm_up_scanner", record_model)
     monkeypatch.setattr(main, "get_discovery_service", _Discovery)
 
@@ -170,4 +202,83 @@ async def test_a_warm_up_death_outside_its_handlers_fails_the_loading_subsystems
             == "ZeroDivisionError: catalog index divided by zero"
         )
 
+    reset_readiness()
+
+
+async def test_a_site_that_refuses_is_degraded_and_the_rest_load(
+    offline_warm_up: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One dead VEuPathDB site leaves the other catalogs ready."""
+    del offline_warm_up
+    reset_readiness()
+
+    refusal = WDKError("refused", status=502)
+
+    class _Discovery:
+        async def get_catalog(self, site_id: str) -> None:
+            if site_id == "veupathdb":
+                raise refusal
+
+    monkeypatch.setattr(main, "warm_up_scanner", lambda: None)
+    monkeypatch.setattr(main, "get_site_router", _Router)
+    monkeypatch.setattr(main, "get_discovery_service", _Discovery)
+
+    await main._warm_up_subsystems()
+
+    readiness = get_readiness()
+    assert readiness.degraded == ["veupathdb"]
+    assert readiness.catalogs["plasmodb"].ready is True
+    assert readiness.catalogs["veupathdb"].error == "WDKError"
+    reset_readiness()
+
+
+async def test_the_catalog_retry_ends_with_the_lifespan(
+    isolated_lifespan: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A retry that outlived the lifespan would reload catalogs forever."""
+    del isolated_lifespan
+    reset_readiness()
+
+    async def _no_warm_up() -> None:
+        return None
+
+    class _Discovery:
+        async def get_catalog(self, site_id: str) -> None:
+            del site_id
+
+    monkeypatch.setattr(main, "_warm_up_subsystems", _no_warm_up)
+    monkeypatch.setattr(main, "get_discovery_service", _Discovery)
+
+    app = FastAPI()
+    async with main.lifespan(app):
+        retry = next(
+            task for task in asyncio.all_tasks() if task.get_name() == "catalog-retry"
+        )
+        assert retry.done() is False
+
+    with pytest.raises(asyncio.CancelledError):
+        await retry
+
+    reset_readiness()
+
+
+async def test_the_portal_is_preloaded_after_the_component_sites(
+    offline_warm_up: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One build runs at a time, so a slow portal first spends every budget."""
+    del offline_warm_up
+    reset_readiness()
+
+    class _Discovery:
+        async def get_catalog(self, site_id: str) -> None:
+            del site_id
+
+    monkeypatch.setattr(main, "warm_up_scanner", lambda: None)
+    monkeypatch.setattr(main, "get_site_router", _Router)
+    monkeypatch.setattr(main, "get_discovery_service", _Discovery)
+
+    await main._warm_up_subsystems()
+
+    assert list(get_readiness().catalogs) == ["plasmodb", "veupathdb"]
     reset_readiness()

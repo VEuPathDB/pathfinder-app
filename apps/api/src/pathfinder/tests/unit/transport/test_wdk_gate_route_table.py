@@ -98,9 +98,9 @@ UNGATED_BUT_REACHES_WDK: dict[tuple[str, str], str] = {
         "/api/v1/sites/{siteId}/record-types",
     ): "User-independent catalog read.",
     ("GET", "/api/v1/sites/{siteId}/searches"): "User-independent catalog read.",
-    ("GET", "/api/v1/sites/{site_id}/organisms"): "User-independent vocabulary read.",
-    ("GET", "/api/v1/sites/{site_id}/genes/search"): "User-independent answer read.",
-    ("POST", "/api/v1/sites/{site_id}/genes/resolve"): "User-independent answer read.",
+    ("GET", "/api/v1/sites/{siteId}/organisms"): "User-independent vocabulary read.",
+    ("GET", "/api/v1/sites/{siteId}/genes/search"): "User-independent answer read.",
+    ("POST", "/api/v1/sites/{siteId}/genes/resolve"): "User-independent answer read.",
     (
         "POST",
         "/api/v1/sites/{siteId}/searches/{recordType}/{searchName}/validate",

@@ -1,10 +1,10 @@
 import { test, expect } from "../fixtures/test";
+import { entrySiteId } from "../fixtures/entry-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext, Page } from "@playwright/test";
 
 const TASK_ID = "00000000-0000-0000-0000-0000000000bb";
 const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
-const SITE_ID = "veupathdb";
 
 interface OpenStrategyResponse {
   conversationId?: string;
@@ -12,9 +12,9 @@ interface OpenStrategyResponse {
   id?: string;
 }
 
-async function openStrategy(context: BrowserContext): Promise<string> {
+async function openStrategy(context: BrowserContext, siteId: string): Promise<string> {
   const resp = await context.request.post(`${BASE_URL}/api/v1/conversations/open`, {
-    data: { siteId: SITE_ID },
+    data: { siteId },
     headers: { "X-Requested-With": "XMLHttpRequest" },
   });
   if (!resp.ok()) {
@@ -86,7 +86,8 @@ test.describe("Durable task live progress", () => {
     page,
     context,
   }) => {
-    const strategyId = await openStrategy(context);
+    const siteId = await entrySiteId(context, BASE_URL);
+    const strategyId = await openStrategy(context, siteId);
 
     await page.route("**/api/v1/chat", async (route) => {
       await route.fulfill({
@@ -120,7 +121,7 @@ test.describe("Durable task live progress", () => {
       },
     );
 
-    await page.goto(`/${SITE_ID}/conversation/${strategyId}`);
+    await page.goto(`/${siteId}/conversation/${strategyId}`);
     await sendPrompt(page, "kick off durable verification");
 
     const started = page.getByTestId("data-background-task-started");
@@ -138,7 +139,8 @@ test.describe("Durable task live progress", () => {
     page,
     context,
   }) => {
-    const strategyId = await openStrategy(context);
+    const siteId = await entrySiteId(context, BASE_URL);
+    const strategyId = await openStrategy(context, siteId);
 
     await page.route("**/api/v1/chat", async (route) => {
       await route.fulfill({
@@ -172,7 +174,7 @@ test.describe("Durable task live progress", () => {
       ].join(""),
     );
 
-    await page.goto(`/${SITE_ID}/conversation/${strategyId}`);
+    await page.goto(`/${siteId}/conversation/${strategyId}`);
     await sendPrompt(page, "optimize the search parameters");
 
     await expect(page.getByTestId("data-background-task-started")).toBeVisible({

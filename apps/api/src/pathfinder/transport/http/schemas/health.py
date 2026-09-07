@@ -24,6 +24,7 @@ class ReadinessResponse(CamelModel):
     timestamp: datetime
     readiness: ReadinessState
     not_ready: list[str] = Field(default_factory=list)
+    degraded: list[str] = Field(default_factory=list)
 
 
 class SystemReadyResponse(CamelModel):
@@ -33,6 +34,7 @@ class SystemReadyResponse(CamelModel):
     api_ready: bool
     worker_alive: bool
     not_ready: list[str] = Field(default_factory=list)
+    degraded: list[str] = Field(default_factory=list)
 
 
 class ProviderStatus(CamelModel):

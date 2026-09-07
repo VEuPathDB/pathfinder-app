@@ -25,6 +25,7 @@ from pathfinder.services.experiment.types import (
 from pathfinder.transport.http.deps import (
     CurrentUser,
     DBSession,
+    SiteIdQuery,
     require_registered_wdk_identity,
 )
 from pathfinder.transport.http.schemas.experiments import (
@@ -32,7 +33,6 @@ from pathfinder.transport.http.schemas.experiments import (
     CreateBenchmarkRequest,
     CreateExperimentRequest,
 )
-from pathfinder.transport.http.schemas.site_id import SiteId
 from pathfinder.transport.http.sse_utils import (
     SSE_RESPONSES,
     typed_event_stream_response,
@@ -147,11 +147,11 @@ async def create_benchmark(
 async def seed_strategies(
     user_id: CurrentUser,
     session: DBSession,
-    site_id: SiteId | None = None,
+    site_id: SiteIdQuery = None,
 ) -> StreamingResponse:
     """Seed demo strategies and control sets across VEuPathDB sites.
 
-    If *site_id* is provided, only seeds for that database are created.
+    With a site id, only seeds for that database are created.
     """
 
     async def _producer() -> AsyncIterator[SeedEvent]:

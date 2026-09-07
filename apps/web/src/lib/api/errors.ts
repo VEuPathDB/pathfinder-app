@@ -63,3 +63,23 @@ export function wdkAuthRefusal(err: unknown): WdkAuthRefusal | null {
   const problem = wdkAuthRefusalSchema.safeParse(body);
   return problem.success ? problem.data : null;
 }
+
+const siteUnavailableSchema = z.object({
+  code: z.literal("SITE_UNAVAILABLE"),
+  detail: z.string().min(1),
+});
+
+/** A refusal that says the request's VEuPathDB site does not answer. */
+type SiteUnavailableRefusal = z.infer<typeof siteUnavailableSchema>;
+
+/**
+ * The server's refusal when the site a request names has no loaded catalog or
+ * did not answer, or null for every other error.
+ */
+export function siteUnavailableRefusal(err: unknown): SiteUnavailableRefusal | null {
+  if (!(err instanceof Error)) return null;
+  if (err instanceof APIError && err.status !== 503) return null;
+  const body = err instanceof APIError ? err.data : parseJson(err.message);
+  const problem = siteUnavailableSchema.safeParse(body);
+  return problem.success ? problem.data : null;
+}

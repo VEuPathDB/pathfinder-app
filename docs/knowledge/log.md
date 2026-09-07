@@ -1,5 +1,93 @@
 # Log
 
+## 2026-09-07
+
+* **A site that is down is down on its own.** The portal stopped answering
+  `record-types` (no HTTP status in 60 s, against 0.77 s on plasmodb), the api
+  preloaded every catalog before `/health/ready` would pass, and one dead site
+  made the container unhealthy, kept its compose dependents down and killed the
+  e2e job twice. Readiness is now the process: every fixed subsystem plus at
+  least one loaded catalog, with `degraded` naming the sites whose catalog did
+  not load, on `/health/ready` and `/health/system`. The warm-up loads the sites
+  concurrently, each inside `SITE_PRELOAD_TIMEOUT_SECONDS` (30), records the
+  error class alone, and a lifespan task retries the degraded sites every
+  `SITE_RETRY_INTERVAL_SECONDS` (60) under the same budget. A degraded site is
+  refused before any catalog or WDK call by one dependency,
+  `require_available_site` (503 `SITE_UNAVAILABLE`), with the chat body read by
+  its own sibling; `GET /api/v1/sites` carries `available` and
+  `unavailableReason`; the site menu keeps the site selectable and marks it
+  "Not responding", refetching every 60 s. Decision:
+  `decisions/a-site-that-is-down-is-down-on-its-own.md`. Pinned by
+  `tests/unit/platform/test_site_catalogs.py`,
+  `tests/unit/transport/test_site_availability.py`,
+  `tests/unit/transport/test_site_gate_route_table.py`, the health cases in
+  `tests/integration/transport/test_system_ready.py`,
+  `AppNavRail.test.tsx` and `e2e/feature/site-availability.spec.ts`. The new
+  tests also caught three defects, fixed in the same change: `/health/ready`
+  serialized its 503 body without `by_alias`, so `notReady` was `not_ready`
+  there and the body did not match the published schema; the schemathesis
+  conformance app marked the fixed subsystems ready and no catalog, so it read
+  503; and the warm-up preloaded the portal first, which spent every other
+  site's budget because one catalog builds at a time (components now sort
+  first, as `preload_all` did). Measured with the portal down and an empty
+  snapshot volume: `api Healthy` 8 s after the preload starts against 63 s
+  before the sort, and never before this batch.
+* **The entry flow does not land on a degraded site.** `localhost:3000/`
+  redirected to the portal unconditionally, so opening the app during a portal
+  outage landed on the one site that could not answer. Every site-less route -
+  `/`, `/conversation`, `/workbench` and `/workbench/[id]` - now reads
+  `GET /api/v1/sites` on the server and redirects to the portal's own URL when
+  it answers, else to the first site in the list's order that answers; when the
+  request fails or no site answers it renders the startup screen instead of
+  redirecting. A URL that names a degraded site renders `SiteUnavailableNotice`
+  (the display name, the error class, a link to every site that answers) in the
+  routed content area, inside the app shell, and the 60 s sites refetch brings
+  the app back without a reload; a refused sign-in shows the same notice
+  inline. Pinned by `lib/sites/entrySite.test.ts`, `app/page.test.tsx`,
+  `app/siteLessRedirects.test.tsx`,
+  `app/components/SiteAvailabilityGate.test.tsx`,
+  `features/sites/components/SiteUnavailableNotice.test.tsx`, the root-visit
+  case in `e2e/feature/site-availability.spec.ts`, and the store case in
+  `app/[siteId]/(app)/layout.test.tsx`.
+* **A dead portal no longer costs a healthy site six minutes, and a degraded
+  site keeps its shell.** Verification of the degraded-sites batch measured a
+  signed-in researcher on PlasmoDB getting `502 WDK_ERROR` after 374.41 s from
+  `GET /api/v1/eda/studies?siteId=plasmodb` while `veupathdb.org` answered
+  nothing: `require_session_matches_wdk_identity` read `/users/current` on the
+  configured default site for all 34 identity-gated routes, and
+  `fetch_wdk_user` did not catch `VEuPathDBError`. `GET /users/current` answers
+  the same WDK user id (`1216062453`, `isGuest: false`) on plasmodb, toxodb and
+  the portal, so the identity check now takes the site the request names,
+  `identity_site` hands the read to the first loaded site when that one is
+  degraded, `require_registered_wdk_identity` refuses a named degraded site
+  before the read, and the except tuple carries `VEuPathDBError`. Measured on
+  the same outage after the change: 1.567 s cold and 0.017 s warm on that
+  route, and `POST /api/v1/gene-sets` (which names no site, so its default is
+  the dead portal) `201` in 0.837 s. The same verification found the
+  availability gate above the nav rail, which made
+  `AppNavRail`'s degraded-trigger branch unreachable; the gate now renders
+  inside both app shells around the routed content, so the rail, its marker,
+  the conversations list and the workbench's gene sets stay reachable on a
+  degraded site while the notice takes the content area, and the sign-in prompt
+  is the one thing it still replaces. `POST /api/v1/experiments/seed` spells
+  its site `siteId` like every other route. Pinned by
+  `tests/unit/services/test_wdk_identity_site.py`,
+  `tests/unit/transport/test_auth_status_reads_a_loaded_site.py`, the closure
+  and naming cases in `tests/unit/transport/test_site_gate_route_table.py`,
+  `lib/sites/availability.test.ts`, `app/siteLessRedirects.test.tsx`, and the
+  degraded-shell cases in `app/[siteId]/(app)/layout.test.tsx` and
+  `app/[siteId]/workbench/layout.test.tsx`.
+* **A sign-in to a site that does not answer is a 503, not a 500.**
+  `password_login` posts with no error mapping, so with the portal down
+  `POST /api/v1/veupathdb/auth/login` (its `siteId` defaults to `veupathdb`)
+  raised `httpx.ReadTimeout` out of the route and the browser got an opaque
+  500 after the whole read timeout. The route now answers the same 503
+  `SITE_UNAVAILABLE` the degraded-site gate answers, and the refusal reads
+  "<site> is not responding (<error class>)" for both situations. The
+  schemathesis conformance fixture refuses the fuzzer's credentials locally,
+  so a VEuPathDB outage no longer turns that check red.
+  Pinned by `tests/unit/transport/test_login_refuses_an_unreachable_site.py`.
+
 ## 2026-09-06
 
 * **Deleting a conversation stops its running turn first, or refuses.** The first CI run of the org repository

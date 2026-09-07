@@ -14,13 +14,14 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.errors import WDKLoginRequiredError
+from veupathdb.errors import VEuPathDBError, WDKLoginRequiredError
 from veupathdb.wdk.auth_login import validate_oauth_token
 from veupathdb.wdk.factory import get_site, get_wdk_client
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import WDKIdentityMismatchError
 from pathfinder.platform.principal import Principal
+from pathfinder.platform.readiness import get_readiness
 from pathfinder.services.users import get_or_create_user_id
 
 logger = get_logger(__name__)
@@ -74,7 +75,7 @@ async def fetch_wdk_user(site_id: str) -> WDKCurrentUser | None:
         site = get_site(site_id)
         raw = await get_wdk_client(site.id).get("/users/current")
         return WDKCurrentUser.model_validate(raw)
-    except (httpx.HTTPError, KeyError, ValueError) as exc:
+    except (httpx.HTTPError, VEuPathDBError, KeyError, ValueError) as exc:
         logger.debug("Cannot read the current WDK user", error=str(exc))
         return None
 
@@ -95,12 +96,25 @@ async def resolve_veupathdb_email(token: str, site_id: str) -> str | None:
 _identities: dict[str, tuple[float, UUID]] = {}
 
 
+def identity_site(site_id: str) -> str:
+    """Name the site an identity call reads for a request that names ``site_id``.
+
+    The WDK user id is account scoped, so a loaded site answers the same user
+    when the named one has no catalog and would answer nothing.
+    """
+    readiness = get_readiness()
+    if readiness.degraded_catalog(site_id) is None:
+        return site_id
+    return readiness.first_ready_catalog or site_id
+
+
 async def resolve_veupathdb_user_id(token: str, site_id: str) -> UUID | None:
     """Map a VEuPathDB token to the internal user, by the email WDK reports.
 
     The mapping is remembered per token for a few minutes, so a bearer client
     does not cost a WDK round trip on every request.
     """
+    site_id = identity_site(site_id)
     key = hashlib.sha256(f"{site_id}\0{token}".encode()).hexdigest()
     cached = _identities.get(key)
     if cached is not None and cached[0] > time.monotonic():
@@ -120,21 +134,23 @@ async def resolve_veupathdb_user_id(token: str, site_id: str) -> UUID | None:
     return user_id
 
 
-async def require_session_matches_wdk_identity(principal: Principal) -> None:
+async def require_session_matches_wdk_identity(
+    principal: Principal, site_id: str
+) -> None:
     """Refuse a request whose VEuPathDB token names another internal user.
 
-    A token that names nobody is a WDK outage, not a second account, and the
-    session keeps its own identity. A dev-login session is a synthetic user
-    with no VEuPathDB account, so it acts as whatever token it carries.
+    ``site_id`` is the site the request names, so the check reads the account
+    on a site this process can reach. A token that names nobody is a WDK
+    outage, not a second account, and the session keeps its own identity. A
+    dev-login session is a synthetic user with no VEuPathDB account, so it
+    acts as whatever token it carries.
     """
     if principal.credential == "dev-login":
         return
     token = veupathdb_auth_token_ctx.get()
     if not token:
         raise WDKLoginRequiredError
-    token_user_id = await resolve_veupathdb_user_id(
-        token, get_settings().veupathdb_default_site
-    )
+    token_user_id = await resolve_veupathdb_user_id(token, site_id)
     if token_user_id is not None and token_user_id != principal.user_id:
         raise WDKIdentityMismatchError
 

@@ -121,6 +121,13 @@ catalogs being preloaded, which is what turned a slow warm-up into an hour of
 502 from the web proxy. A catalog is a cache, not a precondition: the endpoint
 stays honest and stops being the gate.
 
+**Superseded 2026-09-07 by [a site that is down is down on its own](a-site-that-is-down-is-down-on-its-own.md).**
+The endpoint itself no longer waits for every catalog: it passes on the process
+subsystems plus one loaded catalog, and names the rest under `degraded`. The
+per-site load now carries `SITE_PRELOAD_TIMEOUT_SECONDS` and a retry loop, so a
+site that does not answer is degraded instead of pending, and a catalog records
+the error class alone, because `GET /api/v1/sites` reports that value.
+
 **Letting every process rebuild a stale catalog.** It is what the measurement
 refuses: one build needs about 3 GiB and both capped containers hold 2 GiB, so
 a call that named a stale-cache site took the server down instead of answering.

@@ -21,6 +21,7 @@ class ErrorCode(StrEnum):
 
     # VEuPathDB
     SITE_NOT_FOUND = "SITE_NOT_FOUND"
+    SITE_UNAVAILABLE = "SITE_UNAVAILABLE"
     SEARCH_NOT_FOUND = "SEARCH_NOT_FOUND"
     INVALID_PARAMETERS = "INVALID_PARAMETERS"
     WDK_ERROR = "WDK_ERROR"
@@ -155,6 +156,24 @@ class StrategyAstCorruptError(AppError):
                 f"conversation {conversation_id} holds a strategy_ast that "
                 f"does not parse: {reasons}"
             ),
+        )
+
+
+class SiteUnavailableError(AppError):
+    """A VEuPathDB site this process cannot reach.
+
+    Raised for a catalog that did not load and for a call the site did not
+    answer, so the request is refused instead of waiting out the site's own
+    timeout.
+    """
+
+    def __init__(self, site_id: str, error_class: str | None) -> None:
+        cause = error_class or "catalog still loading"
+        super().__init__(
+            code=ErrorCode.SITE_UNAVAILABLE,
+            title="Site is not responding",
+            status=503,
+            detail=f"{site_id} is not responding ({cause}).",
         )
 
 

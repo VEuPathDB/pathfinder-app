@@ -38,6 +38,31 @@ async function waitForServer(api: APIRequestContext): Promise<void> {
   }).toPass({ timeout: LISTEN_BUDGET_MS, intervals: [1_000, 2_000, 5_000] });
 }
 
+const CATALOG_BUDGET_MS = 120_000;
+
+/**
+ * Wait for every site's catalog, without depending on any of them. The api is
+ * healthy once one catalog is loaded, so a spec can otherwise open a site whose
+ * catalog is still building and read its 503. A site that stays degraded is
+ * reported and the suite runs anyway: its own specs fail, the rest do not.
+ */
+async function waitForSiteCatalogs(api: APIRequestContext): Promise<void> {
+  const deadline = Date.now() + CATALOG_BUDGET_MS;
+  let degraded: string[] = [];
+  while (Date.now() < deadline) {
+    const response = await api.get("/api/v1/sites", { timeout: 30_000 });
+    if (response.ok()) {
+      const rows = (await response.json()) as { id: string; available: boolean }[];
+      degraded = rows.filter((row) => !row.available).map((row) => row.id);
+      if (degraded.length === 0) {
+        return;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+  }
+  console.warn(`Sites with no loaded catalog: ${degraded.join(", ")}`);
+}
+
 const LOGIN_SITE = "plasmodb";
 
 /**
@@ -80,6 +105,7 @@ export default async function warmRoutes(): Promise<void> {
   try {
     await waitForServer(api);
     await mintWdkTestToken(api);
+    await waitForSiteCatalogs(api);
     for (const route of ROUTES) {
       await api.get(route, { timeout: COLD_RENDER_BUDGET_MS });
     }
