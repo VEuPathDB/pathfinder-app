@@ -18,7 +18,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 
 const ACTIVE_PILL = "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary";
-const NOT_RESPONDING = "Not responding";
+const CANNOT_REACH = "Couldn't reach";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -177,9 +177,8 @@ function SiteSwitcherButton({
   const components = sites.filter((s) => !s.isPortal);
   const portal = sites.filter((s) => s.isPortal);
   const currentDown = siteIsDown(sites, siteId);
-  const triggerLabel = currentDown
-    ? `Switch database - ${NOT_RESPONDING}`
-    : "Switch database";
+  const currentName = sites.find((s) => s.id === siteId)?.displayName ?? siteId;
+  const unreachable = `${CANNOT_REACH} ${currentName}`;
 
   const pick = (id: string) => {
     setSelectedSite(id);
@@ -194,21 +193,23 @@ function SiteSwitcherButton({
             <Button
               variant="ghost"
               size="icon"
-              aria-label={triggerLabel}
+              aria-label="Switch database"
               className="relative p-0"
             >
               <SiteIcon siteId={siteId} size={22} />
               {currentDown && (
                 <AlertTriangle
                   className="absolute -right-0.5 -bottom-0.5 h-3 w-3 text-amber-500"
-                  aria-hidden
+                  aria-label={unreachable}
                   data-testid="site-trigger-degraded"
                 />
               )}
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
-        <TooltipContent side="right">{triggerLabel}</TooltipContent>
+        <TooltipContent side="right">
+          {currentDown ? unreachable : "Switch database"}
+        </TooltipContent>
       </Tooltip>
       <DropdownMenuContent
         side="right"
@@ -273,7 +274,7 @@ function SiteMenuItem({
     <DropdownMenuItem
       onSelect={() => onPick(id)}
       data-testid={`site-menu-item-${id}`}
-      aria-label={available ? label : `${label} - ${NOT_RESPONDING}`}
+      aria-label={available ? label : `${CANNOT_REACH} ${label}`}
       className={cn(active && "bg-primary/15 text-primary")}
     >
       <SiteIcon siteId={id} size={16} />
@@ -284,7 +285,7 @@ function SiteMenuItem({
           data-testid={`site-degraded-${id}`}
         >
           <AlertTriangle className="h-3 w-3" aria-hidden />
-          {NOT_RESPONDING}
+          {CANNOT_REACH}
         </span>
       )}
     </DropdownMenuItem>

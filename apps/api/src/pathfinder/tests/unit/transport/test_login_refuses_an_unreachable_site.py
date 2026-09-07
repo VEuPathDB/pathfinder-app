@@ -58,7 +58,7 @@ def _client(app: FastAPI) -> httpx.AsyncClient:
     "failure",
     [httpx.ReadTimeout("timed out"), httpx.ConnectError("refused")],
 )
-async def test_a_site_that_does_not_answer_is_a_503(
+async def test_a_site_pathfinder_cannot_reach_is_a_503(
     failure: Exception, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     app = _app(monkeypatch, failure)
@@ -73,5 +73,5 @@ async def test_a_site_that_does_not_answer_is_a_503(
     body = response.json()
     assert body["code"] == "SITE_UNAVAILABLE"
     assert body["detail"] == (
-        f"veupathdb is not responding ({type(failure).__name__})."
+        f"Could not connect to veupathdb ({type(failure).__name__})."
     )

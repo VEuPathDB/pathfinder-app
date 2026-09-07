@@ -87,15 +87,15 @@ describe("SignInForm", () => {
 
   it("shows the site notice inline when the login reports the site is down", async () => {
     mockLogin.mockRejectedValue(
-      new APIError("veupathdb is not responding (ReadTimeout).", {
+      new APIError("Could not connect to veupathdb (ReadTimeout).", {
         status: 503,
         statusText: "Service Unavailable",
         url: "http://localhost:3000/api/v1/veupathdb/auth/login",
         data: {
           type: "/errors/SITE_UNAVAILABLE",
-          title: "Site is not responding",
+          title: "Cannot reach the site",
           status: 503,
-          detail: "veupathdb is not responding (ReadTimeout).",
+          detail: "Could not connect to veupathdb (ReadTimeout).",
           code: "SITE_UNAVAILABLE",
         },
       }),
@@ -106,7 +106,7 @@ describe("SignInForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     expect(await screen.findByTestId("site-unavailable-notice")).toBeTruthy();
-    expect(screen.getByText("plasmodb is not responding")).toBeTruthy();
+    expect(screen.getByText("Couldn't reach plasmodb")).toBeTruthy();
     expect(screen.queryByText("Login failed. Please try again.")).toBeNull();
     expect(onSuccess).not.toHaveBeenCalled();
   });

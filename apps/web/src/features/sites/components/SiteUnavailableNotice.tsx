@@ -8,7 +8,7 @@ import { sitesOptions } from "@/lib/api/sites";
 import { chatRoot } from "@/lib/routes";
 
 /**
- * Says a site does not answer, names the error class the api last saw, and
+ * Says PathFinder cannot reach a site, names the error class the api last saw, and
  * links every site that does answer.
  */
 export function SiteUnavailableNotice({ siteId }: { siteId: string }) {
@@ -27,17 +27,17 @@ export function SiteUnavailableNotice({ siteId }: { siteId: string }) {
     >
       <AlertTriangle className="mx-auto h-7 w-7 text-amber-500" />
       <p className="mt-3 text-sm font-medium text-foreground">
-        {displayName} is not responding
+        Couldn&apos;t reach {displayName}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
         {reason !== null
-          ? `PathFinder cannot load its searches (${reason}). It retries every minute.`
-          : "PathFinder cannot load its searches. It retries every minute."}
+          ? `PathFinder could not connect to this site (${reason}). It keeps trying every minute, so this may clear on its own.`
+          : "PathFinder could not connect to this site. It keeps trying every minute, so this may clear on its own."}
       </p>
       {alternatives.length > 0 && (
         <>
           <p className="mt-4 text-xs font-medium text-foreground">
-            Open a database that answers:
+            Try another database:
           </p>
           <ul className="mt-2 space-y-1 text-xs">
             {alternatives.map((row) => (

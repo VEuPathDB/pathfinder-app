@@ -83,7 +83,7 @@ function WorkbenchLayoutInner({
 
   if (setupRequired) return <SetupRequiredScreen onRetry={retryConfig} />;
 
-  // A site that answers nothing cannot authenticate anyone, so the notice
+  // A site PathFinder cannot reach cannot authenticate anyone, so the notice
   // takes the sign-in prompt's place.
   const siteDown = siteIsDown(sites, selectedSite);
   const forcedSignIn =

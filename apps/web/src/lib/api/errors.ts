@@ -69,7 +69,7 @@ const siteUnavailableSchema = z.object({
   detail: z.string().min(1),
 });
 
-/** A refusal that says the request's VEuPathDB site does not answer. */
+/** A refusal that says PathFinder cannot reach the request's VEuPathDB site. */
 type SiteUnavailableRefusal = z.infer<typeof siteUnavailableSchema>;
 
 /**

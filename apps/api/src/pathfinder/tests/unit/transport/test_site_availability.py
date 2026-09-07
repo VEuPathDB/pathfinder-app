@@ -37,7 +37,7 @@ async def test_a_failed_catalog_is_refused_by_its_error_class() -> None:
 
     assert refusal.value.code == ErrorCode.SITE_UNAVAILABLE
     assert refusal.value.status == 503
-    assert refusal.value.detail == "veupathdb is not responding (ReadTimeout)."
+    assert refusal.value.detail == "Could not connect to veupathdb (ReadTimeout)."
 
 
 async def test_a_catalog_still_loading_is_refused() -> None:
@@ -46,9 +46,7 @@ async def test_a_catalog_still_loading_is_refused() -> None:
     with pytest.raises(SiteUnavailableError) as refusal:
         await require_available_site("veupathdb")
 
-    assert refusal.value.detail == (
-        "veupathdb is not responding (catalog still loading)."
-    )
+    assert refusal.value.detail == ("Could not connect to veupathdb (still loading).")
 
 
 async def test_a_loaded_catalog_passes() -> None:
@@ -68,7 +66,7 @@ async def test_a_turn_on_a_degraded_site_is_refused() -> None:
     with pytest.raises(SiteUnavailableError) as refusal:
         await require_available_chat_site(_body("veupathdb"))
 
-    assert refusal.value.detail == "veupathdb is not responding (ReadTimeout)."
+    assert refusal.value.detail == "Could not connect to veupathdb (ReadTimeout)."
 
 
 async def test_a_turn_on_a_loaded_site_is_dispatched() -> None:

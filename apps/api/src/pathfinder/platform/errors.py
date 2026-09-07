@@ -168,12 +168,12 @@ class SiteUnavailableError(AppError):
     """
 
     def __init__(self, site_id: str, error_class: str | None) -> None:
-        cause = error_class or "catalog still loading"
+        cause = error_class or "still loading"
         super().__init__(
             code=ErrorCode.SITE_UNAVAILABLE,
-            title="Site is not responding",
+            title="Cannot reach the site",
             status=503,
-            detail=f"{site_id} is not responding ({cause}).",
+            detail=f"Could not connect to {site_id} ({cause}).",
         )
 
 

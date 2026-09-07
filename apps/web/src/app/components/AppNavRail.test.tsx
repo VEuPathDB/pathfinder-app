@@ -100,7 +100,7 @@ describe("AppNavRail section links", () => {
 });
 
 describe("AppNavRail site selection", () => {
-  it("marks a site that is not responding, and keeps it selectable", async () => {
+  it("marks a site PathFinder cannot reach, and keeps it selectable", async () => {
     sites.list = [site({}), PORTAL_DOWN];
     const picked = vi.fn();
     drawFor("plasmodb", picked);
@@ -111,10 +111,10 @@ describe("AppNavRail site selection", () => {
 
     const down = await screen.findByTestId("site-menu-item-veupathdb");
     expect(down.getAttribute("aria-label")).toBe(
-      "VEuPathDB Portal (All organisms) - Not responding",
+      "Couldn't reach VEuPathDB Portal (All organisms)",
     );
     expect(screen.getByTestId("site-degraded-veupathdb")).toHaveTextContent(
-      "Not responding",
+      "Couldn't reach",
     );
 
     await userEvent.click(down);
@@ -142,9 +142,12 @@ describe("AppNavRail site selection", () => {
     drawFor("veupathdb");
 
     const trigger = await screen.findByRole("button", {
-      name: "Switch database - Not responding",
+      name: "Switch database",
     });
-    expect(trigger.getAttribute("aria-label")).toBe("Switch database - Not responding");
+    expect(trigger.getAttribute("aria-label")).toBe("Switch database");
+    expect(
+      screen.getByLabelText("Couldn't reach VEuPathDB Portal (All organisms)"),
+    ).toBeInTheDocument();
     expect(trigger).toContainElement(screen.getByTestId("site-trigger-degraded"));
   });
 

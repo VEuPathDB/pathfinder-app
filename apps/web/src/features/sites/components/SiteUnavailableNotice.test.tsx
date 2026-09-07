@@ -48,11 +48,11 @@ function draw(siteId: string, rows: SiteResponse[] | undefined) {
 afterEach(cleanup);
 
 describe("SiteUnavailableNotice", () => {
-  it("names the site, its error class, and links every site that answers", () => {
+  it("names the site, its error class, and links every site that is available", () => {
     draw("veupathdb", [PORTAL_DOWN, site({ id: "toxodb", displayName: "ToxoDB" })]);
 
     expect(
-      screen.getByText("VEuPathDB Portal (All organisms) is not responding"),
+      screen.getByText("Couldn't reach VEuPathDB Portal (All organisms)"),
     ).toBeInTheDocument();
     expect(screen.getByText(/TimeoutError/)).toBeInTheDocument();
     const link = screen.getByRole("link", { name: "ToxoDB" });
@@ -70,7 +70,7 @@ describe("SiteUnavailableNotice", () => {
   it("names the site id and offers no link when the site list is not loaded", () => {
     draw("veupathdb", undefined);
 
-    expect(screen.getByText("veupathdb is not responding")).toBeInTheDocument();
+    expect(screen.getByText("Couldn't reach veupathdb")).toBeInTheDocument();
     expect(screen.queryAllByRole("link")).toEqual([]);
   });
 });

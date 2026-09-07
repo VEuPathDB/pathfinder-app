@@ -174,7 +174,7 @@ describe("AppShellLayout on a site that does not answer", () => {
     draw("veupathdb");
 
     expect(
-      screen.getByLabelText("Switch database - Not responding"),
+      screen.getByLabelText("Couldn't reach VEuPathDB Portal (All organisms)"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("site-trigger-degraded")).toBeInTheDocument();
     expect(screen.getByTestId("site-unavailable-notice")).toBeInTheDocument();

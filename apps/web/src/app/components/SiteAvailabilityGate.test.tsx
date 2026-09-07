@@ -58,13 +58,13 @@ describe("SiteAvailabilityGate", () => {
     expect(screen.queryByTestId("site-unavailable-notice")).not.toBeInTheDocument();
   });
 
-  it("replaces the app with the notice for a site that does not answer", () => {
+  it("replaces the app with the notice for a site PathFinder cannot reach", () => {
     draw("veupathdb", [PORTAL_DOWN, site({ id: "plasmodb" })]);
 
     expect(screen.queryByTestId("app-shell")).not.toBeInTheDocument();
     expect(screen.getByTestId("site-unavailable-notice")).toBeInTheDocument();
     expect(
-      screen.getByText("VEuPathDB Portal (All organisms) is not responding"),
+      screen.getByText("Couldn't reach VEuPathDB Portal (All organisms)"),
     ).toBeInTheDocument();
   });
 

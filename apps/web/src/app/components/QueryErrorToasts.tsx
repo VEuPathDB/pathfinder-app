@@ -8,7 +8,7 @@ import { handleWdkAuthRefusal } from "@/state/useAuthGateStore";
 /**
  * Sends a failed query to a toast, or to the sign-in request when the refusal
  * is about the VEuPathDB account. Every app shell mounts this, including on a
- * site that answers nothing, where the sign-in prompt itself does not render.
+ * site PathFinder cannot reach, where the sign-in prompt itself does not render.
  */
 export function QueryErrorToasts(): null {
   setQueryErrorHandler((notice) => {

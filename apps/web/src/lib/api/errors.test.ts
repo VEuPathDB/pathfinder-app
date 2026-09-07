@@ -147,9 +147,9 @@ describe("a body the transport rethrows as text", () => {
 
 const SITE_UNAVAILABLE_BODY = {
   type: "/errors/SITE_UNAVAILABLE",
-  title: "Site is not responding",
+  title: "Cannot reach the site",
   status: 503,
-  detail: "veupathdb is not responding (ReadTimeout).",
+  detail: "Could not connect to veupathdb (ReadTimeout).",
   code: "SITE_UNAVAILABLE",
 };
 
@@ -163,7 +163,7 @@ describe("siteUnavailableRefusal", () => {
     });
     expect(siteUnavailableRefusal(err)).toEqual({
       code: "SITE_UNAVAILABLE",
-      detail: "veupathdb is not responding (ReadTimeout).",
+      detail: "Could not connect to veupathdb (ReadTimeout).",
     });
   });
 
@@ -171,7 +171,7 @@ describe("siteUnavailableRefusal", () => {
     const err = new Error(JSON.stringify(SITE_UNAVAILABLE_BODY));
     expect(siteUnavailableRefusal(err)).toEqual({
       code: "SITE_UNAVAILABLE",
-      detail: "veupathdb is not responding (ReadTimeout).",
+      detail: "Could not connect to veupathdb (ReadTimeout).",
     });
   });
 

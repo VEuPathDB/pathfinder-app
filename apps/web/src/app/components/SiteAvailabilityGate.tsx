@@ -12,7 +12,7 @@ import { LoadingScreen } from "./LoadingScreen";
 /**
  * Keeps the app shell and its sign-in form off a site whose catalog the api
  * could not load. The sites query refetches on the api's retry interval, so a
- * site that answers again renders the app without a reload.
+ * site that becomes reachable again renders the app without a reload.
  */
 export function SiteAvailabilityGate({
   siteId,
