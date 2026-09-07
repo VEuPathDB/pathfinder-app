@@ -117,9 +117,12 @@ consumes by URL at a commit:
 | [ai-assistant-platform](https://github.com/VEuPathDB/ai-assistant-platform) | `assistant-core`, `veupathdb-mcp-conformance`, `@pathfinder/assistant-client` | `apps/api`, `apps/web` |
 
 The pins are `apps/api/pyproject.toml` `[tool.uv.sources]` (four rows, each a
-`rev` of 40 characters), `apps/web/package.json` (`@pathfinder/assistant-client`,
-a `commit=` of 40 characters) and `WDK_MCP_REV` in the env file, which the
-`wdk-mcp` compose service builds from.
+`tag`), `apps/web/package.json` (`@pathfinder/assistant-client`, a `tag=`) and
+`WDK_MCP_REV` in the env file, which the `wdk-mcp` compose service builds from.
+A tag is a release of that repository: `v0.1.0a1` for the client and the MCP
+server, `v0.2.0a1` for the platform. The lockfile still records the commit the
+tag pointed at, so a build is reproducible even though the pin reads as a
+version. A tag never moves; a new release gets a new tag.
 
 ### Iterating on a library
 
@@ -128,8 +131,11 @@ inside the api's environment:
 
 ```bash
 cd apps/api
-uv pip install -e ../../../ai-veupathdb-client
+uv pip install --python .venv/bin/python -e ../../../ai-veupathdb-client
 ```
+
+`--python` is not optional: without it `uv pip` installs into whatever
+interpreter the shell resolves first, which is not this project's environment.
 
 The override lasts until the next `uv sync`, which restores the pin. The runtime
 carries its wire document inside the package (`assistant_core/PROTOCOL.md`), so
