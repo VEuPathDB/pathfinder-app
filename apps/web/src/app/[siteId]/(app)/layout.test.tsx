@@ -19,8 +19,8 @@ vi.mock("@/features/sites/hooks/useSiteTheme", () => ({
 vi.mock("@/app/hooks/useSystemConfig", () => ({
   useSystemConfig: () => ({ setupRequired: false, retry: vi.fn() }),
 }));
-vi.mock("@/app/hooks/useAutoCollapseSidebar", () => ({
-  useAutoCollapseSidebar: () => undefined,
+vi.mock("@/app/hooks/useAutoCollapsePanels", () => ({
+  useAutoCollapsePanels: () => undefined,
 }));
 vi.mock("@/app/hooks/useSidebarResize", () => ({
   useSidebarResize: () => ({

@@ -15,7 +15,7 @@ import { SiteAvailabilityGate } from "@/app/components/SiteAvailabilityGate";
 import { VeupathdbSignInGate } from "@/app/components/VeupathdbSignInGate";
 import { TopBar } from "@/app/components/TopBar";
 import { useAuthRefresh } from "@/lib/query/hooks/useAuthRefresh";
-import { useAutoCollapseSidebar } from "@/app/hooks/useAutoCollapseSidebar";
+import { useAutoCollapsePanels } from "@/app/hooks/useAutoCollapsePanels";
 import { useModalState } from "@/app/hooks/useModalState";
 import { useSidebarResize } from "@/app/hooks/useSidebarResize";
 import { useSystemConfig } from "@/app/hooks/useSystemConfig";
@@ -83,7 +83,7 @@ function AppShellInner({
   const { layoutRef, sidebarWidth, isDragging, startDragging } = useSidebarResize();
   const leftCollapsed = useLeftSidebarStore((s) => s.collapsed);
   const toggleLeft = useLeftSidebarStore((s) => s.toggle);
-  useAutoCollapseSidebar();
+  useAutoCollapsePanels();
   const modals = useModalState();
 
   const handleSiteChange = (nextSite: string) => {

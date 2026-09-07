@@ -20,8 +20,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { viewportIsNarrow } from "@/lib/layout/viewport";
 import { cn } from "@/lib/utils/cn";
 import { useChatHelpers } from "../runtime/chatHelpersContext";
+import { shouldAutoOpenLedger } from "./autoOpenLedger";
 import {
   lastSeenFor,
   useRightRailStore,
@@ -77,9 +79,13 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
 
   const [autoOpenChecked, setAutoOpenChecked] = useState<string | null>(null);
   if (
-    activity.hasUserMessage &&
-    autoOpenedConversation !== conversationId &&
-    autoOpenChecked !== conversationId
+    shouldAutoOpenLedger({
+      hasUserMessage: activity.hasUserMessage,
+      conversationId,
+      autoOpenedConversation,
+      autoOpenChecked,
+      narrowViewport: viewportIsNarrow(),
+    })
   ) {
     setAutoOpenChecked(conversationId);
     queueMicrotask(() => autoOpen(conversationId, "ledger"));
