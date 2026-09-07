@@ -22,6 +22,7 @@ from pathfinder.persistence.repositories import (
     ChatTurnCancellationRepository,
     ConversationRepository,
 )
+from pathfinder.platform.errors import TurnStillRunningError
 from pathfinder.services.conversations.authz import get_owned_or_404
 
 STOP_POLL_INTERVAL_SECONDS = 0.05
@@ -91,6 +92,17 @@ async def stop_turns_and_wait(
         await asyncio.sleep(STOP_POLL_INTERVAL_SECONDS)
         pending = list(await _open_turns(pending))
     return pending
+
+
+async def stop_turn_before_delete(conversation_id: UUID) -> None:
+    """Stop the thread's turn and wait for the worker before the row goes.
+
+    A worker appends to a thread until it reads the stop; removing the row
+    under it breaks every write that follows.
+    """
+    still_running = await stop_turns_and_wait([conversation_id])
+    if still_running:
+        raise TurnStillRunningError(conversation_id)
 
 
 async def turn_is_cancelled(*, conversation_id: UUID, turn_id: UUID) -> bool:

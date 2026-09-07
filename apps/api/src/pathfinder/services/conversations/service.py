@@ -34,6 +34,7 @@ from pathfinder.services.conversations.authz import (
     get_owned_thread_or_404,
 )
 from pathfinder.services.conversations.begin import begin_conversation
+from pathfinder.services.conversations.cancellation import stop_turn_before_delete
 from pathfinder.services.conversations.fork import ForkError, fork_conversation
 from pathfinder.services.conversations.responses import (
     ConversationResponse,
@@ -266,6 +267,7 @@ class ConversationService:
                     wdk_strategy_id=wdk_id,
                     error=str(e),
                 )
+        await stop_turn_before_delete(conversation_id)
         await self._repo.delete(conversation_id, cascade=cascade)
         await self._session.commit()
 

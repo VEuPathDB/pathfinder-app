@@ -2,6 +2,23 @@
 
 ## 2026-09-06
 
+* **Deleting a conversation stops its running turn first, or refuses.** The first CI run of the org repository
+  showed the worker failing three turns with a foreign-key violation on `conversation_events`: each spec's
+  cleanup had deleted the conversation while its turn was still writing. `ConversationService.delete` now calls
+  `stop_turn_before_delete`, which stops the turn and waits for the worker the way the bulk user-data wipe already
+  did, and answers 409 `SESSION_CONFLICT` (`TurnStillRunningError`) when the worker does not close inside the
+  window. Pinned by `tests/unit/services/conversations/test_delete_waits_for_the_turn.py`.
+* **The e2e suite signs in from the account's email and password when no token is exported.** The org
+  repository's CI had no `WDK_TEST_TOKEN`, so 103 specs failed with the fixture's refusal while the stack itself
+  was healthy. `e2e/global-setup.ts` posts the login once and hands the `Authorization` cookie to every worker;
+  `ci.yml` passes `WDK_TEST_EMAIL` and `WDK_TEST_PASSWORD` as repository secrets, and the failed run's
+  `test-results` are uploaded as an artifact. Proved on the mock stack with the token unset: 3 passed.
+* **The Security workflow is honest on a private repository.** CodeQL and the SARIF upload need a public
+  repository or Advanced Security, so both are gated on visibility and the private path fails the job on
+  CRITICAL or HIGH Trivy findings. The first such run listed 28 in `yarn.lock`; `next` moved to 16.2.6 and
+  `nanoid`, `postcss`, `protobufjs` and `sharp` are pinned through unqualified Yarn `resolutions`, the only
+  form that overrides an exact transitive pin.
+
 * **The api's live lane keeps its catalog snapshots out of the tree, and asserts the client's refusal.**
   `tests/conftest.py` sets `CATALOG_CACHE_DIR` to a temporary directory for the session, because
   the MCP distribution's default is the cwd-relative `data/catalogs` and a live discovery wrote a

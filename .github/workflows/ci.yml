@@ -319,6 +319,17 @@ jobs:
             -f docker-compose.yml -f docker-compose.e2e.yml \
             logs --no-color api worker web db
 
+      # The page snapshot and trace of every failed spec, for a failure that
+      # does not reproduce on a developer machine.
+      - name: Upload Playwright results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: apps/web/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Tear down
         if: always()
         run: |
