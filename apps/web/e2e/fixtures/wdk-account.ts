@@ -39,4 +39,15 @@ export async function signInAsWdkAccount(
     headers: { "X-Requested-With": "XMLHttpRequest" },
   });
   expect(resp.ok(), `wdk login ${resp.status()}: ${await resp.text()}`).toBeTruthy();
+
+  // The account is its own user, with its own first-login eval-data notice;
+  // a fresh database shows it over the app until the account acknowledges it.
+  const notice = await apiClient.patch("/api/v1/me/privacy", {
+    data: { noticeSeen: true },
+    headers: { "X-Requested-With": "XMLHttpRequest" },
+  });
+  expect(
+    notice.ok(),
+    `eval-data notice acknowledgement ${notice.status()}`,
+  ).toBeTruthy();
 }
