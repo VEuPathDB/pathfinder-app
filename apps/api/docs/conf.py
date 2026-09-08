@@ -89,13 +89,13 @@ html_theme_options = {
     "sidebar_hide_name": False,
     "navigation_with_keys": True,
     "top_of_page_buttons": ["view", "edit"],
-    "source_repository": "https://github.com/ahmedOmuharram/pathfinder",
+    "source_repository": "https://github.com/VEuPathDB/pathfinder-app",
     "source_branch": "main",
     "source_directory": "apps/api/docs/",
     "footer_icons": [
         {
             "name": "GitHub",
-            "url": "https://github.com/ahmedOmuharram/pathfinder",
+            "url": "https://github.com/VEuPathDB/pathfinder-app",
             "html": (
                 '<svg stroke="currentColor" fill="currentColor" stroke-width="0" '
                 'viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 '
@@ -120,7 +120,7 @@ html_css_files = ["custom.css"]
 html_theme_options["announcement"] = (
     "PathFinder is a research prototype for "
     "<b>VEuPathDB strategy construction via LLM agents</b>. "
-    '<a href="https://github.com/ahmedOmuharram/pathfinder">View on GitHub</a>'
+    '<a href="https://github.com/VEuPathDB/pathfinder-app">View on GitHub</a>'
 )
 
 # -- Copy button settings ----------------------------------------------------

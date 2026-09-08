@@ -95,35 +95,55 @@ def render_machine_guarantees(tools: Mapping[str, Tool[LeadDeps]]) -> str:
     lines = [
         "## What the machine already guarantees",
         "",
-        "These hold on every turn. Do not spend calls checking them, and do not"
-        " warn the researcher about a risk this list rules out.",
+        (
+            "These hold on every turn. Do not spend calls checking them, and do not"
+            " warn the researcher about a risk this list rules out."
+        ),
         "",
-        f"- Every write to the strategy appends a revision, and the researcher"
-        f" can revert the thread to any earlier one. The tools that write it:"
-        f" {_named(revisioned)}.",
-        f"- Destructive: {_named(destructive)}. Each appends a revision like"
-        f" every other write, so what it clears is recovered by a revert rather"
-        f" than lost.",
-        f"- Held until the researcher answers: {_named(approval)}. The machine"
-        f" asks for each of them, so do not also ask in prose.",
-        f"- A success verdict cannot outrank the build: what"
-        f" {_named(_role('verification', known))} reports is held down to the"
-        f" steps the build recorded before you read it.",
-        f"- An undeclared spec change is refused, and the spec the turn started"
-        f" from is restored, when the account of an edit does not match what it"
-        f" did: {_named(_role('frame', known))}.",
-        f"- Run on a worker, so the turn ends and reopens with the result:"
-        f" {_named(set(DURABLE_TOOLS) & known)}. Nothing before"
-        f" the call runs a second time.",
-        f"- Withheld until the turn is classified as one that asks for a build:"
-        f" {_named(BUILDING_TOOLS & known)}. One of them missing from your list"
-        f" is a classification to redo, never a refusal to report.",
+        (
+            f"- Every write to the strategy appends a revision, and the researcher"
+            f" can revert the thread to any earlier one. The tools that write it:"
+            f" {_named(revisioned)}."
+        ),
+        (
+            f"- Destructive: {_named(destructive)}. Each appends a revision like"
+            f" every other write, so what it clears is recovered by a revert rather"
+            f" than lost."
+        ),
+        (
+            f"- Held until the researcher answers: {_named(approval)}. The machine"
+            f" asks for each of them, so do not also ask in prose."
+        ),
+        (
+            f"- A success verdict cannot outrank the build: what"
+            f" {_named(_role('verification', known))} reports is held down to the"
+            f" steps the build recorded before you read it."
+        ),
+        (
+            f"- An undeclared spec change is refused, and the spec the turn started"
+            f" from is restored, when the account of an edit does not match what it"
+            f" did: {_named(_role('frame', known))}."
+        ),
+        (
+            f"- Run on a worker, so the turn ends and reopens with the result:"
+            f" {_named(set(DURABLE_TOOLS) & known)}. Nothing before"
+            f" the call runs a second time."
+        ),
+        (
+            f"- Withheld until the turn is classified as one that asks for a build:"
+            f" {_named(BUILDING_TOOLS & known)}. One of them missing from your list"
+            f" is a classification to redo, never a refusal to report."
+        ),
         f"- Change nothing at all: {_named(_in_class(Reversibility.READ, known))}.",
-        f"- Change only what this turn holds:"
-        f" {_named(_in_class(Reversibility.IN_STATE, known))}.",
-        f"- Write outside the strategy's history, so a revert of the strategy"
-        f" does not undo them:"
-        f" {_named(_in_class(Reversibility.UNREVISIONED_WRITE, known))}.",
+        (
+            f"- Change only what this turn holds:"
+            f" {_named(_in_class(Reversibility.IN_STATE, known))}."
+        ),
+        (
+            f"- Write outside the strategy's history, so a revert of the strategy"
+            f" does not undo them:"
+            f" {_named(_in_class(Reversibility.UNREVISIONED_WRITE, known))}."
+        ),
         "",
     ]
     return "\n".join(lines)

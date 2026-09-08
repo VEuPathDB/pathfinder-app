@@ -1,18 +1,19 @@
-{"type":"start","messageId":"e6cb62e2-ca47-4acd-ab25-28825ce247c8"}
-{"type":"data-turn-status","data":{"label":"Preparing context","waitingOnLlm":false}}
+{"type":"start","messageId":"d8fef8ab-4520-4a36-bd7a-41a3cb1ba03f"}
+{"type":"data-turn-status","data":{"label":"Starting the turn","waitingOnLlm":false}}
 {"type":"data-turn-status","data":{"label":"Thinking...","waitingOnLlm":true}}
 {"type":"data-conversation-title","data":{"title":"which sites can I search"}}
 {"type":"start-step"}
-{"type":"tool-input-start","toolCallId":"mock_list_veupathdb_sites_748641e000","toolName":"list_veupathdb_sites"}
-{"type":"tool-input-delta","toolCallId":"mock_list_veupathdb_sites_748641e000","inputTextDelta":"{}"}
-{"type":"tool-input-available","toolCallId":"mock_list_veupathdb_sites_748641e000","toolName":"list_veupathdb_sites","input":{}}
-{"type":"tool-output-available","toolCallId":"mock_list_veupathdb_sites_748641e000","output":[{"site_id":"veupathdb","display_name":"VEuPathDB Portal (All organisms)","url":"https://veupathdb.org/veupathdb/service"},{"site_id":"plasmodb","display_name":"PlasmoDB (Plasmodium)","url":"https://plasmodb.org/plasmo/service"},{"site_id":"toxodb","display_name":"ToxoDB (Toxoplasma)","url":"https://toxodb.org/toxo/service"},{"site_id":"cryptodb","display_name":"CryptoDB (Cryptosporidium)","url":"https://cryptodb.org/cryptodb/service"},{"site_id":"piroplasmadb","display_name":"PiroplasmaDB (Piroplasma)","url":"https://piroplasmadb.org/piro/service"},{"site_id":"giardiadb","display_name":"GiardiaDB (Giardia)","url":"https://giardiadb.org/giardiadb/service"},{"site_id":"amoebadb","display_name":"AmoebaDB (Amoeba)","url":"https://amoebadb.org/amoeba/service"},{"site_id":"microsporidiadb","display_name":"MicrosporidiaDB (Microsporidia)","url":"https://microsporidiadb.org/micro/service"},{"site_id":"tritrypdb","display_name":"TriTrypDB (Kinetoplastids)","url":"https://tritrypdb.org/tritrypdb/service"},{"site_id":"trichdb","display_name":"TrichDB (Trichomonas)","url":"https://trichdb.org/trichdb/service"},{"site_id":"fungidb","display_name":"FungiDB (Fungi)","url":"https://fungidb.org/fungidb/service"},{"site_id":"hostdb","display_name":"HostDB (Hosts)","url":"https://hostdb.org/hostdb/service"},{"site_id":"vectorbase","display_name":"VectorBase (Vectors)","url":"https://vectorbase.org/vectorbase/service"},{"site_id":"orthomcl","display_name":"OrthoMCL (Orthologs)","url":"https://orthomcl.org/orthomcl/service"}]}
+{"type":"tool-input-start","toolCallId":"mock_list_veupathdb_sites_c600602152","toolName":"list_veupathdb_sites"}
+{"type":"tool-input-delta","toolCallId":"mock_list_veupathdb_sites_c600602152","inputTextDelta":"{}"}
+{"type":"tool-input-available","toolCallId":"mock_list_veupathdb_sites_c600602152","toolName":"list_veupathdb_sites","input":{}}
+{"type":"tool-output-available","toolCallId":"mock_list_veupathdb_sites_c600602152","output":[{"site_id":"veupathdb","display_name":"VEuPathDB Portal (All organisms)","url":"https://veupathdb.org/veupathdb/service"},{"site_id":"plasmodb","display_name":"PlasmoDB (Plasmodium)","url":"https://plasmodb.org/plasmo/service"},{"site_id":"toxodb","display_name":"ToxoDB (Toxoplasma)","url":"https://toxodb.org/toxo/service"},{"site_id":"cryptodb","display_name":"CryptoDB (Cryptosporidium)","url":"https://cryptodb.org/cryptodb/service"},{"site_id":"tritrypdb","display_name":"TriTrypDB (Kinetoplastids)","url":"https://tritrypdb.org/tritrypdb/service"},{"site_id":"fungidb","display_name":"FungiDB (Fungi)","url":"https://fungidb.org/fungidb/service"}]}
+{"type":"data-tool-summary","data":{"toolCallId":"mock_list_veupathdb_sites_c600602152","summary":"6 sites","status":"ok"}}
 {"type":"finish-step"}
 {"type":"start-step"}
-{"type":"text-start","id":"c0946ebf-0e57-4317-94ac-a1aa728475a2"}
-{"type":"text-delta","delta":"Those are the VEuPathDB sites I can point you around.","id":"c0946ebf-0e57-4317-94ac-a1aa728475a2"}
-{"type":"text-end","id":"c0946ebf-0e57-4317-94ac-a1aa728475a2"}
-{"type":"message-metadata","messageMetadata":{"pydantic_ai":{"timestamp":"2026-08-27T08:30:19.354565Z"}}}
+{"type":"text-start","id":"dc373029-ed41-443a-a138-66ee30a8291c"}
+{"type":"text-delta","delta":"Those are the VEuPathDB sites I can point you around.","id":"dc373029-ed41-443a-a138-66ee30a8291c"}
+{"type":"text-end","id":"dc373029-ed41-443a-a138-66ee30a8291c"}
+{"type":"message-metadata","messageMetadata":{"pydantic_ai":{"timestamp":"2026-09-08T17:55:40.893021Z"}}}
 {"type":"finish-step"}
 {"type":"data-turn-usage","data":{"totalTokens":112,"costUsd":"0"},"transient":true}
 {"type":"finish","finishReason":"stop"}

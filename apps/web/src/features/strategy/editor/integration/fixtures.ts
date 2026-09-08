@@ -30,7 +30,7 @@ export function makeSpec(overrides: Partial<ParamSpec> = {}): ParamSpec {
     group: null,
     help: null,
     ...overrides,
-  } as ParamSpec;
+  };
 }
 
 /** Realistic specs for GenesByMolecularWeight: organism select + numeric range. */

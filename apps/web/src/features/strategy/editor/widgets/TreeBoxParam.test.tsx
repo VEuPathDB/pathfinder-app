@@ -52,7 +52,7 @@ function makeSpec(overrides: Partial<ParamSpec> = {}): ParamSpec {
     countOnlyLeaves: false,
     multiPick: true,
     ...overrides,
-  } as ParamSpec;
+  };
 }
 
 describe("TreeBoxParam -- flat fallback", () => {

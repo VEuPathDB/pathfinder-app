@@ -1,16 +1,15 @@
 import { useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 import { Columns } from "lucide-react";
-import type { Table } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import type { ClassifiedRecord } from "@pathfinder/shared/generated/types/ClassifiedRecord";
 import type { RecordAttribute } from "@pathfinder/shared/generated/types/RecordAttribute";
 import { recordCountLabel } from "./recordCountLabel";
+import type { ResultsTableInstance } from "./resultsTableFeatures";
 
 interface ResultsTableHeaderProps {
   totalCount: number | null;
   recordType: string | null;
-  table: Table<ClassifiedRecord>;
+  table: ResultsTableInstance;
   attributes: RecordAttribute[];
 }
 

@@ -23,9 +23,7 @@
     <img src="https://img.shields.io/badge/Gemini-8E75B2?logo=google-gemini&logoColor=white" alt="Google Gemini" />
     <img src="https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white" alt="Ollama" />
   </p>
-  <img src="assets/pathfinder.png" alt="PathFinder" width="100%" />  <p>
-    <img src="https://img.shields.io/github/stars/ahmedOmuharram/pathfinder?style=social" alt="GitHub stars" />
-  </p>
+  <img src="assets/pathfinder.png" alt="PathFinder" width="100%" />
 
 </div>
 

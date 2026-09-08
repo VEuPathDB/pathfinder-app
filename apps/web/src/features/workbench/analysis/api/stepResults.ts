@@ -7,8 +7,7 @@ import { recordsResponseSchema } from "@pathfinder/shared/generated/zod/recordsR
 import { requestJson } from "@/lib/api/http";
 
 export type EntityRef =
-  | { type: "experiment"; id: string }
-  | { type: "gene-set"; id: string };
+  { type: "experiment"; id: string } | { type: "gene-set"; id: string };
 
 function basePath(ref: EntityRef): string {
   return ref.type === "experiment"

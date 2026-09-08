@@ -8483,7 +8483,7 @@
                   "$ref": "#/components/schemas/MultiPickValue"
                 },
                 {
-                  "$ref": "#/components/schemas/FilterValue-Input"
+                  "$ref": "#/components/schemas/FilterValue"
                 },
                 {
                   "$ref": "#/components/schemas/InputDatasetValue"
@@ -8497,7 +8497,7 @@
                 "mapping": {
                   "date": "#/components/schemas/DateValue",
                   "date-range": "#/components/schemas/DateRangeValue",
-                  "filter": "#/components/schemas/FilterValue-Input",
+                  "filter": "#/components/schemas/FilterValue",
                   "input-dataset": "#/components/schemas/InputDatasetValue",
                   "input-step": "#/components/schemas/InputStepValue",
                   "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
@@ -8768,7 +8768,7 @@
                       "$ref": "#/components/schemas/MultiPickValue"
                     },
                     {
-                      "$ref": "#/components/schemas/FilterValue-Input"
+                      "$ref": "#/components/schemas/FilterValue"
                     },
                     {
                       "$ref": "#/components/schemas/InputDatasetValue"
@@ -8782,7 +8782,7 @@
                     "mapping": {
                       "date": "#/components/schemas/DateValue",
                       "date-range": "#/components/schemas/DateRangeValue",
-                      "filter": "#/components/schemas/FilterValue-Input",
+                      "filter": "#/components/schemas/FilterValue",
                       "input-dataset": "#/components/schemas/InputDatasetValue",
                       "input-step": "#/components/schemas/InputStepValue",
                       "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
@@ -9104,7 +9104,7 @@
                   "$ref": "#/components/schemas/MultiPickValue"
                 },
                 {
-                  "$ref": "#/components/schemas/FilterValue-Input"
+                  "$ref": "#/components/schemas/FilterValue"
                 },
                 {
                   "$ref": "#/components/schemas/InputDatasetValue"
@@ -9118,7 +9118,7 @@
                 "mapping": {
                   "date": "#/components/schemas/DateValue",
                   "date-range": "#/components/schemas/DateRangeValue",
-                  "filter": "#/components/schemas/FilterValue-Input",
+                  "filter": "#/components/schemas/FilterValue",
                   "input-dataset": "#/components/schemas/InputDatasetValue",
                   "input-step": "#/components/schemas/InputStepValue",
                   "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
@@ -11555,26 +11555,7 @@
         "title": "FilterTermClause",
         "description": "One faceted clause of a WDK filter value. Keys mirror wdk-client's\nauthoritative ``BaseFilter`` (field/type/isRange/includeUnknown/value);\nparsing ignores extra keys (e.g. ``fieldDisplayName``) and emits only these."
       },
-      "FilterValue-Input": {
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "filter",
-            "title": "Type",
-            "default": "filter"
-          },
-          "filters": {
-            "items": {
-              "$ref": "#/components/schemas/FilterTermClause"
-            },
-            "type": "array",
-            "title": "Filters"
-          }
-        },
-        "type": "object",
-        "title": "FilterValue"
-      },
-      "FilterValue-Output": {
+      "FilterValue": {
         "properties": {
           "type": {
             "type": "string",
@@ -12016,7 +11997,7 @@
                       "$ref": "#/components/schemas/MultiPickValue"
                     },
                     {
-                      "$ref": "#/components/schemas/FilterValue-Output"
+                      "$ref": "#/components/schemas/FilterValue"
                     },
                     {
                       "$ref": "#/components/schemas/InputDatasetValue"
@@ -12030,7 +12011,7 @@
                     "mapping": {
                       "date": "#/components/schemas/DateValue",
                       "date-range": "#/components/schemas/DateRangeValue",
-                      "filter": "#/components/schemas/FilterValue-Output",
+                      "filter": "#/components/schemas/FilterValue",
                       "input-dataset": "#/components/schemas/InputDatasetValue",
                       "input-step": "#/components/schemas/InputStepValue",
                       "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
@@ -13156,7 +13137,7 @@
                   "$ref": "#/components/schemas/MultiPickValue"
                 },
                 {
-                  "$ref": "#/components/schemas/FilterValue-Input"
+                  "$ref": "#/components/schemas/FilterValue"
                 },
                 {
                   "$ref": "#/components/schemas/InputDatasetValue"
@@ -13170,7 +13151,7 @@
                 "mapping": {
                   "date": "#/components/schemas/DateValue",
                   "date-range": "#/components/schemas/DateRangeValue",
-                  "filter": "#/components/schemas/FilterValue-Input",
+                  "filter": "#/components/schemas/FilterValue",
                   "input-dataset": "#/components/schemas/InputDatasetValue",
                   "input-step": "#/components/schemas/InputStepValue",
                   "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
@@ -13517,6 +13498,17 @@
             "const": "reasoning",
             "title": "Type",
             "default": "reasoning"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
           },
           "text": {
             "type": "string",
@@ -14205,7 +14197,7 @@
                   "$ref": "#/components/schemas/MultiPickValue"
                 },
                 {
-                  "$ref": "#/components/schemas/FilterValue-Input"
+                  "$ref": "#/components/schemas/FilterValue"
                 },
                 {
                   "$ref": "#/components/schemas/InputDatasetValue"
@@ -14219,7 +14211,7 @@
                 "mapping": {
                   "date": "#/components/schemas/DateValue",
                   "date-range": "#/components/schemas/DateRangeValue",
-                  "filter": "#/components/schemas/FilterValue-Input",
+                  "filter": "#/components/schemas/FilterValue",
                   "input-dataset": "#/components/schemas/InputDatasetValue",
                   "input-step": "#/components/schemas/InputStepValue",
                   "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
@@ -14459,35 +14451,7 @@
         "title": "SourceUrlUIPart",
         "description": "A source part of a message."
       },
-      "StepAnalysis-Input": {
-        "properties": {
-          "analysisType": {
-            "type": "string",
-            "title": "Analysistype"
-          },
-          "parameters": {
-            "$ref": "#/components/schemas/JSONObject"
-          },
-          "customName": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Customname"
-          }
-        },
-        "type": "object",
-        "required": [
-          "analysisType"
-        ],
-        "title": "StepAnalysis",
-        "description": "Analysis configuration attached to a step."
-      },
-      "StepAnalysis-Output": {
+      "StepAnalysis": {
         "properties": {
           "analysisType": {
             "type": "string",
@@ -14579,22 +14543,7 @@
         "title": "StepFilter",
         "description": "One element of a WDK filter value array on a step."
       },
-      "StepReport-Input": {
-        "properties": {
-          "reportName": {
-            "type": "string",
-            "title": "Reportname",
-            "default": "standard"
-          },
-          "config": {
-            "$ref": "#/components/schemas/JSONObject"
-          }
-        },
-        "type": "object",
-        "title": "StepReport",
-        "description": "Report request attached to a step."
-      },
-      "StepReport-Output": {
+      "StepReport": {
         "properties": {
           "reportName": {
             "type": "string",
@@ -14689,7 +14638,7 @@
                       "$ref": "#/components/schemas/MultiPickValue"
                     },
                     {
-                      "$ref": "#/components/schemas/FilterValue-Output"
+                      "$ref": "#/components/schemas/FilterValue"
                     },
                     {
                       "$ref": "#/components/schemas/InputDatasetValue"
@@ -14703,7 +14652,7 @@
                     "mapping": {
                       "date": "#/components/schemas/DateValue",
                       "date-range": "#/components/schemas/DateRangeValue",
-                      "filter": "#/components/schemas/FilterValue-Output",
+                      "filter": "#/components/schemas/FilterValue",
                       "input-dataset": "#/components/schemas/InputDatasetValue",
                       "input-step": "#/components/schemas/InputStepValue",
                       "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
@@ -14836,7 +14785,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/StepAnalysis-Output"
+                  "$ref": "#/components/schemas/StepAnalysis"
                 },
                 "type": "array"
               },
@@ -14850,7 +14799,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/StepReport-Output"
+                  "$ref": "#/components/schemas/StepReport"
                 },
                 "type": "array"
               },
@@ -15115,7 +15064,7 @@
                   "$ref": "#/components/schemas/MultiPickValue"
                 },
                 {
-                  "$ref": "#/components/schemas/FilterValue-Input"
+                  "$ref": "#/components/schemas/FilterValue"
                 },
                 {
                   "$ref": "#/components/schemas/InputDatasetValue"
@@ -15129,7 +15078,7 @@
                 "mapping": {
                   "date": "#/components/schemas/DateValue",
                   "date-range": "#/components/schemas/DateRangeValue",
-                  "filter": "#/components/schemas/FilterValue-Input",
+                  "filter": "#/components/schemas/FilterValue",
                   "input-dataset": "#/components/schemas/InputDatasetValue",
                   "input-step": "#/components/schemas/InputStepValue",
                   "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
@@ -15204,14 +15153,14 @@
           },
           "analyses": {
             "items": {
-              "$ref": "#/components/schemas/StepAnalysis-Input"
+              "$ref": "#/components/schemas/StepAnalysis"
             },
             "type": "array",
             "title": "Analyses"
           },
           "reports": {
             "items": {
-              "$ref": "#/components/schemas/StepReport-Input"
+              "$ref": "#/components/schemas/StepReport"
             },
             "type": "array",
             "title": "Reports"
@@ -16609,7 +16558,7 @@
                   "$ref": "#/components/schemas/MultiPickValue"
                 },
                 {
-                  "$ref": "#/components/schemas/FilterValue-Input"
+                  "$ref": "#/components/schemas/FilterValue"
                 },
                 {
                   "$ref": "#/components/schemas/InputDatasetValue"
@@ -16623,7 +16572,7 @@
                 "mapping": {
                   "date": "#/components/schemas/DateValue",
                   "date-range": "#/components/schemas/DateRangeValue",
-                  "filter": "#/components/schemas/FilterValue-Input",
+                  "filter": "#/components/schemas/FilterValue",
                   "input-dataset": "#/components/schemas/InputDatasetValue",
                   "input-step": "#/components/schemas/InputStepValue",
                   "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
@@ -17390,6 +17339,7 @@
         "type": "object"
       },
       "BuildOutcome": {
+        "description": "Structured result of a declarative strategy build.",
         "properties": {
           "pushedStepIds": {
             "items": {
@@ -18441,25 +18391,6 @@
         "title": "FailureCause",
         "type": "string"
       },
-      "FilterValue": {
-        "properties": {
-          "type": {
-            "const": "filter",
-            "default": "filter",
-            "title": "Type",
-            "type": "string"
-          },
-          "filters": {
-            "items": {
-              "$ref": "#/components/schemas/FilterTermClause"
-            },
-            "title": "Filters",
-            "type": "array"
-          }
-        },
-        "title": "FilterValue",
-        "type": "object"
-      },
       "FrameSection": {
         "description": "The OperationalSpec the FRAME phase produced.\n\nIt holds criteria bound to WDK searches with resolved params and a\ncombine structure.",
         "properties": {
@@ -19353,6 +19284,7 @@
         "type": "object"
       },
       "StaleBuild": {
+        "description": "What changed between the recorded build and the live strategy.",
         "properties": {
           "changedNodes": {
             "items": {
@@ -19392,34 +19324,6 @@
         "title": "StaleBuild",
         "type": "object"
       },
-      "StepAnalysis": {
-        "description": "Analysis configuration attached to a step.",
-        "properties": {
-          "analysisType": {
-            "title": "Analysistype",
-            "type": "string"
-          },
-          "parameters": {
-            "$ref": "#/components/schemas/JSONObject"
-          },
-          "customName": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Customname"
-          }
-        },
-        "required": [
-          "analysisType"
-        ],
-        "title": "StepAnalysis",
-        "type": "object"
-      },
       "StepPushFailure": {
         "properties": {
           "stepId": {
@@ -19441,21 +19345,6 @@
           "error"
         ],
         "title": "StepPushFailure",
-        "type": "object"
-      },
-      "StepReport": {
-        "description": "Report request attached to a step.",
-        "properties": {
-          "reportName": {
-            "default": "standard",
-            "title": "Reportname",
-            "type": "string"
-          },
-          "config": {
-            "$ref": "#/components/schemas/JSONObject"
-          }
-        },
-        "title": "StepReport",
         "type": "object"
       },
       "StrategyLink": {

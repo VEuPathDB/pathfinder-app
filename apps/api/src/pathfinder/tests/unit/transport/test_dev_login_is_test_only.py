@@ -8,10 +8,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi.routing import APIRoute
-
 import pathfinder
 from pathfinder.main import create_app
+from pathfinder.tests._support.routes import api_routes
 from pathfinder.transport.http.routers import dev
 
 _MINTER = "create_dev_login_token"
@@ -23,7 +22,7 @@ _ALLOWED_MINTERS = {
 
 def _endpoints(*, include_dev_routes: bool) -> set[object]:
     app = create_app(include_dev_routes=include_dev_routes)
-    return {route.endpoint for route in app.routes if isinstance(route, APIRoute)}
+    return {route.endpoint for route in api_routes(app.routes)}
 
 
 def test_the_production_app_has_no_dev_login_route() -> None:

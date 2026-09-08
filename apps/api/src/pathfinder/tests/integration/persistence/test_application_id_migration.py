@@ -15,7 +15,7 @@ from assistant_core.embeddings.embedder import EMBEDDING_DIMENSIONS
 from langgraph.store.postgres.base import MIGRATIONS, VECTOR_MIGRATIONS
 from psycopg.sql import SQL, Identifier
 from sqlalchemy.engine import make_url
-from testcontainers.postgres import PostgresContainer
+from testcontainers.community.postgres import PostgresContainer
 
 ALEMBIC_INI = Path(__file__).resolve().parents[5] / "alembic.ini"
 PREVIOUS_REVISION = "2026_08_09_0001"

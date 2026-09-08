@@ -11,7 +11,7 @@ const SEARCHES: Search[] = [
     displayName: "Genes by Taxon",
     description: "",
     recordType: "gene",
-  } as Search,
+  },
 ];
 
 vi.mock("@/lib/api/sites", async () => {

@@ -131,9 +131,11 @@ def _pairing_errors(config: ComputeConfigFacts) -> list[str]:
     value = config.value_variable
     if identifier.entity_id != value.entity_id:
         return [
-            f"identifierVariable is on entity {identifier.entity_id} and "
-            f"valueVariable is on entity {value.entity_id}. The plugin needs both "
-            f"on the same entity."
+            (
+                f"identifierVariable is on entity {identifier.entity_id} and "
+                f"valueVariable is on entity {value.entity_id}. The plugin needs both "
+                f"on the same entity."
+            )
         ]
     errors: list[str] = []
     if identifier.variable_id != VEUPATHDB_GENE_ID:
@@ -199,9 +201,11 @@ def _comparator_entity_errors(
     if comparator_entity in ancestors:
         return []
     return [
-        f"comparator.variable is on entity {comparator_entity}, and the plugin "
-        f"reads the comparator from an ancestor entity of {identifier_entity}. "
-        f"The ancestor entities are {listed(sorted(ancestors))}."
+        (
+            f"comparator.variable is on entity {comparator_entity}, and the plugin "
+            f"reads the comparator from an ancestor entity of {identifier_entity}. "
+            f"The ancestor entities are {listed(sorted(ancestors))}."
+        )
     ]
 
 
@@ -210,6 +214,8 @@ def _method_errors(config: ComputeConfigFacts) -> list[str]:
     if method in DIFFERENTIAL_EXPRESSION_METHODS:
         return []
     return [
-        f"differentialExpressionMethod is {method}, and the service accepts "
-        f"{listed(sorted(DIFFERENTIAL_EXPRESSION_METHODS))}."
+        (
+            f"differentialExpressionMethod is {method}, and the service accepts "
+            f"{listed(sorted(DIFFERENTIAL_EXPRESSION_METHODS))}."
+        )
     ]

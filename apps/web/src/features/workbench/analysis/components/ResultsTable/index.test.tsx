@@ -3,10 +3,10 @@
  */
 import { afterEach, describe, it, expect, vi, beforeEach } from "vitest";
 import { cleanup, render, screen, waitFor, fireEvent } from "@testing-library/react";
-import type { Table } from "@tanstack/react-table";
 import type { RecordAttribute } from "@pathfinder/shared/generated/types/RecordAttribute";
 import type { ClassifiedRecord } from "@pathfinder/shared/generated/types/ClassifiedRecord";
 import { createTestWrapper } from "@/lib/query/testing";
+import type { ResultsTableInstance } from "./resultsTableFeatures";
 
 const mockGetAttributes = vi.fn();
 const mockGetRecords = vi.fn();
@@ -24,7 +24,7 @@ vi.mock("./ResultsTableHeader", () => ({
     table,
   }: {
     totalCount: number;
-    table: Table<ClassifiedRecord>;
+    table: ResultsTableInstance;
   }) => {
     const visibleIds = table
       .getAllLeafColumns()
@@ -55,14 +55,13 @@ vi.mock("./ResultsTableBody", () => ({
     loading,
     onExpandRow,
   }: {
-    table: Table<ClassifiedRecord>;
+    table: ResultsTableInstance;
     loading: boolean;
     onExpandRow: (row: ClassifiedRecord, expand: boolean) => void;
   }) => {
     const rows = table.getRowModel().rows;
-    const sortingKey = table
-      .getState()
-      .sorting.map((s) => `${s.id}:${s.desc ? "d" : "a"}`)
+    const sortingKey = table.state.sorting
+      .map((s) => `${s.id}:${s.desc ? "d" : "a"}`)
       .join("|");
     return (
       <div data-testid="body" data-loading={loading} data-sorting={sortingKey}>
@@ -98,12 +97,9 @@ vi.mock("./PaginationControls", () => ({
     table,
   }: {
     totalCount: number;
-    table: Table<ClassifiedRecord>;
+    table: ResultsTableInstance;
   }) => (
-    <div
-      data-testid="pagination"
-      data-page-index={table.getState().pagination.pageIndex}
-    >
+    <div data-testid="pagination" data-page-index={table.state.pagination.pageIndex}>
       <span data-testid="pagination-total">total={totalCount}</span>
       <button data-testid="next-page" onClick={() => table.nextPage()}>
         next

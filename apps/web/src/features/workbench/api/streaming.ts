@@ -83,9 +83,7 @@ interface BatchErrorEvent {
 }
 
 export type BatchStreamEvent =
-  | ExperimentProgressEvent
-  | BatchCompleteEvent
-  | BatchErrorEvent;
+  ExperimentProgressEvent | BatchCompleteEvent | BatchErrorEvent;
 
 interface BenchmarkCompleteEvent {
   type: "benchmark_complete";
@@ -99,9 +97,7 @@ interface BenchmarkErrorEvent {
 }
 
 export type BenchmarkStreamEvent =
-  | ExperimentProgressEvent
-  | BenchmarkCompleteEvent
-  | BenchmarkErrorEvent;
+  ExperimentProgressEvent | BenchmarkCompleteEvent | BenchmarkErrorEvent;
 
 // ── Public generators ──────────────────────────────────────────────────────
 

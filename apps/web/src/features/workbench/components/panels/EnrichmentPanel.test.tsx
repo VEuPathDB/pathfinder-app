@@ -28,7 +28,7 @@ function makeGeneSet(overrides: Partial<GeneSet> = {}): GeneSet {
 }
 
 const storeState: Record<string, unknown> = {
-  activeSetId: "set-1" as string | null,
+  activeSetId: "set-1",
   geneSets: [] as GeneSet[],
   expandedPanels: new Set(["enrichment"]),
   togglePanel: vi.fn(),

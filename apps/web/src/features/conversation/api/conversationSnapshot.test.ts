@@ -1,41 +1,49 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
+import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type * as HttpModule from "@/lib/api/http";
+import { APIError } from "@/lib/api/http";
 
-// The chunk-to-message reduction is the client package's conformance suite.
-// What is app-owned here is the request, the 404 rule and the query options.
-vi.mock("@/lib/api/http", async (importOriginal) => ({
-  ...(await importOriginal<typeof HttpModule>()),
-  requestJson: vi.fn(),
-}));
+import { server } from "../../../../vitest.msw-setup";
 
-import { APIError, requestJson } from "@/lib/api/http";
-
+import { conversationCursors } from "./assistantClient";
 import {
   conversationSnapshotOptions,
   loadSnapshotMessages,
 } from "./conversationSnapshot";
 
-const mockRequestJson = vi.mocked(requestJson);
+const SNAPSHOT_ROUTE =
+  "http://localhost:3000/api/v1/conversations/:conversationId/events/snapshot";
+
+function serveSnapshot(body: { chunks: unknown[]; cursor: number }): string[] {
+  const seen: string[] = [];
+  server.use(
+    http.get(SNAPSHOT_ROUTE, ({ request }) => {
+      seen.push(new URL(request.url).pathname);
+      return HttpResponse.json(body);
+    }),
+  );
+  return seen;
+}
 
 beforeEach(() => {
-  mockRequestJson.mockReset();
+  sessionStorage.clear();
 });
 
 describe("loadSnapshotMessages", () => {
   it("reads the thread's snapshot endpoint", async () => {
-    mockRequestJson.mockResolvedValue({ cursor: 0, chunks: [] });
+    const seen = serveSnapshot({ cursor: 0, chunks: [] });
 
     await loadSnapshotMessages("c1");
 
-    expect(mockRequestJson.mock.calls[0]?.[1]).toBe(
-      "/api/v1/conversations/c1/events/snapshot",
-    );
+    expect(seen).toEqual(["/api/v1/conversations/c1/events/snapshot"]);
   });
 
   it("rebuilds the transcript the snapshot holds", async () => {
-    mockRequestJson.mockResolvedValue({
+    serveSnapshot({
       cursor: 7,
       chunks: [
         { type: "user-message", message: { id: "u1", role: "user", parts: [] } },
@@ -56,30 +64,47 @@ describe("loadSnapshotMessages", () => {
     ]);
   });
 
+  it("advances the resume cursor to the one the snapshot reports", async () => {
+    serveSnapshot({ cursor: 9, chunks: [] });
+
+    await loadSnapshotMessages("c1");
+
+    expect(conversationCursors.read("c1")).toBe(9);
+  });
+
+  it("keeps the resume cursor a stream already recorded", async () => {
+    // A snapshot taken before the stream's last frame reports a lower cursor.
+    // Writing it back would replay every frame between the two.
+    conversationCursors.write("c1", 42);
+    serveSnapshot({ cursor: 7, chunks: [] });
+
+    await loadSnapshotMessages("c1");
+
+    expect(conversationCursors.read("c1")).toBe(42);
+  });
+
   it("reads a conversation with no event log as an empty transcript", async () => {
-    mockRequestJson.mockRejectedValue(
-      new APIError("not found", {
-        status: 404,
-        statusText: "Not Found",
-        url: "/api/v1/conversations/gone/events/snapshot",
-        data: null,
-      }),
-    );
+    server.use(http.get(SNAPSHOT_ROUTE, () => new HttpResponse(null, { status: 404 })));
 
     expect(await loadSnapshotMessages("gone")).toEqual([]);
   });
 
-  it("reports any other failure to the caller", async () => {
-    mockRequestJson.mockRejectedValue(
-      new APIError("boom", {
-        status: 500,
-        statusText: "Server Error",
-        url: "/api/v1/conversations/c1/events/snapshot",
-        data: null,
-      }),
+  it("reports any other failure with the sentence the server offered", async () => {
+    server.use(
+      http.get(SNAPSHOT_ROUTE, () =>
+        HttpResponse.json({ detail: "Event log unreadable" }, { status: 500 }),
+      ),
     );
 
-    await expect(loadSnapshotMessages("c1")).rejects.toThrow(APIError);
+    const failure = await loadSnapshotMessages("c1").then(
+      () => null,
+      (err: unknown) => err,
+    );
+
+    expect(failure).toBeInstanceOf(APIError);
+    if (!(failure instanceof APIError)) return;
+    expect(failure.status).toBe(500);
+    expect(failure.message).toBe("Event log unreadable");
   });
 });
 

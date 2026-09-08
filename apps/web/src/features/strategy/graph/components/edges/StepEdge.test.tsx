@@ -34,7 +34,7 @@ const baseProps: EdgeProps = {
   selectable: true,
   deletable: true,
   type: "step",
-} as EdgeProps;
+};
 
 function renderEdge() {
   return render(

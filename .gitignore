@@ -70,6 +70,9 @@ htmlcov/
 .ruff_cache/
 .import_linter_cache/
 
+# React Compiler reactivity test scratch, left behind by a killed run
+*.compiled.jsx
+
 # Playwright
 apps/web/playwright-report/
 apps/web/test-results/

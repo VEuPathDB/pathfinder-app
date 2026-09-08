@@ -3,15 +3,12 @@
  */
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getExpandedRowModel,
-} from "@tanstack/react-table";
+import { useTable } from "@tanstack/react-table";
 import type { RecordAttribute } from "@pathfinder/shared/generated/types/RecordAttribute";
 import type { ClassifiedRecord } from "@pathfinder/shared/generated/types/ClassifiedRecord";
 import { RecordRow } from "./RecordRow";
 import { buildColumns, getPrimaryKey } from "./ResultsTableColumns";
+import { resultsTableFeatures } from "./resultsTableFeatures";
 
 vi.mock("./ExpandedRowDetail", () => ({
   ExpandedRowDetail: ({ pk, loading }: { pk: string; loading: boolean }) => (
@@ -64,18 +61,16 @@ function Harness({
   isExpanded = false,
   onToggle = () => {},
 }: HarnessProps) {
-  "use no memo";
   const tableColumns = buildColumns(attributes, includeClassification);
   const rowId = getPrimaryKey(record);
-  const table = useReactTable<ClassifiedRecord>({
+  const table = useTable({
+    features: resultsTableFeatures,
     data: [record],
     columns: tableColumns,
     getRowId: (row) => getPrimaryKey(row),
     state: { expanded: isExpanded ? { [rowId]: true } : {} },
     onExpandedChange: () => {},
     manualExpanding: true,
-    getCoreRowModel: getCoreRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
   });
 
   const row = table.getRowModel().rows[0];
@@ -87,7 +82,9 @@ function Harness({
     <table>
       <tbody>
         <RecordRow
-          row={row}
+          pk={row.id}
+          cells={row.getVisibleCells()}
+          isExpanded={row.getIsExpanded()}
           detail={null}
           detailError={null}
           detailLoading={false}

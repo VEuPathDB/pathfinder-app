@@ -13,8 +13,7 @@ class ResizeObserverPolyfill {
   disconnect() {}
 }
 if (typeof globalThis.ResizeObserver === "undefined") {
-  globalThis.ResizeObserver =
-    ResizeObserverPolyfill as unknown as typeof ResizeObserver;
+  globalThis.ResizeObserver = ResizeObserverPolyfill;
 }
 if (
   typeof Element !== "undefined" &&
@@ -37,7 +36,7 @@ if (
   Element.prototype.setPointerCapture = () => {};
 }
 if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
-  window.matchMedia = ((query: string) => ({
+  window.matchMedia = (query: string) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -46,7 +45,7 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
     addListener: () => undefined,
     removeListener: () => undefined,
     dispatchEvent: () => true,
-  })) as typeof window.matchMedia;
+  });
 }
 
 type WrapperComponent = ComponentType<{ children: ReactNode }>;

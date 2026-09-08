@@ -11,7 +11,8 @@ from collections.abc import AsyncIterator
 import httpx
 import pytest
 from fastapi import FastAPI
-from fastapi.routing import APIRoute
+
+from pathfinder.tests._support.routes import api_routes
 
 _SAFE_METHODS: frozenset[str] = frozenset({"GET", "HEAD", "OPTIONS"})
 _EXPECTED_DETAIL = "Missing required X-Requested-With header"
@@ -36,9 +37,7 @@ async def unheaded_client(
 def _state_changing_routes(app: FastAPI) -> list[tuple[str, str]]:
     """Yield ``(method, path)`` for every POST/PUT/PATCH/DELETE on the app."""
     out: list[tuple[str, str]] = []
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
-            continue
+    for route in api_routes(app.routes):
         for method in route.methods:
             if method in _SAFE_METHODS:
                 continue

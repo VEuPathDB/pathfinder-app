@@ -22,7 +22,7 @@ function makeSpec(
       unknown
     >,
 ): ParamSpec {
-  return { ...overrides } as ParamSpec;
+  return { ...overrides };
 }
 
 // ---------------------------------------------------------------------------

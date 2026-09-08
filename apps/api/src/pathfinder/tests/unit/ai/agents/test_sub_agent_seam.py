@@ -39,6 +39,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
     SUB_AGENT_MODEL_BY_ROLE,
 )
 from pathfinder.ai.models.settings import baked_model_id
+from pathfinder.tests._support.instructions import pinned_instructions
 from pathfinder.tests._support.sub_agents import agent_tool_names
 
 SCRATCHPAD_TOOL_NAMES = frozenset(
@@ -293,10 +294,7 @@ def test_the_product_module_owns_every_strategy_renderer() -> None:
 
 @pytest.mark.parametrize("role", sorted(BUILDERS))
 def test_each_agent_pins_its_renderers_in_the_same_order(role: PhaseRole) -> None:
-    names = [
-        item if isinstance(item, str) else item.__name__
-        for item in BUILDERS[role]()._instructions
-    ]
+    names = pinned_instructions(BUILDERS[role]())
     assert names[1:] == INSTRUCTION_ORDER[role]
 
 

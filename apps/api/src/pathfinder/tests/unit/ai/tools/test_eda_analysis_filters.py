@@ -167,9 +167,11 @@ async def _apply_rejects(
     del conversation_id, analysis_id, dataset_id, filters
     raise SubsetRejectedError(
         [
-            f"Filter stringSet on variable {SPECIES_VARIABLE} of entity "
-            f"{PHENOTYPE_ENTITY} names P. vivax, which the vocabulary does not "
-            f"carry. The vocabulary is P. berghei, P. falciparum, P. yoelii."
+            (
+                f"Filter stringSet on variable {SPECIES_VARIABLE} of entity "
+                f"{PHENOTYPE_ENTITY} names P. vivax, which the vocabulary does not "
+                f"carry. The vocabulary is P. berghei, P. falciparum, P. yoelii."
+            )
         ]
     )
 

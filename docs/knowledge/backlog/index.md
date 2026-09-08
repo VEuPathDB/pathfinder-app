@@ -12,6 +12,8 @@ what left.
 3. [The portal search listing exceeds the compaction threshold](portal-search-listing-exceeds-the-compaction-threshold.md) - 2769 listings, about 144K tokens, so FRAME is compacted after every step on veupathdb.org and the scripted mock re-runs the build arc; two thread-surgery journeys are red on the portal.
 4. [Re-cut the authoring model out of veupathdb-py](re-cut-the-authoring-model-out-of-veupathdb-py.md) - the client ships PathFinder's strategy authoring model because `veupathdb.wdk` names it: 47 measured edges into `ast`, `ops`, `tree`, `graph_model`, `session` and `operational_spec`.
 5. [Adopt the new ai SDK resume semantics](adopt-the-new-ai-sdk-resume-semantics.md) - `ai` 6.0.250 made a resumed stream a fresh response, so the assistant client is pinned below it and two conformance cases fail on the current release.
+6. [Move library-shaped code out of the app](move-library-shaped-code-out-of-the-app.md) - fourteen modules that name no gene, strategy or phase still live here (durable tasks, scratchpad, PIGuard, history processors, quota, WDK identity and counts); the ranked list with targets and effort is the card.
+7. [The SSE golden depends on when the title task finishes](sse-golden-depends-on-title-scheduling.md) - the title chunk's position in a turn is a scheduling outcome, so the simple-turn golden pins an order the runner does not guarantee.
 
 ## Known and accepted
 

@@ -20,14 +20,14 @@ function exhibit(taskId: string, toolCallId: string): UIMessage["parts"][number]
       targetEstimatedSize: 132,
       positive: { controlsCount: 3, intersectionCount: 2, recall: 2 / 3 },
     },
-  } as UIMessage["parts"][number];
+  };
 }
 
 function toolSummary(toolCallId: string, summary: string): UIMessage["parts"][number] {
   return {
     type: "data-tool-summary",
     data: { toolCallId, summary, status: "ok" },
-  } as UIMessage["parts"][number];
+  };
 }
 
 function subAgentStep(
@@ -44,7 +44,7 @@ function subAgentStep(
       toolName: "run_control_tests_on_step",
       resultSummary,
     },
-  } as UIMessage["parts"][number];
+  };
 }
 
 describe("what a finished task's row reads off the thread", () => {

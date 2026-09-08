@@ -8,7 +8,6 @@ already carries.
 from __future__ import annotations
 
 import asyncio
-from typing import Any
 from uuid import uuid4
 
 from pydantic_ai import Agent, RunContext
@@ -36,6 +35,7 @@ from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
+from pathfinder.tests._support.instructions import pinned_instructions
 
 _LIMITS = UsageLimits(
     request_limit=10, tool_calls_limit=80, total_tokens_limit=4_000_000
@@ -106,13 +106,6 @@ async def test_the_meter_moves_between_steps_of_one_run() -> None:
     assert "tools 1/6" in seen[1]
 
 
-def _pinned(agent: Any) -> list[str]:
-    return [
-        item if isinstance(item, str) else getattr(item, "__name__", "")
-        for item in agent._instructions
-    ]
-
-
 def test_every_agent_that_runs_under_a_limit_pins_the_meter() -> None:
     for build in (
         build_lead_agent,
@@ -120,7 +113,7 @@ def test_every_agent_that_runs_under_a_limit_pins_the_meter() -> None:
         build_execution_agent,
         build_verification_agent,
     ):
-        assert "pinned_run_budget" in _pinned(build())
+        assert "pinned_run_budget" in pinned_instructions(build())
 
 
 def _lead_ctx(usage: RunUsage, limits: UsageLimits) -> RunContext[LeadDeps]:

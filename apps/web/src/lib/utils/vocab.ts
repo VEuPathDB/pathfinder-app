@@ -79,8 +79,7 @@ export function extractVocabOptions(vocabulary: unknown, limit = 200): VocabOpti
       pushOption(value, label !== "" ? label : value, depth);
     }
     const children = getRecordField(node, "children") as
-      | Array<Record<string, unknown>>
-      | undefined;
+      Array<Record<string, unknown>> | undefined;
     if (children != null) {
       children.forEach((child) => walkTree(child, depth + 1));
     }

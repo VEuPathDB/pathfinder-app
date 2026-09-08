@@ -1,7 +1,7 @@
 repos:
   # Ruff for API: pre-commit installs ruff so hooks work without `uv` on PATH
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.5
+    rev: v0.16.6
     hooks:
       - id: ruff-check
         name: ruff check (api)

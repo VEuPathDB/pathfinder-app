@@ -25,8 +25,10 @@ def pinned_frame_workspace(ctx: RunContext[AgentDeps]) -> str | None:
         return None
     lines = [
         "# FRAME workspace (in-progress spec)",
-        "Values shown here are already bound and are preserved unless the "
-        "request changes them.",
+        (
+            "Values shown here are already bound and are preserved unless the "
+            "request changes them."
+        ),
     ]
     for c in spec.criteria:
         slots = [s.param_name for s in c.open_params]

@@ -74,7 +74,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     command: .venv/bin/python -m pathfinder.jobs.worker
-    # Shares the API image but serves no HTTP — disable the curl healthcheck.
+    # The worker shares the API image but serves no HTTP, so curl cannot check it.
     # restart covers the boot window before the API applies the DB schema, and
     # any later crash of the worker loop.
     restart: unless-stopped

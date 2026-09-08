@@ -12,7 +12,7 @@ function thread(states: object[]): UIMessage[] {
     id: `m${String(index)}`,
     role: "assistant",
     parts: [{ type: "data-eda.analysis-state", data: state }],
-  })) as UIMessage[];
+  }));
 }
 
 describe("isNewestAnalysisState", () => {

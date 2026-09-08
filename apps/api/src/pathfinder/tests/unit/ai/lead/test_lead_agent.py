@@ -38,6 +38,7 @@ from pathfinder.ai.lead.lead_agent import (
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.models.settings import baked_model_id
+from pathfinder.tests._support.instructions import pinned_instructions
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     lead_run_context,
@@ -128,10 +129,9 @@ def test_the_built_agent_keeps_its_model_and_identity() -> None:
 
 
 def test_the_built_agent_pins_the_same_instructions_in_the_same_order() -> None:
-    instructions = build_lead_agent()._instructions
+    instructions = pinned_instructions(build_lead_agent())
     assert instructions[0] == LEAD_INSTRUCTIONS
-    names = [getattr(fn, "__name__", "") for fn in instructions[1:]]
-    assert names == PINNED_INSTRUCTIONS
+    assert instructions[1:] == PINNED_INSTRUCTIONS
 
 
 def test_the_node_factory_takes_the_agent_factory() -> None:

@@ -29,7 +29,7 @@ export function SiteIcon({ siteId, size = 24, className }: SiteIconProps) {
         height={size}
         className="h-full w-full object-contain"
         onError={(e) => {
-          (e.currentTarget as HTMLImageElement).src = fallback;
+          e.currentTarget.src = fallback;
         }}
       />
     </span>

@@ -29,17 +29,21 @@ def edit_work_order(reason: str, prompt: str, before: OperationalSpec) -> str:
         f"EDIT work order: {reason}",
         f"The user's message: {prompt}",
         "",
-        "This turn EDITS the strategy below; it is not a fresh frame. State a "
-        'disposition in `changes` for EVERY criterion listed here: "kept", '
-        '"changed" (name the parameters the request moves in `changed_params`) '
-        'or "dropped" (with a `reason`).',
+        (
+            "This turn EDITS the strategy below; it is not a fresh frame. State a "
+            'disposition in `changes` for EVERY criterion listed here: "kept", '
+            '"changed" (name the parameters the request moves in `changed_params`) '
+            'or "dropped" (with a `reason`).'
+        ),
         "",
-        "A criterion the request does not name is kept: do not call "
-        "set_criterion for it, and its values below stay byte for byte. For a "
-        "criterion the request DOES change, call set_criterion with the values "
-        "below as the `params` object plus the requested override, so only the "
-        "named parameter moves and every other value is copied rather than "
-        "re-derived from the text.",
+        (
+            "A criterion the request does not name is kept: do not call "
+            "set_criterion for it, and its values below stay byte for byte. For a "
+            "criterion the request DOES change, call set_criterion with the values "
+            "below as the `params` object plus the requested override, so only the "
+            "named parameter moves and every other value is copied rather than "
+            "re-derived from the text."
+        ),
         "",
         *_shape_lines(before),
         f"The strategy holds {len(before.criteria)} criteria now:",
@@ -56,13 +60,15 @@ def edit_work_order(reason: str, prompt: str, before: OperationalSpec) -> str:
     lines.extend(
         [
             "",
-            "A request that changes how the steps COMBINE is a structure "
-            "change, not a criterion change: call set_structure with the whole "
-            "new tree over the same criterion ids printed above, and state "
-            '"kept" for every criterion the request does not otherwise touch. '
-            "Each leaf keeps its step and its WDK id; only the combines above "
-            "them are rebuilt. The tree states every criterion the spec keeps "
-            "and no step the strategy does not hold.",
+            (
+                "A request that changes how the steps COMBINE is a structure "
+                "change, not a criterion change: call set_structure with the whole "
+                "new tree over the same criterion ids printed above, and state "
+                '"kept" for every criterion the request does not otherwise touch. '
+                "Each leaf keeps its step and its WDK id; only the combines above "
+                "them are rebuilt. The tree states every criterion the spec keeps "
+                "and no step the strategy does not hold."
+            ),
             "",
             "Return a FrameResult with `changes` filled in.",
         ]

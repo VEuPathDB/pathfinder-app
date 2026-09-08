@@ -1,5 +1,4 @@
-# Grab uv binary from the official image — avoids `pip install uv` bootstrap.
-FROM ghcr.io/astral-sh/uv:latest AS uv
+FROM ghcr.io/astral-sh/uv:0.12.10 AS uv
 
 FROM python:3.14-slim
 
@@ -14,16 +13,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Cached layer: dependencies + models (busted only by pyproject.toml/uv.lock) ──
-
-# Copy dependency manifests only — NOT application source code.
+# Cached layer: dependencies and models. Only the manifests below bust it, so
+# the application source stays out of it.
 COPY apps/api/pyproject.toml apps/api/
 COPY apps/api/uv.lock apps/api/
 COPY apps/api/config.toml apps/api/
 
-# Install dependencies without the project itself (no source code needed).
-# Cache mount preserves uv's download cache across builds — even when deps
-# change, already-fetched packages aren't re-downloaded from PyPI.
+# The cache mount keeps uv's download cache across builds, so a dependency
+# change fetches only the new packages.
 WORKDIR /app/apps/api
 RUN --mount=type=cache,target=/root/.cache/uv \
     UV_LINK_MODE=copy uv sync --frozen --no-install-project
@@ -54,19 +51,18 @@ tokenizer = Tokenizer.from_file('/app/models/piguard/tokenizer.json')
 print('PIGuard ONNX model verified')
 PYEOF
 
-# ── Fast layer: application code (re-runs on every code change, but cheap) ──
+# Fast layer: application code. Every code change re-runs it.
 
 WORKDIR /app
 
-# Copy Alembic config and migrations
 COPY apps/api/alembic.ini apps/api/
 COPY apps/api/alembic apps/api/alembic
 
-# Copy application code (exclude tests — they add ~300MB of VCR cassettes)
+# The tests carry large VCR cassettes, so the image does not keep them.
 COPY apps/api/src/pathfinder apps/api/src/pathfinder
 RUN rm -rf apps/api/src/pathfinder/tests
 
-# Copy optional Ollama models config (glob avoids failure if missing)
+# The glob makes this copy a no-op when the file is absent.
 COPY ollama_models.yam[l] ./
 
 # Run from source inside the image. Avoid a second `uv sync` after copying app
@@ -76,14 +72,12 @@ ENV PYTHONPATH=/app/apps/api/src
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app/apps/api
 
-# Expose port
 EXPOSE 8000
 
-# Health check — the server binds before the warm-up finishes and loads a
-# catalog on demand, so serving is what a compose dependent needs. Warm-up
-# progress is reported per subsystem by /health/ready, which the UI polls.
+# The server binds before the warm-up finishes and loads a catalog on demand,
+# so serving is what a compose dependent needs. /health/ready reports warm-up
+# progress per subsystem.
 HEALTHCHECK --interval=10s --timeout=10s --start-period=60s --retries=5 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application
 CMD [".venv/bin/uvicorn", "pathfinder.main:app", "--host", "0.0.0.0", "--port", "8000"]

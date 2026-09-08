@@ -88,20 +88,26 @@ def _one_filter(
     if entity is None:
         known = [known.id for known in walk_entities(study.root_entity)]
         return [
-            f"Filter {entry.type} names entity {entry.entity_id}, which study "
-            f"{study.id} does not carry. Its entities are {listed(known)}."
+            (
+                f"Filter {entry.type} names entity {entry.entity_id}, which study "
+                f"{study.id} does not carry. Its entities are {listed(known)}."
+            )
         ]
     variable = variable_by_id(entity, entry.variable_id)
     if variable is None:
         return [
-            f"Filter {entry.type} names variable {entry.variable_id}, which entity "
-            f"{entity.id} does not declare. A variable id is only valid on the "
-            f"entity that declares it."
+            (
+                f"Filter {entry.type} names variable {entry.variable_id}, which entity "
+                f"{entity.id} does not declare. A variable id is only valid on the "
+                f"entity that declares it."
+            )
         ]
     if entry.type not in CHECKS:
         return [
-            f"Filter type {entry.type} is not one the service deserializes. The "
-            f"types are {listed(sorted(CHECKS))}."
+            (
+                f"Filter type {entry.type} is not one the service deserializes. The "
+                f"types are {listed(sorted(CHECKS))}."
+            )
         ]
     return CHECKS[entry.type](Site(entry, entity, variable, declared_ranges))
 

@@ -105,8 +105,10 @@ def test_a_member_outside_a_closed_type_fails() -> None:
     body = _fixture("compute_job_lookup")
     body["notAnEdaField"] = "x"
     assert verify_wire_body("JobResponse", body) == (
-        "<root>: Additional properties are not allowed "
-        "('notAnEdaField' was unexpected)",
+        (
+            "<root>: Additional properties are not allowed "
+            "('notAnEdaField' was unexpected)"
+        ),
     )
 
 

@@ -247,8 +247,10 @@ def _semantic_directive(
 
 _NEXT_ACTIONS_OUTAGE = [
     "Prefer a DIFFERENT search that covers the same intent for now",
-    "If no equivalent search fits, tell the user this search is temporarily "
-    "unavailable and they can retry shortly; do not drop it as invalid",
+    (
+        "If no equivalent search fits, tell the user this search is temporarily "
+        "unavailable and they can retry shortly; do not drop it as invalid"
+    ),
 ]
 
 

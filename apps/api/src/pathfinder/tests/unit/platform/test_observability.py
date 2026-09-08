@@ -4,6 +4,10 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
+from opentelemetry.instrumentation.httpx import (
+    HTTPX2ClientInstrumentor,
+    HTTPXClientInstrumentor,
+)
 
 from pathfinder.platform import observability
 from pathfinder.platform.observability import (
@@ -11,6 +15,7 @@ from pathfinder.platform.observability import (
     _configure_exporters,
     _configure_log_export,
     _instrument_agents,
+    _instrument_http_clients,
     setup_observability,
     shutdown_observability,
 )
@@ -269,6 +274,26 @@ def test_configure_exporters_prefers_signoz_http_for_traces_when_configured() ->
     assert http_exporter_cls.call_args.kwargs == {
         "endpoint": "http://localhost:4318/v1/traces"
     }
+
+
+def test_both_httpx_distributions_are_instrumented() -> None:
+    """The model providers speak httpx2, the WDK client httpx.
+
+    A span is lost for every client the setup leaves uninstrumented.
+    """
+    httpx_one = HTTPXClientInstrumentor()
+    httpx_two = HTTPX2ClientInstrumentor()
+    try:
+        _instrument_http_clients()
+        instrumented = (
+            httpx_one.is_instrumented_by_opentelemetry,
+            httpx_two.is_instrumented_by_opentelemetry,
+        )
+    finally:
+        httpx_one.uninstrument()
+        httpx_two.uninstrument()
+
+    assert instrumented == (True, True)
 
 
 @pytest.mark.parametrize("include_content", [True, False])

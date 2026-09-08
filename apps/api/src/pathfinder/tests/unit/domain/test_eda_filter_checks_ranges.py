@@ -34,9 +34,11 @@ class TestTheRangeMatchesTheVariable:
                 max="2017-05-11T00:00:00",
             )
         ) == [
-            f"Filter dateRange on variable {_SUCCESS} of entity {_ENT} is refused: "
-            f"the variable type is string, and dateRange applies to a variable of "
-            f"type date."
+            (
+                f"Filter dateRange on variable {_SUCCESS} of entity {_ENT} is refused: "
+                f"the variable type is string, and dateRange applies to a variable of "
+                f"type date."
+            )
         ]
 
 
@@ -78,9 +80,11 @@ class TestTheBounds:
                 max="2017-05-05T00:00:00",
             )
         ) == [
-            f"Filter dateRange on variable {_DATE} of entity {_ENT} has min "
-            f"2017-05-11T00:00:00 above max 2017-05-05T00:00:00, which returns "
-            f"count 0 rather than an error."
+            (
+                f"Filter dateRange on variable {_DATE} of entity {_ENT} has min "
+                f"2017-05-11T00:00:00 above max 2017-05-05T00:00:00, which returns "
+                f"count 0 rather than an error."
+            )
         ]
 
 
@@ -88,9 +92,11 @@ class TestTheLongitudeWindow:
     def test_a_degenerate_longitude_window_is_refused(self) -> None:
         """left == right silently selects every row, so it never means what it looks like."""
         assert _errors(Filt(_ENT, _LON, "longitudeRange", left=15.5, right=15.5)) == [
-            f"Filter longitudeRange on variable {_LON} of entity {_ENT} has left "
-            f"15.5 equal to right 15.5 within 1e-08, and the service reads an equal "
-            f"pair as a no-op that keeps every row."
+            (
+                f"Filter longitudeRange on variable {_LON} of entity {_ENT} has left "
+                f"15.5 equal to right 15.5 within 1e-08, and the service reads an equal "
+                f"pair as a no-op that keeps every row."
+            )
         ]
 
     def test_a_longitude_window_narrower_than_the_epsilon_is_degenerate(self) -> None:
@@ -98,9 +104,11 @@ class TestTheLongitudeWindow:
         assert _errors(
             Filt(_ENT, _LON, "longitudeRange", left=15.0, right=15.000000001)
         ) == [
-            f"Filter longitudeRange on variable {_LON} of entity {_ENT} has left "
-            f"15.0 equal to right 15.000000001 within 1e-08, and the service reads "
-            f"an equal pair as a no-op that keeps every row."
+            (
+                f"Filter longitudeRange on variable {_LON} of entity {_ENT} has left "
+                f"15.0 equal to right 15.000000001 within 1e-08, and the service reads "
+                f"an equal pair as a no-op that keeps every row."
+            )
         ]
 
     def test_a_longitude_window_wider_than_the_epsilon_passes(self) -> None:
@@ -125,14 +133,18 @@ class TestTheDeclaredRange:
 
     def test_a_max_one_unit_above_the_declared_range_is_refused(self) -> None:
         assert _declared(0.0, 21.0) == [
-            f"Filter numberRange on variable {_COUNT} of entity {_ENT} has 21.0 "
-            f"outside the declared range 0.0 to 20.0."
+            (
+                f"Filter numberRange on variable {_COUNT} of entity {_ENT} has 21.0 "
+                f"outside the declared range 0.0 to 20.0."
+            )
         ]
 
     def test_a_min_one_unit_below_the_declared_range_is_refused(self) -> None:
         assert _declared(-1.0, 20.0) == [
-            f"Filter numberRange on variable {_COUNT} of entity {_ENT} has -1.0 "
-            f"outside the declared range 0.0 to 20.0."
+            (
+                f"Filter numberRange on variable {_COUNT} of entity {_ENT} has -1.0 "
+                f"outside the declared range 0.0 to 20.0."
+            )
         ]
 
     def test_a_bound_outside_the_declared_range_is_reported_as_declared(self) -> None:

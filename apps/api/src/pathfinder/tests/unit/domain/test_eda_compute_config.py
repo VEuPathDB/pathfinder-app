@@ -93,8 +93,10 @@ class TestTheInputVariables:
         self,
     ) -> None:
         assert _errors(identifier_variable=Spec(_COUNTS, _READS)) == [
-            f"identifierVariable names {_READS}, and differentialexpression accepts "
-            f"only {VEUPATHDB_GENE_ID}."
+            (
+                f"identifierVariable names {_READS}, and differentialexpression accepts "
+                f"only {VEUPATHDB_GENE_ID}."
+            )
         ]
 
     def test_a_value_variable_outside_the_reserved_ids_is_refused(self) -> None:
@@ -122,9 +124,11 @@ class TestTheInputVariables:
                 comparator=_comparator(["a"], ["b"], Spec("P", "C")),
             ),
         ) == [
-            "valueVariable names MADE_UP, and differentialexpression accepts "
-            "NORMALIZED_EXPRESSION, NORMALIZED_INTENSITY, SEQUENCE_READ_COUNT, "
-            "SEQUENCE_READ_COUNT_ANTISENSE, SEQUENCE_READ_COUNT_SENSE."
+            (
+                "valueVariable names MADE_UP, and differentialexpression accepts "
+                "NORMALIZED_EXPRESSION, NORMALIZED_INTENSITY, SEQUENCE_READ_COUNT, "
+                "SEQUENCE_READ_COUNT_ANTISENSE, SEQUENCE_READ_COUNT_SENSE."
+            )
         ]
 
     def test_an_input_entity_the_study_does_not_carry_is_refused(self) -> None:
@@ -137,9 +141,11 @@ class TestTheInputVariables:
 class TestTheComparator:
     def test_the_comparator_variable_must_sit_on_an_ancestor_entity(self) -> None:
         assert _errors(comparator=_comparator(["a"], ["b"], Spec(_COUNTS, _READS))) == [
-            f"comparator.variable is on entity {_COUNTS}, and the plugin reads the "
-            f"comparator from an ancestor entity of {_COUNTS}. The ancestor "
-            f"entities are {_SAMPLES}."
+            (
+                f"comparator.variable is on entity {_COUNTS}, and the plugin reads the "
+                f"comparator from an ancestor entity of {_COUNTS}. The ancestor "
+                f"entities are {_SAMPLES}."
+            )
         ]
 
     def test_a_comparator_variable_the_entity_does_not_declare_is_refused(self) -> None:
@@ -161,20 +167,26 @@ class TestTheComparator:
 
     def test_an_empty_group_is_refused(self) -> None:
         assert _on_temperature([], ["febrile"]) == [
-            "comparator groupA is empty, and the plugin needs a label in each group "
-            "to name the two sides of the comparison."
+            (
+                "comparator groupA is empty, and the plugin needs a label in each group "
+                "to name the two sides of the comparison."
+            )
         ]
 
     def test_an_empty_group_b_is_refused(self) -> None:
         assert _on_temperature(["normal"], []) == [
-            "comparator groupB is empty, and the plugin needs a label in each group "
-            "to name the two sides of the comparison."
+            (
+                "comparator groupB is empty, and the plugin needs a label in each group "
+                "to name the two sides of the comparison."
+            )
         ]
 
     def test_the_two_groups_may_not_share_a_label(self) -> None:
         assert _on_temperature(["normal"], ["normal"]) == [
-            "comparator names normal in both groups, and a sample cannot be its own "
-            "control."
+            (
+                "comparator names normal in both groups, and a sample cannot be its own "
+                "control."
+            )
         ]
 
     def test_a_category_comparator_variable_is_refused(self) -> None:
@@ -206,9 +218,11 @@ class TestTheComparator:
                 comparator=_comparator(["Yes"], ["No"], Spec("P", "CAT_C")),
             ),
         ) == [
-            "comparator.variable names CAT_C, which is a category variable. A category "
-            "groups other variables and holds no values, so no label can name a side "
-            "of the comparison."
+            (
+                "comparator.variable names CAT_C, which is a category variable. A category "
+                "groups other variables and holds no values, so no label can name a side "
+                "of the comparison."
+            )
         ]
 
     def test_a_comparator_variable_with_no_vocabulary_accepts_any_label(self) -> None:

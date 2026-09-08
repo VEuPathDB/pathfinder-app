@@ -30,15 +30,22 @@ describe("selectStatusLabel", () => {
   });
 
   it("moves on to the label the worker sends when it starts the turn", () => {
-    expect(selectStatusLabel(running("Queued", "Preparing context"))).toBe(
-      "Preparing context",
+    expect(selectStatusLabel(running("Queued", "Starting the turn"))).toBe(
+      "Starting the turn",
     );
   });
 
   it("keeps the last label a turn reported", () => {
     expect(
-      selectStatusLabel(running("Queued", "Preparing context", "Thinking...")),
-    ).toBe("Thinking...");
+      selectStatusLabel(
+        running(
+          "Queued",
+          "Starting the turn",
+          "Recalling earlier work",
+          "Reading the thread",
+        ),
+      ),
+    ).toBe("Reading the thread");
   });
 
   it("falls back to Thinking... when the turn reported no status", () => {

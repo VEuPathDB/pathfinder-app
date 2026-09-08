@@ -24,9 +24,11 @@ class StaleBuild:
 
     def render(self) -> str:
         lines = [
-            "STALE: the strategy was edited outside this conversation, so the "
-            "build counts below are out of date. Call get_live_strategy_state "
-            "before quoting any number to the user.",
+            (
+                "STALE: the strategy was edited outside this conversation, so the "
+                "build counts below are out of date. Call get_live_strategy_state "
+                "before quoting any number to the user."
+            ),
         ]
         lines.extend(
             f"  - {node_id}: recorded {recorded} -> now {live}"

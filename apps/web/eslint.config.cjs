@@ -20,6 +20,8 @@ module.exports = defineConfig([
       // Treat as third-party; lint rules apply to PathFinder code only.
       "src/components/ui/**",
       "src/components/ai-elements/**",
+      // Written and removed by the React Compiler reactivity test.
+      "src/**/*.compiled.jsx",
     ],
   },
   ...nextConfig,

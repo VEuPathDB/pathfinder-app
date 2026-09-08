@@ -14,8 +14,6 @@ export function getInputByLabel(label: string): HTMLInputElement {
   return el;
 }
 
-type ParamFormValues = Record<string, string | string[]>;
-
 export function WidgetTestForm({
   name,
   defaultValue,
@@ -26,7 +24,7 @@ export function WidgetTestForm({
   children: (field: ParamWidgetProps["field"]) => ReactNode;
 }) {
   const form = useForm({
-    defaultValues: { [name]: defaultValue } as ParamFormValues,
+    defaultValues: { [name]: defaultValue },
     onSubmit: () => {},
   });
 
@@ -45,7 +43,7 @@ export function WidgetTestFormWithValidation({
   children: (field: ParamWidgetProps["field"]) => ReactNode;
 }) {
   const form = useForm({
-    defaultValues: { [name]: defaultValue } as ParamFormValues,
+    defaultValues: { [name]: defaultValue },
     onSubmit: () => {},
   });
 

@@ -19,7 +19,7 @@ function makeSpec(overrides: Partial<ParamSpec> = {}): ParamSpec {
     isNumber: false,
     countOnlyLeaves: false,
     ...overrides,
-  } as ParamSpec;
+  };
 }
 
 describe("StringParam (form-aware)", () => {

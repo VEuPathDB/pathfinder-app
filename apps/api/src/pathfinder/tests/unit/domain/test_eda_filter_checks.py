@@ -92,16 +92,20 @@ def test_a_date_set_member_without_a_time_is_refused() -> None:
 
 def test_a_number_set_on_a_string_variable_is_refused() -> None:
     assert _errors(Filt(_ENT, _SUCCESS, "numberSet", number_set=[1.0])) == [
-        f"Filter numberSet on variable {_SUCCESS} of entity {_ENT} is refused: the "
-        f"variable type is string, and numberSet applies to a variable of type "
-        f"integer, number."
+        (
+            f"Filter numberSet on variable {_SUCCESS} of entity {_ENT} is refused: the "
+            f"variable type is string, and numberSet applies to a variable of type "
+            f"integer, number."
+        )
     ]
 
 
 def test_a_date_set_on_a_number_variable_is_refused() -> None:
     assert _errors(Filt(_ENT, _COUNT, "dateSet", date_set=["2017-05-05T00:00:00"])) == [
-        f"Filter dateSet on variable {_COUNT} of entity {_ENT} is refused: the "
-        f"variable type is integer, and dateSet applies to a variable of type date."
+        (
+            f"Filter dateSet on variable {_COUNT} of entity {_ENT} is refused: the "
+            f"variable type is integer, and dateSet applies to a variable of type date."
+        )
     ]
 
 

@@ -22,9 +22,15 @@ import { ChatHelpersProvider, type ChatHelpers } from "./runtime/chatHelpersCont
 
 const STUB_CHAT = { messages: [], status: "ready" } as unknown as ChatHelpers;
 
+const appended: string[] = [];
+
 function StubRuntimeProvider({ children }: { children: ReactNode }) {
   const runtime = useLocalRuntime({
-    async run() {
+    async run({ messages }) {
+      const last = messages.at(-1);
+      for (const part of last?.content ?? []) {
+        if (part.type === "text") appended.push(part.text);
+      }
       return { content: [] };
     },
   });
@@ -54,6 +60,8 @@ function renderSignedInThread(conversationId: string) {
 
 describe("ChatThread", () => {
   afterEach(() => {
+    appended.length = 0;
+    useSessionStore.getState().setPendingUserSubmission(null);
     window.history.replaceState(null, "", "/");
   });
 
@@ -74,6 +82,20 @@ describe("ChatThread", () => {
     expect(viewport.className).toContain("overflow-y-auto");
     expect(viewport.contains(control)).toBe(false);
     expect(screen.getByTestId("conversation-scroll-rail").contains(control)).toBe(true);
+  });
+
+  it("appends a pending submission to the thread and clears it", async () => {
+    useSessionStore.getState().setPendingUserSubmission({
+      conversationId: "c1",
+      content: "narrow it to kinases",
+    });
+
+    renderSignedInThread("c1");
+
+    await waitFor(() => {
+      expect(appended).toEqual(["narrow it to kinases"]);
+    });
+    expect(useSessionStore.getState().pendingUserSubmission).toBeNull();
   });
 
   it("replaces the url with the conversation's chat url when a run starts", async () => {

@@ -11,13 +11,13 @@ const SEARCHES: Search[] = [
     displayName: "Genes by Ortholog Pattern",
     description: "Pick orthologs",
     recordType: "gene",
-  } as Search,
+  },
   {
     name: "GenesByTaxon",
     displayName: "Genes by Taxon",
     description: "non-ortholog",
     recordType: "gene",
-  } as Search,
+  },
 ];
 
 vi.mock("@/lib/api/sites", async () => {

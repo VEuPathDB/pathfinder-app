@@ -12,15 +12,14 @@ import { CompactStrategyView } from "./CompactStrategyView";
  * row hands it.
  */
 
-const step = (overrides: Partial<Step> & { id: string }): Step =>
-  ({
-    displayName: overrides.id,
-    searchName: "GenesByTaxon",
-    recordType: "gene",
-    parameters: {},
-    isFiltered: false,
-    ...overrides,
-  }) as Step;
+const step = (overrides: Partial<Step> & { id: string }): Step => ({
+  displayName: overrides.id,
+  searchName: "GenesByTaxon",
+  recordType: "gene",
+  parameters: {},
+  isFiltered: false,
+  ...overrides,
+});
 
 const COUNTED: Strategy = {
   id: "s4",

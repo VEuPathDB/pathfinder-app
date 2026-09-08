@@ -65,8 +65,10 @@ def render_frame_full(section: FrameSection) -> str:
 
 def _render_criterion(crit: Criterion) -> list[str]:
     out = [
-        f"- `{crit.id}` [{crit.role}] {crit.text} → "
-        f"search={crit.search_name or '(unbound)'} (conf={crit.confidence:.2f})",
+        (
+            f"- `{crit.id}` [{crit.role}] {crit.text} → "
+            f"search={crit.search_name or '(unbound)'} (conf={crit.confidence:.2f})"
+        ),
     ]
     out.extend(f"    {name}={value!r}" for name, value in crit.resolved_params.items())
     out.extend(f"    OPEN {s.param_name}: {s.question}" for s in crit.open_params)

@@ -1,6 +1,6 @@
 "use client";
 
-import { ThreadPrimitive, useAssistantRuntime, useAuiEvent } from "@assistant-ui/react";
+import { ThreadPrimitive, useAui, useAuiEvent } from "@assistant-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -34,7 +34,7 @@ function ChatUrlSync({ conversationId }: { conversationId: string }) {
 }
 
 export function ChatThread({ conversationId }: { conversationId: string }) {
-  const runtime = useAssistantRuntime();
+  const aui = useAui();
   const pendingSubmission = useSessionStore((s) => s.pendingUserSubmission);
   const [firedContent, setFiredContent] = useState<string | null>(null);
   if (
@@ -46,7 +46,7 @@ export function ChatThread({ conversationId }: { conversationId: string }) {
     setFiredContent(content);
     queueMicrotask(() => {
       useSessionStore.getState().setPendingUserSubmission(null);
-      runtime.thread.append(content);
+      aui.thread().append(content);
     });
   }
   return (

@@ -26,7 +26,10 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
     OTLPSpanExporter as HttpSpanExporter,
 )
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.httpx import (
+    HTTPX2ClientInstrumentor,
+    HTTPXClientInstrumentor,
+)
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
@@ -202,9 +205,13 @@ def _instrument_database(db_engine: object) -> None:
 
 
 def _instrument_http_clients() -> None:
-    """Instrument httpx with per-outgoing-request spans."""
+    """Instrument both httpx distributions with per-outgoing-request spans.
+
+    The model providers speak httpx2 and the WDK client speaks httpx.
+    """
     HTTPXClientInstrumentor().instrument()
-    logger.info("Instrumented: httpx")
+    HTTPX2ClientInstrumentor().instrument()
+    logger.info("Instrumented: httpx, httpx2")
 
 
 def _instrument_agents() -> None:

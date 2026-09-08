@@ -11,17 +11,29 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock }),
 }));
 
+const composerText = vi.hoisted(() => ({ current: "  narrow it to kinases  " }));
+
 vi.mock("@assistant-ui/react", () => ({
   useAuiState: (
     select: (state: {
-      message: { id: string; parentId: string; role: string; content: never[] };
+      message: {
+        id: string;
+        parentId: string;
+        role: string;
+        content: never[];
+        composer: { text: string };
+      };
     }) => unknown,
   ) =>
     select({
-      message: { id: "msg-5", parentId: "msg-4", role: "user", content: [] },
+      message: {
+        id: "msg-5",
+        parentId: "msg-4",
+        role: "user",
+        content: [],
+        composer: { text: composerText.current },
+      },
     }),
-  useEditComposer: (select: (state: { text: string }) => unknown) =>
-    select({ text: "  narrow it to kinases  " }),
 }));
 
 vi.mock("@pathfinder/shared/generated/hooks/useForkStrategy", () => ({
@@ -37,6 +49,7 @@ import { EditComposerBranchOrRevert } from "./EditComposerSend";
 
 describe("EditComposerBranchOrRevert", () => {
   afterEach(() => {
+    composerText.current = "  narrow it to kinases  ";
     useSessionStore.getState().setPendingUserSubmission(null);
   });
 
@@ -86,5 +99,16 @@ describe("EditComposerBranchOrRevert", () => {
     expect(screen.getByTestId("edit-branch-button")).toBeEnabled();
     expect(screen.getByTestId("edit-revert-button")).toBeEnabled();
     expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses to open the dialog while the edit composer holds no text", () => {
+    composerText.current = "   ";
+
+    render(<EditComposerBranchOrRevert />);
+
+    const trigger = screen.getByTestId("edit-composer-branch-or-revert");
+    expect(trigger).toBeDisabled();
+    fireEvent.click(trigger);
+    expect(screen.queryByTestId("edit-branch-button")).toBeNull();
   });
 });

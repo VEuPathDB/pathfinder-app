@@ -12,7 +12,27 @@
   },
   {
     "data": {
-      "label": "Preparing context",
+      "label": "Starting the turn",
+      "waitingOnLlm": false
+    },
+    "type": "data-turn-status"
+  },
+  {
+    "data": {
+      "label": "Recalling earlier work",
+      "waitingOnLlm": false
+    },
+    "type": "data-turn-status"
+  },
+  {
+    "data": {
+      "title": "hi"
+    },
+    "type": "data-conversation-title"
+  },
+  {
+    "data": {
+      "label": "Reading the thread",
       "waitingOnLlm": false
     },
     "type": "data-turn-status"
@@ -24,12 +44,6 @@
       "waitingOnLlm": true
     },
     "type": "data-turn-status"
-  },
-  {
-    "data": {
-      "title": "hi"
-    },
-    "type": "data-conversation-title"
   },
   {
     "type": "start-step"

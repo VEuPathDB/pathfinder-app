@@ -15,10 +15,7 @@ import { graphSnapshotSchema } from "@pathfinder/shared/generated/zod/graphSnaps
 import { strategyMetaSchema } from "@pathfinder/shared/generated/zod/strategyMetaSchema";
 import { turnUsageSchema } from "@pathfinder/shared/generated/zod/turnUsageSchema";
 
-import {
-  DurableChatTransport,
-  resumeDurableThread,
-} from "@pathfinder/assistant-client/ai-sdk";
+import { resumeDurableThread } from "@pathfinder/assistant-client/ai-sdk";
 
 import { getAuthHeaders } from "@/lib/api/http";
 import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
@@ -34,6 +31,7 @@ import { useStrategyStore } from "@/state/strategy/store";
 
 import { buildChatRequestBody } from "./buildRequestBody";
 import type { ChatHelpers } from "./chatHelpersContext";
+import { createDurableTransport } from "./durableTransport";
 import { GeneIdAttachmentAdapter } from "./geneIdAttachmentAdapter";
 
 interface UseChatRuntimeArgs {
@@ -58,36 +56,35 @@ export function useChatRuntime({
     });
   };
   const openMessageId = openAssistantMessageId(initialMessages);
-  const [transport] = useState(
-    () =>
-      new DurableChatTransport({
-        conversationId,
-        eventsUrlFor: (id) => `/api/v1/conversations/${id}/events`,
-        api: "/api/v1/chat",
-        ...(openMessageId === undefined ? {} : { openMessageId }),
-        headers: () =>
-          getAuthHeaders({
-            accept: "text/event-stream",
-            contentType: "application/json",
+  const [transport] = useState(() =>
+    createDurableTransport({
+      conversationId,
+      eventsUrlFor: (id) => `/api/v1/conversations/${id}/events`,
+      api: "/api/v1/chat",
+      ...(openMessageId === undefined ? {} : { openMessageId }),
+      headers: () =>
+        getAuthHeaders({
+          accept: "text/event-stream",
+          contentType: "application/json",
+        }),
+      prepareSendMessagesRequest: async ({ id, messages, trigger, body }) => {
+        const siteId = useSessionStore.getState().selectedSite;
+        const { phaseModels, phaseReasoning } = useSettingsStore.getState();
+        await beginStrategy(conversationId, { siteId });
+        return {
+          body: buildChatRequestBody({
+            conversationId,
+            siteId,
+            id,
+            trigger,
+            messages,
+            baseBody: body as Record<string, unknown> | undefined,
+            phaseModels,
+            phaseReasoning,
           }),
-        prepareSendMessagesRequest: async ({ id, messages, trigger, body }) => {
-          const siteId = useSessionStore.getState().selectedSite;
-          const { phaseModels, phaseReasoning } = useSettingsStore.getState();
-          await beginStrategy(conversationId, { siteId });
-          return {
-            body: buildChatRequestBody({
-              conversationId,
-              siteId,
-              id,
-              trigger,
-              messages,
-              baseBody: body as Record<string, unknown> | undefined,
-              phaseModels,
-              phaseReasoning,
-            }),
-          };
-        },
-      }),
+        };
+      },
+    }),
   );
 
   const chatApi = useChat<UIMessage>({

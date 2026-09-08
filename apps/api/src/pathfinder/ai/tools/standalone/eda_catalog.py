@@ -105,11 +105,13 @@ async def search_eda_studies(
             part
             for part in (
                 found.guidance,
-                "Every description here is cut short. Call "
-                "describe_eda_study on the datasetId you pick, before "
-                "opening an analysis: it reads that study in full - its "
-                "entities, its variables, and what this account may do "
-                "with it.",
+                (
+                    "Every description here is cut short. Call "
+                    "describe_eda_study on the datasetId you pick, before "
+                    "opening an analysis: it reads that study in full - its "
+                    "entities, its variables, and what this account may do "
+                    "with it."
+                ),
             )
             if part
         ),

@@ -23,7 +23,7 @@ function step(overrides: Partial<Step> = {}): Step {
     isFiltered: false,
     estimatedSize: null,
     ...overrides,
-  } as Step;
+  };
 }
 
 function Shell({ s }: { s: Step }) {

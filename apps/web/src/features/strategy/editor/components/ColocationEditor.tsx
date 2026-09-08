@@ -103,7 +103,7 @@ function OffsetRow({
                 { value: "stop", label: "Stop" },
               ]}
               value={field.state.value as "start" | "stop"}
-              onChange={(v) => field.handleChange(v as never)}
+              onChange={(v) => field.handleChange(v)}
             />
           )}
         </form.Field>
@@ -115,7 +115,7 @@ function OffsetRow({
                 { value: "-", label: "−" },
               ]}
               value={field.state.value as "+" | "-"}
-              onChange={(v) => field.handleChange(v as never)}
+              onChange={(v) => field.handleChange(v)}
             />
           )}
         </form.Field>
@@ -126,9 +126,7 @@ function OffsetRow({
               min={0}
               value={typeof field.state.value === "number" ? field.state.value : 0}
               onChange={(event) =>
-                field.handleChange(
-                  Math.max(0, Number(event.target.value || 0)) as never,
-                )
+                field.handleChange(Math.max(0, Number(event.target.value || 0)))
               }
               onBlur={field.handleBlur}
               className="h-8 w-20 text-xs"
@@ -176,28 +174,28 @@ function RegionEditor({
             ]}
             value={field.state.value as "exact" | "upstream" | "downstream" | "custom"}
             onChange={(r) => {
-              field.handleChange(r as never);
+              field.handleChange(r);
               if (r === "exact") {
-                form.setFieldValue(beginKey, "start" as never);
-                form.setFieldValue(beginDirKey, "+" as never);
-                form.setFieldValue(beginOffKey, 0 as never);
-                form.setFieldValue(endKey, "stop" as never);
-                form.setFieldValue(endDirKey, "+" as never);
-                form.setFieldValue(endOffKey, 0 as never);
+                form.setFieldValue(beginKey, "start");
+                form.setFieldValue(beginDirKey, "+");
+                form.setFieldValue(beginOffKey, 0);
+                form.setFieldValue(endKey, "stop");
+                form.setFieldValue(endDirKey, "+");
+                form.setFieldValue(endOffKey, 0);
               } else if (r === "upstream") {
-                form.setFieldValue(beginKey, "start" as never);
-                form.setFieldValue(beginDirKey, "-" as never);
-                form.setFieldValue(beginOffKey, 0 as never);
-                form.setFieldValue(endKey, "start" as never);
-                form.setFieldValue(endDirKey, "+" as never);
-                form.setFieldValue(endOffKey, 0 as never);
+                form.setFieldValue(beginKey, "start");
+                form.setFieldValue(beginDirKey, "-");
+                form.setFieldValue(beginOffKey, 0);
+                form.setFieldValue(endKey, "start");
+                form.setFieldValue(endDirKey, "+");
+                form.setFieldValue(endOffKey, 0);
               } else if (r === "downstream") {
-                form.setFieldValue(beginKey, "stop" as never);
-                form.setFieldValue(beginDirKey, "-" as never);
-                form.setFieldValue(beginOffKey, 0 as never);
-                form.setFieldValue(endKey, "stop" as never);
-                form.setFieldValue(endDirKey, "+" as never);
-                form.setFieldValue(endOffKey, 0 as never);
+                form.setFieldValue(beginKey, "stop");
+                form.setFieldValue(beginDirKey, "-");
+                form.setFieldValue(beginOffKey, 0);
+                form.setFieldValue(endKey, "stop");
+                form.setFieldValue(endDirKey, "+");
+                form.setFieldValue(endOffKey, 0);
               }
             }}
           />
@@ -252,8 +250,8 @@ export function ColocationEditor({
                   { value: "contains", label: "Contains" },
                   { value: "is contained in", label: "Is contained in" },
                 ]}
-                value={field.state.value as "overlaps" | "contains" | "is contained in"}
-                onChange={(v) => field.handleChange(v as never)}
+                value={field.state.value}
+                onChange={(v) => field.handleChange(v)}
               />
             )}
           </form.Field>
@@ -269,13 +267,8 @@ export function ColocationEditor({
                   { value: "same strand", label: "Same" },
                   { value: "opposite strand", label: "Opposite" },
                 ]}
-                value={
-                  field.state.value as
-                    | "either strand"
-                    | "same strand"
-                    | "opposite strand"
-                }
-                onChange={(v) => field.handleChange(v as never)}
+                value={field.state.value}
+                onChange={(v) => field.handleChange(v)}
               />
             )}
           </form.Field>
@@ -290,8 +283,8 @@ export function ColocationEditor({
                   { value: "a", label: "Step A" },
                   { value: "b", label: "Step B" },
                 ]}
-                value={field.state.value as "a" | "b"}
-                onChange={(v) => field.handleChange(v as never)}
+                value={field.state.value}
+                onChange={(v) => field.handleChange(v)}
               />
             )}
           </form.Field>

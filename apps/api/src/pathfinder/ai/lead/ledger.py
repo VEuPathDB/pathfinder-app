@@ -157,8 +157,10 @@ class InvestigationLedger(CamelModel):
                 "",
                 "## Frame",
                 f"- present: {self.frame.present}",
-                f"- criteria: {self.frame.criteria_count} "
-                f"(bound: {self.frame.bound_count})",
+                (
+                    f"- criteria: {self.frame.criteria_count} "
+                    f"(bound: {self.frame.bound_count})"
+                ),
                 *(
                     [f"- this turn: {spec_diff.render()}"]
                     if spec_diff is not None

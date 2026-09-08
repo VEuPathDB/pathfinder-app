@@ -2,6 +2,101 @@
 
 ## 2026-09-08
 
+* **The JavaScript tree moved to its newest compatible release, and the pin list
+  shrank to what an advisory needs.** `next` 16.2.11 to 16.3.4 with
+  `eslint-config-next` beside it, TypeScript 5.9.3 to 6.0.3 with typescript-eslint
+  re-resolved to 8.69.0 (below 8.66 it refuses a TypeScript 6 checker), kubb 4.37.2
+  to 4.39.3, prettier 3.8.1 to 3.9.6, jsdom 28 to 30, vitest 4.1.2 to 4.1.11, zod
+  4.3.6 to 4.5.4, and the OpenTelemetry web packages to 2.11.0 and 0.222.0. Root
+  `resolutions` no longer names `nanoid`, `protobufjs`, `sharp` or
+  `@opentelemetry/core`: the nanoid pin was unqualified and forced nanoid 3 onto
+  three packages that declare `^5.1.7`, `protobufjs` leaves the tree with
+  `@opentelemetry/otlp-transformer@0.222.0`, `sharp` at 0.35.0 no longer satisfies
+  what `next` 16.3.4 asks for, and `@opentelemetry/core` at 2.10.0 would downgrade
+  the 0.222 exporters. `postcss` stays, because `next` pins it exactly and only an
+  unqualified resolution can raise it. `yarn npm audit --all --recursive` now
+  reports two advisories where it reported 91: the ESLint support notice, which
+  `apps/web` cannot close yet, and GHSA-866g-f22w-33x8 on
+  `@ai-sdk/provider-utils@4.0.23`, which the exact `ai` and `@ai-sdk/react`
+  resolutions hold in place and which closes when those pins move to `ai`
+  6.0.250 or newer. Deleting a pin can also un-dedupe a tree, so two packages
+  needed re-resolving once the pins left:
+  `@opentelemetry/instrumentation-user-interaction` asks for `@opentelemetry/core`
+  and `@opentelemetry/sdk-trace-web` at `^2.0.0`, which the deleted pin had been
+  collapsing onto one copy, and `vite` was still frozen at 8.0.3 under vitest.
+
+* **An exact pin on `ai` has to name `@ai-sdk/react` too.** `@ai-sdk/react@3.0.156`
+  declares `ai` at the exact version 6.0.154; the two are one release. A resolution
+  on `ai` alone therefore forces 6.0.154 underneath any newer `@ai-sdk/react` that
+  a dependent pulls in, which is the same silent downgrade the removed OpenTelemetry
+  pin caused. Both are resolutions now and the lock holds one copy of each.
+  `@assistant-ui/react-ai-sdk` stays at 1.3.18 for the same reason: from 1.3.19 it
+  requires `ai` and `@ai-sdk/react` ranges the pinned pair cannot meet, and taking
+  it produced a second `@ai-sdk/react` in the tree.
+
+* **`@assistant-ui/store` is pinned to 0.2.9, because the 0.12 line reads names the
+  store renamed.** `@assistant-ui/react@0.12.28` and `@assistant-ui/core@0.1.17`
+  import `tapClientLookup` and `tapClientResource`. The store renamed every `tap*`
+  export to `use*` at 0.2.14, re-added the aliases at 0.2.20 and dropped them again
+  at 0.2.21, so the newest release satisfying the declared `^0.2.9` breaks fifteen
+  test files at import. 0.2.9 is the store that shipped with core 0.1.17. The pin
+  lifts with assistant-ui 0.15, which is reachable only through
+  `@assistant-ui/react-ai-sdk` 1.4.1 and `ai` 7.
+
+* **The two legacy assistant-ui context hooks are gone from the app.**
+  `useAssistantRuntime` and `useEditComposer` are removed in assistant-ui 0.15;
+  their replacements exist already at 0.12, so the app now reads
+  `useAui().thread().append(...)` and
+  `useAuiState((s) => s.message.composer.text)`. Pinned by a ChatThread test that
+  asserts a pending submission reaches the thread and is cleared, and by an
+  EditComposerSend test that drives the branch and revert from the composer text.
+
+* **The results table runs on TanStack Table 9.** v9 makes features opt-in, so the
+  table registers `columnVisibilityFeature`, `rowSortingFeature`,
+  `rowPaginationFeature` and `rowExpandingFeature` with their row-model factories in
+  one `tableFeatures()` call, `useReactTable` became `useTable`, the core row model
+  is automatic, and `table.getState()` became `table.state`. The feature set is one
+  module so every component types its table, row, header and column definitions
+  against the same `typeof features`. The two `"use no memo"` directives the React
+  Compiler needed under v8 are gone, because v9's `useTable` returns a fresh
+  React-facing table reference on every state change, so a component that receives
+  the table re-reads its state. A component that receives only a row, a cell, a
+  column or a header does not: the table keeps those objects across a state change,
+  and the React Compiler caches a read such as `row.getIsExpanded()` on that
+  identity. State a nested component needs therefore arrives as a prop from the
+  component that holds the table: `RecordRow` takes the expanded flag and the
+  visible cells from `ResultsTableBody`. Pinned by a test that compiles both files
+  with `babel-plugin-react-compiler` and drives the compiled output.
+
+* **A snapshot can no longer rewind a thread's resume point.** The app wrote the
+  snapshot's cursor to the store unconditionally, while the client library's own
+  `AssistantClient.snapshot()` only advances it, and the streaming transport built a
+  second cursor store of its own. A snapshot that answered with a cursor lower than
+  the stream had already recorded moved the resume point backwards and the tail
+  replayed frames the client held. One store is now created once and handed to both
+  the `AssistantClient` the snapshot query reads through and the
+  `DurableChatTransport`. The library reads through a fetch the app supplies, so a
+  refusal still reaches the reader as the app's own `APIError` carrying the sentence
+  the server offered, and the 404 that means "no event log" still reads as an empty
+  transcript. Pinned by three tests: a snapshot reporting cursor 7 against a stored
+  42 leaves 42, a transport built by the shared factory resumes at `after=42`, and a
+  500 surfaces the server's own message.
+
+* **Eight upgrades are held, each with the condition that lifts it.** TypeScript 7.0.2
+  ships no JavaScript compiler API, typescript-eslint caps below 6.1 and `next` reads
+  `typescript/lib/typescript.js`; it lifts when those three change. ESLint 10 waits
+  for `eslint-plugin-import`, `eslint-plugin-react` and `eslint-plugin-jsx-a11y` to
+  declare an ESLint 10 peer, which is why the support-policy advisory stays open in
+  `apps/web`. Vitest 5 changes the mock-clearing defaults and needs its own change.
+  Kubb 5 is a restructure with no `@kubb/plugin-oas` at all, replaced by
+  `@kubb/adapter-oas`, so it needs a deliberate codegen migration. Stryker 10 moves
+  the instrumenter to Babel 8 and changes the mutant set, so the mutation score
+  would not compare. Motion 13 waits for `reaviz` to widen its `motion ^12.40.0`
+  dependency, because two motion majors in one tree are two animation contexts.
+  Postcss 8.5.28 is younger than the seven days the install gate allows, so the
+  resolution stays at 8.5.26 until 2026-09-10. `ai` 7 is the backlog item that
+  already exists.
+
 * **A count in an exhibit table shows the genes behind it.** A control test read
   "2 of 3" with no way to see which two. Every control-set count is now a
   `CountOfIds` control: hover or focus lists the ids it stands for, a click
@@ -26,6 +121,31 @@
   directly under the row, so `see Table N` in the thread was a link to what the
   reader was already looking at. The right rail keeps its jump, because a task
   listed there is not beside its table.
+
+* **The api's Python dependencies moved to their current releases, and the
+  library pins did not.** pydantic-ai 2.41, fastapi 0.141, pydantic 2.13.5,
+  openai 3, anthropic 1, OpenTelemetry 1.44 with its 0.65b0 instrumentation,
+  langfuse 4.15, procrastinate 3.9, mypy 2.3.1 and ruff 0.16.6 lead the move;
+  `langgraph` and `langgraph-checkpoint-postgres` stay `==` pinned at the
+  versions `assistant-core` names, `mcp` stays below 2 and `fastmcp-slim` below
+  4, and the four repository sources keep their tags. Three moves ask for code.
+  `Agent._instructions` now holds `SourcedInstruction`, so
+  `tests/_support/instructions.py` reads the pinned text or the renderer name
+  once for the three suites that assert an instruction order. `include_router`
+  is lazy, so a router holds include nodes and not routes:
+  `tests/_support/routes.py` walks `iter_route_contexts` and reads
+  `ctx.dependant`, which carries the dependencies an include applies, so the
+  gate tables still report the 34 gated routes that `original_route.dependant`
+  would under-report as 23. The model providers speak `httpx2`, so
+  `_instrument_http_clients` instruments both httpx distributions and a
+  provider call still leaves a span. `testcontainers.postgres` became
+  `testcontainers.community.postgres`. ruff 0.16 promotes ISC004, so every
+  wrapped string inside a list literal is parenthesised and stays one string,
+  and `ruff format` now formats the Python blocks in the Markdown under
+  `apps/api`, which is where the gate runs. The uv that the image and CI
+  install is pinned at 0.12.10 in both places. The
+  published spec gains one field, `ReasoningUIPart.id`, which pydantic-ai 2.41
+  declares.
 
 ## 2026-09-07
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuiState, useEditComposer } from "@assistant-ui/react";
+import { useAuiState } from "@assistant-ui/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -28,7 +28,7 @@ function dialogError(branchError: unknown, revertError: unknown): string | null 
 export function EditComposerBranchOrRevert() {
   const messageId = useAuiState((s) => s.message.id);
   const parentId = useAuiState((s) => s.message.parentId);
-  const composerText = useEditComposer((s) => s.text);
+  const composerText = useAuiState((s) => s.message.composer.text);
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();

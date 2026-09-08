@@ -53,7 +53,7 @@ function makeSpec(overrides: Partial<ParamSpec> = {}): ParamSpec {
     countOnlyLeaves: false,
     multiPick: true,
     ...overrides,
-  } as ParamSpec;
+  };
 }
 
 function stateOf(label: string): string | null {

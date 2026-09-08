@@ -74,7 +74,7 @@ class _ObservingRunTurn:
     """Records the ctxvar values at the moment run_turn is invoked."""
 
     def __init__(self) -> None:
-        self.observed_token: str | None | object = _sentinel
+        self.observed_token: str | object | None = _sentinel
         self.observed_application: str | None = None
         self.call_count = 0
 

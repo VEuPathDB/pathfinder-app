@@ -10,11 +10,11 @@ from __future__ import annotations
 import pytest
 from fastapi import FastAPI
 from fastapi.dependencies.models import Dependant
-from fastapi.routing import APIRoute
 
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.main import create_app
 from pathfinder.services.wdk_identity import require_registered_wdk_login
+from pathfinder.tests._support.routes import api_routes
 from pathfinder.transport.http.deps import require_registered_wdk_identity
 from pathfinder.transport.http.routers.chat import resolve_chat_assistant
 
@@ -145,8 +145,8 @@ def _carries_gate(dependant: Dependant) -> bool:
 def _gated_routes(app: FastAPI) -> set[tuple[str, str]]:
     return {
         (method, route.path)
-        for route in app.routes
-        if isinstance(route, APIRoute) and _carries_gate(route.dependant)
+        for route in api_routes(app.routes)
+        if _carries_gate(route.dependant)
         for method in route.methods - {"HEAD", "OPTIONS"}
     }
 
@@ -154,8 +154,7 @@ def _gated_routes(app: FastAPI) -> set[tuple[str, str]]:
 def _all_routes(app: FastAPI) -> set[tuple[str, str]]:
     return {
         (method, route.path)
-        for route in app.routes
-        if isinstance(route, APIRoute)
+        for route in api_routes(app.routes)
         for method in route.methods - {"HEAD", "OPTIONS"}
     }
 
@@ -202,9 +201,8 @@ def test_every_spec_gated_route_resolves_its_assistant(app: FastAPI) -> None:
     """A listed route with no resolver would serve every assistant ungated."""
     resolving = {
         (method, route.path)
-        for route in app.routes
-        if isinstance(route, APIRoute)
-        and _carries(route.dependant, resolve_chat_assistant)
+        for route in api_routes(app.routes)
+        if _carries(route.dependant, resolve_chat_assistant)
         for method in route.methods - {"HEAD", "OPTIONS"}
     }
 

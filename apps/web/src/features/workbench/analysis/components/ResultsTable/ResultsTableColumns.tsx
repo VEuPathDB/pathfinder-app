@@ -1,4 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
+import type { ResultsTableFeatures } from "./resultsTableFeatures";
 import type { Classification } from "@pathfinder/shared";
 import { Badge } from "@/components/ui/badge";
 import { sanitizeHtml } from "@/features/workbench/analysis/utils/sanitizeHtml";
@@ -97,21 +98,22 @@ function AttributeValue({ value }: { value: unknown }) {
 export function buildColumns(
   attributes: RecordAttribute[],
   includeClassification: boolean,
-): ColumnDef<ClassifiedRecord>[] {
-  const attributeColumns: ColumnDef<ClassifiedRecord>[] = attributes.map((attr) => ({
-    id: attr.name,
-    header: attr.displayName,
-    accessorFn: (row) => row.attributes[attr.name],
-    enableSorting: attr.isSortable !== false,
-    enableHiding: true,
-    cell: (info) => <AttributeValue value={info.getValue()} />,
-  }));
+): ColumnDef<ResultsTableFeatures, ClassifiedRecord>[] {
+  const attributeColumns: ColumnDef<ResultsTableFeatures, ClassifiedRecord>[] =
+    attributes.map((attr) => ({
+      id: attr.name,
+      header: attr.displayName,
+      accessorFn: (row) => row.attributes[attr.name],
+      enableSorting: attr.isSortable !== false,
+      enableHiding: true,
+      cell: (info) => <AttributeValue value={info.getValue()} />,
+    }));
 
   if (!includeClassification) {
     return attributeColumns;
   }
 
-  const classificationColumn: ColumnDef<ClassifiedRecord> = {
+  const classificationColumn: ColumnDef<ResultsTableFeatures, ClassifiedRecord> = {
     id: CLASSIFICATION_COLUMN_ID,
     header: "Class",
     enableSorting: false,

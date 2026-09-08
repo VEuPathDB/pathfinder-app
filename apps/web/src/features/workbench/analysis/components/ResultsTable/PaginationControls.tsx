@@ -1,11 +1,10 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { Table } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import type { ClassifiedRecord } from "@pathfinder/shared/generated/types/ClassifiedRecord";
 import { PAGE_SIZE_OPTIONS } from "./ResultsTableColumns";
+import type { ResultsTableInstance } from "./resultsTableFeatures";
 
 interface PaginationControlsProps {
-  table: Table<ClassifiedRecord>;
+  table: ResultsTableInstance;
   totalCount: number | null;
   loading: boolean;
 }
@@ -15,7 +14,7 @@ export function PaginationControls({
   totalCount,
   loading,
 }: PaginationControlsProps) {
-  const { pageIndex, pageSize } = table.getState().pagination;
+  const { pageIndex, pageSize } = table.state.pagination;
   const currentPage = pageIndex + 1;
   const totalPages =
     totalCount == null ? null : Math.max(1, Math.ceil(totalCount / pageSize));

@@ -136,8 +136,10 @@ async def test_success_over_a_zero_push_build_is_refused(
     )
     assert "built nothing" in delta.digest.prose
     assert delta.digest.caveats == [
-        "The verification verdict was refused: this turn built nothing and no "
-        "step of the strategy is in VEuPathDB",
+        (
+            "The verification verdict was refused: this turn built nothing and no "
+            "step of the strategy is in VEuPathDB"
+        ),
     ]
     recorded = deps.state.domain.verification_digest
     assert recorded is not None

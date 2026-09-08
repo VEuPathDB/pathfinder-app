@@ -326,8 +326,10 @@ async def test_a_read_of_a_subset_the_study_refuses_reports_it_instead_of_a_coun
         )
     assert count_paths == []
     assert raised.value.messages == [
-        "Filter stringSet on variable VAR_035294d0 of entity "
-        "GENE_PHENOTYPE_DATA_ENTITY names P. vivax, which the vocabulary does "
-        "not carry. The vocabulary is P. berghei, P. falciparum, P. yoelii. "
-        "An unknown value returns count 0 rather than an error."
+        (
+            "Filter stringSet on variable VAR_035294d0 of entity "
+            "GENE_PHENOTYPE_DATA_ENTITY names P. vivax, which the vocabulary does "
+            "not carry. The vocabulary is P. berghei, P. falciparum, P. yoelii. "
+            "An unknown value returns count 0 rather than an error."
+        )
     ]

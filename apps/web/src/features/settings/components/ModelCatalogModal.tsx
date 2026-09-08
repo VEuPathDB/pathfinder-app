@@ -11,11 +11,7 @@ import { formatCompactClean, formatPrice } from "@/features/settings/format";
 import { PROVIDER_TABS } from "@/lib/models/providerMeta";
 
 type SortKey =
-  | "name"
-  | "contextSize"
-  | "inputPrice"
-  | "outputPrice"
-  | "cachedInputPrice";
+  "name" | "contextSize" | "inputPrice" | "outputPrice" | "cachedInputPrice";
 type SortDir = "asc" | "desc";
 
 interface ModelCatalogModalProps {

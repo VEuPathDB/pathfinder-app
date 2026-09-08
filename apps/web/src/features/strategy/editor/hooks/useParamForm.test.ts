@@ -245,7 +245,7 @@ describe("extractDefaults override", () => {
       countOnlyLeaves: false,
       initialDisplayValue: "",
       ...over,
-    } as ParamSpec;
+    };
   }
 
   it("unwraps a typed StringValue to its string", () => {

@@ -1,7 +1,2 @@
 export type SettingsTab =
-  | "model"
-  | "data"
-  | "memory"
-  | "privacy"
-  | "advanced"
-  | "seeding";
+  "model" | "data" | "memory" | "privacy" | "advanced" | "seeding";

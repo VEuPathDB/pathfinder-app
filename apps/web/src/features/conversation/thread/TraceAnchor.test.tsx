@@ -86,7 +86,7 @@ const LEAD_USAGE: MessagePart = {
   type: "data-lead-usage",
   id: "lu_1",
   data: { modelId: "openai:gpt-5.6-luna", tokens: 41800, costUsd: "0.0131" },
-} as MessagePart;
+};
 
 /** Two stretches of work with the Lead's prose between them. */
 function twoRuns(): MessagePart[] {

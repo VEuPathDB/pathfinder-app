@@ -1,13 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getPaginationRowModel,
-  getExpandedRowModel,
+  useTable,
   type SortingState,
-  type VisibilityState,
+  type ColumnVisibilityState,
   type PaginationState,
   type ExpandedState,
 } from "@tanstack/react-table";
@@ -21,6 +17,7 @@ import { useResultsTableDetail } from "@/features/workbench/analysis/hooks/useRe
 import type { RecordAttribute } from "@pathfinder/shared/generated/types/RecordAttribute";
 import type { ClassifiedRecord } from "@pathfinder/shared/generated/types/ClassifiedRecord";
 import { buildColumns, getPrimaryKey } from "./ResultsTableColumns";
+import { resultsTableFeatures } from "./resultsTableFeatures";
 import { ResultsTableHeader } from "./ResultsTableHeader";
 import { ResultsTableBody } from "./ResultsTableBody";
 import { PaginationControls } from "./PaginationControls";
@@ -32,8 +29,8 @@ interface ResultsTableProps {
 const DEFAULT_PAGE_SIZE = 25;
 const DEFAULT_VISIBLE_COLUMN_COUNT = 6;
 
-function initialVisibility(attributes: RecordAttribute[]): VisibilityState {
-  const visibility: VisibilityState = {};
+function initialVisibility(attributes: RecordAttribute[]): ColumnVisibilityState {
+  const visibility: ColumnVisibilityState = {};
   attributes.forEach((attr, index) => {
     visibility[attr.name] = index < DEFAULT_VISIBLE_COLUMN_COUNT;
   });
@@ -41,10 +38,9 @@ function initialVisibility(attributes: RecordAttribute[]): VisibilityState {
 }
 
 export function ResultsTable({ entityRef }: ResultsTableProps) {
-  "use no memo";
   const [attributes, setAttributes] = useState<RecordAttribute[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({});
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: DEFAULT_PAGE_SIZE,
@@ -111,7 +107,8 @@ export function ResultsTable({ entityRef }: ResultsTableProps) {
   const hasClassification = recordsState.records.some((r) => r.classification != null);
   const columns = buildColumns(attributes, hasClassification);
 
-  const table = useReactTable<ClassifiedRecord>({
+  const table = useTable({
+    features: resultsTableFeatures,
     data: recordsState.records,
     columns,
     state: { sorting, columnVisibility, pagination, expanded },
@@ -134,10 +131,6 @@ export function ResultsTable({ entityRef }: ResultsTableProps) {
     ...(recordsState.meta?.totalCount != null
       ? { rowCount: recordsState.meta.totalCount }
       : {}),
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
     enableSortingRemoval: false,
   });
 

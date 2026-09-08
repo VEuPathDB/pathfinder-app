@@ -19,8 +19,10 @@ APPLIED_GUIDANCE = (
 def opened_guidance(*, gene_problem: str | None, can_export: bool) -> str:
     """What to do next, and what this study cannot do."""
     lines = [
-        "Call set_eda_filters with no filters to read the filter sheet, then "
-        "again with the whole filter array.",
+        (
+            "Call set_eda_filters with no filters to read the filter sheet, then "
+            "again with the whole filter array."
+        ),
     ]
     if gene_problem is not None:
         lines.append(

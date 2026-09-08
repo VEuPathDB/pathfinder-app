@@ -18,18 +18,18 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@kubb/cli": "^4.37.2",
-    "@kubb/core": "^4.37.2",
-    "@kubb/plugin-oas": "^4.37.2",
-    "@kubb/plugin-react-query": "^4.37.2",
-    "@kubb/plugin-ts": "^4.37.2",
-    "@kubb/plugin-zod": "^4.37.2",
-    "@kubb/react-fabric": "^0.14.0",
-    "@tanstack/react-query": "^5.95.2",
-    "@types/node": "^25.3.5",
-    "prettier": "^3.8.1",
-    "typescript": "^5.9.3",
-    "zod": "^4.3.6"
+    "@kubb/cli": "^4.39.3",
+    "@kubb/core": "^4.39.3",
+    "@kubb/plugin-oas": "^4.39.3",
+    "@kubb/plugin-react-query": "^4.39.3",
+    "@kubb/plugin-ts": "^4.39.3",
+    "@kubb/plugin-zod": "^4.39.3",
+    "@kubb/react-fabric": "^0.16.1",
+    "@tanstack/react-query": "^5.102.8",
+    "@types/node": "^26.4.0",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "zod": "^4.5.4"
   },
   "exports": {
     ".": "./src/index.ts",

@@ -52,12 +52,16 @@ def frame_continuation_work_order(spec: OperationalSpec | None, prompt: str) -> 
     bound = [c for c in criteria if c.bound]
     unbound = [c for c in criteria if not c.bound]
     lines = [
-        "FRAME work order: the previous pass ran out of its tool budget. "
-        "Continue it; this is not a fresh frame.",
+        (
+            "FRAME work order: the previous pass ran out of its tool budget. "
+            "Continue it; this is not a fresh frame."
+        ),
         f"User's goal: {prompt}",
         "",
-        f"{len(bound)} criteria are bound already and stay exactly as they are. "
-        "Do NOT call set_criterion for any of them:",
+        (
+            f"{len(bound)} criteria are bound already and stay exactly as they are. "
+            "Do NOT call set_criterion for any of them:"
+        ),
         *(
             f"- [{c.id}] {c.text[:80]} -> {c.search_name or '(saved strategy)'}"
             for c in bound
@@ -74,8 +78,10 @@ def frame_continuation_work_order(spec: OperationalSpec | None, prompt: str) -> 
     lines.extend(
         [
             "",
-            "Bind what the goal states and the lists above do not cover, set "
-            "the structure over every criterion, and return a FrameResult.",
+            (
+                "Bind what the goal states and the lists above do not cover, set "
+                "the structure over every criterion, and return a FrameResult."
+            ),
         ],
     )
     return "\n".join(lines)

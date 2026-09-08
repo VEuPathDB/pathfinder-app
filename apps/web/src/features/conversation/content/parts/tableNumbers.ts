@@ -8,10 +8,7 @@ import type {
 
 /** A part the thread numbers as a paper table. */
 export type TableExhibit =
-  | ControlTestResults
-  | EnrichmentResultsChunk
-  | ScoredComparison
-  | VariantComparison;
+  ControlTestResults | EnrichmentResultsChunk | ScoredComparison | VariantComparison;
 
 const CONTROL_TESTS = "data-control-test-results";
 const ENRICHMENT = "data-enrichment-results";

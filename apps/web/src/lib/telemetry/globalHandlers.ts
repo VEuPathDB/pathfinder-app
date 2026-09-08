@@ -20,7 +20,7 @@
  * Idempotent — safe to call multiple times.
  */
 
-import { logError, type ErrorSource } from "./logError";
+import { logError } from "./logError";
 
 let installed = false;
 
@@ -130,7 +130,7 @@ function installConsoleErrorHook(): void {
     if (seen.has(message)) return;
     seen.add(message);
     logError(new Error(`console.error: ${message}`), {
-      source: "app" as ErrorSource,
+      source: "app",
       route: currentRoute(),
     });
   };

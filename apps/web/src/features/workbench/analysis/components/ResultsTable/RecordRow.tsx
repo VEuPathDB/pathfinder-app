@@ -1,11 +1,16 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { flexRender, type Row } from "@tanstack/react-table";
+import { flexRender, type Cell } from "@tanstack/react-table";
 import type { RecordDetailResponse } from "@pathfinder/shared/generated/types/RecordDetailResponse";
 import type { ClassifiedRecord } from "@pathfinder/shared/generated/types/ClassifiedRecord";
 import { ExpandedRowDetail } from "./ExpandedRowDetail";
+import type { ResultsTableFeatures } from "./resultsTableFeatures";
 
 interface RecordRowProps {
-  row: Row<ClassifiedRecord>;
+  pk: string;
+  // Table state arrives as props. A read through the row object is cached on
+  // the row identity, which the table keeps across a state change.
+  cells: Cell<ResultsTableFeatures, ClassifiedRecord, unknown>[];
+  isExpanded: boolean;
   detail: RecordDetailResponse | null;
   detailError: string | null;
   detailLoading: boolean;
@@ -13,16 +18,15 @@ interface RecordRowProps {
 }
 
 export function RecordRow({
-  row,
+  pk,
+  cells,
+  isExpanded,
   detail,
   detailError,
   detailLoading,
   onToggle,
 }: RecordRowProps) {
-  const isExpanded = row.getIsExpanded();
-  const visibleCells = row.getVisibleCells();
-  const colSpan = visibleCells.length + 1;
-  const pk = row.id;
+  const colSpan = cells.length + 1;
 
   return (
     <>
@@ -31,7 +35,7 @@ export function RecordRow({
         className="cursor-pointer transition-colors hover:bg-accent/50 data-[expanded=true]:bg-accent/30"
         data-expanded={isExpanded}
       >
-        {visibleCells.map((cell) => (
+        {cells.map((cell) => (
           <td
             key={cell.id}
             className="max-w-[300px] truncate px-4 py-2 text-sm text-foreground"

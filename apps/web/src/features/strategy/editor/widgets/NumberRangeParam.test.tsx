@@ -21,7 +21,7 @@ function makeSpec(overrides: Partial<ParamSpec> = {}): ParamSpec {
     isNumber: true,
     countOnlyLeaves: false,
     ...overrides,
-  } as ParamSpec;
+  };
 }
 
 describe("NumberRangeParam", () => {

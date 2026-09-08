@@ -1,11 +1,15 @@
 import { ChevronDown, ChevronUp, ArrowUpDown, Loader2 } from "lucide-react";
-import { flexRender, type Header, type Table } from "@tanstack/react-table";
+import { flexRender, type Header } from "@tanstack/react-table";
 import type { RecordDetailResponse } from "@pathfinder/shared/generated/types/RecordDetailResponse";
 import type { ClassifiedRecord } from "@pathfinder/shared/generated/types/ClassifiedRecord";
 import { RecordRow } from "./RecordRow";
+import type {
+  ResultsTableFeatures,
+  ResultsTableInstance,
+} from "./resultsTableFeatures";
 
 interface ResultsTableBodyProps {
-  table: Table<ClassifiedRecord>;
+  table: ResultsTableInstance;
   loading: boolean;
   detail: RecordDetailResponse | null;
   detailError: string | null;
@@ -13,7 +17,11 @@ interface ResultsTableBodyProps {
   onExpandRow: (row: ClassifiedRecord, expand: boolean) => void;
 }
 
-function SortIcon({ header }: { header: Header<ClassifiedRecord, unknown> }) {
+function SortIcon({
+  header,
+}: {
+  header: Header<ResultsTableFeatures, ClassifiedRecord, unknown>;
+}) {
   const dir = header.column.getIsSorted();
   if (dir === "asc") return <ChevronUp className="h-3 w-3" />;
   if (dir === "desc") return <ChevronDown className="h-3 w-3" />;
@@ -86,16 +94,21 @@ export function ResultsTableBody({
               </td>
             </tr>
           ) : (
-            rows.map((row) => (
-              <RecordRow
-                key={row.id}
-                row={row}
-                detail={row.getIsExpanded() ? detail : null}
-                detailError={row.getIsExpanded() ? detailError : null}
-                detailLoading={row.getIsExpanded() && detailLoading}
-                onToggle={() => onExpandRow(row.original, !row.getIsExpanded())}
-              />
-            ))
+            rows.map((row) => {
+              const isExpanded = row.getIsExpanded();
+              return (
+                <RecordRow
+                  key={row.id}
+                  pk={row.id}
+                  cells={row.getVisibleCells()}
+                  isExpanded={isExpanded}
+                  detail={isExpanded ? detail : null}
+                  detailError={isExpanded ? detailError : null}
+                  detailLoading={isExpanded && detailLoading}
+                  onToggle={() => onExpandRow(row.original, !isExpanded)}
+                />
+              );
+            })
           )}
         </tbody>
       </table>

@@ -24,11 +24,11 @@ const STARTED = {
 } as const;
 
 function progressPart(data: TaskProgressChunk): UIMessage["parts"][number] {
-  return { type: "data-task-progress", data } as UIMessage["parts"][number];
+  return { type: "data-task-progress", data };
 }
 
 function completedPart(data: TaskCompleted): UIMessage["parts"][number] {
-  return { type: "data-task-completed", data } as UIMessage["parts"][number];
+  return { type: "data-task-completed", data };
 }
 
 function makeChat(
@@ -281,14 +281,14 @@ function exhibitPart(): UIMessage["parts"][number] {
   return {
     type: "data-control-test-results",
     data: EXHIBIT,
-  } as UIMessage["parts"][number];
+  };
 }
 
 function summaryPart(summary: string): UIMessage["parts"][number] {
   return {
     type: "data-tool-summary",
     data: { toolCallId: "call_1", summary, status: "ok" },
-  } as UIMessage["parts"][number];
+  };
 }
 
 describe("a completed task points at its exhibit", () => {
