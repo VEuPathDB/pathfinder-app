@@ -1,6 +1,89 @@
 # Log
 
+## 2026-09-08
+
+* **A count in an exhibit table shows the genes behind it.** A control test read
+  "2 of 3" with no way to see which two. Every control-set count is now a
+  `CountOfIds` control: hover or focus lists the ids it stands for, a click
+  copies them, and the card says how many of the count are shown, because WDK
+  samples a long list. A count with no sampled ids stays a plain number, which
+  is every negative set's own size: the ids a target correctly left out are
+  never sampled.
+* **A control test on a search leaves the same table as one on a step.**
+  `run_control_tests_on_search` wrote only a summary line, so a test the model
+  ran before it built a strategy produced no exhibit. It now emits
+  `data-control-test-results` on its return metadata, with `task_id` empty
+  because no worker task carried it.
+* **The tested step is named once.** An unnamed step read "step 440299573 (step
+  440299573)": the header appended the step id to a label that had fallen back
+  to the step id. One label now decides the whole line.
+* **A search's published names have one reader.**
+  `services/experiment/published_names.py` reads what WDK calls a search and
+  each of its parameters, and refuses a url segment as a label, so the catalog's
+  own fallback cannot leak one. The worker and the search-level tool both use
+  it. Pinned by `test_published_names.py`.
+* **A finished task row points at no exhibit.** The table it produced reads
+  directly under the row, so `see Table N` in the thread was a link to what the
+  reader was already looking at. The right rail keeps its jump, because a task
+  listed there is not beside its table.
+
 ## 2026-09-07
+
+* **An exhibit table reads like a table in a paper.** The control-test exhibit
+  drew four numbers in monospaced flex rows, so a reader saw
+  `boolean_question_TranscriptRecordClasses_TranscriptRecordClass`, no gene id
+  and no criterion. `ExhibitTable` now draws a real `<table>`, centred, ruled
+  above the head, under it and under the body, numbers in the body font on one
+  digit width, and the monospaced face kept for gene ids alone; its notes read
+  under the bottom rule. `data-control-test-results` carries what a reader
+  needs: `target_label` (what WDK calls the tested step, never a search url
+  segment), `target_parameters` (each criterion under WDK's own display name),
+  and per control set the ids behind the counts (`hit_ids`, `missed_ids`). The
+  worker resolves those names once, from `find_step` and the search's published
+  parameters, and reports them beside the library's numbers; both degrade to
+  empty when WDK refuses the read. `data-scored-comparison` and
+  `data-variant-comparison` draw the same table, with their failures, control
+  membership, unique ids and pairwise overlaps as table notes. Pinned by
+  `ExhibitTable.test.tsx`, `DataControlTestResults.test.tsx`,
+  `DataScoredComparison.test.tsx`, `DataVariantComparison.test.tsx`,
+  `test_experiment.py` and `test_control_tests_impl.py`.
+* **A waiting turn says which step it is on.** "Preparing context" covered the
+  whole opening of a turn, so a slow memory read looked like a hang. The runner
+  opens with "Starting the turn" and the lead node names "Recalling earlier
+  work" and "Reading the thread" before the model is waited on. Pinned by
+  `test_turn_status_names_the_step.py`.
+* **The MCP image's release is committed, not configured.** `docker-compose.yml` named the image's revision through a
+  required `WDK_MCP_REV`, so the served tools and the imported ones could be different releases and a fresh clone
+  refused to start until someone set it. The build context now carries the tag beside the Python pin, so one commit
+  moves both; the variable is gone from the env templates, the CI e2e job and the docs.
+* **A dropped connection to the OAuth server no longer fails a turn.** `veupathdb-py` 0.1.0a2 retries the JWKS read,
+  serves the last key the server published while it cannot be read, holds a key for an hour instead of two minutes,
+  and names the exception class when a failure carries no message. `veupathdb-mcp` 0.1.0a3 takes that client.
+* **An enrichment exhibit names the call it answers**, so its task row reads the summary the tool already wrote.
+
+
+
+* **The chat's experiment results are numbered exhibits, and each one can be
+  cited.** Tables now carry a counter of their own, so `Figure 1` and `Table 1`
+  both exist: `tableNumbers.ts` numbers the control-test part,
+  `data-scored-comparison`, `data-variant-comparison` and
+  `data-enrichment-results` by the payload the thread holds, so two equal
+  payloads take two numbers and a number does not move while the turn streams.
+  The plots keep `figureNumberFor` and their numbers. `Figure` replaced
+  `numbered` and `figureNumber` with one `exhibit` identity (`figure` or
+  `table`, plus the number), renders `id="table-2"` / `id="figure-3"` on the
+  `<figure>`, and puts `ExhibitCitation` in the title row, which copies the
+  conversation url with that fragment. A control test emits its numbers as
+  `data-control-test-results` beside its summary line. A finished task row reads
+  the tool's own line in place of "Completed"; `taskResultHref` and its
+  message-anchor resolution are gone, because they pointed at the message the
+  row already sat in. The scroll-to-bottom control moved out of the scrolling
+  viewport onto a
+  zero-height rail above the composer. Pinned by `test_experiment.py`,
+  `test_control_tests_impl.py`, `test_stream_part_registry.py`,
+  `tableNumbers.test.ts`, `Figure.test.tsx`, `DataControlTestResults.test.tsx`,
+  `taskExhibit.test.ts`, `TaskRow.test.tsx`, `conversation.test.tsx` and
+  `ChatThread.test.tsx`.
 
 * **A site that is down is down on its own.** The portal stopped answering
   `record-types` (no HTTP status in 60 s, against 0.77 s on plasmodb), the api

@@ -142,10 +142,10 @@ services:
       - catalogs_cache:/app/data/catalogs
 
   wdk-mcp:
-    # The server is its own repository, built at the commit this deployment
-    # runs. Set WDK_MCP_REV in the env file.
+    # The server is its own repository, built at the release `apps/api` pins,
+    # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#${WDK_MCP_REV:?}
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.1.0a3
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.

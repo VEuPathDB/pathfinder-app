@@ -75,8 +75,8 @@ function SessionAwareBody({ conversationId }: { conversationId: string }) {
             }}
           />
         </ConversationContent>
-        <ConversationScrollButton />
       </Conversation>
+      <ConversationScrollButton />
     </>
   );
 }

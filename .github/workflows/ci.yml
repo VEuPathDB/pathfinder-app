@@ -269,7 +269,6 @@ jobs:
           DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/pathfinder
           DEFAULT_PROVIDER=anthropic
           DEFAULT_TIER=balanced
-          WDK_MCP_REV=unused
           EOF
           printf 'API_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env.test
 

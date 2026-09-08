@@ -64,6 +64,18 @@ describe("ChatThread", () => {
     expect(screen.getByRole("button", { name: /send/i })).toBeInTheDocument();
   });
 
+  it("pins the scroll control above the composer, outside the scrolling thread", () => {
+    renderSignedInThread("c1");
+
+    const viewport = screen.getByRole("log");
+    const control = screen.getByRole("button", {
+      name: "Scroll to the latest message",
+    });
+    expect(viewport.className).toContain("overflow-y-auto");
+    expect(viewport.contains(control)).toBe(false);
+    expect(screen.getByTestId("conversation-scroll-rail").contains(control)).toBe(true);
+  });
+
   it("replaces the url with the conversation's chat url when a run starts", async () => {
     renderSignedInThread("c1");
     expect(window.location.pathname).toBe("/");

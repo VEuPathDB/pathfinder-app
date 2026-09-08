@@ -1,3 +1,4 @@
+import { DataControlTestResults } from "./parts/DataControlTestResults";
 import { DataEnrichmentResults } from "./parts/DataEnrichmentResults";
 import { DataGeneSet } from "./parts/DataGeneSet";
 import { DataGraphCleared } from "./parts/DataGraphCleared";
@@ -13,6 +14,7 @@ import type { DataPartComponentMap } from "./dataPartComponentMap";
 export type StrategyDataPartKind =
   | "data-ledger-update"
   | "data-enrichment-results"
+  | "data-control-test-results"
   | "data-strategy-link"
   | "data-strategy-meta"
   | "data-graph-snapshot"
@@ -25,6 +27,7 @@ export type StrategyDataPartKind =
 export const strategyDataPartComponents: DataPartComponentMap<StrategyDataPartKind> = {
   "data-ledger-update": noRender,
   "data-enrichment-results": DataEnrichmentResults,
+  "data-control-test-results": DataControlTestResults,
   "data-strategy-link": DataStrategyLink,
   "data-strategy-meta": DataStrategyMeta,
   "data-graph-snapshot": DataGraphSnapshot,

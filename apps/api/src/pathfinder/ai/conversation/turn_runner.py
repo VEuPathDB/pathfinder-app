@@ -187,7 +187,7 @@ async def _run_turn_with_context(
         ),
     )
     await writer.write(
-        turn_status_event(label="Preparing context").model_dump(
+        turn_status_event(label="Starting the turn").model_dump(
             by_alias=True,
             mode="json",
             exclude_none=True,

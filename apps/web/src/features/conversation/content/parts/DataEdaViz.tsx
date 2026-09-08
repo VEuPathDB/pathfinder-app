@@ -42,8 +42,7 @@ export function DataEdaViz({ data }: { data: EdaViz }) {
       testId="data-eda-viz"
       title={data.effectSizeLabel}
       caption={plotCaption(data.caption ?? "", study, retained)}
-      numbered
-      figureNumber={figureNumberFor(chat.messages, data)}
+      exhibit={{ kind: "figure", number: figureNumberFor(chat.messages, data) }}
       footer={<VizReadouts data={data} thresholds={thresholds} />}
     >
       <div>

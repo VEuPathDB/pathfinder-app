@@ -69,21 +69,32 @@ const RESULT_TURN: UIMessage[] = [
     role: "assistant",
     parts: [
       { type: "data-task-completed", data: { taskId: TASK_ID, status: "success" } },
+      { type: "data-enrichment-results", data: { taskId: TASK_ID } },
     ] as UIMessage["parts"],
-  },
-  {
-    id: "m2",
-    role: "assistant",
-    parts: [{ type: "text", text: "Enrichment finished." }] as UIMessage["parts"],
   },
 ];
 
 describe("the Tasks panel row opens what the task produced", () => {
-  it("links a completed row to the turn that carries the result", async () => {
+  it("links a completed row to the exhibit the task produced", async () => {
     stubTasks("complete");
     renderPanel(RESULT_TURN);
     const link = await screen.findByRole("link", { name: /Gene-set enrichment/ });
-    expect(link.getAttribute("href")).toBe("#message-m2");
+    expect(link.getAttribute("href")).toBe("#table-1");
+  });
+
+  it("leaves a row whose task produced no exhibit unlinked", async () => {
+    stubTasks("complete");
+    renderPanel([
+      {
+        id: "m1",
+        role: "assistant",
+        parts: [{ type: "text", text: "Enrichment finished." }] as UIMessage["parts"],
+      },
+    ]);
+    await waitFor(() => {
+      expect(screen.getByText("Gene-set enrichment")).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("link")).toBeNull();
   });
 
   it("leaves a running row unlinked", async () => {

@@ -1,17 +1,18 @@
 import type { ReactElement, ReactNode } from "react";
 
+import { ExhibitCitation } from "./ExhibitCitation";
+import { exhibitAnchorId, exhibitLabel, type ExhibitIdentity } from "./exhibits";
+
 const CAPTION = "mt-2 text-xs text-muted-foreground";
 const NUMBERED_CAPTION = `${CAPTION} text-center italic`;
 
 interface FigureProps {
   title: string | null;
   caption: string | null;
-  /** Presents the caption the way a paper does: centered, italic, and
-   * prefixed with `figureNumber`. */
-  numbered?: boolean;
-  /** The caption's number. Null while the thread cannot supply one, which
-   * leaves the caption in its plain left form. */
-  figureNumber?: number | null;
+  /** Which counter numbers this exhibit, and its number. A numbered exhibit
+   * presents its caption the way a paper does, carries the anchor a citation
+   * jumps to, and offers the control that copies that citation. */
+  exhibit?: ExhibitIdentity;
   /** Rendered at the right end of the title row. */
   action?: ReactNode;
   /** The readouts and disclosures, rendered after the caption. */
@@ -26,40 +27,46 @@ interface FigureProps {
 export function Figure({
   title,
   caption,
-  numbered,
-  figureNumber,
+  exhibit,
   action,
   footer,
   children,
   testId,
 }: FigureProps): ReactElement {
-  const number = numbered === true ? (figureNumber ?? null) : null;
+  const kind = exhibit?.kind ?? "figure";
+  const number = exhibit?.number ?? null;
+  const citation =
+    number === null ? null : <ExhibitCitation kind={kind} number={number} />;
+  const head =
+    title === null && citation === null ? null : citation === null && action == null ? (
+      <figcaption className="mb-2 text-sm font-medium">{title}</figcaption>
+    ) : (
+      <figcaption className="mb-2 flex items-center justify-between gap-2 text-sm font-medium">
+        <span className="min-w-0">{title}</span>
+        {citation}
+        {action}
+      </figcaption>
+    );
   const body = (
     <>
-      {title !== null ? (
-        action != null ? (
-          <figcaption className="mb-2 flex items-center justify-between gap-2 text-sm font-medium">
-            <span className="min-w-0">{title}</span>
-            {action}
-          </figcaption>
-        ) : (
-          <figcaption className="mb-2 text-sm font-medium">{title}</figcaption>
-        )
-      ) : null}
+      {head}
       {children}
       {caption !== null ? (
         <div
           data-testid="figure-caption"
           className={number === null ? CAPTION : NUMBERED_CAPTION}
         >
-          {number === null ? caption : `Figure ${String(number)}. ${caption}`}
+          {number === null ? caption : `${exhibitLabel(kind, number)}. ${caption}`}
         </div>
       ) : null}
       {footer}
     </>
   );
   return (
-    <figure data-testid="figure">
+    <figure
+      data-testid="figure"
+      {...(number === null ? {} : { id: exhibitAnchorId(kind, number) })}
+    >
       {testId === undefined ? body : <div data-testid={testId}>{body}</div>}
     </figure>
   );

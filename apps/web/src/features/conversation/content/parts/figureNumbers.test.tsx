@@ -16,13 +16,11 @@ vi.mock("@/lib/components/charts/echartsRegistry", () => ({
 }));
 
 import { useEdaStore } from "@/state/eda";
-import {
-  ChatHelpersProvider,
-  type ChatHelpers,
-} from "../../runtime/chatHelpersContext";
+import { ChatHelpersProvider } from "../../runtime/chatHelpersContext";
 import { DataEdaSubsetPreview } from "./DataEdaSubsetPreview";
 import { DataEdaViz } from "./DataEdaViz";
 import { figureNumberFor } from "./figureNumbers";
+import { chatHelpersFor, threadOf, threadPart } from "./threadFixture";
 import {
   EDA_ANALYSIS_STATE_FIXTURE,
   EDA_SUBSET_PREVIEW_FIXTURE,
@@ -37,42 +35,26 @@ const FLAT_PREVIEW = { ...PREVIEW, distribution: null };
 type Part = UIMessage["parts"][number];
 
 function statePart(): Part {
-  return { type: "data-eda.analysis-state", data: EDA_ANALYSIS_STATE_FIXTURE } as Part;
+  return threadPart("data-eda.analysis-state", EDA_ANALYSIS_STATE_FIXTURE);
 }
 
 function previewPart(data: object): Part {
-  return { type: "data-eda.subset-preview", data } as Part;
+  return threadPart("data-eda.subset-preview", data);
 }
 
 function vizPart(data: object): Part {
-  return { type: "data-eda.viz", data } as Part;
+  return threadPart("data-eda.viz", data);
 }
 
 function messagesOf(parts: Part[]): UIMessage[] {
-  return [{ id: "m1", role: "assistant", parts }];
-}
-
-function chatOf(parts: Part[]): ChatHelpers {
-  return {
-    id: "conv-1",
-    messages: messagesOf(parts),
-    status: "ready",
-    error: undefined,
-    setMessages: () => {},
-    sendMessage: async () => {},
-    regenerate: async () => {},
-    stop: async () => {},
-    resumeStream: async () => {},
-    addToolResult: async () => {},
-    addToolOutput: async () => {},
-    addToolApprovalResponse: () => {},
-    clearError: () => {},
-  };
+  return threadOf(parts);
 }
 
 function inThread(parts: Part[], children: ReactNode) {
   return render(
-    <ChatHelpersProvider value={chatOf(parts)}>{children}</ChatHelpersProvider>,
+    <ChatHelpersProvider value={chatHelpersFor(messagesOf(parts))}>
+      {children}
+    </ChatHelpersProvider>,
   );
 }
 

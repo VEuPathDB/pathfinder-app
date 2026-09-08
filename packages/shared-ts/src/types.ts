@@ -14,6 +14,8 @@ import type {
   ConfidenceInterval,
   ConfusionMatrix,
   ControlSetResponse,
+  ControlSetSummary,
+  ControlTestResults,
   CreateConversationRequest,
   CrossValidationResult,
   EdaAnalysisState,
@@ -54,6 +56,7 @@ import type {
   PrivacySettings,
   PrivacyUpdate,
   VariantComparison,
+  VariantResult,
   ScoredComparison,
   ScoredVariant,
   ReasoningEffort,
@@ -87,6 +90,7 @@ import type {
   TaskListItem,
   TaskListResponse,
   TaskProgress as TaskProgressStreamPart,
+  TestedParameter,
   ToolCallDelta,
   ToolSummaryPayload,
   TurnUsage,
@@ -289,12 +293,16 @@ export type {
   StrategyMeta,
   StrategyLink,
   VariantComparison,
+  VariantResult,
   ScoredComparison,
   ScoredVariant,
   BackgroundTaskStarted,
   TaskCompleted,
   TurnUsage,
   EnrichmentResultsChunk,
+  ControlTestResults,
+  ControlSetSummary,
+  TestedParameter,
 };
 export type GeneSetPart = GeneSetStreamPart;
 export type TaskProgressChunk = TaskProgressStreamPart;
@@ -330,6 +338,7 @@ export type KnownDataPartKind =
   | "data-task-progress"
   | "data-task-completed"
   | "data-enrichment-results"
+  | "data-control-test-results"
   | "data-strategy-link"
   | "data-strategy-meta"
   | "data-graph-snapshot"
@@ -366,6 +375,7 @@ export interface DataPartPayloadMap {
   "data-task-progress": TaskProgressStreamPart;
   "data-task-completed": TaskCompleted;
   "data-enrichment-results": EnrichmentResultsChunk;
+  "data-control-test-results": ControlTestResults;
   "data-strategy-link": StrategyLink;
   "data-strategy-meta": StrategyMeta;
   "data-graph-snapshot": GraphSnapshot;

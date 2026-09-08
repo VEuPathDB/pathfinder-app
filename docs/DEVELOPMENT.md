@@ -118,7 +118,7 @@ consumes by URL at a commit:
 
 The pins are `apps/api/pyproject.toml` `[tool.uv.sources]` (four rows, each a
 `tag`), `apps/web/package.json` (`@pathfinder/assistant-client`, a `tag=`) and
-`WDK_MCP_REV` in the env file, which the `wdk-mcp` compose service builds from.
+the `wdk-mcp` compose service's build context, which names the same release.
 A tag is a release of that repository: `v0.1.0a1` for the client and the MCP
 server, `v0.2.0a1` for the platform. The lockfile still records the commit the
 tag pointed at, so a build is reproducible even though the pin reads as a
@@ -154,7 +154,7 @@ For the TypeScript client, change the `commit=` in `apps/web/package.json` and
 run `yarn install --no-immutable` at the repository root: the root `.yarnrc.yml`
 enables immutable installs, so a plain `yarn install` refuses to rewrite the lock
 for the new pin. For the `wdk-mcp` image, set
-`WDK_MCP_REV` in the env file.
+the tag in the `wdk-mcp` compose build context.
 
 A repository that adopts the `v<version>` tag convention can be named by `rev`
 or `commit=` with the tag instead of the sha; the pin stays exact either way.

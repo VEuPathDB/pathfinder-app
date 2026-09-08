@@ -1,8 +1,14 @@
+"use client";
+
 import type { EnrichmentResultsChunk } from "@pathfinder/shared";
 import { EnrichmentSection } from "@/features/workbench/analysis";
 import { Figure } from "@/features/conversation/thread/Figure";
 
+import { useChatHelpers } from "../../runtime/chatHelpersContext";
+import { tableNumberFor } from "./tableNumbers";
+
 export function DataEnrichmentResults({ data }: { data: EnrichmentResultsChunk }) {
+  const chat = useChatHelpers();
   const results = data.results;
   const csv = data.downloads?.["csv"];
   return (
@@ -10,6 +16,7 @@ export function DataEnrichmentResults({ data }: { data: EnrichmentResultsChunk }
       testId="data-enrichment-results"
       title="Enrichment"
       caption={`${results.length.toLocaleString()} terms, ${data.geneCount.toLocaleString()} genes analyzed`}
+      exhibit={{ kind: "table", number: tableNumberFor(chat.messages, data) }}
     >
       <div>
         <div className="mb-2 flex items-center justify-between text-xs">

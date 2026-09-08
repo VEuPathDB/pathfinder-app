@@ -34,25 +34,32 @@ export const ConversationContent = ({
 
 export type ConversationScrollButtonProps = ComponentProps<typeof Button>;
 
+/**
+ * The control sits on a rail of its own between the viewport and the composer,
+ * so it stays above the composer instead of scrolling with the thread. The
+ * rail has no height, so it takes no room from either.
+ */
 export const ConversationScrollButton = ({
   className,
   ...props
 }: ConversationScrollButtonProps) => (
-  <ThreadPrimitive.ScrollToBottom asChild>
-    <Button
-      className={cn(
-        "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full",
-        // The primitive disables itself at the bottom of the thread.
-        "disabled:pointer-events-none disabled:invisible",
-        className,
-      )}
-      size="icon"
-      type="button"
-      variant="outline"
-      aria-label="Scroll to the latest message"
-      {...props}
-    >
-      <ArrowDownIcon className="size-4" />
-    </Button>
-  </ThreadPrimitive.ScrollToBottom>
+  <div data-testid="conversation-scroll-rail" className="relative z-10 h-0">
+    <ThreadPrimitive.ScrollToBottom asChild>
+      <Button
+        className={cn(
+          "absolute bottom-2 left-[50%] translate-x-[-50%] rounded-full shadow-md",
+          // The primitive disables itself at the bottom of the thread.
+          "disabled:pointer-events-none disabled:invisible",
+          className,
+        )}
+        size="icon"
+        type="button"
+        variant="outline"
+        aria-label="Scroll to the latest message"
+        {...props}
+      >
+        <ArrowDownIcon className="size-4" />
+      </Button>
+    </ThreadPrimitive.ScrollToBottom>
+  </div>
 );

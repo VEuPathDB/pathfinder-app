@@ -43,8 +43,7 @@ export function DataEdaSubsetPreview({ data }: { data: EdaSubsetPreview }) {
       testId="data-eda-subset-preview"
       title={series !== null ? variableName(series) : null}
       caption={plotCaption(data.caption ?? "", study, base)}
-      numbered
-      figureNumber={figureNumberFor(chat.messages, data)}
+      exhibit={{ kind: "figure", number: figureNumberFor(chat.messages, data) }}
       footer={
         <div className="text-xs">
           {series !== null ? <DistributionReadouts series={series} /> : null}

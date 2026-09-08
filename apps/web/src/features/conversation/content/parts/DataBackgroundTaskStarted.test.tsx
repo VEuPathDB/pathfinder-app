@@ -269,8 +269,51 @@ describe("DataBackgroundTaskStarted", () => {
   });
 });
 
-describe("a completed task points at its result", () => {
-  it("links the card to the turn that carries the result", () => {
+const EXHIBIT = {
+  taskId: "t1",
+  toolCallId: "call_1",
+  targetLabel: "Genes by Molecular Weight",
+  targetEstimatedSize: 132,
+  positive: { controlsCount: 3, intersectionCount: 2, recall: 2 / 3 },
+};
+
+function exhibitPart(): UIMessage["parts"][number] {
+  return {
+    type: "data-control-test-results",
+    data: EXHIBIT,
+  } as UIMessage["parts"][number];
+}
+
+function summaryPart(summary: string): UIMessage["parts"][number] {
+  return {
+    type: "data-tool-summary",
+    data: { toolCallId: "call_1", summary, status: "ok" },
+  } as UIMessage["parts"][number];
+}
+
+describe("a completed task points at its exhibit", () => {
+  it("links to no exhibit, because the exhibit reads under the row", () => {
+    renderCard([completedPart({ taskId: "t1", status: "success" }), exhibitPart()]);
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
+  });
+
+  it("reads the tool's own line in place of Completed", () => {
+    renderCard([
+      completedPart({ taskId: "t1", status: "success" }),
+      exhibitPart(),
+      summaryPart("2 of 3 positive controls recovered"),
+    ]);
+    expect(screen.getByTestId("task-row-status")).toHaveTextContent(
+      "2 of 3 positive controls recovered",
+    );
+  });
+
+  it("offers no link while the task still runs", () => {
+    renderCard([]);
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
+  });
+
+  it("offers no link for a task whose turn wrote only prose", () => {
     renderCard([completedPart({ taskId: "t1", status: "success" })], {
       later: [
         {
@@ -280,25 +323,14 @@ describe("a completed task points at its result", () => {
         },
       ],
     });
-    const link = screen.getByRole("link", { name: "View result" });
-    expect(link.getAttribute("href")).toBe("#message-m2");
-  });
-
-  it("offers no link while the task still runs", () => {
-    renderCard([]);
     expect(screen.queryAllByRole("link")).toHaveLength(0);
   });
 
   it("offers no link for a task that failed", () => {
-    renderCard([completedPart({ taskId: "t1", status: "failed", error: "boom" })], {
-      later: [
-        {
-          id: "m2",
-          role: "assistant",
-          parts: [{ type: "text", text: "It failed." }] as UIMessage["parts"],
-        },
-      ],
-    });
+    renderCard([
+      completedPart({ taskId: "t1", status: "failed", error: "boom" }),
+      exhibitPart(),
+    ]);
     expect(screen.queryAllByRole("link")).toHaveLength(0);
   });
 });

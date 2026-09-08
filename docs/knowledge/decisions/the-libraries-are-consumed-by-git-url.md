@@ -1,7 +1,7 @@
 ---
 type: Decision
-title: The three libraries are consumed by URL at a commit
-description: apps/api names veupathdb-py, veupathdb-mcp, assistant-core and veupathdb-mcp-conformance by repository URL and a 40-character rev, apps/web names @pathfinder/assistant-client by repository URL, workspace and commit, and the wdk-mcp image builds from the MCP repository at WDK_MCP_REV; subtree mirrors, an internal package index that does not exist, and GitHub Packages were rejected.
+title: The three libraries are consumed by URL at a release
+description: apps/api names veupathdb-py, veupathdb-mcp, assistant-core and veupathdb-mcp-conformance by repository URL and a release tag, apps/web names @pathfinder/assistant-client the same way, and the wdk-mcp image builds from the same release, committed in its compose build context
 tags: [split, packaging, uv, yarn, docker, ci, dependencies]
 generated: { by: claude-code/opus-5, at: 2026-09-06T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-06T00:00:00Z }
@@ -18,9 +18,9 @@ the only copy.
 
 | Consumer | Declaration |
 | --- | --- |
-| `apps/api/pyproject.toml` `[tool.uv.sources]` | `{ git = <repository>, rev = <40 characters> }`, with `subdirectory` for the two packages inside the platform repository |
-| `apps/web/package.json` | `git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@pathfinder/assistant-client&commit=<40 characters>` |
-| `docker-compose.yml` `wdk-mcp` | `context: https://github.com/VEuPathDB/ai-wdk-mcp.git#${WDK_MCP_REV:?}` |
+| `apps/api/pyproject.toml` `[tool.uv.sources]` | `{ git = <repository>, tag = <release> }`, with `subdirectory` for the two packages inside the platform repository |
+| `apps/web/package.json` | `git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@pathfinder/assistant-client&tag=<release>` |
+| `docker-compose.yml` `wdk-mcp` | `context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.1.0a3`, committed beside the Python pin |
 
 A pin is a commit, never a branch. A branch moves under a lock that claims to
 have resolved it, and the same checkout then builds two different images on two
@@ -39,7 +39,8 @@ uv sync
 For the TypeScript client, change `commit=` and run `yarn install --no-immutable`
 at the root; the root enables immutable installs, so a plain install refuses to
 rewrite the lock for the new pin.
-For the `wdk-mcp` image, set `WDK_MCP_REV` in the env file.
+For the `wdk-mcp` image, change the tag in its compose build context, in the same
+commit as the Python pin, so the served tools and the imported ones agree.
 
 # What follows from it
 

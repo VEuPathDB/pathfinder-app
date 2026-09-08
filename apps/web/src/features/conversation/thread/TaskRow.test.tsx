@@ -91,7 +91,7 @@ describe("TaskRow", () => {
     expect(screen.getByTestId("task-row-status")).toHaveTextContent("0%");
   });
 
-  it("links to the result only when the href resolves", () => {
+  it("shows the tool's own line in place of Completed", () => {
     render(
       <TaskRow
         label="Run control tests"
@@ -100,15 +100,30 @@ describe("TaskRow", () => {
         estimatedSeconds={null}
         outcome="success"
         error={null}
-        resultHref="#message-m2"
+        summary="2 of 3 positive controls recovered"
       />,
     );
-    const link = screen.getByTestId("task-row-result-link");
-    expect(link).toHaveTextContent("View result");
-    expect(link).toHaveAttribute("href", "#message-m2");
+    expect(screen.getByTestId("task-row-status")).toHaveTextContent(
+      "2 of 3 positive controls recovered",
+    );
   });
 
-  it("leaves the status text alone when nothing carries the result", () => {
+  it("keeps Failed over a line a failed call left behind", () => {
+    render(
+      <TaskRow
+        label="Run control tests"
+        percent={1}
+        message={null}
+        estimatedSeconds={null}
+        outcome="failure"
+        error="WDK rejected the search"
+        summary="2 of 3 positive controls recovered"
+      />,
+    );
+    expect(screen.getByTestId("task-row-status")).toHaveTextContent("Failed");
+  });
+
+  it("points at no exhibit, because the exhibit reads under the row", () => {
     render(
       <TaskRow
         label="Run control tests"
@@ -117,12 +132,11 @@ describe("TaskRow", () => {
         estimatedSeconds={null}
         outcome="success"
         error={null}
-        resultHref={null}
       />,
     );
     const row = screen.getByTestId("task-row");
-    expect(within(row).queryByTestId("task-row-result-link")).toBeNull();
-    expect(row).not.toHaveTextContent("View result");
+    expect(within(row).queryByRole("link")).toBeNull();
+    expect(row).not.toHaveTextContent("see Table");
     expect(within(row).getByTestId("task-row-status")).toHaveTextContent("Completed");
   });
 

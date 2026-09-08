@@ -1,69 +1,92 @@
-import type { VariantComparison } from "@pathfinder/shared";
+"use client";
 
+import type { VariantComparison, VariantResult } from "@pathfinder/shared";
+
+import {
+  ExhibitTable,
+  type ExhibitNote,
+  type ExhibitRow,
+} from "@/features/conversation/thread/ExhibitTable";
 import { Figure } from "@/features/conversation/thread/Figure";
 
+import { useChatHelpers } from "../../runtime/chatHelpersContext";
+import { tableNumberFor } from "./tableNumbers";
+
 const TRUNCATED_NOTE = "large result sets, overlap is a lower bound";
+
+const COLUMNS = [
+  { head: "Variant" },
+  { head: "Genes", numeric: true },
+  { head: "Unique to it", numeric: true },
+] as const;
 
 function largestGeneCount(data: VariantComparison): number {
   return data.variants.reduce((best, variant) => Math.max(best, variant.geneCount), 0);
 }
 
+function hasFailed(variant: VariantResult): boolean {
+  return variant.error != null && variant.error !== "";
+}
+
+function rows(data: VariantComparison): ExhibitRow[] {
+  return data.variants.map((variant) => ({
+    key: variant.label,
+    cells: [
+      <span key="label" className="font-medium">
+        {variant.label}
+      </span>,
+      hasFailed(variant) ? "-" : variant.geneCount.toLocaleString(),
+      hasFailed(variant) ? "-" : variant.uniqueCount.toLocaleString(),
+    ],
+  }));
+}
+
+/** Why a variant has no counts, which genes only it returned, and how far the
+ * pairs overlap. */
+function notes(data: VariantComparison): ExhibitNote[] {
+  const built: ExhibitNote[] = [];
+  if (data.truncated === true) {
+    built.push({ key: "truncated", label: "Note:", body: TRUNCATED_NOTE });
+  }
+  for (const variant of data.variants) {
+    if (hasFailed(variant)) {
+      built.push({
+        key: `failed-${variant.label}`,
+        label: `${variant.label}:`,
+        body: (
+          <span className="text-destructive">{`failed: ${variant.error ?? ""}`}</span>
+        ),
+      });
+      continue;
+    }
+    if (variant.sampleUniqueGenes.length > 0) {
+      built.push({
+        key: `unique-${variant.label}`,
+        label: `Only in ${variant.label}:`,
+        body: <span className="font-mono">{variant.sampleUniqueGenes.join(", ")}</span>,
+      });
+    }
+  }
+  for (const overlap of data.overlaps) {
+    built.push({
+      key: `${overlap.a}|${overlap.b}`,
+      label: `${overlap.a} vs ${overlap.b}:`,
+      body: `${overlap.shared.toLocaleString()} shared, Jaccard ${String(overlap.jaccard)}`,
+    });
+  }
+  return built;
+}
+
 export function DataVariantComparison({ data }: { data: VariantComparison }) {
+  const chat = useChatHelpers();
   return (
     <Figure
       testId="data-variant-comparison"
       title="Variants"
       caption={`${data.variants.length.toLocaleString()} variants, ${largestGeneCount(data).toLocaleString()} genes in the largest`}
+      exhibit={{ kind: "table", number: tableNumberFor(chat.messages, data) }}
     >
-      <div className="text-xs">
-        {data.truncated === true ? (
-          <p className="text-[10px] text-muted-foreground">{TRUNCATED_NOTE}</p>
-        ) : null}
-
-        <ul className="space-y-1.5">
-          {data.variants.map((v) => (
-            <li key={v.label}>
-              <div className="flex items-baseline gap-2">
-                <span className="font-medium text-foreground">{v.label}</span>
-                <span className="ml-auto font-mono text-[11px] text-foreground">
-                  {v.error != null && v.error !== ""
-                    ? "-"
-                    : `${v.geneCount.toLocaleString()} genes`}
-                </span>
-              </div>
-              {v.error != null && v.error !== "" ? (
-                <div className="mt-0.5 text-[11px] text-destructive">
-                  failed: {v.error}
-                </div>
-              ) : (
-                <div className="mt-0.5 text-[11px] text-muted-foreground">
-                  {v.uniqueCount.toLocaleString()} unique
-                  {v.sampleUniqueGenes.length > 0 ? (
-                    <span className="font-mono">
-                      {` - ${v.sampleUniqueGenes.join(", ")}`}
-                    </span>
-                  ) : null}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-
-        {data.overlaps.length > 0 ? (
-          <dl className="mt-2 space-y-0.5 pt-1.5">
-            {data.overlaps.map((o) => (
-              <div key={`${o.a}|${o.b}`} className="flex gap-2 text-[11px]">
-                <dt className="text-muted-foreground">
-                  {o.a} vs {o.b}
-                </dt>
-                <dd className="ml-auto font-mono text-foreground">
-                  {`${o.shared.toLocaleString()} shared, Jaccard ${String(o.jaccard)}`}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        ) : null}
-      </div>
+      <ExhibitTable columns={COLUMNS} rows={rows(data)} notes={notes(data)} />
     </Figure>
   );
 }

@@ -42,7 +42,7 @@ import { SupersededBadge } from "./SupersededBadge";
 import { ConsultCarousel } from "./parts/ConsultCarousel";
 import { StoppedNotice } from "./StoppedNotice";
 import { dataPartRenderers } from "./dataPartRegistry";
-import { messageAnchorId } from "../thread/taskResult";
+import { messageAnchorId } from "../thread/messageAnchor";
 import { TraceAnchor, type TraceAnchorProps } from "../thread/TraceAnchor";
 
 const markdownRemarkPlugins = [remarkGfm];

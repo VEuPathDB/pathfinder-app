@@ -17,8 +17,7 @@ import { useConversationId } from "@/features/conversation/useConversationId";
 import { humanizeToolName } from "@/features/conversation/toolNames";
 
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
-import { taskResultHref } from "../../thread/taskResult";
-import { traceRenderingKinds } from "../../thread/traceRenderingKinds";
+import { taskResult } from "../../thread/taskExhibit";
 
 const laneSchema = z.object({ variantId: z.string() });
 
@@ -90,10 +89,8 @@ export function DataBackgroundTaskStarted({ data }: { data: BackgroundTaskStarte
   });
 
   const tool = humanizeToolName(data.toolName);
-  const resultHref =
-    completed?.status === "success"
-      ? taskResultHref(chat.messages, data.taskId, traceRenderingKinds())
-      : null;
+  const result =
+    completed?.status === "success" ? taskResult(chat.messages, data.taskId) : null;
   const rows = orderedLanes(lanes).map(([lane, progress], index) => (
     <TaskRow
       key={lane ?? "task"}
@@ -103,7 +100,7 @@ export function DataBackgroundTaskStarted({ data }: { data: BackgroundTaskStarte
       estimatedSeconds={lane === null ? data.estimatedDurationSeconds : null}
       outcome={outcomeOf(completed)}
       error={index === 0 ? (completed?.error ?? null) : null}
-      resultHref={index === 0 ? resultHref : null}
+      summary={index === 0 ? (result?.summary ?? null) : null}
     />
   ));
   return (

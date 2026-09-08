@@ -3,10 +3,14 @@
  */
 import { describe, it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import type { ReactElement } from "react";
+
+import { ChatHelpersProvider } from "../../runtime/chatHelpersContext";
 
 import type { ScoredComparison } from "@pathfinder/shared";
 
 import { DataScoredComparison } from "./DataScoredComparison";
+import { chatHelpersFor, threadOf, threadPart } from "./threadFixture";
 
 const SCORED: ScoredComparison = {
   objective: "mcc",
@@ -37,16 +41,23 @@ const SCORED: ScoredComparison = {
   ],
 };
 
+function inThread(ui: ReactElement<{ data: object }>) {
+  const messages = threadOf([threadPart("data-scored-comparison", ui.props.data)]);
+  return render(
+    <ChatHelpersProvider value={chatHelpersFor(messages)}>{ui}</ChatHelpersProvider>,
+  );
+}
+
 describe("DataScoredComparison figure", () => {
   it("captions the figure with the variant count and the winning score", () => {
-    render(<DataScoredComparison data={SCORED} />);
+    inThread(<DataScoredComparison data={SCORED} />);
     expect(screen.getByTestId("figure-caption").textContent).toBe(
-      "2 variants, winner strict at 0.82",
+      "Table 1. 2 variants, winner strict at 0.82",
     );
   });
 
   it("captions a wholly failed scoring as a failure, not as a missing winner", () => {
-    render(
+    inThread(
       <DataScoredComparison
         data={{
           ...SCORED,
@@ -56,24 +67,26 @@ describe("DataScoredComparison figure", () => {
       />,
     );
     expect(screen.getByTestId("figure-caption").textContent).toBe(
-      "scoring failed for 2 of 2 variants",
+      "Table 1. scoring failed for 2 of 2 variants",
     );
   });
 
   it("says so in the caption when nothing scored", () => {
-    render(<DataScoredComparison data={{ ...SCORED, winnerLabel: null }} />);
+    inThread(<DataScoredComparison data={{ ...SCORED, winnerLabel: null }} />);
     expect(screen.getByTestId("figure-caption").textContent).toBe(
-      "2 variants, no winner",
+      "Table 1. 2 variants, no winner",
     );
   });
 
   it("titles the figure Scored variants", () => {
-    render(<DataScoredComparison data={SCORED} />);
-    expect(screen.getByText("Scored variants").tagName).toBe("FIGCAPTION");
+    inThread(<DataScoredComparison data={SCORED} />);
+    expect(screen.getByText("Scored variants").parentElement?.tagName).toBe(
+      "FIGCAPTION",
+    );
   });
 
   it("draws no divider, no card and no outer margin", () => {
-    render(<DataScoredComparison data={SCORED} />);
+    inThread(<DataScoredComparison data={SCORED} />);
     expect(screen.getByTestId("figure").className).toBe("");
     expect(screen.getByTestId("data-scored-comparison").className).not.toMatch(
       /\bborder\b|\brounded-md\b|\bbg-card\b/,
@@ -83,7 +96,7 @@ describe("DataScoredComparison figure", () => {
 
 describe("DataScoredComparison", () => {
   it("ranks variants, flags the winner, and shows metrics", () => {
-    render(
+    inThread(
       <DataScoredComparison
         data={{
           objective: "mcc",
@@ -120,12 +133,22 @@ describe("DataScoredComparison", () => {
     // winner badge appears exactly once, on the strict row
     const winner = screen.getByText("winner");
     expect(winner).toBeInTheDocument();
-    expect(screen.getByText(/MCC 1\.00/)).toBeInTheDocument();
-    expect(screen.getByText(/MCC 0\.60/)).toBeInTheDocument();
+    const heads = screen.getAllByRole("columnheader").map((h) => h.textContent);
+    expect(heads).toEqual([
+      "Variant",
+      "MCC",
+      "F1",
+      "Precision",
+      "Sensitivity",
+      "Balanced accuracy",
+    ]);
+    const rows = screen.getAllByRole("row").map((r) => r.textContent);
+    expect(rows[1]).toBe("lenient0.600.800.800.800.80");
+    expect(rows[2]).toBe("strictwinner1.000.900.900.900.95");
   });
 
   it("names the failure as a failed scoring, not as a bare failure", () => {
-    render(
+    inThread(
       <DataScoredComparison
         data={{
           objective: "mcc",
@@ -155,7 +178,7 @@ describe("DataScoredComparison", () => {
   });
 
   it("lists the control ids a variant contains", () => {
-    render(
+    inThread(
       <DataScoredComparison
         data={{
           objective: "mcc",
@@ -189,14 +212,12 @@ describe("DataScoredComparison", () => {
         }}
       />,
     );
-    expect(
-      screen.getByText("contains PF3D7_1116700, PF3D7_0507500"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("PF3D7_1116700, PF3D7_0507500")).toBeInTheDocument();
     expect(screen.getByText("contains none of the control genes")).toBeInTheDocument();
   });
 
   it("shows a failed variant's error and no metrics", () => {
-    render(
+    inThread(
       <DataScoredComparison
         data={{
           objective: "mcc",
@@ -232,7 +253,7 @@ describe("DataScoredComparison", () => {
   });
 
   it("does not render a winner badge when no variant scored", () => {
-    render(
+    inThread(
       <DataScoredComparison
         data={{
           objective: "mcc",

@@ -43,12 +43,14 @@ describe("the thread's message list", () => {
 describe("the thread scroll surface", () => {
   it("is the thread primitive's own viewport, scrolling to the bottom on send", () => {
     render(
-      <Conversation>
-        <ConversationContent>
-          <p>a message</p>
-        </ConversationContent>
+      <>
+        <Conversation>
+          <ConversationContent>
+            <p>a message</p>
+          </ConversationContent>
+        </Conversation>
         <ConversationScrollButton />
-      </Conversation>,
+      </>,
     );
 
     expect(screen.getByTestId("thread-viewport")).toBeInTheDocument();
@@ -62,5 +64,18 @@ describe("the thread scroll surface", () => {
     expect(props["autoScroll"]).not.toBe(false);
     expect(props["scrollToBottomOnRunStart"]).not.toBe(false);
     expect(props["turnAnchor"]).not.toBe("top");
+  });
+
+  it("keeps its own rail, which takes no room of its own above the composer", () => {
+    render(<ConversationScrollButton />);
+    const rail = screen.getByTestId("conversation-scroll-rail");
+    const tokens = rail.className.split(/\s+/);
+    expect(tokens).toContain("relative");
+    expect(tokens).toContain("h-0");
+    expect(
+      rail.contains(
+        screen.getByRole("button", { name: "Scroll to the latest message" }),
+      ),
+    ).toBe(true);
   });
 });

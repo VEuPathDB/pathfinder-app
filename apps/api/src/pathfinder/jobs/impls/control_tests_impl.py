@@ -6,11 +6,48 @@ from typing import Any
 from uuid import UUID
 
 from assistant_core.memory.store import MemoryStore
+from assistant_core.platform.pydantic_base import CamelModel
+from pydantic import Field
+from veupathdb.errors import VEuPathDBError
+from veupathdb.logging import get_logger
+from veupathdb.wdk.factory import get_strategy_api
 from veupathdb_mcp.controls.control_tests import run_step_control_tests
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.jobs.progress import TaskProgressEmitter
+from pathfinder.services.experiment.published_names import published_names
 from pathfinder.services.export.control_downloads import attach_control_downloads
+
+logger = get_logger(__name__)
+
+
+class TestedStep(CamelModel):
+    """How WDK names the tested step and the parameters it ran."""
+
+    search_name: str = ""
+    label: str = ""
+    parameter_labels: dict[str, str] = Field(default_factory=dict)
+
+
+async def _tested_step(site_id: str, wdk_step_id: int) -> TestedStep:
+    """What WDK calls the tested step. Empty when WDK refuses the step."""
+    try:
+        step = await get_strategy_api(site_id).find_step(wdk_step_id)
+    except VEuPathDBError as exc:
+        logger.warning(
+            "Control test could not name the tested step",
+            step_id=wdk_step_id,
+            error=str(exc),
+        )
+        return TestedStep()
+    published = await published_names(
+        site_id, step.record_class_name or "", step.search_name
+    )
+    return TestedStep(
+        search_name=step.search_name,
+        label=step.custom_name or step.display_name or published.label,
+        parameter_labels=published.parameter_labels,
+    )
 
 
 async def run_control_tests_on_step_impl(
@@ -48,6 +85,9 @@ async def run_control_tests_on_step_impl(
         negative_controls=negative_controls,
     )
 
+    tested = await _tested_step(context.site_id, wdk_step_id)
+    result.search_name = tested.search_name
+
     emitted = 0
     if has_positives:
         emitted += 1
@@ -75,4 +115,9 @@ async def run_control_tests_on_step_impl(
         result, f"step_{wdk_step_id}_control_tests"
     )
     await progress.update(percent=1.0, message="Control tests complete", data=None)
-    return exported.model_dump(by_alias=True, exclude_none=True, mode="json")
+    # The library's outcome carries the numbers; only WDK names the step and
+    # its parameters, so the worker reports those names beside them.
+    reported = exported.model_dump(by_alias=True, exclude_none=True, mode="json")
+    reported["targetLabel"] = tested.label
+    reported["parameterLabels"] = tested.parameter_labels
+    return reported

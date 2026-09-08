@@ -1,6 +1,27 @@
+"use client";
+
+import type { ReactElement } from "react";
+
 import type { ScoredComparison, ScoredVariant } from "@pathfinder/shared";
 
+import {
+  ExhibitTable,
+  type ExhibitNote,
+  type ExhibitRow,
+} from "@/features/conversation/thread/ExhibitTable";
 import { Figure } from "@/features/conversation/thread/Figure";
+
+import { useChatHelpers } from "../../runtime/chatHelpersContext";
+import { tableNumberFor } from "./tableNumbers";
+
+const COLUMNS = [
+  { head: "Variant" },
+  { head: "MCC", numeric: true },
+  { head: "F1", numeric: true },
+  { head: "Precision", numeric: true },
+  { head: "Sensitivity", numeric: true },
+  { head: "Balanced accuracy", numeric: true },
+] as const;
 
 function fmt(value: number | null | undefined): string {
   return value == null ? "-" : value.toFixed(2);
@@ -8,13 +29,6 @@ function fmt(value: number | null | undefined): string {
 
 function hasFailed(variant: ScoredVariant): boolean {
   return variant.error != null && variant.error !== "";
-}
-
-function membership(variant: ScoredVariant): string {
-  const hits = variant.controlHits ?? [];
-  return hits.length === 0
-    ? "contains none of the control genes"
-    : `contains ${hits.join(", ")}`;
 }
 
 function caption(data: ScoredComparison): string {
@@ -30,50 +44,86 @@ function caption(data: ScoredComparison): string {
   return `${count}, no winner`;
 }
 
+function Name({
+  variant,
+  isWinner,
+}: {
+  variant: ScoredVariant;
+  isWinner: boolean;
+}): ReactElement {
+  return (
+    <span className="flex items-baseline gap-1.5">
+      <span className="font-medium">{variant.label}</span>
+      {isWinner ? (
+        <span className="text-[10px] font-medium text-primary">winner</span>
+      ) : null}
+    </span>
+  );
+}
+
+function rows(data: ScoredComparison): ExhibitRow[] {
+  return data.variants.map((variant) => {
+    const isWinner = data.winnerLabel != null && variant.label === data.winnerLabel;
+    return {
+      key: variant.label,
+      cells: [
+        <Name key="name" variant={variant} isWinner={isWinner} />,
+        fmt(variant.mcc),
+        fmt(variant.f1),
+        fmt(variant.precision),
+        fmt(variant.sensitivity),
+        fmt(variant.balancedAccuracy),
+      ],
+    };
+  });
+}
+
+/** Why a variant has no scores, and which control genes it holds. */
+function notes(data: ScoredComparison): ExhibitNote[] {
+  const built: ExhibitNote[] = [];
+  for (const variant of data.variants) {
+    if (hasFailed(variant)) {
+      built.push({
+        key: `failed-${variant.label}`,
+        label: `${variant.label}:`,
+        body: (
+          <span className="text-destructive">{`scoring failed: ${variant.error ?? ""}`}</span>
+        ),
+      });
+    }
+    built.push({
+      key: `controls-${variant.label}`,
+      label: `${variant.label}:`,
+      body: <Membership variant={variant} />,
+    });
+  }
+  return built;
+}
+
+/** The control genes a variant's result set holds, ids in the code face. */
+function Membership({ variant }: { variant: ScoredVariant }): ReactElement {
+  const hits = variant.controlHits ?? [];
+  if (hits.length === 0) return <span>contains none of the control genes</span>;
+  return (
+    <span>
+      contains <span className="font-mono">{hits.join(", ")}</span>
+    </span>
+  );
+}
+
 export function DataScoredComparison({ data }: { data: ScoredComparison }) {
+  const chat = useChatHelpers();
   return (
     <Figure
       testId="data-scored-comparison"
       title="Scored variants"
       caption={caption(data)}
+      exhibit={{ kind: "table", number: tableNumberFor(chat.messages, data) }}
     >
-      <div className="text-xs">
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-          ranked by {data.objective}
-        </p>
-
-        <ul className="mt-2 space-y-1.5">
-          {data.variants.map((v) => {
-            const isWinner = data.winnerLabel != null && v.label === data.winnerLabel;
-            const failed = hasFailed(v);
-            return (
-              <li key={v.label}>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-medium text-foreground">{v.label}</span>
-                  {isWinner ? (
-                    <span className="text-[10px] font-medium text-primary">winner</span>
-                  ) : null}
-                  <span className="ml-auto font-mono text-[11px] text-foreground">
-                    {failed ? "-" : `MCC ${fmt(v.mcc)}`}
-                  </span>
-                </div>
-                {failed ? (
-                  <div className="mt-0.5 text-[11px] text-destructive">
-                    scoring failed: {v.error}
-                  </div>
-                ) : (
-                  <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-                    {`F1 ${fmt(v.f1)}, prec ${fmt(v.precision)}, sens ${fmt(v.sensitivity)}, bal-acc ${fmt(v.balancedAccuracy)}`}
-                  </div>
-                )}
-                <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-                  {membership(v)}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+      <p className="mb-3 text-[11px] text-muted-foreground">
+        {`ranked by ${data.objective}`}
+      </p>
+      <ExhibitTable columns={COLUMNS} rows={rows(data)} notes={notes(data)} />
     </Figure>
   );
 }

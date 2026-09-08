@@ -3,35 +3,29 @@ frontend as data parts on the assistant message."""
 
 from __future__ import annotations
 
-from uuid import UUID
-
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult
 
 from pathfinder.ai.lead.ledger import InvestigationLedger
-from pathfinder.ai.stream_part_payloads import EnrichmentResultsChunk
+from pathfinder.ai.stream_part_payloads import (
+    ControlTestResults,
+    EnrichmentResultsChunk,
+)
 
 
-def enrichment_results_event(
-    *,
-    task_id: UUID,
-    gene_set_id: str,
-    gene_set_name: str,
-    gene_count: int,
-    results: list[EnrichmentResult],
-    downloads: dict[str, str | int] | None = None,
-) -> DataChunk:
+def enrichment_results_event(results: EnrichmentResultsChunk) -> DataChunk:
+    """Report the terms one enrichment run found, as its own exhibit."""
     return DataChunk(
         type="data-enrichment-results",
-        data=EnrichmentResultsChunk(
-            task_id=str(task_id),
-            gene_set_id=gene_set_id,
-            gene_set_name=gene_set_name,
-            gene_count=gene_count,
-            results=results,
-            downloads=downloads,
-        ).model_dump(by_alias=True, mode="json"),
+        data=results.model_dump(by_alias=True, mode="json"),
+    )
+
+
+def control_test_results_event(results: ControlTestResults) -> DataChunk:
+    """Report the numbers one control test measured, as its own exhibit."""
+    return DataChunk(
+        type="data-control-test-results",
+        data=results.model_dump(by_alias=True, mode="json"),
     )
 
 

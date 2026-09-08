@@ -12,6 +12,7 @@ from assistant_core.graph.stream_events import (
 from pathfinder.ai.graph.stream_events import StrategyRevisionPayload
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.stream_part_payloads import (
+    ControlTestResults,
     EnrichmentResultsChunk,
     GeneSet,
     GraphCleared,
@@ -31,6 +32,7 @@ def register_strategy_stream_parts(registry: StreamPartRegistry) -> None:
     registry.register("data-strategy-revision", StrategyRevisionPayload)
     registry.register("data-gene-set", GeneSet)
     registry.register("data-enrichment-results", EnrichmentResultsChunk)
+    registry.register("data-control-test-results", ControlTestResults)
     registry.register("data-variant-comparison", VariantComparison)
     registry.register("data-scored-comparison", ScoredComparison)
     registry.register("data-ledger-update", InvestigationLedger)

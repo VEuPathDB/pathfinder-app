@@ -3,6 +3,9 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
+
+import { ChatHelpersProvider } from "../../runtime/chatHelpersContext";
 import type { EnrichmentResultsChunk } from "@pathfinder/shared";
 
 vi.mock("@/lib/components/charts/echartsRegistry", () => ({
@@ -15,6 +18,7 @@ vi.mock("@/lib/components/charts/echartsRegistry", () => ({
 }));
 
 import { DataEnrichmentResults } from "./DataEnrichmentResults";
+import { chatHelpersFor, threadOf, threadPart } from "./threadFixture";
 
 const CHUNK: EnrichmentResultsChunk = {
   taskId: "t-1",
@@ -28,25 +32,32 @@ const CHUNK: EnrichmentResultsChunk = {
   downloads: { csv: "https://plasmodb.org/enrichment.csv" },
 };
 
+function inThread(ui: ReactElement<{ data: object }>) {
+  const messages = threadOf([threadPart("data-enrichment-results", ui.props.data)]);
+  return render(
+    <ChatHelpersProvider value={chatHelpersFor(messages)}>{ui}</ChatHelpersProvider>,
+  );
+}
+
 describe("DataEnrichmentResults", () => {
   it("captions the figure with the term count and the genes analyzed", () => {
-    render(<DataEnrichmentResults data={CHUNK} />);
+    inThread(<DataEnrichmentResults data={CHUNK} />);
     expect(screen.getByTestId("figure-caption").textContent).toBe(
-      "2 terms, 1,342 genes analyzed",
+      "Table 1. 2 terms, 1,342 genes analyzed",
     );
   });
 
   it("titles the figure Enrichment and keeps the gene set name in the body", () => {
-    render(<DataEnrichmentResults data={CHUNK} />);
+    inThread(<DataEnrichmentResults data={CHUNK} />);
     const title = screen.getByText("Enrichment");
-    expect(title.tagName).toBe("FIGCAPTION");
+    expect(title.parentElement?.tagName).toBe("FIGCAPTION");
     expect(screen.getByTestId("data-enrichment-results")).toHaveTextContent(
       "Erythrocytic kinases",
     );
   });
 
   it("keeps the CSV download the backend attached", () => {
-    render(<DataEnrichmentResults data={CHUNK} />);
+    inThread(<DataEnrichmentResults data={CHUNK} />);
     expect(screen.getByRole("link", { name: "Download CSV" })).toHaveAttribute(
       "href",
       "https://plasmodb.org/enrichment.csv",
@@ -54,7 +65,7 @@ describe("DataEnrichmentResults", () => {
   });
 
   it("draws no divider, no card and no outer margin", () => {
-    render(<DataEnrichmentResults data={CHUNK} />);
+    inThread(<DataEnrichmentResults data={CHUNK} />);
     expect(screen.getByTestId("figure").className).toBe("");
     expect(screen.getByTestId("data-enrichment-results").className).not.toMatch(
       /\bborder\b|\brounded-md\b|\bbg-card\b/,

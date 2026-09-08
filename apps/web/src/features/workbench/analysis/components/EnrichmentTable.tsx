@@ -136,16 +136,16 @@ export function EnrichmentTable({ terms }: EnrichmentTableProps) {
                     )}
                     {t.termName || t.termId || "\u2014"}
                   </td>
-                  <td className="px-4 py-2 text-right font-mono tabular-nums text-muted-foreground">
+                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
                     {t.geneCount}
                   </td>
-                  <td className="px-4 py-2 text-right font-mono tabular-nums text-muted-foreground">
+                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
                     {formatRatio(t.foldEnrichment, 2)}
                   </td>
-                  <td className="px-4 py-2 text-right font-mono tabular-nums text-muted-foreground">
+                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
                     {formatProbability(t.pValue)}
                   </td>
-                  <td className="px-4 py-2 text-right font-mono tabular-nums text-muted-foreground">
+                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
                     {formatProbability(t.fdr)}
                   </td>
                 </tr>

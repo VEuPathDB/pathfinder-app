@@ -71,6 +71,11 @@ from pathfinder.ai.graph._lead_turn import (
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.stream_events import ledger_update_event
+from pathfinder.ai.graph.turn_status import (
+    READING_THE_THREAD,
+    RECALLING_EARLIER_WORK,
+    turn_step_status,
+)
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.lead_agent import LeadAgent, LeadResponse
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentRunUsage
@@ -309,10 +314,12 @@ async def _run_lead_turn(
     if state.resumes_parked_call:
         memories = list(state.retrieved_memories)
     else:
+        emit_chunk(writer, turn_step_status(RECALLING_EARLIER_WORK))
         stored = await retrieve_memories(state, runtime)
         memories = [s.value for s in stored]
         if stored:
             writer(memory_retrieved_event(memories=stored))
+    emit_chunk(writer, turn_step_status(READING_THE_THREAD))
     capture = _LeadRunCapture()
     message_id = uuid4()
 

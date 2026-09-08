@@ -12,12 +12,13 @@ export interface TaskRowProps {
   estimatedSeconds: number | null;
   outcome: TaskOutcome;
   error: string | null;
-  /** In-page link to the turn that carries what the task produced. */
-  resultHref?: string | null;
+  /** The line the tool wrote about this call, which stands in for the bare
+   * outcome once the task succeeds. */
+  summary?: string | null;
 }
 
-function amountOf(outcome: TaskOutcome, pct: number): string {
-  if (outcome === "success") return "Completed";
+function amountOf(outcome: TaskOutcome, pct: number, summary: string | null): string {
+  if (outcome === "success") return summary ?? "Completed";
   if (outcome === "failure") return "Failed";
   return `${String(pct)}%`;
 }
@@ -45,7 +46,7 @@ export function TaskRow({
   estimatedSeconds,
   outcome,
   error,
-  resultHref = null,
+  summary = null,
 }: TaskRowProps): ReactElement {
   const pct = Math.round((percent ?? 0) * 100);
   const running = outcome === "running";
@@ -64,19 +65,10 @@ export function TaskRow({
         )}
         <span
           data-testid="task-row-status"
-          className="ml-auto text-xs text-muted-foreground tabular-nums"
+          className="ml-auto min-w-0 truncate text-xs text-muted-foreground tabular-nums"
         >
-          {amountOf(outcome, pct)}
+          {amountOf(outcome, pct, summary)}
         </span>
-        {resultHref !== null && (
-          <a
-            href={resultHref}
-            data-testid="task-row-result-link"
-            className="text-xs font-medium text-primary underline-offset-2 hover:underline"
-          >
-            View result
-          </a>
-        )}
       </div>
       <div data-testid="data-task-progress" className="text-xs">
         {running && message !== null && (

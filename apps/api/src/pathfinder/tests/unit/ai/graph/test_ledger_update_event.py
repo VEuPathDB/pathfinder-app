@@ -112,11 +112,14 @@ _GO_RESULT = EnrichmentResult(
 def test_enrichment_chunk_matches_its_payload_model() -> None:
     task_id = UUID("d7e0c4a0-0000-4000-8000-000000000000")
     chunk = enrichment_results_event(
-        task_id=task_id,
-        gene_set_id="gs_1",
-        gene_set_name="kinases",
-        gene_count=87,
-        results=[_GO_RESULT],
+        EnrichmentResultsChunk(
+            task_id=str(task_id),
+            tool_call_id="call_1",
+            gene_set_id="gs_1",
+            gene_set_name="kinases",
+            gene_count=87,
+            results=[_GO_RESULT],
+        )
     )
     assert isinstance(chunk.data, dict)
     required = frozenset(

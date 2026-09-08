@@ -17836,6 +17836,131 @@
         "title": "ContrastSummary",
         "type": "object"
       },
+      "ControlSetSummary": {
+        "description": "One control set of a control test: its size, its hits, its rate and the\nids behind the counts. ``missed_ids`` is empty for a negative set, whose\nhits are the unexpected ones.",
+        "properties": {
+          "controlsCount": {
+            "minimum": 0,
+            "title": "Controlscount",
+            "type": "integer"
+          },
+          "intersectionCount": {
+            "minimum": 0,
+            "title": "Intersectioncount",
+            "type": "integer"
+          },
+          "recall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recall"
+          },
+          "falsePositiveRate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Falsepositiverate"
+          },
+          "hitIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Hitids",
+            "type": "array"
+          },
+          "missedIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missedids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "controlsCount",
+          "intersectionCount"
+        ],
+        "title": "ControlSetSummary",
+        "type": "object"
+      },
+      "ControlTestResults": {
+        "description": "The numbers one control test measured against a built WDK step.\n\n``task_id`` names the worker task the row on the thread reports, and is\nempty for a test that ran inside the turn; ``tool_call_id`` names the call\nthe summary line describes. ``target_label`` is what WDK calls the tested\nstep or search, never a url segment.",
+        "properties": {
+          "taskId": {
+            "title": "Taskid",
+            "type": "string"
+          },
+          "toolCallId": {
+            "title": "Toolcallid",
+            "type": "string"
+          },
+          "targetStepId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetstepid"
+          },
+          "targetLabel": {
+            "default": "",
+            "title": "Targetlabel",
+            "type": "string"
+          },
+          "targetEstimatedSize": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Targetestimatedsize",
+            "type": "integer"
+          },
+          "targetParameters": {
+            "items": {
+              "$ref": "#/components/schemas/TestedParameter"
+            },
+            "title": "Targetparameters",
+            "type": "array"
+          },
+          "positive": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ControlSetSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "negative": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ControlSetSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "taskId",
+          "toolCallId"
+        ],
+        "title": "ControlTestResults",
+        "type": "object"
+      },
       "ConversationTitlePayload": {
         "description": "Payload for the conversation-title chunk.",
         "properties": {
@@ -18244,6 +18369,11 @@
         "properties": {
           "taskId": {
             "title": "Taskid",
+            "type": "string"
+          },
+          "toolCallId": {
+            "default": "",
+            "title": "Toolcallid",
             "type": "string"
           },
           "geneSetId": {
@@ -19690,6 +19820,25 @@
         "title": "TaskProgress",
         "type": "object"
       },
+      "TestedParameter": {
+        "description": "One criterion the tested step ran, under the name WDK shows for it.",
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "TestedParameter",
+        "type": "object"
+      },
       "ToolSummaryPayload": {
         "description": "Payload for the tool-summary chunk. The tool call id names the call the\nline describes, so a reducer patches that call's part and appends nothing.",
         "properties": {
@@ -20104,6 +20253,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/ConsultQuestion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "controlTestResults": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ControlTestResults"
               },
               {
                 "type": "null"

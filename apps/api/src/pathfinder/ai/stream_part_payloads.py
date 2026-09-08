@@ -69,8 +69,48 @@ class GeneSet(CamelModel):
 
 class EnrichmentResultsChunk(CamelModel):
     task_id: str
+    tool_call_id: str = ""
     gene_set_id: str
     gene_set_name: str
     gene_count: int
     results: list[EnrichmentResult]
     downloads: dict[str, str | int] | None = None
+
+
+class ControlSetSummary(CamelModel):
+    """One control set of a control test: its size, its hits, its rate and the
+    ids behind the counts. ``missed_ids`` is empty for a negative set, whose
+    hits are the unexpected ones."""
+
+    controls_count: int = Field(ge=0)
+    intersection_count: int = Field(ge=0)
+    recall: float | None = None
+    false_positive_rate: float | None = None
+    hit_ids: list[str] = Field(default_factory=list)
+    missed_ids: list[str] = Field(default_factory=list)
+
+
+class TestedParameter(CamelModel):
+    """One criterion the tested step ran, under the name WDK shows for it."""
+
+    label: str
+    value: str
+
+
+class ControlTestResults(CamelModel):
+    """The numbers one control test measured against a built WDK step.
+
+    ``task_id`` names the worker task the row on the thread reports, and is
+    empty for a test that ran inside the turn; ``tool_call_id`` names the call
+    the summary line describes. ``target_label`` is what WDK calls the tested
+    step or search, never a url segment.
+    """
+
+    task_id: str
+    tool_call_id: str
+    target_step_id: int | None = None
+    target_label: str = ""
+    target_estimated_size: int = Field(default=0, ge=0)
+    target_parameters: list[TestedParameter] = Field(default_factory=list)
+    positive: ControlSetSummary | None = None
+    negative: ControlSetSummary | None = None

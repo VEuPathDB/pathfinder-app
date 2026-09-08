@@ -8,8 +8,7 @@ import { tasksListOptions } from "@/features/conversation/api/tasks";
 import { humanizeToolName } from "@/features/conversation/toolNames";
 
 import { useChatHelpers } from "../runtime/chatHelpersContext";
-import { taskResultHref } from "../thread/taskResult";
-import { traceRenderingKinds } from "../thread/traceRenderingKinds";
+import { taskResult } from "../thread/taskExhibit";
 import { RailEmptyState, RailPanelShell } from "./RailPanelShell";
 
 interface TasksPanelProps {
@@ -42,7 +41,7 @@ export function TasksPanel({ conversationId }: TasksPanelProps) {
             <TaskRow
               key={task.taskId}
               task={task}
-              resultHref={taskResultHref(messages, task.taskId, traceRenderingKinds())}
+              exhibitHref={taskResult(messages, task.taskId).reference?.href ?? null}
             />
           ))}
         </ul>
@@ -53,10 +52,10 @@ export function TasksPanel({ conversationId }: TasksPanelProps) {
 
 function TaskRow({
   task,
-  resultHref,
+  exhibitHref,
 }: {
   task: TaskListItem;
-  resultHref: string | null;
+  exhibitHref: string | null;
 }) {
   const isActive = ACTIVE.has(task.status);
   const isFailed = task.status === "failed";
@@ -73,13 +72,13 @@ function TaskRow({
           ) : (
             <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
           )}
-          {resultHref === null ? (
+          {exhibitHref === null ? (
             <span className="truncate text-xs font-medium">
               {humanizeToolName(task.toolName)}
             </span>
           ) : (
             <a
-              href={resultHref}
+              href={exhibitHref}
               className="truncate text-xs font-medium text-primary underline-offset-2 hover:underline"
             >
               {humanizeToolName(task.toolName)}

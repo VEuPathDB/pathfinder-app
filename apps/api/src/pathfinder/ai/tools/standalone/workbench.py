@@ -26,6 +26,7 @@ from veupathdb_mcp.wdk.enrichment.types import (
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.stream_events import enrichment_results_event
+from pathfinder.ai.stream_part_payloads import EnrichmentResultsChunk
 from pathfinder.ai.tools.durable import DurableOutcome, durable_tool
 from pathfinder.ai.tools.standalone._stream_parts import gene_set_chunk
 from pathfinder.ai.tools.standalone._workbench_models import (
@@ -143,12 +144,15 @@ def _enrichment_chunks_from_result(
     if enrichment.enrichment_results:
         chunks.append(
             enrichment_results_event(
-                task_id=task_id,
-                gene_set_id=enrichment.gene_set_id,
-                gene_set_name=enrichment.gene_set_name,
-                gene_count=enrichment.gene_count,
-                results=enrichment.enrichment_results,
-                downloads=enrichment.downloads,
+                EnrichmentResultsChunk(
+                    task_id=str(task_id),
+                    tool_call_id=tool_call_id or "",
+                    gene_set_id=enrichment.gene_set_id,
+                    gene_set_name=enrichment.gene_set_name,
+                    gene_count=enrichment.gene_count,
+                    results=enrichment.enrichment_results,
+                    downloads=enrichment.downloads,
+                )
             ),
         )
     chunks.extend(

@@ -1,8 +1,17 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+
+const toasted: string[] = [];
+vi.mock("sonner", () => ({
+  toast: {
+    success: (message: string) => {
+      toasted.push(message);
+    },
+  },
+}));
 
 import { Figure } from "./Figure";
 
@@ -60,8 +69,7 @@ describe("Figure", () => {
       <Figure
         title={null}
         caption="Heat shock - 1,543 of 5,511 genes retained."
-        numbered
-        figureNumber={2}
+        exhibit={{ kind: "figure", number: 2 }}
       >
         <p>body</p>
       </Figure>,
@@ -81,7 +89,11 @@ describe("Figure", () => {
 
   it("keeps the left caption when a numbered figure has no number yet", () => {
     render(
-      <Figure title={null} caption="1,543 of 5,511 genes retained." numbered>
+      <Figure
+        title={null}
+        caption="1,543 of 5,511 genes retained."
+        exhibit={{ kind: "figure", number: null }}
+      >
         <p>body</p>
       </Figure>,
     );
@@ -90,20 +102,24 @@ describe("Figure", () => {
     expect(classesOf(caption)).toEqual(["mt-2", "text-xs", "text-muted-foreground"]);
   });
 
-  it("keeps the left caption when a number is given without the presentation", () => {
+  it("numbers a table with the table counter, not the figure counter", () => {
     render(
-      <Figure title={null} caption="12 terms, 342 genes analyzed" figureNumber={3}>
+      <Figure
+        title="Control tests"
+        caption="target 132 records."
+        exhibit={{ kind: "table", number: 1 }}
+      >
         <p>body</p>
       </Figure>,
     );
-    const caption = screen.getByTestId("figure-caption");
-    expect(caption.textContent).toBe("12 terms, 342 genes analyzed");
-    expect(classesOf(caption)).toEqual(["mt-2", "text-xs", "text-muted-foreground"]);
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "Table 1. target 132 records.",
+    );
   });
 
   it("draws no numbered caption when the caption is null", () => {
     render(
-      <Figure title="Enrichment" caption={null} numbered figureNumber={1}>
+      <Figure title="Enrichment" caption={null} exhibit={{ kind: "table", number: 1 }}>
         <p>body</p>
       </Figure>,
     );
@@ -184,5 +200,89 @@ describe("Figure", () => {
     expect(named).toHaveTextContent("Title set: Malaria gene discovery");
     expect(screen.getByTestId("figure").contains(named)).toBe(true);
     expect(named.querySelectorAll('[data-testid="figure-caption"]')).toHaveLength(1);
+  });
+});
+
+describe("a numbered exhibit is anchored and citable", () => {
+  function renderTable() {
+    return render(
+      <Figure
+        title="Control tests"
+        caption="target 132 records."
+        exhibit={{ kind: "table", number: 2 }}
+      >
+        <p>body</p>
+      </Figure>,
+    );
+  }
+
+  it("anchors the figure element on the exhibit's own id", () => {
+    renderTable();
+    expect(screen.getByTestId("figure").getAttribute("id")).toBe("table-2");
+  });
+
+  it("anchors a figure on the figure counter's id", () => {
+    render(
+      <Figure title="Volcano" caption="c." exhibit={{ kind: "figure", number: 3 }}>
+        <p>body</p>
+      </Figure>,
+    );
+    expect(screen.getByTestId("figure").getAttribute("id")).toBe("figure-3");
+  });
+
+  it("leaves an unnumbered exhibit unanchored", () => {
+    render(
+      <Figure title="Variants" caption="c.">
+        <p>body</p>
+      </Figure>,
+    );
+    expect(screen.getByTestId("figure").hasAttribute("id")).toBe(false);
+  });
+
+  it("copies the conversation url with the exhibit's fragment", () => {
+    const written: string[] = [];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async (text: string) => void written.push(text) },
+    });
+    toasted.length = 0;
+    window.history.replaceState(null, "", "/plasmodb/conversation/c1");
+    renderTable();
+
+    const control = screen.getByRole("button", { name: "Copy link to Table 2" });
+    fireEvent.click(control);
+
+    expect(written).toEqual([
+      `${window.location.origin}/plasmodb/conversation/c1#table-2`,
+    ]);
+    expect(toasted).toEqual(["Link to Table 2 copied"]);
+  });
+
+  it("draws the citation control in the title row, beside the action", () => {
+    render(
+      <Figure
+        title="Control tests"
+        caption="c."
+        exhibit={{ kind: "table", number: 2 }}
+        action={<button type="button">Download</button>}
+      >
+        <p>body</p>
+      </Figure>,
+    );
+    const row = screen.getByText("Control tests").parentElement;
+    expect(row?.tagName).toBe("FIGCAPTION");
+    expect(row).toContainElement(
+      screen.getByRole("button", { name: "Copy link to Table 2" }),
+    );
+    expect(row).toContainElement(screen.getByRole("button", { name: "Download" }));
+  });
+
+  it("offers no citation control for an unnumbered exhibit", () => {
+    render(
+      <Figure title="Variants" caption="c.">
+        <p>body</p>
+      </Figure>,
+    );
+    expect(screen.queryByTestId("exhibit-citation")).toBe(null);
   });
 });
