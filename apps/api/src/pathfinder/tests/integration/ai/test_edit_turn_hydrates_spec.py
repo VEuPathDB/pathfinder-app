@@ -31,6 +31,7 @@ from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories import ConversationRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies.session_factory import build_strategy_session
@@ -87,7 +88,13 @@ async def _seed(db_session: AsyncSession) -> UUID:
     await db_session.flush()
     conv_id = uuid4()
     db_session.add(
-        Conversation(id=conv_id, user_id=user.id, site_id="plasmodb", name="c")
+        Conversation(
+            assistant_id=PATHFINDER_ASSISTANT_ID,
+            id=conv_id,
+            user_id=user.id,
+            site_id="plasmodb",
+            name="c",
+        )
     )
     await db_session.flush()
     db_session.add(

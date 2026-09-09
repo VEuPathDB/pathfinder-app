@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
 from pathfinder.jobs.app import procrastinate_app
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.security import create_user_token
 
 # A ceiling on a hung request, not a budget for a fast one: every hop is
@@ -75,6 +76,7 @@ async def _seed_conversation(user_id: UUID) -> UUID:
     async with db.async_session_factory() as session:
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conv_id,
                 user_id=user_id,
                 site_id="plasmodb",

@@ -11,7 +11,7 @@ status: stable
 # What was decided
 
 `veupathdb-py: tests/live/hidden_defaults.py`, run by the live check
-in `test_wdk_hidden_defaults.py`, binds every required parameter of a transcript
+in `veupathdb-py: tests/live/test_wdk_hidden_defaults.py`, binds every required parameter of a transcript
 search from that parameter's own `initialDisplayValue` and records what WDK
 answered. **It stops there.** Where a visible parameter's published default is
 one WDK refuses, the search is recorded as a 422 and the hidden parameters behind
@@ -58,7 +58,7 @@ Two things the sweep already does make the study unnecessary:
 
 A hidden required default that returns zero rows on one of the 219 unmeasured
 searches is not known today, and PathFinder would fill it
-(`domain/parameters/specs.py:fill_hidden_required_defaults`). The protection
+(`veupathdb-py: src/veupathdb/domain/parameters/specs.py:fill_hidden_required_defaults`). The protection
 against that is not this sweep: it is that a filled hidden default is reported to
 the user as a value nobody chose
 (WDK-PARAM-008 in `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`, through

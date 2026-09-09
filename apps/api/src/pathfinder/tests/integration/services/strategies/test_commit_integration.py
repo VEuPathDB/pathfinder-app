@@ -37,6 +37,7 @@ from veupathdb.wdk.wdk_models import (
 
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies import (
     commit,
     step_wdk_push,
@@ -160,6 +161,13 @@ class _CountingAPI:
             _Call("update_step_properties", {"step_id": step_id, "spec": spec})
         )
 
+    async def delete_orphaned_steps(self, step_ids: list[int]) -> list[int]:
+        """Delete every id and name the ones the site kept. This fake keeps none."""
+        self.calls.append(_Call("delete_orphaned_steps", {"step_ids": list(step_ids)}))
+        for step_id in step_ids:
+            await self.delete_step(step_id)
+        return []
+
     async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
         del user_id
         return WDKStep(
@@ -169,42 +177,44 @@ class _CountingAPI:
         )
 
 
-@pytest.fixture
-def stub_api(monkeypatch: pytest.MonkeyPatch) -> _CountingAPI:
-    api = _CountingAPI()
-    monkeypatch.setattr(commit, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: api)
+async def _fake_sync(
+    *,
+    graph: Any,
+    sync_state: Any,
+    site_id: str,
+    strategy_name: str | None = None,
+) -> SyncResult:
+    del graph, sync_state, site_id, strategy_name
+    return SyncResult(
+        wdk_strategy_id=42,
+        wdk_url="http://test",
+        root_step_id=0,
+        counts={},
+        root_count=None,
+        zero_step_ids=[],
+        step_count=0,
+    )
+
+
+def _patch_strategy_api(monkeypatch: pytest.MonkeyPatch, api: _CountingAPI) -> None:
+    """Serve ``api`` to the commit path, and let every step count as complete."""
 
     async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
-        """No step is incomplete, so nothing is deferred as a draft."""
         return set()
-
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
 
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
         return None
 
+    for module in (commit, step_wdk_push, sync):
+        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
     monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
 
-    async def _fake_sync(
-        *,
-        graph: Any,
-        sync_state: Any,
-        site_id: str,
-        strategy_name: str | None = None,
-    ) -> SyncResult:
-        del graph, sync_state, site_id, strategy_name
-        return SyncResult(
-            wdk_strategy_id=42,
-            wdk_url="http://test",
-            root_step_id=0,
-            counts={},
-            root_count=None,
-            zero_step_ids=[],
-            step_count=0,
-        )
 
+@pytest.fixture
+def stub_api(monkeypatch: pytest.MonkeyPatch) -> _CountingAPI:
+    api = _CountingAPI()
+    _patch_strategy_api(monkeypatch, api)
     monkeypatch.setattr(commit, "sync_strategy_for_site", _fake_sync)
     return api
 
@@ -226,6 +236,15 @@ async def seed_user(db_session: AsyncSession) -> User:
     await db_session.flush()
     await db_session.commit()
     return user
+
+
+def _orphaned(api: _CountingAPI) -> list[list[int]]:
+    """The WDK step ids handed to each orphan sweep, in call order."""
+    return [
+        sorted(c.kwargs["step_ids"])
+        for c in api.calls
+        if c.name == "delete_orphaned_steps"
+    ]
 
 
 def _leaf(id_: str) -> StrategyStepNode:
@@ -264,6 +283,7 @@ async def _seed_conversation(
         wdk_step_ids=wdk_step_ids,
     )
     conv = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         id=uuid4(),
         user_id=user.id,
         site_id="plasmodb",
@@ -341,10 +361,7 @@ async def test_delete_collapse_combine_drops_wdk_steps_and_persists_ast(
     )
 
     assert sorted(result.dropped_step_ids) == ["step_a", "step_c"]
-    deleted_wdk = {
-        c.kwargs["step_id"] for c in stub_api.calls if c.name == "delete_step"
-    }
-    assert deleted_wdk == {100, 300}
+    assert _orphaned(stub_api) == [[100, 300]]
 
     async with session_maker() as fresh:
         repo = ConversationRepository(fresh)
@@ -384,9 +401,7 @@ async def test_deleting_the_whole_strategy_clears_the_persisted_ast(
         ),
     )
 
-    assert {c.kwargs["step_id"] for c in stub_api.calls if c.name == "delete_step"} == {
-        100
-    }
+    assert _orphaned(stub_api) == [[100]]
 
     async with session_maker() as fresh:
         repo = ConversationRepository(fresh)
@@ -651,19 +666,7 @@ async def test_a_partial_push_leaves_every_store_agreeing(
     The edit is local truth, so memory, Postgres, and the response all agree.
     """
     api = _FailingAPI()
-    monkeypatch.setattr(commit, "get_strategy_api", lambda _s: api)
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _s: api)
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _s: api)
-
-    async def _noop_validate(*_a: Any, **_k: Any) -> set[str]:
-        return set()
-
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
-
-    async def _noop_reconcile(*_a: Any, **_k: Any) -> None:
-        return None
-
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
+    _patch_strategy_api(monkeypatch, api)
 
     a = _leaf("step_a")
     conv_id = await _seed_conversation(

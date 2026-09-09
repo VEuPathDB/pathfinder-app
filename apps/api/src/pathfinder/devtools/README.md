@@ -259,7 +259,7 @@ different provider.
 | `models.py` | artifact schema + chunk parsers + validation-error decoder |
 | `diagnosis.py` | the fingerprint engine |
 | `inspector.py` | `inspect`/`diff` rendering (pure, reads a run-dir) |
-| `wdk_capture.py` | opt-in WDK httpx capture (`--capture-wdk`) |
+| `veupathdb.devtools.wdk_capture` | opt-in WDK httpx capture (`--capture-wdk`) |
 | `gates.py` | the gate the CLI detects after a step, and the parts `respond` sends to answer it |
 | `openapi.py` | CLI: `generate`/`check` for `packages/spec/openapi.{json,yaml}` |
 | `wdk_fixtures.py` | CLI: `list`/`record`/`verify`/`vendor` for the WDK fixtures the tests replay and the pinned WDK schemas `verify` reads |

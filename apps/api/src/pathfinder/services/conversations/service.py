@@ -27,6 +27,7 @@ from pathfinder.persistence.repositories import (
     ConversationUpdate,
 )
 from pathfinder.platform.errors import AppError, ErrorCode, NotFoundError
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations import strategy_ops
 from pathfinder.services.conversations.authz import (
     get_owned_conversation_or_404,
@@ -113,6 +114,7 @@ class ConversationService:
         conversation = await self._repo.create(
             user_id=user_id,
             site_id=site_id,
+            assistant_id=PATHFINDER_ASSISTANT_ID,
             name=name,
         )
         await self._repo.update_conversation(
@@ -366,6 +368,7 @@ class ConversationService:
         new_conv = await self._repo.create(
             user_id=user_id,
             site_id=source.site_id,
+            assistant_id=source.assistant_id,
             name=f"Copy of {source.name}" if source.name else "Conversation (copy)",
         )
         # Carry the strategy over (topology + params). WDK step ids are dropped

@@ -5,8 +5,13 @@ description: veupathdb-wdk-mcp lives at pathfinder/mcp/ inside the api distribut
 tags: [mcp, architecture, packaging, wdk, tools]
 generated: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
-status: stable
+status: superseded
 ---
+
+> Superseded by [the MCP server is a distribution](the-mcp-server-is-a-distribution.md):
+> `pathfinder/mcp/` became the `veupathdb-mcp` distribution, and the contract
+> that guarded it became that package's dependency list. What follows is why the
+> module came first.
 
 # What was decided
 

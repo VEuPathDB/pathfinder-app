@@ -34,6 +34,7 @@ async def open_strategy(
     wdk_strategy_id: int | None,
     site_id: str | None,
     user_id: UUID,
+    assistant_id: str,
 ) -> UUID:
     """Open a strategy by local id or WDK strategy id; create a fresh one if neither."""
     conv_repo = ConversationRepository(session)
@@ -42,6 +43,7 @@ async def open_strategy(
         conversation = await conv_repo.create(
             user_id=user_id,
             site_id=_require_site_id(site_id),
+            assistant_id=assistant_id,
             name=DEFAULT_STREAM_NAME,
         )
         return conversation.id
@@ -78,6 +80,7 @@ async def open_strategy(
             api=api,
             conv_repo=conv_repo,
             user_id=user_id,
+            assistant_id=assistant_id,
         )
     except AppError, VEuPathDBError:
         logger.exception("WDK fetch failed")

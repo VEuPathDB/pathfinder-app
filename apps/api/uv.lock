@@ -20,6 +20,7 @@ constraints = [
     { name = "soupsieve", specifier = ">=2.8.4" },
     { name = "starlette", specifier = ">=1.3.1" },
 ]
+overrides = [{ name = "veupathdb-py", git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0a4" }]
 
 [[package]]
 name = "accessible-pygments"
@@ -137,8 +138,8 @@ wheels = [
 
 [[package]]
 name = "assistant-core"
-version = "0.2.0a1"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.2.0a1#9416c6b3ad1855835ce4357380c0480042d981f9" }
+version = "0.2.0a4"
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.2.0a4#9610e9b7c76ca35c60de06415eaa171ef5d86197" }
 dependencies = [
     { name = "asyncpg" },
     { name = "genai-prices" },
@@ -156,6 +157,12 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "structlog" },
+]
+
+[package.optional-dependencies]
+screening = [
+    { name = "onnxruntime" },
+    { name = "tokenizers" },
 ]
 
 [[package]]
@@ -1685,7 +1692,7 @@ wheels = [
 
 [[package]]
 name = "langgraph"
-version = "1.1.6"
+version = "1.2.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "langchain-core" },
@@ -1695,9 +1702,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5c/e5/d3f72ead3c7f15769d5a9c07e373628f1fbaf6cbe7735694d7085859acf6/langgraph-1.1.6.tar.gz", hash = "sha256:1783f764b08a607e9f288dbcf6da61caeb0dd40b337e5c9fb8b412341fbc0b60", size = 549634, upload-time = "2026-04-03T19:01:32.561Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/56/0d/c8e7ee98896659e1b6555db0ab115a9ca899844744645d5d894032bab1d7/langgraph-1.2.11.tar.gz", hash = "sha256:9ecfe11e50d338b34b15cf4d8a442642de103e8ae6971320efba84e4542eb363", size = 725753, upload-time = "2026-08-11T14:00:36.945Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/71/e6/b36ecdb3ff4ba9a290708d514bae89ebbe2f554b6abbe4642acf3fddbe51/langgraph-1.1.6-py3-none-any.whl", hash = "sha256:fdbf5f54fa5a5a4c4b09b7b5e537f1b2fa283d2f0f610d3457ddeecb479458b9", size = 169755, upload-time = "2026-04-03T19:01:30.686Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/7f/c5c30e4be99ff821029c7ac872a480676bb179c9f3df85ea3f38d13f86d4/langgraph-1.2.11-py3-none-any.whl", hash = "sha256:8bab70de7b2d00b5300fb289bcf38d8b241400f3184c1e95e8ce706fb0e8686b", size = 248854, upload-time = "2026-08-11T14:00:35.494Z" },
 ]
 
 [[package]]
@@ -1715,7 +1722,7 @@ wheels = [
 
 [[package]]
 name = "langgraph-checkpoint-postgres"
-version = "3.1.1"
+version = "3.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "langgraph-checkpoint" },
@@ -1723,35 +1730,38 @@ dependencies = [
     { name = "psycopg" },
     { name = "psycopg-pool" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/06/92/1e8959f8cd1b56e672fde3227f6fd642be85af6c5fd662d73921074aa39d/langgraph_checkpoint_postgres-3.1.1.tar.gz", hash = "sha256:d320e147ddad8c374cd546df0b52b532dd54d0541dd9fd23fc738cbd5de76f41", size = 150413, upload-time = "2026-07-30T19:15:39.014Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9d/52/6e732f7bf702ef4918b64ea4107e7da21d4276b808f9a651fe34be9b0abe/langgraph_checkpoint_postgres-3.1.2.tar.gz", hash = "sha256:1cd404803ff895a2b79f3ac04ce92b775e6b999715f8333fce674c6d927bba95", size = 155091, upload-time = "2026-08-07T20:40:00.049Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/03/32/ba457698a48a0e18d786caa770033067049fbe36d6846f8e50f13b594b51/langgraph_checkpoint_postgres-3.1.1-py3-none-any.whl", hash = "sha256:6e353aecd8150de144fef8e51a49076f58b7d6830d4cf51392b7ad4d79832ba7", size = 50778, upload-time = "2026-07-30T19:15:37.405Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/62/8899c9f4d9b97d5b3eb0c07c13cdf5f63342f15f5ef93eaf3477958df602/langgraph_checkpoint_postgres-3.1.2-py3-none-any.whl", hash = "sha256:6a7e38ef16985b54e356cba7bdaf447943aae33d5aaf290026c593bb6b4a6264", size = 52084, upload-time = "2026-08-07T20:39:58.994Z" },
 ]
 
 [[package]]
 name = "langgraph-prebuilt"
-version = "1.0.13"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "langchain-core" },
     { name = "langgraph-checkpoint" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b5/a4/f8ac75fa7c503103f0cf7680944e28bbaaef74c19a8d163d7346869cc369/langgraph_prebuilt-1.0.13.tar.gz", hash = "sha256:ad219782a80e1718e7e7794de49e0ae307111d45cbcffab9a52725a66a609456", size = 172913, upload-time = "2026-04-30T01:48:15.742Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/29/66/ed9b93f56bc17ef22d551892f0ac2b225a97fe0fcf23a511b857f70d590b/langgraph_prebuilt-1.1.0.tar.gz", hash = "sha256:3c579cf6eed2d17f9c157c2d0fcaddcd8688524e7022d3b22b37a3bf4589d528", size = 178833, upload-time = "2026-05-12T03:37:49.332Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/69/ef/5ada0bef4013ef5ae53a0ca1de5736517f1076a54d313f156ca545ec65d5/langgraph_prebuilt-1.0.13-py3-none-any.whl", hash = "sha256:7055e9fad41fbd3593800aed0aea0a6e974b17f33ed51b80d3d3a031212dd7c0", size = 37214, upload-time = "2026-04-30T01:48:14.507Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/43/3fe1a700b8490ed02679cdbbc8c915eb23a092faf496c9c1118abcd10be3/langgraph_prebuilt-1.1.0-py3-none-any.whl", hash = "sha256:51e311747d755b751d5c6b39b0c1446124d3a7643d2515017e6714b323508fc9", size = 41043, upload-time = "2026-05-12T03:37:48.007Z" },
 ]
 
 [[package]]
 name = "langgraph-sdk"
-version = "0.3.15"
+version = "0.4.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
+    { name = "langchain-core" },
+    { name = "langchain-protocol" },
     { name = "orjson" },
+    { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/66/af/cdd4d6f3c05b3c1112ed3f12ef830faf15951b21d22cbc622a4becbbe25c/langgraph_sdk-0.3.15.tar.gz", hash = "sha256:29e805003d2c6e296823dd71992610976fd0428cefaa8b3304fd91f2247037de", size = 201924, upload-time = "2026-05-22T16:54:27.678Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3f/ae/91446c1fffa04a2dc1f81afbfb5bfff3590452891a72bd9098a656ab2657/langgraph_sdk-0.4.4.tar.gz", hash = "sha256:4e651ffa09de695681579396375377bdde23bedbc8e35b070e615cbd5af7da8b", size = 345789, upload-time = "2026-08-27T21:25:22.593Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/be/a5/0196d9c05749c25bc198e4909d68c998bc3120297e14944921baf2f4c384/langgraph_sdk-0.3.15-py3-none-any.whl", hash = "sha256:3838773acf7456d158165385d49f48f1e856f28b56ccd99ea139a8f27004815d", size = 98166, upload-time = "2026-05-22T16:54:26.013Z" },
+    { url = "https://files.pythonhosted.org/packages/43/d5/2ad7f3a835c6fcebf58b6669552536ecd52d2dfe4cf49c6c36648fd83572/langgraph_sdk-0.4.4-py3-none-any.whl", hash = "sha256:39afe416c91742925e6f8a93715f566d499b36e1b636b804a4ffe3190e4f4e64", size = 162270, upload-time = "2026-08-27T21:25:21.072Z" },
 ]
 
 [[package]]
@@ -2561,7 +2571,7 @@ version = "0.2.0a1"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
-    { name = "assistant-core" },
+    { name = "assistant-core", extra = ["screening"] },
     { name = "asyncpg" },
     { name = "cachetools" },
     { name = "ddgs" },
@@ -2572,7 +2582,6 @@ dependencies = [
     { name = "langgraph" },
     { name = "langgraph-checkpoint-postgres" },
     { name = "numpy" },
-    { name = "onnxruntime" },
     { name = "openai" },
     { name = "opentelemetry-exporter-otlp-proto-grpc" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
@@ -2594,7 +2603,6 @@ dependencies = [
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "structlog" },
     { name = "tenacity" },
-    { name = "tokenizers" },
     { name = "uvicorn", extra = ["standard"] },
     { name = "veupathdb-mcp" },
     { name = "veupathdb-py" },
@@ -2604,6 +2612,7 @@ dependencies = [
 dev = [
     { name = "hypothesis" },
     { name = "import-linter" },
+    { name = "jsonschema-rs" },
     { name = "mypy" },
     { name = "packaging" },
     { name = "pip-audit" },
@@ -2630,7 +2639,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.18.0" },
-    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.2.0a1" },
+    { name = "assistant-core", extras = ["screening"], git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.2.0a4" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "cachetools", specifier = ">=7.0.5" },
     { name = "ddgs", specifier = ">=9.14.1" },
@@ -2638,10 +2647,9 @@ requires-dist = [
     { name = "fastmcp-slim", extras = ["server"], specifier = ">=3.3.0,<4" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "langfuse", specifier = ">=4.0.0" },
-    { name = "langgraph", specifier = "==1.1.6" },
-    { name = "langgraph-checkpoint-postgres", specifier = "==3.1.1" },
+    { name = "langgraph", specifier = "==1.2.11" },
+    { name = "langgraph-checkpoint-postgres", specifier = "==3.1.2" },
     { name = "numpy", specifier = ">=2.0.0" },
-    { name = "onnxruntime", specifier = ">=1.19.0" },
     { name = "openai", specifier = ">=2.0.0" },
     { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = ">=1.44.0" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.44.0" },
@@ -2663,16 +2671,16 @@ requires-dist = [
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.49" },
     { name = "structlog", specifier = ">=25.0.0" },
     { name = "tenacity", specifier = ">=9.1.0" },
-    { name = "tokenizers", specifier = ">=0.21.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.44.0" },
-    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.1.0a3" },
-    { name = "veupathdb-py", git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0a2" },
+    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.1.0a4" },
+    { name = "veupathdb-py", extras = ["otel"], git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0a4" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "hypothesis", specifier = ">=6.151.0" },
     { name = "import-linter", specifier = ">=2.11" },
+    { name = "jsonschema-rs", specifier = ">=0.55.0" },
     { name = "mypy", specifier = ">=2.3.1" },
     { name = "packaging", specifier = ">=25.0" },
     { name = "pip-audit", specifier = ">=2.10.0" },
@@ -2684,7 +2692,7 @@ dev = [
     { name = "ruff", specifier = ">=0.16.6" },
     { name = "schemathesis", specifier = ">=4.16.1" },
     { name = "testcontainers", specifier = ">=4.14.0" },
-    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.2.0a1" },
+    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.2.0a4" },
     { name = "vulture", specifier = ">=2.16" },
 ]
 docs = [
@@ -4228,8 +4236,8 @@ wheels = [
 
 [[package]]
 name = "veupathdb-mcp"
-version = "0.1.0a3"
-source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.1.0a3#856743ea17b45097d7bf3a9b0b649b73de3296c0" }
+version = "0.1.0a4"
+source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.1.0a4#834f34e1cecee64b9a37014ed5ea1dd0fc2f2c9b" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
@@ -4251,8 +4259,8 @@ dependencies = [
 
 [[package]]
 name = "veupathdb-mcp-conformance"
-version = "0.1.0"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.2.0a1#9416c6b3ad1855835ce4357380c0480042d981f9" }
+version = "0.1.1"
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.2.0a4#9610e9b7c76ca35c60de06415eaa171ef5d86197" }
 dependencies = [
     { name = "httpx" },
     { name = "mcp" },
@@ -4262,8 +4270,8 @@ dependencies = [
 
 [[package]]
 name = "veupathdb-py"
-version = "0.1.0a2"
-source = { git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0a2#5e9033ca80297e0c9d7a6ce138b2b61adc968b05" }
+version = "0.1.0a4"
+source = { git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0a4#3d24589d0c3ee18c17d4e9276592b1b60d7be47a" }
 dependencies = [
     { name = "httpx" },
     { name = "json5" },

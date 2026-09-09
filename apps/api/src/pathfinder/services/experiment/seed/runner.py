@@ -20,6 +20,7 @@ from pathfinder.persistence.repositories.control_set import (
     ControlSetRepository,
 )
 from pathfinder.platform.errors import sanitize_error_for_client
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.experiment.materialization import (
     _materialize_step_tree,
 )
@@ -132,6 +133,7 @@ async def _process_single_seed(
                 api=api,
                 conv_repo=ctx.conv_repo,
                 user_id=ctx.user_id,
+                assistant_id=PATHFINDER_ASSISTANT_ID,
             )
 
             elapsed_strategy = time.monotonic() - t0

@@ -23,6 +23,7 @@ from assistant_core.graph.turn_state import (
     SubAgentApprovalCall,
     SubAgentApprovalPending,
 )
+from assistant_core.models.capture import maybe_wrap_model
 from assistant_core.models.scripted import (
     current_scope_id,
     current_user_text,
@@ -41,7 +42,6 @@ from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.agents.roles import PhaseRole
-from pathfinder.ai.graph._llm_capture import maybe_wrap_model
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.stream_events import ledger_update_event
 from pathfinder.ai.lead.derive import derive_ledger

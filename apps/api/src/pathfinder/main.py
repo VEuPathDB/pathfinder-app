@@ -24,6 +24,7 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.strategy.operations.apply import ApplyError
 from veupathdb.eda.factory import close_all_eda_clients
 from veupathdb.errors import VEuPathDBError
+from veupathdb.observability.otel import OpenTelemetryObserver
 from veupathdb.observer import set_observer
 from veupathdb.wdk.factory import close_all_clients
 from veupathdb.wdk.site_router import get_site_router
@@ -46,7 +47,6 @@ from pathfinder.platform.error_handlers import (
     veupathdb_error_handler,
 )
 from pathfinder.platform.errors import AppError
-from pathfinder.platform.metrics import OpenTelemetryObserver
 from pathfinder.platform.migrations import init_db
 from pathfinder.platform.observability import (
     setup_observability,
@@ -190,9 +190,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     seed_prompts()
 
     from pathfinder.jobs.app import procrastinate_app  # noqa: PLC0415
-    from pathfinder.platform.notify_dispatcher import (  # noqa: PLC0415
-        lifespan_notify_dispatcher,
-    )
     from pathfinder.platform.tasks import spawn  # noqa: PLC0415
 
     # uvicorn binds only after this handler yields, so the warm-up runs beside
@@ -220,10 +217,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         ),
         lifespan_memory_store(settings.database_url) as memory_store,
         procrastinate_app.open_async(),
-        lifespan_notify_dispatcher(settings.database_url) as notify_dispatcher,
     ):
         app.state.memory_store = memory_store
-        app.state.notify_dispatcher = notify_dispatcher
         readiness.mark_ready("graph_checkpointer")
 
         from pathfinder.services.export.sweeper import (  # noqa: PLC0415

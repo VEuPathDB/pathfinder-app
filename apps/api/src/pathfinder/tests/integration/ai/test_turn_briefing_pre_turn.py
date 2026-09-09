@@ -25,6 +25,7 @@ from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.persistence.models import BackgroundTask, ConversationAnalysis, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 
@@ -48,6 +49,7 @@ async def _seed_thread() -> tuple[UUID, UUID]:
         await session.flush()
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conversation_id,
                 user_id=user_id,
                 site_id="plasmodb",

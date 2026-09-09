@@ -9,12 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pathfinder.domain.scratchpad.models import NoteCreate, NoteUpdate
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 @pytest.fixture
 async def conv_id(db_session: AsyncSession, seed_user: User) -> UUID:
     """Insert a conversation; return its id."""
     conv = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         user_id=seed_user.id,
         site_id="plasmodb",
         name="",

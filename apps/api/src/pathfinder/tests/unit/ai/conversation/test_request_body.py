@@ -176,23 +176,25 @@ def _documented_examples() -> dict[str, str]:
     return dict(_EXAMPLE.findall(protocol_section("request_examples")))
 
 
+_HOST_EXTENSIONS = {"experimentId"}
+
+
 def _model_field_names() -> set[str]:
     return {field.alias or name for name, field in ChatRequestBody.model_fields.items()}
 
 
-def test_the_two_field_tables_name_every_field_the_body_accepts() -> None:
-    documented = set(_TABLE_KEY.findall(protocol_section("request_core"))) | set(
-        _TABLE_KEY.findall(protocol_section("request_extensions")),
-    )
+def test_the_core_table_names_every_field_but_this_hosts_own_extension() -> None:
+    documented = set(_TABLE_KEY.findall(protocol_section("request_core")))
 
-    assert documented == _model_field_names()
+    assert _model_field_names() - _HOST_EXTENSIONS == documented
 
 
-def test_no_field_is_both_core_and_an_extension() -> None:
-    core = set(_TABLE_KEY.findall(protocol_section("request_core")))
-    extensions = set(_TABLE_KEY.findall(protocol_section("request_extensions")))
+def test_the_shipped_extension_table_names_no_host_field() -> None:
+    """The wire ships no extension: a host documents its own."""
+    documented = set(_TABLE_KEY.findall(protocol_section("request_extensions")))
 
-    assert core & extensions == set()
+    assert documented == set()
+    assert _model_field_names() >= _HOST_EXTENSIONS
 
 
 @pytest.mark.parametrize("name", ["submit-message", "approval-response"])

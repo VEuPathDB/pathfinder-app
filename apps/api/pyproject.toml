@@ -15,8 +15,8 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic-ai>=2.41.0,<3",
     "fastmcp-slim[server]>=3.3.0,<4",
-    "langgraph==1.1.6",
-    "langgraph-checkpoint-postgres==3.1.1", # PYSEC-2026-3635
+    "langgraph==1.2.11",
+    "langgraph-checkpoint-postgres==3.1.2", # PYSEC-2026-3635
     "psycopg[binary]>=3.2.0",
     "langfuse>=4.0.0",
     "opentelemetry-sdk>=1.44.0",
@@ -28,23 +28,27 @@ dependencies = [
     "structlog>=25.0.0",
     "pyyaml>=6.0.3",
     "tenacity>=9.1.0",
-    "onnxruntime>=1.19.0",
     "numpy>=2.0.0",
     "openai>=2.0.0",
-    "tokenizers>=0.21.0",
     "rapidfuzz>=3.14.0",
     "pyjwt>=2.13.0", # PYSEC-2026-175/177/178/179
     "slowapi>=0.1.9",
-    "assistant-core",
+    "assistant-core[screening]",
     "cachetools>=7.0.5",
     "procrastinate>=3.8.1",
     "ddgs>=9.14.1",
     "pydantic-evals>=2.41.0,<3",
-    "veupathdb-py",
+    "veupathdb-py[otel]",
     "veupathdb-mcp",
 ]
 
 [tool.uv]
+# veupathdb-mcp names its own source for the client. The override keeps one
+# client in the environment, at the tag this project pins. It is deleted by the
+# release of veupathdb-mcp that names this client tag.
+override-dependencies = [
+    "veupathdb-py @ git+https://github.com/VEuPathDB/ai-veupathdb-client@v0.1.0a4",
+]
 # Transitive packages pip-audit reports. Each line names the advisory the
 # lower bound answers, so a bound outlives the memory of why it is there.
 constraint-dependencies = [
@@ -54,17 +58,17 @@ constraint-dependencies = [
     "cryptography>=50.0.0",  # PYSEC-2026-3552/3553/3554, GHSA-537c-gmf6-5ccf
     "langgraph-sdk>=0.3.15",  # PYSEC-2026-2194, PYSEC-2026-2575
     "langsmith>=0.8.18",  # GHSA-f4xh-w4cj-qxq8
-    "mcp>=1.28.1,<2",  # PYSEC-2026-3481/3482/3483; the conformance fixture server is written on the mcp 1 low-level API
+    "mcp>=1.28.1,<2",  # PYSEC-2026-3481/3482/3483; the served-tools and http tests import mcp.types on the mcp 1 shapes
     "msgpack>=1.2.1",  # PYSEC-2026-3625
     "pip>=26.2",  # PYSEC-2026-3721
     "starlette>=1.3.1",  # PYSEC-2026-248, PYSEC-2026-249
     "soupsieve>=2.8.4",  # PYSEC-2026-3071, PYSEC-2026-3072
 ]
 [tool.uv.sources]
-assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.2.0a1" }
-veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a2" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.1.0a3" }
-veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.2.0a1" }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.2.0a4" }
+veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a4" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.1.0a4" }
+veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.2.0a4" }
 
 [build-system]
 requires = ["hatchling"]
@@ -156,9 +160,6 @@ max-branches = 10
     "FBT",      # boolean args in test helpers are fine
     "S311",     # deterministic seeds for shuffling is fine
 ]
-"**/src/pathfinder/ai/capabilities/piguard.py" = [
-    "S106",  # pad_token="[PAD]" is tokenizer config, not a password
-]
 "**/src/pathfinder/ai/prompts/**" = [
     "E501",  # prompt strings are long by nature
 ]
@@ -225,6 +226,8 @@ dev = [
     "testcontainers>=4.14.0",
     "vulture>=2.16",
     "schemathesis>=4.16.1",
+    # The conformance lane asks the canonical form whether a union has a complement.
+    "jsonschema-rs>=0.55.0",
     # The served endpoint's admission run composes the suite as its own process.
     "veupathdb-mcp-conformance",
 ]
@@ -242,7 +245,10 @@ docs = [
 # Import Linter — backend architecture enforcement
 # ---------------------------------------------------------------------------
 [tool.importlinter]
-root_packages = ["pathfinder"]
+# The three installed distributions are root packages, not external ones: a
+# forbidden contract cannot name a submodule of an external package, so a
+# private module of a library is only reachable by the checker this way.
+root_packages = ["pathfinder", "veupathdb", "veupathdb_mcp", "assistant_core"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
@@ -318,3 +324,37 @@ forbidden_modules = [
     "pathfinder.services.parameter_optimization.sweep",
 ]
 
+
+# A distribution's public surface is what its package exports. A module whose
+# name starts with an underscore is that distribution's own business: it may be
+# renamed or deleted in any release, and this application pins each library by
+# tag, so an import of one turns a library refactor into an outage here. The
+# list is explicit because import-linter matches whole segments only; a new
+# private module in a library is added here in the release that takes it.
+[[tool.importlinter.contracts]]
+name = "The application imports no private module of an installed distribution"
+type = "forbidden"
+as_packages = true
+allow_indirect_imports = true
+source_modules = ["pathfinder"]
+forbidden_modules = [
+    "veupathdb.wdk._analyses",
+    "veupathdb.wdk._failures",
+    "veupathdb.wdk._helpers",
+    "veupathdb.wdk._http",
+    "veupathdb.wdk._observability",
+    "veupathdb.wdk._searches",
+    "veupathdb.domain.strategy.operations._delete",
+    "veupathdb.domain.strategy.operations._graph_edit",
+    "veupathdb_mcp.catalog._param_binding",
+    "veupathdb_mcp.catalog._param_filters",
+    "veupathdb_mcp.catalog._param_validation_errors",
+    "assistant_core.conversation._chunk_handlers",
+    "assistant_core.conversation._chunk_state",
+    "assistant_core.persistence.repositories._message_metadata",
+]
+# Cleared as each library publishes the name the test needs. An exception that
+# no longer matches fails this gate, so a stale line cannot survive.
+ignore_imports = [
+    "pathfinder.tests.unit.ai.capabilities.test_wdk_failure_classification -> veupathdb.wdk._failures",
+]

@@ -227,7 +227,7 @@ class TestThePinnedStrings:
         monkeypatch.setattr(
             eda_analysis,
             "find_gene_entity",
-            lambda _study: SimpleNamespace(entity_id="ENT_g", error=None),
+            lambda _study, *, subject: SimpleNamespace(entity_id="ENT_g", error=None),
         )
         monkeypatch.setattr(
             eda_analysis,

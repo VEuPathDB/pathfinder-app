@@ -17,6 +17,7 @@ from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests.integration.http.conftest import (
     chat_body,
     chat_jobs,
@@ -75,6 +76,7 @@ async def _user_message_ids(
 
 async def _make_conversation(session: AsyncSession, owner_id: UUID) -> UUID:
     conversation = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         user_id=owner_id,
         site_id="plasmodb",
         name="regenerate fixture",

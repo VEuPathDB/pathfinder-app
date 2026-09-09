@@ -9,115 +9,73 @@ from __future__ import annotations
 
 import httpx
 import pytest
-from veupathdb.wdk.auth_login import password_logout
-from veupathdb_mcp.wdk import login
+from fastapi import FastAPI
+
+from pathfinder.platform.security import limiter
+from pathfinder.transport.http.routers import veupathdb_auth
 
 _TOKEN = "eyJhbGciOiJFUzUxMiJ9.real-user.sig"
 
 
-class _Capture(httpx.AsyncBaseTransport):
-    """Records the outbound logout request."""
+@pytest.fixture
+def seen(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
+    """Record every logout the route asks WDK for."""
+    calls: list[tuple[str, str]] = []
 
-    def __init__(self, status: int = 302) -> None:
-        self.requests: list[httpx.Request] = []
-        self._status = status
+    async def _logout(site_id: str, auth_token: str) -> bool:
+        calls.append((site_id, auth_token))
+        return True
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        self.requests.append(request)
-        return httpx.Response(self._status, headers={"location": "/"})
-
-
-_REAL_CLIENT = httpx.AsyncClient
+    monkeypatch.setattr(veupathdb_auth, "password_logout", _logout)
+    return calls
 
 
-def _stub_client(monkeypatch: pytest.MonkeyPatch, capture: _Capture) -> _Capture:
-    def _client(**kwargs: object) -> httpx.AsyncClient:
-        del kwargs
-        return _REAL_CLIENT(
-            base_url="https://example.invalid/service", transport=capture
+def _app() -> FastAPI:
+    app = FastAPI()
+    app.state.limiter = limiter
+    app.include_router(veupathdb_auth.router)
+    return app
+
+
+async def _logout(cookies: dict[str, str]) -> httpx.Response:
+    transport = httpx.ASGITransport(app=_app())
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://test", cookies=cookies
+    ) as client:
+        return await client.post(
+            "/api/v1/veupathdb/auth/logout", params={"siteId": "plasmodb"}
         )
 
-    monkeypatch.setattr(httpx, "AsyncClient", _client)
-    return capture
 
+class TestTheRouteCarriesTheCredential:
+    async def test_the_token_reaches_wdk(self, seen: list[tuple[str, str]]) -> None:
+        response = await _logout({"Authorization": _TOKEN})
 
-@pytest.fixture
-def outbound(monkeypatch: pytest.MonkeyPatch) -> _Capture:
-    return _stub_client(monkeypatch, _Capture())
-
-
-class TestTheRequestCarriesTheCredential:
-    @pytest.mark.asyncio
-    async def test_the_token_is_sent_as_the_authorization_cookie(
-        self, outbound: _Capture
-    ) -> None:
-        await password_logout("plasmodb", _TOKEN)
-
-        cookie = outbound.requests[0].headers.get("cookie", "")
-        assert f"Authorization={_TOKEN}" in cookie
-
-    @pytest.mark.asyncio
-    async def test_it_reaches_the_logout_endpoint(self, outbound: _Capture) -> None:
-        await password_logout("plasmodb", _TOKEN)
-
-        assert outbound.requests[0].url.path.endswith("/logout")
-
-    @pytest.mark.asyncio
-    async def test_a_redirect_counts_as_ended(self, outbound: _Capture) -> None:
-        assert await password_logout("plasmodb", _TOKEN) is True
-
-
-class TestARefusalIsReported:
-    @pytest.mark.asyncio
-    async def test_a_rejection_is_not_a_logout(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        _stub_client(monkeypatch, _Capture(status=401))
-
-        assert await password_logout("plasmodb", _TOKEN) is False
-
-
-class TestTheServiceReportsWhatWDKDid:
-    @pytest.mark.asyncio
-    async def test_it_forwards_the_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        seen: list[tuple[str, str]] = []
-
-        async def _logout(site_id: str, token: str) -> bool:
-            seen.append((site_id, token))
-            return True
-
-        monkeypatch.setattr(login, "password_logout", _logout)
-
-        assert await login.end_veupathdb_session("plasmodb", _TOKEN) is True
         assert seen == [("plasmodb", _TOKEN)]
+        assert response.json() == {"success": True}
 
-    @pytest.mark.asyncio
     async def test_without_a_token_wdk_is_not_asked(
+        self, seen: list[tuple[str, str]]
+    ) -> None:
+        response = await _logout({})
+
+        assert seen == []
+        assert response.json() == {"success": False}
+
+
+class TestTheCookiesGoEitherWay:
+    async def test_a_refused_logout_still_clears_the_session(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        # An uncredentialed logout is a guest logging a guest out, which WDK
-        # answers with an early return.
-        called = False
-
-        async def _logout(site_id: str, token: str) -> bool:
-            nonlocal called
-            del site_id, token
-            called = True
-            return True
-
-        monkeypatch.setattr(login, "password_logout", _logout)
-
-        assert await login.end_veupathdb_session("plasmodb", None) is False
-        assert called is False
-
-    @pytest.mark.asyncio
-    async def test_a_refusal_reaches_the_caller(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        async def _logout(site_id: str, token: str) -> bool:
-            del site_id, token
+        async def _refused(site_id: str, auth_token: str) -> bool:
+            del site_id, auth_token
             return False
 
-        monkeypatch.setattr(login, "password_logout", _logout)
+        monkeypatch.setattr(veupathdb_auth, "password_logout", _refused)
 
-        assert await login.end_veupathdb_session("plasmodb", _TOKEN) is False
+        response = await _logout({"Authorization": _TOKEN})
+
+        assert response.json() == {"success": False}
+        cleared = response.headers.get_list("set-cookie")
+        assert any(entry.startswith("Authorization=") for entry in cleared)
+        assert any(entry.startswith("pathfinder-auth=") for entry in cleared)

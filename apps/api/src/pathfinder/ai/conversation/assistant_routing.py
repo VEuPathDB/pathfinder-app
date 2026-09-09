@@ -3,6 +3,7 @@
 A new conversation takes the assistant the request names, or the default. An
 existing one keeps the assistant it was created with, and a request that
 names another one is refused rather than answered by the wrong architecture.
+A caller that is about to create the thread passes no id and reads no row.
 """
 
 from __future__ import annotations
@@ -27,11 +28,15 @@ def resolve_assistant(registry: AssistantRegistry, assistant_id: str) -> Assista
 async def resolve_turn_assistant(
     *,
     registry: AssistantRegistry,
-    conversation_id: UUID,
+    conversation_id: UUID | None,
     requested_id: str | None,
 ) -> AssistantSpec:
     """The assistant this turn runs under."""
-    existing = await conversation_assistant_id(conversation_id)
+    existing = (
+        None
+        if conversation_id is None
+        else await conversation_assistant_id(conversation_id)
+    )
     if existing is None:
         return resolve_assistant(registry, requested_id or registry.default_id)
     if requested_id is not None and requested_id != existing:

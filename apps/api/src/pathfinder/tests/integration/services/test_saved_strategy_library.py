@@ -11,6 +11,7 @@ from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.saved_library import list_saved_strategies
 
 
@@ -32,7 +33,12 @@ async def _saved_thread(
 ) -> UUID:
     async with async_session_factory() as session:
         repo = ConversationRepository(session)
-        conversation = await repo.create(user_id, site_id, name=name)
+        conversation = await repo.create(
+            user_id,
+            site_id,
+            assistant_id=PATHFINDER_ASSISTANT_ID,
+            name=name,
+        )
         await repo.update_conversation(
             conversation.id,
             ConversationUpdate(

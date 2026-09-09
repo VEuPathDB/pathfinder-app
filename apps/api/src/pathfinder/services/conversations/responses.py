@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from assistant_core.persistence.models import DEFAULT_ASSISTANT_ID, Conversation
+from assistant_core.persistence.models import Conversation
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
@@ -25,6 +25,7 @@ from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.schemas import (
     StepResponse,
     step_response_from_strategy_ast,
@@ -38,7 +39,7 @@ class ConversationResponse(CamelModel):
     name: str
     title: str | None = None
     description: str | None = None
-    assistant_id: str = DEFAULT_ASSISTANT_ID
+    assistant_id: str = PATHFINDER_ASSISTANT_ID
     site_id: str
     record_type: str | None
     steps: list[StepResponse] = Field(default_factory=list)

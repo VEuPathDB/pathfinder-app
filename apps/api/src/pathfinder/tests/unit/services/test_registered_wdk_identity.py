@@ -100,10 +100,3 @@ class TestAnUnreadableKeyIsNotABadToken:
             await wdk_identity.require_registered_wdk_login()
 
         assert raised.value.status == 503
-
-
-class TestTheServiceAccountIsNotTheSignedInUser:
-    @pytest.mark.asyncio
-    async def test_no_request_token_reads_no_wdk_user(self) -> None:
-        """Without a request token there is no session to report."""
-        assert await wdk_identity.fetch_wdk_user("plasmodb") is None

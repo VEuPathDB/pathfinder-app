@@ -34,15 +34,22 @@ boundaries.
 
 ## 1. Layering
 
-PathFinder's layer rule is `transport -> services -> domain + integrations ->
-persistence`, enforced by the import-linter contracts in
-`apps/api/pyproject.toml:257-324`. EDA lands as follows.
+PathFinder's layer rule is `transport -> services -> domain -> persistence`,
+enforced by the `forbidden` contracts under `[tool.importlinter]` in
+`apps/api/pyproject.toml`. **`integrations/` left this repository**: the WDK and
+EDA clients are the `veupathdb-py` distribution, so every `integrations/...`
+path below reads as its position in that library, and the contracts that guarded
+the integration direction are its own package-boundary suite. EDA lands as
+follows.
 
 ### 1.1 `integrations/eda/` - the typed client
 
 Owns every HTTP call to `https://{site}/eda` and every model of its wire
-shapes. Bound by the contract "Integrations never import services, transport,
-or AI" (`apps/api/pyproject.toml:303-313`).
+shapes. No contract in this repository binds it: the direction is an
+installation fact of the client library, held by its own package-boundary suite,
+and the only contract here that names an installed distribution is "The
+application imports no private module of an installed distribution", which lists
+each private module by name.
 
 The precedent to copy exactly is `integrations/veupathdb/wdk_models.py`, whose
 base is
@@ -77,10 +84,11 @@ PathFinder already holds: `integrations/veupathdb/auth_login.py:60`
 [the registered-login rule](../decisions/wdk-requires-registered-login.md)
 covers EDA unchanged.
 
-### 1.2 `domain/eda.py` - the pure part, and it is small
+### 1.2 The pure part, and it is small
 
-`domain/` is pure by contract (`apps/api/pyproject.toml:257-271` forbids
-`httpx`, `sqlalchemy`, `fastapi` and every other layer). Its current contents
+`domain/` is pure, and no import contract states it: the purity of
+`veupathdb.domain`, where most of it now lives, is held by
+`veupathdb-py: tests/unit/test_package_boundary.py`. Its contents at the time
 are `parameters/`, `research/`, `scratchpad/`, `strategy/`, `search.py`,
 `wdk_values.py`.
 
@@ -120,8 +128,10 @@ variable's range, and whether the tree contains exactly one
 `VEUPATHDB_GENE_ID` variable (the bridge's hard requirement,
 `veupathdb-py: docs/knowledge/eda/eda-wdk-bridge.md`). Those are functions of two values with
 no I/O, they are the checks that decide whether a step is worth creating, and
-they need unit tests without a network. `domain/eda.py` holds them; it takes the
-integration models as arguments and imports nothing.
+they need unit tests without a network. The client holds them
+(`veupathdb-py: src/veupathdb/domain/eda_validation.py`); they take the
+integration models as arguments and import nothing. The caller names what it
+exports a gene list to, so the message reads in its own vocabulary.
 
 That inversion has a precedent too: `domain/parameters/canonicalize.py` and
 `vocab_utils.py` are pure functions over parameter shapes the integrations
@@ -130,7 +140,7 @@ layer fetched.
 ### 1.3 `services/eda/` - the business logic
 
 Bound by "Services never import transport or AI"
-(`apps/api/pyproject.toml:293-302`). Three concerns, three modules:
+(`apps/api/pyproject.toml`). Three concerns, three modules:
 
 - **`catalog.py` - the study catalog.** Resolve dataset to study through
   `/permissions`, never by deriving it: measured live, `STUDY_<suffix>` equals
@@ -140,7 +150,7 @@ Bound by "Services never import transport or AI"
   (`veupathdb-py: docs/knowledge/eda/genomics-and-wdk-relations.md`). Owns study
   search and the entity/variable browse an agent needs at run time.
 - **`authoring.py` - analysis authoring.** Builds a `NewAnalysis` from live
-  study metadata, runs the `domain/eda.py` predicates, then verifies with
+  study metadata, runs the client's EDA predicates, then verifies with
   `POST /count` before anything is created. This is the same trust posture as
   parameter validation: one proposer, one validator
   ([the decision](../decisions/one-proposer-one-validator.md)).
@@ -159,9 +169,12 @@ data it has, added in `services/catalog/`.
 
 ### 1.4 `ai/tools/` - thin wrappers only
 
-The contract "AI tools never import integrations or persistence directly"
-(`apps/api/pyproject.toml:283-292`) means an EDA tool cannot call the client,
-not even for a one-line `/count`. Every tool goes through `services/eda/`.
+An EDA tool cannot call the client, not even for a one-line `/count`. No
+import contract says so - the contracts here name the layers of `pathfinder` and
+the private modules of the installed distributions - but WDK-MAP-005's call-site
+test (`apps/api/src/pathfinder/tests/unit/test_call_sites.py`) fails on any
+module in this tree that builds an `httpx` client against a site URL. Every tool
+goes through `services/eda/`.
 
 Four tools carry the whole authoring loop, and they map onto patterns that
 already exist:
@@ -297,7 +310,7 @@ against `assistant_core/mcp/admission.py:12-23`, installed by the host through
 `install_admitted_sources(...)` (`admission.py:66`) exactly as
 `pathfinder/platform/tool_sources.py::admitted_tool_sources` installs the WDK
 record today. The decision
-[the admitted tool sources are installed by the host](../decisions/admitted-tool-sources-are-installed-by-the-host.md)
+the admitted tool sources are installed by the host (`assistant-platform: docs/knowledge/decisions/admitted-tool-sources-are-installed-by-the-host.md`)
 fixes that seam: the set is a value, installed once at process start, with no
 argument a request could travel through. The related decision
 [PathFinder admits veupathdb-wdk-mcp from two settings, and only with both](../decisions/pathfinder-admits-its-own-mcp-server-from-two-settings.md)
@@ -363,7 +376,7 @@ study; that is an admission-record question
 
 `assistant-platform: packages/assistant-client-ts` has three rings and the core ring has no runtime
 dependencies
-([the client package has three rings](../decisions/the-client-is-a-package-with-three-rings.md)).
+(the client package has three rings (`assistant-platform: docs/knowledge/decisions/the-client-is-a-package-with-three-rings.md`)).
 The core ring is the whole of `PROTOCOL.md` and nothing else. EDA adds no frame,
 no cursor rule and no reduction rule, so it adds nothing to any ring.
 
@@ -399,18 +412,17 @@ column and no strategy, and it needs none of them.
 
 The runtime plumbing for a one-agent assistant is already decided:
 [a declared tool source reaches a one-agent assistant through its deps](../decisions/a-declared-source-reaches-a-one-agent-assistant-through-its-deps.md),
-and [a tool source's session belongs to the turn](../decisions/a-tool-source-session-belongs-to-the-turn.md)
+and a tool source's session belongs to the turn (`assistant-platform: docs/knowledge/decisions/a-tool-source-session-belongs-to-the-turn.md`)
 (`ResolvedToolSources` at `assistant_core/mcp/resolution.py:64` opens and closes
 every declared source around the whole drive).
 
 ### 3.6 What PathFinder should not export
 
-`veupathdb-wdk-mcp` exists as a product module,
-`apps/api/src/pathfinder/mcp/`, serving sixteen tools
-([the wdk-mcp server is a product module of the api](../decisions/the-wdk-mcp-server-is-a-product-module.md)).
-It is tempting to add EDA tools to it. **Do not.** The execution plan's
-placement rule is that `pathfinder/mcp/` calls `pathfinder.services.*`
-(execution plan section 1.2), so an EDA tool there would make PathFinder a
+The WDK MCP server is the `veupathdb-mcp` distribution, which this application
+installs and calls in process
+([the wdk-mcp server is a product module of the api](../decisions/the-wdk-mcp-server-is-a-product-module.md)
+records the earlier reading and says it is superseded).
+It is tempting to add EDA tools to it. **Do not.** An EDA tool there would make PathFinder a
 proxy in front of a Java service that should publish its own MCP endpoint, and
 the program's whole argument - "the science stays with its owners" - would be
 inverted for the one domain that is most obviously theirs. The exception, if any
@@ -528,7 +540,7 @@ Pydantic models are a mirror, and a mirror drifts.
 against `PROTOCOL.md`.** That package vendors a capture of the document,
 regenerates it with `yarn sync:protocol`, and a suite test regenerates and
 compares, so a document change fails the gate rather than passing silently
-([the client package has three rings](../decisions/the-client-is-a-package-with-three-rings.md),
+(the client package has three rings (`assistant-platform: docs/knowledge/decisions/the-client-is-a-package-with-three-rings.md`),
 "What was rejected", last-but-one entry). For EDA the artifact to pin is not a
 document but a **live wire sample**: a recorded response per endpoint, checked
 into the test tree, with a hermetic lane that validates the models against the
@@ -597,3 +609,60 @@ contradicted.
 - **Sharpened.** "the EDA job model maps one-to-one onto `background_tasks`" -
   correct, and section 2 above names each of the eleven mechanisms and states
   why the step is created after the resume rather than inside the impl.
+
+## 7. What the client bundle's EDA pages mean here
+
+Three sections left `veupathdb-py: docs/knowledge/eda/` when that bundle stopped
+naming this application. They are architecture claims about PathFinder, so they
+belong beside the rest of this page.
+
+### 7.1 From `veupathdb-py: docs/knowledge/eda/computes-and-jobs.md`
+
+The compute model maps cleanly onto the existing durable-task architecture, and
+nothing here needs a browser:
+
+- A compute job is addressable by a **client-derivable** MD5. A tool can compute
+  the id, ask with `autostart=false`, and skip the job entirely on a cache hit.
+- `queued | in-progress | complete | failed | expired | no-such-job` is a
+  six-state machine with polling only, which is what `@durable_tool` plus
+  `TaskProgressEmitter` already expresses.
+- Submission validates almost nothing semantic. Entity pairing, vocabulary
+  membership and group non-emptiness are the caller's job, exactly the trust
+  posture already applied to WDK parameters.
+- The output-file split per plugin (`/statistics` against `/{file}`) means a
+  typed client needs a per-compute reader, not one generic one.
+
+### 7.2 From `veupathdb-py: docs/knowledge/eda/notebook-presets.md`
+
+- **Handle 202 explicitly.** `POST .../reports/standard` on an EDA
+  compute-backed search has three outcomes, not two: 202 delayed, 200 answer,
+  or a plugin error. Treating 202 as an answer produces a silent empty result.
+- **Prefer driving the compute first.** Because the job id is a derivable MD5
+  (`veupathdb-py: docs/knowledge/eda/computes-and-jobs.md`), a tool can poll
+  `/computes/{name}?autostart=true` inside a `@durable_tool` job and create the
+  step only once `complete`. The step then never surfaces a 202, and progress is
+  reportable. This is measured rather than assumed.
+- **The presets are the authoring sheets.** Three of the four encode which
+  compute, which reserved variable ids and which comparator shape make sense for
+  a data type. They are the direct template for typed authoring sheets, in the
+  same spirit as `set_criterion`'s `params_template`.
+- **Do not plan a generic compute-to-step bridge.** Upstream's is volcano-only
+  by construction. WGCNA reaches WDK through an ordinary SQL query on a
+  pre-loaded table, and any other compute has no WDK path at all today.
+
+### 7.3 From `veupathdb-py: docs/knowledge/eda/visualizations.md`
+
+- **EDA sends data, never images.** Every visualization response is JSON arrays.
+  This application's own chart components can render all of it, and nothing from
+  `web-monorepo`'s React needs importing.
+- **The volcanoplot endpoint adds nothing over the compute's statistics file.**
+  They were byte-identical live. A client can read
+  `/computes/{name}/statistics` and skip the app endpoint for this app.
+- **Thresholding is a client concern for volcano, a server concern for network.**
+  The volcanoplot `config` is an empty object; the bipartitenetwork `config`
+  filters. Do not build one abstraction over both.
+- **Visualization `config` validation is weak.** A missing required field
+  returned 500. Validate the spec against the app's `dataElementConstraints`
+  from `GET /eda/apps` before posting.
+- **Per-project availability is data, from `GET /eda/apps`.** It changes between
+  releases and is already returned in one call; do not hardcode it.

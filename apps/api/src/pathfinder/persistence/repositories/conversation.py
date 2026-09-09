@@ -72,11 +72,13 @@ class ConversationRepository:
         user_id: UUID,
         site_id: str,
         *,
+        assistant_id: str,
         conversation_id: UUID | None = None,
         name: str = "",
     ) -> Conversation:
         """Create a chat with a deduplicated name. Callers can supply the id so
-        the client and the server use the same value."""
+        the client and the server use the same value, and name the assistant
+        that answers the thread."""
         resolved_name = await self._deduplicate_name(
             user_id,
             site_id,
@@ -86,6 +88,7 @@ class ConversationRepository:
             id=conversation_id or uuid4(),
             user_id=user_id,
             site_id=site_id,
+            assistant_id=assistant_id,
             name=resolved_name,
         )
         self.session.add(conversation)

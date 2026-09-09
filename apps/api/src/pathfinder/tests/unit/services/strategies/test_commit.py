@@ -12,6 +12,7 @@ from veupathdb.domain.strategy.operations import (
 )
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.wdk.strategy_api.steps import StepsMixin
 from veupathdb.wdk.wdk_models import (
     NewStepSpec,
     PatchStepSpec,
@@ -41,6 +42,8 @@ class _StubAPI:
     def _alloc(self) -> int:
         self.next_id += 1
         return self.next_id
+
+    delete_orphaned_steps = StepsMixin.delete_orphaned_steps
 
     async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
         del user_id

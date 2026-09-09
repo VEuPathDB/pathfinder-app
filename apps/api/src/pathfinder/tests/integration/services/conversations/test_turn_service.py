@@ -14,6 +14,7 @@ from pathfinder.persistence.models import ConversationStrategyView, User
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.turns import (
     load_conversation,
     name_conversation_if_unnamed,
@@ -35,7 +36,12 @@ async def db_session(
 
 async def _thread(session: AsyncSession, *, name: str = "") -> Conversation:
     owner = User(id=uuid4())
-    conversation = Conversation(user_id=owner.id, site_id="plasmodb", name=name)
+    conversation = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
+        user_id=owner.id,
+        site_id="plasmodb",
+        name=name,
+    )
     session.add_all([owner, conversation])
     await session.flush()
     await session.commit()

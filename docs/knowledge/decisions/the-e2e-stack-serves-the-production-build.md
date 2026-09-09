@@ -81,7 +81,7 @@ verdict: `durable-progress-live.spec.ts:137` passes on a dev server and fails
 on the production build, on a duplicate task card a researcher on a real
 deployment would read too. That was a defect the dev server was hiding, fixed
 in the client's resumed read
-([a decision](a-resumed-stream-reads-one-turn.md)), not a reason to serve
+(a decision (`assistant-platform: docs/knowledge/decisions/a-resumed-stream-reads-one-turn.md`)), not a reason to serve
 `next dev`.
 
 `apps/web/e2e/feature/no-dev-overlays.spec.ts` pins the result: no

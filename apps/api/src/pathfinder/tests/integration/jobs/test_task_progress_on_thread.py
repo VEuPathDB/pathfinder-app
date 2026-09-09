@@ -30,6 +30,7 @@ from pathfinder.persistence.repositories.background_tasks import (
     BackgroundTaskRepository,
     NewBackgroundTask,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 TOOL_NAME = "test_thread_progress"
 
@@ -48,6 +49,7 @@ async def _seed(user_id: UUID, conversation_id: UUID) -> None:
         await session.flush()
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conversation_id,
                 user_id=user_id,
                 site_id="plasmodb",

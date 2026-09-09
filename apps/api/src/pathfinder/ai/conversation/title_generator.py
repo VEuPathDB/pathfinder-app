@@ -16,6 +16,7 @@ import contextlib
 import re
 
 import httpx
+from assistant_core.models.settings import build_model_settings
 from assistant_core.platform.types import ModelProvider
 from assistant_core.spec import MockModelFactory
 from pydantic_ai import Agent
@@ -24,7 +25,6 @@ from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.usage import UsageLimits
 
 from pathfinder.ai.models.catalog import get_smallest_model
-from pathfinder.ai.models.settings import build_model_settings
 from pathfinder.platform.config import get_settings
 
 MAX_TITLE_WORDS = 7

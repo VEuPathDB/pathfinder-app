@@ -16,7 +16,6 @@ from pathlib import Path
 _SOURCE_ROOT = Path(__file__).resolve().parents[2]
 _SITE_SOURCES = ("get_site", "SiteInfo", "service_url")
 _CURRENT_ALIAS = "/users/current"
-_RESOLVERS = ("services/wdk_identity.py",)
 
 
 @dataclass(frozen=True)
@@ -101,11 +100,11 @@ def test_wdk_map_005_no_pathfinder_module_builds_a_site_client() -> None:
     assert offenders == []
 
 
-def test_wdk_http_001_only_the_resolver_names_the_current_alias() -> None:
+def test_wdk_http_001_no_module_names_the_current_alias() -> None:
+    """The client reads the alias; this application never spells it."""
     offenders = [
         site
         for module, source in _modules()
-        if module not in _RESOLVERS
         for site in _current_alias_literals(module, source)
     ]
 

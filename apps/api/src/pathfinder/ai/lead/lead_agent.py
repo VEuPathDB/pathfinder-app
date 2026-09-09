@@ -8,15 +8,13 @@ from __future__ import annotations
 
 from typing import Literal
 
+from assistant_core.conversation.history import HISTORY_PROCESSORS
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
 from pydantic_ai.capabilities import PrepareTools, ProcessHistory, Thinking
 from pydantic_ai.exceptions import ModelRetry
 
-from pathfinder.ai.agents._history_processor import (
-    PHASE_HISTORY_PROCESSORS,
-)
 from pathfinder.ai.agents._instructions import (
     pinned_run_budget,
     pinned_user_memories,
@@ -173,7 +171,7 @@ def build_lead_agent() -> LeadAgent:
         capabilities=[
             Thinking(effort="medium"),
             PrepareTools[LeadDeps](apply_tool_preconditions),
-            *(ProcessHistory[LeadDeps](p) for p in PHASE_HISTORY_PROCESSORS),
+            *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
         ],
         retries=3,
         description="The user's voice - orchestrates sub-agents via the Ledger",

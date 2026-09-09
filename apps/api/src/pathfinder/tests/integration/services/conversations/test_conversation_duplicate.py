@@ -16,6 +16,7 @@ from assistant_core.platform.db import async_session_factory
 
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.service import ConversationService
 
 _AST = {
@@ -44,6 +45,7 @@ async def test_duplicate_copies_strategy_dropping_wdk_ids(
         conv = await repo.create(
             user_id=user_id,
             site_id="plasmodb",
+            assistant_id=PATHFINDER_ASSISTANT_ID,
             conversation_id=conv_id,
             name="Kinase strategy",
         )

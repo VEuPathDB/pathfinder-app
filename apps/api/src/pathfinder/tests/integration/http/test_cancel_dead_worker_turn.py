@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests.integration.http.conftest import client_for, make_user
 from pathfinder.tests.integration.jobs._dead_worker import (
     TOOL_CALL_ID,
@@ -29,7 +30,12 @@ _NO_CONTENT = 204
 
 
 async def _make_conversation(session: AsyncSession, owner_id: UUID) -> UUID:
-    conversation = Conversation(user_id=owner_id, site_id="plasmodb", name="stop me")
+    conversation = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
+        user_id=owner_id,
+        site_id="plasmodb",
+        name="stop me",
+    )
     session.add(conversation)
     await session.flush()
     await session.commit()

@@ -18,6 +18,7 @@ from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.wdk.factory import get_strategy_api
 
 from pathfinder.persistence.models import ConversationStrategy, User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
@@ -62,7 +63,13 @@ async def built_union(
     async with session_maker() as session:
         session.add(User(id=user_id))
         session.add(
-            Conversation(id=conv_id, user_id=user_id, site_id="plasmodb", name="val")
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conv_id,
+                user_id=user_id,
+                site_id="plasmodb",
+                name="val",
+            )
         )
         await session.commit()
     deps = StrategyMutationContext(

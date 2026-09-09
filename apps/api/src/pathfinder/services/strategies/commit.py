@@ -33,9 +33,6 @@ from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
 from pathfinder.services.strategies.sync import SyncResult, sync_strategy_for_site
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.services.strategies.wdk_counts import invalidate_counts_for
-from pathfinder.services.strategies.wdk_step_cleanup import (
-    delete_orphaned_wdk_steps,
-)
 
 logger = get_logger(__name__)
 
@@ -238,7 +235,7 @@ async def _commit_to_wdk(
             )
 
     if orphaned:
-        leftover = set(await delete_orphaned_wdk_steps(api, list(orphaned.values())))
+        leftover = set(await api.delete_orphaned_steps(list(orphaned.values())))
         for sid, wdk_id in orphaned.items():
             if wdk_id not in leftover:
                 sync_state.wdk_step_ids.pop(sid, None)

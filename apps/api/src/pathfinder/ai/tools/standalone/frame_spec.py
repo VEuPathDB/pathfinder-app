@@ -15,7 +15,7 @@ from veupathdb.domain.strategy.operational_spec import (
 )
 from veupathdb.errors import ValidationError
 from veupathdb.wdk.wdk_models import WDKSearch
-from veupathdb_mcp.catalog._param_filters import has_contrast_sibling
+from veupathdb_mcp.catalog import has_contrast_sibling
 from veupathdb_mcp.catalog.param_dag import (
     ParamFetcher,
     UnknownParameterError,

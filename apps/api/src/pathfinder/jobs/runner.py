@@ -19,11 +19,11 @@ from assistant_core.graph.stream_events import task_completed_event
 from assistant_core.graph.turn_state import DurableTaskResult
 from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.memory.store import MemoryStore
+from assistant_core.models.capture import capture_llm
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel
 
-from pathfinder.ai.graph._llm_capture import capture_llm
 from pathfinder.jobs.auth_context import (
     attach_conversation_application,
     attach_user_id,

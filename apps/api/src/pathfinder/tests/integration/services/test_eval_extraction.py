@@ -20,6 +20,7 @@ from pathfinder.evals.case import ExpectedOutcome
 from pathfinder.evals.store import load_case
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.eval_staging import EvalStagingRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.eval_data.consent import PrivacyUpdate, update_privacy
 from pathfinder.services.eval_data.curation import (
     PromotionEdits,
@@ -85,7 +86,12 @@ async def _seed_thread(
     conversation_id = uuid4()
     async with session_maker() as session:
         session.add(
-            Conversation(id=conversation_id, user_id=user_id, site_id="plasmodb"),
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+                site_id="plasmodb",
+            ),
         )
         await session.flush()
         chunks: list[JSONObject] = [

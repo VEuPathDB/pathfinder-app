@@ -15,7 +15,10 @@ them, and the work is not the same work.
 
 **The scope key is `(user_id, application_id)`.** The application comes from
 `application_id_ctx` (`assistant_core/platform/context.py`), which the request resolver sets
-from the service token and a worker job sets from the conversation row. Six
+from the service token and a worker job sets from the conversation row. A
+periodic job and the chat debugger read neither, so they name this deployment
+themselves (`jobs/auth_context.py::attach_application`); the runtime's own
+default names no product. Six
 tables carry the column, `NOT NULL DEFAULT 'pathfinder'`: `conversations`,
 `gene_sets`, `control_sets`, `experiments`, `memory_tombstones`,
 `monthly_usage`. Messages, conversation events, background tasks, task

@@ -110,7 +110,7 @@ Today:
 - `slug`: `wdk-latency-warning`
 - `severity`: `warning`
 - `signal`: `metrics`
-- `metric`: `pathfinder.wdk.request_duration`
+- `metric`: `veupathdb.wdk.request_duration`
 - `operator`: `p95 above 5 s`
 - `for`: `10m`
 - `evaluateEvery`: `1m`
@@ -124,7 +124,7 @@ Today:
 - `slug`: `wdk-retry-spike-critical`
 - `severity`: `critical`
 - `signal`: `metrics`
-- `metric`: `pathfinder.wdk.request_retries`
+- `metric`: `veupathdb.wdk.request_retries`
 - `operator`: `rate above 0.1 retries/s`
 - `for`: `10m`
 - `evaluateEvery`: `1m`
@@ -138,7 +138,7 @@ Today:
 - `slug`: `site-search-latency-warning`
 - `severity`: `warning`
 - `signal`: `metrics`
-- `metric`: `pathfinder.site_search.request_duration`
+- `metric`: `veupathdb.site_search.request_duration`
 - `operator`: `p95 above 3 s`
 - `for`: `10m`
 - `evaluateEvery`: `1m`

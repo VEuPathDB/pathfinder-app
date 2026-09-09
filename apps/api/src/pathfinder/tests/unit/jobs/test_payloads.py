@@ -6,11 +6,11 @@ import json
 from uuid import uuid4
 
 import pytest
+from assistant_core.models.capture import capture_llm
 from pydantic import ValidationError
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
-from pathfinder.ai.graph._llm_capture import capture_llm
 from pathfinder.jobs.payloads import (
     ChatTurnPayload,
     DurableTaskPayload,
@@ -41,6 +41,7 @@ class TestChatTurnPayload:
             user_id=uuid4(),
             turn_id=uuid4(),
             veupathdb_auth_token="cookie-value-abc123",
+            assistant_id="pathfinder",
         )
 
         serialized = json.loads(payload.model_dump_json(by_alias=True))
@@ -55,6 +56,7 @@ class TestChatTurnPayload:
             body=_body(),
             user_id=uuid4(),
             turn_id=uuid4(),
+            assistant_id="pathfinder",
         )
         assert payload.veupathdb_auth_token is None
 
@@ -66,6 +68,7 @@ class TestChatTurnPayload:
                     "body": _body().model_dump(by_alias=True, mode="json"),
                     "user_id": str(uuid4()),
                     "turn_id": str(uuid4()),
+                    "assistant_id": "pathfinder",
                     "rogue_field": "x",
                 },
             )
@@ -78,6 +81,7 @@ class TestChatTurnPayload:
             user_id=uuid4(),
             turn_id=uuid4(),
             veupathdb_auth_token="tok",
+            assistant_id="pathfinder",
         )
         dumped = payload.model_dump(mode="json", by_alias=True)
         json.dumps(dumped)
@@ -131,6 +135,7 @@ class TestChatTurnPayloadFromContext:
                 body=body,
                 user_id=user_id,
                 turn_id=turn_id,
+                assistant_id="pathfinder",
             )
         finally:
             veupathdb_auth_token_ctx.reset(reset)
@@ -144,6 +149,7 @@ class TestChatTurnPayloadFromContext:
             body=_body(),
             user_id=uuid4(),
             turn_id=uuid4(),
+            assistant_id="pathfinder",
         )
         assert payload.veupathdb_auth_token is None
 
@@ -181,6 +187,7 @@ class TestCaptureDirThreading:
             user_id=uuid4(),
             turn_id=uuid4(),
             capture_dir="/data/pf-runs/x/turn1",
+            assistant_id="pathfinder",
         )
         restored = ChatTurnPayload.model_validate(
             json.loads(payload.model_dump_json(by_alias=True))

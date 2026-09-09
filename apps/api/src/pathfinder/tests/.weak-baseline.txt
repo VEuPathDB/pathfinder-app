@@ -33,9 +33,6 @@ src/pathfinder/tests/integration/persistence/test_eval_staging_repo.py::test_del
 src/pathfinder/tests/integration/persistence/test_eval_staging_repo.py::test_the_same_content_stages_once_across_threads
 src/pathfinder/tests/integration/persistence/test_wdk_guest_token_migration.py::test_the_downgrade_puts_the_column_back
 src/pathfinder/tests/integration/persistence/test_wdk_guest_token_migration.py::test_the_upgrade_drops_the_stored_guest_token
-src/pathfinder/tests/integration/platform/test_notify_dispatcher.py::test_close_is_idempotent
-src/pathfinder/tests/integration/platform/test_notify_dispatcher.py::test_fanout_respects_channel_filter
-src/pathfinder/tests/integration/platform/test_notify_dispatcher.py::test_start_is_idempotent
 src/pathfinder/tests/integration/scratchpad/test_compactor.py::test_noop_under_budget
 src/pathfinder/tests/integration/scratchpad/test_compactor.py::test_skip_when_all_notes_pinned
 src/pathfinder/tests/integration/scratchpad/test_repository.py::test_search_notes_fts_hit
@@ -74,8 +71,6 @@ src/pathfinder/tests/unit/ai/graph/test_sub_agent_chunk_suppression.py::test_app
 src/pathfinder/tests/unit/ai/graph/test_sub_agent_chunk_suppression.py::test_every_tool_chunk_type_is_classified
 src/pathfinder/tests/unit/ai/models/test_mock_frame_calls.py::test_every_spec_names_a_search_for_every_criterion
 src/pathfinder/tests/unit/ai/models/test_mock_lead_sequence.py::test_the_mock_reads_the_real_refusal_message
-src/pathfinder/tests/unit/ai/models/test_settings.py::test_bare_openai_prefix_is_the_responses_api
-src/pathfinder/tests/unit/ai/models/test_settings.py::test_holds_across_the_catalog_openai_families
 src/pathfinder/tests/unit/ai/scratchpad/test_models.py::test_all_fields_optional
 src/pathfinder/tests/unit/ai/test_eda_kinds_match_shared_ts.py::test_every_eda_kind_has_an_entry_in_the_payload_map
 src/pathfinder/tests/unit/ai/test_eda_parts.py::test_a_viz_point_may_have_no_p_value
@@ -94,7 +89,6 @@ src/pathfinder/tests/unit/devtools/test_chat_assistant_flag.py::test_the_flag_is
 src/pathfinder/tests/unit/devtools/test_diagnosis.py::test_detects_no_plan_terminal
 src/pathfinder/tests/unit/devtools/test_eval_runner_turns.py::test_a_thread_that_held_no_step_before_the_last_turn_observes_nothing
 src/pathfinder/tests/unit/devtools/test_evals_cli.py::test_promote_accepts_an_expectation_as_json
-src/pathfinder/tests/unit/devtools/test_llm_capture.py::test_captures_streaming_path
 src/pathfinder/tests/unit/devtools/test_models.py::test_decode_app_missing_required_extracts_param_and_search
 src/pathfinder/tests/unit/devtools/test_models.py::test_decode_unknown_keys_extracts_param_and_search
 src/pathfinder/tests/unit/devtools/test_openapi_spec_profile.py::test_the_dev_paths_are_read_from_the_dev_router
@@ -153,7 +147,6 @@ src/pathfinder/tests/unit/services/strategies/test_draft_step_push.py::test_step
 src/pathfinder/tests/unit/services/strategies/test_live_counts_come_from_wdk.py::test_a_step_wdk_does_not_report_is_none
 src/pathfinder/tests/unit/services/strategies/test_push_invalidates_counts.py::test_pushed_step_count_becomes_unknown
 src/pathfinder/tests/unit/services/test_registered_wdk_identity.py::test_a_registered_token_passes
-src/pathfinder/tests/unit/services/test_registered_wdk_identity.py::test_no_request_token_reads_no_wdk_user
 src/pathfinder/tests/unit/services/test_wdk_identity_match.py::test_an_unresolvable_token_does_not_sign_the_session_out
 src/pathfinder/tests/unit/services/test_wdk_identity_match.py::test_the_same_account_passes
 src/pathfinder/tests/unit/test_core_boundary.py::test_the_runtime_depends_on_no_part_of_the_science
@@ -164,4 +157,3 @@ src/pathfinder/tests/unit/test_sphinx_automodule_targets_import.py::test_every_a
 src/pathfinder/tests/unit/test_user_facing_vocabulary.py::test_every_agent_that_writes_for_a_reader_carries_the_rule
 src/pathfinder/tests/unit/transport/test_dev_login_is_test_only.py::test_the_overlay_app_does_have_it
 src/pathfinder/tests/unit/transport/test_dev_login_is_test_only.py::test_the_production_app_has_no_dev_login_route
-src/pathfinder/tests/unit/transport/test_logout_carries_the_token.py::test_the_token_is_sent_as_the_authorization_cookie

@@ -2,11 +2,28 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterator
 
 import pytest
+from assistant_core.platform.context import application_id_ctx
 from sqlalchemy.ext.asyncio import AsyncEngine
 from testcontainers.community.postgres import PostgresContainer
+
+from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
+
+
+@pytest.fixture(autouse=True)
+def calling_application() -> Iterator[None]:
+    """Act as this application, the way ``resolve_principal`` does.
+
+    A row a fixture inserts outside a request takes the application on the
+    context, so the tier names the one every served request names.
+    """
+    token = application_id_ctx.set(PATHFINDER_APPLICATION_ID)
+    try:
+        yield
+    finally:
+        application_id_ctx.reset(token)
 
 
 @pytest.fixture(scope="session", autouse=True)

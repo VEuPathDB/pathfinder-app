@@ -20,6 +20,7 @@ from veupathdb.domain.strategy.tree import walk
 from veupathdb.wdk.factory import get_strategy_api
 
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
@@ -54,7 +55,13 @@ async def test_organism_multipick_survives_wdk_roundtrip(
     conv_id = uuid4()
     db_session.add(User(id=user_id))
     db_session.add(
-        Conversation(id=conv_id, user_id=user_id, site_id="plasmodb", name="rt")
+        Conversation(
+            assistant_id=PATHFINDER_ASSISTANT_ID,
+            id=conv_id,
+            user_id=user_id,
+            site_id="plasmodb",
+            name="rt",
+        )
     )
     await db_session.commit()
 

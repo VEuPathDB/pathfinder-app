@@ -29,6 +29,8 @@ from schemathesis import Case
 from schemathesis.checks import load_all_checks, not_a_server_error
 from schemathesis.config import (
     GenerationConfig,
+    OperationConfig,
+    OperationsConfig,
     PhasesConfig,
     ProjectConfig,
     ProjectsConfig,
@@ -36,6 +38,8 @@ from schemathesis.config import (
 )
 from schemathesis.config import HealthCheck as STHealthCheck
 from schemathesis.core.transport import Response
+from schemathesis.filters import FilterSet
+from schemathesis.generation import GenerationMode
 from schemathesis.openapi import from_asgi
 from schemathesis.schemas import BaseSchema
 from schemathesis.specs.openapi.checks import (
@@ -51,6 +55,9 @@ from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.readiness import _FIXED_SUBSYSTEMS, get_readiness
 from pathfinder.platform.security import create_user_token
+from pathfinder.tests._support.openapi_negation import (
+    labels_with_uncomplementable_union,
+)
 from pathfinder.transport.http.routers import veupathdb_auth
 
 load_all_checks()
@@ -113,12 +120,29 @@ class _SchemaArtifacts:
 
 
 @pytest.fixture(scope="session")
-def schemathesis_config() -> SchemathesisConfig:
+def schemathesis_config(patched_app: tuple[FastAPI, UUID]) -> SchemathesisConfig:
+    app, _ = patched_app
+    # A negative case draws from the complement of a barred keyword. The
+    # canonical form cannot spell the complement of a union whose branches
+    # declare one property name at two types, so those operations stay positive.
+    positive_only = FilterSet()
+    positive_only.include(
+        name=sorted(labels_with_uncomplementable_union(app.openapi()))
+    )
     project = ProjectConfig(
         generation=GenerationConfig(
             allow_x00=False,
+            deterministic=True,
         ),
         phases=PhasesConfig(),
+        operations=OperationsConfig(
+            operations=[
+                OperationConfig(
+                    filter_set=positive_only,
+                    generation=GenerationConfig(modes=[GenerationMode.POSITIVE]),
+                )
+            ]
+        ),
     )
     return SchemathesisConfig(
         projects=ProjectsConfig(default=project),
@@ -130,13 +154,15 @@ def schemathesis_config() -> SchemathesisConfig:
     )
 
 
-async def _reject_login(*args: object, **kwargs: object) -> str | None:
+async def _reject_login(
+    site_id: str, email: str, password: str, *, redirect_url: str = "/"
+) -> str | None:
     """Refuse the fuzzer's random credentials without a call to VEuPathDB.
 
     The live sign-in would answer 5xx whenever a VEuPathDB site is down, and
     the check cannot tell that from a fault of this server.
     """
-    del args, kwargs
+    del site_id, email, password, redirect_url
     return None
 
 
@@ -189,7 +215,7 @@ async def patched_app(
     readiness.mark_catalog_ready("plasmodb")
 
     with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(veupathdb_auth, "start_veupathdb_session", _reject_login)
+        patch.setattr(veupathdb_auth, "password_login", _reject_login)
         async with (
             # A cancel reads the job table, so the served app needs an open app.
             procrastinate_app.open_async(),
@@ -259,6 +285,27 @@ def test_openapi_conformance(
     )
     assert response.status_code >= 100
     assert response.status_code < 600
+
+
+def test_negative_generation_stays_on_where_a_complement_exists(
+    api_schema: _SchemaArtifacts,
+) -> None:
+    """Only the operations with an uncomplementable union drop negative cases."""
+    schema = api_schema.schema
+    named = labels_with_uncomplementable_union(schema.raw_schema)
+    modes = {
+        operation.ok().label: schema.config.generation_for(
+            operation=operation.ok(), phase="fuzzing"
+        ).modes
+        for operation in schema.get_all_operations()
+    }
+
+    assert modes["POST /api/v1/gene-sets"] == [GenerationMode.POSITIVE]
+    assert set(modes["GET /api/v1/sites"]) == set(GenerationMode)
+    positive_only = {
+        label for label, asked in modes.items() if asked == [GenerationMode.POSITIVE]
+    }
+    assert positive_only == named & set(modes)
 
 
 def test_schema_loads_and_covers_documented_surface(

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from pathfinder.domain.scratchpad.models import NoteCreate
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.security import create_user_token
 
 
@@ -88,6 +89,7 @@ async def api_client_other_user(
 @pytest.fixture
 async def conv_id(db_session: AsyncSession, seed_user: User) -> UUID:
     conv = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         user_id=seed_user.id,
         site_id="plasmodb",
         name="",

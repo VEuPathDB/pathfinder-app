@@ -18,6 +18,7 @@ from pathfinder.evals.extract import (
 )
 from pathfinder.persistence.models import EvalStagedCase, User
 from pathfinder.persistence.repositories.eval_staging import EvalStagingRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 pytestmark = pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
 
@@ -46,7 +47,12 @@ async def seeded(
     async with session_maker() as session:
         session.add(User(id=user_id))
         session.add(
-            Conversation(id=conversation_id, user_id=user_id, site_id="plasmodb"),
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+                site_id="plasmodb",
+            ),
         )
         await session.commit()
     return user_id, conversation_id
@@ -104,7 +110,12 @@ async def test_the_same_content_stages_once_across_threads(
     other_conversation = uuid4()
     async with session_maker() as session:
         session.add(
-            Conversation(id=other_conversation, user_id=user_id, site_id="plasmodb"),
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=other_conversation,
+                user_id=user_id,
+                site_id="plasmodb",
+            ),
         )
         await session.commit()
     await repo.stage(

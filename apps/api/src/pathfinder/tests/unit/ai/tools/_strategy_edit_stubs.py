@@ -14,6 +14,7 @@ from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
+from veupathdb.wdk.strategy_api.steps import StepsMixin
 from veupathdb.wdk.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
@@ -55,6 +56,8 @@ class StubAPI:
 
     def named(self, name: str) -> list[Call]:
         return [call for call in self.calls if call.name == name]
+
+    delete_orphaned_steps = StepsMixin.delete_orphaned_steps
 
     async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
         del user_id

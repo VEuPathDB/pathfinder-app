@@ -1,6 +1,143 @@
 # Log
 
+## 2026-09-09
+
+* **The durable-progress e2e serves the thread's tail the way the host does, so
+  the card's live progress is proven again.** The mocked tail answered every
+  request with the task's gap alone. A client resuming a message a turn left
+  open asks from a cursor before that message and ignores every chunk until its
+  own `start` (PROTOCOL section 4), so both `data-task-progress` chunks reached
+  no part: the card kept `0%` while the tail answered 200 twice, at `after=0`
+  and at `after=1000000000002`. The mock now replays the suspending turn for a
+  request under that turn's `done` cursor, serves the gap for the request at
+  that cursor, and answers 204 after it.
+  `features/conversation/runtime/durableTransport.test.ts` pins the same
+  contract without a browser.
+
+* **A thread opened through `POST /api/v1/conversations/open` names its
+  assistant, so its first turn is answered.** The route created the row through
+  `ConversationRepository.create`, which named no assistant, so the row took the
+  runtime's mapped default `default`; the next `POST .../begin` resolved that id
+  against a registry that installs `pathfinder` and `site_help` and answered 404
+  `ASSISTANT_NOT_FOUND`, and no chat turn was ever deferred. `create` now takes a
+  required `assistant_id` and every caller passes one: the strategy create and
+  the WDK import pass `PATHFINDER_ASSISTANT_ID`, a duplicate copies its source's,
+  and the open route resolves the body's optional `assistantId` through the
+  registry, so an unknown id is refused where the thread is created instead of on
+  its first turn. `resolve_turn_assistant` takes `conversation_id: UUID | None`
+  for that caller, which reads no row. Pinned by
+  `tests/integration/http/test_open_names_the_assistant.py` and
+  `tests/unit/persistence/test_conversation_create_names_the_assistant.py`.
+
+* **The live aiExpression checks discover their subject on the site instead of
+  naming a gene per cache state, and plasmodb now answers `present`.** The site
+  regenerates the cache, so a pinned id encodes yesterday's cache: PF3D7_1133400
+  answered `expired` with 41 of 41 experiments on 2026-09-04 and
+  `experiments_incomplete` with 0 of 41 today, while PF3D7_0709000 went the other
+  way and now carries a whole summary. Each check reads the two recorded subjects
+  and a page of the site's genes, takes the first gene in the state it needs, and
+  skips with a sentence naming the site and that state when the page holds none.
+  A `present` entry carries `resultStatus`, `expressionSummary` and
+  `basedOnIncompleteData` and **no experiment counts**: `AiExpressionCache.readSummary`
+  writes the counts and the `experimentStatus` map only on the branches that
+  cannot answer a summary, so the counts a reader sees beside a summary are the
+  client's zero defaults and mean nothing. Of 180 falciparum genes read on
+  plasmodb, 2 answered `present`; a check that needs that state is one candidate
+  page away from an honest skip.
+
+* **The OpenAPI conformance lane fuzzes negative cases where the complement can
+  be spelled, and only there.** A negative case draws from the complement of a
+  barred keyword, and the canonical form declines the complement of the eleven
+  branch parameter value union, whose `NumberRangeValue` and `DateRangeValue`
+  give `min` and `max` two different types. The lane refused one operation per
+  run and a different one each run. A predicate over the served spec now names
+  the 15 operations of 94 that reach such a union and asks those for positive
+  cases only; the other 79 keep negative coverage, and the draws are
+  deterministic. Pinned by
+  `tests/unit/transport/test_openapi_negation_support.py` and
+  `test_openapi_schemathesis.py::test_negative_generation_stays_on_where_a_complement_exists`.
+
+* **Seven modules left this tree for the two libraries that own them, and the
+  runtime stopped defaulting to this product.** `veupathdb-py` v0.1.0a4 and
+  `assistant-core` / `veupathdb-mcp-conformance` v0.2.0a4 carry the message-history
+  processors, the per-provider model settings, the LLM capture wrapper, the
+  input-screening scanners, the `GET /users/current` read and its typed user, the
+  EDA validation predicates, the OpenTelemetry observer adapter, the WDK capture
+  transport and the orphaned-step delete. Each call site imports the public name;
+  no shim, no re-export. The behavioural tests moved with the code, and one test
+  per item proves this application consumes the published surface: the four agents
+  run the runtime's `HISTORY_PROCESSORS` in the runtime's order, the model catalog
+  resolves through the runtime's settings builder, screening's refusal becomes a
+  403 whose text names neither the scanner nor its score, and no module in this
+  tree spells `/users/current` any more.
+
+* **The application names itself; the runtime names nobody.**
+  `DEFAULT_APPLICATION_ID` and `DEFAULT_ASSISTANT_ID` are `"default"` in the
+  runtime, so `platform/identity.py` holds this deployment's two ids and the
+  principal, the security fallback, the conversation response and the chat-turn
+  job read them from there. Rows keep the application id they already carry, so
+  no migration ships. A chat-turn payload now names its assistant: the dispatcher
+  resolves one before it defers.
+
+* **The six WDK and site-search instruments are `veupathdb.*`.** The adapter is
+  the client's own optional extra (`veupathdb-py[otel]`), so it namespaces its
+  numbers; the SigNoz pack, the dependency-reliability dashboard, the alert
+  catalog and the query guide follow, histogram `.bucket` series included. The
+  pipeline and SSE instruments keep their names.
+
+* **`veupathdb-mcp` names its own source for the client, so the pin is written
+  twice.** The MCP release pins `veupathdb-py` at an older tag by URL, and uv
+  refuses two URLs for one package. `[tool.uv] override-dependencies` names the
+  tag this project takes, so exactly one client is installed; the override and
+  `[tool.uv.sources]` move together.
+
+* **Nine runtime decisions and three platform gate sections moved to the
+  platform bundle.** They are cited here, not linked: a page that describes only
+  runtime behaviour has one home. `experimentId` is documented here instead,
+  because the wire now ships an empty request-extension table.
+
 ## 2026-09-08
+
+* **A sixth import contract forbids the private modules of the three installed
+  distributions, and two dead modules left the tree.** The libraries join
+  `pathfinder` in `root_packages`, because a forbidden contract cannot name a
+  submodule of an external package; the fourteen `_*` modules are listed one by
+  one, and three `ignore_imports` cover the tests that need a name a library does
+  not publish yet; the 2026-09-09 release publishes two of the three, so one
+  exception remains. `platform/notify_dispatcher.py` held an idle `LISTEN`
+  connection in every API process for a route that no longer exists, and
+  `transport/http/schemas/stream_events.py` declared an event union nothing
+  emits, which the OpenAPI post-pass anchored into the spec and from there into
+  the generated TypeScript that no page imported. Both are deleted, with the
+  spec and `@pathfinder/shared` regenerated.
+
+* **The four libraries moved to their released tags, and the browser tree moved
+  to `ai` 7.** `veupathdb-py` v0.1.0a3, `veupathdb-mcp` v0.1.0a4, `assistant-core`
+  and `veupathdb-mcp-conformance` v0.2.0a2, `@pathfinder/assistant-client`
+  v0.2.0a2. LangGraph 1.1.6 to 1.2.11 and `langgraph-checkpoint-postgres` 3.1.1 to
+  3.1.2, the versions the runtime package pins, so the app installs the checkpoint
+  chain its serializer's gate runs. `ai` 6.0.154 to 7.0.87 with `@ai-sdk/react`
+  4.0.90, `@assistant-ui/react` 0.15.17, `-ai-sdk` 1.4.8 and `-markdown` 0.14.13,
+  which lifts the earlier hold at `-ai-sdk` 1.3.18; `@ai-sdk/provider` and
+  `@ai-sdk/provider-utils` each resolve twice, because the `@assistant-ui`
+  packages still ask for the line before;
+  the root `resolutions` names the new `ai` pair and no longer pins
+  `@assistant-ui/store`, whose 0.2.9 entry existed for the `tap*` exports the
+  0.12 line read. It gains `assistant-cloud` at 0.1.42, because
+  `@assistant-ui/ai-sdk` asks for `npm:*` while `@assistant-ui/react` asks for
+  `^0.1.42`, and without the pin two copies resolve. One copy of `ai`,
+  `@ai-sdk/react`, `@assistant-ui/core` and `@assistant-ui/store` resolves. The
+  audit is down to the ESLint support notice: the `ai` advisory closes at
+  6.0.250.
+
+* **The snapshot route serves the runtime's own `EventsSnapshot`, and a suspended
+  turn names the message it left open.** `fetch_snapshot_chunks` returns a model
+  rather than a pair, so the local response model is gone and the route returns
+  what the runtime built. The wire gains `openMessage` (`messageId` plus the
+  exclusive `after` a tail replays the message from), which is how a client that
+  lost its cursor resumes without tailing from `0`; `PROTOCOL.md` section 4 is the
+  rule. `veupathdb_mcp.catalog` exports `has_contrast_sibling` publicly, so
+  `frame_spec` no longer reaches into a private module.
 
 * **The JavaScript tree moved to its newest compatible release, and the pin list
   shrank to what an advisory needs.** `next` 16.2.11 to 16.3.4 with
@@ -334,7 +471,7 @@
 
   Four claims the split had invalidated were corrected with it: `apps/web` compiles the
   packed `dist` and holds no `tsconfig` path or vitest alias into the client's source
-  (`the-client-is-a-package-with-three-rings.md`, `conventions/verification-gates.md`);
+  (`assistant-platform: docs/knowledge/decisions/the-client-is-a-package-with-three-rings.md`, `conventions/verification-gates.md`);
   `PROTOCOL.md` is package data of the runtime and not the grouping's root
   (`the-assistant-platform-is-a-grouping.md`); the three distributions are consumed by
   URL and not as editable path dependencies (the three distribution decisions, the last
@@ -412,8 +549,8 @@
   the client's 262 conformance cases pass at `ai` 6.0.154, the version `@ai-sdk/react@3.0.156` pins;
   at 6.0.271 two of them fail, because `ai` 6.0.250 made `resumeStream` a fresh response instead of a
   continuation of the held assistant message, which is the opposite of what section 6.1 of
-  `PROTOCOL.md` requires of a turn suspended on a durable task. The pin carries that reason and
-  [a backlog item](backlog/adopt-the-new-ai-sdk-resume-semantics.md). The recorded WDK and EDA stores
+  `PROTOCOL.md` requires of a turn suspended on a durable task. The pin carries that reason. The
+  recorded WDK and EDA stores
   moved from `veupathdb-py/tests/fixtures/` to `src/veupathdb/testing/fixtures/{wdk,eda}/`, read
   through `importlib.resources`, and a wheel test installs the built wheel into a fresh venv and
   reads one fixture of each: `unzip -l dist/*.whl | grep -c fixtures` went from 3 to 76.
@@ -1640,7 +1777,7 @@
   resume; `resumeDurableThread` opens that message first, so no second request
   is made and each turn is read into its own message. PROTOCOL 1.5.2 states
   the reader rule in section 9. The rejected alternatives are
-  [a decision](decisions/a-resumed-stream-reads-one-turn.md).
+  a decision (`assistant-platform: docs/knowledge/decisions/a-resumed-stream-reads-one-turn.md`).
 
 * **The e2e stack serves the production build, and the suite finishes in one
   process.** `docker-compose.e2e.yml` pins `web.build.target: runner`, which
@@ -3543,7 +3680,7 @@
   carries the thread's own pydantic-ai messages as JSON, written from the run's
   result and trimmed to the last complete exchange, and the graph reads them
   back as the run's `message_history`
-  ([a one-agent turn runs over the thread's own messages](decisions/the-thread-carries-its-own-messages-across-turns.md)).
+  (a one-agent turn runs over the thread's own messages (`assistant-platform: docs/knowledge/decisions/the-thread-carries-its-own-messages-across-turns.md`)).
   The trim is what keeps a parked approval out of the carried history:
   pydantic-ai refuses a new prompt over a history holding an unprocessed call,
   and the card keeps its own resume history regardless. Rebuilding the messages
@@ -3928,7 +4065,7 @@
   `graph.aget_state` prints eleven "Deserializing unregistered type" warnings, including
   for three types that are on the allowlist `assistant_core.conversation.serde` builds,
   where the same checkpoint read by `astream` prints none
-  ([fixed](decisions/the-checkpoint-allowlist-binds-at-construction.md)).
+  (fixed (`assistant-platform: docs/knowledge/decisions/the-checkpoint-allowlist-binds-at-construction.md`)).
 
 ## 2026-08-22
 
@@ -3994,7 +4131,7 @@
   which is why the recording command needs `VEUPATHDB_AUTH_TOKEN` and why the bundle's
   "most live checks need no credential" note no longer holds.
 
-* **WS-V batch 2: the runtime proves the conversation works, and the wire has a written spec.** `assistant-platform/packages/assistant-core/tests/synthetic.py` is a complete `AssistantSpec` built from runtime code alone - `single_agent_graph` over bare `TurnState`, an `Agent` whose model is a `ScriptedModel` with four arcs (plain answer, `add` tool call, an approval-required `wipe_everything`, and a `stop_turn` that sets the cancel from inside the run), a `UsageLedger` as the `charge_usage` hook, and a `turn_epilogue`. The suite drives it through the package's public surfaces only, so 128 tests became **192**: turn lifecycle (the graph's chunks reach `conversation_events`, reduce to the `UIMessage` a client renders, and leave one `messages` row whose `usage.totalTokens` equals what the ledger was charged), durability (a reader that reconnects at cursor N gets the remainder **byte for byte**, cursors are strictly increasing and unique, the snapshot equals the live accumulation, two turns split cleanly on `done`), resume (a turn with `is_resume=True` names no prompt field at all, so `turn_input` omits it and the checkpointed prompt survives - the resumed turn answers from it), cancellation, cost, tenancy (two threads driven with `asyncio.gather` share no event id and neither sees the other's chunks), SSE framing against a real Postgres LISTEN channel (a strict `tests/sse.py` parser that accepts `id`/`data` frames and comment frames and nothing else), and a strict-msgpack round trip of every `CORE_CHECKPOINT_TYPES` entry plus the state type a spec declares - which the package could not prove alone before, because the only such suite lived in `apps/api`. **One real bug, found by the suite and fixed**: `_stream_answer` returned on the first event seen after the cancel was set, and pydantic-ai runs the agent in a background task that had already executed the tool and produced its `FunctionToolResultEvent`, so a stopped turn discarded a result it was holding and persisted the call in state `input-available` forever - a tool part that spins after a reload for a tool that finished. The rule is now *a cancelled turn ends before the next part the model starts*: the step already in flight reports its outcome, and the existing guarantee that no further model call is streamed is unchanged (`test_a_cancelled_turn_makes_no_further_model_call_and_finalizes` still passes beside the new `..._still_reports_the_tool_that_already_ran`). **One real gap, named not fixed**: the shipped turn graph resolves no deferred tool call, so `Tool(x, requires_approval=True)` on a one-agent assistant produces `tool-output-error` plus an `error` chunk reading "`DeferredToolRequests` is not among output types" instead of a `tool-approval-request` card, and `TurnState.pending_approval` is a channel no turn ever writes; PathFinder's Lead implements the cycle, `assistants/site_help` cannot - a backlog item with the fix and the chunk sequence it would produce (closed in WS-V batch P1). **`assistant-platform/PROTOCOL.md` is version 1.0.0** of the wire: frame grammar, cursor semantics (`after` is exclusive, cursors are per-deployment and not dense), the snapshot/tail contract and the `204` fallback, the `start ... finish done` turn shape, the three `finishReason` values and the rule that an `error` chunk does not end a turn, the full chunk vocabulary, the reduction rules, and the additive-only versioning rule. Its examples are captured from real turns and its tables are compared to `register_core_stream_parts` and to pydantic-ai's `vercel_ai.response_types`, so a new chunk kind or a changed payload fails `test_protocol_document.py`; only generated ids and instants are edited. Recorded as [the wire protocol is a written spec, verified against captured frames](decisions/the-wire-protocol-is-a-written-spec.md), which names the rejected alternatives: generating the page from the models (true by construction, and with nowhere to put a rule) and leaving it hand-written (silent drift). **Where the boundary cuts**: `run_turn`, the cancel watcher that polls `chat_turn_cancellations`, the durable-tool interrupt stream, the title generator, `identity_gate` and the user-message envelope all live in `apps/api`, so the suite composes their package-side equivalent in `drive_turn` (start chunk, `astream`, epilogue, finish, done) and says so; `turn_epilogue` is exercised, `identity_gate` is not reachable without a transport. `docs/knowledge/conventions/verification-gates.md` gained the package lane. Verified: from the package, `uv run pytest` 192 passed with `find_spec("pathfinder") is None`, ruff over `src tests`, ruff-format, mypy --strict 53 files; from `apps/api` - untouched this batch - ruff, ruff-format, mypy --strict 557 files, pyright 0/0/0, import-linter 7 kept 0 broken, 2392 unit and 379 integration tests, `python -m pathfinder.devtools.openapi check` exit 0; knowledge gate clean at 110 files. No file under `apps/web/` was touched.
+* **WS-V batch 2: the runtime proves the conversation works, and the wire has a written spec.** `assistant-platform/packages/assistant-core/tests/synthetic.py` is a complete `AssistantSpec` built from runtime code alone - `single_agent_graph` over bare `TurnState`, an `Agent` whose model is a `ScriptedModel` with four arcs (plain answer, `add` tool call, an approval-required `wipe_everything`, and a `stop_turn` that sets the cancel from inside the run), a `UsageLedger` as the `charge_usage` hook, and a `turn_epilogue`. The suite drives it through the package's public surfaces only, so 128 tests became **192**: turn lifecycle (the graph's chunks reach `conversation_events`, reduce to the `UIMessage` a client renders, and leave one `messages` row whose `usage.totalTokens` equals what the ledger was charged), durability (a reader that reconnects at cursor N gets the remainder **byte for byte**, cursors are strictly increasing and unique, the snapshot equals the live accumulation, two turns split cleanly on `done`), resume (a turn with `is_resume=True` names no prompt field at all, so `turn_input` omits it and the checkpointed prompt survives - the resumed turn answers from it), cancellation, cost, tenancy (two threads driven with `asyncio.gather` share no event id and neither sees the other's chunks), SSE framing against a real Postgres LISTEN channel (a strict `tests/sse.py` parser that accepts `id`/`data` frames and comment frames and nothing else), and a strict-msgpack round trip of every `CORE_CHECKPOINT_TYPES` entry plus the state type a spec declares - which the package could not prove alone before, because the only such suite lived in `apps/api`. **One real bug, found by the suite and fixed**: `_stream_answer` returned on the first event seen after the cancel was set, and pydantic-ai runs the agent in a background task that had already executed the tool and produced its `FunctionToolResultEvent`, so a stopped turn discarded a result it was holding and persisted the call in state `input-available` forever - a tool part that spins after a reload for a tool that finished. The rule is now *a cancelled turn ends before the next part the model starts*: the step already in flight reports its outcome, and the existing guarantee that no further model call is streamed is unchanged (`test_a_cancelled_turn_makes_no_further_model_call_and_finalizes` still passes beside the new `..._still_reports_the_tool_that_already_ran`). **One real gap, named not fixed**: the shipped turn graph resolves no deferred tool call, so `Tool(x, requires_approval=True)` on a one-agent assistant produces `tool-output-error` plus an `error` chunk reading "`DeferredToolRequests` is not among output types" instead of a `tool-approval-request` card, and `TurnState.pending_approval` is a channel no turn ever writes; PathFinder's Lead implements the cycle, `assistants/site_help` cannot - a backlog item with the fix and the chunk sequence it would produce (closed in WS-V batch P1). **`assistant-platform/PROTOCOL.md` is version 1.0.0** of the wire: frame grammar, cursor semantics (`after` is exclusive, cursors are per-deployment and not dense), the snapshot/tail contract and the `204` fallback, the `start ... finish done` turn shape, the three `finishReason` values and the rule that an `error` chunk does not end a turn, the full chunk vocabulary, the reduction rules, and the additive-only versioning rule. Its examples are captured from real turns and its tables are compared to `register_core_stream_parts` and to pydantic-ai's `vercel_ai.response_types`, so a new chunk kind or a changed payload fails `test_protocol_document.py`; only generated ids and instants are edited. Recorded as the wire protocol is a written spec, verified against captured frames (`assistant-platform: docs/knowledge/decisions/the-wire-protocol-is-a-written-spec.md`), which names the rejected alternatives: generating the page from the models (true by construction, and with nowhere to put a rule) and leaving it hand-written (silent drift). **Where the boundary cuts**: `run_turn`, the cancel watcher that polls `chat_turn_cancellations`, the durable-tool interrupt stream, the title generator, `identity_gate` and the user-message envelope all live in `apps/api`, so the suite composes their package-side equivalent in `drive_turn` (start chunk, `astream`, epilogue, finish, done) and says so; `turn_epilogue` is exercised, `identity_gate` is not reachable without a transport. `docs/knowledge/conventions/verification-gates.md` gained the package lane. Verified: from the package, `uv run pytest` 192 passed with `find_spec("pathfinder") is None`, ruff over `src tests`, ruff-format, mypy --strict 53 files; from `apps/api` - untouched this batch - ruff, ruff-format, mypy --strict 557 files, pyright 0/0/0, import-linter 7 kept 0 broken, 2392 unit and 379 integration tests, `python -m pathfinder.devtools.openapi check` exit 0; knowledge gate clean at 110 files. No file under `apps/web/` was touched.
 
 * **WS-V batch 1: the runtime is a package, and the boundary is now an installation fact.** `assistant-platform/packages/assistant-core` is its own distribution - own `pyproject.toml`, own `uv.lock`, `src/assistant_core` importable with no `pathfinder.` prefix, own `tests/` tree, own CI job - and `apps/api` consumes it as an editable path dependency beside `pathfinder-shared`. The eleven-module surface that batch D pinned as "what the runtime may reach outside itself" moved with it, because every entry was runtime-owned by nature: `platform/{config,context,db,logging,pydantic_base,types}.py`, `integrations/embeddings/{model,prefixes}.py` (now `assistant_core/embeddings/`), and the four tables the runtime reads and writes - `conversations`, `messages`, `conversation_events`, `memory_tombstones` - with `MessagesRepository`, `MessageMetadata`, the `GUID` type, the application-id column and the declarative `Base`. **Three modules split rather than moved, each along what it imports**: `config.py` became `RuntimeSettings` (database URL, engine echo, SSE keep-alive, log level and format) in the package with `Settings` subclassing it in the product and installing itself through `use_settings_source`, so one instance still serves the process and `get_settings.cache_clear()` still works in tests; `context.py` kept `veupathdb_auth_token_ctx` and `request_base_url_ctx` product-side and moved the six the runtime and its logger read; `db.py` moved the engine, the session factory and the request-scoped session, and left `init_db` - which runs alembic against `alembic.ini` - as `platform/migrations.py`. `errors.py` and `principal.py` stayed, because their taxonomies name WDK, VEuPathDB bearers and PathFinder service tokens; the one thing `db.py` took from `errors.py` was a sqlite guard, which now raises `ValueError` with the same detail (both reach the client as a 500). **One declarative base, not two metadatas.** A cross-package foreign key resolves only inside the `MetaData` that holds both tables, and the keys cross in both directions (`conversations.user_id` and `conversation_events.task_id` point at host tables; `conversation_strategies`, `background_tasks`, `chat_turn_cancellations` and the two scratchpad tables point back at `conversations`), so the package exports `Base` and the product maps its twelve tables on it. `alembic/env.py` is untouched, `target_metadata` still lists all sixteen tables, and every migration stays hand-written. The package's own test kit declares stub `users` and `background_tasks` tables so `create_all` works with nothing else installed. **The thread lost its relationship to the science**: `Conversation.strategy` and `Conversation.strategy_view` named `ConversationStrategy`, which a package class cannot, so `ConversationRepository.get_with_strategy` and the two listings now select the thread beside its projection through one outer join (one query where `selectinload` issued two), `get_strategy` reads the projection alone, `get_owned_thread_or_404` returns both, and `build_conversation_response`/`build_conversation_summary` take the projection as an argument; `build_conversation_summaries` states the list mapping once. `Conversation.user` was deleted, because a package class cannot name `User`; `User.conversations` stayed as a **one-directional** relationship, because the unit of work reads it to insert a user before the thread that references it, and dropping it turned 22 integration tests into `conversations_user_id_fkey` violations. `TurnContextFactory` became `Callable[[TurnContextRequest], Awaitable[TurnContext]]`, because PathFinder's factory read `strategy_view` off the row it was handed and now has to read its own projection. **Contract 7 was replaced, not deleted twice over**: the package's pyproject names no dependency on this application (the enforcement), `tests/unit/test_package_boundary.py` walks every module in the package and fails on an import naming `pathfinder` while pinning the two `shared_py` wire-type modules it does read (the belt), and the seventh in-repo contract now says *the science never imports an assistant's composition root* - direct-only, like the six layer contracts, because the chat dispatcher still reaches the registry through the job runner. `test_core_boundary.py` moved to composition level and reads the installed distributions instead of the import graph: the science requires the runtime, the runtime requires no part of the science, and the two source trees do not nest. Recorded as [the runtime is a package, so the boundary is an installation fact](decisions/the-runtime-is-a-package.md), which names the rejected alternatives: keeping the runtime in-repo behind contracts only, and leaving `conversations` product-side. Verified: `cd assistant-platform/packages/assistant-core && uv run pytest` passes 128 tests with **no `pathfinder` installed** (the isolation proof, testcontainers Postgres, `importlib.util.find_spec("pathfinder") is None`), plus its own ruff and mypy --strict (53 files); from `apps/api`, import-linter 7 kept 0 broken, ruff, ruff-format, mypy --strict (557 files) and pyright zero findings, 2771 tests green in one run (2392 unit, 379 integration, 50 skipped, 98 subtests), `packages/spec/openapi.json` byte-identical, the file-size gate reporting the same five known files (it now scans the package too), and the knowledge gate clean at 108 files. No file under `apps/web/` was touched.
 
@@ -4012,7 +4149,7 @@
 
 * **WS2 batch B: a conversation is a thread again, and its strategy is an attachment.** The second hard entanglement (`persistence/models.py`, assessment Appendix A row 4) is gone. Ten columns left `conversations` for a new `conversation_strategies` table whose primary key is also its `ON DELETE CASCADE` foreign key: `record_type`, `wdk_strategy_id` (with its unique partial index), `is_saved`, `step_count`, `strategy_ast`, `estimated_size`, `gene_set_id`, `gene_set_auto_imported`, `experiment_id` and `imported_saved_strategy_ids`. The thread keeps identity, name, dismissal, fork lineage and its timestamps. The child carries **no** owner column: scoping is the parent's `(user_id, application_id)` pair and `services/conversations/authz.py` did not move, so every query that reaches the side table drives from `conversations` and inherits its predicates. Absent means never built: a thread starts row-less, the first strategy write inserts, and readers take `Conversation.strategy_view`, a frozen `ConversationStrategyView` whose field defaults **are** the absent-row semantics, so no call site grew a `None` branch. The relationship is `lazy="raise"` with one explicit `selectinload` in the repository reads that need it (plus `populate_existing`, because the side row is written by Core statements that do not synchronize a loaded relationship - the `expire_all()` that `apply_operation` used to need is deleted and pinned by a test instead); the consumers listing does not load it, because its caller reads names. Two pieces of debt died on the way: `ConversationUpdate.strategy_ast_set` existed only to write SQL `NULL` into a `NOT NULL` column (SQLAlchemy's `none_as_null=False` turned it into a JSON `null`), replaced by `ConversationRepository.clear_strategy`, which updates in place so a never-built thread stays row-less and a cleared graph keeps its gene-set and experiment links; and alembic `2026_08_21_0002` normalizes those stored `null`s to `{}` while moving only the rows that actually hold strategy state. Both directions of the migration are tested against a real database. Verified: ruff/mypy/pyright zero findings, import-linter 6/6 kept, 2317 unit + 369 integration tests, `packages/spec/openapi.json` structurally unchanged (the HTTP contract does not move in this batch). Recorded as [a conversation is a thread; its strategy is an attachment](decisions/conversation-thread-and-strategy-split.md), which names the rejected shape: one table with nullable strategy columns, which would still hand a second assistant's threads two foreign keys into PathFinder's science tables.
 
-* **WS2 batch A: the turn state and the wire vocabulary are seamed.** The first two seams of the platform program (`docs/superpowers/specs/2026-08-21-ws2-in-repo-seams.md`) landed together. `PipelineState` is now `TurnState` (the generic turn: message, accounting, approvals, consults, memories) plus one `domain: StrategyDomainState` field holding the eight strategy fields; `Context`/`AgentDeps` split the same way into `TurnContext`/`AssistantDeps` plus product subclasses; the checkpoint serializer keeps a core allowlist and takes product registrations at import, and a guarded migration flushes old-shape checkpoints while sparing the checkpointer's own DDL ledger. The strict round-trip tests caught three REAL pre-existing decode bugs on the way: `ToolApprovalResponded`, `UserQuestionAnswer` and `StepPushFailure` reached checkpoints unregistered, so a strict decode returned plain dicts and attribute reads would have raised. Two dead fields died instead of crossing the seam (`AssistantDeps.writer`, `PendingApproval.plan_id`). On the wire side, the closed `data-*` union became a `StreamPartRegistry` (core parts in core, strategy parts registered by a product module, schema-only tier for payload models no kind emits), the TS `DataPartKind` opened to `KnownDataPartKind | (string & {})`, and the renderer map is a compile-time-total merge of a core half and a strategy half; part kinds keep their names ([decision](decisions/part-kinds-keep-their-names.md)) because a rename would invalidate persisted event replay. Verified on the combined tree: ruff/mypy/pyright zero findings, 2308 unit + 348 integration backend tests, 2177 vitest, boundaries clean, knowledge gate clean, and a live devtools turn against plasmodb through the new checkpoint shape (frame, build, verify, zero failures). Known couplings deliberately left for batch C: `PendingApproval.phase` still speaks `PhaseRole`, and `turn_state.py` imports `ai/agents/roles` for it.
+* **WS2 batch A: the turn state and the wire vocabulary are seamed.** The first two seams of the platform program (`docs/superpowers/specs/2026-08-21-ws2-in-repo-seams.md`) landed together. `PipelineState` is now `TurnState` (the generic turn: message, accounting, approvals, consults, memories) plus one `domain: StrategyDomainState` field holding the eight strategy fields; `Context`/`AgentDeps` split the same way into `TurnContext`/`AssistantDeps` plus product subclasses; the checkpoint serializer keeps a core allowlist and takes product registrations at import, and a guarded migration flushes old-shape checkpoints while sparing the checkpointer's own DDL ledger. The strict round-trip tests caught three REAL pre-existing decode bugs on the way: `ToolApprovalResponded`, `UserQuestionAnswer` and `StepPushFailure` reached checkpoints unregistered, so a strict decode returned plain dicts and attribute reads would have raised. Two dead fields died instead of crossing the seam (`AssistantDeps.writer`, `PendingApproval.plan_id`). On the wire side, the closed `data-*` union became a `StreamPartRegistry` (core parts in core, strategy parts registered by a product module, schema-only tier for payload models no kind emits), the TS `DataPartKind` opened to `KnownDataPartKind | (string & {})`, and the renderer map is a compile-time-total merge of a core half and a strategy half; part kinds keep their names (decision (`assistant-platform: docs/knowledge/decisions/part-kinds-keep-their-names.md`)) because a rename would invalidate persisted event replay. Verified on the combined tree: ruff/mypy/pyright zero findings, 2308 unit + 348 integration backend tests, 2177 vitest, boundaries clean, knowledge gate clean, and a live devtools turn against plasmodb through the new checkpoint shape (frame, build, verify, zero failures). Known couplings deliberately left for batch C: `PendingApproval.phase` still speaks `PhaseRole`, and `turn_state.py` imports `ai/agents/roles` for it.
 
 * **The suite reached 120 passed / 10 failed / 0 flaky, and the feature project is fully green.** Every strategy-edit spec, both purge specs and the enrichment panels pass; the trajectory across the campaign is 94, 105, 120 of 133. The last GO-spec failures were their own lesson: the spec's follow-up question named the mock's GO marker phrase, which routed a plain question into a rebuild that re-minted every step id (the AST leaf changed from `step_65fae9c7` to `step_8b4f3fc6` across one turn) - the question now avoids marker phrases, the precondition reads the vocabulary half through `values`, and the file passes in 33 s. The ten that remain are deep in composite flows and are a healthier class of red: two cross-feature flows now live long enough to fail their axe checkpoint with serious/critical accessibility violations, five journeys share one `rail-strategy-panel` wait, and three are tail-of-run environment flakes; all filed with next steps in the e2e residual-failures backlog item, since closed. One operational lesson is recorded beside them: a worker chat turn on the portal built the portal's semantic index in-process for 2 h 39 m at 785% CPU, freezing every queued turn - the portal's catalog varies per fetch, so a whole-file cache cannot validate, which the per-entry cache entry of the same day closes.
 

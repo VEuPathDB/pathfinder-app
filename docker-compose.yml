@@ -145,7 +145,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.1.0a3
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.1.0a4
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.

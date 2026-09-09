@@ -13,6 +13,7 @@ from sqlalchemy import select
 from pathfinder.jobs.runtime import build_worker_runtime_context
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.errors import ErrorCode, StrategyAstCorruptError
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 pytestmark = pytest.mark.asyncio
 
@@ -26,6 +27,7 @@ async def _seed(strategy_ast: dict[str, Any] | None) -> UUID:
         session.add(User(id=user_id))
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conversation_id,
                 user_id=user_id,
                 site_id="plasmodb",

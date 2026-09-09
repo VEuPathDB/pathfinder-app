@@ -10,11 +10,8 @@ can import without violating architecture boundaries.
 """
 
 from opentelemetry import metrics
-from veupathdb.observer import MetricAttrs
 
 _pipeline_meter = metrics.get_meter("pathfinder.pipeline")
-_wdk_meter = metrics.get_meter("pathfinder.wdk")
-_site_search_meter = metrics.get_meter("pathfinder.site_search")
 _sse_meter = metrics.get_meter("pathfinder.sse")
 
 # ---------------------------------------------------------------------------
@@ -138,65 +135,3 @@ sse_keepalives_sent = _sse_meter.create_counter(
     description="SSE keepalive comments sent to subscribers",
     unit="{keepalive}",
 )
-
-# ---------------------------------------------------------------------------
-# WDK metrics
-# ---------------------------------------------------------------------------
-
-wdk_requests = _wdk_meter.create_counter(
-    "pathfinder.wdk.requests",
-    description="Logical WDK requests by endpoint family and outcome",
-    unit="{request}",
-)
-
-wdk_request_retries = _wdk_meter.create_counter(
-    "pathfinder.wdk.request_retries",
-    description="Retry attempts for transient WDK request failures",
-    unit="{retry}",
-)
-
-wdk_request_duration_s = _wdk_meter.create_histogram(
-    "pathfinder.wdk.request_duration",
-    description="WDK HTTP request duration including retries",
-    unit="s",
-)
-
-# ---------------------------------------------------------------------------
-# Site-search metrics
-# ---------------------------------------------------------------------------
-
-site_search_requests = _site_search_meter.create_counter(
-    "pathfinder.site_search.requests",
-    description="Logical site-search requests by outcome",
-    unit="{request}",
-)
-
-site_search_request_retries = _site_search_meter.create_counter(
-    "pathfinder.site_search.request_retries",
-    description="Retry attempts for transient site-search request failures",
-    unit="{retry}",
-)
-
-site_search_request_duration_s = _site_search_meter.create_histogram(
-    "pathfinder.site_search.request_duration",
-    description="Site-search HTTP request duration including retries",
-    unit="s",
-)
-
-
-class OpenTelemetryObserver:
-    """Feeds the WDK and site-search instruments the client reports to."""
-
-    def on_wdk_request(self, seconds: float, attrs: MetricAttrs, /) -> None:
-        wdk_requests.add(1, attrs)
-        wdk_request_duration_s.record(seconds, attrs)
-
-    def on_wdk_retry(self, attrs: MetricAttrs, /) -> None:
-        wdk_request_retries.add(1, attrs)
-
-    def on_site_search_request(self, seconds: float, attrs: MetricAttrs, /) -> None:
-        site_search_requests.add(1, attrs)
-        site_search_request_duration_s.record(seconds, attrs)
-
-    def on_site_search_retry(self, attrs: MetricAttrs, /) -> None:
-        site_search_request_retries.add(1, attrs)

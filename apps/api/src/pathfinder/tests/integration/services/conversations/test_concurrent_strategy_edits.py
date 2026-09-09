@@ -32,6 +32,7 @@ from veupathdb_mcp.catalog.param_validation import ValidatedParams
 
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations import strategy_ops
 from pathfinder.services.strategies import (
     commit,
@@ -210,6 +211,7 @@ async def _seed(session: AsyncSession) -> tuple[UUID, UUID]:
     session.add(user)
     await session.flush()
     conv = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         id=uuid4(),
         user_id=user.id,
         site_id="plasmodb",

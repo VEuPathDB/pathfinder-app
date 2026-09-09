@@ -251,10 +251,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.wdk.request_duration.bucket--float64--Histogram--true",
+                "id": "veupathdb.wdk.request_duration.bucket--float64--Histogram--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.wdk.request_duration.bucket",
+                "key": "veupathdb.wdk.request_duration.bucket",
                 "type": "Histogram"
               },
               "aggregateOperator": "count",
@@ -303,10 +303,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.wdk.requests--float64--Sum--true",
+                "id": "veupathdb.wdk.requests--float64--Sum--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.wdk.requests",
+                "key": "veupathdb.wdk.requests",
                 "type": "Sum"
               },
               "aggregateOperator": "rate",
@@ -355,10 +355,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.wdk.request_retries--float64--Sum--true",
+                "id": "veupathdb.wdk.request_retries--float64--Sum--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.wdk.request_retries",
+                "key": "veupathdb.wdk.request_retries",
                 "type": "Sum"
               },
               "aggregateOperator": "rate",
@@ -407,10 +407,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.site_search.request_duration.bucket--float64--Histogram--true",
+                "id": "veupathdb.site_search.request_duration.bucket--float64--Histogram--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.site_search.request_duration.bucket",
+                "key": "veupathdb.site_search.request_duration.bucket",
                 "type": "Histogram"
               },
               "aggregateOperator": "count",
@@ -459,10 +459,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.site_search.requests--float64--Sum--true",
+                "id": "veupathdb.site_search.requests--float64--Sum--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.site_search.requests",
+                "key": "veupathdb.site_search.requests",
                 "type": "Sum"
               },
               "aggregateOperator": "rate",

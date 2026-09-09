@@ -9,6 +9,7 @@ from assistant_core.platform import db
 from sqlalchemy import select
 
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 @pytest.mark.asyncio
@@ -25,6 +26,7 @@ async def test_upsert_replaces_metadata(
         session.add(User(id=user_id))
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conversation_id,
                 user_id=user_id,
                 site_id="plasmodb",
@@ -79,6 +81,7 @@ async def test_sum_usage_reads_partial_turn_metadata(
         session.add(User(id=user_id))
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conversation_id,
                 user_id=user_id,
                 site_id="plasmodb",
@@ -119,6 +122,7 @@ async def test_insert_message_is_idempotent_on_same_id(
         session.add(User(id=user_id))
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conversation_id,
                 user_id=user_id,
                 site_id="plasmodb",

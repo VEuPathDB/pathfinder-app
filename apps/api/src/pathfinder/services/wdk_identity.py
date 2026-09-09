@@ -8,15 +8,13 @@ import hashlib
 import time
 from uuid import UUID
 
-import httpx
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
-from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.errors import VEuPathDBError, WDKLoginRequiredError
+from veupathdb.errors import WDKLoginRequiredError
 from veupathdb.wdk.auth_login import validate_oauth_token
-from veupathdb.wdk.factory import get_site, get_wdk_client
+from veupathdb.wdk.current_user import resolve_registered_email
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import WDKIdentityMismatchError
@@ -42,55 +40,6 @@ async def require_registered_wdk_login() -> None:
     claims = await validate_oauth_token(token, get_settings().veupathdb_oauth_url)
     if claims is None or claims.is_guest:
         raise WDKLoginRequiredError
-
-
-class WDKUserProperties(CamelModel):
-    """Properties nested in a WDK current-user response."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    first_name: str | None = None
-    last_name: str | None = None
-
-
-class WDKCurrentUser(CamelModel):
-    """Typed parse of a WDK current-user response."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    is_guest: bool = True
-    email: str | None = None
-    properties: WDKUserProperties = Field(default_factory=WDKUserProperties)
-
-
-async def fetch_wdk_user(site_id: str) -> WDKCurrentUser | None:
-    """Read the WDK user the request's token names.
-
-    None when the request carries no token, so the application's own service
-    account is never reported as the signed-in user, or when WDK cannot answer.
-    """
-    if not veupathdb_auth_token_ctx.get():
-        return None
-    try:
-        site = get_site(site_id)
-        raw = await get_wdk_client(site.id).get("/users/current")
-        return WDKCurrentUser.model_validate(raw)
-    except (httpx.HTTPError, VEuPathDBError, KeyError, ValueError) as exc:
-        logger.debug("Cannot read the current WDK user", error=str(exc))
-        return None
-
-
-async def resolve_veupathdb_email(token: str, site_id: str) -> str | None:
-    """Return the email of the registered VEuPathDB user, or None for a guest."""
-    reset_token = veupathdb_auth_token_ctx.set(token)
-    try:
-        user = await fetch_wdk_user(site_id)
-    finally:
-        veupathdb_auth_token_ctx.reset(reset_token)
-
-    if user is None or user.is_guest:
-        return None
-    return user.email
 
 
 _identities: dict[str, tuple[float, UUID]] = {}
@@ -120,7 +69,7 @@ async def resolve_veupathdb_user_id(token: str, site_id: str) -> UUID | None:
     if cached is not None and cached[0] > time.monotonic():
         return cached[1]
 
-    email = await resolve_veupathdb_email(token, site_id)
+    email = await resolve_registered_email(token, site_id)
     if not email:
         return None
 

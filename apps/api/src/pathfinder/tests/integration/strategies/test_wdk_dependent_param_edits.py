@@ -22,6 +22,7 @@ from veupathdb.errors import ValidationError
 from veupathdb.wdk.factory import get_strategy_api
 
 from pathfinder.persistence.models import ConversationStrategy, User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.session_factory import build_strategy_session
@@ -52,7 +53,13 @@ async def built_go_conv(
     async with session_maker() as session:
         session.add(User(id=user_id))
         session.add(
-            Conversation(id=conv_id, user_id=user_id, site_id="plasmodb", name="go")
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conv_id,
+                user_id=user_id,
+                site_id="plasmodb",
+                name="go",
+            )
         )
         await session.commit()
     deps = StrategyMutationContext(

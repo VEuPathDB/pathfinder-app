@@ -61,7 +61,6 @@ src/pathfinder/
     health.py                #   Health check logic
     metrics.py               #   Application-level OTEL metric instruments
     migrations.py            #   Alembic upgrade to head at startup (both chains)
-    notify_dispatcher.py     #   One LISTEN connection multiplexed over many subscribers
     observability.py         #   OTEL tracing, metrics, logs, library instrumentation
     langfuse/                #   Langfuse client, prompts, datasets, scoring
     principal.py             #   Who the caller is

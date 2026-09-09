@@ -40,6 +40,7 @@ from pathfinder.assistants._stub_services import (
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.responses import conversation_strategy_revision
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
@@ -48,8 +49,6 @@ from pathfinder.services.strategies.session_factory import (
     persisted_graph,
 )
 from pathfinder.services.wdk_identity import require_registered_wdk_login
-
-PATHFINDER_ASSISTANT_ID = "pathfinder"
 
 PATHFINDER_CHECKPOINT_TYPES: tuple[type, ...] = (
     SearchOverview,
@@ -155,7 +154,6 @@ def build_pathfinder_spec() -> AssistantSpec:
 
 
 __all__ = [
-    "PATHFINDER_ASSISTANT_ID",
     "PATHFINDER_CHECKPOINT_TYPES",
     "build_initial_state",
     "build_pathfinder_spec",

@@ -6,8 +6,10 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from assistant_core.platform.types import JSONArray
+from veupathdb.domain.eda_compute_validation import validate_compute_config
 from veupathdb.domain.eda_filter_checks import DeclaredRanges
 from veupathdb.domain.eda_study import entity_by_id, walk_entities
+from veupathdb.domain.eda_validation import validate_filters
 from veupathdb.eda.factory import (
     get_eda_analyses_client,
     get_eda_client,
@@ -31,8 +33,6 @@ from veupathdb.eda.models import (
 from veupathdb.errors import ValidationError
 from veupathdb.wdk.factory import get_wdk_client
 
-from pathfinder.domain.eda import validate_filters
-from pathfinder.domain.eda_compute_config import validate_compute_config
 from pathfinder.domain.eda_parts import EdaDistributionSeries, EdaEntityCount
 from pathfinder.services.eda.catalog import (
     get_study_detail_for_dataset,

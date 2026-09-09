@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import ConversationStrategy
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies import commit
 from pathfinder.services.strategies.commit import _WDKCommitOutcome
 from pathfinder.tests.integration.http.conftest import (
@@ -53,7 +54,9 @@ async def fresh_thread(
     del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
     async with session_maker() as session:
         user = await make_user(session)
-        conversation = Conversation(id=uuid4(), user_id=user.id)
+        conversation = Conversation(
+            assistant_id=PATHFINDER_ASSISTANT_ID, id=uuid4(), user_id=user.id
+        )
         session.add(conversation)
         await session.commit()
     client = first_frame_client_for(app, user.id, wdk_token="test-token")
@@ -120,7 +123,9 @@ async def test_a_corrupt_stored_ast_is_refused_and_the_row_is_left_alone(
     del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
     async with session_maker() as session:
         user = await make_user(session)
-        conversation = Conversation(id=uuid4(), user_id=user.id)
+        conversation = Conversation(
+            assistant_id=PATHFINDER_ASSISTANT_ID, id=uuid4(), user_id=user.id
+        )
         session.add(conversation)
         await session.flush()
         session.add(

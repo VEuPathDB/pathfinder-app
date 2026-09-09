@@ -130,17 +130,6 @@ rest.
    :undoc-members:
    :show-inheritance:
 
-Notify Dispatcher
------------------
-
-**Purpose:** Fan a PostgreSQL ``LISTEN`` connection out to the subscribers
-waiting on one channel.
-
-.. automodule:: pathfinder.platform.notify_dispatcher
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Health
 ------
 

@@ -5,6 +5,7 @@ from assistant_core.persistence.repositories.message import MessagesRepository
 from assistant_core.platform import db
 
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 async def test_insert_and_fetch_message(
@@ -23,7 +24,13 @@ async def test_insert_and_fetch_message(
     async with db.async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
-        session.add(Conversation(id=conversation_id, user_id=user_id))
+        session.add(
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+            )
+        )
         await session.flush()
 
         repo = MessagesRepository(session)

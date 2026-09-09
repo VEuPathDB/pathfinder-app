@@ -6,6 +6,11 @@ from uuid import uuid4
 
 import pytest
 import structlog
+from assistant_core.persistence.models import Conversation
+from assistant_core.platform.context import (
+    DEFAULT_APPLICATION_ID,
+    application_id_ctx,
+)
 from assistant_core.platform.db import async_session_factory
 
 from pathfinder.assistants.site_help.mock import SITES_REPLY
@@ -29,6 +34,7 @@ from pathfinder.devtools.chat import (
 from pathfinder.devtools.gates import user_body
 from pathfinder.persistence.repositories.user import UserRepository
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.services.conversations.begin import begin_conversation
 
 
@@ -135,6 +141,63 @@ async def test_run_once_resets_stale_run_dir(tmp_path: Path) -> None:
     code = await run_once(args)
     assert code == 0
     assert not stale.exists()
+
+
+@pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
+async def test_a_debugger_run_stamps_this_application(tmp_path: Path) -> None:
+    """The debugger serves no request, so it names the application itself."""
+    conv = uuid4()
+    args = parse_run_args(
+        [
+            "delegation",
+            "--site",
+            "plasmodb",
+            "--mock",
+            "--approve",
+            "auto",
+            "--quiet",
+            "--conversation-id",
+            str(conv),
+            "--run-dir",
+            str(tmp_path / "run"),
+        ]
+    )
+    reset = application_id_ctx.set(DEFAULT_APPLICATION_ID)
+    try:
+        await run_once(args)
+    finally:
+        application_id_ctx.reset(reset)
+
+    async with async_session_factory() as session:
+        row = await session.get(Conversation, conv)
+    assert row is not None
+    assert row.application_id == PATHFINDER_APPLICATION_ID
+
+
+@pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
+async def test_capture_wdk_records_into_the_run_dir(tmp_path: Path) -> None:
+    """The flag enters the client's capture, which owns the ``wdk/`` directory."""
+    plain, captured = tmp_path / "plain", tmp_path / "captured"
+
+    def _args(run_dir: Path, *extra: str) -> list[str]:
+        return [
+            "delegation",
+            "--site",
+            "plasmodb",
+            "--mock",
+            "--approve",
+            "auto",
+            "--quiet",
+            "--run-dir",
+            str(run_dir),
+            *extra,
+        ]
+
+    await run_once(parse_run_args(_args(plain)))
+    await run_once(parse_run_args(_args(captured, "--capture-wdk")))
+
+    assert not (plain / "wdk").exists()
+    assert (captured / "wdk").is_dir()
 
 
 @pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")

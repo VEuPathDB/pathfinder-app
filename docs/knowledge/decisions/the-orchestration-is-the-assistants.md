@@ -37,7 +37,13 @@ its checkpointed value, so an approval resume does not blank the prompt the
 checkpoint holds.
 
 **The conversation row is the routing record.** `conversations.assistant_id`
-is `NOT NULL DEFAULT 'pathfinder'`. A new thread takes the request's
+is `NOT NULL DEFAULT 'pathfinder'` in the database, and that default answers
+only a writer that omits the column in its SQL. The runtime's mapped default
+names no product, so an insert through the model that does not name an
+assistant writes `default`, which this registry does not install, so every
+insert here names one: `ConversationRepository.create` takes a required
+`assistant_id`, and a route that accepts an `assistantId` resolves it before it
+writes. A new thread takes the request's
 `assistantId` or the registry default; an existing thread keeps what it was
 created with, and a request naming another one is refused **409
 `ASSISTANT_MISMATCH`**, not ignored. An unknown id is **404
@@ -101,11 +107,11 @@ the loud refusal tells the caller its assumption was wrong.
 
 # What the pilot added
 
-A second assistant now exists, so both creation paths carry the choice.
-`POST /api/v1/conversations/{id}/begin` takes an optional `assistantId` with
-the same semantics as chat, and its seed-title generation uses that
-assistant's mock rather than the default's; `devtools/chat.py` takes
-`--assistant`.
+A second assistant now exists, so every creation path carries the choice.
+`POST /api/v1/conversations/{id}/begin` and `POST /api/v1/conversations/open`
+take an optional `assistantId` with the same semantics as chat, and the begin
+route's seed-title generation uses that assistant's mock rather than the
+default's; `devtools/chat.py` takes `--assistant`.
 
 The runtime gained a stock graph for the simple case:
 `assistant_core/graph/single_agent.py::single_agent_graph`, an agent node plus

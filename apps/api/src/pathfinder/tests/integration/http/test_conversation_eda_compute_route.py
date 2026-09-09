@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb_mcp.catalog.eda_backed import COMPUTE_QUERY, SUBSET_QUERY
 
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests._support.eda_wire import JOB_ID, AnalysisStore
 from pathfinder.tests.integration.http._conversation_eda import (
     DATASET,
@@ -262,7 +263,9 @@ async def test_another_users_thread_is_not_readable(
     async with session_maker() as session:
         owner = await make_user(session)
         other = await make_user(session)
-        conversation = Conversation(id=uuid4(), user_id=owner.id)
+        conversation = Conversation(
+            assistant_id=PATHFINDER_ASSISTANT_ID, id=uuid4(), user_id=owner.id
+        )
         session.add(conversation)
         await session.commit()
     async with first_frame_client_for(app, other.id, wdk_token="t") as client:

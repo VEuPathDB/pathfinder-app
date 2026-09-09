@@ -15,6 +15,7 @@ from assistant_core.platform.db import async_session_factory
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 @pytest.mark.asyncio
@@ -33,7 +34,11 @@ async def test_preferences_autowrite_only_after_three_successes(
             cid = uuid4()
             session.add(
                 Conversation(
-                    id=cid, user_id=user_id, site_id="plasmodb", name=f"old-{i}"
+                    assistant_id=PATHFINDER_ASSISTANT_ID,
+                    id=cid,
+                    user_id=user_id,
+                    site_id="plasmodb",
+                    name=f"old-{i}",
                 )
             )
             await session.flush()
@@ -88,7 +93,11 @@ async def test_preferences_not_written_with_fewer_than_three_successes(
             cid = uuid4()
             session.add(
                 Conversation(
-                    id=cid, user_id=user_id, site_id="plasmodb", name=f"old-{i}"
+                    assistant_id=PATHFINDER_ASSISTANT_ID,
+                    id=cid,
+                    user_id=user_id,
+                    site_id="plasmodb",
+                    name=f"old-{i}",
                 )
             )
             await session.flush()

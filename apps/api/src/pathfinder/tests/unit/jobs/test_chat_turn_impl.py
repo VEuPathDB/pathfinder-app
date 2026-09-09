@@ -8,7 +8,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.platform.context import application_id_ctx
+from assistant_core.platform.context import DEFAULT_APPLICATION_ID, application_id_ctx
 from assistant_core.spec import AssistantSpec
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 
@@ -126,6 +126,7 @@ async def test_run_chat_turn_sets_ctxvar_from_payload(
         user_id=uuid4(),
         turn_id=uuid4(),
         veupathdb_auth_token="user-token-abc",
+        assistant_id="pathfinder",
     )
 
     await run_chat_turn(payload.model_dump(mode="json", by_alias=True))
@@ -133,7 +134,7 @@ async def test_run_chat_turn_sets_ctxvar_from_payload(
     assert observer.call_count == 1
     assert observer.observed_token == "user-token-abc"
     assert observer.observed_application == HOLDING_APPLICATION
-    assert application_id_ctx.get() == "pathfinder"
+    assert application_id_ctx.get() == DEFAULT_APPLICATION_ID
 
 
 @pytest.mark.asyncio
@@ -160,6 +161,7 @@ async def test_run_chat_turn_resets_ctxvar_after_run(
         user_id=uuid4(),
         turn_id=uuid4(),
         veupathdb_auth_token="user-token-xyz",
+        assistant_id="pathfinder",
     )
     await run_chat_turn(payload.model_dump(mode="json", by_alias=True))
     assert veupathdb_auth_token_ctx.get() is None
@@ -189,6 +191,7 @@ async def test_run_chat_turn_tolerates_missing_token(
         body=_body(),
         user_id=uuid4(),
         turn_id=uuid4(),
+        assistant_id="pathfinder",
     )
     await run_chat_turn(payload.model_dump(mode="json", by_alias=True))
 

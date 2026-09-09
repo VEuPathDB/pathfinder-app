@@ -30,6 +30,7 @@ from veupathdb.eda.models import (
 from veupathdb_mcp.catalog.eda_backed import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.persistence.models import ConversationStrategy, User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.binding import mutated_analysis_state
 from pathfinder.services.eda.compute import VolcanoThresholds
@@ -155,7 +156,13 @@ async def thread(
     async with async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
-        session.add(Conversation(id=conversation_id, user_id=user_id))
+        session.add(
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+            )
+        )
         await session.flush()
         session.add(
             ConversationStrategy(
@@ -309,7 +316,13 @@ async def test_an_export_on_an_unbound_thread_is_refused(
     async with async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
-        session.add(Conversation(id=conversation_id, user_id=user_id))
+        session.add(
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+            )
+        )
         await session.commit()
 
     async with async_session_factory() as session:
@@ -388,7 +401,13 @@ async def _thread_without_a_strategy(*, with_empty_row: bool) -> tuple[UUID, UUI
     async with async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
-        session.add(Conversation(id=conversation_id, user_id=user_id))
+        session.add(
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+            )
+        )
         await session.flush()
         if with_empty_row:
             session.add(ConversationStrategy(conversation_id=conversation_id))

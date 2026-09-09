@@ -13,7 +13,7 @@ status: stable
 The turn's driver resolves an assistant's declarations before the turn context
 exists and hands the ready toolsets to the assistant as
 `TurnContextRequest.tool_sources`
-(`a-tool-source-session-belongs-to-the-turn.md`). Site help receives them on
+(`assistant-platform: docs/knowledge/decisions/a-tool-source-session-belongs-to-the-turn.md`). Site help receives them on
 `SiteHelpTurnContext`, a frozen subclass of the runtime's `TurnContext`, and
 `build_deps` folds them into one `CombinedToolset` on `SiteHelpDeps`. The agent
 declares `toolsets=[turn_tool_sources]`, a function of the run context that

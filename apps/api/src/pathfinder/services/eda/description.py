@@ -14,9 +14,9 @@ from veupathdb.domain.eda_study import (
     variable_by_id,
     walk_entities,
 )
+from veupathdb.domain.eda_validation import find_gene_entity
 from veupathdb.eda.models import EdaPermissionEntry, EdaStudyDetail
 
-from pathfinder.domain.eda import find_gene_entity
 from pathfinder.platform.errors import NotFoundError
 
 _VOCABULARY_SHOWN = 40
@@ -351,7 +351,7 @@ def describe_study(
     entity_id: str | None = None,
 ) -> StudyDescription:
     """The study's entity tree and its filterable variables, derived once."""
-    gene = find_gene_entity(study)
+    gene = find_gene_entity(study, subject="strategy step")
     return StudyDescription(
         dataset_id=dataset_id,
         study_id=study.id,

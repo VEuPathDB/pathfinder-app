@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
+from veupathdb.domain.eda_validation import find_gene_entity
 from veupathdb.eda.factory import get_eda_analyses_client
 from veupathdb.eda.models import (
     EdaAnalysisDetail,
@@ -13,7 +14,6 @@ from veupathdb.eda.models import (
     EdaStudyDetail,
 )
 
-from pathfinder.domain.eda import find_gene_entity
 from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.persistence.repositories.conversation_analysis import (
@@ -128,7 +128,7 @@ async def analysis_state(
     holds. Rows export only when the account may read them and the study
     names exactly one gene entity.
     """
-    gene = find_gene_entity(study)
+    gene = find_gene_entity(study, subject="strategy step")
     return EdaAnalysisState(
         site_id=site_id,
         dataset_id=dataset_id,

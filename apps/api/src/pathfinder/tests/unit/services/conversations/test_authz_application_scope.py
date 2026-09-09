@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from uuid import UUID, uuid4
 
 import pytest
@@ -10,12 +11,23 @@ from assistant_core.platform.context import application_id_ctx
 
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.errors import ForbiddenError, NotFoundError
+from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.services.conversations.authz import (
     get_owned_conversation_or_404,
     get_owned_or_404,
 )
 
 OWNER = UUID("22222222-2222-2222-2222-222222222222")
+
+
+@pytest.fixture(autouse=True)
+def calling_application() -> Iterator[None]:
+    """A served request names this application, the way security does."""
+    token = application_id_ctx.set(PATHFINDER_APPLICATION_ID)
+    try:
+        yield
+    finally:
+        application_id_ctx.reset(token)
 
 
 class OneRowRepository(ConversationRepository):
@@ -42,7 +54,7 @@ def _repo(application_id: str) -> OneRowRepository:
 
 
 async def test_the_owner_reaches_a_conversation_of_the_calling_application() -> None:
-    found = await get_owned_or_404(_repo("pathfinder"), uuid4(), OWNER)
+    found = await get_owned_or_404(_repo(PATHFINDER_APPLICATION_ID), uuid4(), OWNER)
 
     assert found.user_id == OWNER
 

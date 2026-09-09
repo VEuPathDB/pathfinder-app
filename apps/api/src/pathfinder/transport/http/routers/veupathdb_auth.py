@@ -11,10 +11,9 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.errors import ValidationError
-from veupathdb_mcp.wdk.login import (
-    end_veupathdb_session,
-    start_veupathdb_session,
-)
+from veupathdb.wdk.auth_login import password_login, password_logout
+from veupathdb.wdk.current_user import fetch_current_user, resolve_registered_email
+from veupathdb.wdk.wdk_models import WDKUserInfo
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import SiteUnavailableError, UnauthorizedError
@@ -25,12 +24,7 @@ from pathfinder.platform.security import (
     limiter,
 )
 from pathfinder.services.users import get_or_create_user_id
-from pathfinder.services.wdk_identity import (
-    WDKCurrentUser,
-    fetch_wdk_user,
-    identity_site,
-    resolve_veupathdb_email,
-)
+from pathfinder.services.wdk_identity import identity_site
 from pathfinder.transport.http.deps import DBSession
 from pathfinder.transport.http.schemas import (
     AuthStatusResponse,
@@ -70,7 +64,7 @@ async def _link_internal_user(
     session: AsyncSession, veupathdb_token: str, site_id: str
 ) -> UUID | None:
     """Name the internal user of the VEuPathDB identity, creating it if new."""
-    email = await resolve_veupathdb_email(veupathdb_token, site_id)
+    email = await resolve_registered_email(veupathdb_token, site_id)
     if not email:
         return None
     return await get_or_create_user_id(session, email)
@@ -140,10 +134,10 @@ async def login_with_password(
         )
 
     try:
-        token = await start_veupathdb_session(
+        token = await password_login(
             site_id,
-            email=email,
-            password=password,
+            email,
+            password,
             redirect_url=_pick_redirect_url(redirect_to),
         )
     except httpx.HTTPError as e:
@@ -175,7 +169,9 @@ async def logout(
     veupathdb_token = request.headers.get("X-VEUPATHDB-AUTH") or request.cookies.get(
         "Authorization"
     )
-    ended = await end_veupathdb_session(site_id, veupathdb_token)
+    ended = (
+        await password_logout(site_id, veupathdb_token) if veupathdb_token else False
+    )
     response = JSONResponse({"success": ended})
     response.delete_cookie(key="Authorization", path="/")
     response.delete_cookie(key="pathfinder-auth", path="/")
@@ -259,14 +255,14 @@ async def auth_status(
                 "email": "e2e@test.local",
             }
 
-    user = await fetch_wdk_user(identity_site(site_id))
+    user = await fetch_current_user(identity_site(site_id))
     if user is None:
         return {"signedIn": False, "name": None, "email": None}
 
     return _format_auth_status(user)
 
 
-def _format_auth_status(user: WDKCurrentUser) -> _AuthStatusDict:
+def _format_auth_status(user: WDKUserInfo) -> _AuthStatusDict:
     """Format a parsed WDK user as an auth status."""
     props = user.properties
     name: str | None = None

@@ -17,6 +17,7 @@ from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.graph.stream_events import ledger_update_event
 from pathfinder.ai.lead.ledger_sections import VerificationSection
 from pathfinder.persistence.repositories.eval_staging import EvalStagingRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.eval_data.extraction import extract_eval_candidates
 from pathfinder.tests._support.ledger import ledger_with
 
@@ -61,7 +62,12 @@ async def _stage_one_for(
     async with session_maker() as session:
         conversation_id = uuid4()
         session.add(
-            Conversation(id=conversation_id, user_id=user_id, site_id="plasmodb"),
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+                site_id="plasmodb",
+            ),
         )
         await session.flush()
         for chunk in _chunks():

@@ -37,9 +37,10 @@ are one type carrying both the declaration (vocabulary, bounds, `dependentParams
 and the current value, as `initialDisplayValue` on
 [`ParameterBase`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L54-L64).
 PathFinder splits them: the declaration is `WDKParameter` in
-`veupathdb/wdk/wdk_parameters.py`, and the value is `ParamValue` in
-`domain/parameters/values.py`. The declaration is an integration concern and the
-value is a domain concern, and only the value crosses layers.
+`veupathdb-py: src/veupathdb/wdk/wdk_parameters.py`, and the value is
+`ParamValue` in `veupathdb-py: src/veupathdb/domain/parameters/values.py`. The
+declaration is a transport concern and the value is a domain concern, and only
+the value crosses layers.
 
 **Structure is split from data.** WDK already does this on the wire -
 [`StrategyDetails`](https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkUser.ts#L120-L124)
@@ -86,7 +87,8 @@ appear nowhere outside the model definition, which is why it has survived.
 
 # The eleven parameter kinds
 
-`ParamKind` in `domain/parameters/values.py` is WDK's eleven
+`ParamKind` in `veupathdb-py: src/veupathdb/domain/parameters/values.py` is
+WDK's eleven
 [`*_PARAM_TYPE` constants](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/core/api/JsonKeys.java#L147-L157)
 and nothing else (WDK-PARAM-001 in
 `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`,
@@ -142,16 +144,19 @@ machinery is not the obstacle.
 
 # What lives where, in one sentence each
 
-- **`veupathdb/wdk/wdk_models.py`** - every `WDK*` response model, one per
-  WDK JSON document. Frozen, `extra="ignore"`, camelCase aliases. Nothing outside
-  the integration layer constructs these from raw JSON.
-- **`veupathdb/wdk/wdk_parameters.py`** - the ten-member `WDKParameter`
-  union, discriminated on `type`.
-- **`domain/parameters/values.py`** - the eleven `*Value` models and `ParamKind`.
-  Pure, no I/O, and the only parameter representation that crosses layers.
-- **`domain/parameters/value_codec.py`** - the conversion between those models and
-  WDK's wire and decoded forms, and the coercion of raw input into one of them.
-- **`domain/parameters/wdk_vocab.py` and `domain/wdk_values.py`** - the eight
+- **`veupathdb-py: src/veupathdb/wdk/wdk_models.py`** - every `WDK*` response
+  model, one per WDK JSON document. Frozen, `extra="ignore"`, camelCase aliases.
+  Nothing outside the client's `wdk` subpackage constructs these from raw JSON.
+- **`veupathdb-py: src/veupathdb/wdk/wdk_parameters.py`** - the ten-member
+  `WDKParameter` union, discriminated on `type`.
+- **`veupathdb-py: src/veupathdb/domain/parameters/values.py`** - the eleven
+  `*Value` models and `ParamKind`. Pure, no I/O, and the only parameter
+  representation that crosses layers.
+- **`veupathdb-py: src/veupathdb/domain/parameters/value_codec.py`** - the
+  conversion between those models and WDK's wire and decoded forms, and the
+  coercion of raw input into one of them.
+- **`veupathdb-py: src/veupathdb/domain/parameters/wdk_vocab.py` and
+  `veupathdb-py: src/veupathdb/domain/wdk_values.py`** - the eight
   `WDK*`-named types that reach the browser, listed in
   [WDK-MAP-007](rules/pathfinder-mapping.md). They are WDK-shaped and
   domain-owned, which is not a contradiction: they carry no I/O.

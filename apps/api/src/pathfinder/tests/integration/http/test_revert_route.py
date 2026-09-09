@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.security import create_user_token
 
 
@@ -102,6 +103,7 @@ async def conv_with_messages(
     seed_user: User,
 ) -> tuple[UUID, list[Message]]:
     conv = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         user_id=seed_user.id,
         site_id="plasmodb",
         name="",

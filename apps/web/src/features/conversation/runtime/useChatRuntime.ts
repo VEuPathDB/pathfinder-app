@@ -55,13 +55,11 @@ export function useChatRuntime({
       queryKey: listStrategiesQueryOptions({ siteId }).queryKey,
     });
   };
-  const openMessageId = openAssistantMessageId(initialMessages);
   const [transport] = useState(() =>
     createDurableTransport({
       conversationId,
       eventsUrlFor: (id) => `/api/v1/conversations/${id}/events`,
       api: "/api/v1/chat",
-      ...(openMessageId === undefined ? {} : { openMessageId }),
       headers: () =>
         getAuthHeaders({
           accept: "text/event-stream",
@@ -182,10 +180,4 @@ export function useChatRuntime({
   };
 
   return { runtime, chat };
-}
-
-/** The assistant message a reload already holds, which a resume continues. */
-function openAssistantMessageId(messages: UIMessage[] | undefined): string | undefined {
-  const last = messages?.at(-1);
-  return last?.role === "assistant" ? last.id : undefined;
 }

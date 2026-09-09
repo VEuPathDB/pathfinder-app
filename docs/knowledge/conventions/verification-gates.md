@@ -1,7 +1,7 @@
 ---
 type: Convention
 title: Verification gates
-description: The exact commands that decide whether a change is done, for both apps.
+description: The exact commands that decide whether a change is done in this repository, for the API, the frontend and the shared packages.
 tags: [testing, ci, workflow]
 generated: { by: claude-code/opus-5, at: 2026-08-09T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-09T00:00:00Z }
@@ -47,12 +47,19 @@ project environment: an older interpreter on `PATH` reports every PEP 758, PEP
 
 `pyright` is not redundant with `mypy`: it catches variance and invariance errors mypy misses. `ruff format --check` is not redundant with `ruff check` either: the two rule sets do not overlap, and formatting drift is invisible to the linter.
 
-`lint-imports` enforces four layering contracts, declared in `apps/api/pyproject.toml` under `[tool.importlinter]`:
+`lint-imports` enforces six layering contracts, declared in `apps/api/pyproject.toml` under `[tool.importlinter]`:
 
 1. Transport and AI never import persistence directly.
 2. Services never import transport or AI.
 3. Persistence never imports services, transport or AI.
 4. The science never imports an assistant's composition root.
+5. The agent and the jobs reach the workbench only through its facade.
+6. The application imports no private module of an installed distribution.
+
+The sixth names each library's `_*` modules one by one, because a forbidden
+contract matches whole module segments and cannot name a submodule of an
+external package. The three libraries are therefore `root_packages` beside
+`pathfinder`, so the gate needs them installed, which `uv sync` gives it.
 
 Domain purity, the integration direction and the MCP server's isolation are no
 longer contracts. They are installation facts of `veupathdb-py` and
@@ -141,69 +148,14 @@ credential.
 
 The run writes `EvalRunSummary`: harness, provider, assistant, per-case verdict and named differences. It is the logic layer's feed into the observability contract.
 
-# Assistant runtime (`assistant-platform: packages/assistant-core`)
+# The three platform packages
 
-```
-uv run ruff check src tests
-uv run ruff format --check src tests
-uv run mypy --strict src
-uv run pytest
-```
+`assistant-core`, `assistant-client-ts` and `mcp-conformance` each run their own
+gate set, from their own package root, in their own environment. The commands and
+what each one proves are
+`assistant-platform: docs/knowledge/conventions/verification-gates.md`.
 
-Run these from the package root, in the package's own environment. No
-`pathfinder` is installed there, and that is the point: the suite passing is
-the boundary, not a linter rule about it. `ruff` and the tests cover `tests/`
-too, because the synthetic assistant lives there and is the runtime's
-reference producer.
-
-`pytest` needs a Postgres. It starts a `pgvector/pgvector:pg16` testcontainer
-unless `DATABASE_URL` names one, and the conversation suite drives real
-LISTEN/NOTIFY, so an in-memory substitute will not do.
-
-`PROTOCOL.md` is gated by the suite: a chunk kind, a data part or an example
-that changes without the page changing fails
-`tests/integration/conversation/test_protocol_document.py`.
-
-# Assistant client (`assistant-platform: packages/assistant-client-ts`)
-
-```
-yarn typecheck
-yarn lint
-yarn format:check
-yarn test
-yarn build
-```
-
-Run these from the package root. The suite is the protocol's consumer side, so
-a `PROTOCOL.md` change fails it until `yarn sync:protocol` regenerates the
-vendored capture and a reducer answers the new kind.
-
-`yarn build` is a gate because it is what `prepack` runs: `apps/web` and every
-other host install the packed `dist`, so a build that fails here is a package
-nobody can consume.
-
-# MCP conformance suite (`assistant-platform: packages/mcp-conformance`)
-
-```
-uv run ruff check src tests
-uv run mypy --strict src
-uv run pytest
-```
-
-Run these from the package root, in its own environment. Nothing of this
-deployment is installed there, and a test walks every module to keep it that
-way: the suite is run by teams whose servers we did not write.
-
-`pytest` starts fixture MCP servers on loopback ports and drives the shipped
-families at them in a child pytest, once against a compliant server and once
-per planted defect. A defect must fail the check that owns it and no other. No
-database, no credential and no network beyond loopback.
-
-The families themselves are not part of this gate. They run against a server:
-`pytest --pyargs mcp_conformance --mcp-endpoint <url> --mcp-bearer <token>`,
-and the report they write is what an operator reads before admitting a source.
-
-**Our own server is read the same way, in the live lane.**
+**Our own MCP server is read by the conformance suite in the live lane.**
 `apps/api/src/pathfinder/tests/integration/mcp/` is marked `live_wdk`, so it
 skips without `WDK_TEST_EMAIL`/`WDK_TEST_PASSWORD` and without
 `PATHFINDER_MCP_SERVICE_TOKENS` naming the value the served container carries.

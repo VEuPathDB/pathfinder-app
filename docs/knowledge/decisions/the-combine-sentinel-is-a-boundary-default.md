@@ -12,7 +12,8 @@ status: stable
 
 `StrategyStepNode.search_name` is required, and a set operation is not a WDK
 question, so the persisted AST gives a combine the placeholder `__combine__`.
-That placeholder is produced only inside `domain/strategy/`: the model
+That placeholder is produced only inside
+`veupathdb-py: src/veupathdb/domain/strategy/`: the model
 validator that stamps a two-input node with no name, `rebuild_tree`, which
 projects the keyed graph back to the persisted shape, and the two spec
 translators, which mint a combine node whose inputs travel in the operation
@@ -22,7 +23,7 @@ Nothing reads it to decide what a step is. `StrategyStep.kind` comes from the
 node's inputs, and `own_search_name` is the one place that translates the
 placeholder back to "this step names no question of its own". The predicate the
 push and validation paths need is `runs_a_wdk_search`, beside it. Two sites in
-`ai/` still compare against the constant, and both compare a search *name* a
+`apps/api/src/pathfinder/ai/` still compare against the constant, and both compare a search *name* a
 model or a tool result supplied rather than a node: the step renderer, which
 keeps the placeholder out of a line the model reads, and the variant guard,
 which refuses a variant that names a combine.
@@ -57,8 +58,9 @@ translation are pinned by a fixture round trip.
 
 # Anchors
 
-`domain/strategy/ast.py` (`COMBINE_SEARCH_NAME`, the validator default),
-`domain/strategy/graph_model.py` (`own_search_name`, `rebuild_tree`,
-`wdk_search_name`, `runs_a_wdk_search`),
-`tests/unit/domain/strategy/test_graph_model.py`,
-`tests/unit/domain/strategy/test_ast_persistence.py`.
+`veupathdb-py: src/veupathdb/domain/strategy/ast.py` (`COMBINE_SEARCH_NAME`, the
+validator default),
+`veupathdb-py: src/veupathdb/domain/strategy/graph_model.py` (`own_search_name`,
+`rebuild_tree`, `wdk_search_name`, `runs_a_wdk_search`),
+`apps/api/src/pathfinder/tests/unit/domain/strategy/test_graph_model.py`,
+`apps/api/src/pathfinder/tests/unit/domain/strategy/test_ast_persistence.py`.

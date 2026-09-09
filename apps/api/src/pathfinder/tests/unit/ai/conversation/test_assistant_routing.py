@@ -5,7 +5,6 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.persistence.models import DEFAULT_ASSISTANT_ID
 
 from pathfinder.ai.conversation import assistant_routing
 from pathfinder.ai.conversation.assistant_routing import (
@@ -19,6 +18,7 @@ from pathfinder.platform.errors import (
     AssistantNotFoundError,
     ErrorCode,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 def _body(**extra: object) -> ChatRequestBody:
@@ -55,12 +55,12 @@ def test_the_body_parses_a_camel_case_assistant_id() -> None:
     assert _body(assistantId="pathfinder").assistant_id == "pathfinder"
 
 
-def test_the_orm_default_and_the_spec_id_are_the_same_name() -> None:
-    """Rows written before routing existed must resolve to a real assistant."""
+def test_the_registry_default_resolves_to_a_spec() -> None:
+    """A turn that names no assistant runs the one the registry defaults to."""
     registry = get_assistant_registry()
 
-    assert registry.default_id == DEFAULT_ASSISTANT_ID
-    assert registry.resolve(DEFAULT_ASSISTANT_ID) is not None
+    assert registry.default_id == PATHFINDER_ASSISTANT_ID
+    assert registry.resolve(PATHFINDER_ASSISTANT_ID) is not None
 
 
 def test_an_unknown_id_is_a_404_shaped_refusal() -> None:
@@ -82,7 +82,7 @@ async def test_a_new_conversation_takes_the_default(
         requested_id=None,
     )
 
-    assert spec.assistant_id == DEFAULT_ASSISTANT_ID
+    assert spec.assistant_id == PATHFINDER_ASSISTANT_ID
 
 
 async def test_a_new_conversation_takes_the_requested_assistant(
@@ -157,3 +157,36 @@ async def test_naming_the_same_assistant_on_an_existing_thread_is_allowed(
     )
 
     assert spec.assistant_id == "pathfinder"
+
+
+async def test_a_thread_that_does_not_exist_yet_takes_the_default() -> None:
+    """The open route resolves before the row exists, so it reads no row."""
+    spec = await resolve_turn_assistant(
+        registry=get_assistant_registry(),
+        conversation_id=None,
+        requested_id=None,
+    )
+
+    assert spec.assistant_id == PATHFINDER_ASSISTANT_ID
+
+
+async def test_a_thread_that_does_not_exist_yet_takes_the_requested_assistant() -> None:
+    spec = await resolve_turn_assistant(
+        registry=get_assistant_registry(),
+        conversation_id=None,
+        requested_id="site_help",
+    )
+
+    assert spec.assistant_id == "site_help"
+
+
+async def test_a_thread_that_does_not_exist_yet_refuses_an_unknown_assistant() -> None:
+    with pytest.raises(AssistantNotFoundError) as raised:
+        await resolve_turn_assistant(
+            registry=get_assistant_registry(),
+            conversation_id=None,
+            requested_id="no_such_assistant",
+        )
+
+    assert raised.value.status == 404
+    assert raised.value.code == ErrorCode.ASSISTANT_NOT_FOUND

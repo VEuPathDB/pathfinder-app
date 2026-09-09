@@ -2,6 +2,8 @@
 
 from fastapi import APIRouter
 
+from pathfinder.ai.conversation.assistant_routing import resolve_turn_assistant
+from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.services.conversations import wdk_import
 from pathfinder.transport.http.deps import CurrentUser, DBSession
 from pathfinder.transport.http.schemas import (
@@ -19,12 +21,18 @@ async def open_strategy(
     user_id: CurrentUser,
 ) -> OpenConversationResponse:
     """Open a strategy by local id or WDK strategy id."""
+    spec = await resolve_turn_assistant(
+        registry=get_assistant_registry(),
+        conversation_id=request.conversation_id,
+        requested_id=request.assistant_id,
+    )
     conversation_id = await wdk_import.open_strategy(
         session,
         conversation_id=request.conversation_id,
         wdk_strategy_id=request.wdk_strategy_id,
         site_id=request.site_id,
         user_id=user_id,
+        assistant_id=spec.assistant_id,
     )
     # Commit before the response: the caller reads this id back immediately,
     # and the session dependency commits only after the response is sent.

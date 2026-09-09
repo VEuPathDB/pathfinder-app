@@ -7,6 +7,7 @@ one they answered.
 
 from __future__ import annotations
 
+from assistant_core.capabilities.input_screening import is_pure_approval
 from assistant_core.graph import approvals
 from assistant_core.graph.turn_state import PendingApproval
 from pydantic_ai.messages import (
@@ -18,7 +19,6 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.tools import DeferredToolApprovalResult, ToolDenied
 
-from pathfinder.ai.capabilities.security import is_pure_approval
 from pathfinder.ai.graph.state import PipelineState
 
 __all__ = [

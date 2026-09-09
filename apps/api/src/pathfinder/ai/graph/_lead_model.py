@@ -8,12 +8,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from assistant_core.models.capture import maybe_wrap_model
+from assistant_core.models.settings import baked_model_id, build_model_settings
 from assistant_core.platform.types import ReasoningEffort
 
-from pathfinder.ai.graph._llm_capture import maybe_wrap_model
 from pathfinder.ai.lead.lead_agent import LeadAgent
 from pathfinder.ai.models.mock import get_mock_model
-from pathfinder.ai.models.settings import baked_model_id, build_model_settings
 from pathfinder.ai.models.tiers import resolve_phase_tier_config
 from pathfinder.platform.config import get_settings
 

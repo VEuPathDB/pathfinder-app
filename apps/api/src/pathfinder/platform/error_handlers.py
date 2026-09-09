@@ -34,7 +34,7 @@ def problem_response(
     detail: str | None = None,
     errors: JSONArray | None = None,
 ) -> JSONResponse:
-    """Render a single ProblemDetail (RFC 7807) as application/problem+json."""
+    """Render a single ProblemDetail (RFC 9457) as application/problem+json."""
     problem = ProblemDetail(
         type=f"/errors/{code.value}",
         title=title,

@@ -29,6 +29,7 @@ from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.fork import (
     ForkError,
     fork_conversation,
@@ -144,13 +145,18 @@ async def _seed_conversation(
     conversation_id: UUID,
     user_id: UUID,
     name: str = "root",
+    parent_conversation_id: UUID | None = None,
+    parent_message_id: UUID | None = None,
 ) -> None:
     session.add(
         Conversation(
             id=conversation_id,
             user_id=user_id,
+            assistant_id=PATHFINDER_ASSISTANT_ID,
             site_id="plasmodb",
             name=name,
+            parent_conversation_id=parent_conversation_id,
+            parent_message_id=parent_message_id,
         ),
     )
     await session.flush()
@@ -323,17 +329,14 @@ async def test_delete_non_cascade_promotes_children(
             ),
         )
         await session.flush()
-        session.add(
-            Conversation(
-                id=b_id,
-                user_id=user_id,
-                site_id="plasmodb",
-                name="b",
-                parent_conversation_id=a_id,
-                parent_message_id=anchor_msg,
-            ),
+        await _seed_conversation(
+            session,
+            conversation_id=b_id,
+            user_id=user_id,
+            name="b",
+            parent_conversation_id=a_id,
+            parent_message_id=anchor_msg,
         )
-        await session.flush()
         session.add(
             Message(
                 id=fork_anchor,
@@ -343,15 +346,13 @@ async def test_delete_non_cascade_promotes_children(
             ),
         )
         await session.flush()
-        session.add(
-            Conversation(
-                id=c_id,
-                user_id=user_id,
-                site_id="plasmodb",
-                name="c",
-                parent_conversation_id=b_id,
-                parent_message_id=fork_anchor,
-            ),
+        await _seed_conversation(
+            session,
+            conversation_id=c_id,
+            user_id=user_id,
+            name="c",
+            parent_conversation_id=b_id,
+            parent_message_id=fork_anchor,
         )
         await session.commit()
 
@@ -385,33 +386,18 @@ async def test_delete_cascade_wipes_subtree(
         await _seed_conversation(
             session, conversation_id=a_id, user_id=user_id, name="a"
         )
-        session.add(
-            Conversation(
-                id=b_id,
+        for child, parent, name in (
+            (b_id, a_id, "b"),
+            (c_id, b_id, "c"),
+            (d_id, c_id, "d"),
+        ):
+            await _seed_conversation(
+                session,
+                conversation_id=child,
                 user_id=user_id,
-                site_id="plasmodb",
-                name="b",
-                parent_conversation_id=a_id,
-            ),
-        )
-        session.add(
-            Conversation(
-                id=c_id,
-                user_id=user_id,
-                site_id="plasmodb",
-                name="c",
-                parent_conversation_id=b_id,
-            ),
-        )
-        session.add(
-            Conversation(
-                id=d_id,
-                user_id=user_id,
-                site_id="plasmodb",
-                name="d",
-                parent_conversation_id=c_id,
-            ),
-        )
+                name=name,
+                parent_conversation_id=parent,
+            )
         await session.commit()
 
     async with db.async_session_factory() as session:
@@ -457,15 +443,13 @@ async def test_delete_root_non_cascade_promotes_children_to_roots(
             ),
         )
         await session.flush()
-        session.add(
-            Conversation(
-                id=child_id,
-                user_id=user_id,
-                site_id="plasmodb",
-                name="child",
-                parent_conversation_id=root_id,
-                parent_message_id=anchor_msg,
-            ),
+        await _seed_conversation(
+            session,
+            conversation_id=child_id,
+            user_id=user_id,
+            name="child",
+            parent_conversation_id=root_id,
+            parent_message_id=anchor_msg,
         )
         await session.commit()
 
@@ -1613,15 +1597,7 @@ async def _seed_conversation_with_ast(
     ast: dict[str, object],
     imported_saved_strategy_ids: list[int] | None = None,
 ) -> None:
-    session.add(
-        Conversation(
-            id=conversation_id,
-            user_id=user_id,
-            site_id="plasmodb",
-            name="root",
-        ),
-    )
-    await session.flush()
+    await _seed_conversation(session, conversation_id=conversation_id, user_id=user_id)
     session.add(
         ConversationStrategy(
             conversation_id=conversation_id,

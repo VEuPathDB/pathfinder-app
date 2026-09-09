@@ -6,12 +6,13 @@ from collections.abc import AsyncGenerator
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.persistence.models import DEFAULT_ASSISTANT_ID, Conversation
+from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.errors import NotFoundError
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.begin import begin_conversation
 
 
@@ -35,6 +36,7 @@ async def _make_user(session: AsyncSession) -> User:
 
 async def _make_conversation(session: AsyncSession, owner: User) -> UUID:
     conversation = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         user_id=owner.id,
         site_id="plasmodb",
         name="Owner kinases",
@@ -56,7 +58,7 @@ async def test_begin_creates_a_conversation_for_a_fresh_id(
         conversation_id=conversation_id,
         user_id=owner.id,
         site_id="plasmodb",
-        assistant_id=DEFAULT_ASSISTANT_ID,
+        assistant_id=PATHFINDER_ASSISTANT_ID,
     )
 
     assert result.is_new is True
@@ -75,7 +77,7 @@ async def test_begin_returns_the_existing_conversation_for_its_owner(
         conversation_id=conversation_id,
         user_id=owner.id,
         site_id="plasmodb",
-        assistant_id=DEFAULT_ASSISTANT_ID,
+        assistant_id=PATHFINDER_ASSISTANT_ID,
     )
 
     assert result.is_new is False
@@ -98,7 +100,7 @@ async def test_begin_hides_a_conversation_owned_by_another_user(
             conversation_id=conversation_id,
             user_id=intruder.id,
             site_id="plasmodb",
-            assistant_id=DEFAULT_ASSISTANT_ID,
+            assistant_id=PATHFINDER_ASSISTANT_ID,
         )
 
     assert raised.value.status == 404

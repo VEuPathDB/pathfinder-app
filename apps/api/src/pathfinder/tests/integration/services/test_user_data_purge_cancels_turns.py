@@ -22,6 +22,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.cancellation import turn_is_cancelled
 from pathfinder.services.user_data import purge_user_data
 
@@ -44,7 +45,12 @@ async def _thread_with_a_running_turn(
     db_session: AsyncSession,
 ) -> tuple[UUID, UUID, UUID]:
     owner = User(id=uuid4())
-    conversation = Conversation(user_id=owner.id, site_id="plasmodb", name="running")
+    conversation = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
+        user_id=owner.id,
+        site_id="plasmodb",
+        name="running",
+    )
     db_session.add_all([owner, conversation])
     await db_session.flush()
     await db_session.commit()

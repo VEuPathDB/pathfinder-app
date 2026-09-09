@@ -10,6 +10,7 @@ from procrastinate.testing import InMemoryConnector
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests.integration.http.conftest import (
     chat_body,
     chat_jobs,
@@ -43,6 +44,7 @@ async def test_chat_rejects_a_conversation_owned_by_another_user(
     owner = await make_user(db_session)
     intruder = await make_user(db_session)
     conversation = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         user_id=owner.id,
         site_id="plasmodb",
         name="Owner kinases",

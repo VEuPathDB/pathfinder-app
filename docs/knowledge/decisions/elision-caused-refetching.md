@@ -55,4 +55,4 @@ And never from one run.
 
 # Anchor
 
-`_history_processor.py` (`_digest`, `_too_small_to_elide`, `_already_elided`). Guarded by `TestElisionDoesNotCauseRefetching`.
+`assistant-platform: packages/assistant-core/src/assistant_core/conversation/history/elision.py`. Guarded by `assistant-platform: packages/assistant-core/tests/unit/conversation/history/test_elision.py`.

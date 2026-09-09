@@ -10,6 +10,7 @@ from assistant_core.platform.db import async_session_factory
 from veupathdb.eda.models import EdaAnalysisDetail
 
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.eda import binding
 
 pytestmark = pytest.mark.asyncio
@@ -37,7 +38,11 @@ async def conversation_id(db_cleaner: None, patch_app_db_engine: None) -> UUID:
     async with async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
-        session.add(Conversation(id=thread_id, user_id=user_id))
+        session.add(
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID, id=thread_id, user_id=user_id
+            )
+        )
         await session.commit()
     return thread_id
 

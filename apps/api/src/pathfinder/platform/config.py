@@ -138,6 +138,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
 
     # Prompt-injection screening with the PIGuard ONNX model.
     piguard_enabled: bool = True
+    piguard_model_dir: Path = Path("/app/models/piguard")
 
     # Background worker
     worker_concurrency: int = Field(

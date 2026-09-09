@@ -43,6 +43,7 @@ from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.persistence.models import ConversationStrategy, User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
@@ -246,7 +247,11 @@ async def _seed(db_session: AsyncSession, user: User) -> UUID:
         record_type="transcript", root=_root(), wdk_step_ids=dict(WDK_IDS)
     )
     conv = Conversation(
-        id=uuid4(), user_id=user.id, site_id="plasmodb", name="Test strategy"
+        assistant_id=PATHFINDER_ASSISTANT_ID,
+        id=uuid4(),
+        user_id=user.id,
+        site_id="plasmodb",
+        name="Test strategy",
     )
     db_session.add(conv)
     await db_session.flush()

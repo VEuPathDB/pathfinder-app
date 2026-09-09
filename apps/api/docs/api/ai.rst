@@ -48,17 +48,6 @@ override, the persisted conversation state, or the role default.
    :undoc-members:
    :show-inheritance:
 
-Model Settings
---------------
-
-**Purpose:** Per-provider model settings for pydantic-ai. The stable
-``provider:model`` id is what pydantic-ai infers the provider from.
-
-.. automodule:: pathfinder.ai.models.settings
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Tier Presets
 ------------
 

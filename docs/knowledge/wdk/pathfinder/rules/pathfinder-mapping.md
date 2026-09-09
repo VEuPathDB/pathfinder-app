@@ -1,10 +1,10 @@
 ---
 type: Rules
 title: PathFinder mapping rules
-description: The eight invariants that keep PathFinder's types and layers aligned with WDK - which are machine-checked by an import contract, which are checked by a test, and which are checked by nothing.
+description: The eight invariants that keep PathFinder's types and layers aligned with WDK - which test holds each one, which live in this repository's suite and which in the client library's, and which half of a rule nothing holds.
 tags: [wdk-alignment, rules, layering, types, import-linter]
 generated: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-09-08T00:00:00Z }
 status: stable
 ---
 
@@ -15,13 +15,15 @@ invariants PathFinder holds so that its own types keep meaning what WDK's mean.
 The `upstream` field names the WDK definition each one is a mapping *of*, so the
 rule is falsified when that definition changes.
 
-This is the one family where enforcement is often real, because five of the eight
-are checked by `import-linter` contracts declared under `[tool.importlinter]` in
-`apps/api/pyproject.toml`. A named contract is enforcement in the strict sense:
-`cd apps/api && uv run lint-imports` fails when the rule is broken. Where the
-contract covers only part of the rule, the status is `PARTIAL` and the body names
-the part it does not cover. The explanation of what each contract can and cannot
-see is in [layer-ownership](../layer-ownership.md).
+This is the one family where enforcement is often real: all eight name a test
+that fails when the rule is broken, five in this repository's suite and three in
+the client library's own. Seven are `ENFORCED`; one is `PARTIAL`, where the test
+covers only part of the rule and the body names the part it does not cover. No
+rule is held by an import contract. The six `forbidden` contracts under
+`[tool.importlinter]` in `apps/api/pyproject.toml` are about the layers of
+`pathfinder` and about the private modules of the installed distributions, not
+about these invariants; what they can and cannot see is in
+[layer-ownership](../layer-ownership.md).
 
 ### WDK-MAP-001 - A twelfth `ParamKind` would go unnoticed, while removing one of the eleven would not
 
@@ -57,7 +59,7 @@ not type-checked either.
 The correspondence, cell by cell, is in
 [type-correspondence](../type-correspondence.md).
 
-### WDK-MAP-002 - A parameter's declaration is integration-owned and its value is domain-owned; only the value reaches the wire
+### WDK-MAP-002 - A parameter's declaration and its value are separate types, and only the value reaches the wire
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/web-monorepo/blob/63d1705463d553c0ac19ee577c1b09666597b903/packages/libs/wdk-client/src/Utils/WdkModel.ts#L54-L64
@@ -66,34 +68,40 @@ The correspondence, cell by cell, is in
 
 Upstream keeps one type. `ParameterBase` carries `initialDisplayValue` alongside
 `dependentParams`, `isVisible` and the rest, so a wdk-client `Parameter` is the
-declaration and the current value at once. PathFinder splits them: `WDKParameter`
-in `integrations/` is the declaration, `ParamValue` in `domain/` is the value.
+declaration and the current value at once. PathFinder splits them, and both
+halves are the client library's: the declaration is `WDKParameter` in
+`veupathdb-py: src/veupathdb/wdk/wdk_parameters.py`, the value is `ParamValue` in
+`veupathdb-py: src/veupathdb/domain/parameters/values.py`.
 
 The split has to hold in the direction that matters. A parameter *value* crosses
 every layer - it is in `StepResponse.parameters`, in agent tool arguments, in the
-persisted `StrategyAst` - while a parameter *declaration* is an integration
-artifact that reaches the browser only after being normalized into
-`ParamSpecResponse`. On 2026-08-10 `openapi.json` held 283 schemas and not one of
+persisted `StrategyAst` - while a parameter *declaration* is a transport concern:
+`apps/api/src/pathfinder/transport/http/routers/sites/params.py` serves it to the
+browser only after `veupathdb_mcp.catalog` has normalized it into
+`ParamSpecResponse`. On 2026-09-08 `openapi.json` held 308 schemas and not one of
 them was a `WDKParameter` member.
 
-The named contract enforces one half and does so strictly: it is the only one of
-the six without `allow_indirect_imports`, so `domain/parameters/values.py` cannot
-reach `integrations/` even through a chain, and the value models therefore cannot
-quietly grow a dependency on the spec models.
+The named test enforces one half, and it runs in the client's own suite: it reads
+the import statements of every `veupathdb.domain` module and fails on `httpx`,
+and its sibling `test_the_domain_names_no_client_module_that_opens_a_connection`
+fails on a name in `veupathdb.wdk`, which is where the declaration models live.
+The value models therefore cannot quietly grow a dependency on them.
 
 **Two halves are uncovered, not one.**
 
 *The wire.* Nothing stops a `WDKSearchConfig` or a `WDKParameter` being added to a
-response model in `services/` and appearing in `openapi.json` tomorrow; the
-contract permits `services -> integrations` by design. The 283-schema measurement
-above is a fact about today, not a gate.
+response model in `services/` and appearing in `openapi.json` tomorrow. The six
+`forbidden` contracts in `apps/api/pyproject.toml` name the layers of
+`pathfinder` and the private modules of the installed distributions; not one of
+them is about which type a response model carries, and the table of what each
+forbids is in [layer-ownership](../layer-ownership.md). The 308-schema
+measurement above is a fact about today, not a gate.
 
-*The other side of the split.* The contract stops `domain/` from **importing** a
-declaration model. It cannot stop one from being **written** there. A new
-`WDKFilterParam`-shaped model defined in `domain/parameters/` would collapse the
-split entirely with every contract green, because nothing about it would be an
-import at all. What guards the split today is that the declaration models happen to
-live in `integrations/`, which is a fact about the file tree rather than a check.
+*The other side of the split.* The boundary suite stops `veupathdb.domain` from
+**importing** a declaration model. It cannot stop one from being **written**
+there. A new `WDKFilterParam`-shaped model defined in
+`veupathdb/domain/parameters/` would collapse the split entirely with every check
+green, because nothing about it would be an import at all.
 
 ### WDK-MAP-003 - Structure and step data are separate in storage, and the nested tree exists only where it meets WDK
 
@@ -168,59 +176,46 @@ any more, so the prohibition is vacuous and the contract term was deleted. What
 still checks the proposition is the call-site walk: no module in this tree
 constructs an `httpx` client against a site base URL, which is the failure the
 prohibition existed to prevent. That test is
-[WDK-MAP-005](#wdk-map-005---only-integrationsveupathdb-may-open-a-connection-to-a-wdk-host-and-no-contract-can-see-that)'s,
+[WDK-MAP-005](#wdk-map-005---no-pathfinder-module-opens-a-connection-to-a-wdk-host-and-no-contract-can-see-that)'s,
 and it holds for this rule too because a tool that holds no client cannot be a
 different user.
 
-### WDK-MAP-005 - Only `integrations/veupathdb` may open a connection to a WDK host, and no contract can see that
+### WDK-MAP-005 - No `pathfinder` module opens a connection to a WDK host, and no contract can see that
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/SessionService.java#L277-L311
 - anchor: apps/api/src/pathfinder/transport/http/routers/veupathdb_auth.py:logout
 - status: ENFORCED by apps/api/src/pathfinder/tests/unit/test_call_sites.py::test_wdk_map_005_no_pathfinder_module_builds_a_site_client
 
-**This rule was briefly marked `PARTIAL by` the layering contract that forbids
-transport an integration import, and that was wrong.** That contract enforces a
-different proposition. It says a transport module
-must not name `pathfinder.integrations` in an import; this rule says nothing
-outside `integrations/veupathdb` may open a connection to a WDK host. The two
-coincide only by accident. Breaking this rule from `services/`, which is permitted
-to import `integrations` freely, leaves every contract green - and so does
-breaking it from `transport/` with a raw `httpx` client, which is what actually
-happens. A contract with a different scope is not enforcement, however close it
-looks, and the rest of this rule is the proof.
+The WDK transport is the client library's (`veupathdb-py`, `veupathdb/wdk/`).
+This application holds none of it: a `pathfinder` module that builds its own
+client to a site is a second WDK caller with its own credential handling, and
+the site answers it as a different user than the one the request is for.
 
-What the contract does hold is worth keeping straight: on 2026-08-10, zero modules
-under `transport/` import `pathfinder.integrations` or `pathfinder.persistence`.
-That is true and it is checked. It is simply not this rule.
+**No import contract can express that.** A contract reads import statements,
+and the property is about a call: `httpx.AsyncClient(base_url=...)` where the
+base url resolves from the site router. `httpx` is forbidden only to `domain/`,
+so any other layer may import it and reach a WDK host with all six contracts
+green. The scope of an import contract and the scope of this rule coincide only
+by accident.
 
-**A real check would have to look at call sites, not imports.** The property is
-"no `httpx` client is constructed with a VEuPathDB base URL outside
-`integrations/veupathdb`", and neither `import-linter` nor any existing test can
-express it. The cheapest honest version is a test that walks the AST of every
-module outside `integrations/veupathdb`, finds `httpx.AsyncClient(...)` and
+**The check therefore walks call sites.** The named test parses every
+non-test module in this tree, finds `httpx.AsyncClient(...)` and
 `httpx.Client(...)` constructions, and fails on any whose `base_url` argument
-derives from `get_site`, `SiteInfo` or a `service_url` attribute. That would catch
-today's instance and would not depend on a hostname literal, since the URL is
-always resolved from the site router rather than written down.
+derives from `get_site`, `SiteInfo` or a `service_url` attribute. It depends on
+no hostname literal, because the url is always resolved from the site router
+rather than written down.
 
-**`httpx` appears in only one contract's forbidden list, the domain
-one**, so a transport module may import it and call a VEuPathDB URL with every
-contract green. One did.
+The rule is anchored on the call that broke it.
 `transport/http/routers/veupathdb_auth.py` built
 `httpx.AsyncClient(base_url=auth_site.service_url)` and called `GET /logout` on
 it, carrying no cookie jar and no `Authorization` header - so by
-WDK-AUTH-001 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`) the request was served as a fresh guest
-and `processLogout` took its early return.
-
-That reading was confirmed live and then fixed: the call moved to
-`veupathdb/wdk/auth_login.py:password_logout`, which carries the
-credential. What the fix does **not** buy is the property the name suggests -
-the bearer token stays valid afterwards
+WDK-AUTH-001 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`) the
+request was served as a fresh guest and `processLogout` took its early return.
+The call now goes through `veupathdb/wdk/auth_login.py:password_logout`, which
+carries the credential. What that does **not** buy is the property the name
+suggests: the bearer token stays valid afterwards
 (WDK-AUTH-004, `veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`).
-
-The layering fact is not a reading: it is measured. A transport module opens a
-socket to a WDK host, and nothing objects.
 
 ### WDK-MAP-006 - A WDK step id is an integer stored beside PathFinder's own string id, never in place of it
 
@@ -262,23 +257,23 @@ tree vocabulary is `{data: {term, display}, children: [...]}` exactly as
 `TreeBoxEnumParamFormatter` writes it, and re-modelling it would only add a lossy
 translation between two identical structures.
 
-On 2026-08-10, `openapi.json` held eight `WDK*` schemas - `WDKVocabTerm`,
-`WDKVocabNodeData`, `WDKTreeBoxVocabNode`, `WDKFilterOntologyTerm`,
-`WDKDatasetParser`, `WDKRecordIdPart`, `WDKHistogramBin`, `WDKHistogramStatistics`
-- and **all eight are defined under `domain/`**, five in
-`domain/parameters/wdk_vocab.py` and three in `domain/wdk_values.py`. None of the
-`WDK*` response models in `veupathdb/wdk/wdk_models.py` appears.
+`openapi.json` holds eight `WDK*` schemas - `WDKVocabTerm`, `WDKVocabNodeData`,
+`WDKTreeBoxVocabNode`, `WDKFilterOntologyTerm`, `WDKDatasetParser`,
+`WDKRecordIdPart`, `WDKHistogramBin`, `WDKHistogramStatistics` - and **all eight
+are the client's domain models**, five in
+`veupathdb-py: src/veupathdb/domain/parameters/wdk_vocab.py` and three in
+`veupathdb-py: src/veupathdb/domain/wdk_values.py`. None of the `WDK*` response
+models in `veupathdb-py: src/veupathdb/wdk/wdk_models.py` appears.
 
-The named contract is what makes "carry no I/O" a fact rather than an intention:
-anything in `domain/` is forbidden from importing `httpx`, `sqlalchemy`,
-`asyncpg`, `fastapi` or any other layer, through a chain as well as directly. Move
-one of these eight into `integrations/` while keeping a domain reference and the
-contract fails.
+The named test is what makes "carry no I/O" a fact rather than an intention: it
+walks every module of the client's domain package and fails if any of them
+reaches `httpx`, through a chain as well as directly. Give one of these eight a
+transport import and it fails.
 
 **The uncovered half is which types get added later.** The contract is about where
 a type lives, not about what a response model may contain, so it would stay green
 if a genuine WDK response model were exposed from `services/`. See
-[WDK-MAP-002](#wdk-map-002---a-parameters-declaration-is-integration-owned-and-its-value-is-domain-owned-only-the-value-reaches-the-wire),
+[WDK-MAP-002](#wdk-map-002---a-parameters-declaration-and-its-value-are-separate-types-and-only-the-value-reaches-the-wire),
 which has the same gap for the same reason.
 
 ### WDK-MAP-008 - `Strategy`, `Step`, `Search` and `RecordType` in `@pathfinder/shared` are PathFinder types wearing WDK names

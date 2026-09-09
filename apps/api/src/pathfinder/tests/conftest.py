@@ -426,34 +426,14 @@ async def authed_client(
 
 
 @pytest.fixture
-async def app_notify_dispatcher(
-    app: FastAPI,
-    patch_app_db_engine: None,
-) -> AsyncGenerator[Any]:
-    """Attaches a running notify dispatcher to the application state.
-
-    The test transport skips the lifespan that normally opens it.
-    """
-    del patch_app_db_engine
-    from pathfinder.platform.notify_dispatcher import (  # noqa: PLC0415
-        lifespan_notify_dispatcher,
-    )
-
-    database_url = os.environ["DATABASE_URL"]
-    async with lifespan_notify_dispatcher(database_url) as dispatcher:
-        app.state.notify_dispatcher = dispatcher
-        yield dispatcher
-
-
-@pytest.fixture
 async def app_memory_store(
     app: FastAPI,
     patch_app_db_engine: None,
     db_cleaner: None,
 ) -> AsyncGenerator[Any]:
-    """Attaches a memory store and a notify dispatcher to the application state.
+    """Attaches a memory store to the application state.
 
-    The test transport skips the lifespan that normally opens them.
+    The test transport skips the lifespan that normally opens it.
     """
     del patch_app_db_engine, db_cleaner
     from assistant_core.memory.lifespan import (  # noqa: PLC0415
@@ -461,18 +441,10 @@ async def app_memory_store(
     )
     from assistant_core.memory.store import MemoryStore  # noqa: PLC0415
 
-    from pathfinder.platform.notify_dispatcher import (  # noqa: PLC0415
-        lifespan_notify_dispatcher,
-    )
-
     database_url = os.environ["DATABASE_URL"]
-    async with (
-        lifespan_memory_store(database_url) as raw,
-        lifespan_notify_dispatcher(database_url) as disp,
-    ):
+    async with lifespan_memory_store(database_url) as raw:
         store = MemoryStore(store=raw)
         app.state.memory_store = raw
-        app.state.notify_dispatcher = disp
         yield store
 
 

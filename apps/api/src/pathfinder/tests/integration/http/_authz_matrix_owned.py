@@ -17,6 +17,7 @@ from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from pathfinder.domain.scratchpad.models import NoteCreate
 from pathfinder.persistence.models import ControlSet, ConversationStrategy
 from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.experiment.store import get_experiment_store
 from pathfinder.services.experiment.types import Experiment, ExperimentConfig
 from pathfinder.services.gene_sets.operations import GeneSetService
@@ -82,6 +83,7 @@ async def _create_rows(
     """Insert the database-backed resources and return what addresses them."""
     owner = await make_user(session)
     conversation = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         user_id=owner.id,
         site_id=SITE_ID,
         name="Owner kinases",

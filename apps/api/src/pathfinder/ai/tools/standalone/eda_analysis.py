@@ -6,6 +6,7 @@ from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
+from veupathdb.domain.eda_validation import find_gene_entity
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._eda_guidance import (
@@ -25,7 +26,6 @@ from pathfinder.ai.tools.standalone._eda_stream_parts import (
     analysis_state_chunks_if_changed,
     eda_subset_preview_chunk,
 )
-from pathfinder.domain.eda import find_gene_entity
 from pathfinder.services.eda import EdaFilter, EdaStudyDetail
 from pathfinder.services.eda.authoring import SubsetRejectedError, preview_subset
 from pathfinder.services.eda.binding import (
@@ -90,7 +90,7 @@ async def open_eda_analysis(
     """
     site_id = ctx.deps.runtime.site_id
     _entry, study = await _study(site_id, dataset_id)
-    gene = find_gene_entity(study)
+    gene = find_gene_entity(study, subject="strategy step")
     state = await bind_analysis(
         site_id,
         dataset_id=dataset_id,

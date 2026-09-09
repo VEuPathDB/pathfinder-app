@@ -57,7 +57,7 @@ class ErrorCode(StrEnum):
 
 
 class ProblemDetail(BaseModel):
-    """RFC 7807 Problem Details response."""
+    """RFC 9457 Problem Details response."""
 
     type: str = "about:blank"
     title: str

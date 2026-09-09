@@ -14,6 +14,7 @@ from uuid import UUID
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import WDKError
+from veupathdb.wdk import current_user
 
 from pathfinder.platform.errors import ErrorCode, SiteUnavailableError
 from pathfinder.platform.principal import Principal
@@ -52,7 +53,7 @@ class _FakeClient:
         self._seen.append(self._site_id)
         if self._failure is not None:
             raise self._failure
-        return {"isGuest": False, "email": "researcher@upenn.edu"}
+        return {"id": 7, "isGuest": False, "email": "researcher@upenn.edu"}
 
 
 def _fake_wdk(
@@ -60,9 +61,9 @@ def _fake_wdk(
 ) -> list[str]:
     """Record the site every ``/users/current`` read names."""
     seen: list[str] = []
-    monkeypatch.setattr(wdk_identity, "get_site", _FakeSite)
+    monkeypatch.setattr(current_user, "get_site", _FakeSite)
     monkeypatch.setattr(
-        wdk_identity,
+        current_user,
         "get_wdk_client",
         lambda site_id: _FakeClient(site_id, seen, failure),
     )
@@ -155,20 +156,6 @@ class TestOneTokenNamesOneUserOnEverySite:
 
 
 class TestAWdkOutageNamesNobody:
-    @pytest.mark.asyncio
-    async def test_a_wdk_error_reads_no_user(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        seen = _fake_wdk(
-            monkeypatch,
-            failure=WDKError(detail="Request failed after retries", status=502),
-        )
-        veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
-
-        user = await wdk_identity.fetch_wdk_user("plasmodb")
-
-        assert (user, seen) == (None, ["plasmodb"])
-
     @pytest.mark.asyncio
     async def test_the_session_keeps_its_own_identity(
         self, monkeypatch: pytest.MonkeyPatch

@@ -31,7 +31,7 @@ def _app(monkeypatch: pytest.MonkeyPatch, failure: Exception) -> FastAPI:
         raise failure
 
     monkeypatch.setattr(
-        "pathfinder.transport.http.routers.veupathdb_auth.start_veupathdb_session",
+        "pathfinder.transport.http.routers.veupathdb_auth.password_login",
         _login,
     )
 

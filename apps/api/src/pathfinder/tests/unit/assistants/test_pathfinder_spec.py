@@ -17,12 +17,10 @@ from pydantic_ai.models.function import FunctionModel
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.assistants import pathfinder_spec
-from pathfinder.assistants.pathfinder_spec import (
-    PATHFINDER_ASSISTANT_ID,
-    build_pathfinder_spec,
-)
+from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.persistence.models import ConversationStrategyView
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.wdk_identity import require_registered_wdk_login
 from pathfinder.transport.http.routers.memories import MEMORY_ROUTE_KINDS
 

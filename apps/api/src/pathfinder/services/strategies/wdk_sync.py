@@ -85,6 +85,7 @@ async def sync_to_chat(
     api: StrategyAPI,
     conv_repo: ConversationRepository,
     user_id: UUID,
+    assistant_id: str,
 ) -> Conversation:
     """Fetches one WDK strategy and upserts it into the local records."""
     payload, is_saved = await fetch_and_convert(api, wdk_id)
@@ -94,6 +95,7 @@ async def sync_to_chat(
         conv_repo=conv_repo,
         user_id=user_id,
         site_id=site_id,
+        assistant_id=assistant_id,
         spec=WdkChatSpec(
             wdk_id=wdk_id,
             name=name,
@@ -110,6 +112,7 @@ async def upsert_chat(
     conv_repo: ConversationRepository,
     user_id: UUID,
     site_id: str,
+    assistant_id: str,
     spec: WdkChatSpec,
 ) -> Conversation:
     """Creates or updates the local record for a WDK strategy."""
@@ -136,6 +139,7 @@ async def upsert_chat(
         created = await conv_repo.create(
             user_id=user_id,
             site_id=site_id,
+            assistant_id=assistant_id,
             name=spec.name,
         )
         await conv_repo.update_conversation(

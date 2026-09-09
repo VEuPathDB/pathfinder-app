@@ -6,11 +6,11 @@ from typing import Any
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.memory.lifespan import lifespan_memory_store
+from assistant_core.models.capture import capture_llm
 from assistant_core.platform.logging import get_logger
 
 from pathfinder.ai.conversation.assistant_routing import resolve_assistant
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
-from pathfinder.ai.graph._llm_capture import capture_llm
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.auth_context import (
     attach_conversation_application,

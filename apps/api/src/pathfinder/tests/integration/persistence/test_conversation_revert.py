@@ -16,6 +16,7 @@ from pathfinder.domain.scratchpad.models import NoteCreate
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.fork import fork_conversation
 from pathfinder.services.conversations.revert import (
     RevertError,
@@ -57,8 +58,8 @@ async def _seed_conversation(user_id: UUID) -> Conversation:
     async with db.async_session_factory() as session:
         row = Conversation(
             user_id=user_id,
+            assistant_id=PATHFINDER_ASSISTANT_ID,
             site_id="plasmodb",
-            name="",
         )
         session.add(row)
         await session.commit()
@@ -66,8 +67,7 @@ async def _seed_conversation(user_id: UUID) -> Conversation:
         return row
 
 
-async def _seed_message(conv_id: UUID, role: str, text_body: str) -> Message:
-    del text_body
+async def _seed_message(conv_id: UUID, role: str) -> Message:
     async with db.async_session_factory() as session:
         msg = Message(
             id=uuid4(),
@@ -128,10 +128,10 @@ class TestRevertConversation:
     async def test_deletes_messages_at_and_after_target(self) -> None:
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
-        t1 = await _seed_message(conv.id, "user", "one")
-        t2 = await _seed_message(conv.id, "assistant", "reply one")
-        t3 = await _seed_message(conv.id, "user", "two")
-        await _seed_message(conv.id, "assistant", "reply two")
+        t1 = await _seed_message(conv.id, "user")
+        t2 = await _seed_message(conv.id, "assistant")
+        t3 = await _seed_message(conv.id, "user")
+        await _seed_message(conv.id, "assistant")
 
         async with db.async_session_factory() as session:
             await revert_conversation_to_message(
@@ -153,7 +153,7 @@ class TestRevertConversation:
     async def test_deletes_scratchpad_notes_at_and_after_target(self) -> None:
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
-        t1 = await _seed_message(conv.id, "user", "one")
+        t1 = await _seed_message(conv.id, "user")
 
         async with db.async_session_factory() as session:
             repo = ScratchpadRepository(session)
@@ -163,7 +163,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        t2 = await _seed_message(conv.id, "user", "two")
+        t2 = await _seed_message(conv.id, "user")
 
         async with db.async_session_factory() as session:
             repo = ScratchpadRepository(session)
@@ -193,7 +193,7 @@ class TestRevertConversation:
     async def test_deletes_user_message_chunk_when_reverting_to_it(self) -> None:
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
-        target = await _seed_message(conv.id, "user", "edit me")
+        target = await _seed_message(conv.id, "user")
 
         async with db.async_session_factory() as session:
             session.add(
@@ -230,7 +230,7 @@ class TestRevertConversation:
     async def test_deletes_conversation_events_at_and_after_target(self) -> None:
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
-        t1 = await _seed_message(conv.id, "user", "one")
+        t1 = await _seed_message(conv.id, "user")
 
         async with db.async_session_factory() as session:
             session.add(
@@ -242,7 +242,7 @@ class TestRevertConversation:
             )
             await session.commit()
 
-        t2 = await _seed_message(conv.id, "user", "two")
+        t2 = await _seed_message(conv.id, "user")
 
         async with db.async_session_factory() as session:
             session.add(
@@ -276,9 +276,9 @@ class TestRevertConversation:
     async def test_deletes_checkpoints_at_and_after_target(self) -> None:
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
-        t1 = await _seed_message(conv.id, "user", "one")
+        t1 = await _seed_message(conv.id, "user")
         await _seed_checkpoint(conv.id, t1.created_at, f"{0:032d}")
-        t2 = await _seed_message(conv.id, "user", "two")
+        t2 = await _seed_message(conv.id, "user")
         await _seed_checkpoint(conv.id, t2.created_at, f"{1:032d}")
 
         async with db.async_session_factory() as session:
@@ -442,8 +442,8 @@ class TestRevertConversation:
         # turn — leaving a checkpoint with no surviving message. Documented gap.
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
-        keep = await _seed_message(conv.id, "user", "one")
-        target = await _seed_message(conv.id, "user", "two")
+        keep = await _seed_message(conv.id, "user")
+        target = await _seed_message(conv.id, "user")
         # cp_before: 1ms before target -> survives. cp_after: at target -> gone.
         await _seed_checkpoint(
             conv.id, target.created_at - timedelta(milliseconds=1), f"{0:032d}"
@@ -479,7 +479,7 @@ class TestRevertConversation:
     async def test_wrong_user_raises(self) -> None:
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
-        t1 = await _seed_message(conv.id, "user", "one")
+        t1 = await _seed_message(conv.id, "user")
 
         async with db.async_session_factory() as session:
             with pytest.raises(RevertError):
@@ -495,7 +495,7 @@ class TestRevertConversation:
         # no-op, not a 404 — the server is already at the pre-message state.
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
-        kept = await _seed_message(conv.id, "user", "one")
+        kept = await _seed_message(conv.id, "user")
         async with db.async_session_factory() as session:
             await revert_conversation_to_message(
                 session,
@@ -517,7 +517,7 @@ class TestRevertConversation:
         user = await _seed_user()
         conv_a = await _seed_conversation(user.id)
         conv_b = await _seed_conversation(user.id)
-        other = await _seed_message(conv_b.id, "user", "elsewhere")
+        other = await _seed_message(conv_b.id, "user")
         async with db.async_session_factory() as session:
             with pytest.raises(RevertError):
                 await revert_conversation_to_message(
@@ -530,8 +530,8 @@ class TestRevertConversation:
     async def test_assistant_message_target_rejected(self) -> None:
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
-        await _seed_message(conv.id, "user", "one")
-        t2 = await _seed_message(conv.id, "assistant", "reply")
+        await _seed_message(conv.id, "user")
+        t2 = await _seed_message(conv.id, "assistant")
 
         async with db.async_session_factory() as session:
             with pytest.raises(RevertError):

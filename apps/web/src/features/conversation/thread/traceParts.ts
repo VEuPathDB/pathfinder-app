@@ -1,4 +1,11 @@
-import { isToolUIPart, type ToolUIPart, type UIMessage } from "ai";
+import {
+  isCustomContentUIPart,
+  isDynamicToolUIPart,
+  isReasoningFileUIPart,
+  isToolUIPart,
+  type ToolUIPart,
+  type UIMessage,
+} from "ai";
 import type {
   MessagePart,
   ToolPart,
@@ -70,6 +77,20 @@ function toolPart(part: ToolUIPart): ToolPart {
   }
 }
 
+type ProtocolPart = Exclude<
+  UIPart,
+  { type: "custom" | "reasoning-file" | "dynamic-tool" }
+>;
+
+/** Report whether the protocol's chunk vocabulary names this part's kind. */
+function isProtocolPart(part: UIPart): part is ProtocolPart {
+  return !(
+    isCustomContentUIPart(part) ||
+    isReasoningFileUIPart(part) ||
+    isDynamicToolUIPart(part)
+  );
+}
+
 /**
  * Read a message's parts as the protocol shape `buildTrace` walks. The SDK's
  * own reducer leaves a tool's summary beside its call; ours folds it on, and
@@ -78,7 +99,7 @@ function toolPart(part: ToolUIPart): ToolPart {
 export function toTraceParts(parts: readonly UIPart[]): MessagePart[] {
   const out: MessagePart[] = [];
   for (const part of parts) {
-    if (part.type === "dynamic-tool") continue;
+    if (!isProtocolPart(part)) continue;
     if (isToolUIPart(part)) {
       out.push(toolPart(part));
       continue;

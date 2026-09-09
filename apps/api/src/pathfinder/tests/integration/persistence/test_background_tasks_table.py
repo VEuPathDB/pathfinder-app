@@ -8,6 +8,7 @@ from assistant_core.platform.db import async_session_factory
 from sqlalchemy import select
 
 from pathfinder.persistence.models import BackgroundTask, TaskProgress, User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 @pytest.mark.asyncio
@@ -22,7 +23,11 @@ async def test_background_tasks_roundtrip(
         session.add(User(id=user_id))
         session.add(
             Conversation(
-                id=conversation_id, user_id=user_id, site_id="plasmodb", name=""
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+                site_id="plasmodb",
+                name="",
             )
         )
         await session.flush()

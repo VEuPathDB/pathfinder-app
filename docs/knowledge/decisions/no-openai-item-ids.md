@@ -60,4 +60,4 @@ If you rewrite message history, you cannot also replay provider-side item IDs. P
 
 # Anchor
 
-`build_model_settings` in `ai/models/settings.py`. Guarded by `TestOpenAiItemIdsAreNotSentBack` in `tests/unit/ai/models/test_settings.py`.
+`build_model_settings` in `assistant-platform: packages/assistant-core/src/assistant_core/models/settings.py`. Guarded by `assistant-platform: packages/assistant-core/tests/unit/models/test_settings.py`; this application's own catalog is checked against the builder in `tests/unit/ai/models/test_settings.py`.

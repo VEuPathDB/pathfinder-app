@@ -21,6 +21,7 @@ from pathfinder.jobs.maintenance import release_stalled_jobs
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.jobs.tasks import run_chat_turn_job
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 _STALL_SECONDS = 7200
 
@@ -32,6 +33,7 @@ async def _seed_conversation() -> tuple[UUID, UUID]:
         session.add(User(id=user_id))
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conversation_id,
                 user_id=user_id,
                 site_id="plasmodb",
@@ -53,6 +55,7 @@ async def _stall_a_turn_job(
         body=ChatRequestBody(conversation_id=conversation_id, site_id="plasmodb"),
         user_id=user_id,
         turn_id=turn_id,
+        assistant_id="pathfinder",
     )
     job_id = await run_chat_turn_job.configure(
         lock=str(conversation_id),

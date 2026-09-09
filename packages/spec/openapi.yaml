@@ -1097,7 +1097,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EventsSnapshotResponse'
+                $ref: '#/components/schemas/EventsSnapshot'
         '422':
           description: Validation Error
           content:
@@ -7227,7 +7227,7 @@ components:
       - geneSetIds
       title: EnsembleScoringRequest
       description: Request to compute ensemble frequency scores across gene sets.
-    EventsSnapshotResponse:
+    EventsSnapshot:
       properties:
         chunks:
           items:
@@ -7238,11 +7238,16 @@ components:
         cursor:
           type: integer
           title: Cursor
+        openMessage:
+          anyOf:
+          - $ref: '#/components/schemas/OpenMessageRef'
+          - type: 'null'
       type: object
       required:
       - chunks
       - cursor
-      title: EventsSnapshotResponse
+      title: EventsSnapshot
+      description: The completed history a thread serves, and where a tail continues it.
     FetchGeneIdsRequest:
       properties:
         strategyId:
@@ -8199,6 +8204,12 @@ components:
             minLength: 1
           - type: 'null'
           title: Siteid
+        assistantId:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Assistantid
       type: object
       title: OpenConversationRequest
     OpenConversationResponse:
@@ -8211,6 +8222,20 @@ components:
       required:
       - conversationId
       title: OpenConversationResponse
+    OpenMessageRef:
+      properties:
+        messageId:
+          type: string
+          title: Messageid
+        after:
+          type: integer
+          title: After
+      type: object
+      required:
+      - messageId
+      - after
+      title: OpenMessageRef
+      description: The message a log left open, and the exclusive cursor a tail replays it from.
     OrganismsResponse:
       properties:
         organisms:
@@ -10924,7 +10949,7 @@ components:
       - sourceStepId
       title: WireInputOp
     ProblemDetail:
-      description: RFC 7807 Problem Details response.
+      description: RFC 9457 Problem Details response.
       properties:
         type:
           title: Type
@@ -13615,263 +13640,6 @@ components:
       - id
       - config
       title: Experiment
-      type: object
-    CheckpointEvent:
-      additionalProperties: false
-      properties:
-        type:
-          const: checkpoint
-          default: checkpoint
-          title: Type
-          type: string
-        checkpointId:
-          title: Checkpointid
-          type: string
-        parentCheckpointId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Parentcheckpointid
-        node:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Node
-        step:
-          title: Step
-          type: integer
-        createdAt:
-          title: Createdat
-          type: string
-      required:
-      - checkpointId
-      - step
-      - createdAt
-      title: CheckpointEvent
-      type: object
-    CompletedToolCall:
-      additionalProperties: false
-      properties:
-        id:
-          title: Id
-          type: string
-        name:
-          title: Name
-          type: string
-        arguments:
-          additionalProperties: true
-          title: Arguments
-          type: object
-      required:
-      - id
-      - name
-      - arguments
-      title: CompletedToolCall
-      type: object
-    CustomEvent:
-      additionalProperties: false
-      properties:
-        type:
-          const: custom
-          default: custom
-          title: Type
-          type: string
-        kind:
-          title: Kind
-          type: string
-        data:
-          additionalProperties: true
-          title: Data
-          type: object
-      required:
-      - kind
-      - data
-      title: CustomEvent
-      type: object
-    DoneEvent:
-      additionalProperties: false
-      properties:
-        type:
-          const: done
-          default: done
-          title: Type
-          type: string
-        reason:
-          enum:
-          - completed
-          - interrupted
-          - error
-          title: Reason
-          type: string
-      required:
-      - reason
-      title: DoneEvent
-      type: object
-    ErrorEvent:
-      additionalProperties: false
-      properties:
-        type:
-          const: error
-          default: error
-          title: Type
-          type: string
-        message:
-          title: Message
-          type: string
-        code:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Code
-      required:
-      - message
-      title: ErrorEvent
-      type: object
-    InterruptPayload:
-      additionalProperties: false
-      properties:
-        id:
-          title: Id
-          type: string
-        value:
-          additionalProperties: true
-          title: Value
-          type: object
-      required:
-      - id
-      - value
-      title: InterruptPayload
-      type: object
-    InterruptsEvent:
-      additionalProperties: false
-      properties:
-        type:
-          const: interrupts
-          default: interrupts
-          title: Type
-          type: string
-        interrupts:
-          items:
-            $ref: '#/components/schemas/InterruptPayload'
-          title: Interrupts
-          type: array
-      required:
-      - interrupts
-      title: InterruptsEvent
-      type: object
-    MessagesCompleteEvent:
-      additionalProperties: false
-      properties:
-        type:
-          const: messages/complete
-          default: messages/complete
-          title: Type
-          type: string
-        messageId:
-          title: Messageid
-          type: string
-        role:
-          enum:
-          - human
-          - ai
-          - tool
-          - system
-          title: Role
-          type: string
-        content:
-          default: ''
-          title: Content
-          type: string
-        toolCalls:
-          items:
-            $ref: '#/components/schemas/CompletedToolCall'
-          title: Toolcalls
-          type: array
-        toolCallId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Toolcallid
-        name:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Name
-        reasoning:
-          default: ''
-          title: Reasoning
-          type: string
-      required:
-      - messageId
-      - role
-      title: MessagesCompleteEvent
-      type: object
-    MessagesPartialEvent:
-      additionalProperties: false
-      properties:
-        type:
-          const: messages/partial
-          default: messages/partial
-          title: Type
-          type: string
-        messageId:
-          title: Messageid
-          type: string
-        delta:
-          default: ''
-          title: Delta
-          type: string
-        toolCallDeltas:
-          items:
-            $ref: '#/components/schemas/ToolCallDelta'
-          title: Toolcalldeltas
-          type: array
-        reasoningDelta:
-          default: ''
-          title: Reasoningdelta
-          type: string
-      required:
-      - messageId
-      title: MessagesPartialEvent
-      type: object
-    ToolCallDelta:
-      additionalProperties: false
-      properties:
-        toolCallId:
-          title: Toolcallid
-          type: string
-        toolName:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Toolname
-        argumentsDelta:
-          default: ''
-          title: Argumentsdelta
-          type: string
-      required:
-      - toolCallId
-      title: ToolCallDelta
-      type: object
-    UpdatesEvent:
-      additionalProperties: false
-      properties:
-        type:
-          const: updates
-          default: updates
-          title: Type
-          type: string
-        node:
-          title: Node
-          type: string
-        writes:
-          additionalProperties: true
-          title: Writes
-          type: object
-      required:
-      - node
-      - writes
-      title: UpdatesEvent
       type: object
   securitySchemes:
     APIKeyCookie:

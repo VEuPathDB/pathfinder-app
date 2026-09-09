@@ -18,6 +18,7 @@ from veupathdb.domain.strategy.operations import DeleteResolution, DeleteStepOp
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 from veupathdb.errors import WDKError
+from veupathdb.wdk.strategy_api.steps import StepsMixin
 from veupathdb.wdk.wdk_models import NewStepSpec, WDKIdentifier
 
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -36,6 +37,8 @@ class _Recorder:
     order: list[str] = field(default_factory=list)
     refuse: set[int] = field(default_factory=set)
     next_id: int = 9000
+
+    delete_orphaned_steps = StepsMixin.delete_orphaned_steps
 
     async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
         del user_id

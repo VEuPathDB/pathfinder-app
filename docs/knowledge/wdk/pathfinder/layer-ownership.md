@@ -1,10 +1,10 @@
 ---
 type: Reference
 title: Who is allowed to talk to WDK
-description: The import-linter contracts that police the WDK boundary, exactly what each one forbids, the one type edge that is still allowed out of the integration layer, and the two things the contracts cannot see.
+description: The import-linter contracts that police the WDK boundary, exactly what each one forbids, the seam an upper layer calls instead of holding a WDK client, and the two things the contracts cannot see.
 tags: [wdk-alignment, layering, import-linter, ownership, pathfinder]
 generated: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-03T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-09-08T00:00:00Z }
 status: stable
 ---
 
@@ -16,9 +16,12 @@ The layering rule itself is in `CLAUDE.md` and is not repeated here. What is her
 is the machine that enforces it, what that machine actually forbids as opposed to
 what the prose says, and where it is blind.
 
-Four `forbidden` contracts live under `[tool.importlinter]` in
-`apps/api/pyproject.toml`, over `root_packages = ["pathfinder"]` with
-`include_external_packages = true`. Run them with `cd apps/api && uv run lint-imports`.
+Six `forbidden` contracts live under `[tool.importlinter]` in
+`apps/api/pyproject.toml`, over
+`root_packages = ["pathfinder", "veupathdb", "veupathdb_mcp", "assistant_core"]`
+with `include_external_packages = true`. The three libraries are roots and not
+external packages because a forbidden contract cannot name a submodule of an
+external package. Run them with `cd apps/api && uv run lint-imports`.
 
 | Contract name | Source | Forbidden | Named by a rule? |
 |---|---|---|---|
@@ -26,6 +29,8 @@ Four `forbidden` contracts live under `[tool.importlinter]` in
 | Services never import transport or AI | `pathfinder.services` | `transport`, `ai`, `pydantic_ai` | **no** |
 | Persistence never imports services, transport, or AI | `pathfinder.persistence` | `services`, `transport`, `ai` | **no** |
 | The science never imports an assistant's composition root | `ai`, `persistence`, `services` | `assistants` | **no** |
+| The agent and the jobs reach the workbench only through its facade | `ai`, `jobs` | the six service modules the facade owns | **no** |
+| The application imports no private module of an installed distribution | `pathfinder` | the named `_*` modules of the three libraries | **no** |
 
 **Three contracts left this file rather than being relaxed.** Domain purity and
 the integration direction are installation facts of `veupathdb-py`, and the MCP
@@ -44,20 +49,21 @@ longer found in the file it points at.
 document, so if one is renamed or deleted, this table quietly becomes fiction. They
 are kept because the asymmetry below is only visible with all of them present, and
 because a reader deciding where code belongs needs the whole picture rather than
-the checked part of it. Treat them as a snapshot dated 2026-09-05, and read
+the checked part of it. Treat them as a snapshot dated 2026-09-08, and read
 `pyproject.toml` when it matters.
 
 **Every remaining contract is about import statements, not reachability.** All
-four set `allow_indirect_imports = true`, so each fails only on a direct import
+six set `allow_indirect_imports = true`, so each fails only on a direct import
 statement. Domain purity left with the domain:
 `veupathdb-py: tests/unit/test_package_boundary.py` reads every module's import
 statements, so a domain module that names `httpx`, or names `veupathdb.wdk` or
 `veupathdb.eda` (the two subpackages that open a connection), fails there.
 
-`uv run lint-imports` reports **4 kept, 0 broken**. The transport-and-AI contract
-has been red twice: once on a single edge from `catalog_discovery` into a WDK
-client wrapper that belonged in the service layer, and once on the four
-wire-model edges it now names. See
+`uv run lint-imports` reports **6 kept, 0 broken**. The contract that forbade
+`pathfinder.integrations` to `transport` and `ai` was red twice before the split
+- once on a single edge from `catalog_discovery` into a WDK client wrapper that
+belonged in the service layer, once on four wire-model edges it carried as
+exceptions - and it left this file with the layer it named. See
 [WDK-MAP-004](rules/pathfinder-mapping.md).
 
 # The seam: functions in `veupathdb_mcp/wdk/`
@@ -86,45 +92,41 @@ to except and no facade to police.
 
 ## A raw HTTP call to a WDK host
 
-`import-linter` forbids importing `pathfinder.integrations`. It says nothing about
-importing `httpx` and calling a VEuPathDB URL, because `httpx` is only in the
-forbidden list of the domain contract.
+A contract reads import statements. It says nothing about importing `httpx` and
+calling a VEuPathDB URL, because `httpx` is only in the forbidden list of the
+client library's own domain suite.
 
-Every non-test module under `src/pathfinder/` that imports `httpx` was read on
-2026-08-10. Most catch its exception types without making a call; the literature
-clients under `services/research/` call arXiv, Crossref, PubMed and the rest.
-Exactly one built a client against a VEuPathDB base URL:
+Most non-test modules under `src/pathfinder/` that import `httpx` catch its
+exception types without making a call; the literature clients under
+`services/research/` call arXiv, Crossref, PubMed and the rest. Exactly one built
+a client against a VEuPathDB base URL:
 `transport/http/routers/veupathdb_auth.py` constructed its own
 `httpx.AsyncClient(base_url=auth_site.service_url)` for `GET /logout`, with every
-contract green, and it was a transport module talking to WDK.
-
-That call has since moved into `veupathdb/wdk/auth_login.py`, where the
-credential it needs already lives. The hole it went through is still open: no
-contract forbids `httpx` outside the domain layer, so the next module to do this
-will also pass.
+contract green, and it was a transport module talking to WDK. That call moved
+into `veupathdb/wdk/auth_login.py`, where the credential it needs already lives.
 
 The reading behind that move was confirmed live and is now
 WDK-AUTH-004 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`), which also records the part a fix
 cannot reach - the bearer token survives the logout either way.
-which sets out the four-step live check that would either confirm it or retire it.
 
-What is not in doubt is the layering fact, which is measured: a transport module
-opens a socket to a WDK host, and no contract objects. That is why
-[WDK-MAP-005](rules/pathfinder-mapping.md) is `UNENFORCED` rather than partially
-covered by the transport contract - that contract forbids an import, which is a
-different proposition, and this call is the proof that the two come apart.
+What closes the hole is not a contract but a call-site walk.
+[WDK-MAP-005](rules/pathfinder-mapping.md) is `ENFORCED by` a test that parses
+every non-test module in this tree and fails on an `httpx` client whose
+`base_url` resolves from the site router. A contract could not hold it: it
+forbids an import, which is a different proposition.
 
 ## Which types cross a boundary
 
 A contract is about modules, not about the types that flow between them. So the
 question "where may a WDK type appear" is answered by a different measurement.
 
-`openapi.json` holds 283 schemas on 2026-08-10. Eight of them are named `WDK*`:
-`WDKVocabTerm`, `WDKVocabNodeData`, `WDKTreeBoxVocabNode`, `WDKFilterOntologyTerm`,
+Eight of `openapi.json`'s schemas are named `WDK*`: `WDKVocabTerm`,
+`WDKVocabNodeData`, `WDKTreeBoxVocabNode`, `WDKFilterOntologyTerm`,
 `WDKDatasetParser`, `WDKRecordIdPart`, `WDKHistogramBin`, `WDKHistogramStatistics`.
-**All eight are defined in `domain/` - five in `domain/parameters/wdk_vocab.py`,
-three in `domain/wdk_values.py` - and none in `integrations/`.** Not one of the
-`WDK*` response models in `veupathdb/wdk/wdk_models.py` reaches the wire.
+**All eight are the client's value objects** - five in
+`veupathdb-py: src/veupathdb/domain/parameters/wdk_vocab.py`, three in
+`veupathdb-py: src/veupathdb/domain/wdk_values.py`. Not one of the `WDK*`
+response models in `veupathdb.wdk.wdk_models` reaches the wire.
 
 So the answer is: a WDK-*shaped* type may reach the browser if it is a pure value
 object, and a WDK-*response* type may not reach the wire at all. That is
@@ -154,8 +156,9 @@ built its own client would not fail loudly: it would act as a guest that owns
 nothing, so a strategy it created on one call is invisible on the next, the list
 comes back `[]` rather than an error, and the model reports that emptiness to a
 researcher as a finding. That is the failure mode the whole `SILENT` class in
-the rules (`veupathdb-py: docs/knowledge/wdk/rules/`) exists to name, and it is why the tool layer gets
-`get_strategy_api()` from `services.wdk` rather than a URL.
+the rules (`veupathdb-py: docs/knowledge/wdk/rules/`) exists to name, and it is why a tool calls a
+service rather than a URL: the service layer takes `get_strategy_api()` from
+`veupathdb.wdk.factory`, and no module under `ai/` names it.
 
 Since 2026-08-19 the silent half of that is closed from two directions: VEuPathDB
 refuses a guest identity outright, and `_http.py` refuses a user-scoped call that

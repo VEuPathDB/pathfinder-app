@@ -21,6 +21,7 @@ from veupathdb.eda.models import (
 from pathfinder.persistence.repositories.conversation_analysis import (
     ConversationAnalysesRepository,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies import commit
 from pathfinder.services.strategies.commit import _WDKCommitOutcome
 from pathfinder.tests._support.eda_wire import (
@@ -168,7 +169,9 @@ async def thread(
     del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
     async with session_maker() as session:
         user = await make_user(session)
-        conversation = Conversation(id=uuid4(), user_id=user.id)
+        conversation = Conversation(
+            assistant_id=PATHFINDER_ASSISTANT_ID, id=uuid4(), user_id=user.id
+        )
         session.add(conversation)
         await session.commit()
     client = first_frame_client_for(app, user.id, wdk_token="test-token")

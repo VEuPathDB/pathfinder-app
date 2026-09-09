@@ -37,6 +37,7 @@ from pathfinder.persistence.repositories.background_tasks import (
     BackgroundTaskRepository,
     NewBackgroundTask,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 _STEP_ID = 5
 _ORGANISM = "Plasmodium falciparum 3D7"
@@ -131,7 +132,11 @@ async def _seed_user_chat(user_id: UUID, conversation_id: UUID) -> None:
         await session.flush()
         session.add(
             Conversation(
-                id=conversation_id, user_id=user_id, site_id="plasmodb", name=""
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+                site_id="plasmodb",
+                name="",
             )
         )
         await session.commit()

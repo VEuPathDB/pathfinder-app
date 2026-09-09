@@ -69,8 +69,8 @@ that works. Its payload carries `sub`, `is_guest`, `iss`, `aud`, `azp`, `iat`,
 `users.external_id` is the email, because that is what the cookie login flow
 stores. The bearer token does not carry one. So the bearer path resolves the
 email through the same function the refresh route uses
-(`services/wdk_identity.py::resolve_veupathdb_email` -> WDK `GET
-/users/current`), and bearer and cookie therefore land on the same row instead
+(`veupathdb-py: src/veupathdb/wdk/current_user.py::resolve_registered_email`
+-> WDK `GET /users/current`), and bearer and cookie therefore land on the same row instead
 of two rows for one person. The mapping is remembered per token hash for five
 minutes so a bearer client does not pay a WDK round trip on every request.
 

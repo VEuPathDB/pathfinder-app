@@ -32,7 +32,7 @@ never runs a turn, so it admits nothing and needs nothing.
 
 **One environment variable carrying the endpoint list.** The admission decision
 already rejected `RuntimeSettings` fields for the nested record
-(`admitted-tool-sources-are-installed-by-the-host.md`); the remaining
+(`assistant-platform: docs/knowledge/decisions/admitted-tool-sources-are-installed-by-the-host.md`); the remaining
 temptation was a JSON blob in one variable. It was rejected for the same
 reason: the fields that make a record safe - the namespace a source may bind
 parts in, the approval policy, the call budget - are the deployment's

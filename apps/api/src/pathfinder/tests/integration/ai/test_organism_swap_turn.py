@@ -51,6 +51,7 @@ from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.persistence.models import ConversationStrategy, User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
@@ -182,6 +183,14 @@ def _params_under(context: dict[str, str]) -> list[ParameterInfo]:
     ]
 
 
+def _search_response(search_name: str) -> WDKSearchResponse:
+    """A search the catalog serves, with no validation of its own."""
+    return WDKSearchResponse(
+        searchData=WDKSearch(urlSegment=search_name),
+        validation=StepValidation(level="NONE", is_valid=False),
+    )
+
+
 @pytest.fixture
 def wdk(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     api = _RecordingAPI()
@@ -211,10 +220,7 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
         record_type: str, name: str, *, expand_params: bool = True
     ) -> WDKSearchResponse:
         del record_type, expand_params
-        return WDKSearchResponse(
-            searchData=WDKSearch(urlSegment=name),
-            validation=StepValidation(level="NONE", is_valid=False),
-        )
+        return _search_response(name)
 
     client = MagicMock()
     client.get_search_details = _definition
@@ -223,13 +229,7 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     async def _details(
         ctx: SearchContext, **_kw: object
     ) -> tuple[WDKSearchResponse, str]:
-        return (
-            WDKSearchResponse(
-                searchData=WDKSearch(urlSegment=ctx.search_name),
-                validation=StepValidation(level="NONE", is_valid=False),
-            ),
-            "etag",
-        )
+        return (_search_response(ctx.search_name), "etag")
 
     monkeypatch.setattr(param_discovery, "fetch_search_details", _details)
     monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
@@ -312,7 +312,11 @@ async def _seed(db_session: AsyncSession, user: User) -> UUID:
         record_type="transcript", root=_root(), wdk_step_ids=dict(WDK_IDS)
     )
     conv = Conversation(
-        id=uuid4(), user_id=user.id, site_id="plasmodb", name="Test strategy"
+        assistant_id=PATHFINDER_ASSISTANT_ID,
+        id=uuid4(),
+        user_id=user.id,
+        site_id="plasmodb",
+        name="Test strategy",
     )
     db_session.add(conv)
     await db_session.flush()

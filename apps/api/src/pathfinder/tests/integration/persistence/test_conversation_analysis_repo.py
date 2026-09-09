@@ -15,6 +15,7 @@ from pathfinder.persistence.models import ConversationAnalysis, User
 from pathfinder.persistence.repositories.conversation_analysis import (
     ConversationAnalysesRepository,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 pytestmark = pytest.mark.asyncio
 
@@ -37,7 +38,9 @@ async def conversation(db_session: AsyncSession) -> Conversation:
     user = User(id=uuid4())
     db_session.add(user)
     await db_session.flush()
-    thread = Conversation(id=uuid4(), user_id=user.id)
+    thread = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID, id=uuid4(), user_id=user.id
+    )
     db_session.add(thread)
     await db_session.commit()
     return thread

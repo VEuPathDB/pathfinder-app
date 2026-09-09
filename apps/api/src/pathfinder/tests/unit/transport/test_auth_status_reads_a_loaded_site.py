@@ -13,10 +13,10 @@ import httpx
 import pytest
 from assistant_core.platform.db import get_db_session
 from fastapi import FastAPI
+from veupathdb.wdk.wdk_models import WDKUserInfo
 
 from pathfinder.platform.readiness import get_readiness, reset_readiness
 from pathfinder.platform.security import limiter
-from pathfinder.services.wdk_identity import WDKCurrentUser
 from pathfinder.transport.http.routers.veupathdb_auth import router
 
 
@@ -26,12 +26,12 @@ def _reset() -> None:
 
 
 def _app(monkeypatch: pytest.MonkeyPatch, seen: list[str]) -> FastAPI:
-    async def _fetch(site_id: str) -> WDKCurrentUser:
+    async def _fetch(site_id: str) -> WDKUserInfo:
         seen.append(site_id)
-        return WDKCurrentUser(isGuest=False, email="researcher@upenn.edu")
+        return WDKUserInfo(id=7, isGuest=False, email="researcher@upenn.edu")
 
     monkeypatch.setattr(
-        "pathfinder.transport.http.routers.veupathdb_auth.fetch_wdk_user", _fetch
+        "pathfinder.transport.http.routers.veupathdb_auth.fetch_current_user", _fetch
     )
 
     async def _session() -> AsyncGenerator[None]:

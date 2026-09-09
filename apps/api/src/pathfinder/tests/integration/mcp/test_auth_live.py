@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import pytest
+from veupathdb.wdk.current_user import fetch_current_user
 from veupathdb_mcp.auth import CredentialMode, VEuPathDBTokenVerifier, wdk_identity
-
-from pathfinder.services.wdk_identity import fetch_wdk_user
 
 pytestmark = pytest.mark.live_wdk
 
@@ -20,7 +19,7 @@ async def test_a_registered_bearer_resolves_to_a_usable_identity(
     assert credential.client_id
 
     with wdk_identity(credential):
-        user = await fetch_wdk_user("plasmodb")
+        user = await fetch_current_user("plasmodb")
 
     assert user is not None
     assert not user.is_guest

@@ -6,11 +6,9 @@ from functools import lru_cache
 
 from assistant_core.registry import AssistantRegistry
 
-from pathfinder.assistants.pathfinder_spec import (
-    PATHFINDER_ASSISTANT_ID,
-    build_pathfinder_spec,
-)
+from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
 from pathfinder.assistants.site_help.spec import build_site_help_spec
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 @lru_cache(maxsize=1)

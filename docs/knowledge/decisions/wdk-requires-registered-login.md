@@ -108,7 +108,8 @@ Guest minting, in full. `auth_login.py::mint_guest_token`,
 alembic revision dropping the column. Nothing in the product mints a WDK
 identity any more; the user brings one or the request is refused.
 
-`services/wdk_identity.py::fetch_wdk_user` also returns `None` when the request
+`veupathdb-py: src/veupathdb/wdk/current_user.py::fetch_current_user` also
+returns `None` when the request
 carries no token. It reads `GET /users/current`, and with the service account
 configured it would otherwise report the **application's** account as the
 signed-in user on `GET /api/v1/veupathdb/auth/status`.

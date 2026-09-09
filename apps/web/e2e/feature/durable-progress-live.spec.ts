@@ -50,25 +50,55 @@ function suspendingTurn(messageId: string, toolName: string): string {
   ].join("");
 }
 
+/** The cursor of the last frame of a body, which a tail names as its bound. */
+function lastCursor(body: string): number {
+  const cursors = [...body.matchAll(/^id: (\d+)$/gm)].map((match) => Number(match[1]));
+  const last = cursors.at(-1);
+  if (last === undefined) throw new Error("body carries no frame cursor");
+  return last;
+}
+
 /**
- * Serve the conversation tail. The mount reattach reads an empty tail; the
- * card's own reattach, after the turn suspends, reads the task's gap.
+ * Serve the turn and the thread's tail the way the host does. A tail before the
+ * turn ran has nothing in flight; a tail from a cursor before the open message
+ * replays that message from its own `start` (PROTOCOL section 4); the tail from
+ * the turn's own `done` carries the task's gap.
  */
-async function routeThreadTail(page: Page, gap: string): Promise<() => number> {
-  let calls = 0;
+async function routeSuspendedTurn(
+  page: Page,
+  turn: string,
+  gap: string,
+): Promise<() => number> {
+  const turnDone = lastCursor(turn);
+  let started = false;
+  let tails = 0;
+  const tailBody = (after: number): string | null => {
+    if (!started || after > turnDone) return null;
+    return after < turnDone ? turn : gap;
+  };
+  await page.route("**/api/v1/chat", async (route) => {
+    started = true;
+    await route.fulfill({
+      status: 200,
+      headers: uiMessageStreamHeaders(),
+      body: turn,
+    });
+  });
   await page.route("**/api/v1/conversations/*/events?*", async (route) => {
-    calls += 1;
-    if (calls === 1) {
+    tails += 1;
+    const url = new URL(route.request().url());
+    const body = tailBody(Number(url.searchParams.get("after") ?? "0"));
+    if (body === null) {
       await route.fulfill({ status: 204, body: "" });
       return;
     }
     await route.fulfill({
       status: 200,
       headers: uiMessageStreamHeaders(),
-      body: gap,
+      body,
     });
   });
-  return () => calls;
+  return () => tails;
 }
 
 async function sendPrompt(page: Page, prompt: string): Promise<void> {
@@ -89,19 +119,12 @@ test.describe("Durable task live progress", () => {
     const siteId = await entrySiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
-    await page.route("**/api/v1/chat", async (route) => {
-      await route.fulfill({
-        status: 200,
-        headers: uiMessageStreamHeaders(),
-        body: suspendingTurn(
-          "22222222-2222-2222-2222-222222222222",
-          "run_control_tests_on_step",
-        ),
-      });
-    });
-
-    const tailCalls = await routeThreadTail(
+    const tailCalls = await routeSuspendedTurn(
       page,
+      suspendingTurn(
+        "22222222-2222-2222-2222-222222222222",
+        "run_control_tests_on_step",
+      ),
       [
         sseFrame({
           type: "data-task-progress",
@@ -142,19 +165,12 @@ test.describe("Durable task live progress", () => {
     const siteId = await entrySiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
-    await page.route("**/api/v1/chat", async (route) => {
-      await route.fulfill({
-        status: 200,
-        headers: uiMessageStreamHeaders(),
-        body: suspendingTurn(
-          "33333333-3333-3333-3333-333333333333",
-          "optimize_search_parameters",
-        ),
-      });
-    });
-
-    await routeThreadTail(
+    await routeSuspendedTurn(
       page,
+      suspendingTurn(
+        "33333333-3333-3333-3333-333333333333",
+        "optimize_search_parameters",
+      ),
       [
         sseFrame({
           type: "data-task-progress",

@@ -11,6 +11,7 @@ from assistant_core.platform.db import async_session_factory
 
 from pathfinder.jobs.auth_context import attach_conversation_application
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 OTHER = "companion"
 
@@ -22,6 +23,7 @@ async def _seed_conversation(application_id: str) -> UUID:
         session.add(User(id=user_id))
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conversation_id,
                 user_id=user_id,
                 site_id="plasmodb",

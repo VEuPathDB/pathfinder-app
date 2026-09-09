@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from typing import Any
 from uuid import UUID
 
 from assistant_core.conversation.event_stream import (
+    EventsSnapshot,
     fetch_snapshot_chunks,
     iter_sse,
     latest_event,
 )
 from assistant_core.conversation.vercel_adapter import VERCEL_AI_DSP_HEADERS
-from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import APIRouter, Query, status
 from fastapi.responses import Response, StreamingResponse
 
@@ -18,11 +17,6 @@ from pathfinder.services.tasks.background import has_active_task
 from pathfinder.transport.http.deps import CurrentUser, DBSession
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])
-
-
-class EventsSnapshotResponse(CamelModel):
-    chunks: list[dict[str, Any]]
-    cursor: int
 
 
 @router.get(
@@ -59,13 +53,12 @@ async def conversation_events(
 
 @router.get(
     "/{conversation_id}/events/snapshot",
-    response_model=EventsSnapshotResponse,
+    response_model=EventsSnapshot,
 )
 async def conversation_events_snapshot(
     conversation_id: UUID,
     session: DBSession,
     user_id: CurrentUser,
-) -> EventsSnapshotResponse:
+) -> EventsSnapshot:
     await assert_owner(session, conversation_id, user_id)
-    cursor, chunks = await fetch_snapshot_chunks(conversation_id)
-    return EventsSnapshotResponse(chunks=chunks, cursor=cursor)
+    return await fetch_snapshot_chunks(conversation_id)

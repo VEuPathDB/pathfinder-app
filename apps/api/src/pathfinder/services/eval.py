@@ -23,6 +23,7 @@ from veupathdb.wdk.wdk_models import (
 )
 
 from pathfinder.persistence.repositories.conversation import ConversationRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.authz import get_owned_or_404
 from pathfinder.services.experiment.materialization import (
     _materialize_step_tree,
@@ -146,6 +147,7 @@ async def build_gold_strategy(
                 api=api,
                 conv_repo=ConversationRepository(db),
                 user_id=user_id,
+                assistant_id=PATHFINDER_ASSISTANT_ID,
             )
             await db.commit()
             conversation_id = conversation.id

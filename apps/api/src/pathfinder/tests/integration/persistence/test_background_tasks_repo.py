@@ -11,6 +11,7 @@ from pathfinder.persistence.repositories.background_tasks import (
     BackgroundTaskRepository,
     NewBackgroundTask,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 @pytest.mark.asyncio
@@ -24,7 +25,11 @@ async def test_create_mark_transitions(
         session.add(User(id=user_id))
         session.add(
             Conversation(
-                id=conversation_id, user_id=user_id, site_id="plasmodb", name=""
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+                site_id="plasmodb",
+                name="",
             )
         )
         await session.commit()
@@ -76,7 +81,11 @@ async def test_mark_failed(db_cleaner: None, patch_app_db_engine: None) -> None:
         session.add(User(id=user_id))
         session.add(
             Conversation(
-                id=conversation_id, user_id=user_id, site_id="plasmodb", name=""
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=conversation_id,
+                user_id=user_id,
+                site_id="plasmodb",
+                name="",
             )
         )
         await session.commit()

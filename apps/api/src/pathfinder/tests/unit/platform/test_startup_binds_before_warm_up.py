@@ -18,11 +18,11 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from veupathdb.errors import WDKError
+from veupathdb.observability.otel import OpenTelemetryObserver
 
 import pathfinder.jobs.app
 from pathfinder import main
 from pathfinder.jobs import logging_filters
-from pathfinder.platform import notify_dispatcher
 from pathfinder.platform.langfuse import prompts
 from pathfinder.platform.readiness import get_readiness, reset_readiness
 from pathfinder.services.export import sweeper
@@ -95,7 +95,6 @@ def isolated_lifespan(monkeypatch: pytest.MonkeyPatch) -> None:
         logging_filters, "install_procrastinate_redaction", lambda: None
     )
     monkeypatch.setattr(prompts, "seed_prompts", lambda: None)
-    monkeypatch.setattr(notify_dispatcher, "lifespan_notify_dispatcher", _nothing)
     monkeypatch.setattr(pathfinder.jobs.app, "procrastinate_app", _ProcrastinateApp())
     monkeypatch.setattr(sweeper, "run_sweeper_loop", _sweeper_loop)
 
@@ -123,6 +122,26 @@ async def test_startup_returns_while_warm_up_still_runs(
         await finished.wait()
 
     assert finished.is_set()
+
+
+async def test_the_lifespan_installs_the_client_s_otel_observer(
+    isolated_lifespan: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Every WDK call this process makes reports through the client's adapter."""
+    del isolated_lifespan
+    installed: list[object] = []
+
+    async def _no_warm_up() -> None:
+        return None
+
+    monkeypatch.setattr(main, "_warm_up_subsystems", _no_warm_up)
+    monkeypatch.setattr(main, "set_observer", installed.append)
+
+    app = FastAPI()
+    async with main.lifespan(app):
+        pass
+
+    assert [type(observer) for observer in installed] == [OpenTelemetryObserver]
 
 
 async def test_the_lifespan_leaves_the_process_s_logging_alone(

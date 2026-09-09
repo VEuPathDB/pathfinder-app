@@ -21,6 +21,7 @@ from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.plan_validation import validate_plan_or_raise
 from pathfinder.tests.integration.persistence._strategy_shapes import (
     four_step_ast,
@@ -83,6 +84,7 @@ async def _seed_thread() -> tuple[UUID, UUID]:
         await session.flush()
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conversation_id,
                 user_id=user_id,
                 site_id="plasmodb",

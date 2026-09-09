@@ -53,7 +53,7 @@ that from happening:
 - **A typed reply resolves the card.** The user can answer by typing rather than
   clicking. If the text is nothing but an approval phrase (the same strict
   whitelist that lets a short affirmative past the injection scanner,
-  `capabilities/security.py:is_pure_approval`), the pending inner calls are
+  `assistant-platform: packages/assistant-core/src/assistant_core/capabilities/input_screening.py`), the pending inner calls are
   approved. Otherwise they are denied with "The user replied instead of
   answering the approval." and the text is delivered to the Lead as the user's
   next message in the same run, after the tool returns. A typed reply is

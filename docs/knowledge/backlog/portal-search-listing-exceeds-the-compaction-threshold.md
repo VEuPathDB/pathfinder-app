@@ -12,7 +12,8 @@ status: draft
 `services/tool_payloads.py::list_search_listings("veupathdb", "transcript")` returns 2769
 `{name, displayName}` rows, 574,624 characters, about 144K estimated tokens at four characters
 per token (plasmodb: 349 rows, about 15K tokens). `COMPACT_AT_ESTIMATED_TOKENS` in
-`ai/agents/_history_compaction.py` is 100K, so on the portal `compact_exhausted_history` rewrites
+`assistant-platform: packages/assistant-core/src/assistant_core/conversation/history/compaction.py`
+is 100K, so on the portal `compact_history` rewrites
 the FRAME history after every model step. Measured on the mock stack: one organism edit produced
 72 `set_criterion` calls and hit the 40-request ceiling; the reply said "Substituted the organism"
 and the AST leaf was unchanged.

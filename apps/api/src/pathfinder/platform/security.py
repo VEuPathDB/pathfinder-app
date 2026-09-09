@@ -9,7 +9,6 @@ from uuid import UUID
 
 import jwt
 from assistant_core.platform.context import (
-    DEFAULT_APPLICATION_ID,
     application_id_ctx,
     user_id_ctx,
 )
@@ -27,6 +26,7 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.error_handlers import problem_response
 from pathfinder.platform.errors import ErrorCode, UnauthorizedError
+from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER, Principal
 from pathfinder.services.wdk_identity import resolve_veupathdb_bearer
 
@@ -78,7 +78,7 @@ def decode_user_id(token: str) -> UUID | None:
 def _application_id(service_token: str | None) -> str:
     """Name the calling application. An unknown service token authenticates nobody."""
     if service_token is None:
-        return DEFAULT_APPLICATION_ID
+        return PATHFINDER_APPLICATION_ID
     application_id = get_settings().service_tokens.application_for(service_token)
     if application_id is None:
         raise UnauthorizedError(detail="Unknown service token")

@@ -22,6 +22,7 @@ def test_the_client_settings_keep_the_environment_variable_names() -> None:
     assert set(VEuPathDBSettings.model_fields) == {
         "veupathdb_sites_config",
         "veupathdb_auth_token",
+        "veupathdb_oauth_url",
     }
 
 

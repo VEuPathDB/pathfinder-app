@@ -48,8 +48,8 @@ pyproject, one version, one release. It fails on what each is for:
 - `mcp-conformance` is an admission suite a deployment runs against a server it
   did **not** build. Shipping it with the runtime would mean a deployment that
   wants to read a third-party tool server installs the whole turn pipeline.
-  [The conformance suite is a separate
-  distribution](the-conformance-suite-is-a-separate-distribution.md) already
+  The conformance suite is a separate
+  distribution (`assistant-platform: docs/knowledge/decisions/the-conformance-suite-is-a-separate-distribution.md`) already
   ruled on this.
 
 Their release clocks differ for the same reason: the protocol is versioned
@@ -79,19 +79,16 @@ commit; see
 `apps/web` compiles the packed `dist`, so it needs no second install and no
 `tsconfig` path into the client's source.
 
-`ai` is pinned to `6.0.154` in the client's own lock, and its peer range stops
-below `6.0.250`, because that release changed `resumeStream` so a resumed stream
-is a fresh response rather than a continuation of the assistant message the
-client already holds. `PROTOCOL.md` section 6.1 requires the opposite: a turn
-suspended on a durable task closes with `finish`, and the gap's
-`data-task-progress` and `data-task-completed` chunks belong to that turn's
-message. Two `tests/conformance/resumedTurn.test.ts` cases fail on `ai` 6.0.271
-for exactly that reason, so the failure is the newer library changing a
-behaviour the protocol relies on and not a harness accident. Adopting the newer
-resume semantics means reducing the tail outside the SDK and merging it into the
-held message, which is a client redesign; it is
-[a backlog item](../backlog/adopt-the-new-ai-sdk-resume-semantics.md), not a
-silent pin.
+The client owns where a resumed read starts, so its peer range is
+`ai >=6.0.250 <8`. From that release a resumed stream is a fresh response rather
+than a continuation of the assistant message the client already holds, and
+`PROTOCOL.md` section 4 states the rule that answers it: a client resumes a
+message the turn left open from a cursor before that message's own `start`,
+ignores what the tail delivers before it, and rebuilds the message whole. A tail
+ends at the first `done` it serves, so the client chains a second tail across a
+durable task's gap and opens no new message for it. The snapshot's `openMessage`
+names that message and the cursor to replay it from, which is how a client that
+lost its cursor seeds the resume without tailing from `0`.
 
 # What the grouping is not
 

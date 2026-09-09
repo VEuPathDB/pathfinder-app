@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.graph.turn_state import DurableTaskResult
-from assistant_core.platform.context import application_id_ctx
+from assistant_core.platform.context import DEFAULT_APPLICATION_ID, application_id_ctx
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.jobs import auth_context, runner
@@ -157,7 +157,7 @@ async def test_run_durable_task_sets_ctxvar_from_payload() -> None:
     assert _Observer.call_count == 1
     assert _Observer.observed_token == "worker-token-abc"
     assert _Observer.observed_application == HOLDING_APPLICATION
-    assert application_id_ctx.get() == "pathfinder"
+    assert application_id_ctx.get() == DEFAULT_APPLICATION_ID
 
 
 @pytest.mark.asyncio

@@ -26,6 +26,7 @@ from veupathdb.eda.models import (
 from pathfinder.persistence.repositories.conversation_analysis import (
     ConversationAnalysesRepository,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests.integration.http._eda_routes import (
     DATASET,
     ENTITY,
@@ -86,7 +87,9 @@ async def owned_thread(
     del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
     async with session_maker() as session:
         user = await make_user(session)
-        conversation = Conversation(id=uuid4(), user_id=user.id)
+        conversation = Conversation(
+            assistant_id=PATHFINDER_ASSISTANT_ID, id=uuid4(), user_id=user.id
+        )
         session.add(conversation)
         await session.commit()
     async with first_frame_client_for(app, user.id, wdk_token="test-token") as client:
@@ -243,7 +246,9 @@ async def test_viz_on_another_users_thread_is_a_404(
     async with session_maker() as session:
         owner = await make_user(session)
         other = await make_user(session)
-        conversation = Conversation(id=uuid4(), user_id=owner.id)
+        conversation = Conversation(
+            assistant_id=PATHFINDER_ASSISTANT_ID, id=uuid4(), user_id=owner.id
+        )
         session.add(conversation)
         await session.commit()
     async with first_frame_client_for(app, other.id, wdk_token="test-token") as client:

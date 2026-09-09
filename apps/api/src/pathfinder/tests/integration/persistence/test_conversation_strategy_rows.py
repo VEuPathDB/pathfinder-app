@@ -19,6 +19,7 @@ from pathfinder.persistence.repositories.conversation import ConversationReposit
 from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.responses import build_conversation_summary
 from pathfinder.services.user_data import purge_user_data
 
@@ -35,6 +36,7 @@ async def _thread(user_id: UUID, name: str = "c") -> UUID:
         conversation = await ConversationRepository(session).create(
             user_id,
             "plasmodb",
+            assistant_id=PATHFINDER_ASSISTANT_ID,
             name=name,
         )
         await session.commit()

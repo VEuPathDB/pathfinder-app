@@ -10,6 +10,7 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform import db
 
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 async def _seed_conversation() -> tuple[UUID, UUID]:
@@ -20,6 +21,7 @@ async def _seed_conversation() -> tuple[UUID, UUID]:
         session.add(User(id=user_id))
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conv_id,
                 user_id=user_id,
                 site_id="plasmodb",

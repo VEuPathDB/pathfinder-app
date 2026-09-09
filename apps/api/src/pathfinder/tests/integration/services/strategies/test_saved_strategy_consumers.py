@@ -14,6 +14,7 @@ from pathfinder.persistence.repositories.conversation_update import (
 from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 async def _make_conversation(
@@ -28,7 +29,13 @@ async def _make_conversation(
     cid = uuid4()
     async with async_session_factory() as session:
         session.add(
-            Conversation(id=cid, user_id=user_id, site_id=site_id, name=name),
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+                id=cid,
+                user_id=user_id,
+                site_id=site_id,
+                name=name,
+            ),
         )
         await session.flush()
         session.add(

@@ -12,6 +12,7 @@ from pathfinder.persistence.repositories.conversation import ConversationReposit
 from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
 )
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.wdk_sync import (
     WdkChatSpec,
     plan_needs_detail_fetch,
@@ -44,6 +45,7 @@ async def test_importing_a_wdk_strategy_creates_the_side_row(
             conv_repo=repo,
             user_id=authed_user_id,
             site_id="plasmodb",
+            assistant_id=PATHFINDER_ASSISTANT_ID,
             spec=_spec("imported"),
         )
         await session.commit()
@@ -72,6 +74,7 @@ async def test_a_second_import_updates_the_same_thread(authed_user_id: UUID) -> 
             conv_repo=repo,
             user_id=authed_user_id,
             site_id="plasmodb",
+            assistant_id=PATHFINDER_ASSISTANT_ID,
             spec=_spec("imported"),
         )
         await session.commit()
@@ -83,6 +86,7 @@ async def test_a_second_import_updates_the_same_thread(authed_user_id: UUID) -> 
             conv_repo=repo,
             user_id=authed_user_id,
             site_id="plasmodb",
+            assistant_id=PATHFINDER_ASSISTANT_ID,
             spec=_spec("renamed upstream", step_count=6),
         )
         await session.commit()

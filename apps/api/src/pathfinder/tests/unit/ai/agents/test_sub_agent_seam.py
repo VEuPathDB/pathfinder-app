@@ -15,6 +15,7 @@ from types import ModuleType
 from typing import Any
 
 import pytest
+from assistant_core.models.settings import baked_model_id
 from pydantic_ai import Agent, PydanticAIDeprecationWarning, Tool
 from pydantic_ai.toolsets.function import FunctionToolset
 
@@ -38,7 +39,6 @@ from pathfinder.ai.lead.sub_agent_tools import (
     BUILD_SUB_AGENT_BY_ROLE,
     SUB_AGENT_MODEL_BY_ROLE,
 )
-from pathfinder.ai.models.settings import baked_model_id
 from pathfinder.tests._support.instructions import pinned_instructions
 from pathfinder.tests._support.sub_agents import agent_tool_names
 

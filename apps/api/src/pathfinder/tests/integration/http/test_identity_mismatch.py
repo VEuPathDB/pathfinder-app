@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.wdk.factory import get_site
 
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.security import decode_user_id
 from pathfinder.tests._support.veupathdb_tokens import (
     JWKS_URL,
@@ -101,7 +102,10 @@ async def session_user_id(
 @pytest.fixture
 async def conversation_id(db_session: AsyncSession, session_user_id: UUID) -> UUID:
     conversation = Conversation(
-        user_id=session_user_id, site_id=SITE_ID, name="kinases"
+        assistant_id=PATHFINDER_ASSISTANT_ID,
+        user_id=session_user_id,
+        site_id=SITE_ID,
+        name="kinases",
     )
     db_session.add(conversation)
     await db_session.flush()

@@ -29,6 +29,7 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.conversation import clear_strategy
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories import ConversationRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -64,7 +65,13 @@ async def _seed(db_session: AsyncSession, user: User) -> Any:
     conv_id = uuid4()
     ast = StrategyAst(record_type="transcript", root=_leaf("step_a"))
     db_session.add(
-        Conversation(id=conv_id, user_id=user.id, site_id="plasmodb", name="c")
+        Conversation(
+            assistant_id=PATHFINDER_ASSISTANT_ID,
+            id=conv_id,
+            user_id=user.id,
+            site_id="plasmodb",
+            name="c",
+        )
     )
     await db_session.flush()
     db_session.add(

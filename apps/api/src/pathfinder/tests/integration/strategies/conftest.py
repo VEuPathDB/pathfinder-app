@@ -24,6 +24,7 @@ from veupathdb.wdk.factory import (
 )
 
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
@@ -111,7 +112,13 @@ async def wdk_builder(
             user_id, conv_id = uuid4(), uuid4()
             session.add(User(id=user_id))
             session.add(
-                Conversation(id=conv_id, user_id=user_id, site_id="plasmodb", name="rt")
+                Conversation(
+                    assistant_id=PATHFINDER_ASSISTANT_ID,
+                    id=conv_id,
+                    user_id=user_id,
+                    site_id="plasmodb",
+                    name="rt",
+                )
             )
             await session.commit()
         strategy_session = build_strategy_session(
@@ -168,7 +175,11 @@ async def wdk_build_raw(
             session.add(User(id=user_id))
             session.add(
                 Conversation(
-                    id=conv_id, user_id=user_id, site_id="plasmodb", name="rt-raw"
+                    assistant_id=PATHFINDER_ASSISTANT_ID,
+                    id=conv_id,
+                    user_id=user_id,
+                    site_id="plasmodb",
+                    name="rt-raw",
                 )
             )
             await session.commit()

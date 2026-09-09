@@ -97,7 +97,7 @@ request names - the optional `siteId` on
 `services/wdk_identity.py::identity_site` hands the read to the first loaded
 site whenever the named one is degraded. A request that names a degraded site is
 refused 503 `SITE_UNAVAILABLE` by that same dependency, before the read.
-`fetch_wdk_user` catches `VEuPathDBError` as well as the `httpx` errors, so a
+`fetch_current_user` catches `VEuPathDBError` as well as the `httpx` errors, so a
 WDK outage means the token names nobody and the session keeps its own identity,
 never a 502. `GET /api/v1/veupathdb/auth/status` reads the same loaded site, so
 the app shell does not block on a dead one. Every parameter that carries a site

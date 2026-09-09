@@ -22,6 +22,9 @@ class OpenConversationRequest(CamelModel):
     conversation_id: UUID | None = Field(default=None)
     wdk_strategy_id: int | None = Field(default=None)
     site_id: SiteId | None = Field(default=None)
+    # Names the assistant a NEW conversation is created under. An existing
+    # conversation keeps its own, and a request naming another one is refused.
+    assistant_id: str | None = Field(default=None, max_length=64)
 
 
 class OpenConversationResponse(CamelModel):

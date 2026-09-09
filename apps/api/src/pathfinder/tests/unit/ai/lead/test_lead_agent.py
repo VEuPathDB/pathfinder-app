@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import pytest
 from assistant_core.memory.schemas import MemoryValue
+from assistant_core.models.settings import baked_model_id
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import (
@@ -37,7 +38,6 @@ from pathfinder.ai.lead.lead_agent import (
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.models.settings import baked_model_id
 from pathfinder.tests._support.instructions import pinned_instructions
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,

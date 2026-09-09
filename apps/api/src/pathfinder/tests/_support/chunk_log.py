@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from assistant_core.conversation._chunk_state import Chunk
+from assistant_core.conversation import Chunk
 from assistant_core.conversation.ui_message_reducer import (
     ASSISTANT_MESSAGE_CHUNK_TYPE,
     SYSTEM_MESSAGE_CHUNK_TYPE,

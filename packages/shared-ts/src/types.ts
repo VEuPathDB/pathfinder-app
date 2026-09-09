@@ -40,8 +40,6 @@ import type {
   GraphCleared,
   GraphSnapshot,
   InvestigationLedger,
-  MessagesCompleteEvent,
-  MessagesPartialEvent,
   MemoryEditRequest,
   MemoryItem,
   MemoryListResponse,
@@ -91,7 +89,6 @@ import type {
   TaskListResponse,
   TaskProgress as TaskProgressStreamPart,
   TestedParameter,
-  ToolCallDelta,
   ToolSummaryPayload,
   TurnUsage,
   UpdateConversationRequest,
@@ -103,8 +100,6 @@ import type {
   WDKFilterOntologyTerm,
   WDKDatasetParser,
 } from "./generated/types/index";
-
-export type { MessagesPartialEvent, MessagesCompleteEvent, ToolCallDelta };
 
 export type ModelCatalogEntry = ModelCatalogEntryResponse;
 export type GeneSearchResult = GeneSearchResultResponse;

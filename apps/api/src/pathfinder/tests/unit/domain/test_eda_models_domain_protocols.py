@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import json
 
+from veupathdb.domain.eda_compute_validation import (
+    ComputeConfigFacts,
+    validate_compute_config,
+)
 from veupathdb.domain.eda_filter_checks import (
     DateSetFacts,
     FilterFacts,
@@ -20,6 +24,7 @@ from veupathdb.domain.eda_study import (
     ValueVariableFacts,
     VariableFacts,
 )
+from veupathdb.domain.eda_validation import find_gene_entity, validate_filters
 from veupathdb.eda.models import (
     EdaCategoryVariable,
     EdaComparator,
@@ -44,12 +49,6 @@ from veupathdb.eda.models import (
     EdaVariableSpec,
 )
 from veupathdb.testing import eda_fixtures
-
-from pathfinder.domain.eda import find_gene_entity, validate_filters
-from pathfinder.domain.eda_compute_config import (
-    ComputeConfigFacts,
-    validate_compute_config,
-)
 
 FIXTURES = eda_fixtures.FIXTURE_DIR
 
@@ -238,7 +237,7 @@ def test_a_category_variable_carries_no_vocabulary_and_is_still_walked() -> None
 
 
 def test_find_gene_entity_runs_over_the_recorded_tree() -> None:
-    result = find_gene_entity(_de_study())
+    result = find_gene_entity(_de_study(), subject="strategy step")
     assert result.entity_id == _COUNTS
     assert result.error is None
 

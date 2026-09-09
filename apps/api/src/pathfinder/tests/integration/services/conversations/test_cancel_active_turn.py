@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories import ChatTurnCancellationRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.cancellation import cancel_active_turn
 
 
@@ -36,7 +37,12 @@ async def test_a_stop_while_queued_cancels_the_turn_the_worker_runs(
 ) -> None:
     del in_memory_jobs
     owner = User(id=uuid4())
-    conversation = Conversation(user_id=owner.id, site_id="plasmodb", name="queued")
+    conversation = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
+        user_id=owner.id,
+        site_id="plasmodb",
+        name="queued",
+    )
     db_session.add_all([owner, conversation])
     await db_session.flush()
     await db_session.commit()

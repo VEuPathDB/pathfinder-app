@@ -2,19 +2,31 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.platform.context import DEFAULT_APPLICATION_ID
+from assistant_core.platform.context import application_id_ctx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import pathfinder.services.eval
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.platform.errors import NotFoundError
+from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 
 _OWNER = UUID(int=1)
 _INTRUDER = UUID(int=2)
+
+
+@pytest.fixture(autouse=True)
+def calling_application() -> Iterator[None]:
+    """A served request names this application, the way security does."""
+    reset = application_id_ctx.set(PATHFINDER_APPLICATION_ID)
+    try:
+        yield
+    finally:
+        application_id_ctx.reset(reset)
 
 
 @pytest.fixture
@@ -27,7 +39,7 @@ def session() -> AsyncSession:
 class _Conversation:
     user_id: UUID
     id: UUID = field(default_factory=uuid4)
-    application_id: str = DEFAULT_APPLICATION_ID
+    application_id: str = PATHFINDER_APPLICATION_ID
 
 
 @dataclass

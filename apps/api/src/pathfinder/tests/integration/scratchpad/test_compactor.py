@@ -31,6 +31,7 @@ from pathfinder.ai.scratchpad.compactor import maybe_compact_scratchpad
 from pathfinder.domain.scratchpad.models import NoteCreate
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.research.literature_search import LiteratureSearchService
 from pathfinder.services.research.web_search import WebSearchService
 
@@ -38,6 +39,7 @@ from pathfinder.services.research.web_search import WebSearchService
 @pytest.fixture
 async def conv_id(db_session: AsyncSession, seed_user: User) -> UUID:
     conv = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         user_id=seed_user.id,
         site_id="plasmodb",
         name="",

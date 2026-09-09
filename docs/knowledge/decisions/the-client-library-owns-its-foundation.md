@@ -52,12 +52,12 @@ Its names carry no underscore: the other two units import them too.
 4. *A host instrument the library fed.* The six OpenTelemetry counters and
    histograms became an `Observer` protocol in `veupathdb/observer.py` with a
    `NoObserver` default and a module-level `set_observer`.
-   `platform/metrics.py` holds `OpenTelemetryObserver`, the adapter over the
-   same meters, and `main.py`'s lifespan installs it beside
-   `setup_observability` - the only place a `MeterProvider` is configured, so
-   no process lost a metric. The instrument names and the full attribute sets
-   are asserted through an in-memory reader in
-   `tests/unit/platform/test_wdk_metrics_adapter.py`.
+   The adapter over the same meters is the client's own optional extra
+   (`veupathdb-py: src/veupathdb/observability/otel.py`), and `main.py`'s
+   lifespan installs it beside `setup_observability` - the only place a
+   `MeterProvider` is configured, so no process lost a metric. The instrument
+   names and the full attribute sets are asserted in
+   `veupathdb-py: tests/unit/test_otel_observer.py`.
 
 **The error taxonomy split by who raises it.** `veupathdb/errors.py` holds
 `VEuPathDBError`, a `VEuPathDBErrorCode(StrEnum)`, and the classes the client

@@ -16,11 +16,13 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.scratchpad import tools
 from pathfinder.domain.scratchpad.models import NoteListResult, NoteSearchResult
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 @pytest.fixture
 async def conv_id(db_session: AsyncSession, seed_user: User) -> UUID:
     conv = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         user_id=seed_user.id,
         site_id="plasmodb",
         name="",

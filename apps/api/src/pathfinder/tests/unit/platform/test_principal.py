@@ -1,9 +1,9 @@
 """The identity a request is served under."""
 
 import pytest
-from assistant_core.platform.context import DEFAULT_APPLICATION_ID
 from pydantic import ValidationError
 
+from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.platform.principal import Principal
 
 USER_ID = "11111111-2222-3333-4444-555555555555"
@@ -13,7 +13,7 @@ class TestPrincipal:
     def test_the_application_defaults_to_pathfinder(self) -> None:
         principal = Principal(user_id=USER_ID, credential="pathfinder-cookie")
 
-        assert principal.application_id == DEFAULT_APPLICATION_ID
+        assert principal.application_id == PATHFINDER_APPLICATION_ID
         assert principal.application_id == "pathfinder"
 
     def test_the_principal_is_immutable(self) -> None:

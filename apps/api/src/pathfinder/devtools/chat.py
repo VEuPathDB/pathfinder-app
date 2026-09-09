@@ -21,19 +21,20 @@ from assistant_core.graph.turn_state import (
 )
 from assistant_core.mcp.admission import install_admitted_sources
 from assistant_core.memory.lifespan import lifespan_memory_store
+from assistant_core.models.capture import capture_llm
 from assistant_core.persistence.models import ConversationEvent
 from assistant_core.platform.db import async_session_factory
 from assistant_core.spec import AssistantSpec
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from veupathdb.devtools.wdk_capture import capture_wdk
 from veupathdb.wdk.auth_login import password_login
 
 from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.conversation.assistant_routing import resolve_turn_assistant
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
-from pathfinder.ai.graph._llm_capture import capture_llm
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.devtools import inspector
 from pathfinder.devtools.capture import RunCapture, capture_tracebacks, reset_run_dir
@@ -46,9 +47,12 @@ from pathfinder.devtools.gates import (
     detect_gate,
     user_body,
 )
-from pathfinder.devtools.wdk_capture import capture_wdk
 from pathfinder.jobs.app import procrastinate_app
-from pathfinder.jobs.auth_context import attach_user_id, attach_wdk_auth
+from pathfinder.jobs.auth_context import (
+    attach_application,
+    attach_user_id,
+    attach_wdk_auth,
+)
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.jobs.tasks import run_chat_turn_job
 from pathfinder.persistence.repositories.background_tasks import (
@@ -550,48 +554,53 @@ async def drive_run(args: RunArgs) -> tuple[RunCapture, Gate]:
 
     The eval runner reads the capture; the command line prints it.
     """
-    if args.mock:
-        os.environ["PATHFINDER_CHAT_PROVIDER"] = "mock"
-        os.environ["API_ENV"] = "test"
-        get_settings.cache_clear()
-    settings = get_settings()
+    async with attach_application():
+        if args.mock:
+            os.environ["PATHFINDER_CHAT_PROVIDER"] = "mock"
+            os.environ["API_ENV"] = "test"
+            get_settings.cache_clear()
+        settings = get_settings()
 
-    wdk_token = await _optional_wdk_token(args)
-    if not args.quiet and wdk_token is not None:
-        print(f"logged in as {args.email or os.environ.get('WDK_DEV_EMAIL')}")
+        wdk_token = await _optional_wdk_token(args)
+        if not args.quiet and wdk_token is not None:
+            print(f"logged in as {args.email or os.environ.get('WDK_DEV_EMAIL')}")
 
-    spec = await resolve_run_assistant(args.conversation_id, args.assistant)
-    async with async_session_factory() as session:
-        await UserRepository(session).get_or_create(DEV_USER_ID)
-        await begin_conversation(
-            session=session,
+        spec = await resolve_run_assistant(args.conversation_id, args.assistant)
+        async with async_session_factory() as session:
+            await UserRepository(session).get_or_create(DEV_USER_ID)
+            await begin_conversation(
+                session=session,
+                conversation_id=args.conversation_id,
+                user_id=DEV_USER_ID,
+                site_id=args.site,
+                assistant_id=spec.assistant_id,
+            )
+            await session.commit()
+
+        capture = RunCapture(
             conversation_id=args.conversation_id,
-            user_id=DEV_USER_ID,
-            site_id=args.site,
-            assistant_id=spec.assistant_id,
+            turn_id=uuid4(),
+            run_dir=args.run_dir,
+            quiet=args.quiet,
         )
-        await session.commit()
+        reset_run_dir(args.run_dir)
+        if not args.quiet:
+            print(f"conversation={args.conversation_id}")
+            print(f"run-dir={args.run_dir}")
 
-    capture = RunCapture(
-        conversation_id=args.conversation_id,
-        turn_id=uuid4(),
-        run_dir=args.run_dir,
-        quiet=args.quiet,
-    )
-    reset_run_dir(args.run_dir)
-    if not args.quiet:
-        print(f"conversation={args.conversation_id}")
-        print(f"run-dir={args.run_dir}")
+        body = user_body(_body_ctx(args), message_id=capture.turn_id, text=args.prompt)
+        with capture_tracebacks(args.run_dir):
+            gate = await _drive_conversation(
+                args,
+                capture,
+                body,
+                settings_url=settings.database_url,
+                wdk_token=wdk_token,
+            )
 
-    body = user_body(_body_ctx(args), message_id=capture.turn_id, text=args.prompt)
-    with capture_tracebacks(args.run_dir):
-        gate = await _drive_conversation(
-            args, capture, body, settings_url=settings.database_url, wdk_token=wdk_token
-        )
-
-    capture.flush()
-    _write_gate(args.run_dir, gate)
-    return capture, gate
+        capture.flush()
+        _write_gate(args.run_dir, gate)
+        return capture, gate
 
 
 async def run_once(args: RunArgs) -> int:
@@ -645,53 +654,58 @@ def _build_respond_body(args: RespondArgs, gate: Gate) -> ChatRequestBody:
 
 
 async def run_respond(args: RespondArgs) -> int:
-    if args.mock:
-        os.environ["PATHFINDER_CHAT_PROVIDER"] = "mock"
-        os.environ["API_ENV"] = "test"
-        get_settings.cache_clear()
-    settings = get_settings()
-    wdk_token = await _optional_wdk_token(args)
+    async with attach_application():
+        if args.mock:
+            os.environ["PATHFINDER_CHAT_PROVIDER"] = "mock"
+            os.environ["API_ENV"] = "test"
+            get_settings.cache_clear()
+        settings = get_settings()
+        wdk_token = await _optional_wdk_token(args)
 
-    spec = await resolve_run_assistant(args.conversation_id, args.assistant)
-    async with async_session_factory() as session:
-        await UserRepository(session).get_or_create(DEV_USER_ID)
-        await begin_conversation(
-            session=session,
+        spec = await resolve_run_assistant(args.conversation_id, args.assistant)
+        async with async_session_factory() as session:
+            await UserRepository(session).get_or_create(DEV_USER_ID)
+            await begin_conversation(
+                session=session,
+                conversation_id=args.conversation_id,
+                user_id=DEV_USER_ID,
+                site_id=args.site,
+                assistant_id=spec.assistant_id,
+            )
+            await session.commit()
+
+        capture = RunCapture(
             conversation_id=args.conversation_id,
-            user_id=DEV_USER_ID,
-            site_id=args.site,
-            assistant_id=spec.assistant_id,
+            turn_id=uuid4(),
+            run_dir=args.run_dir,
+            quiet=args.quiet,
         )
-        await session.commit()
-
-    capture = RunCapture(
-        conversation_id=args.conversation_id,
-        turn_id=uuid4(),
-        run_dir=args.run_dir,
-        quiet=args.quiet,
-    )
-    await _replay_run_dir(capture, args.run_dir)
-    gate = await _gate_from_checkpoint(
-        args.conversation_id,
-        settings.database_url,
-        args.assistant,
-    )
-    if gate.kind == "none":
-        gate = _current_gate(capture)
-    if gate.kind == "none":
-        print("no pending gate to respond to (turn already complete)")
-        return 0
-    body = _build_respond_body(args, gate)
-
-    with capture_tracebacks(args.run_dir):
-        final_gate = await _drive_conversation(
-            args, capture, body, settings_url=settings.database_url, wdk_token=wdk_token
+        await _replay_run_dir(capture, args.run_dir)
+        gate = await _gate_from_checkpoint(
+            args.conversation_id,
+            settings.database_url,
+            args.assistant,
         )
+        if gate.kind == "none":
+            gate = _current_gate(capture)
+        if gate.kind == "none":
+            print("no pending gate to respond to (turn already complete)")
+            return 0
+        body = _build_respond_body(args, gate)
 
-    capture.flush()
-    _write_gate(args.run_dir, final_gate)
-    _report(capture, final_gate)
-    return 1 if capture.has_error else 0
+        with capture_tracebacks(args.run_dir):
+            final_gate = await _drive_conversation(
+                args,
+                capture,
+                body,
+                settings_url=settings.database_url,
+                wdk_token=wdk_token,
+            )
+
+        capture.flush()
+        _write_gate(args.run_dir, final_gate)
+        _report(capture, final_gate)
+        return 1 if capture.has_error else 0
 
 
 def _report(capture: RunCapture, gate: Gate) -> None:

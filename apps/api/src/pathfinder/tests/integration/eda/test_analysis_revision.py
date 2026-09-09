@@ -15,6 +15,7 @@ from veupathdb.eda.models import EdaStringSetFilter
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests._support.eda_doubles import (
     SPECIES_VARIABLE,
     analysis_detail,
@@ -62,7 +63,11 @@ async def bound_thread(db_cleaner: None, patch_app_db_engine: None) -> UUID:
     async with async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
-        session.add(Conversation(id=thread_id, user_id=user_id))
+        session.add(
+            Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID, id=thread_id, user_id=user_id
+            )
+        )
         await session.commit()
     return thread_id
 

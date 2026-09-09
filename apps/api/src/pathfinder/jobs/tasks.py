@@ -13,6 +13,7 @@ from typing import Any
 from veupathdb_mcp.embeddings.record_manager import prune_orphan_vectors
 
 from pathfinder.jobs.app import procrastinate_app
+from pathfinder.jobs.auth_context import attach_application
 from pathfinder.jobs.impls.chat_turn_impl import run_chat_turn
 from pathfinder.jobs.maintenance import release_stalled_jobs
 from pathfinder.jobs.runner import run_durable_task
@@ -119,18 +120,21 @@ async def run_chat_turn_job(payload: dict[str, Any]) -> None:
 @procrastinate_app.task(queue="maintenance", name="maintenance:release_stalled_jobs")
 async def release_stalled_jobs_job(timestamp: int) -> None:
     del timestamp
-    await release_stalled_jobs()
+    async with attach_application():
+        await release_stalled_jobs()
 
 
 @procrastinate_app.periodic(cron="41 4 * * *")
 @procrastinate_app.task(queue="maintenance", name="maintenance:prune_orphan_vectors")
 async def prune_orphan_vectors_job(timestamp: int) -> None:
     del timestamp
-    await prune_orphan_vectors(ORPHAN_VECTOR_GRACE)
+    async with attach_application():
+        await prune_orphan_vectors(ORPHAN_VECTOR_GRACE)
 
 
 @procrastinate_app.periodic(cron="17 3 * * *")
 @procrastinate_app.task(queue="maintenance", name="maintenance:extract_eval_candidates")
 async def extract_eval_candidates_job(timestamp: int) -> None:
     del timestamp
-    await extract_eval_candidates()
+    async with attach_application():
+        await extract_eval_candidates()

@@ -109,11 +109,6 @@ leaves the step in the local graph for the sync service to retry.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.services.strategies.wdk_step_cleanup
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Auto Import
 -----------
 

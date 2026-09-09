@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from assistant_core.models.settings import build_model_settings
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai import Agent, RunContext
@@ -9,7 +10,6 @@ from pydantic_ai import Agent, RunContext
 from pathfinder.ai.agents._model_resolution import (
     resolve_orchestrator_model_entry,
 )
-from pathfinder.ai.models.settings import build_model_settings
 from pathfinder.domain.scratchpad.models import NoteCreate
 
 

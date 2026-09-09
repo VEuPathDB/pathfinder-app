@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories import ConversationRepository
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.service import ConversationService
 
 
@@ -46,6 +47,7 @@ async def _make_conversation(
     dismissed: bool = False,
 ) -> UUID:
     conversation = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         user_id=owner.id,
         site_id="plasmodb",
         name="Owner kinases",

@@ -16,6 +16,7 @@ from procrastinate.testing import InMemoryConnector
 
 from pathfinder.jobs.maintenance import release_stalled_jobs
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests.integration.jobs._dead_worker import (
     TOOL_CALL_ID,
     dead_age,
@@ -35,6 +36,7 @@ async def _seed_conversation() -> tuple[UUID, UUID]:
         session.add(User(id=user_id))
         session.add(
             Conversation(
+                assistant_id=PATHFINDER_ASSISTANT_ID,
                 id=conversation_id,
                 user_id=user_id,
                 site_id="plasmodb",

@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import ConversationStrategy, GeneSetRow, User
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.security import create_user_token
 from pathfinder.services import user_data
 from pathfinder.services.gene_sets.operations import GeneSetService
@@ -110,6 +111,7 @@ async def _add_conv(
     application_id: str = "pathfinder",
 ) -> UUID:
     conv = Conversation(
+        assistant_id=PATHFINDER_ASSISTANT_ID,
         id=uuid4(),
         user_id=user_id,
         application_id=application_id,
