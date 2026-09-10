@@ -4,7 +4,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import type { UIMessage } from "ai";
-import { reduceSnapshot, type MessagePart } from "@pathfinder/assistant-client";
+import { reduceSnapshot, type MessagePart } from "@veupathdb/assistant-client";
 import type { DataSubAgentCallPayload } from "@pathfinder/shared";
 
 import { useSettingsStore } from "@/state/useSettingsStore";

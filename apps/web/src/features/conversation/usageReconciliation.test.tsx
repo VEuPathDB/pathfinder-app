@@ -3,11 +3,14 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import type { UIMessage } from "ai";
-import { reduceSnapshot, type MessagePart } from "@pathfinder/assistant-client";
+import {
+  reduceSnapshot,
+  threadUsage,
+  type MessagePart,
+} from "@veupathdb/assistant-client";
 import type { DataLeadUsagePayload, DataSubAgentCallPayload } from "@pathfinder/shared";
 
 import type { TraceUsageView } from "@/features/conversation/thread/Trace";
-import { aggregateSessionUsage } from "@/features/conversation/sessionUsage";
 import { formatCost, formatTokens } from "@/features/conversation/usageFormat";
 import recordedTurn from "./__fixtures__/recordedTurn.json";
 
@@ -108,29 +111,32 @@ describe("usage reconciliation", () => {
   it("reads one message's parts to the same tokens and cost on both surfaces", () => {
     const parts = recordedParts();
     const chip = chipUsage(parts);
-    const footer = aggregateSessionUsage([assistantMessage("m1", parts)]);
+    const footer = threadUsage([assistantMessage("m1", parts)]);
 
     expect(chip.tokens).toBe(RECORDED_LEAD_TOKENS + RECORDED_SUB_TOKENS);
-    expect(footer.totalTokens).toBe(chip.tokens);
-    expect(Number(chip.costUsd)).toBe(footer.totalCost);
-    expect(footer.totalCost).toBeCloseTo(RECORDED_LEAD_COST + RECORDED_SUB_COST, 12);
+    expect(footer.total.tokens).toBe(chip.tokens);
+    expect(Number(chip.costUsd)).toBe(footer.total.costUsd);
+    expect(footer.total.costUsd).toBeCloseTo(
+      RECORDED_LEAD_COST + RECORDED_SUB_COST,
+      12,
+    );
   });
 
   it("splits the same message into the footer's lead and sub-agent halves", () => {
-    const footer = aggregateSessionUsage([assistantMessage("m1", recordedParts())]);
-    expect(footer.leadTokens).toBe(RECORDED_LEAD_TOKENS);
-    expect(footer.subTokens).toBe(RECORDED_SUB_TOKENS);
-    expect(footer.leadCost).toBeCloseTo(RECORDED_LEAD_COST, 12);
-    expect(footer.subCost).toBeCloseTo(RECORDED_SUB_COST, 12);
+    const footer = threadUsage([assistantMessage("m1", recordedParts())]);
+    expect(footer.lead.tokens).toBe(RECORDED_LEAD_TOKENS);
+    expect(footer.subAgents.tokens).toBe(RECORDED_SUB_TOKENS);
+    expect(footer.lead.costUsd).toBeCloseTo(RECORDED_LEAD_COST, 12);
+    expect(footer.subAgents.costUsd).toBeCloseTo(RECORDED_SUB_COST, 12);
   });
 
   it("prints the same formatted token and cost strings on both surfaces", () => {
     const parts = recordedParts();
     const chip = chipUsage(parts);
-    const footer = aggregateSessionUsage([assistantMessage("m1", parts)]);
+    const footer = threadUsage([assistantMessage("m1", parts)]);
 
-    expect(formatTokens(chip.tokens)).toBe(formatTokens(footer.totalTokens));
-    expect(formatCost(Number(chip.costUsd))).toBe(formatCost(footer.totalCost));
+    expect(formatTokens(chip.tokens)).toBe(formatTokens(footer.total.tokens));
+    expect(formatCost(Number(chip.costUsd))).toBe(formatCost(footer.total.costUsd));
     expect(formatTokens(chip.tokens)).toBe("54.1K");
   });
 
@@ -139,15 +145,15 @@ describe("usage reconciliation", () => {
     const second = secondTurnParts();
     const firstChip = chipUsage(first);
     const secondChip = chipUsage(second);
-    const footer = aggregateSessionUsage([
+    const footer = threadUsage([
       assistantMessage("m1", first),
       assistantMessage("m2", second),
     ]);
 
     expect(secondChip.tokens).toBe(5_000);
     expect(firstChip.tokens + secondChip.tokens).toBe(59_100);
-    expect(footer.totalTokens).toBe(firstChip.tokens + secondChip.tokens);
-    expect(footer.totalCost).toBeCloseTo(
+    expect(footer.total.tokens).toBe(firstChip.tokens + secondChip.tokens);
+    expect(footer.total.costUsd).toBeCloseTo(
       Number(firstChip.costUsd) + Number(secondChip.costUsd),
       12,
     );
@@ -156,12 +162,12 @@ describe("usage reconciliation", () => {
   it("counts a dispatch stopped on its token ceiling on both surfaces", () => {
     const parts = budgetStoppedParts();
     const chip = chipUsage(parts);
-    const footer = aggregateSessionUsage([assistantMessage("m1", parts)]);
+    const footer = threadUsage([assistantMessage("m1", parts)]);
 
     expect(chip.tokens).toBe(RECORDED_LEAD_TOKENS + 7_000);
     expect(chip.tokens).toBeGreaterThan(RECORDED_LEAD_TOKENS);
-    expect(footer.subTokens).toBe(7_000);
-    expect(footer.totalTokens).toBe(chip.tokens);
-    expect(Number(chip.costUsd)).toBe(footer.totalCost);
+    expect(footer.subAgents.tokens).toBe(7_000);
+    expect(footer.total.tokens).toBe(chip.tokens);
+    expect(Number(chip.costUsd)).toBe(footer.total.costUsd);
   });
 });

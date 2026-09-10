@@ -31,29 +31,20 @@ The evidence for A3 and A4 sits inside the library: `assistant_core/persistence/
 declares foreign keys to `background_tasks.id` and `users.id`, two tables it does not
 own, and ships `tests/_host_schema.py` to fabricate them; it also builds the
 `background_task_started`, `task_progress` and `scratchpad_updated` chunks for
-capabilities the app implements. Whether the host is meant to supply those tables is
-not recorded anywhere, so A3 needs a decision document before code moves.
+capabilities the app implements. The runtime records that it takes the two task
+tables in
+`assistant-platform: docs/knowledge/decisions/the-runtime-owns-its-task-tables.md`,
+so A3 is a move to execute, not a question to settle.
 
 ## Duplications between repositories
 
-- The OpenAI embedder is copied verbatim between `assistant_core/embeddings/` and
-  `veupathdb_mcp/embeddings/` (231 lines, no drift yet); `EMBEDDING_DIMENSIONS = 1024`
-  is written in four places.
 - The settings-source scaffold is written four times, `CamelModel` twice,
   `setup_logging` twice, the testcontainers bootstrap twice.
-- `assistant-core` owns four tables and ships no migration chain for them.
-- Frontend: `SubAgentStepPayload` is declared in both `@pathfinder/assistant-client` and
-  the generated `@pathfinder/shared` types; the snapshot envelope and the message-part
-  union are each declared three times; `thread/traceParts.ts` exists only to convert
-  between two copies; `sessionUsage.ts` and `TraceAnchor.tsx` sum usage with two rules
-  that already disagree; `DataBackgroundTaskStarted.tsx` reduces the task lifecycle the
-  library has a conformance test for but exports nothing to reduce.
 
 ## Library code that names PathFinder
 
 - `veupathdb/domain/strategy/` is PathFinder's authoring model inside the client
   (already its own backlog item).
-- The npm scope `@pathfinder/assistant-client`.
 
 ## Enforcement
 

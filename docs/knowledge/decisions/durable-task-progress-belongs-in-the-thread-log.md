@@ -106,7 +106,7 @@ its outcome and the continuation on one connection.
 
 - A client built from PROTOCOL.md alone renders a durable task's card, its
   progress and its outcome, and resumes all three on the cursor rule.
-- `@pathfinder/assistant-client/legacy` is deprecated. It stays for a host that
+- `@veupathdb/assistant-client/legacy` is deprecated. It stays for a host that
   wants progress at the worker's rate rather than the log's.
 - The thread's log now holds chunks that belong to no turn. Section 6.1 says so,
   and a client must accept them.

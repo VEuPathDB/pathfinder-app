@@ -1,4 +1,4 @@
-import type { Trace } from "@pathfinder/assistant-client";
+import type { Trace } from "@veupathdb/assistant-client";
 
 export type TraceGroupView = Trace["groups"][number];
 

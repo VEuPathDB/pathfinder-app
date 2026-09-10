@@ -3,13 +3,13 @@
 import { useState } from "react";
 import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
 import type { UIMessage } from "ai";
+import { runningPhase } from "@veupathdb/assistant-client";
 import { normalizeLedgerPayload } from "./normalizeLedger";
 
 import { phaseLabel } from "@/lib/models/phaseRoles";
 import { cn } from "@/lib/utils/cn";
 import { useRightRailStore } from "@/state/useRightRailStore";
 
-import { runningPhase } from "../thread/runningPhase";
 import { useChatHelpers } from "../runtime/chatHelpersContext";
 import { ConstraintsSection } from "./ConstraintsSection";
 import { ContextSection } from "./ContextSection";

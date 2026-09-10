@@ -2702,18 +2702,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@pathfinder/assistant-client@git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@pathfinder/assistant-client&tag=v0.2.0a4":
-  version: 0.2.0-alpha.3
-  resolution: "@pathfinder/assistant-client@https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=%40pathfinder%2Fassistant-client&commit=9610e9b7c76ca35c60de06415eaa171ef5d86197"
-  peerDependencies:
-    ai: ">=6.0.250 <8"
-  peerDependenciesMeta:
-    ai:
-      optional: true
-  checksum: 10/be0cdeb6616da9e80d4dba941bb1d6d815010d17a97445525ae332d0a2fcada1898714479793c4bf833d5d0d2bae18683d6eddb531ec063c65507b0ea6b78575
-  languageName: node
-  linkType: hard
-
 "@pathfinder/shared@workspace:*, @pathfinder/shared@workspace:packages/shared-ts":
   version: 0.0.0-use.local
   resolution: "@pathfinder/shared@workspace:packages/shared-ts"
@@ -6155,6 +6143,18 @@ __metadata:
   version: 3.2.0
   resolution: "@vercel/oidc@npm:3.2.0"
   checksum: 10/2a64ee806217d8e1cff79cc9d2925d6381883d24fa7b76ef07c9c1178534b624dc8da4d00d39f42e2a3be8c0ef35ab12bec2164dd978913db639c442fb93ccae
+  languageName: node
+  linkType: hard
+
+"@veupathdb/assistant-client@git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@veupathdb/assistant-client&tag=v0.3.0a1":
+  version: 0.3.0-alpha.1
+  resolution: "@veupathdb/assistant-client@https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=%40veupathdb%2Fassistant-client&commit=c0a3facdfcccaf1a92fa0a9cf4fe8b2f47ba2c1c"
+  peerDependencies:
+    ai: ">=6.0.250 <8"
+  peerDependenciesMeta:
+    ai:
+      optional: true
+  checksum: 10/e2bf89e9f3b5be6860f308e8cc1effce989500d2371d9a1a4c946c502a7d9bbda4187d3ddaa3ee57387242e00b6d1a47882bfa6429fa4142603fc9ef8b7cac55
   languageName: node
   linkType: hard
 
@@ -12441,7 +12441,6 @@ __metadata:
     "@opentelemetry/resources": "npm:^2.11.0"
     "@opentelemetry/sdk-trace-web": "npm:^2.11.0"
     "@opentelemetry/semantic-conventions": "npm:^1.43.0"
-    "@pathfinder/assistant-client": "git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@pathfinder/assistant-client&tag=v0.2.0a4"
     "@pathfinder/shared": "workspace:*"
     "@playwright/test": "npm:^1.62.1"
     "@radix-ui/react-use-controllable-state": "npm:^1.2.6"
@@ -12467,6 +12466,7 @@ __metadata:
     "@types/node": "npm:^26.4.0"
     "@types/react": "npm:^19.2.18"
     "@types/react-dom": "npm:^19.2.5"
+    "@veupathdb/assistant-client": "git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@veupathdb/assistant-client&tag=v0.3.0a1"
     "@vitest/coverage-v8": "npm:^4.1.11"
     "@xyflow/react": "npm:^12.11.6"
     ai: "npm:7.0.87"

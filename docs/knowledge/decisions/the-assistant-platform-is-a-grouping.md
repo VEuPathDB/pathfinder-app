@@ -16,7 +16,7 @@ alone, plus the document that binds two of them:
 | folder | distribution | import name |
 | --- | --- | --- |
 | `packages/assistant-core/` | `assistant-core` | `assistant_core` |
-| `packages/assistant-client-ts/` | `@pathfinder/assistant-client` | - |
+| `packages/assistant-client-ts/` | `@veupathdb/assistant-client` | - |
 | `packages/mcp-conformance/` | `veupathdb-mcp-conformance` | `mcp_conformance` |
 
 The move is a folder rename and nothing else: **zero import lines changed**,
@@ -43,7 +43,7 @@ neither side implements fails both.
 pyproject, one version, one release. It fails on what each is for:
 
 - `assistant-core` is a Python runtime a host application installs.
-- `@pathfinder/assistant-client` is a TypeScript package a browser bundles. It
+- `@veupathdb/assistant-client` is a TypeScript package a browser bundles. It
   cannot be a Python distribution at all, so a merge would leave two anyway.
 - `mcp-conformance` is an admission suite a deployment runs against a server it
   did **not** build. Shipping it with the runtime would mean a deployment that

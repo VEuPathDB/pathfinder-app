@@ -9,8 +9,8 @@ import {
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
 import type { ThreadMessageLike } from "@assistant-ui/react";
-import { reduceSnapshot } from "@pathfinder/assistant-client";
-import type { DataPart, TextPart } from "@pathfinder/assistant-client";
+import { reduceSnapshot } from "@veupathdb/assistant-client";
+import type { DataPart, TextPart } from "@veupathdb/assistant-client";
 import type { DataPartKind } from "@pathfinder/shared";
 
 import { useSettingsStore } from "@/state/useSettingsStore";

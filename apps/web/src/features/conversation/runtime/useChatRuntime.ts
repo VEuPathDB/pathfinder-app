@@ -15,7 +15,7 @@ import { graphSnapshotSchema } from "@pathfinder/shared/generated/zod/graphSnaps
 import { strategyMetaSchema } from "@pathfinder/shared/generated/zod/strategyMetaSchema";
 import { turnUsageSchema } from "@pathfinder/shared/generated/zod/turnUsageSchema";
 
-import { resumeDurableThread } from "@pathfinder/assistant-client/ai-sdk";
+import { resumeDurableThread } from "@veupathdb/assistant-client/ai-sdk";
 
 import { getAuthHeaders } from "@/lib/api/http";
 import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";

@@ -1,4 +1,4 @@
-import { AssistantClient, webStorageCursorStore } from "@pathfinder/assistant-client";
+import { AssistantClient, webStorageCursorStore } from "@veupathdb/assistant-client";
 
 import {
   APIError,

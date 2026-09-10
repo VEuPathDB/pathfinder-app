@@ -60,6 +60,18 @@ use, and still leave `create_all` unable to emit either constraint. So the
 package exports `Base` and the product maps its tables on it. Alembic's
 `target_metadata` is unchanged, and every migration stays hand-written.
 
+**The runtime's four tables are the runtime's chain, and this one skips them.**
+`assistant_core.migrate.upgrade_head` runs after this application's chain and
+after the tool server's, on the same connection, and stamps
+`alembic_version_assistant_core`
+(`assistant-platform: docs/knowledge/decisions/the-runtime-ships-its-own-migration-chain.md`).
+The shared `Base` puts the runtime's tables in this chain's `target_metadata`,
+so `pathfinder.platform.migrations.include_object` drops them and the runtime's
+version table from autogenerate, reading `assistant_core.migrate.OWNED_TABLES`
+rather than a second copy of the names. The same filter refuses the tables the
+tool server, procrastinate and LangGraph build in this database, so a revision
+generated here describes only what this application's chain owns.
+
 **The thread lost its relationship to the science.** `Conversation.strategy`
 and `Conversation.strategy_view` named `ConversationStrategy`, which is
 PathFinder's; a package class cannot. Callers that want both now ask:

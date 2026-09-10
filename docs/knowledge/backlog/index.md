@@ -14,6 +14,7 @@ what left.
 5. [Move library-shaped code out of the app](move-library-shaped-code-out-of-the-app.md) - four subsystems that name no gene, strategy or phase still live here (durable tasks, the scratchpad, conversation ownership and cancellation, the cost quota); the ranked list with targets and effort is the card.
 6. [The SSE golden depends on when the title task finishes](sse-golden-depends-on-title-scheduling.md) - the title chunk's position in a turn is a scheduling outcome, so the simple-turn golden pins an order the runner does not guarantee.
 7. [The test tree is type-checked by nothing](the-test-tree-is-type-checked-by-nothing.md) - mypy 1158 / pyright 1486 errors over `apps/api/src/pathfinder/tests`; a widened library type left a live assertion silently wrong until it ran.
+8. [The tool server publishes no list of the tables it owns](the-tool-server-publishes-no-table-names.md) - the runtime publishes `OWNED_TABLES` and `VERSION_TABLE`; the tool server names its version table only inside its alembic environment, so the autogenerate filter holds one retyped literal.
 
 ## Known and accepted
 

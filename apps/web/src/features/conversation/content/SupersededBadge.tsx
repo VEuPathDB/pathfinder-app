@@ -1,8 +1,10 @@
 "use client";
 
 import { useAuiState } from "@assistant-ui/react";
-import type { StrategyRevisionPayload } from "@pathfinder/shared/generated/types/StrategyRevisionPayload";
+import { strategyRevisionPayloadSchema } from "@pathfinder/shared/generated/zod/strategyRevisionPayloadSchema";
 import type { ReactElement } from "react";
+
+import type { StructuralPart } from "../parts";
 
 /**
  * Marks an answer whose numbers describe a strategy that has since changed.
@@ -17,7 +19,7 @@ import type { ReactElement } from "react";
  * like an edit). Nothing consumed it until now.
  */
 
-function isRevisionPart(part: { type: string; name?: string }): boolean {
+function isRevisionPart(part: StructuralPart): boolean {
   return (
     part.type === "data-strategy-revision" ||
     (part.type === "data" && part.name === "strategy-revision")
@@ -26,7 +28,7 @@ function isRevisionPart(part: { type: string; name?: string }): boolean {
 
 type RevisionCarrier = {
   role: string;
-  content: readonly { type: string; name?: string }[];
+  content: readonly StructuralPart[];
 };
 
 export function revisionOfMessage(m: RevisionCarrier | undefined): string | null {
@@ -34,7 +36,7 @@ export function revisionOfMessage(m: RevisionCarrier | undefined): string | null
   for (let i = m.content.length - 1; i >= 0; i -= 1) {
     const part = m.content[i];
     if (part === undefined || !isRevisionPart(part)) continue;
-    const data = (part as { data?: StrategyRevisionPayload }).data;
+    const data = strategyRevisionPayloadSchema.safeParse(part.data).data;
     if (data?.revision != null && data.revision !== "") return data.revision;
   }
   return null;

@@ -2,7 +2,7 @@ import type { UIMessage } from "ai";
 import {
   DurableChatTransport,
   type DurableChatTransportOptions,
-} from "@pathfinder/assistant-client/ai-sdk";
+} from "@veupathdb/assistant-client/ai-sdk";
 
 import { conversationCursors } from "../api/assistantClient";
 

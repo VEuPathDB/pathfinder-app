@@ -55,7 +55,7 @@ Three libraries are repositories of their own, consumed by URL at a commit
 
 - **[ai-veupathdb-client](https://github.com/VEuPathDB/ai-veupathdb-client)**: the VEuPathDB WDK and EDA client (`veupathdb`), which knows nothing about PathFinder. Its README documents the client, and the WDK and EDA knowledge bundle lives with it.
 - **[ai-wdk-mcp](https://github.com/VEuPathDB/ai-wdk-mcp)**: the WDK catalog, parameter and gene tools served over MCP (`veupathdb_mcp`), with the semantic index they own. PathFinder installs it and calls the same functions in process.
-- **[ai-assistant-platform](https://github.com/VEuPathDB/ai-assistant-platform)**: the runtime (`assistant_core`), the headless TypeScript client (`@pathfinder/assistant-client`, no React), the conformance suite an MCP tool server passes before a deployment admits it, and `PROTOCOL.md`, the wire between the first two.
+- **[ai-assistant-platform](https://github.com/VEuPathDB/ai-assistant-platform)**: the runtime (`assistant_core`), the headless TypeScript client (`@veupathdb/assistant-client`, no React), the conformance suite an MCP tool server passes before a deployment admits it, and `PROTOCOL.md`, the wire between the first two.
 
 The API also includes: gene set management, an experiment engine (metrics, cross-validation, enrichment), export tools, a model catalog with token metrics, cross-thread memory, and an MCP server.
 

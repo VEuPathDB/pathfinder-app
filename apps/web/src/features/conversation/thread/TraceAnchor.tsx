@@ -2,9 +2,14 @@
 
 import type { UIMessage } from "ai";
 import type { ReactElement, ReactNode } from "react";
-import { buildTrace, type MessagePart } from "@pathfinder/assistant-client";
-import type { DataLeadUsagePayload, DataSubAgentCallPayload } from "@pathfinder/shared";
-import { leadUsagePayloadSchema } from "@pathfinder/shared/generated/zod/leadUsagePayloadSchema";
+import {
+  buildTrace,
+  isToolPart,
+  turnUsage,
+  type MessagePart,
+} from "@veupathdb/assistant-client";
+import { toTraceParts } from "@veupathdb/assistant-client/ai-sdk";
+import type { DataSubAgentCallPayload } from "@pathfinder/shared";
 import { subAgentCallPayloadSchema } from "@pathfinder/shared/generated/zod/subAgentCallPayloadSchema";
 
 import { parseModelString } from "@/lib/models/providerMeta";
@@ -18,14 +23,12 @@ import { humanizeToolName } from "@/features/conversation/toolNames";
 import { ToolApprovalControls } from "../content/parts/ToolApprovalControls";
 import { useChatHelpers, type ChatHelpers } from "../runtime/chatHelpersContext";
 import { traceRenderingKinds } from "./traceRenderingKinds";
-import { toTraceParts } from "./traceParts";
 import { useThreadDevMode, type ThreadDevMode } from "./useThreadDevMode";
 
 type Run = ReturnType<typeof buildTrace>[number];
 
 const LEAD = "lead";
 const SUB_AGENT_KIND = "data-sub-agent-call";
-const LEAD_USAGE_KIND = "data-lead-usage";
 const LIVE: readonly ChatHelpers["status"][] = ["submitted", "streaming"];
 
 export interface TraceAnchorProps {
@@ -42,43 +45,25 @@ function readSubAgentCall(data: unknown): DataSubAgentCallPayload | null {
   return parsed.success ? parsed.data : null;
 }
 
-/** A lead-usage payload the wire's own schema accepts, or null. */
-function readLeadUsage(data: unknown): DataLeadUsagePayload | null {
-  const parsed = leadUsagePayloadSchema.safeParse(data);
-  return parsed.success ? parsed.data : null;
-}
-
 /**
  * The turn's model, tokens and cost: the Lead's own usage plus every
  * sub-agent it dispatched, which is what the wire reports as the turn total.
  */
 export function turnUsageOf(parts: readonly MessagePart[]): TraceUsageView | null {
-  let lead: DataLeadUsagePayload | null = null;
-  let tokens = 0;
-  let cost = 0;
-  for (const part of parts) {
-    if (part.type === LEAD_USAGE_KIND) {
-      lead = readLeadUsage(part.data) ?? lead;
-    } else if (part.type === SUB_AGENT_KIND) {
-      const call = readSubAgentCall(part.data);
-      if (call === null) continue;
-      tokens += call.tokens ?? 0;
-      cost += Number(call.costUsd ?? "0");
-    }
-  }
-  if (lead === null) return null;
-  const { model } = parseModelString(lead.modelId ?? "");
+  const usage = turnUsage(parts);
+  if (usage.lead === null) return null;
+  const { model } = parseModelString(usage.modelId ?? "");
   if (model === "") return null;
   return {
     model,
-    tokens: tokens + (lead.tokens ?? 0),
-    costUsd: String(cost + Number(lead.costUsd ?? "0")),
+    tokens: usage.total.tokens,
+    costUsd: String(usage.total.costUsd),
   };
 }
 
 /** The id a part anchors, or null when the part bears no row of its own. */
 function anchorIdOf(part: MessagePart): string | null {
-  if ("toolCallId" in part) return part.toolCallId;
+  if (isToolPart(part)) return part.toolCallId;
   if (part.type === SUB_AGENT_KIND)
     return readSubAgentCall(part.data)?.toolCallId ?? null;
   return null;

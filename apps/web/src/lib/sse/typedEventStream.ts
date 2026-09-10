@@ -4,7 +4,7 @@
  * reader; a conversation and its durable tasks use the wire protocol instead.
  */
 
-import { readTypedEvents } from "@pathfinder/assistant-client/legacy";
+import { readTypedEvents } from "@veupathdb/assistant-client/legacy";
 
 import {
   APIError,

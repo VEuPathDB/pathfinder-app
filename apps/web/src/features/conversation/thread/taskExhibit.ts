@@ -1,5 +1,5 @@
 import type { UIMessage } from "ai";
-import { subAgentStepPayloadSchema } from "@pathfinder/shared/generated/zod/subAgentStepPayloadSchema";
+import { readSubAgentStep } from "@veupathdb/assistant-client";
 import { toolSummaryPayloadSchema } from "@pathfinder/shared/generated/zod/toolSummaryPayloadSchema";
 
 import { tablePartFor } from "../content/parts/tableNumbers";
@@ -32,9 +32,9 @@ function lineFor(part: Part, toolCallId: string): string | null {
     return parsed.data.summary;
   }
   if (part.type !== "data-sub-agent-step") return null;
-  const step = subAgentStepPayloadSchema.safeParse(part.data);
-  if (!step.success || step.data.toolCallId !== toolCallId) return null;
-  const summary = step.data.resultSummary ?? "";
+  const step = readSubAgentStep(part.data);
+  if (step?.toolCallId !== toolCallId) return null;
+  const summary = step.resultSummary ?? "";
   return summary === "" ? null : summary;
 }
 

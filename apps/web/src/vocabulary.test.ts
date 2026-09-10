@@ -97,7 +97,7 @@ describe("the copy a researcher reads", () => {
 
   it("excuses part kinds only, and the exception is still used", () => {
     expect(new Set(result.excused.map((e) => e.text))).toEqual(
-      new Set(["data-sub-agent-call", "data-sub-agent-step", "sub-agent-call"]),
+      new Set(["data-sub-agent-call", "data-sub-agent-step"]),
     );
   });
 });

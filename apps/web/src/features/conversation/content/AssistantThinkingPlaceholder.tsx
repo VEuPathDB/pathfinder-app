@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuiState } from "@assistant-ui/react";
+import { runningPhase } from "@veupathdb/assistant-client";
 import type { TurnStatusPayload } from "@pathfinder/shared/generated/types/TurnStatusPayload";
 import { turnStatusPayloadSchema } from "@pathfinder/shared/generated/zod/turnStatusPayloadSchema";
 import { useState } from "react";
@@ -10,8 +11,7 @@ import { ProviderIcon } from "@/lib/components/ProviderIcon";
 import { phaseLabel } from "@/lib/models/phaseRoles";
 import { isLocalProvider, parseModelString } from "@/lib/models/providerMeta";
 
-import type { StructuralPart } from "../parts";
-import { runningPhase } from "../thread/runningPhase";
+import { protocolPart, type StructuralPart } from "../parts";
 import { currentSeconds, statusLineWith, useNowSeconds } from "./statusClock";
 
 const DEFAULT_LABEL = "Thinking...";
@@ -35,7 +35,7 @@ function turnStatusData(part: StructuralPart): TurnStatusPayload | null {
 // read the same chunks; otherwise the latest reported label stands.
 export function selectStatusLabel(m: StatusCarrier | undefined): string | null {
   if (m == null || m.status?.type !== "running") return null;
-  const phase = runningPhase(m.content);
+  const phase = runningPhase(m.content.map(protocolPart));
   if (phase !== null) return `${phaseLabel(phase)}...`;
   let label = DEFAULT_LABEL;
   for (const part of m.content) {

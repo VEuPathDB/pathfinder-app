@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import type { TraceRowStatus } from "@pathfinder/assistant-client";
+import type { TraceRowStatus } from "@veupathdb/assistant-client";
 
 import { TraceRow } from "./TraceRow";
 import type { TraceRowView } from "./traceTypes";

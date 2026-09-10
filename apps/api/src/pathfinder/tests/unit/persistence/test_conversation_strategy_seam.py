@@ -8,8 +8,13 @@ from __future__ import annotations
 
 from assistant_core.persistence.models import Conversation
 from sqlalchemy import Index
+from sqlalchemy.dialects import postgresql
 
-from pathfinder.persistence.models import ConversationStrategy, ConversationStrategyView
+from pathfinder.persistence.models import (
+    ConversationStrategy,
+    ConversationStrategyView,
+    StrategyRevision,
+)
 
 THREAD_COLUMNS = {
     "id",
@@ -86,6 +91,16 @@ def test_the_unique_wdk_strategy_index_moved_to_the_side_table() -> None:
     assert index.dialect_options["postgresql"]["where"] == (
         "wdk_strategy_id IS NOT NULL"
     )
+
+
+def test_the_strategy_ast_column_maps_the_jsonb_the_chain_built() -> None:
+    """Both columns that hold a strategy AST compile to the type the chain built."""
+    dialect = postgresql.dialect()
+    column = ConversationStrategy.__table__.c.strategy_ast
+
+    assert column.type.compile(dialect) == "JSONB"
+    assert column.nullable is False
+    assert StrategyRevision.__table__.c.strategy_ast.type.compile(dialect) == "JSONB"
 
 
 def test_the_thread_declares_no_relationship_to_the_science() -> None:

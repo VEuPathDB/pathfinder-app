@@ -34,7 +34,7 @@ import {
   formatCost,
   formatUsage,
 } from "@/features/conversation/usageFormat";
-import { aggregateSessionUsage } from "@/features/conversation/sessionUsage";
+import { threadUsage } from "@veupathdb/assistant-client";
 import { useChatHelpers } from "@/features/conversation/runtime/chatHelpersContext";
 import {
   Tooltip,
@@ -52,8 +52,8 @@ export function stopClickBlocked(lastSendAt: number, now: number): boolean {
 
 function ConversationUsageFooter() {
   const chat = useChatHelpers();
-  const usage = aggregateSessionUsage(chat.messages);
-  if (usage.totalTokens === 0 && usage.totalCost === 0) return null;
+  const usage = threadUsage(chat.messages);
+  if (usage.total.tokens === 0 && usage.total.costUsd === 0) return null;
   return (
     <div className="flex items-center gap-2 px-1 pt-1">
       <TooltipProvider delayDuration={150}>
@@ -64,8 +64,8 @@ function ConversationUsageFooter() {
               tabIndex={0}
               className="cursor-help text-[11px] text-muted-foreground underline decoration-dotted underline-offset-2"
             >
-              Conversation · {formatTokens(usage.totalTokens)} tokens ·{" "}
-              {formatCost(usage.totalCost)}
+              Conversation · {formatTokens(usage.total.tokens)} tokens ·{" "}
+              {formatCost(usage.total.costUsd)}
             </span>
           </TooltipTrigger>
           <TooltipContent side="top" className="space-y-0.5 text-[11px]">
@@ -75,19 +75,19 @@ function ConversationUsageFooter() {
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Assistant</span>
               <span className="font-mono tabular-nums">
-                {formatUsage(usage.leadTokens, usage.leadCost)}
+                {formatUsage(usage.lead.tokens, usage.lead.costUsd)}
               </span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Sub-agents</span>
               <span className="font-mono tabular-nums">
-                {formatUsage(usage.subTokens, usage.subCost)}
+                {formatUsage(usage.subAgents.tokens, usage.subAgents.costUsd)}
               </span>
             </div>
             <div className="flex justify-between gap-4 border-t border-border/60 pt-0.5 font-medium">
               <span>Total</span>
               <span className="font-mono tabular-nums">
-                {formatUsage(usage.totalTokens, usage.totalCost)}
+                {formatUsage(usage.total.tokens, usage.total.costUsd)}
               </span>
             </div>
           </TooltipContent>

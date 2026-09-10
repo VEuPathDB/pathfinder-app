@@ -96,6 +96,21 @@ describe("selectStatusLabel follows the phase the trace shows", () => {
     ).toBe("Building...");
   });
 
+  it("reads the dispatch under the generic data part shape too", () => {
+    expect(
+      selectStatusLabel({
+        status: { type: "running" },
+        content: [
+          {
+            type: "data",
+            name: "sub-agent-call",
+            data: { toolCallId: "c1", phase: "verification", state: "started" },
+          },
+        ],
+      }),
+    ).toBe("Checking...");
+  });
+
   it("returns to the reported label once every dispatch closed", () => {
     expect(
       selectStatusLabel({

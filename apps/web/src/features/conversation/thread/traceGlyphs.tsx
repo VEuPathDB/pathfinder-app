@@ -9,7 +9,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import type { TraceRowStatus } from "@pathfinder/assistant-client";
+import type { TraceRowStatus } from "@veupathdb/assistant-client";
 
 export interface TraceGlyph {
   Icon: LucideIcon;

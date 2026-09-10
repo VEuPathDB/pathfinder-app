@@ -5,7 +5,7 @@ RUN corepack enable
 
 # Install dependencies only when needed
 FROM base AS deps
-# The install clones `@pathfinder/assistant-client` from its repository.
+# The install clones `@veupathdb/assistant-client` from its repository.
 RUN apk add --no-cache libc6-compat git
 WORKDIR /app
 

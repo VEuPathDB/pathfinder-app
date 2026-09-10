@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
   // instead of being buffered by the compressor.  In production, the reverse
   // proxy (nginx / CDN) handles compression for non-streaming responses.
   compress: false,
-  transpilePackages: ["@pathfinder/shared", "@pathfinder/assistant-client"],
+  transpilePackages: ["@pathfinder/shared", "@veupathdb/assistant-client"],
   turbopack: {
     root: path.resolve(process.cwd(), "../.."),
   },

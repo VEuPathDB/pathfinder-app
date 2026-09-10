@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
-import type { TraceGroupState } from "@pathfinder/assistant-client";
+import type { TraceGroupState } from "@veupathdb/assistant-client";
 
 import { phaseLabel } from "@/lib/models/phaseRoles";
 import { formatUsage } from "@/features/conversation/usageFormat";

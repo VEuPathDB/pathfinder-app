@@ -52,7 +52,7 @@ describe("revisionOfMessage", () => {
         content: [
           { type: "data", name: "strategy-revision", data: { revision: "xyz" } },
         ],
-      } as never),
+      }),
     ).toBe("xyz");
   });
 });

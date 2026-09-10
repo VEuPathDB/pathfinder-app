@@ -198,7 +198,9 @@ class ConversationStrategy(Base):
     wdk_strategy_id: Mapped[int | None] = mapped_column(nullable=True)
     is_saved: Mapped[bool] = mapped_column(Boolean, default=False)
     step_count: Mapped[int] = mapped_column(Integer, default=0)
-    strategy_ast: Mapped[JSONObject] = mapped_column(JSON, default=dict)
+    strategy_ast: Mapped[JSONObject] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
     estimated_size: Mapped[int | None] = mapped_column(nullable=True)
     gene_set_id: Mapped[str | None] = mapped_column(
         String(50), ForeignKey("gene_sets.id", ondelete="SET NULL"), nullable=True

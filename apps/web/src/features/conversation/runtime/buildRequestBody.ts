@@ -2,7 +2,7 @@ import type { UIMessage } from "ai";
 import {
   buildTurnRequestBody,
   type TurnRequestBody,
-} from "@pathfinder/assistant-client";
+} from "@veupathdb/assistant-client";
 
 import type { PhaseModelMap, PhaseReasoningMap } from "@/state/useSettingsStore";
 

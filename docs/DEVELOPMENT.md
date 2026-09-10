@@ -114,13 +114,13 @@ consumes by URL at a commit:
 | --- | --- | --- |
 | [ai-veupathdb-client](https://github.com/VEuPathDB/ai-veupathdb-client) | `veupathdb-py` (import `veupathdb`) | `apps/api`, and the MCP repository |
 | [ai-wdk-mcp](https://github.com/VEuPathDB/ai-wdk-mcp) | `veupathdb-mcp` (import `veupathdb_mcp`) | `apps/api`, and the `wdk-mcp` image |
-| [ai-assistant-platform](https://github.com/VEuPathDB/ai-assistant-platform) | `assistant-core`, `veupathdb-mcp-conformance`, `@pathfinder/assistant-client` | `apps/api`, `apps/web` |
+| [ai-assistant-platform](https://github.com/VEuPathDB/ai-assistant-platform) | `assistant-core`, `veupathdb-mcp-conformance`, `@veupathdb/assistant-client` | `apps/api`, `apps/web` |
 
 The pins are `apps/api/pyproject.toml` `[tool.uv.sources]` (four rows, each a
-`tag`), `apps/web/package.json` (`@pathfinder/assistant-client`, a `tag=`) and
+`tag`), `apps/web/package.json` (`@veupathdb/assistant-client`, a `tag=`) and
 the `wdk-mcp` compose service's build context, which names the same release.
-A tag is a release of that repository: `v0.1.0a1` for the client and the MCP
-server, `v0.2.0a1` for the platform. The lockfile still records the commit the
+A tag is a release of that repository: `v0.1.0a6` for the client, `v0.2.0a2` for
+the MCP server, `v0.3.0a1` for the platform. The lockfile still records the commit the
 tag pointed at, so a build is reproducible even though the pin reads as a
 version. A tag never moves; a new release gets a new tag.
 

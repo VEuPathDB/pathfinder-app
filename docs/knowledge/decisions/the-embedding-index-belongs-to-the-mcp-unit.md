@@ -41,7 +41,12 @@ memory store uses them. The MCP unit has its own copy of all of it under
 `veupathdb_mcp/embeddings/`. It is the duplication [the runtime is a
 package](the-runtime-is-a-package.md) already accepted for `RuntimeSettings`:
 about 230 lines against a distribution edge. There is no re-export and no alias;
-each unit's consumers import their own unit's module.
+each unit's consumers import their own unit's module. The copy and the values it
+pins are recorded in the platform bundle
+(`assistant-platform: docs/knowledge/decisions/the-embedder-is-copied-and-a-host-gates-the-drift.md`).
+This application installs both distributions, so it carries the drift gate:
+`apps/api/src/pathfinder/tests/unit/platform/test_embedder_copies_agree.py`
+compares the three module pairs and the width both alembic chains build.
 
 **Settings and sessions come from the host.** `EmbeddingSettings` in
 `veupathdb_mcp/embeddings/settings.py` carries `DATABASE_URL`, `OPENAI_API_KEY`

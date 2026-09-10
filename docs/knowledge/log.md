@@ -2,6 +2,49 @@
 
 ## 2026-09-10
 
+* **The runtime brings its own migration chain, and this chain stops proposing
+  its tables.** `assistant-core` and `veupathdb-mcp-conformance` move to
+  `v0.3.0a1`. `pathfinder.platform.migrations.upgrade_all` runs
+  `assistant_core.migrate.upgrade_head` after this application's chain and the
+  tool server's, on the same connection, because `conversations.user_id`,
+  `memory_tombstones.user_id` and `conversation_events.task_id` name tables
+  this chain builds; the runtime's baseline no-ops on a database that already
+  holds all four of its tables and stamps `alembic_version_assistant_core`. The
+  shared declarative `Base` puts those four in this chain's `target_metadata`,
+  so `alembic/env.py` now passes an `include_object` that drops them and the
+  runtime's version table, reading `assistant_core.migrate.OWNED_TABLES` rather
+  than a second copy of the names. The filter also refuses the tool server's two
+  index tables and its version table, procrastinate's queue tables and
+  LangGraph's eight checkpointer and store tables, so a revision generated
+  against a database this entry point built carries no operation outside the
+  four tables that leave with the next runtime release;
+  `conversation_strategies.strategy_ast` maps the `JSONB` the chain built rather
+  than `JSON`, which was the last column this application's models and its chain
+  disagreed on outside the tables that leave with the next runtime release. On a
+  fresh database the two chains agree on every column of the four tables and
+  differ only in six operations over six index names, which this application's
+  chain wrote first. The one process that installs both
+  embedder copies now gates their drift: three module pairs compared with the
+  distribution names normalized, the two constants, the four settings defaults,
+  and the `1024` both alembic chains build the vector column at.
+
+* **The TypeScript client is published under the organisation's scope, and four
+  readers moved into it.** `@pathfinder/assistant-client` becomes
+  `@veupathdb/assistant-client` 0.3.0-alpha.1; the dependency key, the
+  `workspace=` name and the tag move together, and every import, the boundary
+  allow-list and the transpile list follow. `thread/traceParts.ts`,
+  `sessionUsage.ts` and `thread/runningPhase.ts` are deleted for the package's
+  `toTraceParts`, `threadUsage` / `turnUsage` and `runningPhase`;
+  `DataBackgroundTaskStarted.tsx` keeps its `laneOf` and hands it to
+  `taskLifecycle`; `TraceAnchor.tsx` reads a call through `isToolPart` and
+  `taskExhibit.ts` reads a step through `readSubAgentStep`. The composer's
+  fields are now `total.tokens` and `total.costUsd`. Two rules change with the
+  move: the package reads the wire's declared types, so a count sent as a
+  string totals as nothing, and a dispatch payload that names no phase still
+  counts toward its turn. An assistant-ui part names its kind beside its type,
+  which the protocol does not, so `features/conversation/parts.ts` maps one to
+  the other before the package's readers see it.
+
 * **A mount no longer tails a thread that has nothing to tail.** Every
   conversation named in the URL re-attached on mount, so an idle thread held an
   open `GET /events` while the user typed. `ai` 7 answers that tail's 204 by

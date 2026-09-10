@@ -95,7 +95,7 @@ Server state is React Query's, not Zustand's.
 
 **The thread is durable**: chat streams over SSE from a durable event log.
 `@ai-sdk/react`'s `useChat()` runs through `DurableChatTransport` from
-`@pathfinder/assistant-client/ai-sdk`, which reads frames strictly, resumes from a stored cursor,
+`@veupathdb/assistant-client/ai-sdk`, which reads frames strictly, resumes from a stored cursor,
 and replays a snapshot when there is no turn in flight. Closing the tab loses nothing.
 
 **Message parts**: a message is an ordered `parts` array. `features/conversation/content/`
