@@ -14,7 +14,7 @@ from veupathdb.domain.strategy.build_outcome import (
 )
 from veupathdb.domain.strategy.combination_check import combination_terms_overlap
 from veupathdb.domain.strategy.constraints import Constraint, ConstraintKind
-from veupathdb.domain.strategy.operational_spec import OperationalSpec
+from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.lead.intent import (
@@ -232,6 +232,18 @@ class StrategyDomainState(BaseModel):
                     criterion_text=text_of.get(node.search_name, ""),
                 ),
             )
+
+    def record_criterion(self, criterion: Criterion) -> None:
+        """State one criterion on the framed spec, keyed by the step it names.
+
+        A thread that framed no spec states nothing about its strategy, so
+        there is nothing to record on.
+        """
+        spec = self.operational_spec
+        if spec is None:
+            return
+        spec.criteria = [c for c in spec.criteria if c.id != criterion.id]
+        spec.criteria.append(criterion)
 
     def mark_eda_sheet_shown(self, dataset_id: str) -> None:
         self.sheeted_eda_datasets.add(dataset_id)

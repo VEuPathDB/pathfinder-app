@@ -20,6 +20,12 @@ class StrategyMutationContext:
     strategy_session: StrategySession
     conversation_id: UUID | None = None
     db_session_factory: DBSessionFactory | None = None
+    stated_criteria: frozenset[str] = frozenset()
+    """The criterion ids the spec states, empty when the turn frames none.
+
+    A batch that replaces a subtree holds them, so a write cannot drop the
+    evidence the spec claims.
+    """
     locked_session: AsyncSession | None = None
     """A session that already owns the thread's strategy lock.
 

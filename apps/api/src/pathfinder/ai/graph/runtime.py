@@ -111,4 +111,7 @@ class AgentDeps(AssistantDeps):
             strategy_session=self.strategy_session,
             conversation_id=self.conversation_id,
             db_session_factory=self.db_session_factory,
+            stated_criteria=frozenset(
+                c.id for c in self.agent_state.operational_spec_draft.criteria
+            ),
         )

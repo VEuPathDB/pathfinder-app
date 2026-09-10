@@ -7,7 +7,14 @@ from veupathdb.domain.parameters.values import (
     ParamValue,
     SinglePickValue,
 )
-from veupathdb.domain.strategy.operational_spec import Criterion
+from veupathdb.domain.strategy.operational_spec import (
+    Criterion,
+    OpenSlot,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
+from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 
@@ -183,3 +190,69 @@ def test_frame_set_criterion_replaces_by_id() -> None:
     st.frame_set_criterion(Criterion(id="c1", text="a2", search_name="S2"))
     assert len(st.operational_spec_draft.criteria) == 1
     assert st.operational_spec_draft.criteria[0].search_name == "S2"
+
+
+def _spec_of_three() -> OperationalSpec:
+    """Three criteria under one combine, with an open slot on the last."""
+    return OperationalSpec(
+        goal="kinases",
+        criteria=[
+            Criterion(id="step_a", text="kinase domain", search_name="GenesByInterpro"),
+            Criterion(id="step_b", text="GO term", search_name="GenesByGoTerm"),
+            Criterion(id="step_c", text="SNP filter", search_name="GenesBySnps"),
+        ],
+        open_slots=[OpenSlot(criterion_id="step_c", param_name="organism")],
+        structure=SpecStructure(
+            root=StructureNode(
+                kind="combine",
+                operator=CombineOp.INTERSECT,
+                inputs=[
+                    StructureNode(kind="leaf", criterion_id="step_a"),
+                    StructureNode(kind="leaf", criterion_id="step_b"),
+                    StructureNode(kind="leaf", criterion_id="step_c"),
+                ],
+            )
+        ),
+    )
+
+
+def test_a_deleted_step_takes_its_criterion_slot_and_structure_node() -> None:
+    state = AgentToolState(operational_spec_draft=_spec_of_three())
+
+    state.drop_criteria_for_steps(["step_c", "step_combine"])
+
+    spec = state.operational_spec_draft
+    assert [c.id for c in spec.criteria] == ["step_a", "step_b"]
+    assert spec.open_slots == []
+    assert spec.structure is not None
+    assert [n.criterion_id for n in spec.structure.root.inputs] == [
+        "step_a",
+        "step_b",
+    ]
+
+
+def test_deleting_every_criterion_leaves_no_structure() -> None:
+    state = AgentToolState(operational_spec_draft=_spec_of_three())
+
+    state.drop_criteria_for_steps(["step_a", "step_b", "step_c"])
+
+    assert state.operational_spec_draft.criteria == []
+    assert state.operational_spec_draft.structure is None
+
+
+def test_a_transform_over_a_deleted_input_goes_with_it() -> None:
+    spec = _spec_of_three()
+    spec.structure = SpecStructure(
+        root=StructureNode(
+            kind="transform",
+            criterion_id="step_a",
+            inputs=[StructureNode(kind="leaf", criterion_id="step_b")],
+        )
+    )
+    state = AgentToolState(operational_spec_draft=spec)
+
+    state.drop_criteria_for_steps(["step_b"])
+
+    pruned = state.operational_spec_draft
+    assert pruned.structure is None
+    assert [c.id for c in pruned.criteria] == ["step_a", "step_c"]

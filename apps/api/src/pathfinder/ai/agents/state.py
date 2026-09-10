@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from dataclasses import dataclass, field
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
@@ -9,6 +10,7 @@ from veupathdb.domain.strategy.operational_spec import (
     DroppedCriterion,
     OperationalSpec,
     SpecStructure,
+    StructureNode,
 )
 
 
@@ -106,6 +108,22 @@ class AgentToolState:
         spec.dropped.append(DroppedCriterion(text=match.text, reason=reason))
         return True
 
+    def drop_criteria_for_steps(self, step_ids: Collection[str]) -> None:
+        """Forget the criteria the removed steps answered.
+
+        A criterion the graph no longer holds addresses nothing, so the spec
+        and the graph stay in one address space.
+        """
+        removed = set(step_ids)
+        if not removed:
+            return
+        spec = self.operational_spec_draft
+        spec.criteria = [c for c in spec.criteria if c.id not in removed]
+        spec.open_slots = [s for s in spec.open_slots if s.criterion_id not in removed]
+        if spec.structure is not None:
+            pruned = _structure_without(spec.structure.root, removed)
+            spec.structure = None if pruned is None else SpecStructure(root=pruned)
+
     def resolved_params_for(self, search_name: str) -> dict[str, ParamValue]:
         """Params the draft spec has already bound on ``search_name``.
 
@@ -163,3 +181,21 @@ class AgentToolState:
         """Inspectable searches: catalog results plus already-inspected ones
         (re-inspection must not be masked)."""
         return self.catalog_search_names | set(self.discovered_searches)
+
+
+def _structure_without(node: StructureNode, removed: set[str]) -> StructureNode | None:
+    """The structure node with the removed criteria taken out of it.
+
+    A combine or transform whose every input is gone states nothing, so it
+    goes with them.
+    """
+    if node.criterion_id is not None and node.criterion_id in removed:
+        return None
+    inputs = [
+        kept
+        for kept in (_structure_without(child, removed) for child in node.inputs)
+        if kept is not None
+    ]
+    if node.kind != "leaf" and not inputs:
+        return None
+    return node.model_copy(update={"inputs": inputs})

@@ -2,6 +2,57 @@
 
 ## 2026-09-10
 
+* **Every subtree write holds the leaf-set invariant, not just the edit path.**
+  `replace_subtree` applied whatever tree the model sent once the step id
+  existed, so a recovery pass replaced a seven-step kinase branch with four
+  steps named `__input_step__` and the four kinase criteria left the strategy
+  while the spec still stated them. The invariant the edit path already held is
+  now one implementation, `domain/strategy/stated_shape.py::stated_shape`, with
+  two call sites: `spec_to_operations.py::_refuse_a_shape_the_edit_did_not_state`
+  and the subtree write, which measures the shape on a copy and raises a
+  `ModelRetry` naming the criteria that would be lost instead of committing. A
+  placeholder name is refused a step earlier: the tool arguments are typed
+  `StepTreePayload`, so a tree carrying a `__name__` sentinel other than the
+  combine one never validates.
+
+* **The invariant now sits where no caller can go around it, and stops
+  refusing writes that keep every criterion.** `apply_operations_and_commit` is
+  the one place a batch reaches the working graph, so any batch that replaces a
+  subtree is measured there against `StrategyMutationContext.stated_criteria`
+  and restored on a violation; `apply_operations` turns that into a
+  `ModelRetry`, and its `operations` payload is held to the same placeholder
+  rule as a step tree. Two false refusals are gone with it: a criterion that
+  references a saved strategy is measured as the one criterion it is rather
+  than as the leaves the expansion brought, and a criterion whose step an
+  approved `delete_step` removed leaves the spec with it, so the criteria and
+  the live steps stay in one address space and the guard stays armed for the
+  rest of the thread. The placeholder rule reads the search name only, because
+  a criterion's own text becomes the display name.
+
+* **A saved strategy and an exported analysis are each one criterion.** The
+  measurement read the combine marker WDK puts on a collapsed reference, which
+  a spec whose only criterion is a saved strategy never produces, so its build
+  was refused for the leaves the expansion brought. It now reads the criteria:
+  a stated step holding no other stated step addresses its whole subtree.
+  `create_eda_step` states the leaf it wires into the main tree as a criterion
+  of its own, so the export no longer leaves the spec and the graph in two
+  address spaces, where every later `replace_subtree` on the thread was refused
+  for a step no criterion stated while a subtree that dropped the exported step
+  was applied.
+
+* **A write into an input slot never evicts the step that slot holds.** An
+  export into an occupied slot filled it anyway: the add sets the slot whether
+  or not it is free and reports no dropped step, so a stated step left the tree
+  undeleted, with no record of the loss, and every later write on the thread was
+  refused for the criterion it answered. `create_eda_step` now refuses an
+  occupied slot with a `ModelRetry` naming the slot, the step that holds it and
+  the criterion it answers, and the choke point holds every other producer to
+  the same rule: `apply_operations_and_commit` records the occupant of each slot
+  an operation overwrites and restores the graph when one of them ends the batch
+  off the tree and undeleted. A rewire that puts the occupant under the step
+  that replaces it is untouched, which is the shape `spec_to_operations` emits
+  when a new criterion joins a branch that already exists.
+
 * **The placement sweep's card left the backlog.** Every module the sweep
   ranked had already moved, and the three lines it still carried are now each
   somewhere that can be acted on. The two duplications are decided rather than

@@ -6,6 +6,7 @@ from veupathdb.domain.strategy.constraints import (
     ConstraintKind,
     organism_hints_from,
 )
+from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
@@ -186,3 +187,19 @@ def test_the_summary_caps_the_requirement_list() -> None:
 
     assert summary.count("requirement ") == 20
     assert "10 more stated earlier" in summary
+
+
+def test_the_commit_context_carries_the_criteria_the_spec_states() -> None:
+    """An edit pushed from a dispatch reaches the commit path holding them."""
+    state = pipeline_state()
+    state.domain.operational_spec = OperationalSpec(
+        goal="kinases",
+        criteria=[
+            Criterion(id="step_a", text="kinase domain", search_name="GenesByInterpro"),
+            Criterion(id="step_b", text="GO term", search_name="GenesByGoTerm"),
+        ],
+    )
+
+    context = agent_deps_for(lead_deps(state)).to_strategy_context()
+
+    assert context.stated_criteria == frozenset({"step_a", "step_b"})

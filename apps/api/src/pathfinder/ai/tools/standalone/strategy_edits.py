@@ -11,8 +11,8 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.domain.search import SearchContext
-from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import StepKind
+from veupathdb.domain.strategy.operational_spec import Criterion
 from veupathdb.domain.strategy.operations import (
     DeleteResolution,
     DeleteStepOp,
@@ -22,6 +22,7 @@ from veupathdb.domain.strategy.operations import (
     UpdateStepParamsOp,
 )
 from veupathdb.domain.strategy.ops import ColocationParams, CombineOp
+from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.errors import ValidationError
 from veupathdb_mcp.catalog.param_validation import (
     ValidationCallbacks,
@@ -44,11 +45,13 @@ from pathfinder.ai.tools.standalone._stream_parts import (
 )
 from pathfinder.ai.tools.standalone._validation_helpers import (
     StepOkResponse,
+    StepTreePayload,
     get_graph,
     get_graph_and_step,
     validation_error_payload,
     validation_model_retry,
 )
+from pathfinder.domain.strategy.stated_shape import StatedShape, shape_after
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.insert_saved import (
@@ -220,6 +223,7 @@ async def delete_step(
         deps=deps.to_strategy_context(),
         op=DeleteStepOp(step_id=step_id, resolution=resolution),
     )
+    deps.agent_state.drop_criteria_for_steps(result.dropped_step_ids)
     response: JSONObject = {
         "ok": True,
         "deleted": cast("JSONArray", result.dropped_step_ids),
@@ -233,10 +237,48 @@ async def delete_step(
     )
 
 
+def _refuse_a_write_the_spec_did_not_state(
+    deps: AgentDeps, graph: StrategyGraph, op: ReplaceSubtreeOp
+) -> None:
+    """The write leaves the strategy holding the criteria the spec states.
+
+    The spec addresses this graph by step id, so it states nothing about a
+    graph whose steps it does not name.
+    """
+    criteria = {c.id: c for c in deps.agent_state.operational_spec_draft.criteria}
+    if not criteria or not set(criteria) <= set(graph.steps):
+        return
+    shape = shape_after(op, graph=graph, criteria=set(criteria))
+    if shape.holds:
+        return
+    raise ModelRetry(_write_refusal(shape, criteria))
+
+
+def _write_refusal(shape: StatedShape, criteria: dict[str, Criterion]) -> str:
+    parts = ["VALIDATION_ERROR: nothing was applied and the strategy is unchanged."]
+    if shape.lost:
+        named = ", ".join(f"{cid} ({criteria[cid].text})" for cid in shape.lost)
+        parts.append(
+            f"This subtree would drop {len(shape.lost)} of the criteria the "
+            f"strategy states: {named}."
+        )
+    if shape.unstated:
+        parts.append(f"It would add {list(shape.unstated)}, which no criterion states.")
+    if shape.adopted:
+        parts.append(f"It would adopt {list(shape.adopted)} from outside the strategy.")
+    if shape.stranded:
+        parts.append(f"It would strand {list(shape.stranded)}.")
+    parts.append(
+        "Send a subtree that keeps every step id the spec names, or change the "
+        "criteria first."
+    )
+    return " ".join(parts)
+
+
 async def replace_subtree(
     ctx: RunContext[AgentDeps],
     step_id: str,
-    new_subtree: StrategyStepNode,
+    new_subtree: StepTreePayload,
     *,
     graph_id: str | None = None,
 ) -> ToolReturn[JSONObject]:
@@ -253,10 +295,9 @@ async def replace_subtree(
         )
         raise ModelRetry(msg)
 
-    result = await apply_and_commit(
-        deps=deps.to_strategy_context(),
-        op=ReplaceSubtreeOp(step_id=step_id, subtree=new_subtree),
-    )
+    op = ReplaceSubtreeOp(step_id=step_id, subtree=new_subtree)
+    _refuse_a_write_the_spec_did_not_state(deps, graph, op)
+    result = await apply_and_commit(deps=deps.to_strategy_context(), op=op)
     payload: JSONObject = {
         "ok": True,
         "replacedStepId": step_id,

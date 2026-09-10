@@ -19,6 +19,7 @@ from veupathdb.domain.strategy.operations import (
     AddLeafOp,
     DeleteStepOp,
     ReplaceSubtreeOp,
+    WireInputOp,
 )
 from veupathdb.domain.strategy.ops import CombineOp
 
@@ -204,3 +205,34 @@ def test_a_rearrangement_that_adopts_a_step_from_outside_is_refused() -> None:
         plan(before, after, graph)
 
     assert "step_stray" in str(excinfo.value)
+
+
+def test_a_new_criterion_rewires_an_occupied_slot_without_evicting_its_step() -> None:
+    """The wire the planner emits puts the slot's own step under the new combine."""
+    root = combine("step_c1", text_leaf(), go_leaf())
+    before = spec_of(root)
+    after = before.model_copy(deep=True)
+    after.criteria.append(
+        Criterion(id="step_tm", text="two or more TM domains", search_name="tm")
+    )
+    after.structure = SpecStructure(
+        root=spec_joined(
+            CombineOp.INTERSECT,
+            spec_joined(
+                CombineOp.INTERSECT, spec_leaf("step_text"), spec_leaf("step_tm")
+            ),
+            spec_leaf("step_go"),
+        )
+    )
+    graph = graph_of(root)
+    assert graph.steps["step_c1"].primary_input_id == "step_text"
+
+    ops = plan(before, after, graph)
+
+    wires = [op for op in ops if isinstance(op, WireInputOp)]
+    assert len(wires) == 1
+    assert wires[0].target_step_id == "step_c1"
+    assert wires[0].slot == "primary"
+    assert shape(applied(root, ops)) == (
+        "((step_text INTERSECT step_tm) INTERSECT step_go)"
+    )

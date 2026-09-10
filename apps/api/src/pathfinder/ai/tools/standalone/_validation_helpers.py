@@ -1,19 +1,67 @@
 """Shared error payloads, graph and step lookup, and result models for strategy tools."""
 
 import json
+from typing import Annotated
 
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, JsonValue
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import StrategyStep
+from veupathdb.domain.strategy.operations import GraphOperation
 from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.errors import ValidationError
 from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
 
+from pathfinder.domain.strategy.stated_shape import placeholder_names
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.schemas import StepResponse
+
+
+def _reject_placeholder_steps(root: StrategyStepNode) -> StrategyStepNode:
+    found = placeholder_names(root)
+    if found:
+        msg = (
+            f"{', '.join(found)}: a placeholder, not a WDK search. Every step "
+            f"names the search it runs, so name that search or leave the step "
+            f"out of the tree."
+        )
+        raise ValueError(msg)
+    return root
+
+
+StepTreePayload = Annotated[StrategyStepNode, AfterValidator(_reject_placeholder_steps)]
+"""A step tree the model authored, refused while it holds a placeholder name."""
+
+
+def _step_tree_of(op: GraphOperation) -> StrategyStepNode | None:
+    """The step tree an operation carries, or None when it carries none."""
+    if op.kind == "addLeaf":
+        return op.step
+    if op.kind == "addCombine":
+        return op.step
+    if op.kind == "addTransform":
+        return op.step
+    if op.kind == "replaceSubtree":
+        return op.subtree
+    if op.kind == "replaceStrategy":
+        return op.root
+    return None
+
+
+def _reject_placeholder_operations(op: GraphOperation) -> GraphOperation:
+    tree = _step_tree_of(op)
+    if tree is not None:
+        _reject_placeholder_steps(tree)
+    return op
+
+
+OperationPayload = Annotated[
+    GraphOperation, AfterValidator(_reject_placeholder_operations)
+]
+"""One graph operation the model authored, held to the same name rule."""
 
 
 class GraphEdge(CamelModel):

@@ -39,6 +39,8 @@ from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.domain.strategy.spec_diff import SpecDiff
 from veupathdb.domain.strategy.tree import subtree_ids
 
+from pathfinder.domain.strategy.stated_shape import stated_shape, working_copy
+
 __all__ = ["UnsupportedEditError", "operations_for"]
 
 _MIN_COMBINE_INPUTS = 2
@@ -100,7 +102,7 @@ def _plan_the_named_changes(
 ) -> _Plan:
     """A fresh plan holding the drops and the changes the diff names."""
     plan = _Plan(
-        graph=_working_copy(graph),
+        graph=working_copy(graph),
         added=frozenset(
             c.criterion_id for c in diff.changes if c.disposition == "added"
         ),
@@ -122,17 +124,6 @@ def _plan_the_named_changes(
     return plan
 
 
-def _working_copy(graph: StrategyGraph) -> StrategyGraph:
-    """A graph the plan can apply to without touching the session's own."""
-    clone = StrategyGraph(graph_id=graph.id, name=graph.name, site_id=graph.site_id)
-    clone.record_type = graph.record_type
-    clone.description = graph.description
-    clone.steps = {sid: step.model_copy(deep=True) for sid, step in graph.steps.items()}
-    clone.recompute_roots()
-    clone.last_step_id = graph.last_step_id
-    return clone
-
-
 def _refuse_a_shape_the_edit_did_not_state(
     plan: _Plan, root_id: str, outside: set[str]
 ) -> None:
@@ -141,32 +132,33 @@ def _refuse_a_shape_the_edit_did_not_state(
     ``outside`` are the steps the edited strategy did not reach when the turn
     began. They stay where they are: the edit neither adopts nor strands them.
     """
-    if root_id != plan.graph.primary_root_id():
+    shape = stated_shape(
+        graph=plan.graph,
+        root_id=root_id,
+        criteria=set(plan.criteria),
+        outside=outside,
+    )
+    if shape.roots_elsewhere:
         msg = (
             f"the planned strategy roots at "
-            f"{plan.graph.primary_root_id()!r} where the edited structure "
+            f"{shape.live_root_id!r} where the edited structure "
             f"states {root_id!r}"
         )
         raise UnsupportedEditError(msg)
-    reachable = set(subtree_ids(root_id, plan.graph.steps))
-    adopted = reachable & outside
-    if adopted:
+    if shape.adopted:
         msg = (
-            f"the edit would adopt {sorted(adopted)} from outside the strategy it edits"
+            f"the edit would adopt {list(shape.adopted)} from outside "
+            f"the strategy it edits"
         )
         raise UnsupportedEditError(msg)
-    searches = {
-        sid for sid in reachable if plan.graph.steps[sid].kind is not StepKind.COMBINE
-    }
-    if searches != set(plan.criteria):
+    if shape.lost or shape.unstated:
         msg = (
-            f"the planned strategy holds {sorted(searches)} where the edited "
-            f"spec states {sorted(plan.criteria)}"
+            f"the planned strategy holds {list(shape.searches)} where the "
+            f"edited spec states {sorted(plan.criteria)}"
         )
         raise UnsupportedEditError(msg)
-    stranded = set(plan.graph.steps) - reachable - outside
-    if stranded:
-        msg = f"the edit would strand {sorted(stranded)} outside the strategy"
+    if shape.stranded:
+        msg = f"the edit would strand {list(shape.stranded)} outside the strategy"
         raise UnsupportedEditError(msg)
 
 

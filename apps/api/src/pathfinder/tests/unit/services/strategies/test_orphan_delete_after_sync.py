@@ -21,9 +21,9 @@ from veupathdb.errors import WDKError
 from veupathdb.wdk.strategy_api.steps import StepsMixin
 from veupathdb.wdk.wdk_models import NewStepSpec, WDKIdentifier
 
-from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.services.strategies import commit, step_wdk_push
 from pathfinder.services.strategies.commit import apply_and_commit
+from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -100,7 +100,7 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
     return api
 
 
-def _deps(wdk_step_ids: dict[str, int]) -> AgentDeps:
+def _deps(wdk_step_ids: dict[str, int]) -> StrategyMutationContext:
     a = StrategyStepNode(id="A", search_name="geneById")
     b = StrategyStepNode(id="B", search_name="geneById")
     root = StrategyStepNode(
@@ -119,12 +119,12 @@ def _deps(wdk_step_ids: dict[str, int]) -> AgentDeps:
     session.sync_state = WDKSyncState(
         wdk_step_ids=dict(wdk_step_ids), wdk_strategy_id=42
     )
-    return AgentDeps(
+    return StrategyMutationContext(
         site_id="plasmodb", strategy_session=session, conversation_id=uuid4()
     )
 
 
-async def _drop_a(deps: AgentDeps) -> None:
+async def _drop_a(deps: StrategyMutationContext) -> None:
     await apply_and_commit(
         deps=deps,
         op=DeleteStepOp(step_id="A", resolution=DeleteResolution.COLLAPSE_COMBINE),

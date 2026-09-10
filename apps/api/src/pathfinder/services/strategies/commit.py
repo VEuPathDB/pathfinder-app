@@ -14,9 +14,16 @@ from veupathdb.domain.strategy.operations.apply import (
 )
 from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy.tree import subtree_ids
 from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.wdk.factory import get_strategy_api
 
+from pathfinder.domain.strategy.stated_shape import (
+    SlotWrite,
+    evicted_by,
+    overwritten_slot,
+    stated_shape,
+)
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
@@ -84,6 +91,50 @@ def _restore_graph(graph: StrategyGraph, old_ast: StrategyAst | None) -> None:
     apply_operation(graph, ReplaceStrategyOp(root=old_ast.root))
 
 
+def _replaces_a_subtree(op: GraphOperation) -> bool:
+    match op.kind:
+        case "replaceSubtree":
+            return True
+        case _:
+            return False
+
+
+def _departure_from_the_spec(
+    *,
+    graph: StrategyGraph,
+    stated: frozenset[str],
+    outside: set[str],
+) -> str | None:
+    """How the graph departs from the criteria the spec states, or nothing."""
+    shape = stated_shape(
+        graph=graph,
+        root_id=graph.primary_root_id() or "",
+        criteria=stated,
+        outside=outside,
+    )
+    if shape.holds:
+        return None
+    return (
+        f"a replaced subtree would leave the strategy holding "
+        f"{list(shape.searches)} where the spec states {sorted(stated)}"
+    )
+
+
+def _eviction_message(write: SlotWrite, *, stated: frozenset[str]) -> str:
+    """Why a slot write is refused, naming the step it would take off the tree."""
+    answers = (
+        " and answers a criterion the spec states"
+        if write.occupant_step_id in stated
+        else ""
+    )
+    return (
+        f"the {write.slot} input of {write.target_step_id} holds "
+        f"{write.occupant_step_id}{answers}, and this batch overwrites it, so "
+        f"{write.occupant_step_id} would leave the strategy without being "
+        f"deleted. Delete that step first, or keep it wired into the tree"
+    )
+
+
 async def apply_operations_and_commit(
     *,
     deps: StrategyMutationContext,
@@ -100,6 +151,16 @@ async def apply_operations_and_commit(
         raise ValidationError(title="No operations", detail=msg)
 
     graph = _require_graph(deps)
+    stated = deps.stated_criteria
+    # The spec addresses this graph by step id, so it states nothing about a
+    # graph whose steps it does not name.
+    guarded = (
+        bool(stated)
+        and stated <= set(graph.steps)
+        and any(_replaces_a_subtree(op) for op in ops)
+    )
+    entry_reachable = set(subtree_ids(graph.primary_root_id() or "", graph.steps))
+    outside = set(graph.steps) - entry_reachable if guarded else set[str]()
     sync_state = ensure_sync_state(deps.strategy_session)
     snapshot = graph.to_strategy_ast(sync_state=sync_state)
     # Deep-copy: apply_operation mutates the live nodes in-place, so a shallow
@@ -109,14 +170,31 @@ async def apply_operations_and_commit(
 
     descriptions: list[str] = []
     dropped_step_ids: list[str] = []
+    slot_writes: list[SlotWrite] = []
     try:
         for op in ops:
+            write = overwritten_slot(graph, op)
+            if write is not None:
+                slot_writes.append(write)
             step_result = apply_operation(graph, op)
             descriptions.append(step_result.description)
             dropped_step_ids.extend(step_result.dropped_step_ids)
     except ApplyError, ValueError:
         _restore_graph(graph, old_ast)
         raise
+
+    eviction = evicted_by(graph, slot_writes, was_reachable=entry_reachable)
+    if eviction is not None:
+        _restore_graph(graph, old_ast)
+        raise ApplyError(_eviction_message(eviction, stated=stated))
+
+    if guarded:
+        departure = _departure_from_the_spec(
+            graph=graph, stated=stated, outside=outside
+        )
+        if departure is not None:
+            _restore_graph(graph, old_ast)
+            raise ApplyError(departure)
 
     result = ApplyResult(
         description="; ".join(descriptions),

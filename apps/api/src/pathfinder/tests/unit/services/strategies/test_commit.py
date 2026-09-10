@@ -21,9 +21,9 @@ from veupathdb.wdk.wdk_models import (
     WDKStep,
 )
 
-from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.services.strategies import commit, step_wdk_push, sync
 from pathfinder.services.strategies.commit import apply_and_commit
+from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -140,7 +140,9 @@ def _combine(id_: str, p: StrategyStepNode, s: StrategyStepNode) -> StrategyStep
     )
 
 
-def _seed_session(root: StrategyStepNode, wdk_step_ids: dict[str, int]) -> AgentDeps:
+def _seed_session(
+    root: StrategyStepNode, wdk_step_ids: dict[str, int]
+) -> StrategyMutationContext:
     session = StrategySession(site_id="plasmodb")
     graph = StrategyGraph(graph_id="g1", name="Test", site_id="plasmodb")
     graph.record_type = "transcript"
@@ -151,7 +153,7 @@ def _seed_session(root: StrategyStepNode, wdk_step_ids: dict[str, int]) -> Agent
         wdk_step_ids=dict(wdk_step_ids),
         wdk_strategy_id=42,
     )
-    return AgentDeps(
+    return StrategyMutationContext(
         site_id="plasmodb",
         strategy_session=session,
         conversation_id=uuid4(),

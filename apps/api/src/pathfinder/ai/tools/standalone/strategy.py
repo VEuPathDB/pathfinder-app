@@ -14,9 +14,7 @@ from assistant_core.platform.types import JSONArray, JSONObject
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.build_outcome import BuildOutcome
-from veupathdb.domain.strategy.operations import GraphOperation
 from veupathdb.domain.strategy.operations.apply import ApplyError
 from veupathdb.domain.strategy.session import StrategyGraph
 
@@ -26,7 +24,11 @@ from pathfinder.ai.tools.standalone._stream_parts import (
     graph_snapshot_chunk,
     strategy_link_chunk,
 )
-from pathfinder.ai.tools.standalone._validation_helpers import get_graph
+from pathfinder.ai.tools.standalone._validation_helpers import (
+    OperationPayload,
+    StepTreePayload,
+    get_graph,
+)
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.strategies.commit import apply_operations_and_commit
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
@@ -70,7 +72,7 @@ def _build_outcome_payload(outcome: BuildOutcome, graph: StrategyGraph) -> JSONO
 
 async def build_strategy(
     ctx: RunContext[AgentDeps],
-    root: StrategyStepNode,
+    root: StepTreePayload,
     *,
     name: str | None = None,
     description: str | None = None,
@@ -163,7 +165,7 @@ def _current_revision(graph: StrategyGraph) -> str:
 async def apply_operations(
     ctx: RunContext[AgentDeps],
     base_revision: str,
-    operations: list[GraphOperation],
+    operations: list[OperationPayload],
     graph_id: str | None = None,
 ) -> ToolReturn[JSONObject]:
     """Edit the strategy with a batch of operations, not a whole new tree.
@@ -180,6 +182,10 @@ async def apply_operations(
 
     Operations apply in order and all land together; if one is rejected the
     strategy is left exactly as it was.
+
+    A batch that overwrites an input slot never takes the step that slot holds
+    off the strategy: delete that step in the same batch, or wire it back in
+    under the step that replaces it.
     """
     deps = ctx.deps
     session = deps.strategy_session

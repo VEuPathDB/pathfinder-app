@@ -71,9 +71,33 @@ what changed, and the algebra is derived from it rather than typed.
 The mapping is not total. Four shapes are refused, and the refusal names which
 one: a shape that leaves out a criterion the spec keeps, one that names a step
 the strategy does not hold, one that adopts a step from outside the strategy
-under edit, and one that leaves a step disconnected. A restructure also gives up
-the record class stored on each step, because `ReplaceSubtreeOp` carries nodes;
-the next push assigns it again from the catalog.
+under edit, and one that leaves a step disconnected. The measurement is
+`domain/strategy/stated_shape.py::stated_shape`. The edit path is one call site;
+the `replace_subtree` tool is the second, measuring the same shape on a copy of
+the graph and refusing the write with a `ModelRetry` naming the criteria it
+would drop; `apply_operations_and_commit` is the third and the one no caller can
+go around, holding any batch that replaces a subtree to the criteria the turn's
+context carries in `stated_criteria`. A criterion whose step a `delete_step`
+removed leaves the spec with it, so the criteria and the steps stay in one
+address space. A criterion that states a step holding no other stated step
+addresses that whole subtree, so a strategy built over a saved one is not
+refused for the leaves the expansion brought, whether or not a combine wraps
+the expansion. A step `create_eda_step` wires into the main tree is stated as a
+criterion of its own, so an analysis exported into a strategy is measured like
+any other step rather than as a step no criterion states.
+
+The same choke point holds a second invariant, which needs no spec: a write into
+an input slot never overwrites the step that slot holds off the tree. Each
+`AddLeafOp` into a slot and each `WireInputOp` records the step it displaces, and
+a batch that leaves one of them unreachable and undeleted is restored and
+refused. A rewire that puts the displaced step under the step replacing it is
+what an edit emits when a new criterion joins an existing branch, so it applies.
+`create_eda_step` refuses an occupied slot before it builds anything, naming the
+slot, the step that holds it and the criterion that step answers.
+
+A restructure also gives up the record class stored on each step, because
+`ReplaceSubtreeOp` carries nodes; the next push assigns it again from the
+catalog.
 
 `build_strategy` is now unreachable on a thread with a strategy, so a genuine
 "start over" goes through `clear_strategy`, the Lead's one destructive tool,
@@ -81,5 +105,5 @@ which the user approves before any step is removed.
 
 # Anchors
 
-`domain/strategy/spec_to_operations.py`, `ai/lead/edit_dispatch.py`,
-`services/strategies/commit.py`.
+`domain/strategy/spec_to_operations.py`, `domain/strategy/stated_shape.py`,
+`ai/lead/edit_dispatch.py`, `services/strategies/commit.py`.

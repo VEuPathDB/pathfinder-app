@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 from veupathdb.errors import ValidationError
 
@@ -17,10 +18,16 @@ from pathfinder.tests._support.eda_doubles import lead_run_context
 from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
 from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
     bound,
+    pushing_commit,
     read_detail,
     read_detail_with_computation,
     recording_commit,
     unbound,
+)
+from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
+    combine,
+    leaf,
+    session_with,
 )
 
 
@@ -225,3 +232,106 @@ async def test_a_session_with_no_graph_fails_loudly(
         await eda_step.create_eda_step(lead_ctx)
 
     assert "No active strategy graph" in str(excinfo.value)
+
+
+def test_the_commit_context_carries_the_criteria_the_spec_states(
+    lead_ctx: RunContext[LeadDeps],
+) -> None:
+    """An EDA write reaches the commit path holding the same invariant."""
+    lead_ctx.deps.state.domain.operational_spec = OperationalSpec(
+        goal="febrile genes",
+        criteria=[
+            Criterion(id="step_a", text="febrile subset", search_name="GenesByTaxon"),
+            Criterion(id="step_b", text="kinase domain", search_name="GenesByInterpro"),
+        ],
+    )
+
+    context = eda_step._strategy_context(lead_ctx)
+
+    assert context.stated_criteria == frozenset({"step_a", "step_b"})
+
+
+def test_a_thread_that_framed_no_spec_states_no_criteria(
+    lead_ctx: RunContext[LeadDeps],
+) -> None:
+    assert eda_step._strategy_context(lead_ctx).stated_criteria == frozenset()
+
+
+def _lead_ctx_over(root: object) -> RunContext[LeadDeps]:
+    """A Lead context whose session already holds a strategy."""
+    session = session_with(root, {})
+    return lead_run_context(prompt="export the febrile subset", session=session)
+
+
+async def test_the_exported_step_becomes_a_criterion_of_the_spec(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """A leaf wired into the main tree is a criterion like any other."""
+    lead_ctx.deps.state.domain.operational_spec = OperationalSpec(goal="febrile genes")
+    applied: list[Any] = []
+    _wire(
+        monkeypatch,
+        read=read_detail,
+        commit=pushing_commit(
+            applied, session=lead_ctx.deps.runtime.strategy_session, count=132
+        ),
+    )
+
+    returned = await eda_step.create_eda_step(lead_ctx)
+
+    spec = lead_ctx.deps.state.domain.operational_spec
+    assert spec is not None
+    assert [c.id for c in spec.criteria] == [returned.return_value.step_id]
+    criterion = spec.criteria[0]
+    assert criterion.search_name == "GenesByEdaSubset"
+    assert criterion.text == "berghei subset"
+    assert set(criterion.resolved_params) == {"eda_dataset_id", "eda_analysis_spec"}
+    assert criterion.bound is True
+
+
+async def test_a_step_outside_the_main_tree_states_no_criterion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A new root beside a larger tree is not what the strategy states."""
+    ctx = _lead_ctx_over(combine("step_c1", leaf("step_k1"), leaf("step_k2")))
+    ctx.deps.state.domain.operational_spec = OperationalSpec(
+        goal="febrile genes",
+        criteria=[
+            Criterion(id="step_k1", text="kinase domain", search_name="GenesByTaxon"),
+            Criterion(id="step_k2", text="febrile subset", search_name="GenesByTaxon"),
+        ],
+    )
+    applied: list[Any] = []
+    _wire(
+        monkeypatch,
+        read=read_detail,
+        commit=pushing_commit(
+            applied, session=ctx.deps.runtime.strategy_session, count=7
+        ),
+    )
+
+    await eda_step.create_eda_step(ctx)
+
+    spec = ctx.deps.state.domain.operational_spec
+    assert spec is not None
+    assert [c.id for c in spec.criteria] == ["step_k1", "step_k2"]
+
+
+async def test_a_thread_that_framed_no_spec_records_nothing(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    applied: list[Any] = []
+    _wire(
+        monkeypatch,
+        read=read_detail,
+        commit=pushing_commit(
+            applied, session=lead_ctx.deps.runtime.strategy_session, count=132
+        ),
+    )
+
+    returned = await eda_step.create_eda_step(lead_ctx)
+
+    graph = lead_ctx.deps.runtime.strategy_session.get_graph(None)
+    assert graph is not None
+    assert list(graph.steps) == [returned.return_value.step_id]
+    assert lead_ctx.deps.state.domain.operational_spec is None
