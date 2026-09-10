@@ -2,6 +2,22 @@
 
 ## 2026-09-10
 
+* **The placement sweep's card left the backlog.** Every module the sweep
+  ranked had already moved, and the three lines it still carried are now each
+  somewhere that can be acted on. The two duplications are decided rather than
+  removed: `CamelModel` stays written in `assistant_core.platform.pydantic_base`
+  and in `veupathdb.model`, and the testcontainers bootstrap stays written in
+  each repository's own conftest, because the two distributions may not depend
+  on each other and a third distribution for a twenty-line base class and a test
+  fixture is a pin every consumer pays for one class
+  (`assistant-platform: docs/knowledge/decisions/the-model-base-and-the-test-database-are-written-per-distribution.md`,
+  which also names the embedder drift gate as the shape to copy if the two
+  `CamelModel`s ever separate). The library that still names PathFinder was
+  already the ranked card `re-cut-the-authoring-model-out-of-veupathdb-py.md`.
+  What the sweep's enforcement paragraph carried is now its own card: the tool
+  server declares almost no public surface, and this application imports 66
+  names out of `veupathdb_mcp`, 52 of them submodules no package publishes.
+
 * **The conformance account hook opens its own WDK client.** The nested
   conformance session runs in a worker thread under its own `asyncio.run`, and
   the per-site `VEuPathDBClient` this process caches keeps a live connection
