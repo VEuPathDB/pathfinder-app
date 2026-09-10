@@ -9,8 +9,6 @@ from veupathdb.errors import VEuPathDBError
 from veupathdb.logging import get_logger
 from veupathdb_mcp.catalog.param_resolution import get_search_parameters
 
-from pathfinder.platform.errors import AppError
-
 logger = get_logger(__name__)
 
 
@@ -31,7 +29,7 @@ async def published_names(
         resolved = await get_search_parameters(
             SearchContext(site_id, record_type, search_name)
         )
-    except (VEuPathDBError, AppError, OSError) as exc:
+    except (VEuPathDBError, OSError) as exc:
         logger.warning(
             "The published names of a search could not be read",
             search_name=search_name,

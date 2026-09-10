@@ -17,7 +17,7 @@ from veupathdb_mcp.wdk.gene_set_steps import (
 )
 from veupathdb_mcp.wdk.helpers import extract_record_ids
 
-from pathfinder.platform.errors import AppError
+from pathfinder.platform.identity import ENRICHMENT_STRATEGY_NAME
 from pathfinder.services.experiment.cross_validation import (
     CrossValidationOptions,
     run_cross_validation,
@@ -65,7 +65,7 @@ async def phase_robustness(pctx: PhaseContext) -> None:
                 options=BootstrapOptions(n_bootstrap=200),
             )
             pctx.store.save(experiment)
-    except (AppError, VEuPathDBError, ZeroDivisionError) as exc:
+    except (VEuPathDBError, ZeroDivisionError) as exc:
         logger.warning(
             "Robustness computation failed",
             experiment_id=experiment.id,
@@ -142,7 +142,7 @@ async def phase_enrich(
     step_id = experiment.wdk_step_id
     search_name, parameters, record_type = await _build_enrichment_context(config)
 
-    svc = EnrichmentService()
+    svc = EnrichmentService(strategy_name=ENRICHMENT_STRATEGY_NAME)
     enrich_results, _ = await svc.run_batch(
         site_id=config.site_id,
         analysis_types=config.enrichment_types,

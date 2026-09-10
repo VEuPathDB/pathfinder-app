@@ -36,8 +36,6 @@ from pathfinder.ai.graph.state import (
 from pathfinder.ai.lead.memory_candidates import PRODUCT_MEMORY_KINDS
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
 from pathfinder.persistence.models import User
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 
 
 @dataclass
@@ -171,8 +169,6 @@ def _context(user_id: Any, store: Any) -> Context:
         user_id=user_id,
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=async_session_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
         memory_store=store,
     )

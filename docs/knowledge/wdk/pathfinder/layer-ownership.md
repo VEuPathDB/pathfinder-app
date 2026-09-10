@@ -96,10 +96,10 @@ A contract reads import statements. It says nothing about importing `httpx` and
 calling a VEuPathDB URL, because `httpx` is only in the forbidden list of the
 client library's own domain suite.
 
-Most non-test modules under `src/pathfinder/` that import `httpx` catch its
-exception types without making a call; the literature clients under
-`services/research/` call arXiv, Crossref, PubMed and the rest. Exactly one built
-a client against a VEuPathDB base URL:
+Every non-test module under `src/pathfinder/` that imports `httpx` catches its
+exception types without making a call; the clients that reach arXiv, Crossref,
+PubMed and the rest are served by `veupathdb-research-mcp` and are not in this
+tree. Exactly one module built a client against a VEuPathDB base URL:
 `transport/http/routers/veupathdb_auth.py` constructed its own
 `httpx.AsyncClient(base_url=auth_site.service_url)` for `GET /logout`, with every
 contract green, and it was a transport module talking to WDK. That call moved

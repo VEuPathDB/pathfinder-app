@@ -17,7 +17,6 @@ from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.wdk.factory import get_strategy_api
 
-from pathfinder.platform.errors import AppError
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
@@ -228,7 +227,7 @@ async def _commit_to_wdk(
                 site_id=deps.site_id,
                 strategy_name=graph.name,
             )
-        except (AppError, VEuPathDBError) as exc:
+        except VEuPathDBError as exc:
             logger.warning(
                 "sync_strategy_for_site failed; persisting partial state",
                 error=str(exc),

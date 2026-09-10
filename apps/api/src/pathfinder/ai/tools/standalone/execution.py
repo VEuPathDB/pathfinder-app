@@ -13,7 +13,7 @@ from veupathdb_mcp.wdk.step_size import get_estimated_size_for_site
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._result_models import EstimatedSizeResult
-from pathfinder.platform.errors import AppError, ErrorCode
+from pathfinder.platform.errors import ErrorCode
 
 
 async def get_estimated_size(
@@ -34,7 +34,7 @@ async def get_estimated_size(
         result = await get_estimated_size_for_site(
             ctx.deps.strategy_session.site_id, wdk_step_id, wdk_strategy_id
         )
-    except (AppError, VEuPathDBError, OSError) as e:
+    except (VEuPathDBError, OSError) as e:
         message = str(e)
         if wdk_strategy_id is None:
             message = f"{message} (try providing wdk_strategy_id)"

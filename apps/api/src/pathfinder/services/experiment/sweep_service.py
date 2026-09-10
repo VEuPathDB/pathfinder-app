@@ -17,9 +17,9 @@ from veupathdb_mcp.controls.control_helpers import (
 from veupathdb_mcp.controls.control_tests import run_positive_negative_controls
 from veupathdb_mcp.controls.control_types import (
     ControlTestResult,
+    IntersectionConfig,
 )
 
-from pathfinder.platform.errors import AppError
 from pathfinder.services.experiment.helpers import (
     controls_context_from_config,
     intersection_config_from_config,
@@ -204,7 +204,6 @@ async def run_sweep_point(
         m = metrics_from_control_result(result)
         return SweepPoint(value=response_value, metrics=_metrics_to_sweep(m))
     except (
-        AppError,
         VEuPathDBError,
         OSError,
         RuntimeError,
@@ -251,16 +250,20 @@ async def _run_sweep_point_tree(
 # ---------------------------------------------------------------------------
 
 
-async def cleanup_before_sweep(site_id: str) -> None:
-    """Best-effort cleanup of leaked internal control-test strategies."""
+async def cleanup_before_sweep(config: IntersectionConfig) -> None:
+    """Best-effort cleanup of leaked internal control-test strategies.
+
+    The config carries the name this run writes, so the cleanup matches what
+    the sweep is about to create.
+    """
     try:
-        api = get_strategy_api(site_id)
+        api = get_strategy_api(config.site_id)
         strategies = await api.list_strategies()
-        await cleanup_internal_control_test_strategies(api, strategies)
-    except (AppError, VEuPathDBError, OSError, RuntimeError) as exc:
+        await cleanup_internal_control_test_strategies(api, strategies, config)
+    except (VEuPathDBError, OSError, RuntimeError) as exc:
         logger.warning(
             "Pre-sweep cleanup of leaked control-test strategies failed",
-            site_id=site_id,
+            site_id=config.site_id,
             error=str(exc),
         )
 
@@ -276,7 +279,7 @@ async def generate_sweep_events(
     is_categorical = sweep_type == "categorical"
     total_points = len(sweep_values)
 
-    await cleanup_before_sweep(exp.config.site_id)
+    await cleanup_before_sweep(intersection_config_from_config(exp.config))
 
     semaphore = asyncio.Semaphore(SWEEP_CONCURRENCY)
     completed_count = 0

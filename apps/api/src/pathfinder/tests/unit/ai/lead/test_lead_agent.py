@@ -58,8 +58,6 @@ LEAD_TOOL_NAMES = frozenset(
         "edit_strategy",
         "frame_problem",
         "get_live_strategy_state",
-        "web_search",
-        "literature_search",
         "import_control_ids_from_gene_set",
         "import_control_ids_from_strategy",
         "list_control_sets",

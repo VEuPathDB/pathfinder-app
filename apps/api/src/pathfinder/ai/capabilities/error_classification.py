@@ -7,8 +7,6 @@ from enum import StrEnum
 import httpx
 from veupathdb.errors import VEuPathDBError, WDKError
 
-from pathfinder.platform.errors import AppError
-
 _PERMANENT_PHRASES = (
     "not configured",
     "not available",
@@ -50,7 +48,7 @@ def classify_error(error: Exception) -> ErrorCategory:
         is_server_error = error.status >= _WDK_SERVER_ERROR_THRESHOLD
         return ErrorCategory.TRANSIENT if is_server_error else ErrorCategory.SEMANTIC
 
-    if isinstance(error, (AppError, VEuPathDBError)):
+    if isinstance(error, VEuPathDBError):
         return ErrorCategory.SEMANTIC
 
     if isinstance(error, (httpx.TimeoutException, httpx.ConnectError, OSError)):

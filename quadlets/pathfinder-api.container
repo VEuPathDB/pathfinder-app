@@ -19,6 +19,13 @@ Environment=CATALOG_CACHE_DIR=/app/data/catalogs
 
 # Infrastructure URLs, which must use container network hostnames, override .env
 Environment=DATABASE_URL=postgresql+asyncpg://postgres:postgres@pathfinder-db:5432/pathfinder
+# The research server this deployment admits, on the container network.
+Environment=PATHFINDER_RESEARCH_MCP_URL=http://pathfinder-research-mcp:8110/mcp
+
+# Every process that writes or matches a helper strategy reads the same prefix.
+# A process on the library default recognises none of the strategies already in
+# a researcher's account.
+Environment=VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX=__pathfinder_internal__:
 # Uncomment to use a local Ollama instance on the host
 # Environment=OLLAMA_BASE_URL=http://host.containers.internal:11434/v1
 

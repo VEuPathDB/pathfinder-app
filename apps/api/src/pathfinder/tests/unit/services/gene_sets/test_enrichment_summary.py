@@ -54,7 +54,10 @@ _RESULTS = [
 
 
 class _StubEnrichmentService:
-    """Stands in for the WDK round trip."""
+    """Stands in for the WDK round trip, and records the name it is given."""
+
+    def __init__(self, *, strategy_name: str) -> None:
+        self.strategy_name = strategy_name
 
     async def run_batch(
         self, **kwargs: object

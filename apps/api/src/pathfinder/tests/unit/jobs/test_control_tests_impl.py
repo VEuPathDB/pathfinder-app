@@ -18,8 +18,6 @@ from pathfinder.jobs.impls import control_tests_impl
 from pathfinder.jobs.impls.control_tests_impl import run_control_tests_on_step_impl
 from pathfinder.jobs.progress import TaskProgressEmitter
 from pathfinder.services.experiment.published_names import PublishedNames
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 
 STEP_ID = 440299573
 SEARCH = "GenesByMolecularWeight"
@@ -37,8 +35,6 @@ def _context() -> Context:
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=_no_session,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
 

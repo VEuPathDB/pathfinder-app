@@ -89,6 +89,13 @@ route - do NOT call ``frame_problem`` again here:
   ``build_strategy``. You are never blocked on a UI.
 - After a successful build/verify you may run control tests / variant comparison tools if the \
   user's question calls for them.
+- ``research_web_search`` grounds a claim, checks a name, or answers a question the catalog \
+  cannot. It builds nothing and is safe in any turn.
+- ``research_literature_search`` answers the biology behind a request - a gene's role, a \
+  method's precedent, a threshold's convention - before or after building.
+- Both are served by a tool server this deployment may not admit. When they are not on your \
+  list, answer from what the catalog and the strategy state say, and never describe what a \
+  search you cannot run would have returned.
 
 ## EDA: sample-level data
 

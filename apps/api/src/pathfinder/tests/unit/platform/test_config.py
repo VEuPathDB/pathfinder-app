@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import pytest
 
-from pathfinder.platform.config import Settings
+from pathfinder.platform.config import Settings, TomlConfigSettingsSource
 
 
 def make_settings(**overrides: object) -> Settings:
@@ -178,13 +180,13 @@ def test_the_service_token_registry_is_parsed_once() -> None:
 
 def test_a_short_mcp_service_token_secret_is_rejected_at_load() -> None:
     with pytest.raises(ValueError, match="at least 32 characters"):
-        make_settings(pathfinder_mcp_service_tokens="gene-page:too-short")
+        make_settings(wdk_mcp_service_tokens="gene-page:too-short")
 
 
 def test_the_mcp_service_token_registry_is_its_own() -> None:
     """A secret the MCP server accepts must not authenticate to the API."""
     settings = make_settings(
-        pathfinder_mcp_service_tokens="gene-page:gene-page-secret-0123456789abcdef",
+        wdk_mcp_service_tokens="gene-page:gene-page-secret-0123456789abcdef",
     )
 
     assert (
@@ -214,11 +216,13 @@ def test_the_oauth_url_defaults_to_the_veupathdb_auth_server() -> None:
     assert make_settings().veupathdb_oauth_url == "https://auth.veupathdb.org"
 
 
-def test_a_blank_oauth_url_falls_back_to_the_default() -> None:
-    assert (
-        make_settings(veupathdb_oauth_url="").veupathdb_oauth_url
-        == "https://auth.veupathdb.org"
-    )
+def test_a_blank_oauth_url_in_the_environment_falls_back_to_the_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The client reads a blank variable as the field default."""
+    monkeypatch.setenv("VEUPATHDB_OAUTH_URL", "")
+
+    assert make_settings().veupathdb_oauth_url == "https://auth.veupathdb.org"
 
 
 def test_otel_include_content_defaults_false() -> None:
@@ -229,3 +233,17 @@ def test_otel_include_content_reads_env(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setenv("OTEL_INCLUDE_CONTENT", "true")
 
     assert make_settings().otel_include_content is True
+
+
+def test_a_blank_toml_value_leaves_the_field_default_standing(
+    tmp_path: Path,
+) -> None:
+    """A blank TOML entry is no entry, the way a blank variable is."""
+    config = tmp_path / "config.toml"
+    config.write_text(
+        'veupathdb_default_site = ""\nlog_level = "DEBUG"\napi_port = 9001\n'
+    )
+
+    values = TomlConfigSettingsSource(Settings, config)()
+
+    assert values == {"log_level": "DEBUG", "api_port": 9001}

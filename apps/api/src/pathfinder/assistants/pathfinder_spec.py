@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from assistant_core.conversation.stream_parts.registry import StreamPartRegistry
+from assistant_core.mcp.declaration import ToolSourceDeclaration
 from assistant_core.platform.db import async_session_factory
 from assistant_core.spec import AssistantSpec, TurnContextRequest, TurnStart
 from pydantic_ai.models import Model
@@ -33,22 +34,24 @@ from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.memory_candidates import PRODUCT_MEMORY_KINDS
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.strategy_stream_parts import register_strategy_stream_parts
-from pathfinder.assistants._stub_services import (
-    StubLiteratureSearchService,
-    StubWebSearchService,
-)
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.persistence.repositories import ConversationRepository
-from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.platform.tool_sources import RESEARCH_MCP_SOURCE_ID
 from pathfinder.services.conversations.responses import conversation_strategy_revision
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies.session_factory import (
     build_strategy_session,
     persisted_graph,
 )
 from pathfinder.services.wdk_identity import require_registered_wdk_login
+
+# The open-web and literature reads this assistant asks for. A deployment that
+# admits no such server serves neither, and the turn runs without them.
+RESEARCH_TOOL_SOURCE = ToolSourceDeclaration(
+    name="research",
+    source_id=RESEARCH_MCP_SOURCE_ID,
+    tools=frozenset({"web_search", "literature_search"}),
+)
 
 PATHFINDER_CHECKPOINT_TYPES: tuple[type, ...] = (
     SearchOverview,
@@ -80,7 +83,6 @@ async def build_turn_context(request: TurnContextRequest) -> Context:
             strategy = await ConversationRepository(session).get_strategy(
                 conversation.id,
             )
-    is_mock = get_settings().pathfinder_chat_provider.strip().lower() == "mock"
     return Context(
         site_id=request.site_id,
         user_id=request.user_id,
@@ -93,10 +95,7 @@ async def build_turn_context(request: TurnContextRequest) -> Context:
             ),
         ),
         db_session_factory=async_session_factory,
-        web_search_service=StubWebSearchService() if is_mock else WebSearchService(),
-        literature_search_service=(
-            StubLiteratureSearchService() if is_mock else LiteratureSearchService()
-        ),
+        tool_sources=dict(request.tool_sources),
         cancel_event=request.cancel_event,
         memory_store=request.memory_store,
         experiment_id=None if strategy is None else strategy.experiment_id,
@@ -150,11 +149,13 @@ def build_pathfinder_spec() -> AssistantSpec:
         memory_kinds=frozenset(PRODUCT_MEMORY_KINDS),
         identity_gate=require_registered_wdk_login,
         turn_epilogue=strategy_revision_chunks,
+        tool_sources=(RESEARCH_TOOL_SOURCE,),
     )
 
 
 __all__ = [
     "PATHFINDER_CHECKPOINT_TYPES",
+    "RESEARCH_TOOL_SOURCE",
     "build_initial_state",
     "build_pathfinder_spec",
     "build_turn_context",

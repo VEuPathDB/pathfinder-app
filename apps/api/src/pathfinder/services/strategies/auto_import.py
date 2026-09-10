@@ -20,7 +20,7 @@ from pathfinder.persistence.repositories import (
 from pathfinder.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,
 )
-from pathfinder.platform.errors import AppError, InternalError
+from pathfinder.platform.errors import InternalError
 from pathfinder.services.gene_sets.operations import EmptyGeneSetError, GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.services.gene_sets.types import GeneSet
@@ -124,7 +124,7 @@ async def auto_import_gene_sets(
                 "Skipped gene set auto-import: strategy returned 0 genes",
                 wdk_strategy_id=wdk_id,
             )
-        except (AppError, VEuPathDBError, RuntimeError) as exc:
+        except (VEuPathDBError, RuntimeError) as exc:
             logger.warning(
                 "Failed to auto-import gene set for chat",
                 wdk_strategy_id=wdk_id,
@@ -175,7 +175,7 @@ async def import_gene_set_for_conversation(
                 user_id=user_id,
             )
             await session.commit()
-        except (AppError, VEuPathDBError, RuntimeError) as e:
+        except (VEuPathDBError, RuntimeError) as e:
             await session.rollback()
             logger.warning(
                 "Gene set auto-import for conversation failed",

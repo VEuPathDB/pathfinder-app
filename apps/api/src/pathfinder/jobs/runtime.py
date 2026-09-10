@@ -7,8 +7,6 @@ from assistant_core.platform.db import async_session_factory
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.persistence.repositories import ConversationRepository
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies.session_factory import (
     build_strategy_session,
     persisted_graph,
@@ -40,8 +38,6 @@ async def build_worker_runtime_context(
         user_id=conversation.user_id,
         strategy_session=strategy_session,
         db_session_factory=async_session_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
         experiment_id=strategy.experiment_id,
         memory_store=None,

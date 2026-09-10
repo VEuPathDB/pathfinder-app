@@ -29,7 +29,6 @@ from pathfinder.persistence.repositories.conversation_analysis import (
     read_analysis_row,
     unbind_analysis_row,
 )
-from pathfinder.platform.errors import AppError
 from pathfinder.services.eda.authoring import open_analysis, patch_subset
 from pathfinder.services.eda.binding import read_analysis
 
@@ -253,7 +252,7 @@ async def restore_thread_binding(
         case AdoptBinding():
             try:
                 await _adopt(session, conversation_id=conversation_id, plan=plan)
-            except (AppError, VEuPathDBError) as exc:
+            except VEuPathDBError as exc:
                 logger.warning(
                     "revert kept the EDA binding: the study service refused",
                     conversation_id=str(conversation_id),
@@ -278,7 +277,7 @@ async def branch_thread_binding(
     filters = _FILTERS.validate_python(recorded.filters)
     try:
         analysis_id = await _fresh_document(recorded, filters)
-    except (AppError, VEuPathDBError) as exc:
+    except VEuPathDBError as exc:
         logger.warning(
             "branch opened with no study: the study service refused a document",
             conversation_id=str(conversation_id),

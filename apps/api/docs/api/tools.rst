@@ -231,17 +231,6 @@ set or an experiment result.
    :undoc-members:
    :show-inheritance:
 
-Research Tools
---------------
-
-**Purpose:** Web search and literature search, shared by every phase that may
-need outside evidence.
-
-.. automodule:: pathfinder.ai.tools.standalone.research
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Conversation and Memory
 -----------------------
 

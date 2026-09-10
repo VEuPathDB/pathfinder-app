@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from pydantic_ai.ui.vercel_ai.response_types import (
     DataChunk,
-    SourceUrlChunk,
 )
 from veupathdb.domain.strategy.graph_model import wdk_search_name
 from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
@@ -190,27 +189,3 @@ def gene_set_chunk(
         type="data-gene-set",
         data=payload.model_dump(by_alias=True, mode="json"),
     )
-
-
-# --- Source URLs (citations) -----------------------------------------------
-
-
-def source_url_chunks_from_citations(
-    citations: list[object],
-) -> list[SourceUrlChunk]:
-    """Emit one source chunk per citation. A citation without a URL is skipped."""
-    chunks: list[SourceUrlChunk] = []
-    for cit in citations:
-        url = getattr(cit, "url", None)
-        if not isinstance(url, str) or not url:
-            continue
-        cit_id = getattr(cit, "id", "")
-        title = getattr(cit, "title", None)
-        chunks.append(
-            SourceUrlChunk(
-                source_id=str(cit_id) or url,
-                url=url,
-                title=title if isinstance(title, str) else None,
-            )
-        )
-    return chunks

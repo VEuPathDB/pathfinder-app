@@ -1,22 +1,17 @@
-"""The tools the Lead carries itself: research, classification, and clearing."""
+"""The tools the Lead carries itself: classification and clearing."""
 
 from __future__ import annotations
 
 from typing import Any
 
 import pytest
-from pydantic_ai import RunContext, Tool
+from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy.session import StrategySession
 
-from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS
+from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
-from pathfinder.ai.lead.lead_tools import (
-    classify_user_intent,
-    clear_strategy,
-    literature_search,
-    web_search,
-)
+from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.toolsets import execution
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -62,15 +57,11 @@ def _no_persist(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
-def test_the_lead_has_both_research_tools() -> None:
-    for tool in (web_search, literature_search):
-        schema = Tool(tool).function_schema.json_schema
-        assert "query" in schema["properties"]
-
-
-def test_research_is_never_hidden_by_the_intent_gate() -> None:
-    assert "web_search" not in BUILDING_TOOLS
-    assert "literature_search" not in BUILDING_TOOLS
+def test_research_is_reachable_before_the_turn_is_classified() -> None:
+    """The two served reads answer a question that has not been classified."""
+    assert "research_web_search" in UNCLASSIFIED_TOOLS
+    assert "research_literature_search" in UNCLASSIFIED_TOOLS
+    assert not UNCLASSIFIED_TOOLS & BUILDING_TOOLS
 
 
 def test_the_classifier_calls_an_imperative_a_building_intent() -> None:

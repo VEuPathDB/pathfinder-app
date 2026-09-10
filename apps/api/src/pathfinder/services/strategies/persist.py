@@ -18,7 +18,6 @@ from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,
 )
-from pathfinder.platform.errors import AppError
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.write_lock import strategy_write_scope
@@ -73,7 +72,7 @@ async def persist_strategy_ast_to_conversation(
                     step_count=_total_step_count(merged_ast),
                 ),
             )
-    except (AppError, VEuPathDBError, OSError, RuntimeError) as exc:
+    except (VEuPathDBError, OSError, RuntimeError) as exc:
         logger.warning(
             "Failed to persist strategy AST to conversation",
             conversation_id=str(deps.conversation_id),
@@ -99,7 +98,7 @@ async def _clear_persisted_strategy(deps: StrategyMutationContext) -> None:
             await ConversationRepository(session).clear_strategy(
                 deps.conversation_id,
             )
-    except (AppError, VEuPathDBError, OSError, RuntimeError) as exc:
+    except (VEuPathDBError, OSError, RuntimeError) as exc:
         logger.warning(
             "Failed to clear strategy AST on conversation",
             conversation_id=str(deps.conversation_id),

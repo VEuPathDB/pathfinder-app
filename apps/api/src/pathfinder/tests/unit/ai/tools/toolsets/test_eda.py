@@ -14,7 +14,10 @@ from pathfinder.ai.tools.standalone._eda_models import (
     EdaStudySearchResult,
 )
 from pathfinder.ai.tools.toolsets.eda import build_toolset
-from pathfinder.tests.unit.ai.tools.conftest import unwrap_function_toolset
+from pathfinder.tests.unit.ai.tools.conftest import (
+    function_toolset_or_none,
+    unwrap_function_toolset,
+)
 
 _EDA_TOOLS = {
     "search_eda_studies",
@@ -68,19 +71,22 @@ def test_both_plot_tools_declare_a_caption_argument() -> None:
         assert "caption" in properties, name
 
 
+def _registered_lead_tool_names() -> list[str]:
+    """Every tool the Lead declares statically. A served source declares none."""
+    seen: list[str] = []
+    for toolset in build_lead_agent().toolsets:
+        found = function_toolset_or_none(toolset)
+        if found is not None:
+            seen.extend(found.tools)
+    return seen
+
+
 def test_the_lead_agent_carries_the_eda_toolset() -> None:
-    agent = build_lead_agent()
-    names: set[str] = set()
-    for toolset in agent.toolsets:
-        names |= set(unwrap_function_toolset(toolset).tools)
-    assert names >= _EDA_TOOLS
+    assert set(_registered_lead_tool_names()) >= _EDA_TOOLS
 
 
 def test_no_eda_tool_name_collides_with_a_lead_tool() -> None:
-    agent = build_lead_agent()
-    seen: list[str] = []
-    for toolset in agent.toolsets:
-        seen.extend(unwrap_function_toolset(toolset).tools)
+    seen = _registered_lead_tool_names()
     assert len(seen) == len(set(seen))
 
 

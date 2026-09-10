@@ -3,10 +3,10 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.parameters.values import MultiPickValue, StringValue
 from veupathdb.errors import WDKError
-from veupathdb_mcp.controls.control_tests import (
-    IntersectionConfig,
-    run_positive_negative_controls,
-)
+from veupathdb_mcp.controls.control_tests import run_positive_negative_controls
+from veupathdb_mcp.controls.control_types import IntersectionConfig
+
+from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 
@@ -29,6 +29,7 @@ async def test_control_test_bad_target_surfaces_error(
         },
         controls_search_name="GeneByLocusTag",
         controls_param_name="ds_gene_ids",
+        internal_strategy_name=CONTROL_TEST_STRATEGY_NAME,
     )
     with pytest.raises(WDKError) as refusal:
         await run_positive_negative_controls(

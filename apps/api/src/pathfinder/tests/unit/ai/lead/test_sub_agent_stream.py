@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from decimal import Decimal
 
 import pytest
 from pydantic_ai.messages import (
@@ -23,8 +23,13 @@ from pathfinder.ai.lead.sub_agent_stream import (
     _ContextMeter,
     _emit_running_sub_agent_usage,
 )
+from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage
 from pathfinder.ai.models.catalog import get_model_entry
-from pathfinder.tests.unit.ai.lead.conftest import ChunkCollector, pipeline_state
+from pathfinder.tests.unit.ai.lead.conftest import (
+    ChunkCollector,
+    lead_deps,
+    pipeline_state,
+)
 
 _WIRE_PHASES = frozenset({"frame", "build", "verification"})
 _CALL_ID = "sa_1"
@@ -67,9 +72,13 @@ def test_running_emission_carries_the_last_request_and_the_window() -> None:
     meter = _ContextMeter()
     usage = RunUsage(input_tokens=1000, output_tokens=10)
 
-    _emit_running_sub_agent_usage(collector, "frame", "call_frame_1", usage, meter)
+    _emit_running_sub_agent_usage(
+        collector, "frame", "call_frame_1", usage, meter, baseline=SubAgentCallUsage()
+    )
     usage.input_tokens = 2500
-    _emit_running_sub_agent_usage(collector, "frame", "call_frame_1", usage, meter)
+    _emit_running_sub_agent_usage(
+        collector, "frame", "call_frame_1", usage, meter, baseline=SubAgentCallUsage()
+    )
 
     first, second = collector.data_of("data-sub-agent-call")
     assert first["contextTokens"] == 1000
@@ -78,6 +87,30 @@ def test_running_emission_carries_the_last_request_and_the_window() -> None:
     assert entry is not None
     assert first["contextWindow"] == entry.context_size
     assert second["contextWindow"] == entry.context_size
+
+
+def test_a_continued_pass_adds_to_what_the_dispatch_already_spent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The card reads the dispatch, not the pass that is running right now."""
+    collector = ChunkCollector()
+    monkeypatch.setattr(
+        "pathfinder.ai.lead.sub_agent_stream.phase_default_model_id",
+        lambda role: "nosuchprovider:nosuchmodel",
+    )
+
+    _emit_running_sub_agent_usage(
+        collector,
+        "frame",
+        _CALL_ID,
+        RunUsage(input_tokens=54),
+        _ContextMeter(),
+        baseline=SubAgentCallUsage(tokens=2441, cost=Decimal("0.00841")),
+    )
+
+    payload = collector.data_of("data-sub-agent-call")[0]
+    assert payload["tokens"] == 2495
+    assert payload["costUsd"] == "0.00841"
 
 
 def test_unknown_model_reports_no_window(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -93,19 +126,12 @@ def test_unknown_model_reports_no_window(monkeypatch: pytest.MonkeyPatch) -> Non
         "call_frame_1",
         RunUsage(input_tokens=900),
         _ContextMeter(),
+        baseline=SubAgentCallUsage(),
     )
 
     payload = collector.data_of("data-sub-agent-call")[0]
     assert payload["contextWindow"] == 0
     assert payload["contextTokens"] == 900
-
-
-class _LeadDepsStub:
-    """Enough of the Lead's deps for the card and the ledger refresh."""
-
-    def __init__(self) -> None:
-        self.state = pipeline_state(user_prompt="recover the failed steps")
-        self.intent = None
 
 
 @pytest.mark.parametrize(
@@ -122,7 +148,7 @@ def test_one_call_id_carries_one_phase_name(
     role: PhaseRole,
 ) -> None:
     collector = ChunkCollector()
-    deps: Any = _LeadDepsStub()
+    deps = lead_deps(pipeline_state(user_prompt="recover the failed steps"))
     calls: dict[str, str] = {}
 
     handle_sub_agent_event(
@@ -139,7 +165,12 @@ def test_one_call_id_carries_one_phase_name(
         {},
     )
     _emit_running_sub_agent_usage(
-        collector, role, _CALL_ID, RunUsage(), _ContextMeter()
+        collector,
+        role,
+        _CALL_ID,
+        RunUsage(),
+        _ContextMeter(),
+        baseline=SubAgentCallUsage(),
     )
     handle_sub_agent_event(
         deps,

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
@@ -197,9 +198,24 @@ def phase_override_kwargs(
     }
 
 
+@dataclass(frozen=True)
+class SubAgentCallUsage:
+    """What one dispatch spent, summed over every pass it ran.
+
+    A dispatch runs more than one pass when a stopped pass continues under the
+    same tool call id, and the thread reads one number for the dispatch.
+    """
+
+    tokens: int = 0
+    cost: Decimal = Decimal(0)
+
+    def plus(self, tokens: int, cost: Decimal) -> SubAgentCallUsage:
+        return SubAgentCallUsage(tokens=self.tokens + tokens, cost=self.cost + cost)
+
+
 @dataclass
 class SubAgentRunUsage:
-    """Usage from one sub-agent dispatch.
+    """Usage from one pass of a sub-agent dispatch.
 
     Each phase can run a different model, so the cost uses the sub-agent's
     own model pricing, not the Lead's.
@@ -237,6 +253,11 @@ class LeadDeps:
     retrieved_memories: list[MemoryValue]
     record_sub_agent_usage: Callable[[SubAgentRunUsage], None] = field(
         default=lambda _u: None,
+    )
+    # What each dispatch has spent so far, keyed by its tool call id. The
+    # Lead's node owns the mapping and a continued pass reads its baseline.
+    sub_agent_usage_by_call: dict[str, SubAgentCallUsage] = field(
+        default_factory=dict,
     )
     tool_repetition_guard: ToolRepetitionGuard = field(
         default_factory=build_tool_repetition_guard,

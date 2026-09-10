@@ -158,7 +158,7 @@ what each one proves are
 **Our own MCP server is read by the conformance suite in the live lane.**
 `apps/api/src/pathfinder/tests/integration/mcp/` is marked `live_wdk`, so it
 skips without `WDK_TEST_EMAIL`/`WDK_TEST_PASSWORD` and without
-`PATHFINDER_MCP_SERVICE_TOKENS` naming the value the served container carries.
+`WDK_MCP_SERVICE_TOKENS` naming the value the served container carries.
 `test_conformance_ours.py` runs the suite as its own process against
 `PATHFINDER_MCP_URL` (default `http://localhost:8100/mcp`) with the WDK-backed
 account hook, and reads the admission record; `MCP_ADMISSION_REPORT` names where
@@ -215,7 +215,7 @@ Last full run: 100.00% across the eight `src/state/strategy` modules, zero survi
 # Docker
 
 ```
-docker compose --env-file .env.dev up -d --build --force-recreate api worker
+docker compose --env-file .env.dev up -d --build --force-recreate api worker wdk-mcp research-mcp web
 ```
 
 `--force-recreate` is not optional. Without it, `up -d --build` can build a new image and leave the old container running, so you verify code that is not deployed. Confirm by grepping for a new symbol inside the container before trusting a manual test.

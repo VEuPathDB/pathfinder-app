@@ -207,14 +207,7 @@ def _snapshot_param_vocab(
     overview = deps.agent_state.get_overview(search_name)
     if overview is None:
         return
-    snapshot = ParamVocabSnapshot(
-        param_type=info.type,
-        required=info.required,
-        help=info.help,
-        default_value=info.default_value,
-        allowed_values=info.allowed_values,
-        allowed_values_tree=info.allowed_values_tree,
-    )
+    snapshot = ParamVocabSnapshot.model_validate(info, from_attributes=True)
     updated_vocab = {**overview.param_vocab, info.name: snapshot}
     updated = overview.model_copy(update={"param_vocab": updated_vocab})
     deps.agent_state.register_search(search_name, updated)

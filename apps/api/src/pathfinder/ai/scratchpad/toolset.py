@@ -43,7 +43,7 @@ _MAX_CONSECUTIVE_READ = 2
 def _loop_hidden_read_tools(ctx: RunContext[AgentDeps]) -> frozenset[str]:
     """Names of scratchpad read tools that should disappear this step
     because the agent called one of them twice in a row. Hiding forces the
-    model to take a different action (``note``, ``web_search``, etc.)
+    model to take a different action (``note``, ``set_criterion``, etc.)
     before searching again. Only the TAIL of history matters: any non-read
     tool (mutation or otherwise) breaks the streak and resets.
     """

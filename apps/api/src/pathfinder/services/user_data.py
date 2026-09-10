@@ -23,7 +23,6 @@ from pathfinder.persistence.models import (
     GeneSetRow,
 )
 from pathfinder.persistence.repositories.eval_staging import delete_staged_for_user
-from pathfinder.platform.errors import AppError
 from pathfinder.services.conversations.cancellation import stop_turns_and_wait
 from pathfinder.services.gene_sets.store import get_gene_set_store
 
@@ -184,7 +183,7 @@ async def _purge_wdk_strategies(
         try:
             api = get_strategy_api(purge_site)
             live = {s.strategy_id for s in await api.list_strategies()}
-        except (AppError, VEuPathDBError, OSError, RuntimeError) as exc:
+        except (VEuPathDBError, OSError, RuntimeError) as exc:
             logger.debug("WDK purge skipped for site", site=purge_site, error=str(exc))
             continue
 
@@ -192,7 +191,7 @@ async def _purge_wdk_strategies(
             async with semaphore:
                 try:
                     await get_strategy_api(site).delete_strategy(strategy_id)
-                except (AppError, VEuPathDBError, OSError, RuntimeError) as exc:
+                except (VEuPathDBError, OSError, RuntimeError) as exc:
                     logger.warning(
                         "Failed to delete WDK strategy during user data purge",
                         wdk_strategy_id=strategy_id,

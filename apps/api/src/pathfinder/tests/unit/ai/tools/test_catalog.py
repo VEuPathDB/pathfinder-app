@@ -150,7 +150,11 @@ class TestSearchForSearches:
         assert taxon["displayName"] == "Genes by Taxon"
         assert taxon["relevance"] == 0.85
         assert taxon["recordType"] == "transcript"
-        assert "GenesByText" in [str(row["name"]) for row in result]
+        # The appended row is the library's, so it carries a ranked match's shape.
+        universal = next(row for row in result if row["name"] == "GenesByText")
+        assert universal["displayName"] == "Gene Text Search"
+        assert universal["recordType"] == "transcript"
+        assert universal["returns"] == "transcript"
 
     async def test_an_inspected_search_is_neither_hidden_nor_annotated(
         self, monkeypatch: pytest.MonkeyPatch

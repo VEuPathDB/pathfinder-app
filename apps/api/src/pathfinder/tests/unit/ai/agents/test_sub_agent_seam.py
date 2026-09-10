@@ -67,7 +67,6 @@ FRAME_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "list_saved_strategies",
     "list_searches",
     "list_transforms",
-    "literature_search",
     "lookup_gene_records",
     "lookup_phyletic_codes",
     "remember",
@@ -77,7 +76,6 @@ FRAME_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "set_criterion",
     "set_structure",
     "think",
-    "web_search",
 }
 
 EXECUTION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
@@ -115,7 +113,6 @@ VERIFICATION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "get_sample_records",
     "get_strategy",
     "list_workbench_gene_sets",
-    "literature_search",
     "lookup_gene_records",
     "optimize_search_parameters",
     "remember",

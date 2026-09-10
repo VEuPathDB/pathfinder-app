@@ -1,4 +1,4 @@
-"""The Lead's own tools: intent, memory, research, live state and the ledger."""
+"""The Lead's own tools: intent, memory, live state and the ledger."""
 
 from __future__ import annotations
 
@@ -14,12 +14,8 @@ from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.live_state import LiveStrategyState, read_live_state
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone import conversation, memory_tools, research
+from pathfinder.ai.tools.standalone import conversation, memory_tools
 from pathfinder.ai.tools.standalone._conversation_models import ClearStrategyResult
-from pathfinder.ai.tools.standalone._research_models import (
-    LiteratureSearchOut,
-    WebSearchOut,
-)
 
 LedgerSectionName = Literal["frame", "build", "verification"]
 
@@ -190,44 +186,6 @@ async def clear_strategy(
     """
     inner = inner_context(ctx)
     return await conversation.clear_strategy(inner, confirm=confirm)
-
-
-async def web_search(
-    ctx: RunContext[LeadDeps],
-    query: str,
-    limit: int = 5,
-) -> ToolReturn[WebSearchOut]:
-    """Search the web and return results with citations.
-
-    Use it to ground a claim, check a name, or answer a question the catalog
-    cannot - it builds nothing and is safe in any turn.
-
-    Args:
-        ctx: Agent run context.
-        query: Web search query.
-        limit: Max number of results (1-10).
-    """
-    inner = inner_context(ctx)
-    return await research.web_search(inner, query, limit=limit)
-
-
-async def literature_search(
-    ctx: RunContext[LeadDeps],
-    query: str,
-    limit: int = 8,
-) -> ToolReturn[LiteratureSearchOut]:
-    """Search scientific literature and return results with citations.
-
-    Use it for the biology behind a request - a gene's role, a method's
-    precedent, a threshold's convention - before or after building.
-
-    Args:
-        ctx: Agent run context.
-        query: Literature search query.
-        limit: Max number of results (1-25).
-    """
-    inner = inner_context(ctx)
-    return await research.literature_search(inner, query, limit=limit)
 
 
 def read_ledger_section(

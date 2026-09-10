@@ -131,15 +131,13 @@ async def run_turn(
     )
     body = body.model_copy(update={"site_id": effective_site_id})
     async with contextlib.AsyncExitStack() as tool_source_sessions:
-        tool_sources: dict[str, Any] = {}
-        if spec.tool_sources:
-            resolved = await tool_source_sessions.enter_async_context(
-                ResolvedToolSources(
-                    declarations=spec.tool_sources,
-                    credential=source_credential,
-                ),
-            )
-            tool_sources = dict(resolved.by_name)
+        resolved = await tool_source_sessions.enter_async_context(
+            ResolvedToolSources(
+                declarations=spec.tool_sources,
+                credential=source_credential,
+            ),
+        )
+        tool_sources = dict(resolved.by_name)
         runtime_context = await spec.build_turn_context(
             TurnContextRequest(
                 conversation=conversation,

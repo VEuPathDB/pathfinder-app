@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from assistant_core.mcp.untrusted import STREAM_PART_META_KEY
 from assistant_core.persistence.models import Base
-from veupathdb_mcp import server
+from veupathdb_mcp import tool_meta
 from veupathdb_mcp.embeddings.settings import (
     EmbeddingSettings,
     get_embedding_settings,
@@ -39,4 +39,4 @@ def test_the_runtime_base_maps_neither_index_table() -> None:
 
 def test_the_stream_part_key_is_the_vocabulary_the_runtime_reads() -> None:
     """Two distributions state the same wire key; neither imports the other."""
-    assert server.STREAM_PART_META_KEY == STREAM_PART_META_KEY
+    assert tool_meta.STREAM_PART_META_KEY == STREAM_PART_META_KEY

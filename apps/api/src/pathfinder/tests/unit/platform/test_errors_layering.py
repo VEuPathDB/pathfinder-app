@@ -19,7 +19,7 @@ def test_platform_errors_has_no_fastapi_dependency() -> None:
 
 def test_error_handlers_module_owns_fastapi_handlers() -> None:
     source = _module_source("pathfinder.platform.error_handlers")
-    assert "async def app_error_handler" in source
+    assert "async def veupathdb_error_handler" in source
     assert "async def http_exception_handler" in source
     assert "async def request_validation_handler" in source
     assert "async def rate_limit_handler" in source

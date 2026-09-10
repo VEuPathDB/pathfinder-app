@@ -25,6 +25,8 @@ from veupathdb_mcp.embeddings.settings import (
 from veupathdb_mcp.service_tokens import ServiceTokenRegistry
 from veupathdb_mcp.settings import McpSettings, use_mcp_settings_source
 
+from pathfinder.platform.identity import INTERNAL_STRATEGY_NAME_PREFIX
+
 _API_DIR = Path(__file__).resolve().parents[3]  # apps/api/
 _REPO_ROOT = _API_DIR.parents[1]  # repo root
 _MIN_API_SECRET_LENGTH = 32
@@ -41,9 +43,9 @@ _ALLOWED_CHAT_PROVIDERS = {"default", "mock"}
 class TomlConfigSettingsSource(PydanticBaseSettingsSource):
     """Load settings from a TOML config file."""
 
-    def __init__(self, settings_cls: type[BaseSettings]) -> None:
+    def __init__(self, settings_cls: type[BaseSettings], config_path: Path) -> None:
         super().__init__(settings_cls)
-        path = (_API_DIR / "config.toml").resolve()
+        path = config_path.resolve()
 
         if not path.exists():
             self._data: dict[str, object] = {}
@@ -77,6 +79,9 @@ class TomlConfigSettingsSource(PydanticBaseSettingsSource):
             if not isinstance(value, (str, bytes, bytearray)):
                 data[key] = value
                 continue
+            # A blank entry is no entry, the way a blank variable is to the env source.
+            if not value:
+                continue
             value = self.prepare_field_value(field_name, field, value, is_complex)
             if value is not None:
                 data[key] = value
@@ -109,6 +114,9 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
 
     # VEuPathDB
     veupathdb_default_site: str = "veupathdb"
+    # The client's default names no product. Every helper strategy already in a
+    # researcher's account carries this prefix, so it is what a run matches.
+    veupathdb_internal_strategy_name_prefix: str = INTERNAL_STRATEGY_NAME_PREFIX
     site_preload_timeout_seconds: int = Field(
         default=30,
         ge=1,
@@ -128,10 +136,12 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     # Application identities, as "app_id:secret[,app_id:secret...]".
     pathfinder_service_tokens: str = Field(default="", repr=False)
 
-    # The veupathdb-wdk-mcp endpoint this deployment's assistants call, and the
-    # credential it presents there. An empty URL admits the server for nobody.
+    # The two MCP endpoints this deployment's assistants call, and the
+    # credential it presents at each. An empty URL admits nobody.
     pathfinder_wdk_mcp_url: str = ""
     pathfinder_wdk_mcp_token: str = Field(default="", repr=False)
+    pathfinder_research_mcp_url: str = ""
+    pathfinder_research_mcp_token: str = Field(default="", repr=False)
 
     # Conversation provider. "mock" gives deterministic offline runs.
     pathfinder_chat_provider: str = ""
@@ -310,7 +320,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
             env_settings,
             dotenv_settings,
             file_secret_settings,
-            TomlConfigSettingsSource(settings_cls),
+            TomlConfigSettingsSource(settings_cls, _API_DIR / "config.toml"),
         )
 
 

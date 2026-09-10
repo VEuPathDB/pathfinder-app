@@ -23,8 +23,6 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.models.catalog import context_window_for
 from pathfinder.services import quota
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 
 _LEAD_MODEL = "openai:gpt-5.6-luna"
 
@@ -71,8 +69,6 @@ def _context() -> Context:
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=_session_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
 

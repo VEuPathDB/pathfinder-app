@@ -38,10 +38,6 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     "list_saved_strategies": (frozenset(), frozenset()),
     "list_searches": (frozenset({"record_type"}), frozenset()),
     "list_transforms": (frozenset({"record_type"}), frozenset()),
-    "literature_search": (
-        frozenset({"filters", "limit", "output_options", "query", "sort"}),
-        frozenset({"query"}),
-    ),
     "lookup_gene_records": (
         frozenset({"limit", "organism", "query"}),
         frozenset({"query"}),
@@ -76,10 +72,6 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     ),
     "set_structure": (frozenset(), frozenset()),
     "think": (frozenset({"thought"}), frozenset({"thought"})),
-    "web_search": (
-        frozenset({"include_summary", "limit", "query", "summary_max_chars"}),
-        frozenset({"query"}),
-    ),
 }
 
 

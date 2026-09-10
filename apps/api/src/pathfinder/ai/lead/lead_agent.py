@@ -6,7 +6,7 @@ a tool the Lead invokes, not a node in a fixed graph.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from assistant_core.conversation.history import HISTORY_PROCESSORS
 from assistant_core.platform.pydantic_base import CamelModel
@@ -14,11 +14,13 @@ from pydantic import Field
 from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
 from pydantic_ai.capabilities import PrepareTools, ProcessHistory, Thinking
 from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.toolsets import AbstractToolset
 
 from pathfinder.ai.agents._instructions import (
     pinned_run_budget,
     pinned_user_memories,
 )
+from pathfinder.ai.graph.runtime import one_toolset
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_messages import (
@@ -41,10 +43,8 @@ from pathfinder.ai.lead.lead_tools import (
     classify_user_intent,
     clear_strategy,
     get_live_strategy_state,
-    literature_search,
     read_ledger_section,
     remember,
-    web_search,
 )
 from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.sub_agent_dispatch import (
@@ -64,6 +64,11 @@ from pathfinder.ai.tools.standalone.variant_comparison import compare_search_var
 from pathfinder.ai.tools.toolsets import eda
 
 LeadTurnState = Literal["await_user", "complete"]
+
+
+def turn_tool_sources(ctx: RunContext[LeadDeps]) -> AbstractToolset[Any] | None:
+    """The servers this turn resolved, as the tools of this run."""
+    return one_toolset(ctx.deps.runtime.tool_sources)
 
 
 class LeadResponse(CamelModel):
@@ -149,8 +154,6 @@ def build_lead_agent() -> LeadAgent:
         tools=[
             Tool(classify_user_intent),
             Tool(remember),
-            Tool(web_search),
-            Tool(literature_search),
             Tool(read_ledger_section),
             Tool(get_live_strategy_state),
             Tool(frame_problem),
@@ -167,7 +170,7 @@ def build_lead_agent() -> LeadAgent:
             Tool(clear_strategy, requires_approval=True),
             Tool(consult_user, requires_approval=True),
         ],
-        toolsets=[eda.build_toolset()],
+        toolsets=[eda.build_toolset(), turn_tool_sources],
         capabilities=[
             Thinking(effort="medium"),
             PrepareTools[LeadDeps](apply_tool_preconditions),

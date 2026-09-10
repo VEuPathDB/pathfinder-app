@@ -26,11 +26,7 @@ from veupathdb.wdk.factory import get_site
 
 from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.error_handlers import (
-    app_error_handler,
-    veupathdb_error_handler,
-)
-from pathfinder.platform.errors import AppError
+from pathfinder.platform.error_handlers import veupathdb_error_handler
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER, Principal
 from pathfinder.platform.security import create_user_token
 from pathfinder.tests.integration.http.conftest import make_user
@@ -62,10 +58,6 @@ _UNAVAILABLE = 503
 def _principal_app() -> FastAPI:
     """One route over the principal dependency, with the API's problem+json."""
     app = FastAPI()
-    app.add_exception_handler(
-        AppError,
-        cast("Callable[[Request, Exception], Awaitable[Response]]", app_error_handler),
-    )
     app.add_exception_handler(
         VEuPathDBError,
         cast(

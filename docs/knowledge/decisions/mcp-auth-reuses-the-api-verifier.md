@@ -17,7 +17,7 @@ admission record uses:
 | Mode | What arrives | What the call may reach |
 |---|---|---|
 | `none` | nothing | nothing: the transport answers 401 with the challenge |
-| `service` | a secret from `PATHFINDER_MCP_SERVICE_TOKENS`, naming an application | user-independent reads only |
+| `service` | a secret from `WDK_MCP_SERVICE_TOKENS`, naming an application | user-independent reads only |
 | `veupathdb_user` | the user's registered VEuPathDB bearer | that user's own WDK resources |
 
 `wdk_identity()` publishes the request token on `veupathdb_auth_token_ctx` in
@@ -55,7 +55,7 @@ and the id was only ever stringified into `client_id`.
 **Reusing `PATHFINDER_SERVICE_TOKENS` for the MCP server's service mode.** A
 secret a caller sends to an MCP server would then also authenticate to the
 application's own API as that application. The MCP server therefore reads a
-separate `PATHFINDER_MCP_SERVICE_TOKENS`, parsed by the same registry type.
+separate `WDK_MCP_SERVICE_TOKENS`, parsed by the same registry type.
 
 **Accepting `VEUPATHDB_AUTH_TOKEN` from a caller.** The service account is
 confined by a transport guard rather than by call sites; a caller that could

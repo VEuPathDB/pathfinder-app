@@ -36,8 +36,7 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import BUILD_SUB_AGENT_BY_ROLE, LeadDeps
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
+from pathfinder.assistants.pathfinder_spec import RESEARCH_TOOL_SOURCE
 
 PRODUCT_NAMES = {
     "READ_ONLY_TOOLS",
@@ -60,16 +59,25 @@ def _tool_names(toolset: AbstractToolset[Any]) -> set[str]:
     return set()
 
 
+def _served_tool_names() -> set[str]:
+    """The tools a declared source serves, under the prefix the runtime adds."""
+    return {
+        f"{RESEARCH_TOOL_SOURCE.name}_{tool}"
+        for tool in RESEARCH_TOOL_SOURCE.tools or ()
+    }
+
+
 def _offered_tool_names() -> set[str]:
     """Every tool name the Lead or one of the sub-agents can call."""
     agents = [build_lead_agent()]
     agents.extend(build() for build in BUILD_SUB_AGENT_BY_ROLE.values())
-    return {
+    registered = {
         name
         for agent in agents
         for toolset in agent.toolsets
         for name in _tool_names(toolset)
     }
+    return registered | _served_tool_names()
 
 
 def _context() -> Context:
@@ -78,8 +86,6 @@ def _context() -> Context:
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=_never_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
 
@@ -145,8 +151,15 @@ def test_the_product_guard_carries_the_pathfinder_vocabulary() -> None:
 
 
 def test_every_watched_name_is_a_tool_some_agent_offers() -> None:
-    """A watched name no agent carries is an entry that can never fire."""
+    """A watched name nothing carries is an entry that can never fire."""
     assert READ_ONLY_TOOLS - _offered_tool_names() == set()
+
+
+def test_the_watched_research_names_carry_the_source_prefix() -> None:
+    """The guard keys on the name the model calls, which the prefix decides."""
+    assert _served_tool_names() <= READ_ONLY_TOOLS
+    assert "web_search" not in READ_ONLY_TOOLS
+    assert "literature_search" not in READ_ONLY_TOOLS
 
 
 def test_every_search_lookup_name_is_a_tool_some_agent_offers() -> None:

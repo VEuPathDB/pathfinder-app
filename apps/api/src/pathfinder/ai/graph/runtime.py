@@ -1,17 +1,19 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from typing import Any
 
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from assistant_core.graph.runtime import AssistantDeps, TurnContext
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, SkipValidation
+from pydantic_ai.tools import RunContext
+from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies.context import StrategyMutationContext
 
 # A search is abandoned once it has failed this many times in a turn. The
@@ -48,11 +50,25 @@ class ServiceOutageMemory:
         )
 
 
+def one_toolset(
+    sources: Mapping[str, AbstractToolset[Any]],
+) -> AbstractToolset[Any] | None:
+    """This turn's resolved sources as one toolset, or nothing when none resolved."""
+    if not sources:
+        return None
+    return CombinedToolset(list(sources.values()))
+
+
+def turn_tool_sources(ctx: RunContext[AgentDeps]) -> AbstractToolset[Any] | None:
+    """The servers this dispatch was given, as the tools of this run."""
+    return ctx.deps.tool_sources
+
+
 @dataclass(frozen=True, kw_only=True)
 class Context(TurnContext):
     strategy_session: StrategySession
-    web_search_service: WebSearchService
-    literature_search_service: LiteratureSearchService
+    # The declared tool sources this turn resolved, keyed by their local name.
+    tool_sources: Mapping[str, AbstractToolset[Any]] = field(default_factory=dict)
     experiment_id: str | None = None
 
 
@@ -79,8 +95,9 @@ class AgentDeps(AssistantDeps):
         default_factory=build_tool_repetition_guard,
     )
     strategy_session: SkipValidation[StrategySession]
-    web_search_service: SkipValidation[WebSearchService] | None = None
-    literature_search_service: SkipValidation[LiteratureSearchService] | None = None
+    # This turn's resolved tool sources as one toolset, or nothing when none
+    # resolved. A sub-agent attaches it beside its own tools.
+    tool_sources: SkipValidation[AbstractToolset[Any]] | None = None
     agent_state: AgentToolState = Field(default_factory=AgentToolState)
     ledger_summary: str = ""
     service_outage: ServiceOutageMemory = Field(default_factory=ServiceOutageMemory)

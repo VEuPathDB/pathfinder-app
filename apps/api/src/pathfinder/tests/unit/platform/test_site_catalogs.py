@@ -11,6 +11,7 @@ import asyncio
 import pytest
 from veupathdb.errors import WDKError
 
+from pathfinder.platform.errors import SiteUnavailableError
 from pathfinder.platform.readiness import ReadinessState
 from pathfinder.platform.site_catalogs import (
     preload_catalogs,
@@ -64,6 +65,24 @@ async def test_a_refusing_site_is_degraded_by_its_error_class() -> None:
     assert readiness.degraded == ["veupathdb"]
     assert readiness.catalogs["veupathdb"].error == "WDKError"
     assert readiness.catalogs["plasmodb"].ready is True
+
+
+async def test_a_site_that_raises_an_app_error_is_degraded_on_its_own() -> None:
+    """An application refusal degrades one site, not the whole preload pass."""
+    readiness = ReadinessState()
+    loader = _Loader(failures={"veupathdb": SiteUnavailableError("veupathdb", None)})
+
+    await preload_catalogs(
+        loader=loader,
+        site_ids=["plasmodb", "toxodb", "veupathdb"],
+        readiness=readiness,
+        budget_seconds=5,
+    )
+
+    assert readiness.degraded == ["veupathdb"]
+    assert readiness.catalogs["veupathdb"].error == "SiteUnavailableError"
+    assert readiness.catalogs["plasmodb"].ready is True
+    assert readiness.catalogs["toxodb"].ready is True
 
 
 async def test_a_site_over_its_budget_costs_only_its_budget() -> None:

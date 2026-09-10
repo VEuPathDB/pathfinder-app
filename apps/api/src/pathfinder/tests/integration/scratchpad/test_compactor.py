@@ -32,8 +32,6 @@ from pathfinder.domain.scratchpad.models import NoteCreate
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 
 
 @pytest.fixture
@@ -217,8 +215,6 @@ async def test_finalize_triggers_compactor(
         user_id=seed_user.id,
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=db_session_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
     runtime = _Runtime(context=context)

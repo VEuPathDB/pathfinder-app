@@ -39,14 +39,12 @@ from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.context import request_base_url_ctx
 from pathfinder.platform.error_handlers import (
-    app_error_handler,
     apply_error_handler,
     http_exception_handler,
     rate_limit_handler,
     request_validation_handler,
     veupathdb_error_handler,
 )
-from pathfinder.platform.errors import AppError
 from pathfinder.platform.migrations import init_db
 from pathfinder.platform.observability import (
     setup_observability,
@@ -104,7 +102,6 @@ async def _warm_up_subsystems() -> None:
         readiness.mark_ready("embedding_backend")
     except (
         EmbeddingUnavailableError,
-        AppError,
         VEuPathDBError,
         OSError,
         RuntimeError,
@@ -118,7 +115,7 @@ async def _warm_up_subsystems() -> None:
             logger.info("[warm-up] Loading PIGuard ONNX model")
             await asyncio.to_thread(warm_up_scanner)
             readiness.mark_ready("piguard")
-        except (AppError, VEuPathDBError, OSError, RuntimeError) as e:
+        except (VEuPathDBError, OSError, RuntimeError) as e:
             logger.exception("[warm-up] PIGuard failed")
             readiness.mark_failed("piguard", str(e))
     else:
@@ -138,13 +135,13 @@ async def _warm_up_subsystems() -> None:
             readiness=readiness,
             budget_seconds=get_settings().site_preload_timeout_seconds,
         )
-    except AppError, VEuPathDBError, OSError, RuntimeError:
+    except VEuPathDBError, OSError, RuntimeError:
         logger.exception("[warm-up] Discovery preload raised")
 
     try:
         logger.info("[warm-up] Syncing the EDA study index")
         await preload_study_index()
-    except AppError, VEuPathDBError, OSError, RuntimeError:
+    except VEuPathDBError, OSError, RuntimeError:
         logger.exception("[warm-up] EDA study index sync raised")
 
 
@@ -178,7 +175,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     try:
         await init_db()
         readiness.mark_ready("database")
-    except (AppError, VEuPathDBError, OSError, RuntimeError) as e:
+    except (VEuPathDBError, OSError, RuntimeError) as e:
         readiness.mark_failed("database", str(e))
         raise
 
@@ -342,7 +339,6 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
         return response
 
     for exc_type, handler in (
-        (AppError, app_error_handler),
         (VEuPathDBError, veupathdb_error_handler),
         (ApplyError, apply_error_handler),
         (HTTPException, http_exception_handler),

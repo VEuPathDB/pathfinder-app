@@ -26,9 +26,6 @@ Ranked by value over effort. Line counts are `wc -l` at the time of the sweep.
 | A4 | the agent scratchpad | `ai/scratchpad/` (tools, toolset, rendering, compactor) and `persistence/repositories/scratchpad.py` (1189 total) | `assistant_core` | M/L |
 | A5 | conversation ownership and turn cancellation | `services/conversations/authz.py` (145), `services/conversations/cancellation.py` (126) | `assistant_core` | M |
 | A6 | per-user cost quota | `services/quota.py` (135), `ai/pricing.py` (58), the `monthly_usage` table | `assistant_core` | M |
-| A9 | plan counting against WDK | `services/strategies/wdk_counts.py` (311) | `veupathdb_mcp` | M |
-| A10 | frozen gene-set step | `services/gene_sets/frozen_step.py` (73) | `veupathdb_mcp/wdk` | S |
-| A14 | the literature and web search clients | `services/research/` (1867) | not yet: no library owns literature search, and creating one is a product decision | L |
 
 The evidence for A3 and A4 sits inside the library: `assistant_core/persistence/models.py`
 declares foreign keys to `background_tasks.id` and `users.id`, two tables it does not
@@ -42,10 +39,9 @@ not recorded anywhere, so A3 needs a decision document before code moves.
 - The OpenAI embedder is copied verbatim between `assistant_core/embeddings/` and
   `veupathdb_mcp/embeddings/` (231 lines, no drift yet); `EMBEDDING_DIMENSIONS = 1024`
   is written in four places.
-- The settings-source scaffold is written four times, `CamelModel` and `AppError.__init__`
-  twice, `setup_logging` twice, the testcontainers bootstrap twice.
+- The settings-source scaffold is written four times, `CamelModel` twice,
+  `setup_logging` twice, the testcontainers bootstrap twice.
 - `assistant-core` owns four tables and ships no migration chain for them.
-- `ParamVocabSnapshot` mirrors a library type by hand; a third hardcoded site list exists.
 - Frontend: `SubAgentStepPayload` is declared in both `@pathfinder/assistant-client` and
   the generated `@pathfinder/shared` types; the snapshot envelope and the message-part
   union are each declared three times; `thread/traceParts.ts` exists only to convert
@@ -57,9 +53,7 @@ not recorded anywhere, so A3 needs a decision document before code moves.
 
 - `veupathdb/domain/strategy/` is PathFinder's authoring model inside the client
   (already its own backlog item).
-- The npm scope `@pathfinder/assistant-client`; the `__pathfinder_internal__:` strategy
-  tag written into real WDK accounts; `PATHFINDER_MCP_*` variables owning the MCP
-  server's own settings.
+- The npm scope `@pathfinder/assistant-client`.
 
 ## Enforcement
 

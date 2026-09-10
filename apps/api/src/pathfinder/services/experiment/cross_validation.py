@@ -11,16 +11,14 @@ from assistant_core.platform.logging import get_logger
 from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.errors import ValidationError, VEuPathDBError
-from veupathdb_mcp.controls.control_tests import (
-    IntersectionConfig,
-    run_positive_negative_controls,
-)
+from veupathdb_mcp.controls.control_tests import run_positive_negative_controls
 from veupathdb_mcp.controls.control_types import (
     ControlsContext,
     ControlTestResult,
+    IntersectionConfig,
 )
 
-from pathfinder.platform.errors import AppError
+from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
 from pathfinder.services.experiment.metrics import (
     compute_confusion_matrix,
     compute_metrics,
@@ -216,7 +214,7 @@ async def _run_kfold(
                 holdout_neg or None,
             )
             fold_metrics = metrics_from_control_result(result)
-        except (AppError, VEuPathDBError) as exc:
+        except VEuPathDBError as exc:
             logger.warning("Fold %d failed: %s", fold_idx, exc)
             cm = compute_confusion_matrix(
                 positive_hits=0,
@@ -303,6 +301,7 @@ async def run_cross_validation(
             ctx,
             target_search_name=_search_name,
             target_parameters=_parameters,
+            internal_strategy_name=CONTROL_TEST_STRATEGY_NAME,
         )
 
         async def _evaluate_single(

@@ -42,9 +42,9 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "get_confidence_scores",
         "get_experiment_config",
         "get_result_gene_lists",
-        # Research
-        "web_search",
-        "literature_search",
+        # Research, served by the research tool source
+        "research_web_search",
+        "research_literature_search",
         # Memory
         "search_memory",
         # Lead reads

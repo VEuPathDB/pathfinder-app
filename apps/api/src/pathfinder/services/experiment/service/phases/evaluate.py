@@ -4,7 +4,6 @@ from assistant_core.platform.logging import get_logger
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.errors import VEuPathDBError
 
-from pathfinder.platform.errors import AppError
 from pathfinder.services.experiment.helpers import controls_context_from_config
 from pathfinder.services.experiment.materialization import (
     _persist_experiment_strategy,
@@ -74,7 +73,7 @@ async def phase_persist_strategy(
         experiment.wdk_strategy_id = raw_sid if isinstance(raw_sid, int) else None
         experiment.wdk_step_id = raw_step if isinstance(raw_step, int) else None
         pctx.store.save(experiment)
-    except (AppError, VEuPathDBError, RuntimeError) as exc:
+    except (VEuPathDBError, RuntimeError) as exc:
         logger.warning(
             "Failed to persist WDK strategy for experiment",
             experiment_id=experiment.id,

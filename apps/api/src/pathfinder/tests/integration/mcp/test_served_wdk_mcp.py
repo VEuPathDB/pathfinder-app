@@ -19,7 +19,8 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.wdk.factory import get_strategy_api
 from veupathdb.wdk.wdk_models import WDKAnswer
 from veupathdb_mcp.controls.control_types import ControlTestResult
-from veupathdb_mcp.server import MAX_CALL_SECONDS_META_KEY, TOOLS
+from veupathdb_mcp.server import TOOLS
+from veupathdb_mcp.tool_meta import MAX_CALL_SECONDS_META_KEY
 from veupathdb_mcp.wdk.enrichment.gene_ids import GeneIdEnrichment
 from veupathdb_mcp.wdk.helpers import extract_record_ids
 from veupathdb_mcp.wdk.step_size import StepCountResult

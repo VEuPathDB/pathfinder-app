@@ -142,8 +142,11 @@ async def get_ai_expression_summary(
             ctx=ctx,
             status="empty",
         )
+    # The site states what its summary covers. The caveat goes before the
+    # headline, which the summary line's length limit may cut.
+    covers = " (part of the experiment set)" if found.based_on_incomplete_data else ""
     return with_summary(
         found,
-        f"Expression summary for {found.gene_id}: {found.summary.headline}",
+        f"Expression summary for {found.gene_id}{covers}: {found.summary.headline}",
         ctx=ctx,
     )

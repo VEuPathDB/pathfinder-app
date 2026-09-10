@@ -13,6 +13,7 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.spec import TurnContextRequest, TurnStart
 from langgraph.checkpoint.memory import InMemorySaver
 from pydantic_ai.models.function import FunctionModel
+from pydantic_ai.toolsets.function import FunctionToolset
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
@@ -21,6 +22,7 @@ from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.platform.tool_sources import RESEARCH_MCP_SOURCE_ID
 from pathfinder.services.wdk_identity import require_registered_wdk_login
 from pathfinder.transport.http.routers.memories import MEMORY_ROUTE_KINDS
 
@@ -84,6 +86,7 @@ async def test_its_turn_context_is_the_product_context(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _install_strategy(monkeypatch, ConversationStrategyView(experiment_id="exp_1"))
+    sources = {"research": FunctionToolset[object]()}
     request = TurnContextRequest(
         conversation=Conversation(id=uuid4(), name="", site_id="plasmodb"),
         site_id="plasmodb",
@@ -92,6 +95,7 @@ async def test_its_turn_context_is_the_product_context(
         cancel_event=asyncio.Event(),
         phase_models={"lead": "openai:gpt-5.6-luna"},
         phase_reasoning={},
+        tool_sources=sources,
     )
 
     context = await build_pathfinder_spec().build_turn_context(request)
@@ -101,6 +105,20 @@ async def test_its_turn_context_is_the_product_context(
     assert context.strategy_session is not None
     assert context.experiment_id == "exp_1"
     assert context.phase_models == {"lead": "openai:gpt-5.6-luna"}
+    assert context.tool_sources == sources
+
+
+def test_it_declares_the_research_source_by_the_id_this_deployment_admits() -> None:
+    """The two research tools are served, so the assistant asks for the server."""
+    declared = build_pathfinder_spec().tool_sources
+
+    assert len(declared) == 1
+    source = declared[0]
+    assert source.name == "research"
+    assert source.source_id == RESEARCH_MCP_SOURCE_ID
+    assert source.tools == frozenset({"web_search", "literature_search"})
+    # Absent by default, so a deployment that admits no such server still runs.
+    assert source.required is False
 
 
 def test_it_registers_the_strategy_and_the_eda_stream_parts() -> None:

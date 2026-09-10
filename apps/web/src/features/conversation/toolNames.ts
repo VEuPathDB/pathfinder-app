@@ -94,9 +94,9 @@ export const TOOL_LABELS: Record<string, string> = {
   promote_to_memory: "Save to memory",
   search_memory: "Search memory",
   remember: "Remember",
-  // Research
-  web_search: "Web search",
-  literature_search: "Literature search",
+  // Research, served by the research tool source
+  research_web_search: "Web search",
+  research_literature_search: "Literature search",
 };
 
 /**

@@ -282,7 +282,7 @@ class TestAProposedSpecIsRefused:
             await _validate_spec(_DESEQ_SEARCH, _INVENTED_SPEC)
 
         assert excinfo.value.title == (
-            "eda_analysis_spec is written by PathFinder, not proposed"
+            "eda_analysis_spec is written by the host, not proposed"
         )
 
     async def test_the_refusal_sends_the_model_to_the_eda_tools(self) -> None:

@@ -30,7 +30,7 @@ from pathfinder.persistence.repositories.conversation import ConversationReposit
 from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,
 )
-from pathfinder.platform.errors import AppError, ErrorCode, NotFoundError
+from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.spec_build import (
     build_strategy_from_spec,
@@ -75,7 +75,7 @@ async def clone_saved_strategy(
     api = get_strategy_api(site_id)
     try:
         saved = await api.get_strategy(saved_wdk_strategy_id)
-    except (AppError, VEuPathDBError) as exc:
+    except VEuPathDBError as exc:
         raise NotFoundError(
             code=ErrorCode.STRATEGY_NOT_FOUND,
             title="saved strategy not found",

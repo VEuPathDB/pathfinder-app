@@ -19,6 +19,13 @@ EnvironmentFile=%h/.config/pathfinder/.env
 
 # Infrastructure URLs, which must use container network hostnames, override .env
 Environment=DATABASE_URL=postgresql+asyncpg://postgres:postgres@pathfinder-db:5432/pathfinder
+# The research server this deployment admits, on the container network.
+Environment=PATHFINDER_RESEARCH_MCP_URL=http://pathfinder-research-mcp:8110/mcp
+
+# Every process that writes or matches a helper strategy reads the same prefix.
+# A process on the library default recognises none of the strategies already in
+# a researcher's account.
+Environment=VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX=__pathfinder_internal__:
 
 # Only the api rebuilds a stale catalog; this worker reads the saved snapshot
 Environment=CATALOG_REFRESH_ENABLED=false

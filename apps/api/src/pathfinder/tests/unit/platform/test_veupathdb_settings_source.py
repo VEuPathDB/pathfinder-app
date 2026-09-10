@@ -23,7 +23,15 @@ def test_the_client_settings_keep_the_environment_variable_names() -> None:
         "veupathdb_sites_config",
         "veupathdb_auth_token",
         "veupathdb_oauth_url",
+        "veupathdb_internal_strategy_name_prefix",
     }
+
+
+def test_this_application_keeps_the_prefix_it_has_always_written() -> None:
+    """A helper strategy already in an account carries this prefix."""
+    assert (
+        Settings().veupathdb_internal_strategy_name_prefix == "__pathfinder_internal__:"
+    )
 
 
 def test_the_client_settings_module_computes_no_path() -> None:

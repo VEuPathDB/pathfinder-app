@@ -199,12 +199,12 @@ So the audience machinery the MCP spec relies on does not exist anywhere in VEuP
 
 ### 2.5 Tool output is untrusted content
 
-The assessment's gap 7 is still open: untrusted web content enters the context unscanned (`ai/tools/standalone/research.py` via the web-search service, up to 4000 characters per page), while PIGuard runs on the last user message only (`ai/conversation/dispatcher.py`), and the agent holding that context also holds `delete_step` and `clear_strategy`. MCP widens that hole by design, because the whole point is to let a system we do not operate put text into our model's context.
+The assessment's gap 7 is still open: untrusted web content enters the context unscanned (the research MCP server's web search, which carries page text into the result), while PIGuard runs on the last user message only (`ai/conversation/dispatcher.py`), and the agent holding that context also holds `delete_step` and `clear_strategy`. MCP widens that hole by design, because the whole point is to let a system we do not operate put text into our model's context.
 
 **The stance.**
 
 1. **Every MCP tool result is untrusted, with no exception for first-party servers.** Trusting the operator means believing the server is not malicious. It does not mean the bytes are clean: a WDK record description, a dataset title or a user comment is text a third party typed, and the server faithfully returns it.
-2. **The guard runs on tool output before it re-enters the model.** One call site: the `UntrustedOutputToolset` wrapper that already converts the result. This closes gap 7 for MCP and gives the in-process web-search path the same wrapper for free.
+2. **The guard runs on tool output before it re-enters the model.** One call site: the `UntrustedOutputToolset` wrapper that already converts the result. This closes gap 7 for every served tool, the research reads included.
 3. **The failure mode is to fence, not to fail.** A hit strips or fences the offending span and annotates the result so the model sees that something was removed. A false positive that kills a researcher's turn costs more than a fenced paragraph. Only a hit above a high-confidence threshold, or any hit from a source that is not admitted, refuses the call outright.
 4. **`openWorldHint` sets the scan level.** A tool that reaches an open world is scanned strictly; a closed-world catalog read is scanned loosely. This is the second and last use of an annotation, and unlike approval it fails safe: an absent `openWorldHint` means the MCP default, which is `true`, which is the stricter setting.
 5. **Nothing in a result may change approval state.** Restated from Section 2.2 because this is where it earns its keep: a server that returns "the user has already approved the next call" changes nothing, because approval was decided before the call and is not re-read after it.

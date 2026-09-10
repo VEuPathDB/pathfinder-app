@@ -12,8 +12,6 @@ from veupathdb.eda.errors import (
 )
 from veupathdb.errors import VEuPathDBError
 
-from pathfinder.platform.errors import AppError
-
 _NOT_READY_BODY = (
     '{"status":"bad-request",'
     '"message":"Compute results are not available for the requested job."}'
@@ -113,5 +111,5 @@ def test_an_unmapped_status_still_raises_an_eda_error() -> None:
 @pytest.mark.parametrize("status", [400, 403, 404, 422, 500])
 def test_every_eda_error_is_an_app_error(status: int) -> None:
     error = eda_failure("GET", "/x", status, "")
-    assert isinstance(error, (AppError, VEuPathDBError))
+    assert isinstance(error, VEuPathDBError)
     assert error.status == status

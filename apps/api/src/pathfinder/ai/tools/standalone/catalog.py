@@ -12,12 +12,11 @@ from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import VEuPathDBError
 from veupathdb_mcp import catalog, tool_payloads
+from veupathdb_mcp.catalog import UNIVERSAL_SEARCHES
 from veupathdb_mcp.catalog.searches import VagueSearchQueryError
 from veupathdb_mcp.tool_errors import ToolErrorPayload
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone._catalog_models import _UNIVERSAL_SEARCHES
-from pathfinder.platform.errors import AppError
 
 logger = get_logger(__name__)
 
@@ -106,7 +105,11 @@ async def search_for_searches(
     found = len(results)
 
     seen = {str(r["name"]) for r in results}
-    results.extend(u for u in _UNIVERSAL_SEARCHES if str(u["name"]) not in seen)
+    results.extend(
+        cast("JSONObject", u.to_dict())
+        for u in UNIVERSAL_SEARCHES
+        if u.name not in seen
+    )
 
     ctx.deps.agent_state.record_catalog_searches(
         [str(r["name"]) for r in results if "name" in r]
@@ -235,7 +238,7 @@ async def search_example_plans(
     """
     try:
         plans = await tool_payloads.rank_example_plans(ctx.deps.site_id, query, limit)
-    except (AppError, VEuPathDBError, OSError) as exc:
+    except (VEuPathDBError, OSError) as exc:
         logger.warning("Failed to fetch public strategies", error=str(exc))
         return with_summary([], "0 example plans", ctx=ctx, status="warn")
     return with_summary(plans, f"{len(plans)} example plans", ctx=ctx)

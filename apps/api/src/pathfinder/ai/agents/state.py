@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.domain.parameters.wdk_vocab import VocabOption
 from veupathdb.domain.strategy.constraints import Constraint
@@ -13,16 +13,17 @@ from veupathdb.domain.strategy.operational_spec import (
 
 
 class ParamVocabSnapshot(BaseModel):
-    """Frozen vocabulary view for a parameter, captured during discovery.
+    """A projection of ``ParameterInfo``, captured during discovery.
 
-    Mirrors the vocabulary fields of ``ParameterInfo``: a flat list of
-    enum entries (``allowed_values``) OR a rendered tree string
-    (``allowed_values_tree``) for multi-pick-vocabulary params. Planning
-    consults this snapshot to commit values verbatim — never invents
-    values not in the snapshot.
+    It carries a flat list of enum entries (``allowed_values``) OR a rendered
+    tree string (``allowed_values_tree``) for a multi-pick vocabulary.
+    Planning commits values from this snapshot verbatim and invents none.
     """
 
-    param_type: str
+    model_config = ConfigDict(extra="ignore", validate_by_name=True)
+
+    # The library calls the field ``type``; the prompts read ``param_type``.
+    param_type: str = Field(validation_alias=AliasChoices("param_type", "type"))
     required: bool
     help: str = ""
     default_value: str | None = None

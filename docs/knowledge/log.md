@@ -1,6 +1,100 @@
 # Log
 
+## 2026-09-10
+
+* **A mount no longer tails a thread that has nothing to tail.** Every
+  conversation named in the URL re-attached on mount, so an idle thread held an
+  open `GET /events` while the user typed. `ai` 7 answers that tail's 204 by
+  setting the chat-wide status to `ready`, which `ai` 6 did not, so a turn sent
+  inside that window lost its `submitted` status: the composer showed Send
+  instead of Stop for the turn's whole length, the thread drew no running turn,
+  and `expectIdle` in the e2e harness passed 75 ms after the click. The reattach
+  query in `useChatRuntime` is now enabled only when the snapshot read left an
+  open message in the shared cursor store, so an idle thread opens no tail and
+  a suspended turn still resumes. The guard is in the hook that owns the query,
+  not at its call site, so no caller can ask for an unconditional tail.
+
+* **A dispatch that runs more than one pass reports the sum of them.** The
+  Lead's per-call accounting kept the last pass alone, so a FRAME pass that
+  continued after a budget stop replaced the earlier pass's tokens on its
+  `data-sub-agent-call` card. The thread's turn chip sums those cards, so it
+  read less than the turn's own `data-turn-usage` and the persisted message
+  metadata. `absorb_sub_agent_usage` now adds each pass into the dispatch's
+  `SubAgentCallUsage`, and a pass that continues one reads that total as its
+  baseline, so the running card never drops either.
+
 ## 2026-09-09
+
+* **A blank entry in `config.toml` is no entry.** `TomlConfigSettingsSource`
+  passed a blank string through, so a placeholder line in the file overrode the
+  default the field declares. The source now skips a blank value, which is what
+  `env_ignore_empty` already does for the environment and dotenv sources, and it
+  takes the file it reads as an argument so a test can hand it one.
+
+* **Literature and web search are served over MCP, and the two research
+  directories left this tree.** `services/research/` (1935 lines),
+  `domain/research/` (485), `ai/tools/standalone/research.py`,
+  `_research_models.py` and `assistants/_stub_services.py` are gone; the same
+  clients are served by `veupathdb-research-mcp`, the second entry point of the
+  `veupathdb-mcp` distribution, on port 8110. `platform/tool_sources.py` admits
+  it beside the WDK server, `pathfinder_spec.py` declares it as the `research`
+  source, and the runtime's prefix makes the model call
+  `research_web_search` and `research_literature_search`. The declaration is not
+  required, so a deployment that configures no endpoint or credential runs the
+  turn without those two tools; that is what mock mode is. Both shipped
+  assistants now declare a source, so `turn_runner` no longer guards on
+  `spec.tool_sources` and every turn enters the resolver, which opens nothing
+  for a spec that declares none. The citations that
+  rode `source-url` chunks are now the `data-research.sources` part, drawn by
+  `content/parts/DataResearchSources.tsx`. The shape and the two rejected
+  alternatives are in
+  [the research tools are served by a second server](decisions/two-servers-from-one-distribution.md).
+
+* **Plan counting, the frozen gene-set step and the WDK step-tree fold are the
+  library's, and this deployment names the strategies they write.**
+  `services/strategies/wdk_counts.py` keeps only its plan hash and its LRU and
+  calls `veupathdb_mcp.wdk.plan_counts.compute_plan_step_counts`;
+  `services/gene_sets/frozen_step.py` is deleted for
+  `veupathdb_mcp.wdk.gene_set_steps.frozen_step_id`; and
+  `build_step_tree_from_graph` is a wrapper over
+  `veupathdb_mcp.wdk.step_tree.build_wdk_step_tree` that re-raises
+  `StrategyCompilationError`, so its two other callers and the three WDK rules it
+  anchors keep the problem type they had. The library defaults name no product,
+  so `platform/identity.py` holds the four names this deployment writes into a
+  WDK account and every call site passes one. `cleanup_before_sweep` takes the
+  run's `IntersectionConfig` instead of a site id, so a sweep that cleans up
+  cannot forget the name its own run writes.
+
+* **Every process that writes or matches a helper strategy reads one prefix.**
+  The client's neutral default is `__internal__:`. `Settings` sets
+  `veupathdb_internal_strategy_name_prefix` to `__pathfinder_internal__:`, the
+  value this deployment has always written, and compose, the quadlets and
+  `.env.example` pass `VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX` to the api, the
+  worker and the wdk-mcp container. A process left on the library default would
+  recognise none of the helper strategies already in a researcher's account, so
+  none would ever be cleaned up.
+
+* **One refusal hierarchy, one handler.** `AppError` is
+  `VEuPathDBError[ErrorCode]` and defines no `__init__` of its own, so the two
+  exception handlers collapsed into `veupathdb_error_handler`, which maps any
+  refusal by the code value the wire already names, and every
+  `except (AppError, VEuPathDBError, ...)` tuple lost its first member.
+
+* **The MCP server's own settings are named after the server.**
+  `PATHFINDER_MCP_BASE_URL` and `PATHFINDER_MCP_SERVICE_TOKENS` are now
+  `WDK_MCP_BASE_URL` and `WDK_MCP_SERVICE_TOKENS` in compose, the nightly
+  workflow, the tests and this bundle. `PATHFINDER_WDK_MCP_URL` and
+  `PATHFINDER_WDK_MCP_TOKEN` keep their names: those are what this deployment
+  presents to a server it admits, not the server's own configuration.
+
+* **The seed catalog reads the site registry.** `SEED_DATABASES` is the
+  registry's 14 sites filtered to the ones a seed file exists for, so
+  `get_seeds_for_site("trichdb")` stays refused with `SITE_NOT_FOUND` instead of
+  raising `FileNotFoundError`, and a site added to the registry without a seed
+  file cannot break `get_all_seeds()`. `ParamVocabSnapshot` is a projection of
+  `veupathdb_mcp.catalog.ParameterInfo` rather than a hand copy of its fields,
+  and the universal-search row appended to a ranked listing is the library's
+  `UNIVERSAL_SEARCHES`.
 
 * **The durable-progress e2e serves the thread's tail the way the host does, so
   the card's live progress is proven again.** The mocked tail answered every

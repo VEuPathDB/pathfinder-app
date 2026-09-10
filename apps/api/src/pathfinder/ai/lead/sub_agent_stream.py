@@ -55,6 +55,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
     BUILD_SUB_AGENT_BY_ROLE,
     WIRE_PHASE_BY_ROLE,
     LeadDeps,
+    SubAgentCallUsage,
     SubAgentRunUsage,
     apply_agent_state,
     phase_default_model_id,
@@ -177,6 +178,11 @@ async def stream_sub_agent[OutputT: BaseModel](
     usage = RunUsage()
     usage_recorded = False
     context_meter = _ContextMeter()
+    # A pass that continues a stopped one runs on its own budget, so its card
+    # adds what the dispatch already spent.
+    baseline = deps.sub_agent_usage_by_call.get(
+        parent_tool_call_id, SubAgentCallUsage()
+    )
     # The mock model reads these to pick a site-valid search and branch its
     # canned plan.
     current_scope_id.set(deps.runtime.site_id)
@@ -243,7 +249,12 @@ async def stream_sub_agent[OutputT: BaseModel](
                         _close_answered_approval(writer, event, answered)
                         _emit_live_ledger(writer, deps, agent_deps)
                         _emit_running_sub_agent_usage(
-                            writer, role, parent_tool_call_id, usage, context_meter
+                            writer,
+                            role,
+                            parent_tool_call_id,
+                            usage,
+                            context_meter,
+                            baseline=baseline,
                         )
                         if event.tool_call_id == guard.stopped_call_id:
                             # The guard refused the same call twice. The draft
@@ -353,12 +364,14 @@ def _emit_running_sub_agent_usage(
     parent_tool_call_id: str,
     usage: RunUsage,
     meter: _ContextMeter,
+    *,
+    baseline: SubAgentCallUsage,
 ) -> None:
-    """Push the sub-agent's running tokens/cost and context fill after each
-    inner tool call."""
+    """Push the dispatch's running tokens/cost and context fill after each
+    inner tool call. ``baseline`` is what its earlier passes spent."""
     model_id = phase_default_model_id(role)
     provider, _, model = model_id.partition(":")
-    cost = cost_for_run(
+    cost = baseline.cost + cost_for_run(
         usage=usage,
         model_name=model or None,
         provider_name=provider or None,
@@ -373,7 +386,7 @@ def _emit_running_sub_agent_usage(
                 phase=WIRE_PHASE_BY_ROLE[role],
                 state="started",
                 model_id=model_id,
-                tokens=usage.total_tokens,
+                tokens=baseline.tokens + usage.total_tokens,
                 cost_usd=str(cost),
                 context_tokens=meter.last_request_input(usage),
                 context_window=context_window_for(model_id),

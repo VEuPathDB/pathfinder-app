@@ -12,8 +12,6 @@ from veupathdb.domain.strategy.types import SyncStateProtocol
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk.factory import get_strategy_api
 
-from pathfinder.platform.errors import AppError
-
 logger = get_logger(__name__)
 
 __all__ = ["read_wdk_step_counts"]
@@ -34,7 +32,7 @@ async def read_wdk_step_counts(
 
     try:
         details = await get_strategy_api(site_id).get_strategy(strategy_id)
-    except AppError, VEuPathDBError, OSError:
+    except VEuPathDBError, OSError:
         logger.warning("Live step count read failed", strategy_id=strategy_id)
         return {}
 

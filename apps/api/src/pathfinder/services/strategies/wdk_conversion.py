@@ -27,8 +27,6 @@ from veupathdb_mcp.catalog.search_context import (
     get_search_params_under_context,
 )
 
-from pathfinder.platform.errors import AppError
-
 logger = get_logger(__name__)
 
 
@@ -200,7 +198,7 @@ async def _load_search_spec(
         response = await get_search_params_under_context(
             api.client, record_type, search_name, context
         )
-    except (AppError, VEuPathDBError) as exc:
+    except VEuPathDBError as exc:
         logger.warning(
             "Failed to load search details during WDK sync",
             record_type=record_type,
@@ -252,7 +250,7 @@ async def canonicalize_synced_parameters(
         try:
             canonicalizer = ParameterCanonicalizer(specs)
             canonical = canonicalizer.canonicalize(decoded)
-        except (AppError, VEuPathDBError) as exc:
+        except VEuPathDBError as exc:
             logger.warning(
                 "Failed to canonicalize synced parameters",
                 record_type=record_type,

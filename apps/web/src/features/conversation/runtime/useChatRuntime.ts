@@ -29,6 +29,8 @@ import { useSessionStore } from "@/state/useSessionStore";
 import { useSettingsStore } from "@/state/useSettingsStore";
 import { useStrategyStore } from "@/state/strategy/store";
 
+import { conversationCursors } from "../api/assistantClient";
+
 import { buildChatRequestBody } from "./buildRequestBody";
 import type { ChatHelpers } from "./chatHelpersContext";
 import { createDurableTransport } from "./durableTransport";
@@ -154,6 +156,13 @@ export function useChatRuntime({
     },
   });
 
+  // Only a message the snapshot left open before this mount is re-attached. A
+  // tail on an idle thread reports no turn in flight, and that report ends a
+  // turn the user starts while it is open.
+  const [reattach] = useState(
+    () => resume && conversationCursors.readOpenMessage(conversationId) !== undefined,
+  );
+
   // A turn the log still holds is read across its turn boundaries: the SDK
   // builds one message per stream, so each turn the tail opens is its own read.
   useQuery({
@@ -162,7 +171,7 @@ export function useChatRuntime({
       await resumeDurableThread(chatApi, transport);
       return conversationId;
     },
-    enabled: resume,
+    enabled: reattach,
     staleTime: Infinity,
     gcTime: 0,
     retry: false,

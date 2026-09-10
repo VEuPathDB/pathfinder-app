@@ -10,9 +10,9 @@ import httpx
 import pytest
 from assistant_core.platform.db import get_db_session
 from fastapi import FastAPI, Request, Response
+from veupathdb.errors import VEuPathDBError
 
-from pathfinder.platform.error_handlers import app_error_handler
-from pathfinder.platform.errors import AppError
+from pathfinder.platform.error_handlers import veupathdb_error_handler
 from pathfinder.platform.security import create_dev_login_token, create_user_token
 from pathfinder.transport.http.routers.veupathdb_auth import router
 
@@ -37,8 +37,11 @@ def _app(monkeypatch: pytest.MonkeyPatch, resolved: UUID | None) -> FastAPI:
     app = FastAPI()
     app.include_router(router)
     app.add_exception_handler(
-        AppError,
-        cast("Callable[[Request, Exception], Awaitable[Response]]", app_error_handler),
+        VEuPathDBError,
+        cast(
+            "Callable[[Request, Exception], Awaitable[Response]]",
+            veupathdb_error_handler,
+        ),
     )
     app.dependency_overrides[get_db_session] = _session
     return app

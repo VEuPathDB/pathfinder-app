@@ -30,25 +30,17 @@ dependencies = [
     "tenacity>=9.1.0",
     "numpy>=2.0.0",
     "openai>=2.0.0",
-    "rapidfuzz>=3.14.0",
     "pyjwt>=2.13.0", # PYSEC-2026-175/177/178/179
     "slowapi>=0.1.9",
     "assistant-core[screening]",
     "cachetools>=7.0.5",
     "procrastinate>=3.8.1",
-    "ddgs>=9.14.1",
     "pydantic-evals>=2.41.0,<3",
     "veupathdb-py[otel]",
     "veupathdb-mcp",
 ]
 
 [tool.uv]
-# veupathdb-mcp names its own source for the client. The override keeps one
-# client in the environment, at the tag this project pins. It is deleted by the
-# release of veupathdb-mcp that names this client tag.
-override-dependencies = [
-    "veupathdb-py @ git+https://github.com/VEuPathDB/ai-veupathdb-client@v0.1.0a4",
-]
 # Transitive packages pip-audit reports. Each line names the advisory the
 # lower bound answers, so a bound outlives the memory of why it is there.
 constraint-dependencies = [
@@ -66,8 +58,8 @@ constraint-dependencies = [
 ]
 [tool.uv.sources]
 assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.2.0a4" }
-veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a4" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.1.0a4" }
+veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a6" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0a2" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.2.0a4" }
 
 [build-system]
@@ -349,6 +341,7 @@ forbidden_modules = [
     "veupathdb_mcp.catalog._param_binding",
     "veupathdb_mcp.catalog._param_filters",
     "veupathdb_mcp.catalog._param_validation_errors",
+    "veupathdb_mcp.research.literature.clients._base",
     "assistant_core.conversation._chunk_handlers",
     "assistant_core.conversation._chunk_state",
     "assistant_core.persistence.repositories._message_metadata",

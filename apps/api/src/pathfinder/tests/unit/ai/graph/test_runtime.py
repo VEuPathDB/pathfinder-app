@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
-from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from pydantic_ai.toolsets.function import FunctionToolset
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy.session import StrategySession
 
@@ -14,8 +14,6 @@ from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 
 
 def _never_factory() -> AsyncSession:
@@ -31,8 +29,6 @@ def _build_context(
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=_never_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=cancel_event or asyncio.Event(),
         experiment_id=experiment_id,
     )
@@ -59,8 +55,7 @@ def test_agent_deps_is_pydantic_and_lists_live_fields() -> None:
         "site_id",
         "user_id",
         "strategy_session",
-        "web_search_service",
-        "literature_search_service",
+        "tool_sources",
         "agent_state",
         "ledger_summary",
         "service_outage",
@@ -76,17 +71,14 @@ def test_agent_deps_is_pydantic_and_lists_live_fields() -> None:
     }
 
 
-def test_agent_deps_accepts_mock_service_via_skip_validation() -> None:
-    mock_web = AsyncMock()
-    mock_lit = AsyncMock()
+def test_agent_deps_accepts_a_toolset_via_skip_validation() -> None:
+    sources = FunctionToolset[AgentDeps]()
     deps = AgentDeps(
         site_id="plasmodb",
         strategy_session=StrategySession(site_id="plasmodb"),
-        web_search_service=mock_web,
-        literature_search_service=mock_lit,
+        tool_sources=sources,
     )
-    assert deps.web_search_service is mock_web
-    assert deps.literature_search_service is mock_lit
+    assert deps.tool_sources is sources
 
 
 def test_dispatch_deps_copy_state_into_scratchpad() -> None:
@@ -111,8 +103,7 @@ def test_dispatch_deps_copy_state_into_scratchpad() -> None:
     assert deps.site_id == ctx.site_id
     assert deps.user_id == ctx.user_id
     assert deps.strategy_session is ctx.strategy_session
-    assert deps.web_search_service is ctx.web_search_service
-    assert deps.literature_search_service is ctx.literature_search_service
+    assert deps.tool_sources is None
     discovered = state.domain.discovered_searches
     assert deps.agent_state.discovered_searches == discovered
     assert deps.agent_state.discovered_searches is not discovered

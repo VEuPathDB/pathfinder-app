@@ -50,11 +50,11 @@ jobs:
           PATHFINDER_CHAT_PROVIDER: mock
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
           VEUPATHDB_AUTH_TOKEN: ${{ secrets.VEUPATHDB_AUTH_TOKEN }}
-          PATHFINDER_MCP_BASE_URL: http://localhost:8100
-          PATHFINDER_MCP_SERVICE_TOKENS: ${{ secrets.PATHFINDER_MCP_SERVICE_TOKENS }}
+          WDK_MCP_BASE_URL: http://localhost:8100
+          WDK_MCP_SERVICE_TOKENS: ${{ secrets.PATHFINDER_MCP_SERVICE_TOKENS }}
         working-directory: apps/api
         run: |
-          test -n "$PATHFINDER_MCP_SERVICE_TOKENS" || {
+          test -n "$WDK_MCP_SERVICE_TOKENS" || {
             echo "no service token configured; the lane has nothing to admit"
             exit 0
           }
@@ -79,7 +79,7 @@ jobs:
           WDK_TEST_EMAIL: ${{ secrets.WDK_TEST_EMAIL }}
           WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
           VEUPATHDB_AUTH_TOKEN: ${{ secrets.VEUPATHDB_AUTH_TOKEN }}
-          PATHFINDER_MCP_SERVICE_TOKENS: ${{ secrets.PATHFINDER_MCP_SERVICE_TOKENS }}
+          WDK_MCP_SERVICE_TOKENS: ${{ secrets.PATHFINDER_MCP_SERVICE_TOKENS }}
           PATHFINDER_MCP_URL: http://localhost:8100/mcp
           MCP_ADMISSION_REPORT: mcp-admission-report.json
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test

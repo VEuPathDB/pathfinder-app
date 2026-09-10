@@ -4,5 +4,7 @@
  */
 
 export const MOCK_PLAN_PROMPT = "create step";
+/** The reply that closes the plan arc, after FRAME, BUILD and VERIFY ran. */
+export const MOCK_PLAN_REPLY = /Verified end-to-end/;
 export const MOCK_DELEGATION_PROMPT = "create delegation";
 export const MOCK_DELEGATION_DRAFT_PROMPT = "create delegation draft";

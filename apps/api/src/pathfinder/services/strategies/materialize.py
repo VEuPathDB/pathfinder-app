@@ -23,7 +23,6 @@ from pathfinder.domain.strategy.revision import (
     parse_strategy_ast,
     without_wdk_ids,
 )
-from pathfinder.platform.errors import AppError
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.step_push_planner import plan_step_pushes
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
@@ -144,7 +143,7 @@ async def materialize_strategy_snapshot(
             site_id=site_id,
             strategy_name=name,
         )
-    except (AppError, VEuPathDBError, ValueError) as exc:
+    except (VEuPathDBError, ValueError) as exc:
         logger.warning(
             "snapshot materialization failed; the thread keeps the plan only",
             conversation_id=str(conversation_id),

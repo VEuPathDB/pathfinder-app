@@ -22,7 +22,7 @@ from pathfinder.persistence.repositories.conversation_strategy import (
 from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
 )
-from pathfinder.platform.errors import AppError, InternalError
+from pathfinder.platform.errors import InternalError
 
 from .wdk_conversion import (
     build_snapshot_from_wdk,
@@ -68,7 +68,7 @@ async def fetch_and_convert(
 
     try:
         await canonicalize_synced_parameters(payload, api, wire_by_step_id)
-    except (AppError, VEuPathDBError) as exc:
+    except VEuPathDBError as exc:
         logger.warning(
             "Parameter normalization failed, storing raw values",
             wdk_id=wdk_id,
@@ -195,7 +195,7 @@ async def lazy_fetch_wdk_detail(
         updated = await conv_repo.get_with_strategy(conversation.id)
         if updated is not None:
             return updated
-    except (AppError, VEuPathDBError, RuntimeError) as exc:
+    except (VEuPathDBError, RuntimeError) as exc:
         logger.warning(
             "Lazy WDK detail fetch failed",
             conversation_id=str(conversation.id),
@@ -224,7 +224,7 @@ async def sync_is_saved_to_wdk(
     try:
         api = get_strategy_api(site_id)
         await api.set_saved(wdk_id, is_saved=strategy.is_saved)
-    except (AppError, VEuPathDBError) as exc:
+    except VEuPathDBError as exc:
         logger.warning(
             "Failed to sync isSaved to WDK",
             conversation_id=str(conversation.id),

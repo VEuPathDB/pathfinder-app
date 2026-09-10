@@ -62,7 +62,6 @@ const REGISTERED = [
   "list_transforms",
   "list_veupathdb_sites",
   "list_workbench_gene_sets",
-  "literature_search",
   "lookup_gene_records",
   "lookup_phyletic_codes",
   "note",
@@ -99,7 +98,8 @@ const REGISTERED = [
   "update_note",
   "update_step_metadata",
   "verify_strategy",
-  "web_search",
+  "research_literature_search",
+  "research_web_search",
 ];
 
 describe("humanizeToolName", () => {

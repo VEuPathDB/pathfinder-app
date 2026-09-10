@@ -25,8 +25,6 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.eda_parts import EdaEntityCount
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_DATASET,
     PHENOTYPE_ENTITY,
@@ -63,8 +61,6 @@ def lead_run_context(
         user_id=state.user_id,
         strategy_session=session or StrategySession(site_id="plasmodb"),
         db_session_factory=no_database,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
     deps = LeadDeps(state=state, intent=None, runtime=runtime, retrieved_memories=[])

@@ -53,6 +53,7 @@ from pathfinder.ai.graph._lead_capture import (
     _emit_residual_prose,
     _LeadRunCapture,
     _persist_residual_quota,
+    absorb_sub_agent_usage,
     emit_lead_usage,
 )
 from pathfinder.ai.graph._lead_delta import _build_state_delta
@@ -324,18 +325,7 @@ async def _run_lead_turn(
     message_id = uuid4()
 
     def _record_sub_agent_usage(usage_info: SubAgentRunUsage) -> None:
-        cost = cost_for_run(
-            usage=usage_info.usage,
-            model_name=usage_info.model_name,
-            provider_name=usage_info.provider_name,
-            provider_url=usage_info.provider_url,
-        )
-        capture.sub_agent_tokens += usage_info.usage.total_tokens
-        capture.sub_agent_cost += cost
-        capture.sub_agent_usage_by_call[usage_info.parent_tool_call_id] = (
-            usage_info.usage.total_tokens,
-            str(cost),
-        )
+        absorb_sub_agent_usage(capture, usage_info)
         total_tokens, cost_usd = capture.live_totals(state)
         emit_turn_usage(writer, total_tokens, cost_usd)
 
@@ -346,6 +336,7 @@ async def _run_lead_turn(
         runtime=runtime.context,
         retrieved_memories=memories,
         record_sub_agent_usage=_record_sub_agent_usage,
+        sub_agent_usage_by_call=capture.sub_agent_usage_by_call,
     )
 
     await _drive_lead_stream(

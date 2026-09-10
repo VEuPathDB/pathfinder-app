@@ -2,22 +2,10 @@
 
 from __future__ import annotations
 
-from assistant_core.platform.types import JSONObject
 from veupathdb.wdk.wdk_models import WDKSearch
 from veupathdb_mcp.catalog.searches import read_search_definition
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
-
-_UNIVERSAL_SEARCHES: list[JSONObject] = [
-    {
-        "name": "GenesByText",
-        "displayName": "Gene Text Search",
-        "description": "Search all text fields for genes matching a keyword or phrase.",
-        "category": "general",
-        "returns": "transcript",
-        "relevanceScore": 0.0,
-    },
-]
 
 
 def _search_overview_of(search: WDKSearch, record_type: str) -> SearchOverview:

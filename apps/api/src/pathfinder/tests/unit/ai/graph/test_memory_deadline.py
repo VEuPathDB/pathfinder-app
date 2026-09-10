@@ -24,8 +24,6 @@ from pathfinder.ai.graph.state import (
     StrategyDomainState,
     VerificationDigest,
 )
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 
 
 def _never_factory() -> AsyncSession:
@@ -68,8 +66,6 @@ def _context() -> Context:
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=_never_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
         memory_store=_StoreThatNeverAnswers(),
     )

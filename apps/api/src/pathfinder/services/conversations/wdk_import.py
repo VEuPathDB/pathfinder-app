@@ -9,7 +9,7 @@ from veupathdb.wdk.factory import get_strategy_api
 
 from pathfinder.domain.conversation import DEFAULT_STREAM_NAME
 from pathfinder.persistence.repositories import ConversationRepository
-from pathfinder.platform.errors import AppError, ErrorCode, NotFoundError
+from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.conversations.authz import owned_by_caller
 from pathfinder.services.strategies.wdk_sync import sync_to_chat
 
@@ -82,7 +82,7 @@ async def open_strategy(
             user_id=user_id,
             assistant_id=assistant_id,
         )
-    except AppError, VEuPathDBError:
+    except VEuPathDBError:
         logger.exception("WDK fetch failed")
         raise
     except Exception as e:

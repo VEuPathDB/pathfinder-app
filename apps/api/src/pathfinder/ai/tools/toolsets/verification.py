@@ -21,7 +21,6 @@ from pathfinder.ai.tools.standalone.gene import (
 )
 from pathfinder.ai.tools.standalone.memory_tools import remember, search_memory
 from pathfinder.ai.tools.standalone.optimization import optimize_search_parameters
-from pathfinder.ai.tools.standalone.research import literature_search
 from pathfinder.ai.tools.standalone.results import (
     get_download_url,
     get_sample_records,
@@ -117,7 +116,6 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
                 max_retries=3,
             ),
             run_control_tests_on_search,
-            literature_search,
             lookup_gene_records,
             get_ai_expression_summary,
             resolve_gene_ids_to_records,

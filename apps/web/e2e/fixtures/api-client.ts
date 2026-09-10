@@ -37,7 +37,58 @@ interface PersistedMessage {
 interface SnapshotChunk {
   type: string;
   delta?: string;
+  data?: { totalTokens?: number; costUsd?: string };
   message?: { id?: string; role: string; parts?: { type: string; text?: string }[] };
+}
+
+/** A turn's whole-turn totals, as the durable event log recorded them. */
+export interface TurnUsage {
+  totalTokens: number;
+  costUsd: string;
+}
+
+/**
+ * The last turn total the event log holds for a conversation.
+ *
+ * The API counts every model run of the turn, so this is the number the quota
+ * row and the thread's own chip must both read.
+ */
+export async function fetchLastTurnUsage(
+  api: APIRequestContext,
+  conversationId: string | null,
+): Promise<TurnUsage> {
+  if (conversationId == null) throw new Error("no conversation to read usage for");
+  const resp = await api.get(`/api/v1/conversations/${conversationId}/events/snapshot`);
+  if (!resp.ok()) {
+    throw new Error(`events snapshot failed: ${resp.status()}`);
+  }
+  const { chunks } = (await resp.json()) as { chunks: SnapshotChunk[] };
+  const last = chunks.filter((chunk) => chunk.type === "data-turn-usage").at(-1);
+  const tokens = last?.data?.totalTokens;
+  const cost = last?.data?.costUsd;
+  if (tokens === undefined || cost === undefined) {
+    throw new Error("the event log carries no turn usage");
+  }
+  return { totalTokens: tokens, costUsd: cost };
+}
+
+/**
+ * How many turns of a conversation the worker closed as stopped.
+ *
+ * The worker writes this chunk only after it reads the turn's cancellation
+ * row, so the count is what the row did rather than what Stop asked for.
+ */
+export async function fetchStoppedTurnCount(
+  api: APIRequestContext,
+  conversationId: string | null,
+): Promise<number> {
+  if (conversationId == null) throw new Error("no conversation to read stops for");
+  const resp = await api.get(`/api/v1/conversations/${conversationId}/events/snapshot`);
+  if (!resp.ok()) {
+    throw new Error(`events snapshot failed: ${resp.status()}`);
+  }
+  const { chunks } = (await resp.json()) as { chunks: SnapshotChunk[] };
+  return chunks.filter((chunk) => chunk.type === "data-turn-stopped").length;
 }
 
 /**

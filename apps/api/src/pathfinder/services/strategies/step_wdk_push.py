@@ -32,7 +32,6 @@ from veupathdb_mcp.catalog.param_validation import (
 from veupathdb_mcp.catalog.searches import assign_step_record_classes
 from veupathdb_mcp.catalog.validation_callbacks import make_validation_callbacks
 
-from pathfinder.platform.errors import AppError
 from pathfinder.services.strategies._wdk_step_calls import (
     _patch_combine_metadata,
     _push_combine_step,
@@ -106,10 +105,10 @@ async def push_step_to_wdk(
             try:
                 wdk_step = await api.find_step(wdk_step_id)
                 wdk_validation = wdk_step.validation
-            except AppError, VEuPathDBError, OSError:
+            except VEuPathDBError, OSError:
                 wdk_validation = None
 
-    except (AppError, VEuPathDBError, OSError) as exc:
+    except (VEuPathDBError, OSError) as exc:
         push_error = str(exc)
         logger.warning(
             "WDK step push failed (non-fatal)",
@@ -133,7 +132,7 @@ async def _execute_patch(
             await _patch_combine_metadata(api, sync_state, step)
         else:
             await _update_existing_step(api, sync_state, step, record_type)
-    except (AppError, VEuPathDBError, OSError) as exc:
+    except (VEuPathDBError, OSError) as exc:
         msg = str(exc)
         sync_state.wdk_push_errors[step.id] = msg
         return msg

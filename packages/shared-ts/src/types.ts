@@ -325,6 +325,22 @@ export interface UserQuestionAnswersPayload {
   answers: UserQuestionAnswer[];
 }
 
+/** One citable source behind a research result, addressable by its url. */
+export interface ResearchSourceRef {
+  id: string;
+  url: string;
+  title?: string;
+}
+
+/**
+ * The whole return value of a served research tool. One part serves both
+ * tools, so only the fields they share are read here.
+ */
+export interface ResearchSourcesPayload {
+  query: string;
+  sources?: ResearchSourceRef[];
+}
+
 export type KnownDataPartKind =
   | "data-sub-agent-call"
   | "data-sub-agent-step"
@@ -354,7 +370,8 @@ export type KnownDataPartKind =
   | "data-tool-summary"
   | "data-eda.analysis-state"
   | "data-eda.subset-preview"
-  | "data-eda.viz";
+  | "data-eda.viz"
+  | "data-research.sources";
 
 /**
  * Kinds this app renders, plus whatever another assistant registers. An
@@ -392,4 +409,5 @@ export interface DataPartPayloadMap {
   "data-eda.analysis-state": EdaAnalysisState;
   "data-eda.subset-preview": EdaSubsetPreviewPart;
   "data-eda.viz": EdaVizPart;
+  "data-research.sources": ResearchSourcesPayload;
 }

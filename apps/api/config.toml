@@ -7,7 +7,6 @@ api_docs_enabled = true
 database_url = "postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder"
 
 veupathdb_default_site = "veupathdb"
-veupathdb_oauth_url = ""
 
 log_level = "INFO"
 log_format = "json"

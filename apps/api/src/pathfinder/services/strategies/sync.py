@@ -10,7 +10,7 @@ from veupathdb.domain.strategy.graph_model import (
     record_class_of,
 )
 from veupathdb.domain.strategy.session import StrategyGraph
-from veupathdb.domain.strategy.tree import fold, walk
+from veupathdb.domain.strategy.tree import walk
 from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk.factory import get_site, get_strategy_api
@@ -23,9 +23,10 @@ from veupathdb_mcp.catalog.searches import (
     assign_step_record_classes,
     make_record_type_resolver,
 )
+from veupathdb_mcp.wdk.step_tree import MissingWDKStepIdError, build_wdk_step_tree
 
 from pathfinder.domain.strategy.validate import validate_strategy
-from pathfinder.platform.errors import AppError, StrategyCompilationError
+from pathfinder.platform.errors import StrategyCompilationError
 from pathfinder.services.strategies.build import RootResolutionError, resolve_root_step
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -53,18 +54,10 @@ def build_step_tree_from_graph(
 
     :raises StrategyCompilationError: If any step in the tree lacks a WDK step ID.
     """
-
-    def node(step: StrategyStepNode, inputs: list[WDKStepTree]) -> WDKStepTree:
-        wdk_id = wdk_step_ids.get(step.id)
-        if wdk_id is None:
-            msg = f"Step '{step.id}' has no WDK step ID -- was it pushed to WDK?"
-            raise StrategyCompilationError(msg)
-        slots: list[WDKStepTree | None] = [*inputs, None, None]
-        return WDKStepTree(
-            step_id=wdk_id, primary_input=slots[0], secondary_input=slots[1]
-        )
-
-    return fold(root, node)
+    try:
+        return build_wdk_step_tree(root, wdk_step_ids)
+    except MissingWDKStepIdError as exc:
+        raise StrategyCompilationError(str(exc)) from exc
 
 
 def _extract_counts_and_validations(
@@ -157,7 +150,7 @@ async def _create_or_update_wdk_strategy(
                 step_tree=step_tree,
                 name=name,
             )
-        except (AppError, VEuPathDBError) as update_err:
+        except VEuPathDBError as update_err:
             logger.warning(
                 "Failed to update WDK strategy, creating new",
                 wdk_strategy_id=wdk_strategy_id,
@@ -191,7 +184,7 @@ async def _fetch_strategy_state(
     """
     try:
         strategy_info = await api.get_strategy(wdk_strategy_id)
-    except (AppError, VEuPathDBError) as e:
+    except VEuPathDBError as e:
         logger.warning("Strategy count lookup failed", error=str(e))
         return {}, {}, None, step_tree.step_id
     else:
@@ -214,7 +207,7 @@ async def sync_strategy_for_site(
 
     :raises RootResolutionError: If root step cannot be determined.
     :raises StrategyCompilationError: If steps lack WDK IDs or validation fails.
-    :raises AppError: On WDK API failures.
+    :raises VEuPathDBError: On WDK API failures.
     """
     api = get_strategy_api(site_id)
     root = resolve_root_step(graph, None)
@@ -295,5 +288,5 @@ async def _maybe_apply_decorations(
         return
     try:
         await _apply_decorations(root_step, wdk_step_ids, api)
-    except (AppError, VEuPathDBError) as e:
+    except VEuPathDBError as e:
         logger.warning("Step decoration failed (non-fatal)", error=str(e))

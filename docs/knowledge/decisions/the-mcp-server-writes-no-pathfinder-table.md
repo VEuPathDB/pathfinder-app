@@ -95,7 +95,7 @@ a database only for the semantic index it reads (`embedding_vectors`,
 `embedding_index_entries`), which the embedding move takes into the unit.
 
 **Renaming the environment variables.** `VEUPATHDB_OAUTH_URL`,
-`PATHFINDER_MCP_BASE_URL`, `PATHFINDER_MCP_SERVICE_TOKENS`,
+`WDK_MCP_BASE_URL`, `WDK_MCP_SERVICE_TOKENS`,
 `SITE_CATALOG_BUDGET_MB`, `CATALOG_REFRESH_ENABLED` and
 `EMBEDDING_INDEX_SYNC_ENABLED` keep their names and their meanings, so the
 compose file and every deployment read unchanged. A rename is a deployment

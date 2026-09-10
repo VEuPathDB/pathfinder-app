@@ -26,8 +26,6 @@ from pathfinder.persistence.models import BackgroundTask, ConversationAnalysis, 
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 
 
 def _ast(percentile: int) -> StrategyAst:
@@ -161,8 +159,6 @@ def _context() -> Context:
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=db.async_session_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
 

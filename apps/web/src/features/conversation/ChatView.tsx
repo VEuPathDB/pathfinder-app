@@ -4,7 +4,6 @@ import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import type { UIMessage } from "ai";
 import { redirect, useParams } from "next/navigation";
-import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
 import type { Strategy } from "@pathfinder/shared";
@@ -88,12 +87,9 @@ function ChatViewBody({
   strategy: Strategy | null;
   siteId: string;
 }) {
-  // A turn this mount starts is already streaming into it. Only a turn that
-  // was running before this mount is re-attached.
-  const [resumeOnMount] = useState(resumable);
   const { runtime, chat } = useChatRuntime({
     conversationId,
-    resume: resumeOnMount,
+    resume: resumable,
     initialMessages,
   });
   return (

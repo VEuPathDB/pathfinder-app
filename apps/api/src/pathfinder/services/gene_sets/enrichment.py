@@ -8,6 +8,7 @@ from pydantic import JsonValue
 from veupathdb_mcp.wdk.enrichment.service import EnrichmentService
 from veupathdb_mcp.wdk.enrichment.types import EnrichmentAnalysisType
 
+from pathfinder.platform.identity import ENRICHMENT_STRATEGY_NAME
 from pathfinder.services.export import get_export_service
 from pathfinder.services.gene_sets.types import GeneSet
 
@@ -28,7 +29,7 @@ async def run_enrichment_for_gene_set(
 
     Returns a summary dict with enrichment results, download links, and errors.
     """
-    svc = EnrichmentService()
+    svc = EnrichmentService(strategy_name=ENRICHMENT_STRATEGY_NAME)
     results, errors = await svc.run_batch(
         site_id=gene_set.site_id,
         analysis_types=analysis_types,

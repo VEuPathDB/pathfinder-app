@@ -34,6 +34,11 @@ _PROSE = "Here is what I found."
 _PROMPT = "Find A. gambiae midgut proteases"
 
 
+# The research reads are served by a tool source, so an agent built without one
+# offers neither.
+_SERVED_TOOLS = frozenset({"research_web_search", "research_literature_search"})
+
+
 def _session(*, with_steps: bool) -> StrategySession:
     if not with_steps:
         return StrategySession(site_id="plasmodb")
@@ -113,7 +118,8 @@ def test_a_prior_turns_intent_does_not_unlock_this_turn() -> None:
 
 
 def test_an_unclassified_turn_reaches_only_the_always_on_tools() -> None:
-    assert _offered(_deps()) == UNCLASSIFIED_TOOLS
+    """The two served reads are absent: this turn resolved no research source."""
+    assert _offered(_deps()) == UNCLASSIFIED_TOOLS - _SERVED_TOOLS
 
 
 def test_a_classified_build_turn_reaches_frame_and_build() -> None:
@@ -298,6 +304,6 @@ def test_classifying_this_turn_marks_the_turn_and_unlocks_the_tools() -> None:
     )
 
     assert isinstance(result.output, LeadResponse)
-    assert seen.steps[0] == UNCLASSIFIED_TOOLS
+    assert seen.steps[0] == UNCLASSIFIED_TOOLS - _SERVED_TOOLS
     assert {"frame_problem", "build_strategy"} <= seen.steps[1]
     assert deps.state.turn_markers.intent_classified

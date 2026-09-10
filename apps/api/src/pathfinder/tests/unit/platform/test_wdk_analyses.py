@@ -20,7 +20,7 @@ from veupathdb.wdk.client import VEuPathDBClient
 from veupathdb.wdk.wdk_models import WDKFilterValue
 from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult
 
-from pathfinder.platform.errors import AppError, ErrorCode
+from pathfinder.platform.errors import ErrorCode
 
 pytestmark = pytest.mark.usefixtures("wdk_request_token")
 
@@ -198,7 +198,7 @@ class TestTheTwoEmptyResultsAreToldApart:
         # The enrichment batch turns an AppError into a result carrying `error`.
         not_ready = WDKAnalysisNotReadyError(9, 4)
 
-        assert isinstance(not_ready, (AppError, VEuPathDBError))
+        assert isinstance(not_ready, VEuPathDBError)
         assert (not_ready.status, not_ready.code) == (502, ErrorCode.WDK_ERROR)
 
     def test_an_enrichment_that_found_nothing_carries_no_error(self) -> None:

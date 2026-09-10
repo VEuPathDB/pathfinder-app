@@ -17,7 +17,7 @@ from veupathdb.domain.strategy.constraints import (
 from veupathdb.domain.strategy.operational_spec import OperationalSpec
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.runtime import AgentDeps, one_toolset
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait
@@ -46,8 +46,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
         site_id=runtime.site_id,
         user_id=runtime.user_id,
         strategy_session=runtime.strategy_session,
-        web_search_service=runtime.web_search_service,
-        literature_search_service=runtime.literature_search_service,
+        tool_sources=one_toolset(runtime.tool_sources),
         agent_state=AgentToolState(
             discovered_searches=dict(state.domain.discovered_searches),
             # The draft is a copy, so a pass that binds nothing leaves the

@@ -23,7 +23,14 @@ from pathfinder.ai.agents.verification import (
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.tools.toolsets.verification import build_toolset
+from pathfinder.assistants.pathfinder_spec import RESEARCH_TOOL_SOURCE
 from pathfinder.tests._support.sub_agents import agent_tool_names, toolset_tool_names
+
+# The served tools, under the prefix the runtime wraps the source in. They are
+# reachable only where the deployment admits that server.
+_SOURCE_TOOL_NAMES = frozenset(
+    f"{RESEARCH_TOOL_SOURCE.name}_{tool}" for tool in RESEARCH_TOOL_SOURCE.tools or ()
+)
 
 # Every name a real tool answers to. An instruction may name any of these; a
 # token outside this set is prose, not a tool call.
@@ -74,12 +81,12 @@ _TOOL_NAME_TOKENS = frozenset(
         "run_control_tests_on_search",
         "run_control_tests_on_step",
         "run_gene_set_enrichment",
-        # Gene lookup and research
+        # Gene lookup, plus the two tools the research source serves
         "get_ai_expression_summary",
-        "literature_search",
         "lookup_gene_records",
+        "research_literature_search",
+        "research_web_search",
         "resolve_gene_ids_to_records",
-        "web_search",
         # Lead orchestration
         "build_control_set",
         "classify_user_intent",
@@ -139,12 +146,17 @@ def _all_registered_names() -> set[str]:
 def test_verify_toolset_contains_instructed_gene_chain() -> None:
     """VERIFY resolves control gene IDs through a chain its toolset registers."""
     names = toolset_tool_names(build_toolset())
-    for tool in (
-        "literature_search",
-        "lookup_gene_records",
-        "resolve_gene_ids_to_records",
-    ):
+    for tool in ("lookup_gene_records", "resolve_gene_ids_to_records"):
         assert tool in names, f"{tool} is instructed by VERIFY but not registered"
+
+
+def test_the_research_reads_are_served_and_not_registered() -> None:
+    """The two research tools reach an agent through the source, not a toolset."""
+    assert {
+        "research_literature_search",
+        "research_web_search",
+    } == _SOURCE_TOOL_NAMES
+    assert _SOURCE_TOOL_NAMES & _all_registered_names() == set()
 
 
 @pytest.mark.parametrize("role", ["frame", "execution", "verification", "lead"])
@@ -153,13 +165,14 @@ def test_every_instructed_tool_is_callable_by_its_agent(role: str) -> None:
     instructed = _instructed_tool_names(instructions)
     # An extraction that finds nothing passes the check below without testing it.
     assert instructed, f"{role} instructions name no known tool; the check is void"
-    missing = sorted(instructed - agent_tool_names(build()))
+    reachable = agent_tool_names(build()) | _SOURCE_TOOL_NAMES
+    missing = sorted(instructed - reachable)
     assert not missing, f"{role} instructions name uncallable tools: {missing}"
 
 
 def test_tool_name_tokens_are_all_real_tools() -> None:
     """The token list stays honest: no entry names a tool nobody registers."""
-    stale = sorted(_TOOL_NAME_TOKENS - _all_registered_names())
+    stale = sorted(_TOOL_NAME_TOKENS - _all_registered_names() - _SOURCE_TOOL_NAMES)
     assert not stale, f"token list names unregistered tools: {stale}"
 
 

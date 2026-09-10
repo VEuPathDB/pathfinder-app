@@ -37,6 +37,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
     TOOL_TO_PHASE_ROLE,
     WIRE_PHASE_BY_ROLE,
     LeadDeps,
+    SubAgentCallUsage,
     sub_agent_model_id,
 )
 
@@ -173,7 +174,7 @@ def handle_sub_agent_event(
     writer: Any,
     event: AgentStreamEvent,
     sub_agent_tool_calls: dict[str, str],
-    sub_agent_usage: dict[str, tuple[int, str]],
+    sub_agent_usage: dict[str, SubAgentCallUsage],
 ) -> None:
     """Emit a sub-agent call card and refresh the ledger when a sub-agent tool runs.
 
@@ -213,7 +214,7 @@ def handle_sub_agent_event(
         else:
             summary = _summarize_sub_agent_result(result)
         failed = sub_agent_result_failed(result)
-        tokens, cost_usd = sub_agent_usage.get(event.tool_call_id, (0, "0"))
+        spent = sub_agent_usage.get(event.tool_call_id, SubAgentCallUsage())
         emit_chunk(
             writer,
             sub_agent_call_event(
@@ -225,8 +226,8 @@ def handle_sub_agent_event(
                     model_id=sub_agent_model_id(result_tool_name),
                     summary=summary,
                     succeeded=not failed,
-                    tokens=tokens,
-                    cost_usd=cost_usd,
+                    tokens=spent.tokens,
+                    cost_usd=str(spent.cost),
                 )
             ),
         )

@@ -35,8 +35,6 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
 from pathfinder.ai.tools.standalone.strategy_graph import StudyStepCheck
 from pathfinder.ai.tools.toolsets import verification
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.fixtures.builders import add_step_to_graph
@@ -150,8 +148,6 @@ def _deps(session: StrategySession) -> LeadDeps:
         user_id=uuid4(),
         strategy_session=session,
         db_session_factory=_never_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
     return LeadDeps(state=state, intent=None, runtime=context, retrieved_memories=[])

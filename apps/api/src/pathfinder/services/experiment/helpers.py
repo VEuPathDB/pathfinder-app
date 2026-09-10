@@ -6,16 +6,16 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.errors import VEuPathDBError
-from veupathdb_mcp.controls.control_tests import IntersectionConfig
 from veupathdb_mcp.controls.control_types import (
     ControlsContext,
     ControlSetData,
     ControlTestResult,
+    IntersectionConfig,
 )
 from veupathdb_mcp.gene_lookup.result import GeneResult
 from veupathdb_mcp.gene_lookup.wdk import resolve_gene_ids
 
-from pathfinder.platform.errors import AppError
+from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
 from pathfinder.services.experiment.types import ExperimentConfig, GeneInfo
 
 logger = get_logger(__name__)
@@ -43,6 +43,7 @@ def intersection_config_from_config(
         controls_search_name=config.controls_search_name,
         controls_param_name=config.controls_param_name,
         controls_value_format=config.controls_value_format,
+        internal_strategy_name=CONTROL_TEST_STRATEGY_NAME,
     )
 
 
@@ -161,7 +162,7 @@ async def extract_and_hydrate_genes(
 
     try:
         lookup = await _resolve_gene_lookup(site_id, (tp, fn, fp, tn))
-    except (AppError, VEuPathDBError) as exc:
+    except VEuPathDBError as exc:
         logger.warning("Gene hydration failed, returning bare IDs", error=str(exc))
         return tp, fn, fp, tn
 

@@ -11,8 +11,9 @@ what left.
 2. [The combination check under-enforces three or more terms](combination-lca-under-enforces-many-terms.md) - two-term constraints are exact; "A OR B OR C" accepts a tree that ANDs two branches.
 3. [The portal search listing exceeds the compaction threshold](portal-search-listing-exceeds-the-compaction-threshold.md) - 2769 listings, about 144K tokens, so FRAME is compacted after every step on veupathdb.org and the scripted mock re-runs the build arc; two thread-surgery journeys are red on the portal.
 4. [Re-cut the authoring model out of veupathdb-py](re-cut-the-authoring-model-out-of-veupathdb-py.md) - the client ships PathFinder's strategy authoring model because `veupathdb.wdk` names it: 47 measured edges into `ast`, `ops`, `tree`, `graph_model`, `session` and `operational_spec`.
-5. [Move library-shaped code out of the app](move-library-shaped-code-out-of-the-app.md) - fourteen modules that name no gene, strategy or phase still live here (durable tasks, scratchpad, PIGuard, history processors, quota, WDK identity and counts); the ranked list with targets and effort is the card.
+5. [Move library-shaped code out of the app](move-library-shaped-code-out-of-the-app.md) - four subsystems that name no gene, strategy or phase still live here (durable tasks, the scratchpad, conversation ownership and cancellation, the cost quota); the ranked list with targets and effort is the card.
 6. [The SSE golden depends on when the title task finishes](sse-golden-depends-on-title-scheduling.md) - the title chunk's position in a turn is a scheduling outcome, so the simple-turn golden pins an order the runner does not guarantee.
+7. [The test tree is type-checked by nothing](the-test-tree-is-type-checked-by-nothing.md) - mypy 1158 / pyright 1486 errors over `apps/api/src/pathfinder/tests`; a widened library type left a live assertion silently wrong until it ran.
 
 ## Known and accepted
 

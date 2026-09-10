@@ -7,13 +7,10 @@ from pydantic import JsonValue
 from veupathdb.domain.parameters.value_codec import to_decoded_map
 from veupathdb.domain.parameters.values import NumberValue, ParamValue, SinglePickValue
 from veupathdb.errors import VEuPathDBError
-from veupathdb_mcp.controls.control_tests import (
-    IntersectionConfig,
-    run_positive_negative_controls,
-)
-from veupathdb_mcp.controls.control_types import ControlTestResult
+from veupathdb_mcp.controls.control_tests import run_positive_negative_controls
+from veupathdb_mcp.controls.control_types import ControlTestResult, IntersectionConfig
 
-from pathfinder.platform.errors import AppError
+from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
 from pathfinder.services.parameter_optimization.builders import (
     _extract_trial_metrics,
 )
@@ -97,8 +94,8 @@ async def _evaluate_variant_wdk(
     """Run a single WDK control-test evaluation for ``variant``.
 
     Returns ``(result, error_string)``. ``result`` is ``None`` when WDK
-    raised an :class:`AppError`; the caller propagates the error string
-    into the :class:`SweepVariantResult`.
+    refused the call; the caller propagates the error string into the
+    :class:`SweepVariantResult`.
     """
     config = IntersectionConfig(
         site_id=target.site_id,
@@ -110,6 +107,7 @@ async def _evaluate_variant_wdk(
         controls_value_format=controls.controls_value_format,
         controls_extra_parameters=controls.controls_extra_parameters,
         id_field=controls.id_field,
+        internal_strategy_name=CONTROL_TEST_STRATEGY_NAME,
     )
     try:
         wdk_result = await run_positive_negative_controls(
@@ -117,7 +115,7 @@ async def _evaluate_variant_wdk(
             positive_controls=controls.positive_controls,
             negative_controls=controls.negative_controls,
         )
-    except (AppError, VEuPathDBError) as exc:
+    except VEuPathDBError as exc:
         return None, str(exc)
     return wdk_result, ""
 

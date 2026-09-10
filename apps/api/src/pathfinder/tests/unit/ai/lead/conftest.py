@@ -28,8 +28,6 @@ from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead import sub_agent_stream
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentRunUsage
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 
 PartFor = Callable[[list[ModelMessage]], ToolCallPart | list[ToolCallPart]]
 
@@ -54,8 +52,6 @@ def lead_runtime(
             else StrategySession(site_id=site_id)
         ),
         db_session_factory=never_db_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
 

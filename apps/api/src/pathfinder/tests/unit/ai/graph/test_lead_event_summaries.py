@@ -121,7 +121,7 @@ def test_suppresses_every_dispatch_tool() -> None:
 
 def test_does_not_suppress_lead_own_tool_chunks() -> None:
     calls: dict[str, str] = {}
-    start = ToolInputStartChunk(tool_call_id="c2", tool_name="web_search")
+    start = ToolInputStartChunk(tool_call_id="c2", tool_name="research_web_search")
     assert is_suppressed_sub_agent_chunk(start, calls) is False
     delta = ToolInputDeltaChunk(tool_call_id="c2", input_text_delta="{}")
     assert is_suppressed_sub_agent_chunk(delta, calls) is False

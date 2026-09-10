@@ -26,7 +26,7 @@ from pathfinder.persistence.repositories import (
     ConversationRepository,
     ConversationUpdate,
 )
-from pathfinder.platform.errors import AppError, ErrorCode, NotFoundError
+from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations import strategy_ops
 from pathfinder.services.conversations.authz import (
@@ -263,7 +263,7 @@ class ConversationService:
             try:
                 api = get_strategy_api(conversation.site_id)
                 await api.delete_strategy(wdk_id)
-            except (AppError, VEuPathDBError, OSError, RuntimeError) as e:
+            except (VEuPathDBError, OSError, RuntimeError) as e:
                 logger.warning(
                     "WDK strategy delete failed",
                     wdk_strategy_id=wdk_id,

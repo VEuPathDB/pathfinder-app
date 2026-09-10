@@ -17,12 +17,16 @@ from veupathdb_mcp.wdk.enrichment.types import (
 from veupathdb_mcp.wdk.gene_set_steps import (
     GeneSetWdkContext,
     build_enrichment_params_from_gene_ids,
+    frozen_step_id,
     resolve_wdk_context,
 )
 from veupathdb_mcp.wdk.step_results import StepResultsService
 
 from pathfinder.platform.errors import InternalError, NotFoundError
-from pathfinder.services.gene_sets.frozen_step import frozen_step_id
+from pathfinder.platform.identity import (
+    ENRICHMENT_STRATEGY_NAME,
+    GENE_SET_STRATEGY_NAME,
+)
 from pathfinder.services.gene_sets.store import GeneSetStore
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
 
@@ -285,7 +289,7 @@ class GeneSetService:
                 record_type,
             ) = await build_enrichment_params_from_gene_ids(gs.site_id, gs.gene_ids)
 
-        svc = EnrichmentService()
+        svc = EnrichmentService(strategy_name=ENRICHMENT_STRATEGY_NAME)
         results, errors = await svc.run_batch(
             site_id=gs.site_id,
             analysis_types=enrichment_types,
@@ -317,7 +321,12 @@ class GeneSetService:
         record_type = gs.record_type or "transcript"
         # The set's membership is what it stores. The step it came from can
         # have moved since, and browsing that would show a different set.
-        step_id = await frozen_step_id(gs.site_id, list(gs.gene_ids), record_type)
+        step_id = await frozen_step_id(
+            gs.site_id,
+            list(gs.gene_ids),
+            record_type,
+            strategy_name=GENE_SET_STRATEGY_NAME,
+        )
         if step_id is None:
             step_id = gs.wdk_step_id
         if not step_id:

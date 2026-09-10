@@ -8,7 +8,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.errors import VEuPathDBError
 
-from pathfinder.platform.errors import AppError
 from pathfinder.services.export import get_export_service
 from pathfinder.services.parameter_optimization.config import ParameterSpec
 
@@ -89,5 +88,5 @@ async def _attach_export(result_json: JSONObject, search_name: str) -> None:
             "jsonUrl": export.url,
             "expiresInSeconds": export.expires_in_seconds,
         }
-    except (AppError, VEuPathDBError, OSError) as e:
+    except (VEuPathDBError, OSError) as e:
         logger.warning("Optimization export failed", error=str(e))

@@ -1,5 +1,8 @@
 import { test, expect } from "../fixtures/test";
-import { fetchConversationMessages } from "../fixtures/api-client";
+import {
+  fetchConversationMessages,
+  fetchStoppedTurnCount,
+} from "../fixtures/api-client";
 import {
   MOCK_DELEGATION_DRAFT_PROMPT,
   MOCK_PLAN_PROMPT,
@@ -94,40 +97,13 @@ test.describe("Chat", () => {
     expect(messages.length).toBeGreaterThan(0);
   });
 
-  test("stop streaming cancels operation", async ({ chatPage, page }) => {
-    // The mock responds near-instantly, so hold the chat SSE open to keep the
-    // stop button on screen long enough to click it.
-    let release: () => void = () => {};
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await page.route("**/api/v1/chat", async (route) => {
-      await held;
-      await route.continue();
-    });
-
-    await chatPage.send("slow");
-    await expect(page.getByTestId("stop-button")).toBeVisible({ timeout: 15_000 });
-    await chatPage.stopStreaming();
-    release();
-    await chatPage.expectIdle();
-  });
-
-  test("stop posts a server cancel that records a cancellation row", async ({
+  test("stop cancels the running turn and the worker closes it as stopped", async ({
     chatPage,
     page,
+    apiClient,
   }) => {
-    // Hold the chat SSE open so the stop button stays visible long enough
-    // to click. We never let the stream complete; cancellation is the test.
-    let release: () => void = () => {};
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await page.route("**/api/v1/chat", async (route) => {
-      await held;
-      await route.continue();
-    });
-
+    // A turn that dispatches sub-agents runs long enough to stop while it is
+    // still working, which is what the server cancel answers.
     const cancelRequest = page.waitForRequest(
       (r) =>
         r.method() === "POST" &&
@@ -135,9 +111,11 @@ test.describe("Chat", () => {
       { timeout: 30_000 },
     );
 
-    await chatPage.send("hello cancel");
-    await expect(page.getByTestId("stop-button")).toBeVisible({
-      timeout: 15_000,
+    await chatPage.send(MOCK_PLAN_PROMPT);
+    // The composer ignores a Stop click that lands inside the guard window a
+    // double-click on Send opens, so press it once the turn reports a phase.
+    await expect(page.getByTestId("assistant-status")).toHaveText(/Planning/, {
+      timeout: 60_000,
     });
     await chatPage.stopStreaming();
 
@@ -146,7 +124,16 @@ test.describe("Chat", () => {
     expect(resp).not.toBeNull();
     expect(resp?.status()).toBe(204);
 
-    release();
+    // The client ends its own stream, so the composer takes input again.
+    await chatPage.expectIdle();
+
+    // The worker reads the cancellation row and closes the turn with a
+    // stopped chunk the durable log keeps.
+    await expect
+      .poll(async () => fetchStoppedTurnCount(apiClient, chatPage.lastStrategyId), {
+        timeout: 60_000,
+      })
+      .toBe(1);
   });
 
   test("multiple messages stored sequentially in conversation", async ({

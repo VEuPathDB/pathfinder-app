@@ -34,8 +34,6 @@ from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.toolsets import verification
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 
 OPTIMIZE_ARGS: dict[str, Any] = {
@@ -214,8 +212,6 @@ def lead_deps(state: PipelineState) -> LeadDeps:
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=_quota_offline,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
     # The dispatch tools reach the model only on a turn that classified a

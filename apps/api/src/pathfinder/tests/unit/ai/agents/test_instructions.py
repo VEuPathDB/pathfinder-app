@@ -33,8 +33,6 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.tests._support.instructions import pinned_instructions
 
 _LIMITS = UsageLimits(
@@ -129,8 +127,6 @@ def _lead_ctx(usage: RunUsage, limits: UsageLimits) -> RunContext[LeadDeps]:
         user_id=state.user_id,
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=_no_database,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
     deps = LeadDeps(state=state, intent=None, runtime=runtime, retrieved_memories=[])

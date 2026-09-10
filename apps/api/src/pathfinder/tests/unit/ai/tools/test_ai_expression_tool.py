@@ -29,8 +29,8 @@ from pathfinder.tests.unit.ai.tools.conftest import agent_state_ctx, summary_of
 
 REFUSAL = "No Gene record found for the primary key values"
 
-CACHED_GENE = "PF3D7_1133400"
-UNCACHED_GENE = "PF3D7_0709000"
+SUMMARIZED_GENE = "PF3D7_0709000"
+INCOMPLETE_GENE = "PF3D7_1133400"
 
 
 class _Transport:
@@ -56,43 +56,80 @@ def _serve(monkeypatch: pytest.MonkeyPatch, fixture: str) -> _Transport:
     return transport
 
 
-async def test_a_gene_with_nothing_cached_reaches_the_agent_as_a_miss(
+async def test_a_gene_with_experiments_outstanding_reaches_the_agent_as_a_miss(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    transport = _serve(monkeypatch, "ai_expression_nothing_cached")
+    transport = _serve(monkeypatch, "ai_expression_experiments_incomplete")
     ctx = agent_state_ctx()
 
-    returned = await gene.get_ai_expression_summary(ctx, UNCACHED_GENE)
+    returned = await gene.get_ai_expression_summary(ctx, INCOMPLETE_GENE)
 
     assert transport.paths == [AI_EXPRESSION_REPORT_PATH]
     assert transport.bodies[0]["reportConfig"] == {"populateIfNotPresent": False}
     assert transport.bodies[0]["searchConfig"] == {
-        "parameters": {"primaryKeys": f"{UNCACHED_GENE},PlasmoDB"}
+        "parameters": {"primaryKeys": f"{INCOMPLETE_GENE},PlasmoDB"}
     }
     result = returned.return_value
     assert isinstance(result, GeneExpressionSummary)
     assert result.site_id == "plasmodb"
-    assert result.gene_id == UNCACHED_GENE
+    assert result.gene_id == INCOMPLETE_GENE
     assert result.summary is None
     assert result.unavailable_reason == NO_SUMMARY_ON_THE_SITE
     assert result.result_status is AiExpressionStatus.EXPERIMENTS_INCOMPLETE
+    assert result.num_experiments == 41
+    assert result.num_experiments_complete == 0
     assert summary_of(returned).data["status"] == "empty"
 
 
-async def test_an_expired_summary_reaches_the_agent_with_its_experiment_counts(
+async def test_a_summarized_gene_reaches_the_agent_without_experiment_counts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _serve(monkeypatch, "ai_expression_every_experiment_cached")
+    """The site sends no count beside a summary, so the tool reports none."""
+    _serve(monkeypatch, "ai_expression_summary_present")
     ctx = agent_state_ctx()
 
-    returned = await gene.get_ai_expression_summary(ctx, CACHED_GENE)
+    returned = await gene.get_ai_expression_summary(ctx, SUMMARIZED_GENE)
 
     result = returned.return_value
     assert isinstance(result, GeneExpressionSummary)
-    assert result.result_status is AiExpressionStatus.EXPIRED
-    assert result.num_experiments == result.num_experiments_complete
-    assert result.num_experiments > 0
-    assert result.unavailable_reason == NO_SUMMARY_ON_THE_SITE
+    assert result.result_status is AiExpressionStatus.PRESENT
+    assert result.summary is not None
+    assert result.unavailable_reason is None
+    assert result.num_experiments is None
+    assert result.num_experiments_complete is None
+    assert result.based_on_incomplete_data is False
+    assert summary_of(returned).data["status"] == "ok"
+    line = summary_of(returned).data["summary"]
+    assert isinstance(line, str)
+    assert line.startswith(f"Expression summary for {SUMMARIZED_GENE}: ")
+    assert "part of the experiment set" not in line
+
+
+async def test_a_summary_built_on_part_of_the_data_says_so(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The site states what its summary covers, so the line the user reads says it."""
+    body = load_recorded("ai_expression_summary_present").json_body()
+    assert isinstance(body, dict)
+    entry = body[SUMMARIZED_GENE]
+    assert isinstance(entry, dict)
+    entry["basedOnIncompleteData"] = True
+    transport = _Transport(body)
+    client = VEuPathDBClient("https://example.invalid/service")
+    monkeypatch.setattr(client, "post", transport)
+    monkeypatch.setattr(ai_expression, "get_wdk_client", lambda _site: client)
+    ctx = agent_state_ctx()
+
+    returned = await gene.get_ai_expression_summary(ctx, SUMMARIZED_GENE)
+
+    result = returned.return_value
+    assert isinstance(result, GeneExpressionSummary)
+    assert result.based_on_incomplete_data is True
+    line = summary_of(returned).data["summary"]
+    assert isinstance(line, str)
+    assert line.startswith(
+        f"Expression summary for {SUMMARIZED_GENE} (part of the experiment set): "
+    )
 
 
 async def test_a_refused_gene_reaches_the_agent_as_a_tool_error(

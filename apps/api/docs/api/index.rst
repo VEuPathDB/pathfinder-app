@@ -25,7 +25,6 @@ alphabetical index of all documented objects.
    domain
    strategies
    chat
-   research
    persistence
    transport
    platform

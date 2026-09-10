@@ -36,8 +36,6 @@ from pathfinder.persistence.models import (
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.services.conversations.fork import fork_conversation
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.tests.integration.persistence._thread_surgery import (
     EDA_DATASET,
     FOUR_STEPS,
@@ -642,8 +640,6 @@ def _context(user_id: UUID, memory_store: Any) -> Context:
         user_id=user_id,
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=db.async_session_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
         memory_store=memory_store,
     )

@@ -29,8 +29,8 @@ class FakeStrategyAPI:
     Used by ResultTools tests for get_step_answer.
 
     Mirrors the real ``_standard_report`` behavior: pydantic validation
-    errors are converted to ``DataParsingError`` (an ``AppError`` subclass)
-    so that the caller's ``except (AppError, OSError)`` handler catches them.
+    errors are converted to ``DataParsingError`` so that the caller's
+    ``except (VEuPathDBError, OSError)`` handler catches them.
     """
 
     def __init__(self, response: object = None, error: Exception | None = None) -> None:

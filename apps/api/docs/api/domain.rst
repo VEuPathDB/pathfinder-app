@@ -10,7 +10,6 @@ Overview
 
 - **Strategy Validation** — Validate against WDK constraints; emit field paths.
 - **Strategy Explanation** — Prose for a plan the researcher is about to run.
-- **Research** — Citation formatting and research output processing.
 
 Strategy Validation
 -------------------
@@ -30,16 +29,6 @@ Strategy - Additional Modules
 -----------------------------
 
 .. automodule:: pathfinder.domain.strategy.explain
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Research (Domain)
------------------
-
-**Purpose:** Citation formatting and research output processing.
-
-.. automodule:: pathfinder.domain.research.citations
    :members:
    :undoc-members:
    :show-inheritance:

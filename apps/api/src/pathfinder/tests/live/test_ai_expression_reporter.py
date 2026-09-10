@@ -145,7 +145,7 @@ async def test_a_gene_the_site_has_summarized_carries_a_whole_summary(
     assert [entry for entry in experiments if entry.dataset_id == ""] == []
     assert found.unavailable_reason is None
     # The site sends the experiment counts only beside a status it cannot summarize.
-    assert (found.num_experiments, found.num_experiments_complete) == (0, 0)
+    assert (found.num_experiments, found.num_experiments_complete) == (None, None)
 
 
 async def test_a_gene_with_experiments_outstanding_is_a_miss_and_not_a_failure(
@@ -170,8 +170,12 @@ async def test_a_gene_with_experiments_outstanding_is_a_miss_and_not_a_failure(
 
     assert found.summary is None
     assert found.unavailable_reason == NO_SUMMARY_ON_THE_SITE
-    assert found.num_experiments > 0
-    assert found.num_experiments_complete < found.num_experiments
+    total = found.num_experiments
+    complete = found.num_experiments_complete
+    assert total is not None
+    assert complete is not None
+    assert total > 0
+    assert complete < total
 
 
 async def test_a_gene_the_site_does_not_hold_is_refused_by_its_primary_key(

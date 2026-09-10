@@ -11,6 +11,7 @@ from veupathdb.wdk.factory import get_results_api
 from veupathdb_mcp.controls.control_tests import run_step_control_tests
 from veupathdb_mcp.wdk.enrichment.service import EnrichmentService
 
+from pathfinder.platform.identity import ENRICHMENT_STRATEGY_NAME
 from pathfinder.tests.integration.strategies.conftest import BuildAndRead, RoundTrip
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
@@ -60,7 +61,9 @@ async def test_go_process_enrichment_returns_real_kinase_terms(
     assert rt.decoded.wdk_step_ids
     wdk_step_id = next(iter(rt.decoded.wdk_step_ids.values()))
 
-    results, errors = await EnrichmentService().run_batch(
+    results, errors = await EnrichmentService(
+        strategy_name=ENRICHMENT_STRATEGY_NAME
+    ).run_batch(
         site_id="plasmodb",
         analysis_types=["go_process"],
         step_id=wdk_step_id,

@@ -16,7 +16,7 @@ from pathfinder.ai.agents.strategy_instructions import (
 from pathfinder.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from pathfinder.ai.agents.vocabulary import with_vocabulary
 from pathfinder.ai.capabilities.resilience import ToolResilience
-from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.runtime import AgentDeps, turn_tool_sources
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.scratchpad.toolset import build_scratchpad_toolset
 from pathfinder.ai.tools.toolsets.frame import build_toolset
@@ -181,7 +181,7 @@ def build_frame_agent() -> FrameAgent:
         output_type=[FrameResult, DeferredToolRequests],
         deps_type=AgentDeps,
         instructions=_FRAME_INSTRUCTIONS,
-        toolsets=[build_toolset(), build_scratchpad_toolset()],
+        toolsets=[build_toolset(), build_scratchpad_toolset(), turn_tool_sources],
         capabilities=[
             ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
             Thinking(effort="medium"),

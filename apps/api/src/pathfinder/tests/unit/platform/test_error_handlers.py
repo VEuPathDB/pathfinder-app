@@ -16,7 +16,6 @@ from veupathdb.errors import (
 )
 
 from pathfinder.platform.error_handlers import (
-    app_error_handler,
     http_exception_handler,
     rate_limit_handler,
     request_validation_handler,
@@ -45,8 +44,15 @@ def _body(resp: JSONResponse) -> dict[str, object]:
     return json.loads(bytes(resp.body))
 
 
-async def test_app_error_handler_returns_problem_json() -> None:
-    resp = await app_error_handler(
+def test_an_application_error_is_a_client_refusal() -> None:
+    """One hierarchy, so one handler renders both."""
+    error = AppError(code=ErrorCode.WDK_ERROR, title="WDK", status=502)
+    assert isinstance(error, VEuPathDBError)
+    assert error.code is ErrorCode.WDK_ERROR
+
+
+async def test_the_one_handler_renders_an_application_error() -> None:
+    resp = await veupathdb_error_handler(
         _request(),
         AppError(code=ErrorCode.WDK_ERROR, title="WDK", status=502, detail="upstream"),
     )
@@ -56,6 +62,19 @@ async def test_app_error_handler_returns_problem_json() -> None:
     assert body["status"] == 502
     assert body["code"] == "WDK_ERROR"
     assert body["detail"] == "upstream"
+
+
+async def test_the_one_handler_keeps_a_code_only_this_application_names() -> None:
+    resp = await veupathdb_error_handler(
+        _request(),
+        AppError(
+            code=ErrorCode.STRATEGY_COMPILATION_ERROR,
+            title="Strategy compilation failed",
+            status=500,
+        ),
+    )
+    assert resp.status_code == 500
+    assert _body(resp)["code"] == "STRATEGY_COMPILATION_ERROR"
 
 
 async def test_veupathdb_error_handler_keeps_the_code_and_the_status() -> None:

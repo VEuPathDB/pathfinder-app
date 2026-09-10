@@ -1,0 +1,28 @@
+[Unit]
+Description=Pathfinder veupathdb-research-mcp server
+
+[Container]
+ContainerName=pathfinder-research-mcp
+Image=localhost/veupathdb-mcp-research:latest
+Network=pathfinder.network
+# Change the host port (left side) to use a different port
+PublishPort=8110:8110
+PodmanArgs=--memory=512m
+
+# API keys and app settings loaded from .env
+EnvironmentFile=%h/.config/pathfinder/.env
+
+# This server reads no account and opens no database, so it holds neither a
+# database URL nor a catalog volume.
+
+HealthCmd=curl -fsS http://localhost:8110/health || exit 1
+HealthInterval=30s
+HealthTimeout=10s
+HealthStartPeriod=10s
+HealthRetries=3
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

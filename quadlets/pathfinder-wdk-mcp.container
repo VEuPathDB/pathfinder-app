@@ -26,6 +26,11 @@ Environment=CATALOG_REFRESH_ENABLED=false
 # Only the api writes embedding vectors; this server searches what the api wrote
 Environment=EMBEDDING_INDEX_SYNC_ENABLED=false
 
+# Every process that writes or matches a helper strategy reads the same prefix.
+# A process on the library default recognises none of the strategies already in
+# a researcher's account.
+Environment=VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX=__pathfinder_internal__:
+
 HealthCmd=curl -fsS http://localhost:8100/health || exit 1
 HealthInterval=30s
 HealthTimeout=10s

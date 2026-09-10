@@ -11,10 +11,8 @@ from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb.domain.parameters.values import ParamValue
-from veupathdb_mcp.controls.control_tests import (
-    IntersectionConfig,
-    run_positive_negative_controls,
-)
+from veupathdb_mcp.controls.control_tests import run_positive_negative_controls
+from veupathdb_mcp.controls.control_types import IntersectionConfig
 from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
@@ -27,6 +25,7 @@ from pathfinder.ai.stream_part_payloads import (
 )
 from pathfinder.ai.tools.durable import DurableOutcome, durable_tool
 from pathfinder.platform.errors import ErrorCode
+from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
 from pathfinder.services.experiment.published_names import published_names
 from pathfinder.services.export.control_downloads import attach_control_downloads
 
@@ -228,6 +227,7 @@ async def run_control_tests_on_search(
             controls_search_name="GeneByLocusTag",
             controls_param_name="ds_gene_ids",
             controls_value_format="newline",
+            internal_strategy_name=CONTROL_TEST_STRATEGY_NAME,
         ),
         positive_controls=positive_controls,
         negative_controls=negative_controls,

@@ -68,24 +68,8 @@ class ProblemDetail(BaseModel):
     errors: JSONArray | None = None
 
 
-class AppError(Exception):
-    """Base application error."""
-
-    def __init__(
-        self,
-        code: ErrorCode,
-        title: str,
-        status: int = 400,
-        detail: str | None = None,
-        errors: JSONArray | None = None,
-    ) -> None:
-        self.code = code
-        self.title = title
-        self.status = status
-        self.detail = detail
-        self.errors = errors
-        msg = f"{title}: {detail}" if detail else title
-        super().__init__(msg)
+class AppError(VEuPathDBError[ErrorCode]):
+    """Base application error. A refusal this application names the code of."""
 
 
 class InternalError(AppError):
@@ -272,9 +256,9 @@ _GENERIC_ERROR = "An internal error occurred"
 def sanitize_error_for_client(exc: BaseException) -> str:
     """Return a user-safe error message.
 
-    Only an ``AppError`` carries a user-facing title and detail. Every other
+    Only a refusal carries a user-facing title and detail. Every other
     exception gets a generic message.
     """
-    if isinstance(exc, (AppError, VEuPathDBError)):
+    if isinstance(exc, VEuPathDBError):
         return str(exc)
     return _GENERIC_ERROR

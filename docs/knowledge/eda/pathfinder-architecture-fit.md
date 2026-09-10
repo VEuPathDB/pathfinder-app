@@ -88,9 +88,9 @@ covers EDA unchanged.
 
 `domain/` is pure, and no import contract states it: the purity of
 `veupathdb.domain`, where most of it now lives, is held by
-`veupathdb-py: tests/unit/test_package_boundary.py`. Its contents at the time
-are `parameters/`, `research/`, `scratchpad/`, `strategy/`, `search.py`,
-`wdk_values.py`.
+`veupathdb-py: tests/unit/test_package_boundary.py`. What stays in this
+tree is `conversation.py`, `eda_parts.py`, `eda_thread.py`, `scratchpad/` and
+the strategy modules the client does not name.
 
 **The analysis-spec model belongs in `integrations/eda/`, not in `domain/`.**
 The argument, and it is a real fork:

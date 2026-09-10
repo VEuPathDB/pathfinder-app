@@ -4,27 +4,17 @@ from importlib.resources import files
 from importlib.resources.abc import Traversable
 
 from pydantic import TypeAdapter
+from veupathdb.wdk.site_router import load_sites_config
 
 from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.experiment.seed.types import SeedDef
 
-SEED_DATABASES: list[str] = [
-    "plasmodb",
-    "toxodb",
-    "cryptodb",
-    "piroplasmadb",
-    "tritrypdb",
-    "fungidb",
-    "vectorbase",
-    "giardiadb",
-    "amoebadb",
-    "microsporidiadb",
-    "hostdb",
-    "veupathdb",
-    "orthomcl",
-]
-
 SEEDS_DIR: Traversable = files("pathfinder") / "data" / "seeds"
+
+# The registry names every site this deployment serves; only some ship seeds.
+SEED_DATABASES: list[str] = [
+    site for site in load_sites_config().sites if (SEEDS_DIR / f"{site}.json").is_file()
+]
 
 _SEED_LIST = TypeAdapter(list[SeedDef])
 

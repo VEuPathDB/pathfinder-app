@@ -20,8 +20,6 @@ from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 
 TURN_FIELDS = {
     "conversation_id",
@@ -68,8 +66,7 @@ DOMAIN_FIELDS = {
 
 STRATEGY_RESOURCES = {
     "strategy_session",
-    "web_search_service",
-    "literature_search_service",
+    "tool_sources",
     "agent_state",
     "experiment_id",
     "ledger_summary",
@@ -154,8 +151,7 @@ def test_context_extends_turn_context_with_the_strategy_resources() -> None:
     }
     assert added == {
         "strategy_session",
-        "web_search_service",
-        "literature_search_service",
+        "tool_sources",
         "experiment_id",
     }
 
@@ -166,8 +162,6 @@ def test_context_is_still_frozen_and_built_by_keyword() -> None:
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=_never_factory,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
     assert dataclasses.is_dataclass(ctx)

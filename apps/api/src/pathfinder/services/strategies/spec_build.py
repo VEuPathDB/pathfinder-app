@@ -26,7 +26,6 @@ from veupathdb_mcp.catalog.validation_callbacks import (
     make_validation_callbacks,
 )
 
-from pathfinder.platform.errors import AppError
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
@@ -146,7 +145,7 @@ async def build_strategy_from_spec(
             site_id=deps.site_id,
             strategy_name=graph.name,
         )
-    except (AppError, VEuPathDBError) as exc:
+    except VEuPathDBError as exc:
         logger.warning("strategy sync failed", error=str(exc))
         await persist_strategy_ast_to_conversation(
             deps=deps,

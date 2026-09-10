@@ -30,7 +30,7 @@ ORGANISM = "Plasmodium falciparum 3D7"
 
 URL_VARIABLE = "PATHFINDER_MCP_URL"
 DEFAULT_URL = "http://localhost:8100/mcp"
-SERVICE_TOKENS_VARIABLE = "PATHFINDER_MCP_SERVICE_TOKENS"
+SERVICE_TOKENS_VARIABLE = "WDK_MCP_SERVICE_TOKENS"
 
 # A short budget for the reads, so a hung endpoint fails instead of waiting.
 READ_SECONDS = 60.0

@@ -30,6 +30,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.lead_agent import LeadResponse
+from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
 from pathfinder.ai.models.catalog import context_window_for
 from pathfinder.services import quota
 
@@ -52,7 +53,7 @@ class _LeadRunCapture:
     charged_cost: Decimal = field(default_factory=lambda: Decimal(0))
     sub_agent_tokens: int = 0
     sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
-    sub_agent_usage_by_call: dict[str, tuple[int, str]] = field(default_factory=dict)
+    sub_agent_usage_by_call: dict[str, SubAgentCallUsage] = field(default_factory=dict)
     lead_model: str = ""
     last_request_input_tokens: int = 0
     pending_approval: PendingApproval | None = None
@@ -85,6 +86,25 @@ class _LeadRunCapture:
             state.turn_total_tokens + self.tokens + self.sub_agent_tokens,
             str(state.turn_total_cost_usd + self.cost_usd + self.sub_agent_cost),
         )
+
+
+def absorb_sub_agent_usage(capture: _LeadRunCapture, info: SubAgentRunUsage) -> None:
+    """Add one sub-agent pass to the turn total and to its dispatch's total.
+
+    A dispatch that ran more than one pass owes the sum of them, so the card
+    the thread reads carries what the turn counted for that call.
+    """
+    cost = cost_for_run(
+        usage=info.usage,
+        model_name=info.model_name,
+        provider_name=info.provider_name,
+        provider_url=info.provider_url,
+    )
+    capture.sub_agent_tokens += info.usage.total_tokens
+    capture.sub_agent_cost += cost
+    by_call = capture.sub_agent_usage_by_call
+    spent = by_call.get(info.parent_tool_call_id, SubAgentCallUsage())
+    by_call[info.parent_tool_call_id] = spent.plus(info.usage.total_tokens, cost)
 
 
 def emit_lead_usage(

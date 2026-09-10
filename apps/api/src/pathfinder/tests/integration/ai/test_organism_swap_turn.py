@@ -52,8 +52,6 @@ from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -361,8 +359,6 @@ def _deps(conv_id: UUID, session_maker: Any) -> LeadDeps:
         user_id=state.user_id,
         strategy_session=session,
         db_session_factory=session_maker,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
     return LeadDeps(state=state, intent=None, runtime=runtime, retrieved_memories=[])

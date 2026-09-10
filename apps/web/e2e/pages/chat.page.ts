@@ -41,6 +41,10 @@ export class ChatPage {
   /** The strategy ID created by the last `newChat()` call. */
   lastStrategyId: string | null = null;
 
+  /** Replies the thread held before the turn now being waited on. Null when no
+   *  turn is being waited on. It is the evidence `expectIdle` reports on. */
+  private repliesBeforeTurn: number | null = null;
+
   /** The sidebar row for one conversation. The same id also marks its
    *  dismissed row and its subtree rows, so the testid names which one. */
   private conversationRow(strategyId: string): Locator {
@@ -111,15 +115,24 @@ export class ChatPage {
    *  re-sends, on the same budget a sent turn gets. */
   async awaitTurn(pattern: RegExp) {
     await this.expectAssistantMessage(pattern, { timeout: TURN_BUDGET_MS });
+    // A reply matching the pattern is a turn's own output, so a turn ran even
+    // when this page did not send it.
+    this.repliesBeforeTurn ??= 0;
     await this.expectIdle(TURN_BUDGET_MS);
   }
 
+  /**
+   * Send `message`. The reply count is read before the click, so `expectIdle`
+   * can tell the turn's own reply from the ones already on the thread.
+   */
   async send(message: string) {
+    const repliesBefore = await this.assistantMessages.count();
     await expect(async () => {
       await this.messageInput.fill(message);
       await expect(this.sendButton).toBeEnabled();
       await this.sendButton.click({ trial: false, timeout: 2_000 });
     }).toPass({ timeout: 30_000 });
+    this.repliesBeforeTurn = repliesBefore;
   }
 
   async stopStreaming() {
@@ -218,13 +231,24 @@ export class ChatPage {
   // ── Assertions ──────────────────────────────────────────────────
 
   /**
-   * Wait until the composer accepts input again, which happens when the turn
-   * ends. Measured turns reach 43 s when two run at once, and a third waits
-   * for a free worker slot on top of that.
+   * Wait until the turn ran and finished: it put a reply on the thread that
+   * was not there before, and the composer takes Send back and accepts input.
+   * An idle composer alone also describes a turn that never started.
+   *
+   * Measured turns reach 43 s when two run at once, and a third waits for a
+   * free worker slot on top of that.
    */
   async expectIdle(timeout = 90_000) {
+    const repliesBefore = this.repliesBeforeTurn;
+    if (repliesBefore === null) {
+      throw new Error("expectIdle needs a turn that send() or awaitTurn() started");
+    }
+    await expect
+      .poll(async () => this.assistantMessages.count(), { timeout })
+      .toBeGreaterThan(repliesBefore);
     await expect(this.sendButton).toBeVisible({ timeout });
     await expect(this.messageInput).toBeEditable({ timeout });
+    this.repliesBeforeTurn = null;
   }
 
   /**

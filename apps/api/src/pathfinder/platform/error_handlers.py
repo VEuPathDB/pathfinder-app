@@ -1,5 +1,6 @@
 """FastAPI exception handlers that render every error as problem+json."""
 
+from enum import StrEnum
 from http import HTTPStatus
 
 import structlog
@@ -13,7 +14,7 @@ from starlette.exceptions import HTTPException
 from veupathdb.domain.strategy.operations.apply import ApplyError
 from veupathdb.errors import VEuPathDBError
 
-from pathfinder.platform.errors import AppError, ErrorCode, ProblemDetail
+from pathfinder.platform.errors import ErrorCode, ProblemDetail
 
 _logger = structlog.get_logger(__name__)
 
@@ -52,7 +53,7 @@ def problem_response(
 
 
 def _failed(
-    request: Request, exc: AppError | VEuPathDBError, code: ErrorCode
+    request: Request, exc: VEuPathDBError[StrEnum], code: ErrorCode
 ) -> JSONResponse:
     log = _logger.bind(
         method=request.method,
@@ -77,15 +78,10 @@ def _failed(
     )
 
 
-async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
-    """Handle AppError exceptions."""
-    return _failed(request, exc, exc.code)
-
-
 async def veupathdb_error_handler(
-    request: Request, exc: VEuPathDBError
+    request: Request, exc: VEuPathDBError[StrEnum]
 ) -> JSONResponse:
-    """Render a client-library refusal under the code the wire already names."""
+    """Render any refusal under the code the wire already names."""
     return _failed(request, exc, ErrorCode(exc.code.value))
 
 

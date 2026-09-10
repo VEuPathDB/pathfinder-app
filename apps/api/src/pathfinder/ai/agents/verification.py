@@ -18,7 +18,7 @@ from pathfinder.ai.agents.strategy_instructions import (
 from pathfinder.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from pathfinder.ai.agents.vocabulary import with_vocabulary
 from pathfinder.ai.capabilities.resilience import ToolResilience
-from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.runtime import AgentDeps, turn_tool_sources
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.scratchpad.toolset import build_scratchpad_toolset
 from pathfinder.ai.tools.toolsets.verification import build_toolset
@@ -69,7 +69,8 @@ manually. Do NOT call after a successful build - sets are auto-created.
 
 ### Gene Lookup (control tests)
 Control tests require VEuPathDB **gene IDs** (e.g. ``PF3D7_1222600``), not \
-names. Resolve names via ``literature_search`` -> ``lookup_gene_records`` -> \
+names. Resolve names via ``research_literature_search`` -> \
+``lookup_gene_records`` -> \
 ``resolve_gene_ids_to_records`` before passing them as controls. Never \
 guess gene IDs.
 
@@ -197,7 +198,7 @@ def build_verification_agent() -> VerificationAgent:
         output_type=[VerificationDelta, DeferredToolRequests],
         deps_type=AgentDeps,
         instructions=_VERIFICATION_INSTRUCTIONS,
-        toolsets=[build_toolset(), build_scratchpad_toolset()],
+        toolsets=[build_toolset(), build_scratchpad_toolset(), turn_tool_sources],
         capabilities=[
             ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
             Thinking(effort="high"),

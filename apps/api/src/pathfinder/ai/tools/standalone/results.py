@@ -19,7 +19,7 @@ from pathfinder.ai.tools.standalone._result_models import (
     _validate_download_url_inputs,
     _validate_sample_inputs,
 )
-from pathfinder.platform.errors import AppError, ErrorCode
+from pathfinder.platform.errors import ErrorCode
 
 
 async def get_download_url(
@@ -48,7 +48,7 @@ async def get_download_url(
             output_format=output_format,
             attributes=attributes,
         )
-    except (AppError, VEuPathDBError, OSError) as exc:
+    except (VEuPathDBError, OSError) as exc:
         return _no_download(
             ctx,
             tool_error(ErrorCode.WDK_ERROR, str(exc)),
@@ -119,7 +119,7 @@ async def get_sample_records(
             limit=limit,
             attributes=gene_sample_attributes(record_type),
         )
-    except (AppError, VEuPathDBError, OSError) as exc:
+    except (VEuPathDBError, OSError) as exc:
         return with_summary(
             tool_error(ErrorCode.WDK_ERROR, str(exc)),
             f"No sample records from step {wdk_step_id}",

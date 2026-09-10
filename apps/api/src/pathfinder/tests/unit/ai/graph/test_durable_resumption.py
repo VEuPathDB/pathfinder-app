@@ -34,8 +34,6 @@ from pathfinder.ai.graph._lead_turn import (
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentDurablePark
-from pathfinder.services.research.literature_search import LiteratureSearchService
-from pathfinder.services.research.web_search import WebSearchService
 
 _TASK_ID = UUID("0c6100d2-0000-4000-8000-000000000001")
 _HISTORY = ModelMessagesTypeAdapter.dump_json(
@@ -65,8 +63,6 @@ def _deps(state: PipelineState) -> LeadDeps:
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=_quota_offline,
-        web_search_service=WebSearchService(),
-        literature_search_service=LiteratureSearchService(),
         cancel_event=asyncio.Event(),
     )
     return LeadDeps(state=state, intent=None, runtime=context, retrieved_memories=[])

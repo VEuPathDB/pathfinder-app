@@ -34,15 +34,15 @@ BUILDING_TOOLS: frozenset[str] = frozenset(
 )
 
 # What a turn reaches before it says what the message asks: the classification
-# itself, the two reads of what the thread holds, the two literature reads and
+# itself, the two reads of what the thread holds, the two research reads and
 # the memory write. Every other tool waits for the classification.
 UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
     {
         "classify_user_intent",
         "read_ledger_section",
         "get_live_strategy_state",
-        "web_search",
-        "literature_search",
+        "research_web_search",
+        "research_literature_search",
         "remember",
     }
 )

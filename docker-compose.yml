@@ -58,9 +58,16 @@ services:
       WDK_DEV_PASSWORD: ${WDK_DEV_PASSWORD:-}
       # The veupathdb-wdk-mcp endpoint an assistant's declaration resolves to,
       # and the credential presented there. Set the same secret in this
-      # deployment's PATHFINDER_MCP_SERVICE_TOKENS; an empty one admits nothing.
+      # deployment's WDK_MCP_SERVICE_TOKENS; an empty one admits nothing.
       PATHFINDER_WDK_MCP_URL: ${PATHFINDER_WDK_MCP_URL:-http://wdk-mcp:8100/mcp}
       PATHFINDER_WDK_MCP_TOKEN: ${PATHFINDER_WDK_MCP_TOKEN:-}
+      # The veupathdb-research-mcp endpoint and its credential. An empty token
+      # admits no research source, and the turn runs without those tools.
+      PATHFINDER_RESEARCH_MCP_URL: ${PATHFINDER_RESEARCH_MCP_URL:-http://research-mcp:8110/mcp}
+      PATHFINDER_RESEARCH_MCP_TOKEN: ${PATHFINDER_RESEARCH_MCP_TOKEN:-}
+      # Every process that writes or matches a helper strategy reads the same
+      # prefix. A process on the library default recognises none of them.
+      VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__pathfinder_internal__:}
     volumes:
       # Devtools chat-debugger run artifacts (pathfinder.devtools.chat) land on
       # the host so they can be inspected outside the container.
@@ -134,9 +141,16 @@ services:
       WORKER_HEARTBEAT_INTERVAL_SECONDS: ${WORKER_HEARTBEAT_INTERVAL_SECONDS:-5}
       # The veupathdb-wdk-mcp endpoint an assistant's declaration resolves to,
       # and the credential presented there. Set the same secret in this
-      # deployment's PATHFINDER_MCP_SERVICE_TOKENS; an empty one admits nothing.
+      # deployment's WDK_MCP_SERVICE_TOKENS; an empty one admits nothing.
       PATHFINDER_WDK_MCP_URL: ${PATHFINDER_WDK_MCP_URL:-http://wdk-mcp:8100/mcp}
       PATHFINDER_WDK_MCP_TOKEN: ${PATHFINDER_WDK_MCP_TOKEN:-}
+      # The veupathdb-research-mcp endpoint and its credential. An empty token
+      # admits no research source, and the turn runs without those tools.
+      PATHFINDER_RESEARCH_MCP_URL: ${PATHFINDER_RESEARCH_MCP_URL:-http://research-mcp:8110/mcp}
+      PATHFINDER_RESEARCH_MCP_TOKEN: ${PATHFINDER_RESEARCH_MCP_TOKEN:-}
+      # Every process that writes or matches a helper strategy reads the same
+      # prefix. A process on the library default recognises none of them.
+      VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__pathfinder_internal__:}
     volumes:
       - ./apps/api/.pf-runs:/data/pf-runs
       - catalogs_cache:/app/data/catalogs
@@ -145,7 +159,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.1.0a4
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a2
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -183,12 +197,45 @@ services:
       EMBEDDING_INDEX_SYNC_ENABLED: "false"
       # The URL a client reads the RFC 9728 document at. It must be reachable
       # by the client, not by this container.
-      PATHFINDER_MCP_BASE_URL: ${PATHFINDER_MCP_BASE_URL:-http://localhost:8100}
+      WDK_MCP_BASE_URL: ${WDK_MCP_BASE_URL:-http://localhost:8100}
       # Applications this server admits without a VEuPathDB user, as
       # "app_id:secret[,app_id:secret...]". Empty admits user bearers only.
-      PATHFINDER_MCP_SERVICE_TOKENS: ${PATHFINDER_MCP_SERVICE_TOKENS:-}
+      WDK_MCP_SERVICE_TOKENS: ${WDK_MCP_SERVICE_TOKENS:-}
+      # This server creates helper strategies too, so it tags them with the
+      # prefix the api and the worker match on.
+      VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__pathfinder_internal__:}
     volumes:
       - catalogs_cache:/app/data/catalogs
+
+  research-mcp:
+    # The second server of the same distribution, built from the same release
+    # at its own target. It reads no account and opens no database.
+    build:
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a2
+      target: research
+    restart: unless-stopped
+    mem_limit: 512m
+    ports:
+      - "${RESEARCH_MCP_PORT:-8110}:8110"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8110/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-}
+      LOG_FORMAT: ${LOG_FORMAT:-}
+      # The URL a client reads the RFC 9728 document at. It must be reachable
+      # by the client, not by this container.
+      RESEARCH_MCP_BASE_URL: ${RESEARCH_MCP_BASE_URL:-http://localhost:8110}
+      # Applications this server admits, as "app_id:secret[,app_id:secret...]".
+      # Empty admits nothing.
+      RESEARCH_MCP_SERVICE_TOKENS: ${RESEARCH_MCP_SERVICE_TOKENS:-}
+      RESEARCH_MCP_S2_API_KEY: ${S2_API_KEY:-}
+      # A mailbox Crossref reads out of the User-Agent, which routes the call
+      # to its polite pool. Empty keeps the anonymous pool.
+      RESEARCH_MCP_CROSSREF_MAILTO: ${RESEARCH_MCP_CROSSREF_MAILTO:-}
 
   web:
     build:
