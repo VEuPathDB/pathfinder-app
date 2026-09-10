@@ -3,11 +3,11 @@
 from typing import Annotated
 from uuid import UUID
 
+from assistant_core import quota
 from assistant_core.platform.db import get_db_session
 from fastapi import Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import pathfinder.services.quota
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import (
     ForbiddenError,
@@ -19,7 +19,7 @@ from pathfinder.platform.readiness import get_readiness
 from pathfinder.platform.security import resolve_principal
 from pathfinder.services.experiment.store import get_experiment_store
 from pathfinder.services.experiment.types import Experiment
-from pathfinder.services.users import ensure_user_exists
+from pathfinder.services.users import effective_monthly_limit_usd, ensure_user_exists
 from pathfinder.services.wdk_identity import (
     require_registered_wdk_login,
     require_session_matches_wdk_identity,
@@ -105,16 +105,20 @@ async def require_quota_available(
     session: DBSession,
     user_id: CurrentUser,
 ) -> UUID:
-    quota = await pathfinder.services.quota.check_allowed(session, user_id)
-    if quota.used_usd >= quota.limit_usd:
+    status_now = await quota.get_current(
+        session,
+        user_id,
+        limit_usd=await effective_monthly_limit_usd(session, user_id),
+    )
+    if status_now.used_usd >= status_now.limit_usd:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
                 "code": "monthly_quota_exhausted",
-                "usedUsd": str(quota.used_usd),
-                "limitUsd": str(quota.limit_usd),
-                "resetsAt": quota.resets_at.isoformat(),
-                "totalTokens": quota.total_tokens,
+                "usedUsd": str(status_now.used_usd),
+                "limitUsd": str(status_now.limit_usd),
+                "resetsAt": status_now.resets_at.isoformat(),
+                "totalTokens": status_now.total_tokens,
             },
         )
     return user_id

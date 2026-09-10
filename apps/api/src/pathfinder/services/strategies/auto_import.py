@@ -5,6 +5,7 @@ set created and linked. Once imported (or once the user deletes the
 auto-imported gene set), the chat is marked so re-syncs don't recreate it.
 """
 
+from typing import Protocol
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
@@ -23,9 +24,44 @@ from pathfinder.persistence.repositories.conversation_strategy import (
 from pathfinder.platform.errors import InternalError
 from pathfinder.services.gene_sets.operations import EmptyGeneSetError, GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
-from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
 
 logger = get_logger(__name__)
+
+
+class StrategyLinkWriter(Protocol):
+    """The one write auto-import makes on a thread store."""
+
+    async def update_conversation(
+        self,
+        conversation_id: UUID,
+        upd: ConversationUpdate,
+        /,
+    ) -> None: ...
+
+
+class GeneSetImporter(Protocol):
+    """The gene set surface auto-import calls."""
+
+    def find_by_wdk_strategy(
+        self,
+        user_id: UUID,
+        wdk_strategy_id: int,
+        /,
+    ) -> GeneSet | None: ...
+
+    async def create(
+        self,
+        *,
+        user_id: UUID,
+        name: str,
+        site_id: str,
+        gene_ids: list[str],
+        source: GeneSetSource,
+        wdk: GeneSetWdkContext | None = None,
+    ) -> GeneSet: ...
+
+    async def flush(self, gene_set_id: str, /) -> None: ...
 
 
 def _is_eligible(strategy: ConversationStrategyView) -> bool:
@@ -46,8 +82,8 @@ def _is_eligible(strategy: ConversationStrategyView) -> bool:
 async def auto_import_gene_sets(
     conversations: list[ConversationWithStrategy],
     *,
-    conv_repo: ConversationRepository,
-    gene_set_service: GeneSetService,
+    conv_repo: StrategyLinkWriter,
+    gene_set_service: GeneSetImporter,
     site_id: str,
     user_id: UUID,
 ) -> list[GeneSet]:

@@ -10,13 +10,19 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
+from assistant_core.tasks.maintenance import release_stalled_jobs
+from assistant_core.tasks.names import (
+    CHAT_TURN_QUEUE,
+    CHAT_TURN_TASK,
+    DEFAULT_QUEUE,
+    MAINTENANCE_QUEUE,
+    RELEASE_STALLED_JOBS_TASK,
+)
 from veupathdb_mcp.embeddings.record_manager import prune_orphan_vectors
 
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.auth_context import attach_application
 from pathfinder.jobs.impls.chat_turn_impl import run_chat_turn
-from pathfinder.jobs.maintenance import release_stalled_jobs
-from pathfinder.jobs.runner import run_durable_task
 from pathfinder.services.eval_data.extraction import extract_eval_candidates
 
 # A vector nothing names is kept for a week: a rebuilt index reuses it.
@@ -33,91 +39,19 @@ def ensure_registered() -> None:
     """
 
 
-@procrastinate_app.task(queue="default", name="echo")
+@procrastinate_app.task(queue=DEFAULT_QUEUE, name="echo")
 async def echo_task(message: str) -> str:
     """Smoke task for worker/app bring-up tests."""
     return message
 
 
-@procrastinate_app.task(queue="verification", name="durable:run_control_tests_on_step")
-async def run_control_tests_on_step_job(
-    task_id: str,
-    thread_id: str,
-    args: dict[str, Any],
-    veupathdb_auth_token: str | None = None,
-    capture_dir: str | None = None,
-) -> None:
-    await run_durable_task(
-        tool_name="run_control_tests_on_step",
-        task_id=task_id,
-        thread_id=thread_id,
-        args=args,
-        veupathdb_auth_token=veupathdb_auth_token,
-        capture_dir=capture_dir,
-    )
-
-
-@procrastinate_app.task(queue="verification", name="durable:optimize_search_parameters")
-async def optimize_search_parameters_job(
-    task_id: str,
-    thread_id: str,
-    args: dict[str, Any],
-    veupathdb_auth_token: str | None = None,
-    capture_dir: str | None = None,
-) -> None:
-    await run_durable_task(
-        tool_name="optimize_search_parameters",
-        task_id=task_id,
-        thread_id=thread_id,
-        args=args,
-        veupathdb_auth_token=veupathdb_auth_token,
-        capture_dir=capture_dir,
-    )
-
-
-@procrastinate_app.task(queue="verification", name="durable:geneset_enrichment")
-async def geneset_enrichment_job(
-    task_id: str,
-    thread_id: str,
-    args: dict[str, Any],
-    veupathdb_auth_token: str | None = None,
-    capture_dir: str | None = None,
-) -> None:
-    await run_durable_task(
-        tool_name="geneset_enrichment",
-        task_id=task_id,
-        thread_id=thread_id,
-        args=args,
-        veupathdb_auth_token=veupathdb_auth_token,
-        capture_dir=capture_dir,
-    )
-
-
-@procrastinate_app.task(queue="verification", name="durable:run_eda_compute")
-async def run_eda_compute_job(
-    task_id: str,
-    thread_id: str,
-    args: dict[str, Any],
-    veupathdb_auth_token: str | None = None,
-    capture_dir: str | None = None,
-) -> None:
-    await run_durable_task(
-        tool_name="run_eda_compute",
-        task_id=task_id,
-        thread_id=thread_id,
-        args=args,
-        veupathdb_auth_token=veupathdb_auth_token,
-        capture_dir=capture_dir,
-    )
-
-
-@procrastinate_app.task(queue="chat_turn", name="chat_turn:run")
+@procrastinate_app.task(queue=CHAT_TURN_QUEUE, name=CHAT_TURN_TASK)
 async def run_chat_turn_job(payload: dict[str, Any]) -> None:
     await run_chat_turn(payload)
 
 
 @procrastinate_app.periodic(cron="* * * * *")
-@procrastinate_app.task(queue="maintenance", name="maintenance:release_stalled_jobs")
+@procrastinate_app.task(queue=MAINTENANCE_QUEUE, name=RELEASE_STALLED_JOBS_TASK)
 async def release_stalled_jobs_job(timestamp: int) -> None:
     del timestamp
     async with attach_application():
@@ -125,7 +59,9 @@ async def release_stalled_jobs_job(timestamp: int) -> None:
 
 
 @procrastinate_app.periodic(cron="41 4 * * *")
-@procrastinate_app.task(queue="maintenance", name="maintenance:prune_orphan_vectors")
+@procrastinate_app.task(
+    queue=MAINTENANCE_QUEUE, name="maintenance:prune_orphan_vectors"
+)
 async def prune_orphan_vectors_job(timestamp: int) -> None:
     del timestamp
     async with attach_application():
@@ -133,7 +69,9 @@ async def prune_orphan_vectors_job(timestamp: int) -> None:
 
 
 @procrastinate_app.periodic(cron="17 3 * * *")
-@procrastinate_app.task(queue="maintenance", name="maintenance:extract_eval_candidates")
+@procrastinate_app.task(
+    queue=MAINTENANCE_QUEUE, name="maintenance:extract_eval_candidates"
+)
 async def extract_eval_candidates_job(timestamp: int) -> None:
     del timestamp
     async with attach_application():

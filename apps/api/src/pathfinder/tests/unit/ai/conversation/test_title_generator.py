@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import cast
 
 import pytest
+from assistant_core.platform.types import ModelProvider
 
 from pathfinder.ai.conversation.title_generator import (
     MAX_TITLE_CHARS,
@@ -75,12 +76,6 @@ class TestGenerateConversationTitle:
 
     @pytest.mark.asyncio
     async def test_unknown_provider_falls_back(self) -> None:
-        # No cloud key is required for this path — the catalog lookup fails
-        # because "mock" (when not configured as smallest) has no entry for
-        # some providers. We use a deliberately absurd provider literal cast
-        # through ModelProvider to trigger LookupError → fallback path.
-        from assistant_core.platform.types import ModelProvider  # noqa: PLC0415
-
         bogus = cast("ModelProvider", "does-not-exist")
         out = await generate_conversation_title(
             "Find malaria genes",

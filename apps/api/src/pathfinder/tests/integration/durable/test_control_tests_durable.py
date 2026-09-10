@@ -4,8 +4,19 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.persistence.models import Conversation
+from assistant_core.persistence.models import (
+    BackgroundTask,
+    Conversation,
+    TaskProgressRow,
+)
+from assistant_core.persistence.repositories.background_tasks import (
+    BackgroundTaskRepository,
+    NewBackgroundTask,
+)
 from assistant_core.platform.db import async_session_factory
+from assistant_core.tasks.declaration import durable_impl
+from assistant_core.tasks.progress import TaskProgressEmitter
+from assistant_core.tasks.runner import run_durable_task
 from sqlalchemy import select
 from veupathdb_mcp.tool_payloads import ControlOutcome, DownloadLinks
 
@@ -13,14 +24,7 @@ from pathfinder.jobs.impls import control_tests_impl, register_all_tools
 from pathfinder.jobs.impls.control_tests_impl import (
     run_control_tests_on_step_impl,
 )
-from pathfinder.jobs.progress import TaskProgressEmitter
-from pathfinder.jobs.registry import TOOL_REGISTRY
-from pathfinder.jobs.runner import run_durable_task
-from pathfinder.persistence.models import BackgroundTask, TaskProgress, User
-from pathfinder.persistence.repositories.background_tasks import (
-    BackgroundTaskRepository,
-    NewBackgroundTask,
-)
+from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
@@ -76,17 +80,10 @@ async def _fake_export(result: ControlOutcome, name: str) -> ControlOutcome:
 
 @pytest.mark.asyncio
 async def test_register_all_tools_populates_registry() -> None:
-    before = set(TOOL_REGISTRY)
     register_all_tools()
-    assert "run_control_tests_on_step" in TOOL_REGISTRY
-    assert TOOL_REGISTRY["run_control_tests_on_step"] is (
-        run_control_tests_on_step_impl
-    )
-    # idempotent
+    assert durable_impl("run_control_tests_on_step") is run_control_tests_on_step_impl
     register_all_tools()
-    # cleanup
-    for key in set(TOOL_REGISTRY) - before:
-        TOOL_REGISTRY.pop(key, None)
+    assert durable_impl("run_control_tests_on_step") is run_control_tests_on_step_impl
 
 
 @pytest.mark.asyncio
@@ -145,9 +142,9 @@ async def test_control_tests_impl_emits_progress_and_returns_dict(
         rows = list(
             (
                 await session.execute(
-                    select(TaskProgress)
-                    .where(TaskProgress.task_id == task_id)
-                    .order_by(TaskProgress.id)
+                    select(TaskProgressRow)
+                    .where(TaskProgressRow.task_id == task_id)
+                    .order_by(TaskProgressRow.id)
                 )
             ).scalars()
         )
@@ -165,9 +162,10 @@ class _FakeContext:
 async def test_run_durable_task_wiring_control_tests_end_to_end(
     db_cleaner: None,
     patch_app_db_engine: None,
+    worker_seams: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
     monkeypatch.setattr(control_tests_impl, "run_step_control_tests", _fake_run_step)
     monkeypatch.setattr(control_tests_impl, "attach_control_downloads", _fake_export)
     register_all_tools()

@@ -1,6 +1,7 @@
 """Lazy Langfuse SDK singleton. Returns None when credentials are absent."""
 
 import threading
+from dataclasses import dataclass
 
 from assistant_core.platform.logging import get_logger
 from langfuse import Langfuse
@@ -11,8 +12,16 @@ from pathfinder.platform.config import get_settings
 
 logger = get_logger(__name__)
 
-_client: Langfuse | None = None
-_initialized = False
+
+@dataclass
+class _Singleton:
+    """The client this process built, and whether it tried to build one."""
+
+    client: Langfuse | None = None
+    initialized: bool = False
+
+
+_state = _Singleton()
 _lock = threading.Lock()
 
 
@@ -36,35 +45,33 @@ def get_langfuse() -> Langfuse | None:
 
     Thread-safe lazy initialization. The client is created once and reused.
     """
-    global _client, _initialized  # noqa: PLW0603
-    if _initialized:
-        return _client
+    if _state.initialized:
+        return _state.client
 
     with _lock:
-        if _initialized:
-            return _client
+        if _state.initialized:
+            return _state.client
 
         settings = get_settings()
         if not settings.langfuse_secret_key:
             logger.info("Langfuse SDK disabled (no LANGFUSE_SECRET_KEY)")
-            _initialized = True
+            _state.initialized = True
             return None
 
-        _client = Langfuse(
+        _state.client = Langfuse(
             secret_key=settings.langfuse_secret_key,
             public_key=settings.langfuse_public_key,
             host=settings.langfuse_host,
             should_export_span=_should_export_span,
         )
-        _initialized = True
+        _state.initialized = True
         logger.info("Langfuse SDK initialized", host=settings.langfuse_host)
-        return _client
+        return _state.client
 
 
 def shutdown_langfuse() -> None:
     """Flush and shutdown the Langfuse client. Called during app shutdown."""
-    global _client, _initialized  # noqa: PLW0603
-    if _client is not None:
-        _client.shutdown()
-        _client = None
-    _initialized = False
+    if _state.client is not None:
+        _state.client.shutdown()
+        _state.client = None
+    _state.initialized = False

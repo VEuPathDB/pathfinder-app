@@ -30,19 +30,7 @@ from pathfinder.platform.migrations import (
 )
 
 DATABASE_NAME = "pathfinder_test_three_chains"
-RUNTIME_BASELINE = "2026_09_09_0001"
-
-# Tables whose models and chain rows disagree on a column type or an index
-# name. Each one leaves this application with the next runtime release, so
-# each name here dies with its table.
-CARRIED_DRIFT = frozenset(
-    {
-        "background_tasks",
-        "task_progress",
-        "scratchpad_notes",
-        "scratchpad_compactions",
-    }
-)
+RUNTIME_HEAD = "2026_09_09_0004"
 
 Difference = tuple[Any, ...] | list[tuple[Any, ...]]
 
@@ -78,23 +66,11 @@ def _runtime_view(connection: Connection) -> list[Difference]:
     return list(compare_metadata(context, Base.metadata))
 
 
-def _revision_body(connection: Connection, exempt: frozenset[str]) -> str:
+def _proposed_revision(connection: Connection) -> str:
     """The body alembic writes for a revision generated in this chain."""
-
-    def filtered(
-        object_: object,
-        name: str | None,
-        type_: str,
-        reflected: object,
-        compare_to: object,
-    ) -> bool:
-        if type_ == "table" and name in exempt:
-            return False
-        return include_object(object_, name, type_, reflected, compare_to)
-
     context = MigrationContext.configure(
         connection,
-        opts={"include_object": filtered},
+        opts={"include_object": include_object},
     )
     migrations = produce_migrations(context, Base.metadata)
     rendered = render_python_code(migrations.upgrade_ops, migration_context=context)
@@ -102,15 +78,6 @@ def _revision_body(connection: Connection, exempt: frozenset[str]) -> str:
     # operation renders as `pass`.
     lines = [line for line in rendered.splitlines() if not line.strip().startswith("#")]
     return "\n".join(lines).strip()
-
-
-def _proposed_revision(connection: Connection) -> str:
-    return _revision_body(connection, CARRIED_DRIFT)
-
-
-def _tables_named(body: str) -> set[str]:
-    """The tables a rendered revision body names in an operation."""
-    return {name for name in Base.metadata.tables if f"'{name}'" in body}
 
 
 def _operations(differences: list[Difference]) -> list[str]:
@@ -164,7 +131,7 @@ def test_the_entry_point_stamps_all_three_version_tables(
     migrated_database: str,
 ) -> None:
     """Each distribution records its position in a version table of its own."""
-    assert _revisions(migrated_database, VERSION_TABLE) == [RUNTIME_BASELINE]
+    assert _revisions(migrated_database, VERSION_TABLE) == [RUNTIME_HEAD]
     assert len(_revisions(migrated_database, MCP_VERSION_TABLE)) == 1
     assert len(_revisions(migrated_database, "alembic_version")) == 1
 
@@ -172,17 +139,19 @@ def test_the_entry_point_stamps_all_three_version_tables(
 def test_the_entry_point_builds_the_tables_the_runtime_owns(
     migrated_database: str,
 ) -> None:
-    """The four runtime tables stand after one pass of the entry point."""
+    """Every runtime table stands after one pass of the entry point."""
     assert set(OWNED_TABLES) <= _tables(migrated_database)
 
 
-async def test_the_two_chains_agree_on_every_runtime_column(
+async def test_the_runtime_chain_adopts_the_tables_this_chain_already_built(
     migrated_database: str,
 ) -> None:
-    """The application's chain built the four tables, so only index names differ."""
+    """An adopted table keeps the host DDL, so only its indexes differ."""
     operations = set(_operations(await _compare(migrated_database, _runtime_view)))
 
     assert operations == {"add_index", "remove_index"}
+    assert "add_table" not in operations
+    assert "remove_table" not in operations
 
 
 async def test_autogenerate_proposes_nothing_against_a_migrated_database(
@@ -190,19 +159,6 @@ async def test_autogenerate_proposes_nothing_against_a_migrated_database(
 ) -> None:
     """A revision generated on this database carries no operation."""
     assert await _compare(migrated_database, _proposed_revision) == "pass"
-
-
-@pytest.mark.parametrize("table", sorted(CARRIED_DRIFT))
-async def test_a_carried_name_covers_drift_that_leaves_with_its_table(
-    migrated_database: str,
-    table: str,
-) -> None:
-    """Each exempt name answers for real drift, so none of them outlives its table."""
-
-    def view(connection: Connection) -> str:
-        return _revision_body(connection, CARRIED_DRIFT - {table})
-
-    assert _tables_named(await _compare(migrated_database, view)) == {table}
 
 
 async def test_the_filter_leaves_a_runtime_table_that_drifts_from_its_model(

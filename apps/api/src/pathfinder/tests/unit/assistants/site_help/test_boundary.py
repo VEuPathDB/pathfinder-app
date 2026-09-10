@@ -24,7 +24,6 @@ REACHED = {
     "pathfinder.platform.tool_sources",
     "veupathdb_mcp.catalog.searches",
     "veupathdb_mcp.catalog.sites",
-    "pathfinder.services.quota",
 }
 
 

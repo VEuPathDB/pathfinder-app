@@ -8,7 +8,9 @@ import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.persistence.models import Conversation, ConversationEvent, Message
 from assistant_core.persistence.repositories.message import MessagesRepository
+from assistant_core.persistence.repositories.scratchpad import ScratchpadRepository
 from assistant_core.platform import db
+from assistant_core.scratchpad.models import NoteCreate
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import (
     ChannelVersions,
@@ -21,10 +23,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.domain.scratchpad.models import NoteCreate
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
-from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )

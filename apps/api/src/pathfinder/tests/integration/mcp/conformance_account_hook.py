@@ -12,7 +12,9 @@ import os
 from collections.abc import Awaitable, Callable, Sequence
 
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk.client import VEuPathDBClient
+from veupathdb.wdk.factory import get_site
+from veupathdb.wdk.strategy_api import StrategyAPI
 
 from pathfinder.tests.integration.mcp._served import SITE
 
@@ -22,11 +24,18 @@ AccountSnapshot = Callable[[], Awaitable[Sequence[str]]]
 
 
 async def strategy_identifiers() -> Sequence[str]:
-    """Every strategy the credential's account holds, in a stable order."""
+    """Every strategy the credential's account holds, in a stable order.
+
+    The suite drives an event loop of its own, and a pooled connection belongs
+    to the loop that opened it, so the snapshot opens and closes its own client
+    instead of the one the process caches per site.
+    """
     reset = veupathdb_auth_token_ctx.set(os.environ[BEARER_VARIABLE])
+    client = VEuPathDBClient(get_site(SITE).service_url)
     try:
-        summaries = await get_strategy_api(SITE).list_strategies()
+        summaries = await StrategyAPI(client).list_strategies()
     finally:
+        await client.close()
         veupathdb_auth_token_ctx.reset(reset)
     return sorted(str(summary.strategy_id) for summary in summaries)
 

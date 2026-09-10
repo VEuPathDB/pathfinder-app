@@ -2,15 +2,14 @@
 
 from uuid import UUID
 
+from assistant_core.conversation.authz import owned_by_caller
 from assistant_core.platform.logging import get_logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.errors import ValidationError, VEuPathDBError, WDKError
 from veupathdb.wdk.factory import get_strategy_api
 
-from pathfinder.domain.conversation import DEFAULT_STREAM_NAME
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.errors import ErrorCode, NotFoundError
-from pathfinder.services.conversations.authz import owned_by_caller
 from pathfinder.services.strategies.wdk_sync import sync_to_chat
 
 logger = get_logger(__name__)
@@ -44,7 +43,6 @@ async def open_strategy(
             user_id=user_id,
             site_id=_require_site_id(site_id),
             assistant_id=assistant_id,
-            name=DEFAULT_STREAM_NAME,
         )
         return conversation.id
 

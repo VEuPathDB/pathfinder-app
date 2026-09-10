@@ -21,6 +21,7 @@ from assistant_core.graph.stream_events import (
 )
 from assistant_core.graph.turn_state import DurableTaskResult
 from assistant_core.mcp.resolution import ResolvedToolSources
+from assistant_core.platform.context import PhaseOverrides, attach_phase_overrides
 from assistant_core.platform.logging import get_logger
 from assistant_core.spec import (
     AssistantSpec,
@@ -45,7 +46,6 @@ from pathfinder.ai.conversation.turn_stop import (
     restore_pre_turn_strategy,
     watch_for_cancel,
 )
-from pathfinder.platform.context import PhaseOverrides, attach_phase_overrides
 from pathfinder.platform.tool_sources import source_credential
 from pathfinder.services.conversations.turns import (
     load_conversation,

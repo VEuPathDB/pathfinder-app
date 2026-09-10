@@ -57,9 +57,7 @@ def test_get_smallest_model_returns_marked_entry(provider: ModelProvider) -> Non
 
 
 def test_get_smallest_model_raises_for_unknown_provider() -> None:
-    # Cast through a typed var so we don't need `# type: ignore` on the call.
-    # The runtime behaviour is what we're asserting; Pyright only sees the
-    # narrower Literal[...] after assignment, which matches ModelProvider.
+    # The literal type admits no unknown provider, so the cast names one.
     bogus_provider = cast("ModelProvider", "nonexistent")
     with pytest.raises(LookupError):
         get_smallest_model(bogus_provider)

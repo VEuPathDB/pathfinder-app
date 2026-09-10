@@ -5,19 +5,19 @@ from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.persistence.models import Conversation
+from assistant_core.persistence.repositories.background_tasks import (
+    BackgroundTaskRepository,
+    NewBackgroundTask,
+)
 from assistant_core.platform.db import async_session_factory
+from assistant_core.tasks.declaration import durable_impl
+from assistant_core.tasks.runner import run_durable_task
 
 from pathfinder.jobs.impls import optimize_params_impl, register_all_tools
 from pathfinder.jobs.impls.optimize_params_impl import (
     optimize_search_parameters_impl,
 )
-from pathfinder.jobs.registry import TOOL_REGISTRY
-from pathfinder.jobs.runner import run_durable_task
 from pathfinder.persistence.models import User
-from pathfinder.persistence.repositories.background_tasks import (
-    BackgroundTaskRepository,
-    NewBackgroundTask,
-)
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.parameter_optimization.config import SweepVariantSpec
 
@@ -108,21 +108,20 @@ def target_kwargs() -> dict[str, Any]:
 
 def test_optimize_search_parameters_registered_in_registry() -> None:
     register_all_tools()
-    assert "optimize_search_parameters" in TOOL_REGISTRY
-    assert (
-        TOOL_REGISTRY["optimize_search_parameters"] is optimize_search_parameters_impl
-    )
+
+    assert durable_impl("optimize_search_parameters") is optimize_search_parameters_impl
 
 
 @pytest.mark.asyncio
 async def test_run_durable_task_wiring_optimize(
     db_cleaner: None,
     patch_app_db_engine: None,
+    worker_seams: None,
     monkeypatch: pytest.MonkeyPatch,
     target_kwargs: dict[str, Any],
 ) -> None:
     """End-to-end: runner submits -> impl fans out -> result row matches sweep shape."""
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
 
     monkeypatch.setattr(optimize_params_impl, "_attach_export", _fake_attach_export)
     monkeypatch.setattr(

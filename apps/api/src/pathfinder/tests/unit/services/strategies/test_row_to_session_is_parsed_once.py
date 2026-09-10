@@ -102,8 +102,8 @@ async def test_both_callers_build_the_same_session(
 
     from_spec = await pathfinder_spec.build_turn_context(_turn_request())
     from_worker = await runtime.build_worker_runtime_context(
-        conversation_id=str(_CONVERSATION_ID),
-        task_id="t1",
+        conversation_id=_CONVERSATION_ID,
+        memory_store=None,
     )
 
     spec_graph = from_spec.strategy_session.get_graph(None)
@@ -126,8 +126,8 @@ async def _spec_context() -> None:
 
 async def _worker_context() -> None:
     await runtime.build_worker_runtime_context(
-        conversation_id=str(_CONVERSATION_ID),
-        task_id="t1",
+        conversation_id=_CONVERSATION_ID,
+        memory_store=None,
     )
 
 

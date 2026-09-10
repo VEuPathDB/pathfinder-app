@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 from uuid import UUID
 
+from assistant_core.conversation.cancellation import turn_is_cancelled
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 
-from pathfinder.services.conversations.cancellation import turn_is_cancelled
 from pathfinder.services.strategies.revision_ops import discard_turn_strategy_writes
 
 CANCEL_POLL_INTERVAL_SECONDS = 1.0

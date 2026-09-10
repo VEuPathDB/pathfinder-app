@@ -7,6 +7,11 @@ shaping) so transport routers stay thin and never import persistence.
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
+from assistant_core.conversation.authz import (
+    get_owned_conversation,
+    get_visible_conversation,
+)
+from assistant_core.conversation.cancellation import stop_turn_before_delete
 from assistant_core.persistence.repositories.message import MessagesRepository
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
@@ -29,13 +34,8 @@ from pathfinder.persistence.repositories import (
 from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations import strategy_ops
-from pathfinder.services.conversations.authz import (
-    get_owned_conversation_or_404,
-    get_owned_or_404,
-    get_owned_thread_or_404,
-)
+from pathfinder.services.conversations.authz import get_owned_thread_or_404
 from pathfinder.services.conversations.begin import begin_conversation
-from pathfinder.services.conversations.cancellation import stop_turn_before_delete
 from pathfinder.services.conversations.fork import ForkError, fork_conversation
 from pathfinder.services.conversations.responses import (
     ConversationResponse,
@@ -162,7 +162,7 @@ class ConversationService:
         user_id: UUID,
         patch: ConversationUpdateInput,
     ) -> ConversationResponse:
-        await get_owned_conversation_or_404(self._repo, conversation_id, user_id)
+        await get_owned_conversation(self._repo, conversation_id, user_id)
 
         payload: StrategyAst | None = None
         record_type: str | None = None
@@ -202,7 +202,7 @@ class ConversationService:
         user_id: UUID,
         from_message_id: UUID,
     ) -> ConversationResponse:
-        await get_owned_conversation_or_404(self._repo, conversation_id, user_id)
+        await get_owned_conversation(self._repo, conversation_id, user_id)
         try:
             fork = await fork_conversation(
                 self._session,
@@ -349,7 +349,7 @@ class ConversationService:
         )
 
     async def dismiss(self, conversation_id: UUID, user_id: UUID) -> None:
-        await get_owned_or_404(self._repo, conversation_id, user_id)
+        await get_visible_conversation(self._repo, conversation_id, user_id)
         await self._repo.dismiss(conversation_id)
         await self._session.commit()
 
@@ -358,7 +358,7 @@ class ConversationService:
         conversation_id: UUID,
         user_id: UUID,
     ) -> DuplicatedConversation:
-        source = await get_owned_or_404(
+        source = await get_visible_conversation(
             self._repo,
             conversation_id,
             user_id,

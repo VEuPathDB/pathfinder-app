@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from functools import cache
+
 from assistant_core.platform.db import async_session_factory
 
 from pathfinder.services.export.service import (
@@ -17,12 +19,8 @@ __all__ = [
     "get_export_service",
 ]
 
-_instance: ExportService | None = None
 
-
+@cache
 def get_export_service() -> ExportService:
-    """Get the export service singleton (lazy init)."""
-    global _instance  # noqa: PLW0603
-    if _instance is None:
-        _instance = ExportService(session_factory=async_session_factory)
-    return _instance
+    """The export service, built once for the process."""
+    return ExportService(session_factory=async_session_factory)

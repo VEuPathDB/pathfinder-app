@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 from assistant_core.platform.db import AsyncSession
+from assistant_core.tasks.progress import TaskProgressEmitter
 from veupathdb.domain.strategy.session import StrategySession
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
 from veupathdb.wdk.wdk_models import WDKSearchConfig, WDKStep
@@ -16,7 +17,6 @@ from veupathdb_mcp.tool_payloads import ControlOutcome
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.jobs.impls import control_tests_impl
 from pathfinder.jobs.impls.control_tests_impl import run_control_tests_on_step_impl
-from pathfinder.jobs.progress import TaskProgressEmitter
 from pathfinder.services.experiment.published_names import PublishedNames
 
 STEP_ID = 440299573

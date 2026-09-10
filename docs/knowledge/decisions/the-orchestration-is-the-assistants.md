@@ -125,10 +125,10 @@ turn, and the log only holds them once the agent's step has ended and the
 stream consumer has written them. A finalize inside the agent node would read
 an incomplete log and write a message with no parts.
 
-**Quota persistence stays product-side.** `services.quota` is forbidden to
-core by contract 7, so `single_agent_graph` takes the charger as a required
-hook rather than duplicating the accumulate query in core. An assistant that
-does not state how its turns are charged does not compile.
+**How a turn is charged stays product-side.** The arithmetic is the runtime's
+(`assistant_core.quota`), but the budget and the moment of charge are the
+product's, so `single_agent_graph` takes the charger as a required hook. An
+assistant that does not state how its turns are charged does not compile.
 
 # What this does not decide
 

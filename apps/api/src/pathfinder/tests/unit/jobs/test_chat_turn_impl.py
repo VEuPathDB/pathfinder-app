@@ -10,11 +10,11 @@ from uuid import UUID, uuid4
 import pytest
 from assistant_core.platform.context import DEFAULT_APPLICATION_ID, application_id_ctx
 from assistant_core.spec import AssistantSpec
+from assistant_core.tasks import scope
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
-from pathfinder.jobs import auth_context
 from pathfinder.jobs.impls import chat_turn_impl
 from pathfinder.jobs.impls.chat_turn_impl import run_chat_turn
 from pathfinder.jobs.payloads import ChatTurnPayload
@@ -96,11 +96,7 @@ async def _holding_application(conversation_id: UUID) -> str:
 @pytest.fixture(autouse=True)
 def _conversation_application(monkeypatch: pytest.MonkeyPatch) -> None:
     """The row lookup the worker uses to name its application."""
-    monkeypatch.setattr(
-        auth_context,
-        "conversation_application_id",
-        _holding_application,
-    )
+    monkeypatch.setattr(scope, "conversation_application_id", _holding_application)
 
 
 @pytest.mark.asyncio

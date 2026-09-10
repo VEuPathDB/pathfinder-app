@@ -1,17 +1,20 @@
 """veupathdb-wdk-mcp read by veupathdb-mcp-conformance, over the served endpoint.
 
 The suite is a separate distribution that imports nothing of this deployment, so
-it runs as its own pytest process: this module supplies the endpoint, both
+it runs as a nested pytest session: this module supplies the endpoint, both
 credentials, the arguments a call may use, and the WDK-backed account hook, then
-reads the admission record the run wrote.
+reads the admission record the run wrote. An empty ini holds the nested session
+apart from this deployment's own pytest configuration.
 """
 
 from __future__ import annotations
 
+import asyncio
+import io
 import json
 import os
-import subprocess
-import sys
+import time
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +38,9 @@ from pathfinder.tests.integration.mcp._served import (
     served_url,
     wire,
 )
+from pathfinder.tests.integration.mcp.conformance_account_hook import (
+    strategy_identifiers,
+)
 
 pytestmark = pytest.mark.live_wdk
 
@@ -45,6 +51,9 @@ SECOND_BEARER_VARIABLE = "MCP_CONFORMANCE_BEARER_SECOND"
 # the arguments it wrote, and the record is still read by the checks below.
 REPORT_VARIABLE = "MCP_ADMISSION_REPORT"
 
+# The hook compares the whole WDK account, so the run needs that account to
+# itself. A second client writing to it makes family 3 report a change no
+# served call made.
 ACCOUNT_HOOK = "pathfinder.tests.integration.mcp.conformance_account_hook"
 
 # A Toxoplasma gene, which a Plasmodium falciparum search cannot return.
@@ -60,9 +69,9 @@ RUN_SECONDS = 900.0
 SLOW_TOOL = "search_example_plans"
 SLOW_TOOL_BUDGET_SECONDS = 1
 
-# Two gaps, each for its own measured reason: one account cannot own the
-# resource a second identity must read, and no served write is idempotent. The
-# suite reports each as a skip, and the verdict is incomplete.
+# Two gaps, each for its own measured reason: the second identity owns no WDK
+# resource the first can be refused, and no served tool declares idempotentHint.
+# The suite reports each as a skip, and the verdict is incomplete.
 UNSETTLED_CHECKS = frozenset(
     {
         "test_auth.py::test_one_identity_cannot_read_another_identity_resource",
@@ -179,23 +188,27 @@ def sample_arguments(step: OwnedStep, controls: list[str]) -> dict[str, Any]:
     }
 
 
-def conformance_command(samples: Path, report: Path) -> list[str]:
+def conformance_options(ini: Path, samples: Path, report: Path) -> list[str]:
     """The run a foreign operator makes, with this deployment's answers filled in.
 
-    `search_example_plans` is the read slow enough to overrun a five second
-    budget, so it drives family 5: the server frees an abandoned call with its
-    caller and keeps serving.
+    `-c` names an empty ini, which becomes the nested session's rootdir and its
+    conftest cut-off. The suite drives its own event loops, so it takes no
+    asyncio plugin. `search_example_plans` is the read slow enough to overrun a
+    one second budget, so it drives family 5: the server frees an abandoned call
+    with its caller and keeps serving.
     """
     return [
-        sys.executable,
-        "-m",
-        "pytest",
         "--pyargs",
         "mcp_conformance",
+        "-c",
+        str(ini),
         "-p",
         ACCOUNT_HOOK,
         "-p",
         "no:cacheprovider",
+        "-p",
+        "no:asyncio",
+        "--capture=no",
         "-q",
         "-rs",
         "--mcp-endpoint",
@@ -223,6 +236,17 @@ async def control_genes(step: OwnedStep, bearer: str) -> list[str]:
     return genes[:CONTROL_GENE_COUNT]
 
 
+class RunBudget:
+    """Fails the checks that remain once the run passes its wall-clock budget."""
+
+    def __init__(self, seconds: float) -> None:
+        self.deadline = time.monotonic() + seconds
+
+    def pytest_runtest_setup(self) -> None:
+        if time.monotonic() > self.deadline:
+            pytest.fail(f"the conformance run passed {RUN_SECONDS} seconds")
+
+
 def run_the_suite(
     directory: Path,
     bearer: str,
@@ -232,22 +256,23 @@ def run_the_suite(
     """One conformance run, credentialed through the environment the suite reads."""
     sample_file = directory / "sample-arguments.json"
     sample_file.write_text(json.dumps(samples))
+    ini = directory / "conformance.ini"
+    ini.write_text("[pytest]\n")
     named = os.environ.get(REPORT_VARIABLE, "").strip()
     report = Path(named).resolve() if named else directory / "admission-report.json"
-    finished = subprocess.run(  # noqa: S603
-        conformance_command(sample_file, report),
-        cwd=directory,
-        env={
-            **os.environ,
-            BEARER_VARIABLE: bearer,
-            SECOND_BEARER_VARIABLE: second_bearer,
-        },
-        capture_output=True,
-        text=True,
-        timeout=RUN_SECONDS,
-        check=False,
-    )
-    assert report.is_file(), (finished.stdout + finished.stderr)[-4000:]
+    output = io.StringIO()
+    with (
+        pytest.MonkeyPatch.context() as patched,
+        redirect_stdout(output),
+        redirect_stderr(output),
+    ):
+        patched.setenv(BEARER_VARIABLE, bearer)
+        patched.setenv(SECOND_BEARER_VARIABLE, second_bearer)
+        status = pytest.main(
+            conformance_options(ini, sample_file, report),
+            plugins=[RunBudget(RUN_SECONDS)],
+        )
+    assert report.is_file(), f"exit {status}\n{output.getvalue()[-4000:]}"
     return AdmissionRecord.model_validate_json(report.read_text())
 
 
@@ -265,7 +290,10 @@ async def admission_record(
     async with owned_step_for(wdk_registered_token) as step:
         controls = await control_genes(step, wdk_registered_token)
         assert controls
-        return run_the_suite(
+        # The suite's fixtures call asyncio.run, which needs a thread that holds
+        # no running event loop.
+        return await asyncio.to_thread(
+            run_the_suite,
             tmp_path_factory.mktemp("mcp-conformance"),
             wdk_registered_token,
             service_bearer,
@@ -326,3 +354,22 @@ def test_the_record_carries_what_each_served_tool_returns(
     ]
 
     assert unsigned == []
+
+
+async def test_the_account_snapshot_answers_on_a_loop_it_did_not_open(
+    require_wdk_creds: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The nested session drives its own event loop, and the hook answers on it."""
+    monkeypatch.setenv(BEARER_VARIABLE, require_wdk_creds)
+
+    async with owned_step_for(require_wdk_creds) as step:
+        identifiers = await asyncio.to_thread(
+            lambda: asyncio.run(strategy_identifiers())
+        )
+    named = [item for item in identifiers if item == str(step.strategy_id)]
+
+    assert (named, list(identifiers) == sorted(identifiers)) == (
+        [str(step.strategy_id)],
+        True,
+    )

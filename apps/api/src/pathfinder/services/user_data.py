@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import cast
 from uuid import UUID
 
+from assistant_core.conversation.cancellation import stop_turns_and_wait
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.context import calling_application
 from assistant_core.platform.logging import get_logger
@@ -23,7 +24,6 @@ from pathfinder.persistence.models import (
     GeneSetRow,
 )
 from pathfinder.persistence.repositories.eval_staging import delete_staged_for_user
-from pathfinder.services.conversations.cancellation import stop_turns_and_wait
 from pathfinder.services.gene_sets.store import get_gene_set_store
 
 logger = get_logger(__name__)

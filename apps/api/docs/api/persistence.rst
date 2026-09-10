@@ -103,11 +103,6 @@ Split into domain-specific repository modules.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.persistence.repositories.background_tasks
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 .. automodule:: pathfinder.persistence.repositories.control_set
    :members:
    :undoc-members:

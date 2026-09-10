@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from assistant_core.conversation.authz import assert_owner
 from assistant_core.conversation.event_stream import (
     EventsSnapshot,
     fetch_snapshot_chunks,
@@ -9,11 +10,10 @@ from assistant_core.conversation.event_stream import (
     latest_event,
 )
 from assistant_core.conversation.vercel_adapter import VERCEL_AI_DSP_HEADERS
+from assistant_core.tasks.service import has_active_task
 from fastapi import APIRouter, Query, status
 from fastapi.responses import Response, StreamingResponse
 
-from pathfinder.services.conversations.authz import assert_owner
-from pathfinder.services.tasks.background import has_active_task
 from pathfinder.transport.http.deps import CurrentUser, DBSession
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])

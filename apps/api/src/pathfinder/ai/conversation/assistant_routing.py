@@ -10,11 +10,11 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from assistant_core.conversation.authz import conversation_assistant_id
 from assistant_core.registry import AssistantRegistry, UnknownAssistantError
 from assistant_core.spec import AssistantSpec
 
 from pathfinder.platform.errors import AssistantMismatchError, AssistantNotFoundError
-from pathfinder.services.conversations.authz import conversation_assistant_id
 
 
 def resolve_assistant(registry: AssistantRegistry, assistant_id: str) -> AssistantSpec:

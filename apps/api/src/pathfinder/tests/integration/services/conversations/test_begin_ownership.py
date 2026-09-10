@@ -6,12 +6,12 @@ from collections.abc import AsyncGenerator
 from uuid import UUID, uuid4
 
 import pytest
+from assistant_core.errors import ConversationNotFoundError
 from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories import ConversationRepository
-from pathfinder.platform.errors import NotFoundError
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.begin import begin_conversation
 
@@ -94,7 +94,7 @@ async def test_begin_hides_a_conversation_owned_by_another_user(
     conversation_id = await _make_conversation(db_session, owner)
     owner_id = owner.id
 
-    with pytest.raises(NotFoundError) as raised:
+    with pytest.raises(ConversationNotFoundError) as raised:
         await begin_conversation(
             session=db_session,
             conversation_id=conversation_id,
@@ -103,7 +103,7 @@ async def test_begin_hides_a_conversation_owned_by_another_user(
             assistant_id=PATHFINDER_ASSISTANT_ID,
         )
 
-    assert raised.value.status == 404
+    assert raised.value.conversation_id == conversation_id
     await db_session.rollback()
     async with session_maker() as fresh:
         stored = await ConversationRepository(fresh).get_by_id(conversation_id)

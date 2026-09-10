@@ -1,35 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from assistant_core.models.settings import build_model_settings
-from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field
+from assistant_core.scratchpad.compactor import (
+    MAX_COMPACTED_NOTES,
+    CompactionResult,
+    CompactorDeps,
+)
 from pydantic_ai import Agent, RunContext
 
 from pathfinder.ai.agents._model_resolution import (
     resolve_orchestrator_model_entry,
 )
-from pathfinder.domain.scratchpad.models import NoteCreate
 
-
-class CompactionResult(CamelModel):
-    """Compactor's output — a new list of notes replacing the non-pinned set."""
-
-    notes: list[NoteCreate] = Field(max_length=20)
-
-
-@dataclass
-class CompactorDeps:
-    input_notes_markdown: str
-
-
-_COMPACTOR_INSTRUCTIONS = """\
+_COMPACTOR_INSTRUCTIONS = f"""\
 You are compacting a researcher's working notebook. Merge redundant notes, \
 drop notes that have been superseded by later notes, and keep distinct \
 findings intact. Preserve titles that are referenced elsewhere (tool \
 outputs, sub-agent deltas) when possible. Return a new list of notes that \
-replaces the input set. Output at most 20 notes.
+replaces the input set. Output at most {MAX_COMPACTED_NOTES} notes.
 
 Rules:
 - Never invent content. Every output note must be grounded in at least one \

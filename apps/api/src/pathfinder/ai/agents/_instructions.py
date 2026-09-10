@@ -7,10 +7,11 @@ from typing import Protocol
 
 from assistant_core.graph.runtime import AssistantDeps
 from assistant_core.memory.schemas import MemoryValue
+from assistant_core.scratchpad.notebook import ScratchpadNotebook
+from assistant_core.scratchpad.rendering import render_scratchpad
 from pydantic_ai.tools import RunContext
 
-from pathfinder.ai.scratchpad.rendering import render_scratchpad_for_phase
-from pathfinder.services.conversations.scratchpad_service import ScratchpadNotebook
+from pathfinder.ai.agents.scratchpad_guidance import PATHFINDER_SCRATCHPAD_GUIDANCE
 
 
 class CarriesMemories(Protocol):
@@ -42,7 +43,11 @@ async def pinned_scratchpad(ctx: RunContext[AssistantDeps]) -> str | None:
         ctx.deps.db_session_factory,
         ctx.deps.conversation_id,
     ).index()
-    return render_scratchpad_for_phase(notes, total_count=total_count)
+    return render_scratchpad(
+        notes,
+        total_count=total_count,
+        guidance=PATHFINDER_SCRATCHPAD_GUIDANCE,
+    )
 
 
 _BUDGET_NOTE = (

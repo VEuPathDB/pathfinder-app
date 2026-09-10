@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from assistant_core.scratchpad.models import NoteCreate
 from pydantic import ValidationError
 
 from pathfinder.ai.agents.compactor import (
@@ -8,7 +9,6 @@ from pathfinder.ai.agents.compactor import (
     CompactorDeps,
     build_compactor_agent,
 )
-from pathfinder.domain.scratchpad.models import NoteCreate
 
 
 def test_build_returns_agent_with_output_type() -> None:

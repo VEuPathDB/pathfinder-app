@@ -5,13 +5,13 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
-
-from pathfinder.platform.security import get_current_user
-from pathfinder.services.tasks.queries import (
+from assistant_core.tasks.queries import (
     latest_progress_by_task,
     list_task_rows,
 )
+from fastapi import APIRouter, Depends, Query
+
+from pathfinder.platform.security import get_current_user
 from pathfinder.transport.http.schemas.tasks import TaskListItem, TaskListResponse
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["tasks"])

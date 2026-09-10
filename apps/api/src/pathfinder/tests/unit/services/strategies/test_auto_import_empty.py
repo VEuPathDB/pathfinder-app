@@ -19,7 +19,7 @@ from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,
 )
 from pathfinder.services.gene_sets.operations import EmptyGeneSetError
-from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
 from pathfinder.services.strategies.auto_import import auto_import_gene_sets
 
 
@@ -54,7 +54,7 @@ class _StubGeneSetService:
         name: str,
         site_id: str,
         gene_ids: list[str],
-        source: str,
+        source: GeneSetSource,
         wdk: GeneSetWdkContext | None = None,
     ) -> GeneSet:
         del gene_ids, wdk
@@ -106,8 +106,8 @@ async def _run(
     svc = _StubGeneSetService(resolved=resolved)
     created = await auto_import_gene_sets(
         [thread],
-        conv_repo=repo,  # type: ignore[arg-type]
-        gene_set_service=svc,  # type: ignore[arg-type]
+        conv_repo=repo,
+        gene_set_service=svc,
         site_id="plasmodb",
         user_id=conversation.user_id,
     )

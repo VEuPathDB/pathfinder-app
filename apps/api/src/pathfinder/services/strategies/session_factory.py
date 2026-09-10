@@ -1,6 +1,9 @@
 """Helpers for hydrating in-memory strategy session context for agents."""
 
 from assistant_core.persistence.models import Conversation
+from assistant_core.persistence.repositories.conversation import (
+    DEFAULT_CONVERSATION_NAME,
+)
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from pydantic import ValidationError
@@ -11,7 +14,6 @@ from veupathdb.domain.strategy.strategy_ast import (
     StrategyAst,
 )
 
-from pathfinder.domain.conversation import DEFAULT_STREAM_NAME
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.platform.errors import StrategyAstCorruptError
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -89,7 +91,7 @@ def build_strategy_session(
         raise ValueError(msg)
 
     session = StrategySession(site_id)
-    name = strategy_graph.name or DEFAULT_STREAM_NAME
+    name = strategy_graph.name or DEFAULT_CONVERSATION_NAME
     graph = StrategyGraph(strategy_graph.id, name, site_id)
     if strategy_graph.strategy_ast is not None:
         payload = strategy_graph.strategy_ast

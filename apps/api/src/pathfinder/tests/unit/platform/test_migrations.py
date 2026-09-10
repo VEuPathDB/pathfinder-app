@@ -68,13 +68,19 @@ def test_the_filter_leaves_a_column_to_the_verdict_on_its_table() -> None:
     assert _verdict("user_id", type_="column", reflected=True) is True
 
 
-def test_the_owned_names_are_the_four_the_runtime_builds() -> None:
-    """The filter reads the runtime's list, so the four names are not retyped."""
+def test_the_owned_names_are_the_ten_the_runtime_builds() -> None:
+    """The filter reads the runtime's list, so the ten names are not retyped."""
     assert OWNED_TABLES == (
         "conversations",
         "messages",
         "conversation_events",
         "memory_tombstones",
+        "chat_turn_cancellations",
+        "monthly_usage",
+        "scratchpad_notes",
+        "scratchpad_compactions",
+        "background_tasks",
+        "task_progress",
     )
 
 

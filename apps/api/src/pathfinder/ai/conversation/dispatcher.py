@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
+from assistant_core.conversation.cancellation import cancel_in_flight_turn
 from assistant_core.conversation.event_stream import (
     iter_sse,
     latest_turn_boundary,
@@ -23,7 +24,6 @@ from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.jobs.tasks import run_chat_turn_job
 from pathfinder.platform.errors import AssistantMismatchError
 from pathfinder.services.conversations.begin import begin_conversation
-from pathfinder.services.conversations.cancellation import cancel_in_flight_turn
 
 
 async def dispatch(

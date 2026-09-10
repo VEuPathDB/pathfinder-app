@@ -9,12 +9,12 @@ from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.conversation.ui_message_reducer import user_message_chunk
 from assistant_core.persistence.models import Conversation, ConversationEvent, Message
 from assistant_core.persistence.repositories.message import MessagesRepository
+from assistant_core.persistence.repositories.scratchpad import ScratchpadRepository
 from assistant_core.platform import db
+from assistant_core.scratchpad.models import NoteCreate
 from sqlalchemy import func, select, text
 
-from pathfinder.domain.scratchpad.models import NoteCreate
 from pathfinder.persistence.models import User
-from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.fork import fork_conversation

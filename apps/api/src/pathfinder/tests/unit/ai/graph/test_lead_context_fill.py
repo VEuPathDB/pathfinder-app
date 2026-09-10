@@ -10,6 +10,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from assistant_core import quota
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy.session import StrategySession
@@ -22,7 +23,6 @@ from pathfinder.ai.graph._lead_capture import (
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.models.catalog import context_window_for
-from pathfinder.services import quota
 
 _LEAD_MODEL = "openai:gpt-5.6-luna"
 

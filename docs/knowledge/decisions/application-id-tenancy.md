@@ -27,7 +27,7 @@ it.
 
 **A resource of the same user under another application is a stranger's
 resource.** The check lives inside the helpers that already decide ownership
-(`services/conversations/authz.py::owned_by_caller`, the gene-set, experiment
+(`assistant_core.conversation.authz.owned_by_caller`, the gene-set, experiment
 and control-set stores, the repository list queries), so no route grew a
 parallel check and every route inherits the rule. The refusal is whatever that
 route already gives a non-owner: 404 where existence is hidden, 403 where the

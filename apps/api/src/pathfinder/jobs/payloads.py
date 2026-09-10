@@ -1,13 +1,11 @@
-"""Typed payloads for procrastinate jobs.
+"""The typed payload of this application's chat-turn job.
 
-Procrastinate has no pydantic awareness: ``defer_async`` receives a JSON-dict
-of task kwargs which psycopg wraps in ``Jsonb`` before persisting. We dump
-these models with ``model_dump(mode="json", by_alias=True)`` at the dispatch
-site and ``model_validate`` at the worker entrypoint. The VEuPathDB auth
-token is a plain ``str`` (not ``SecretStr``) because ``model_dump`` masks
-SecretStr to ``"**********"`` by default — that would destroy the value at
-the producer side. Redaction happens in logs via
-``pathfinder.jobs.logging_filters``, not by in-memory masking.
+Procrastinate has no pydantic awareness: ``defer_async`` receives a JSON dict
+of task kwargs, so the model is dumped at the dispatch and validated at the
+worker entry point. The VEuPathDB auth token is a plain ``str`` because
+``model_dump`` masks a ``SecretStr`` to ``"**********"``, which would destroy
+the value at the producer. The log redaction is
+``pathfinder.jobs.logging_filters``.
 """
 
 from __future__ import annotations
@@ -15,9 +13,7 @@ from __future__ import annotations
 from typing import Self
 from uuid import UUID
 
-from assistant_core.models.capture import current_capture_dir
-from assistant_core.platform.types import JSONObject
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
@@ -58,34 +54,4 @@ class ChatTurnPayload(BaseModel):
         )
 
 
-class DurableTaskPayload(BaseModel):
-    """Typed payload for ``durable:<tool_name>`` procrastinate jobs."""
-
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    task_id: UUID
-    thread_id: UUID
-    args: JSONObject = Field(default_factory=dict)
-    veupathdb_auth_token: str | None = None
-    capture_dir: str | None = None
-
-    @classmethod
-    def from_context(
-        cls,
-        *,
-        task_id: UUID,
-        thread_id: UUID,
-        args: JSONObject,
-    ) -> Self:
-        """Build a durable payload, capturing ``veupathdb_auth_token_ctx`` and the
-        active LLM-capture run-dir so the worker resume job keeps capturing."""
-        return cls(
-            task_id=task_id,
-            thread_id=thread_id,
-            args=args,
-            veupathdb_auth_token=veupathdb_auth_token_ctx.get(),
-            capture_dir=current_capture_dir(),
-        )
-
-
-__all__ = ["ChatTurnPayload", "DurableTaskPayload"]
+__all__ = ["ChatTurnPayload"]

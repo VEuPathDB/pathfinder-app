@@ -22,6 +22,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from uuid import UUID
 
+from assistant_core.conversation.authz import get_visible_conversation
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.context import calling_application
 from assistant_core.platform.db import async_session_factory
@@ -35,7 +36,6 @@ from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,
 )
 from pathfinder.platform.errors import NotFoundError
-from pathfinder.services.conversations.authz import get_owned_or_404
 
 logger = get_logger(__name__)
 
@@ -93,7 +93,7 @@ async def begin_conversation(
 
     repo = ConversationRepository(session)
     if not is_new:
-        existing = await get_owned_or_404(repo, conversation_id, user_id)
+        existing = await get_visible_conversation(repo, conversation_id, user_id)
         return BeginResult(conversation=existing, is_new=False)
 
     if experiment_id is not None:

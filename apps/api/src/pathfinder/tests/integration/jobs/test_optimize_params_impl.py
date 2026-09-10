@@ -7,13 +7,17 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.persistence.models import Conversation
+from assistant_core.persistence.models import (
+    BackgroundTask,
+    Conversation,
+    TaskProgressRow,
+)
 from assistant_core.platform.db import async_session_factory
+from assistant_core.tasks.progress import TaskProgressEmitter
 from sqlalchemy import select
 
 from pathfinder.jobs.impls import optimize_params_impl
-from pathfinder.jobs.progress import TaskProgressEmitter
-from pathfinder.persistence.models import BackgroundTask, TaskProgress, User
+from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.parameter_optimization.config import SweepVariantSpec
 
@@ -70,9 +74,9 @@ async def _read_progress_rows(task_id: UUID) -> list[_ProgressRow]:
         rows = (
             (
                 await session.execute(
-                    select(TaskProgress)
-                    .where(TaskProgress.task_id == task_id)
-                    .order_by(TaskProgress.id)
+                    select(TaskProgressRow)
+                    .where(TaskProgressRow.task_id == task_id)
+                    .order_by(TaskProgressRow.id)
                 )
             )
             .scalars()
@@ -88,7 +92,7 @@ async def progress_sink(
     db_cleaner: None,
     patch_app_db_engine: None,
 ) -> _ProgressSink:
-    """Captures every TaskProgress row written during the test.
+    """Captures every TaskProgressRow row written during the test.
 
     Reads from the real ``task_progress`` table after the impl returns, so
     the entire emitter plumbing (batching, NOTIFY, scoped merge) is

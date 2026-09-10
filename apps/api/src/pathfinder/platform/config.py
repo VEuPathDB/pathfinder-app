@@ -156,29 +156,6 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         ge=1,
         description="Number of jobs the Procrastinate worker runs in parallel.",
     )
-    worker_stalled_job_timeout_seconds: int = Field(
-        default=3600,
-        ge=300,
-        description=(
-            "Age at which a job still in 'doing' is failed so its lock releases."
-        ),
-    )
-    worker_heartbeat_interval_seconds: float = Field(
-        default=5.0,
-        gt=0,
-        description=(
-            "Seconds between the worker heartbeats. The heartbeat runs in a "
-            "thread of its own, so a job cannot widen this."
-        ),
-    )
-    worker_dead_heartbeat_seconds: int = Field(
-        default=60,
-        ge=60,
-        description=(
-            "Silence after which a worker counts as dead and the jobs it holds "
-            "are failed so their locks release."
-        ),
-    )
 
     # Observability: SigNoz APM
     signoz_otel_endpoint: str | None = Field(

@@ -5,9 +5,7 @@ the runtime package; the tables here map on the same base, so a foreign key
 between them resolves.
 """
 
-from datetime import date, datetime
-from decimal import Decimal
-from typing import Any
+from datetime import datetime
 from uuid import UUID, uuid4
 
 from assistant_core.persistence.models import (
@@ -23,8 +21,6 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
-    Computed,
-    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -32,14 +28,13 @@ from sqlalchemy import (
     Index,
     Integer,
     LargeBinary,
-    Numeric,
     String,
     Text,
     UniqueConstraint,
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -70,9 +65,6 @@ class User(Base):
     # The relationship stays because it orders the flush and cascades a delete.
     conversations: Mapped[list[Conversation]] = relationship(
         cascade="all, delete-orphan"
-    )
-    monthly_usage: Mapped[list["MonthlyUsage"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
     )
 
 
@@ -368,225 +360,6 @@ class Export(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
-    )
-
-
-class BackgroundTask(Base):
-    """Durable task row for long-running agent tools dispatched to the worker."""
-
-    __tablename__ = "background_tasks"
-
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
-    conversation_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True),
-        ForeignKey("conversations.id", ondelete="CASCADE"),
-        index=True,
-        nullable=False,
-    )
-    user_id: Mapped[UUID] = mapped_column(
-        GUID(),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        index=True,
-        nullable=False,
-    )
-    tool_name: Mapped[str] = mapped_column(String(128), nullable=False)
-    # The pydantic-ai call this task answers. Null for a row written before
-    # a durable tool became a deferred tool.
-    tool_call_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
-    args: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
-    # The per-phase model and reasoning picks the deferring request carried, so
-    # the turn that answers this task runs under the same ones.
-    phase_overrides: Mapped[dict[str, Any]] = mapped_column(
-        JSONB,
-        nullable=False,
-        default=dict,
-        server_default="{}",
-    )
-    result: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
-    error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    estimated_duration_seconds: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=60
-    )
-    started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
-
-
-class TaskProgress(Base):
-    """Incremental progress record emitted by a background task."""
-
-    __tablename__ = "task_progress"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    task_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True),
-        ForeignKey("background_tasks.id", ondelete="CASCADE"),
-        index=True,
-        nullable=False,
-    )
-    percent: Mapped[float] = mapped_column(Float, nullable=False)
-    message: Mapped[str] = mapped_column(String(500), nullable=False)
-    data: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
-    emitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
-
-
-class ChatTurnCancellation(Base):
-    __tablename__ = "chat_turn_cancellations"
-
-    conversation_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True),
-        ForeignKey("conversations.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    turn_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True),
-        primary_key=True,
-    )
-    requested_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
-
-
-class ScratchpadNote(Base):
-    """Agent-written working-memory note, conversation-scoped."""
-
-    __tablename__ = "scratchpad_notes"
-
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    conversation_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True),
-        ForeignKey("conversations.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    title: Mapped[str] = mapped_column(String, nullable=False)
-    summary: Mapped[str] = mapped_column(String, nullable=False)
-    body: Mapped[str] = mapped_column(String, nullable=False)
-    tags: Mapped[list[str]] = mapped_column(
-        JSONB,
-        nullable=False,
-        default=list,
-        server_default="[]",
-    )
-    pinned: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=False,
-        server_default="false",
-    )
-    body_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    fts: Mapped[str] = mapped_column(
-        TSVECTOR,
-        Computed(
-            "setweight(to_tsvector('english', coalesce(title, '')), 'A') "
-            "|| setweight(to_tsvector('english', coalesce(summary, '')), 'B') "
-            "|| setweight(to_tsvector('english', coalesce(body, '')), 'C')",
-            persisted=True,
-        ),
-        nullable=False,
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
-
-
-class ScratchpadCompaction(Base):
-    """Audit row for one scratchpad compaction run."""
-
-    __tablename__ = "scratchpad_compactions"
-    __table_args__ = (
-        CheckConstraint(
-            "trigger_reason IN ('count', 'tokens', 'both')",
-            name="ck_scratchpad_compactions_trigger_reason",
-        ),
-    )
-
-    id: Mapped[int] = mapped_column(
-        BigInteger, Identity(always=False), primary_key=True
-    )
-    conversation_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True),
-        ForeignKey("conversations.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    triggered_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
-    before_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    after_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    before_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    after_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    model_id: Mapped[str] = mapped_column(String, nullable=False)
-    cost_usd: Mapped[Decimal] = mapped_column(
-        Numeric(precision=12, scale=6),
-        nullable=False,
-        server_default="0",
-    )
-    trigger_reason: Mapped[str] = mapped_column(String, nullable=False)
-
-
-class MonthlyUsage(Base):
-    """Accumulated token and cost usage for one application of one user, per month.
-
-    period_start is always the first UTC day of the month. Accumulation is
-    an upsert on the user, the application and the period.
-    """
-
-    __tablename__ = "monthly_usage"
-
-    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(
-        GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    application_id: Mapped[str] = application_id_column()
-    period_start: Mapped[date] = mapped_column(Date, nullable=False)
-    total_cost_usd: Mapped[Decimal] = mapped_column(
-        Numeric(12, 6), nullable=False, server_default=text("0")
-    )
-    total_tokens: Mapped[int] = mapped_column(
-        BigInteger, nullable=False, server_default=text("0")
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
-
-    user: Mapped[User] = relationship(back_populates="monthly_usage")
-
-    __table_args__ = (
-        UniqueConstraint(
-            "user_id",
-            "application_id",
-            "period_start",
-            name="monthly_usage_user_app_period_key",
-        ),
-        Index("monthly_usage_user_idx", "user_id"),
     )
 
 

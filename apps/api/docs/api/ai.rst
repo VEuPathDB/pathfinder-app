@@ -74,16 +74,6 @@ run for real, which is what makes the mock useful for integration coverage.
    :undoc-members:
    :show-inheritance:
 
-Model Pricing
--------------
-
-**Purpose:** Cost per run in USD, looked up from the live price snapshot.
-
-.. automodule:: pathfinder.ai.pricing
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Prompts
 -------
 

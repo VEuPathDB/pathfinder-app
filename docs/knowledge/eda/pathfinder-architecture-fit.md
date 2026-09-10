@@ -75,12 +75,13 @@ Modules, and the endpoints each covers (see
 | `analyses.py` | `/users/{uid}/analyses/{project}` CRUD, `/public/analyses`, `/import-analysis` |
 
 No new credential path. The EDA service accepts the same registered WDK token
-PathFinder already holds: `integrations/veupathdb/auth_login.py:60`
-`password_login` returns it, `platform/context.py:6`
-`veupathdb_auth_token_ctx` carries it per request,
-`platform/security.py:75` sets it, and the worker re-installs it with
-`jobs/auth_context.py::attach_wdk_auth`. Guest calls to `/eda` are 401
-(measured, `veupathdb-py: docs/knowledge/eda/rest-surface.md`), so
+PathFinder already holds:
+`veupathdb-py: src/veupathdb/wdk/auth_login.py::password_login` returns it,
+`veupathdb.auth_context.veupathdb_auth_token_ctx` carries it per request,
+`main.py`'s request middleware sets it from the request and
+`platform/security.py::_veupathdb_principal` sets it for a bearer caller, and
+the worker re-installs it with `jobs/auth_context.py::attach_wdk_auth`. Guest
+calls to `/eda` are 401 (measured, `veupathdb-py: docs/knowledge/eda/rest-surface.md`), so
 [the registered-login rule](../decisions/wdk-requires-registered-login.md)
 covers EDA unchanged.
 
@@ -236,17 +237,17 @@ already owns the machinery. The mapping, naming the real mechanisms:
 
 | Step | Mechanism, with its file |
 |---|---|
-| 1. The agent calls `run_eda_compute` | `@durable_tool(tool_name="run_eda_compute", estimated_duration_seconds=...)`, `ai/tools/durable.py:40` |
-| 2. A task row is created | `create_background_task(...)` -> `background_tasks`, `services/tasks/background.py:40`, called at `ai/tools/durable.py:65` |
-| 3. A job is deferred | `procrastinate_app.configure_task(name=f"durable:{tool_name}", queue="verification", lock=str(conversation_id))`, `ai/tools/durable.py:74-78`. The lock is the conversation, so the resume takes the same lock a chat turn takes |
-| 4. The run defers | the decorator records a `DurableDeferral` on the agent's deps and raises `CallDeferred` (`ai/tools/durable.py`); the run ends with `DeferredToolRequests`, the node parks a `PendingDurableCall` (every durable call of the step, per CLAUDE.md's Durable Background Tasks), and `AsyncPostgresSaver` checkpoints the thread. No `interrupt()`, no node replay |
+| 1. The agent calls `run_eda_compute` | `@durable_tool(EDA_COMPUTE)` over the declaration in `ai/tools/standalone/eda_compute.py`; the decorator is `assistant_core.tasks.decorator` |
+| 2. A task row is created | `assistant_core.tasks.service.create_background_task(...)` -> `background_tasks` |
+| 3. A job is deferred | `task_app().configure_task(name=tool.job_name, queue=DURABLE_TASK_QUEUE, lock=str(conversation_id))`. The lock is the conversation, so the resume takes the same lock a chat turn takes |
+| 4. The run defers | the decorator records a `DurableDeferral` on the agent's deps and raises `CallDeferred`; the run ends with `DeferredToolRequests`, the node parks a `PendingDurableCall` (every durable call of the step, per CLAUDE.md's Durable Background Tasks), and `AsyncPostgresSaver` checkpoints the thread. No `interrupt()`, no node replay |
 | 5. The turn ends cleanly | `data-background-task-started` inside the turn, `finishReason: "other"` (CLAUDE.md, Durable Background Tasks) |
-| 6. The worker runs the real body | `jobs/impls/eda_compute_impl.py`, registered by `register_tool("run_eda_compute", ...)` in `jobs/impls/__init__.py::register_all_tools:24-34`; dispatched by `TOOL_REGISTRY.get(tool_name)` in `jobs/runner.py::_run_durable_task_inner` |
-| 7. The impl holds the user's credential | `attach_wdk_auth(veupathdb_auth_token)` in `jobs/runner.py::_run_durable_task_inner`. The token rides in the job payload because the procrastinate hop drops `ContextVar` state (`jobs/runner.py::run_durable_task`). EDA takes the same token, so this needs no change |
+| 6. The worker runs the real body | `jobs/impls/eda_compute_impl.py`, bound by `register_durable_impl(EDA_COMPUTE, ...)` in `jobs/impls/__init__.py::register_all_tools`; dispatched by `assistant_core.tasks.runner` |
+| 7. The impl holds the user's credential | `jobs/job_context.py::WdkJobContext` captures the token at the call and restores it around the body. The token rides the job payload because the procrastinate hop drops `ContextVar` state. EDA takes the same token, so this needs no change |
 | 8. The impl polls and reports | it calls `services/eda/compute.py` and emits `await progress.update(percent=..., message=..., data=...)`, the shape `jobs/impls/control_tests_impl.py:47-86` uses. `TaskProgressEmitter` writes `task_progress` rows and fires `pg_notify("task_progress:<conversation_id>", ...)` |
-| 9. The result lands | `_to_dict(payload)` then `repo.mark_result_ready(...)` on the `background_tasks` row (`jobs/runner.py::_run_durable_task_inner`); `repo.mark_resuming(...)` follows once the completion turn opens (`jobs/completion_turn.py::_run_completion_turn`) |
-| 10. The thread records the outcome | `_announce_completion` appends `task_completed_event(...)` to `conversation_events` before the completion turn opens (`jobs/runner.py::_announce_completion`) |
-| 11. The turn continues | `jobs/completion_turn.py::_run_completion_turn` opens a NEW turn carrying every parked task's `DurableTaskResult`; its chunks are written by `ChatEventWriter` under the parked turn's message id, into the same `conversation_events` rows the dispatcher replays |
+| 9. The result lands | the runner writes the result on the `background_tasks` row at `result_ready`; `mark_resuming` follows once the completion turn opens (`assistant_core.tasks.completion_turn`) |
+| 10. The thread records the outcome | the runner appends `task_completed_event(...)` to `conversation_events` before the completion turn opens |
+| 11. The turn continues | `assistant_core.tasks.completion_turn` gathers every parked task's `DurableTaskResult` and hands `jobs/completion.py::open_completion_turn` a NEW turn; its chunks are written by `ChatEventWriter` under the parked turn's message id, into the same `conversation_events` rows the dispatcher replays |
 
 **Where the step gets created, and why not in the impl.** The impl returns the
 compute's identity and its statistics summary; it creates no step. Two reasons,

@@ -11,13 +11,13 @@ from typing import Any
 from uuid import UUID
 
 from assistant_core.memory.store import MemoryStore
+from assistant_core.tasks.progress import TaskProgressEmitter
 from veupathdb_mcp.wdk.enrichment.types import (
     ALL_ENRICHMENT_ANALYSIS_TYPES,
     EnrichmentAnalysisType,
 )
 
 from pathfinder.ai.graph.runtime import Context
-from pathfinder.jobs.progress import TaskProgressEmitter
 from pathfinder.services.workbench.gene_sets import (
     get_gene_set,
     run_gene_set_enrichment,

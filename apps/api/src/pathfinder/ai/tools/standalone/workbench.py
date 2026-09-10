@@ -14,6 +14,8 @@ from uuid import UUID, uuid4
 from assistant_core.graph.tool_summary import summary_chunks, with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
+from assistant_core.tasks.declaration import declare_durable_tool
+from assistant_core.tasks.decorator import DurableOutcome, durable_tool
 from pydantic import ConfigDict, Field
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
@@ -27,7 +29,6 @@ from veupathdb_mcp.wdk.enrichment.types import (
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.stream_events import enrichment_results_event
 from pathfinder.ai.stream_part_payloads import EnrichmentResultsChunk
-from pathfinder.ai.tools.durable import DurableOutcome, durable_tool
 from pathfinder.ai.tools.standalone._stream_parts import gene_set_chunk
 from pathfinder.ai.tools.standalone._workbench_models import (
     GeneSetCreatedResponse,
@@ -166,11 +167,14 @@ def _enrichment_chunks_from_result(
     return chunks
 
 
-@durable_tool(
+GENESET_ENRICHMENT = declare_durable_tool(
     tool_name="geneset_enrichment",
     estimated_duration_seconds=120,
     chunks_from_result=_enrichment_chunks_from_result,
 )
+
+
+@durable_tool(GENESET_ENRICHMENT)
 async def run_gene_set_enrichment(
     ctx: RunContext[AgentDeps],
     gene_set_id: str,

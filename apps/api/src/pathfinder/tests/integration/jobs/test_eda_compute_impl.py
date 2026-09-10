@@ -9,13 +9,13 @@ from uuid import uuid4
 
 import pytest
 from assistant_core.platform.db import async_session_factory
+from assistant_core.tasks.progress import TaskProgressEmitter
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.jobs.impls import eda_compute_impl
 from pathfinder.jobs.impls.eda_compute_impl import run_eda_compute_impl
-from pathfinder.jobs.progress import TaskProgressEmitter
 from pathfinder.tests.integration.jobs import _eda_wire
 
 _ARGS = _eda_wire.ARGS

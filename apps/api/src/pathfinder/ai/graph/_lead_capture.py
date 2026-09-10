@@ -13,6 +13,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
+from assistant_core import quota
 from assistant_core.cost import cost_for_run
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
 from assistant_core.graph.stream_events import lead_usage_event
@@ -32,7 +33,6 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.lead_agent import LeadResponse
 from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
 from pathfinder.ai.models.catalog import context_window_for
-from pathfinder.services import quota
 
 logger = get_logger(__name__)
 

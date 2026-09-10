@@ -5,7 +5,6 @@ src/pathfinder/tests/conftest.py::485
 src/pathfinder/tests/integration/ai/test_organism_swap_turn.py::405
 src/pathfinder/tests/integration/eda/test_authoring.py::626
 src/pathfinder/tests/integration/eda/test_eda_conversation.py::498
-src/pathfinder/tests/integration/jobs/test_multi_durable_resume.py::420
 src/pathfinder/tests/integration/persistence/_thread_surgery.py::541
 src/pathfinder/tests/integration/persistence/test_conversation_fork_and_delete.py::1685
 src/pathfinder/tests/integration/persistence/test_conversation_revert.py::453

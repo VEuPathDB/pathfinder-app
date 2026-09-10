@@ -17,6 +17,7 @@ from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.memory.store import MemoryStore
 from assistant_core.persistence.models import (
+    BackgroundTask,
     Conversation,
     ConversationEvent,
 )
@@ -29,7 +30,6 @@ from pathfinder.ai.graph import _lead_turn
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.persistence.models import (
-    BackgroundTask,
     ConversationStrategy,
     ExperimentRow,
     GeneSetRow,

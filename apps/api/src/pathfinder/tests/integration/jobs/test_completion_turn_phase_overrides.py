@@ -24,9 +24,11 @@ from assistant_core.models.scripted import (
     scripted_text,
     tool_return_parts,
 )
+from assistant_core.persistence.models import BackgroundTask
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import ReasoningEffort
 from assistant_core.spec import AssistantSpec, TurnContextRequest
+from assistant_core.tasks.runner import run_durable_task
 from fastapi import FastAPI
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
@@ -50,8 +52,7 @@ from pathfinder.assistants.site_help.spec import (
     charge_usage,
 )
 from pathfinder.jobs.impls import register_all_tools
-from pathfinder.jobs.runner import run_durable_task
-from pathfinder.persistence.models import BackgroundTask, User
+from pathfinder.persistence.models import User
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -204,6 +205,12 @@ def recording_assistant(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     _SEEN.clear()
 
 
+@pytest.fixture
+def recording_worker(recording_assistant: None, worker_seams: None) -> None:
+    """The worker's seams, over the registry this module records through."""
+    del recording_assistant, worker_seams
+
+
 async def _make_user() -> UUID:
     user_id = uuid4()
     async with async_session_factory() as session:
@@ -252,7 +259,7 @@ async def _work_the_job(payload: dict[str, Any]) -> None:
         task_id=str(payload["task_id"]),
         thread_id=str(payload["thread_id"]),
         args=payload["args"],
-        veupathdb_auth_token=payload["veupathdb_auth_token"],
+        job_context=payload["job_context"],
     )
 
 
@@ -279,11 +286,11 @@ async def test_the_deferred_task_row_carries_the_turn_s_picks(
     patch_app_db_engine: None,
     db_cleaner: None,
     in_memory_jobs: InMemoryConnector,
-    recording_assistant: None,
+    recording_worker: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The picks are request-scoped, so the row that outlives the request holds them."""
-    del patch_app_db_engine, db_cleaner, recording_assistant
+    del patch_app_db_engine, db_cleaner, recording_worker
     wire = _eda_wire.install(monkeypatch, "complete")
     user_id = await _make_user()
     conversation_id = uuid4()
@@ -303,11 +310,11 @@ async def test_the_completion_turn_runs_under_the_pinned_model(
     patch_app_db_engine: None,
     db_cleaner: None,
     in_memory_jobs: InMemoryConnector,
-    recording_assistant: None,
+    recording_worker: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Both halves of one investigation resolve the same model and effort."""
-    del patch_app_db_engine, db_cleaner, recording_assistant
+    del patch_app_db_engine, db_cleaner, recording_worker
     wire = _eda_wire.install(monkeypatch, "complete")
     user_id = await _make_user()
     conversation_id = uuid4()
@@ -327,11 +334,11 @@ async def test_a_turn_that_pins_nothing_leaves_the_row_empty(
     patch_app_db_engine: None,
     db_cleaner: None,
     in_memory_jobs: InMemoryConnector,
-    recording_assistant: None,
+    recording_worker: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A request with no picks pins nothing on the completion turn either."""
-    del patch_app_db_engine, db_cleaner, recording_assistant
+    del patch_app_db_engine, db_cleaner, recording_worker
     wire = _eda_wire.install(monkeypatch, "complete")
     user_id = await _make_user()
     conversation_id = uuid4()

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
+from assistant_core.conversation.authz import get_visible_conversation
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
@@ -24,7 +25,6 @@ from veupathdb.wdk.wdk_models import (
 
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.services.conversations.authz import get_owned_or_404
 from pathfinder.services.experiment.materialization import (
     _materialize_step_tree,
 )
@@ -189,7 +189,7 @@ async def get_strategy_gene_ids(
 ) -> StrategyGeneIdsResult:
     """Fetch gene IDs for a PathFinder strategy's linked WDK root step."""
     repo = ConversationRepository(session)
-    conversation = await get_owned_or_404(repo, strategy_id, user_id)
+    conversation = await get_visible_conversation(repo, strategy_id, user_id)
     strategy = await repo.get_strategy(conversation.id)
     if not strategy.wdk_strategy_id:
         return StrategyGeneIdsResult(error="No WDK strategy linked")

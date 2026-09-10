@@ -38,8 +38,8 @@ and means nothing to a thread-only assistant.
 
 **The child carries no owner of its own.** No `user_id`, no `application_id`.
 Ownership is the parent's `(user_id, application_id)` pair
-([tenancy](application-id-tenancy.md)), the ownership helpers in
-`services/conversations/authz.py` did not move, and every query that touches
+([tenancy](application-id-tenancy.md)), the ownership helpers are the
+runtime's (`assistant_core.conversation.authz`), and every query that touches
 the side table drives from `conversations` and inherits its predicates. A
 child with its own application column would be a second, silently divergent
 answer to who owns the row.

@@ -6,15 +6,16 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from assistant_core.tasks import decorator
+from assistant_core.tasks.declaration import durable_impl
 from pydantic_ai.exceptions import CallDeferred
 from pydantic_ai.tools import RunContext
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools import durable
 from pathfinder.ai.tools.standalone import eda_compute
 from pathfinder.ai.tools.standalone.eda_compute import EdaVariableSpecIn
 from pathfinder.jobs.impls import register_all_tools
-from pathfinder.jobs.registry import TOOL_REGISTRY
+from pathfinder.jobs.impls.eda_compute_impl import run_eda_compute_impl
 from pathfinder.tests.unit.ai.tools.conftest import lead_run_context
 
 
@@ -57,9 +58,9 @@ def dispatch(
         created.append(dict(kwargs))
         return uuid4()
 
-    monkeypatch.setattr(durable, "create_background_task", create)
-    monkeypatch.setattr(durable, "procrastinate_app", _App(deferred))
-    monkeypatch.setattr(durable, "get_stream_writer", lambda: lambda _payload: None)
+    monkeypatch.setattr(decorator, "create_background_task", create)
+    monkeypatch.setattr(decorator, "task_app", lambda: _App(deferred))
+    monkeypatch.setattr(decorator, "get_stream_writer", lambda: lambda _payload: None)
     return created, deferred
 
 
@@ -187,4 +188,5 @@ async def test_the_estimated_duration_is_declared(
 
 def test_the_tool_is_registered_in_the_worker_registry() -> None:
     register_all_tools()
-    assert "run_eda_compute" in TOOL_REGISTRY
+
+    assert durable_impl("run_eda_compute") == run_eda_compute_impl

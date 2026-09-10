@@ -5,10 +5,10 @@ from __future__ import annotations
 from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel
+from assistant_core.scratchpad.models import Note
 from fastapi import APIRouter, status
 from pydantic import ConfigDict, Field
 
-from pathfinder.domain.scratchpad.models import Note
 from pathfinder.services.conversations.scratchpad_service import ScratchpadService
 from pathfinder.transport.http.deps import CurrentUser, DBSession
 

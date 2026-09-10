@@ -137,8 +137,8 @@ wheels = [
 
 [[package]]
 name = "assistant-core"
-version = "0.3.0a1"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a1#c0a3facdfcccaf1a92fa0a9cf4fe8b2f47ba2c1c" }
+version = "0.3.0a4"
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a4#72260ee91c8c190115a61fe2d6c6dfde1b246deb" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
@@ -151,6 +151,7 @@ dependencies = [
     { name = "openai" },
     { name = "opentelemetry-api" },
     { name = "pgvector" },
+    { name = "procrastinate" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
     { name = "pydantic-ai" },
@@ -2637,7 +2638,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.18.0" },
-    { name = "assistant-core", extras = ["screening"], git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a1" },
+    { name = "assistant-core", extras = ["screening"], git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a4" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "cachetools", specifier = ">=7.0.5" },
     { name = "fastapi", specifier = ">=0.141.0" },
@@ -2688,7 +2689,7 @@ dev = [
     { name = "ruff", specifier = ">=0.16.6" },
     { name = "schemathesis", specifier = ">=4.16.1" },
     { name = "testcontainers", specifier = ">=4.14.0" },
-    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a1" },
+    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a4" },
     { name = "vulture", specifier = ">=2.16" },
 ]
 docs = [
@@ -4257,7 +4258,7 @@ dependencies = [
 [[package]]
 name = "veupathdb-mcp-conformance"
 version = "0.1.1"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a1#c0a3facdfcccaf1a92fa0a9cf4fe8b2f47ba2c1c" }
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a4#72260ee91c8c190115a61fe2d6c6dfde1b246deb" }
 dependencies = [
     { name = "httpx" },
     { name = "mcp" },

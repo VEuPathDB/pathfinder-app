@@ -11,16 +11,15 @@ from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
-from assistant_core.persistence.models import ConversationEvent
+from assistant_core.persistence.models import (
+    BackgroundTask,
+    ConversationEvent,
+    TaskProgressRow,
+)
 from assistant_core.platform import db
 from sqlalchemy import func, select, text
 
-from pathfinder.persistence.models import (
-    BackgroundTask,
-    ConversationStrategy,
-    StrategyRevision,
-    TaskProgress,
-)
+from pathfinder.persistence.models import ConversationStrategy, StrategyRevision
 from pathfinder.platform.config import get_settings
 from pathfinder.services.conversations.fork import fork_conversation
 from pathfinder.services.conversations.revert import revert_conversation_to_message
@@ -417,8 +416,8 @@ async def _task_and_progress_counts(conversation_id: UUID) -> tuple[int, int]:
         progress = (
             await session.scalar(
                 select(func.count())
-                .select_from(TaskProgress)
-                .join(BackgroundTask, TaskProgress.task_id == BackgroundTask.id)
+                .select_from(TaskProgressRow)
+                .join(BackgroundTask, TaskProgressRow.task_id == BackgroundTask.id)
                 .where(BackgroundTask.conversation_id == conversation_id),
             )
         ) or 0
@@ -439,7 +438,7 @@ async def _seed_task(conversation_id: UUID, user_id: UUID) -> None:
         )
         await session.flush()
         session.add(
-            TaskProgress(task_id=task_id, percent=50.0, message="volcano ready"),
+            TaskProgressRow(task_id=task_id, percent=50.0, message="volcano ready"),
         )
         await session.commit()
 

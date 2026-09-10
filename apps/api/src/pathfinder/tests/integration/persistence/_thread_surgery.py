@@ -11,6 +11,7 @@ from assistant_core.persistence.models import (
     Conversation,
     ConversationEvent,
     Message,
+    ScratchpadNote,
 )
 from assistant_core.platform import db
 from assistant_core.platform.types import JSONObject
@@ -31,7 +32,6 @@ from pathfinder.domain.strategy.revision import parse_strategy_ast, without_wdk_
 from pathfinder.persistence.models import (
     ConversationAnalysisView,
     ConversationStrategy,
-    ScratchpadNote,
     StrategyRevision,
     User,
 )

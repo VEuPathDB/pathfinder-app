@@ -4,6 +4,12 @@ from enum import StrEnum
 from http import HTTPStatus
 
 import structlog
+from assistant_core.errors import (
+    AssistantCoreError,
+    ConversationForbiddenError,
+    ConversationNotFoundError,
+    TurnStillRunningError,
+)
 from assistant_core.platform.types import JSONArray
 from fastapi import Request
 from fastapi.encoders import jsonable_encoder
@@ -17,6 +23,30 @@ from veupathdb.errors import VEuPathDBError
 from pathfinder.platform.errors import ErrorCode, ProblemDetail
 
 _logger = structlog.get_logger(__name__)
+
+# The runtime raises without a transport, so this application names the status
+# and the code each of its refusals answers with.
+_RUNTIME_REFUSALS: dict[type[AssistantCoreError], tuple[int, ErrorCode, str]] = {
+    ConversationNotFoundError: (
+        HTTPStatus.NOT_FOUND,
+        ErrorCode.STRATEGY_NOT_FOUND,
+        "Conversation not found",
+    ),
+    ConversationForbiddenError: (
+        HTTPStatus.FORBIDDEN,
+        ErrorCode.FORBIDDEN,
+        "Forbidden",
+    ),
+    TurnStillRunningError: (
+        HTTPStatus.CONFLICT,
+        ErrorCode.SESSION_CONFLICT,
+        "A turn is still running",
+    ),
+}
+
+# The handler is registered for each mapped type, so a refusal the map does not
+# name is not answered here at all.
+RUNTIME_REFUSALS: tuple[type[AssistantCoreError], ...] = tuple(_RUNTIME_REFUSALS)
 
 _STATUS_TO_ERROR_CODE: dict[int, ErrorCode] = {
     HTTPStatus.NOT_FOUND: ErrorCode.NOT_FOUND,
@@ -83,6 +113,28 @@ async def veupathdb_error_handler(
 ) -> JSONResponse:
     """Render any refusal under the code the wire already names."""
     return _failed(request, exc, ErrorCode(exc.code.value))
+
+
+async def assistant_core_error_handler(
+    request: Request, exc: AssistantCoreError
+) -> JSONResponse:
+    """Render a runtime refusal under the status this application gives it."""
+    status, code, title = _RUNTIME_REFUSALS[type(exc)]
+    _logger.warning(
+        "Request failed",
+        method=request.method,
+        path=request.url.path,
+        status=status,
+        code=code.value,
+        title=title,
+    )
+    return problem_response(
+        request,
+        status=status,
+        code=code,
+        title=title,
+        detail=str(exc),
+    )
 
 
 async def apply_error_handler(request: Request, exc: ApplyError) -> JSONResponse:

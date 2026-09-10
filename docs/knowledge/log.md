@@ -2,6 +2,85 @@
 
 ## 2026-09-10
 
+* **The conformance account hook opens its own WDK client.** The nested
+  conformance session runs in a worker thread under its own `asyncio.run`, and
+  the per-site `VEuPathDBClient` this process caches keeps a live connection
+  bound to the loop that created the run's step. Listing the account's
+  strategies through that cached client raised `RuntimeError: ... is bound to a
+  different event loop`, which errored the three family 3 checks that read the
+  account and made the admission record read `fail`. The hook now builds a
+  client for the snapshot and closes it, so nothing crosses a loop; the record
+  reads `incomplete` again with the three named gaps.
+
+* **The runtime owns six more tables, and this application deletes its copies of
+  them.** `assistant-core` and `veupathdb-mcp-conformance` move to `v0.3.0a4`
+  and `@veupathdb/assistant-client` follows the same tag. `monthly_usage`,
+  `chat_turn_cancellations`, `scratchpad_notes`, `scratchpad_compactions`,
+  `background_tasks` and `task_progress` are declared by
+  `assistant_core.persistence.models` on the `Base` this application already
+  maps on, so its own declarations, their repositories and their tests left in
+  the same change as the pin: two models on one `MetaData` is an import error,
+  not a warning. The tables stay in the database and the runtime's revision
+  `2026_09_09_0004` adopts them, so no new revision was written here and the
+  historical ones stay as that database's history. `OWNED_TABLES` is ten names,
+  which the autogenerate filter already read, so `CARRIED_DRIFT` and its
+  parametrized test are deleted: a revision generated against a database this
+  entry point built now carries no operation with no exemption at all. An
+  adopted table keeps the DDL this chain gave it, so the runtime's own view of
+  those tables reports column types and index names that differ from its models.
+
+* **Quota, pricing, thread ownership and turn cancellation are the runtime's.**
+  `services/quota.py`, `ai/pricing.py`, `services/conversations/authz.py`'s
+  general half, `services/conversations/cancellation.py` and the stop
+  repository are deleted for `assistant_core.quota`, `assistant_core.pricing`,
+  `assistant_core.conversation.authz` and `.cancellation`. The budget is an
+  argument: `services/users.py::effective_monthly_limit_usd` reads the account
+  override or the configured default and the two callers pass it, so the 429
+  stays where it was. The runtime raises without a status, so
+  `platform/error_handlers.py` maps `ConversationNotFoundError` to 404
+  `STRATEGY_NOT_FOUND`, `ConversationForbiddenError` to 403 and
+  `TurnStillRunningError` to 409 `SESSION_CONFLICT`, and the `AppError`
+  subclass is gone. `pathfinder.persistence.repositories.conversation` now
+  holds the runtime's thread store and reads the strategy projection beside it
+  in a second query, so this repository writes no `select(Conversation)` at
+  all and re-implements no ownership predicate: the strategy write asks the
+  runtime's `get_by_id` whether the thread still stands. The lookup that also
+  reads the strategy stays here, because the projection is this product's
+  table.
+
+* **The scratchpad is the runtime's and the coaching is this product's.**
+  `ai/scratchpad/`, `domain/scratchpad/`, the notebook and the note repository
+  are deleted. The three sub-agents call
+  `build_scratchpad_toolset(guidance=PATHFINDER_SCRATCHPAD_GUIDANCE)` and the
+  index renders under the same guidance, whose third string is the sentence
+  `promote_to_memory` used to carry in its docstring; an empty one would leave
+  the runtime's generic description, so a test pins the sentence on the tool
+  definition. `ai/graph/nodes.py` hands `compact_scratchpad` the compactor
+  factory rather than a built agent, so the model is built only on a turn that
+  compacts, and revert and fork call `delete_notes_from` and
+  `copy_notes_for_fork` instead of writing statements against the runtime's
+  tables. Two differences to expect: `delete_note` and `promote_to_memory`
+  refuse a no-thread turn with a payload where they returned a sentence, and
+  the empty index puts the host's guidance after a blank line.
+
+* **A durable tool is declared once, and the worker installs the seams.** The
+  decorator, the runner, the progress emitter, the completion turn, the
+  maintenance sweep, the heartbeat thread and both task tables are the
+  runtime's. Each of the four tools is one `declare_durable_tool` beside its
+  agent-side definition, so the decorator, the procrastinate job and the
+  worker-side body cannot drift apart; a registration naming a tool nothing
+  declared is refused at import. `jobs/worker.py` installs the procrastinate
+  application, the assistant registry, the completion turn, the worker context
+  and the carried WDK token, then starts the runtime's `HeartbeatThread`.
+  `Settings` drops `worker_heartbeat_interval_seconds`,
+  `worker_dead_heartbeat_seconds` and `worker_stalled_job_timeout_seconds`,
+  which are `RuntimeSettings` fields validated against each other; the
+  environment variable names do not change. The WDK token rides the job as a
+  `CarriedSecret` on a `DurableJobState` subclass rather than a named field, so
+  the durable job's kwargs changed shape while its name did not:
+  **drain the `verification` queue before the deploy that takes this release.**
+  `jobs/logging_filters.py` keeps its one key, for `chat_turn:run` only.
+
 * **The runtime brings its own migration chain, and this chain stops proposing
   its tables.** `assistant-core` and `veupathdb-mcp-conformance` move to
   `v0.3.0a1`. `pathfinder.platform.migrations.upgrade_all` runs

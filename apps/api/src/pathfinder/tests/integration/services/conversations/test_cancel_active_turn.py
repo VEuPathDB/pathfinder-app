@@ -6,18 +6,20 @@ from collections.abc import AsyncGenerator
 from uuid import uuid4
 
 import pytest
+from assistant_core.conversation.cancellation import cancel_active_turn
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.conversation.ui_message_reducer import user_message_chunk
 from assistant_core.graph.stream_events import turn_status_event
 from assistant_core.persistence.models import Conversation
+from assistant_core.persistence.repositories.chat_turn_cancellations import (
+    ChatTurnCancellationRepository,
+)
 from assistant_core.platform.db import async_session_factory
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import User
-from pathfinder.persistence.repositories import ChatTurnCancellationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.services.conversations.cancellation import cancel_active_turn
 
 
 @pytest.fixture

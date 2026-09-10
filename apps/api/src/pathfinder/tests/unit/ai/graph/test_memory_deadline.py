@@ -155,7 +155,7 @@ async def test_the_auto_write_fails_the_turn(
     monkeypatch.setattr(nodes, "write_turn_message", _no_turn_message)
     monkeypatch.setattr(nodes, "collect_turn_memory_candidates", _one_candidate)
     monkeypatch.setattr(nodes, "TombstoneRepository", _NoTombstones)
-    monkeypatch.setattr(nodes, "maybe_compact_scratchpad", _no_compaction)
+    monkeypatch.setattr(nodes, "compact_scratchpad", _no_compaction)
     runtime: Runtime[Context] = Runtime(context=_context())
 
     with pytest.raises(MemoryStoreTimeoutError) as caught:

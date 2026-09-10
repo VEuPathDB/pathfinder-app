@@ -8,15 +8,15 @@ from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.models.capture import capture_llm
 from assistant_core.platform.logging import get_logger
+from assistant_core.tasks.scope import (
+    attach_conversation_application,
+    attach_user_id,
+)
 
 from pathfinder.ai.conversation.assistant_routing import resolve_assistant
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
 from pathfinder.assistants.registry import get_assistant_registry
-from pathfinder.jobs.auth_context import (
-    attach_conversation_application,
-    attach_user_id,
-    attach_wdk_auth,
-)
+from pathfinder.jobs.auth_context import attach_wdk_auth
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.platform.config import get_settings
 

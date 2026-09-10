@@ -9,14 +9,14 @@ from uuid import UUID, uuid4
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.memory.store import MemoryStore
 from assistant_core.persistence.models import Conversation, Message
+from assistant_core.persistence.repositories.scratchpad import ScratchpadRepository
+from assistant_core.scratchpad.models import NoteCreate
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.parameters.values import SinglePickValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
 
-from pathfinder.domain.scratchpad.models import NoteCreate
 from pathfinder.persistence.models import ControlSet, ConversationStrategy
-from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.experiment.store import get_experiment_store
 from pathfinder.services.experiment.types import Experiment, ExperimentConfig

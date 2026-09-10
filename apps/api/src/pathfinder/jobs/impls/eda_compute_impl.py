@@ -13,6 +13,7 @@ from uuid import UUID
 
 from assistant_core.conversation.event_writer import append_chunk
 from assistant_core.memory.store import MemoryStore
+from assistant_core.tasks.progress import TaskProgressEmitter
 from veupathdb.domain.eda_compute_validation import validate_compute_config
 from veupathdb.eda.models import (
     EdaAnalysisDetail,
@@ -35,7 +36,6 @@ from pathfinder.ai.tools.standalone._eda_stream_parts import (
     eda_viz_chunk,
 )
 from pathfinder.domain.eda_parts import EdaEffectDirection, EdaVolcanoPoint
-from pathfinder.jobs.progress import TaskProgressEmitter
 from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.services.eda.authoring import apply_computation
 from pathfinder.services.eda.binding import (

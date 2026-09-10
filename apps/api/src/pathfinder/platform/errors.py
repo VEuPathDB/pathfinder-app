@@ -1,7 +1,6 @@
 """Typed error model with problem+json responses."""
 
 from enum import StrEnum
-from uuid import UUID
 
 from assistant_core.platform.types import JSONArray
 from pydantic import BaseModel
@@ -223,18 +222,6 @@ class ForkRefusedError(AppError):
             title="Cannot branch this chat",
             status=409,
             detail=reason,
-        )
-
-
-class TurnStillRunningError(AppError):
-    """The thread's worker did not close its turn inside the stop window."""
-
-    def __init__(self, conversation_id: UUID) -> None:
-        super().__init__(
-            code=ErrorCode.SESSION_CONFLICT,
-            title="A turn is still running",
-            status=409,
-            detail=f"Conversation {conversation_id} has a turn in flight; stop it first.",
         )
 
 

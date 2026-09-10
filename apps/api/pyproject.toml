@@ -57,10 +57,10 @@ constraint-dependencies = [
     "soupsieve>=2.8.4",  # PYSEC-2026-3071, PYSEC-2026-3072
 ]
 [tool.uv.sources]
-assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0a1" }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0a4" }
 veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a6" }
 veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0a2" }
-veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0a1" }
+veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0a4" }
 
 [build-system]
 requires = ["hatchling"]
@@ -161,9 +161,6 @@ max-branches = 10
 ]
 "**/src/pathfinder/ai/tools/standalone/**" = [
     "PLR0913",  # tool functions need many params for LLM tool interface
-    "FBT",      # boolean params required for LLM tool descriptions
-]
-"**/src/pathfinder/ai/scratchpad/tools.py" = [
     "FBT",      # boolean params required for LLM tool descriptions
 ]
 "**/src/pathfinder/jobs/impls/**" = [

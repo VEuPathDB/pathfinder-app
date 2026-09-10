@@ -14,6 +14,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.graph.turn_state import DurableTaskResult
+from assistant_core.tasks import decorator
 from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
@@ -32,7 +33,6 @@ from pathfinder.ai.lead import sub_agent_stream, sub_agent_tools
 from pathfinder.ai.lead.lead_agent import LEAD_MODEL, LeadAgent, LeadResponse
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import verify_strategy
-from pathfinder.ai.tools import durable
 from pathfinder.ai.tools.standalone.experiment import run_control_tests_on_step
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -89,8 +89,8 @@ def deferred(monkeypatch: pytest.MonkeyPatch) -> _Deferred:
         recorder.created.append(kwargs)
         return next(task_ids)
 
-    monkeypatch.setattr(durable, "create_background_task", _create)
-    monkeypatch.setattr(durable, "procrastinate_app", recorder)
+    monkeypatch.setattr(decorator, "create_background_task", _create)
+    monkeypatch.setattr(decorator, "task_app", lambda: recorder)
     return recorder
 
 
@@ -98,7 +98,7 @@ def deferred(monkeypatch: pytest.MonkeyPatch) -> _Deferred:
 def writer(monkeypatch: pytest.MonkeyPatch) -> ChunkCollector:
     captured = ChunkCollector()
     monkeypatch.setattr(sub_agent_stream, "get_stream_writer", lambda: captured)
-    monkeypatch.setattr(durable, "get_stream_writer", lambda: captured)
+    monkeypatch.setattr(decorator, "get_stream_writer", lambda: captured)
     return captured
 
 

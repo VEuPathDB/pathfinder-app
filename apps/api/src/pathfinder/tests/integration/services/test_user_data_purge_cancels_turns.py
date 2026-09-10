@@ -12,6 +12,7 @@ from collections.abc import AsyncGenerator
 from uuid import UUID, uuid4
 
 import pytest
+from assistant_core.conversation.cancellation import turn_is_cancelled
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.graph.stream_events import turn_status_event
 from assistant_core.persistence.models import Conversation, ConversationEvent
@@ -23,7 +24,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.services.conversations.cancellation import turn_is_cancelled
 from pathfinder.services.user_data import purge_user_data
 
 _WORKER_TICK_SECONDS = 0.05

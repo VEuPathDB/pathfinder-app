@@ -7,6 +7,7 @@ from uuid import UUID
 
 from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.pydantic_base import CamelModel
+from assistant_core.tasks.progress import TaskProgressEmitter
 from pydantic import Field
 from veupathdb.errors import VEuPathDBError
 from veupathdb.logging import get_logger
@@ -14,7 +15,6 @@ from veupathdb.wdk.factory import get_strategy_api
 from veupathdb_mcp.controls.control_tests import run_step_control_tests
 
 from pathfinder.ai.graph.runtime import Context
-from pathfinder.jobs.progress import TaskProgressEmitter
 from pathfinder.services.experiment.published_names import published_names
 from pathfinder.services.export.control_downloads import attach_control_downloads
 

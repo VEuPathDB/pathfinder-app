@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from assistant_core.conversation.history import HISTORY_PROCESSORS
+from assistant_core.scratchpad.toolset import build_scratchpad_toolset
 from pydantic_ai import Agent, DeferredToolRequests
 from pydantic_ai.capabilities import ProcessHistory, Thinking
 
@@ -9,6 +10,7 @@ from pathfinder.ai.agents._instructions import (
     pinned_scratchpad,
     pinned_user_memories,
 )
+from pathfinder.ai.agents.scratchpad_guidance import PATHFINDER_SCRATCHPAD_GUIDANCE
 from pathfinder.ai.agents.strategy_instructions import (
     base_system_prompt,
     pinned_discovered_searches,
@@ -20,7 +22,6 @@ from pathfinder.ai.agents.vocabulary import with_vocabulary
 from pathfinder.ai.capabilities.resilience import ToolResilience
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import RecoveryDelta
-from pathfinder.ai.scratchpad.toolset import build_scratchpad_toolset
 from pathfinder.ai.tools.toolsets.execution import build_toolset
 
 _EXECUTION_INSTRUCTIONS = with_vocabulary(
@@ -190,7 +191,10 @@ def build_execution_agent() -> ExecutionAgent:
         output_type=[RecoveryDelta, DeferredToolRequests],
         deps_type=AgentDeps,
         instructions=_EXECUTION_INSTRUCTIONS,
-        toolsets=[build_toolset(), build_scratchpad_toolset()],
+        toolsets=[
+            build_toolset(),
+            build_scratchpad_toolset(guidance=PATHFINDER_SCRATCHPAD_GUIDANCE),
+        ],
         capabilities=[
             ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
             Thinking(effort="medium"),

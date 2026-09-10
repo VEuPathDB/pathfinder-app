@@ -17,6 +17,7 @@ from assistant_core.graph.single_agent import single_agent_graph
 from assistant_core.graph.turn_state import TurnState
 from assistant_core.mcp.declaration import ToolSourceDeclaration
 from assistant_core.platform.db import async_session_factory
+from assistant_core.quota import accumulate
 from assistant_core.spec import AssistantSpec, TurnContextRequest, TurnStart
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
@@ -25,7 +26,6 @@ from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 from pathfinder.assistants.site_help.agent import SiteHelpDeps, build_site_help_agent
 from pathfinder.assistants.site_help.mock import build_site_help_mock
 from pathfinder.platform.tool_sources import WDK_MCP_SOURCE_ID
-from pathfinder.services.quota import accumulate
 
 SITE_HELP_ASSISTANT_ID = "site_help"
 

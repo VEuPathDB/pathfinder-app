@@ -3,18 +3,20 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from assistant_core.persistence.models import Conversation, Message
+from assistant_core.conversation.authz import owned_by_caller
+from assistant_core.persistence.models import BackgroundTask, Conversation, Message
+from assistant_core.persistence.repositories.background_tasks import (
+    ACTIVE_TASK_STATES,
+)
+from assistant_core.persistence.repositories.scratchpad import ScratchpadRepository
 from sqlalchemy import asc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.persistence.models import BackgroundTask, ConversationStrategy
-from pathfinder.persistence.repositories.background_tasks import ACTIVE_TASK_STATES
-from pathfinder.persistence.repositories.scratchpad import ScratchpadRepository
+from pathfinder.persistence.models import ConversationStrategy
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
 from pathfinder.platform.errors import ForkRefusedError
-from pathfinder.services.conversations.authz import owned_by_caller
 from pathfinder.services.conversations.fork_copy import (
     copy_checkpoint_state,
     copy_conversation_events,

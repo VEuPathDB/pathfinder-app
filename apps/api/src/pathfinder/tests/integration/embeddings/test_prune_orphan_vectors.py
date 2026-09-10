@@ -13,7 +13,6 @@ from veupathdb_mcp.embeddings.record_manager import (
 )
 from veupathdb_mcp.embeddings.tables import EmbeddingVector
 
-from pathfinder.jobs import maintenance
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.tasks import ORPHAN_VECTOR_GRACE, ensure_registered
 
@@ -31,8 +30,10 @@ def test_the_grace_is_a_week() -> None:
 
 def test_one_name_covers_the_function_and_the_task() -> None:
     """One concept, one name: the task is the function it calls."""
+    ensure_registered()
+
     assert prune_orphan_vectors.__name__ == "prune_orphan_vectors"
-    assert not hasattr(maintenance, "prune_unused_vectors")
+    assert "maintenance:prune_orphan_vectors" in procrastinate_app.tasks
 
 
 def test_the_sweep_runs_once_a_day() -> None:

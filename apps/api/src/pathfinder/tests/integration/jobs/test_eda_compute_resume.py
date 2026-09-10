@@ -27,6 +27,7 @@ from assistant_core.models.scripted import (
 from assistant_core.persistence.models import ConversationEvent
 from assistant_core.platform.db import async_session_factory
 from assistant_core.spec import AssistantSpec
+from assistant_core.tasks.runner import run_durable_task
 from fastapi import FastAPI
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
@@ -50,7 +51,6 @@ from pathfinder.assistants.site_help.spec import (
     charge_usage,
 )
 from pathfinder.jobs.impls import register_all_tools
-from pathfinder.jobs.runner import run_durable_task
 from pathfinder.persistence.models import User
 from pathfinder.services.eda.binding import (
     bind_conversation_analysis,
@@ -185,6 +185,12 @@ def eda_assistant(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     get_assistant_registry.cache_clear()
 
 
+@pytest.fixture
+def eda_worker(eda_assistant: None, worker_seams: None) -> None:
+    """The worker's seams, over the registry this module records through."""
+    del eda_assistant, worker_seams
+
+
 async def _make_user() -> UUID:
     user_id = uuid4()
     async with async_session_factory() as session:
@@ -254,7 +260,7 @@ async def _work_the_job(payload: dict[str, Any]) -> None:
         task_id=str(payload["task_id"]),
         thread_id=str(payload["thread_id"]),
         args=payload["args"],
-        veupathdb_auth_token=payload["veupathdb_auth_token"],
+        job_context=payload["job_context"],
     )
 
 
@@ -263,11 +269,11 @@ async def test_the_turn_ends_with_a_background_task_started_part(
     patch_app_db_engine: None,
     db_cleaner: None,
     in_memory_jobs: InMemoryConnector,
-    eda_assistant: None,
+    eda_worker: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The dispatcher's clean end: the tab closes and the work continues."""
-    del patch_app_db_engine, db_cleaner, eda_assistant
+    del patch_app_db_engine, db_cleaner, eda_worker
     _eda_wire.install(monkeypatch, "complete")
     user_id = await _make_user()
     conversation_id = uuid4()
@@ -291,11 +297,11 @@ async def test_the_resumed_turn_carries_the_compute_summary_into_the_prose(
     patch_app_db_engine: None,
     db_cleaner: None,
     in_memory_jobs: InMemoryConnector,
-    eda_assistant: None,
+    eda_worker: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The scripted model is given the resumed dict and must quote its numbers."""
-    del patch_app_db_engine, db_cleaner, eda_assistant
+    del patch_app_db_engine, db_cleaner, eda_worker
     wire = _eda_wire.install(monkeypatch, "complete")
     user_id = await _make_user()
     conversation_id = uuid4()
@@ -315,11 +321,11 @@ async def test_the_resumed_chunks_land_in_conversation_events(
     patch_app_db_engine: None,
     db_cleaner: None,
     in_memory_jobs: InMemoryConnector,
-    eda_assistant: None,
+    eda_worker: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A reconnecting client replays the same rows the resume wrote."""
-    del patch_app_db_engine, db_cleaner, eda_assistant
+    del patch_app_db_engine, db_cleaner, eda_worker
     wire = _eda_wire.install(monkeypatch, "complete")
     user_id = await _make_user()
     conversation_id = uuid4()
@@ -343,10 +349,10 @@ async def test_a_failed_job_appends_a_task_completed_event_with_the_error(
     patch_app_db_engine: None,
     db_cleaner: None,
     in_memory_jobs: InMemoryConnector,
-    eda_assistant: None,
+    eda_worker: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    del patch_app_db_engine, db_cleaner, eda_assistant
+    del patch_app_db_engine, db_cleaner, eda_worker
     wire = _eda_wire.install(monkeypatch, "no-such-job", "failed")
     user_id = await _make_user()
     conversation_id = uuid4()
@@ -370,11 +376,11 @@ async def test_the_compute_announces_the_analysis_under_a_greater_revision(
     patch_app_db_engine: None,
     db_cleaner: None,
     in_memory_jobs: InMemoryConnector,
-    eda_assistant: None,
+    eda_worker: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Two surfaces edit one analysis, so every mutation moves the counter."""
-    del patch_app_db_engine, db_cleaner, eda_assistant
+    del patch_app_db_engine, db_cleaner, eda_worker
     wire = _eda_wire.install(monkeypatch, "complete", real_binding=True)
     user_id = await _make_user()
     conversation_id = uuid4()
@@ -411,11 +417,11 @@ async def test_the_volcano_reaches_conversation_events_after_the_state(
     patch_app_db_engine: None,
     db_cleaner: None,
     in_memory_jobs: InMemoryConnector,
-    eda_assistant: None,
+    eda_worker: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The viz belongs to the revision the state announces, so it follows it."""
-    del patch_app_db_engine, db_cleaner, eda_assistant
+    del patch_app_db_engine, db_cleaner, eda_worker
     wire = _eda_wire.install(monkeypatch, "complete", real_binding=True)
     user_id = await _make_user()
     conversation_id = uuid4()

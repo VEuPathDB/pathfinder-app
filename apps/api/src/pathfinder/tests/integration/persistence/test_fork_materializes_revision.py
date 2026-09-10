@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.persistence.models import (
+    BackgroundTask,
     Conversation,
     ConversationEvent,
     Message,
@@ -16,7 +17,6 @@ from assistant_core.platform import db
 from sqlalchemy import select, text
 
 from pathfinder.persistence.models import (
-    BackgroundTask,
     ConversationStrategy,
     StrategyRevision,
 )

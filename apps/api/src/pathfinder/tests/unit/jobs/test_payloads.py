@@ -6,14 +6,12 @@ import json
 from uuid import uuid4
 
 import pytest
-from assistant_core.models.capture import capture_llm
 from pydantic import ValidationError
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.jobs.payloads import (
     ChatTurnPayload,
-    DurableTaskPayload,
 )
 
 
@@ -87,40 +85,6 @@ class TestChatTurnPayload:
         json.dumps(dumped)
 
 
-class TestDurableTaskPayload:
-    def test_roundtrips_with_token(self) -> None:
-        payload = DurableTaskPayload(
-            task_id=uuid4(),
-            thread_id=uuid4(),
-            args={"args": [], "kwargs": {"x": 5}},
-            veupathdb_auth_token="cookie-xyz",
-        )
-        serialized = json.loads(payload.model_dump_json(by_alias=True))
-        restored = DurableTaskPayload.model_validate(serialized)
-
-        assert restored.veupathdb_auth_token == "cookie-xyz"
-        assert restored.args == {"args": [], "kwargs": {"x": 5}}
-
-    def test_token_optional(self) -> None:
-        payload = DurableTaskPayload(
-            task_id=uuid4(),
-            thread_id=uuid4(),
-            args={},
-        )
-        assert payload.veupathdb_auth_token is None
-
-    def test_forbids_unknown_keys(self) -> None:
-        with pytest.raises(ValidationError):
-            DurableTaskPayload.model_validate(
-                {
-                    "task_id": str(uuid4()),
-                    "thread_id": str(uuid4()),
-                    "args": {},
-                    "rogue": True,
-                },
-            )
-
-
 class TestChatTurnPayloadFromContext:
     """The context constructor reads the current auth token and puts it on the payload,
     so the token crosses the boundary into the worker."""
@@ -154,29 +118,6 @@ class TestChatTurnPayloadFromContext:
         assert payload.veupathdb_auth_token is None
 
 
-class TestDurableTaskPayloadFromContext:
-    def test_captures_token_from_ctxvar(self) -> None:
-        reset = veupathdb_auth_token_ctx.set("durable-cookie")
-        try:
-            payload = DurableTaskPayload.from_context(
-                task_id=uuid4(),
-                thread_id=uuid4(),
-                args={"args": [], "kwargs": {}},
-            )
-        finally:
-            veupathdb_auth_token_ctx.reset(reset)
-        assert payload.veupathdb_auth_token == "durable-cookie"
-
-    def test_captures_none_when_ctxvar_unset(self) -> None:
-        assert veupathdb_auth_token_ctx.get() is None
-        payload = DurableTaskPayload.from_context(
-            task_id=uuid4(),
-            thread_id=uuid4(),
-            args={},
-        )
-        assert payload.veupathdb_auth_token is None
-
-
 class TestCaptureDirThreading:
     """A task deferred inside a capture block inherits the run directory. A task
     deferred outside one carries no directory."""
@@ -193,20 +134,3 @@ class TestCaptureDirThreading:
             json.loads(payload.model_dump_json(by_alias=True))
         )
         assert restored.capture_dir == "/data/pf-runs/x/turn1"
-
-    def test_durable_payload_inherits_active_capture_dir(self, tmp_path) -> None:
-        with capture_llm(tmp_path):
-            payload = DurableTaskPayload.from_context(
-                task_id=uuid4(),
-                thread_id=uuid4(),
-                args={"args": [], "kwargs": {}},
-            )
-        assert payload.capture_dir == str(tmp_path)
-
-    def test_durable_payload_capture_dir_none_outside_block(self) -> None:
-        payload = DurableTaskPayload.from_context(
-            task_id=uuid4(),
-            thread_id=uuid4(),
-            args={},
-        )
-        assert payload.capture_dir is None

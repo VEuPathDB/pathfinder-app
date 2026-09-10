@@ -179,7 +179,7 @@ def no_compaction(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _skip(**kwargs: Any) -> None:
         del kwargs
 
-    monkeypatch.setattr(nodes, "maybe_compact_scratchpad", _skip)
+    monkeypatch.setattr(nodes, "compact_scratchpad", _skip)
 
 
 @pytest.mark.asyncio

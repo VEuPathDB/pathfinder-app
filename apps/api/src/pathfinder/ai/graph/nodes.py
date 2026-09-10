@@ -14,15 +14,16 @@ from assistant_core.memory.deadline import (
 from assistant_core.memory.store import MemoryStore
 from assistant_core.memory.tombstones import TombstoneRepository
 from assistant_core.platform.logging import get_logger
+from assistant_core.scratchpad.compactor import compact_scratchpad
 from langgraph.config import get_stream_writer
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 from sqlalchemy.exc import SQLAlchemyError
 
+from pathfinder.ai.agents.compactor import build_compactor_agent
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
-from pathfinder.ai.scratchpad.compactor import maybe_compact_scratchpad
 from pathfinder.services.conversations.turns import name_turn_strategy_revision
 
 logger = get_logger(__name__)
@@ -96,14 +97,14 @@ async def finalize_turn_node(
 
     if runtime.context is not None and state.domain.verification_digest is not None:
         try:
-            compaction_run = await maybe_compact_scratchpad(
+            compaction_run = await compact_scratchpad(
                 conversation_id=state.conversation_id,
-                user_id=state.user_id,
                 db_session_factory=runtime.context.db_session_factory,
+                agent=build_compactor_agent,
             )
         except Exception:
             logger.exception(
-                "scratchpad compaction wrapper failed",
+                "scratchpad compaction failed",
                 conversation_id=str(state.conversation_id),
             )
             compaction_run = None

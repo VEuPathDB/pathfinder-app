@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+from assistant_core import quota
 from fastapi import APIRouter
 
-from pathfinder.services import quota
 from pathfinder.services.eval_data.consent import (
     PrivacySettings,
     PrivacyUpdate,
     read_privacy,
     update_privacy,
 )
+from pathfinder.services.users import effective_monthly_limit_usd
 from pathfinder.transport.http.deps import CurrentUser, DBSession
 from pathfinder.transport.http.schemas.me import QuotaResponse
 
@@ -17,7 +18,11 @@ router = APIRouter(prefix="/api/v1/me", tags=["me"])
 
 @router.get("/quota", response_model=QuotaResponse)
 async def get_my_quota(session: DBSession, user_id: CurrentUser) -> QuotaResponse:
-    q = await quota.get_current(session, user_id)
+    q = await quota.get_current(
+        session,
+        user_id,
+        limit_usd=await effective_monthly_limit_usd(session, user_id),
+    )
     return QuotaResponse(
         used_usd=q.used_usd,
         limit_usd=q.limit_usd,

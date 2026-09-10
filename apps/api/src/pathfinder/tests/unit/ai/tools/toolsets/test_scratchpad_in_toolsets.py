@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
+from assistant_core.scratchpad.toolset import build_scratchpad_toolset
 from pydantic_ai import Agent
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
@@ -13,7 +14,6 @@ from pydantic_ai.toolsets.wrapper import WrapperToolset
 from pathfinder.ai.agents.execution import build_execution_agent
 from pathfinder.ai.agents.frame import build_frame_agent
 from pathfinder.ai.agents.verification import build_verification_agent
-from pathfinder.ai.scratchpad.toolset import build_scratchpad_toolset
 
 _SCRATCHPAD_TOOL_NAMES = (
     "note",

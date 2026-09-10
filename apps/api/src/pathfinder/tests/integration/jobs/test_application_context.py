@@ -8,8 +8,8 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.context import application_id_ctx
 from assistant_core.platform.db import async_session_factory
+from assistant_core.tasks.scope import attach_conversation_application
 
-from pathfinder.jobs.auth_context import attach_conversation_application
 from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 

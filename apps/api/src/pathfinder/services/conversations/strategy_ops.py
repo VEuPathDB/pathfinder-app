@@ -8,6 +8,7 @@ mutation, distinct from plain conversation CRUD.
 from dataclasses import dataclass
 from uuid import UUID
 
+from assistant_core.conversation.authz import get_owned_conversation
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import JSONObject
@@ -20,10 +21,7 @@ from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
 )
 from pathfinder.platform.errors import ErrorCode, NotFoundError
-from pathfinder.services.conversations.authz import (
-    get_owned_conversation_or_404,
-    get_owned_thread_or_404,
-)
+from pathfinder.services.conversations.authz import get_owned_thread_or_404
 from pathfinder.services.conversations.responses import (
     ConversationResponse,
     build_conversation_response,
@@ -84,7 +82,7 @@ async def restore(
     conversation_id: UUID,
     user_id: UUID,
 ) -> ConversationResponse:
-    conversation = await get_owned_conversation_or_404(repo, conversation_id, user_id)
+    conversation = await get_owned_conversation(repo, conversation_id, user_id)
     if conversation.dismissed_at is None:
         raise ValidationError(
             detail="Strategy is not dismissed",

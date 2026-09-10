@@ -8,6 +8,10 @@ verified: { by: claude-code/opus-5, at: 2026-08-23T00:00:00Z }
 status: stable
 ---
 
+`TaskProgressEmitter` and the coalescing rule are the runtime's
+(`assistant-platform: docs/knowledge/conventions/durable-background-tasks.md`).
+This page records the protocol decision and what it rejected.
+
 # What was decided
 
 A durable task's whole lifecycle is on the thread. `data-background-task-started`

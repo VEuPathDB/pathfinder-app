@@ -23,8 +23,13 @@ from assistant_core.mcp.admission import install_admitted_sources
 from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.models.capture import capture_llm
 from assistant_core.persistence.models import ConversationEvent
+from assistant_core.persistence.repositories.background_tasks import (
+    BackgroundTaskRepository,
+)
 from assistant_core.platform.db import async_session_factory
 from assistant_core.spec import AssistantSpec
+from assistant_core.tasks.job_context import install_durable_job_context
+from assistant_core.tasks.scope import attach_user_id
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -48,16 +53,10 @@ from pathfinder.devtools.gates import (
     user_body,
 )
 from pathfinder.jobs.app import procrastinate_app
-from pathfinder.jobs.auth_context import (
-    attach_application,
-    attach_user_id,
-    attach_wdk_auth,
-)
+from pathfinder.jobs.auth_context import attach_application, attach_wdk_auth
+from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.jobs.tasks import run_chat_turn_job
-from pathfinder.persistence.repositories.background_tasks import (
-    BackgroundTaskRepository,
-)
 from pathfinder.persistence.repositories.user import UserRepository
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.tool_sources import admitted_tool_sources
@@ -420,6 +419,7 @@ async def _exec_one(
         await stack.enter_async_context(attach_user_id(DEV_USER_ID))
         # The debugger drives the turn itself, so it admits what the worker does.
         install_admitted_sources(admitted_tool_sources())
+        install_durable_job_context(WdkJobContext())
         registry = get_assistant_registry()
         spec = await resolve_run_assistant(body.conversation_id, args.assistant)
         saver = await stack.enter_async_context(

@@ -15,12 +15,17 @@ the suite as its own pytest process against the served endpoint, and reads the
 admission record the run writes. It is marked `live_wdk`, so it runs in the
 nightly lane and never blocks a pull request.
 
-**The first credential is the registered VEuPathDB account.** Fifteen of the
-sixteen tools carry sample arguments in that run, so family 3 calls real reads
+**The first credential is the registered VEuPathDB account.** Sixteen of the
+seventeen tools carry sample arguments in that run, so family 3 calls real reads
 twice and family 4 probes every read-only tool with an argument its own schema
 refuses. The account-state hook lists the account's WDK strategies, which is
 what a read must leave alone and what the one non-destructive write creates and
-takes away again.
+takes away again. The suite runs the hook on an event loop of its own, so the
+hook opens and closes a WDK client of its own: a pooled connection belongs to
+the loop that opened it, and the per-site client this process caches belongs to
+the loop that built the step. The comparison is over the whole account, so the
+run needs that account to itself: a second client writing to it reports a change
+no served call made.
 
 **The second credential is the service token**, which family 2 holds to the same
 leak rule as the first: neither secret may appear in any result or error the
@@ -28,11 +33,11 @@ server produces.
 
 **No isolation tool is named**, because naming one requires a resource the
 second identity owns and the service credential owns nothing in WDK. The two
-isolation checks therefore skip, and so does the idempotency comparison, since
-`idempotentHint` is meaningful only on a write and neither served write is
-idempotent.
+isolation checks therefore skip, and so does the idempotency comparison, which
+compares a repeated read and finds that no served tool declares
+`idempotentHint`.
 
-**The slow tool is `search_example_plans`**, driven past a five second budget.
+**The slow tool is `search_example_plans`**, driven past a one second budget.
 It was unnamed while an abandoned call outlived its caller and three of them
 killed the container inside its 2g ceiling; the pass now embeds a batch at a
 time, refuses once the caller has disconnected, and holds its site's lock, so

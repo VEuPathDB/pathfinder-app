@@ -52,6 +52,8 @@ import pytest
 import structlog
 import veupathdb_mcp.embeddings.embedder
 from assistant_core.conversation.checkpointer import to_psycopg_url
+from assistant_core.memory.lifespan import lifespan_memory_store
+from assistant_core.memory.store import MemoryStore
 from assistant_core.persistence.models import Base
 from assistant_core.platform import db
 from assistant_core.spec import AssistantSpec
@@ -73,6 +75,7 @@ from veupathdb.testing.wdk_credentials import (
 )
 from veupathdb.wdk import auth_login
 from veupathdb.wdk.site_router import get_site_router
+from veupathdb_mcp.catalog.discovery_service import _discovery_holder
 from veupathdb_mcp.embeddings.db import use_embedding_session_factory
 from veupathdb_mcp.embeddings.embedder import get_embedder
 from veupathdb_mcp.embeddings.fake import FakeEmbedder
@@ -436,11 +439,6 @@ async def app_memory_store(
     The test transport skips the lifespan that normally opens it.
     """
     del patch_app_db_engine, db_cleaner
-    from assistant_core.memory.lifespan import (  # noqa: PLC0415
-        lifespan_memory_store,
-    )
-    from assistant_core.memory.store import MemoryStore  # noqa: PLC0415
-
     database_url = os.environ["DATABASE_URL"]
     async with lifespan_memory_store(database_url) as raw:
         store = MemoryStore(store=raw)
@@ -471,10 +469,6 @@ async def _close_wdk_clients_after_test() -> AsyncGenerator[None]:
 
     Both are process-wide caches, so a test must not inherit them.
     """
-    from veupathdb_mcp.catalog.discovery_service import (  # noqa: PLC0415
-        _discovery_holder,
-    )
-
     _discovery_holder.clear()
 
     yield

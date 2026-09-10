@@ -15,12 +15,13 @@ from uuid import UUID
 
 from assistant_core.graph.tool_summary import summary_chunks
 from assistant_core.platform.pydantic_base import CamelModel
+from assistant_core.tasks.declaration import declare_durable_tool
+from assistant_core.tasks.decorator import DurableOutcome, durable_tool
 from pydantic import ConfigDict, Field, field_validator
 from pydantic_ai import RunContext
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.durable import DurableOutcome, durable_tool
 from pathfinder.ai.tools.standalone._optimization_models import (
     OptimizationControls,
     OptimizationSettings,
@@ -75,11 +76,14 @@ def _sweep_chunks_from_result(
     )
 
 
-@durable_tool(
+PARAMETER_SWEEP = declare_durable_tool(
     tool_name="optimize_search_parameters",
     estimated_duration_seconds=900,
     chunks_from_result=_sweep_chunks_from_result,
 )
+
+
+@durable_tool(PARAMETER_SWEEP)
 async def optimize_search_parameters(
     ctx: RunContext[AgentDeps],
     target: OptimizationTarget,

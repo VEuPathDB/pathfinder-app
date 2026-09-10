@@ -8,6 +8,10 @@ verified: { by: claude-code/opus-5, at: 2026-08-29T00:00:00Z }
 status: stable
 ---
 
+The sweep, the release, the heartbeat thread and both windows are the runtime's
+(`assistant-platform: docs/knowledge/conventions/durable-background-tasks.md`).
+This page records why the windows are what they are and what PathFinder wires.
+
 # What was decided
 
 A chat turn runs on the worker. When the kernel kills that worker, the turn's
@@ -16,7 +20,7 @@ holding `lock=<conversation id>`, and the thread's newest chunk is whatever the
 turn had written. Three rules now end that turn.
 
 **The sweep names a dead worker by its heartbeat, after one minute of
-silence.** `jobs/maintenance.py::release_stalled_jobs` asks the job manager
+silence.** `assistant_core.tasks.maintenance.release_stalled_jobs` asks the job manager
 twice: once with `seconds_since_heartbeat=worker_dead_heartbeat_seconds`
 (default 60, minimum 60), which reads `procrastinate_workers.last_heartbeat`,
 and once with the deprecated `nb_seconds=worker_stalled_job_timeout_seconds`
@@ -27,7 +31,7 @@ hour later.
 
 **Stop does not wait for the sweep, once the worker is that quiet.**
 `cancel_turn` and `cancel_active_turn` write the cancel request a live worker
-polls, then call `release_dead_turn(conversation_id)`, which releases the
+polls, then call `assistant_core.tasks.maintenance.release_dead_turn`, which releases the
 conversation's chat-turn job through the same `release_job` the sweep uses,
 and only when that job's worker has been silent past the same 60 s. A cancel
 request is a row; a dead worker reads no rows, so without this the user's Stop
@@ -45,7 +49,7 @@ call inside a finished turn.
 **The beat comes from a thread, not from the event loop the jobs run on.**
 Procrastinate creates `_update_heartbeat` as a task beside the job tasks
 (`worker.py::_start_side_tasks`), so a job with one synchronous call stops the
-beat for as long as it holds the loop. `jobs/heartbeat.py::HeartbeatThread`
+beat for as long as it holds the loop. `assistant_core.tasks.heartbeat.HeartbeatThread`
 runs the same refresh (`procrastinate_update_heartbeat_v1`) from a thread with
 its own event loop and its own connection, at
 `worker_heartbeat_interval_seconds` (default 5). `jobs/worker.py::amain`
@@ -91,8 +95,9 @@ The thread removes that gap, and the removal is measured twice.
 | A task on the worker's event loop | 0 | 5.004 s |
 | `HeartbeatThread` | 10 | 0.511 s |
 
-That is `tests/unit/jobs/test_worker_heartbeat.py`, at a 0.5 s interval, with
-one job holding the loop for 5.00 s. `tests/integration/jobs/test_worker_heartbeat_row.py`
+That is `assistant-platform: packages/assistant-core/tests/unit/tasks/test_heartbeat.py`,
+at a 0.5 s interval, with one job holding the loop for 5.00 s.
+`.../tests/integration/tasks/test_heartbeat_row.py`
 reads the same case out of the database from inside the blocking job, against
 a real procrastinate worker: the row is **0.315 s** old with the thread and
 **5.028 s** old without it. The worst gap is therefore the interval plus about
@@ -123,7 +128,7 @@ timeout answers the second, which is why both run.
 The API could watch heartbeats itself, but it would be a second implementation
 of a state procrastinate already publishes in `procrastinate_workers`, and it
 would have to duplicate the write of the turn's terminator. The cancel path
-calls into `jobs/maintenance.py` instead, so there is one `release_job`, one
+calls into `assistant_core.tasks.maintenance` instead, so there is one `release_job`, one
 terminator sequence and one error text.
 
 # Only the api writes the study index

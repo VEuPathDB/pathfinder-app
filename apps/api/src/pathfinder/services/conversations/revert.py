@@ -4,7 +4,14 @@ from datetime import datetime
 from typing import Literal, cast
 from uuid import UUID
 
-from assistant_core.persistence.models import Conversation, ConversationEvent, Message
+from assistant_core.conversation.authz import owned_by_caller
+from assistant_core.persistence.models import (
+    BackgroundTask,
+    Conversation,
+    ConversationEvent,
+    Message,
+)
+from assistant_core.persistence.repositories.scratchpad import ScratchpadRepository
 from assistant_core.platform.logging import get_logger
 from sqlalchemy import (
     CursorResult,
@@ -18,16 +25,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.persistence.models import (
-    BackgroundTask,
-    ScratchpadNote,
-    StrategyRevisionView,
-)
+from pathfinder.persistence.models import StrategyRevisionView
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
-from pathfinder.services.conversations.authz import owned_by_caller
 from pathfinder.services.eda.thread_surgery import (
     logs_a_binding,
     restore_thread_binding,
@@ -146,13 +148,9 @@ async def revert_conversation_to_message(
             ),
         )
     )
-    deleted_notes = _rows(
-        await session.execute(
-            delete(ScratchpadNote).where(
-                ScratchpadNote.conversation_id == conversation_id,
-                ScratchpadNote.created_at >= cutoff_ts,
-            ),
-        )
+    deleted_notes = await ScratchpadRepository(session).delete_notes_from(
+        conversation_id=conversation_id,
+        cutoff=cutoff_ts,
     )
     deleted_events = _rows(
         await session.execute(

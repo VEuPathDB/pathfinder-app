@@ -15,6 +15,7 @@ from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.platform.context import request_id_ctx
 from assistant_core.platform.db import async_session_factory, close_db, get_engine
 from assistant_core.platform.logging import get_logger, setup_logging
+from assistant_core.tasks.job_context import install_durable_job_context
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,10 +37,13 @@ from veupathdb_mcp.embeddings.db import use_embedding_session_factory
 from pathfinder import __version__
 from pathfinder.ai.capabilities.security import warm_up_scanner
 from pathfinder.assistants.registry import get_assistant_registry
+from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.context import request_base_url_ctx
 from pathfinder.platform.error_handlers import (
+    RUNTIME_REFUSALS,
     apply_error_handler,
+    assistant_core_error_handler,
     http_exception_handler,
     rate_limit_handler,
     request_validation_handler,
@@ -188,6 +192,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     from pathfinder.jobs.app import procrastinate_app  # noqa: PLC0415
     from pathfinder.platform.tasks import spawn  # noqa: PLC0415
+
+    # A durable call captures the caller's WDK token wherever it is made.
+    install_durable_job_context(WdkJobContext())
 
     # uvicorn binds only after this handler yields, so the warm-up runs beside
     # the server and ``/health/ready`` reports which catalogs are still loading.
@@ -340,6 +347,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
 
     for exc_type, handler in (
         (VEuPathDBError, veupathdb_error_handler),
+        *((refusal, assistant_core_error_handler) for refusal in RUNTIME_REFUSALS),
         (ApplyError, apply_error_handler),
         (HTTPException, http_exception_handler),
         (RateLimitExceeded, rate_limit_handler),

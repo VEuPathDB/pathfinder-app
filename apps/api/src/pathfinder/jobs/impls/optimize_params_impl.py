@@ -7,6 +7,7 @@ from uuid import UUID
 from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
+from assistant_core.tasks.progress import TaskProgressEmitter
 from pydantic import JsonValue
 from veupathdb_mcp.controls.control_types import (
     ControlValueFormat,
@@ -20,7 +21,6 @@ from pathfinder.ai.tools.standalone._optimization_models import (
     _attach_export,
     _parse_and_validate_inputs,
 )
-from pathfinder.jobs.progress import TaskProgressEmitter
 from pathfinder.services.experiment.types import (
     OptimizationObjective,
 )

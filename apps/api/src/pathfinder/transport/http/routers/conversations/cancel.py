@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from assistant_core.conversation.cancellation import cancel_active_turn
 from fastapi import APIRouter, status
 from fastapi.responses import Response
 
-from pathfinder.services.conversations.cancellation import cancel_active_turn
 from pathfinder.transport.http.deps import CurrentUser, DBSession
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["conversations"])

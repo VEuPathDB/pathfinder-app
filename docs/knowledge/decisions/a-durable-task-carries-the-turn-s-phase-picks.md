@@ -13,17 +13,18 @@ status: stable
 `POST /api/v1/chat` carries `phaseModels` and `phaseReasoning`, and
 `ChatRequestBody` validates the roles against `PhaseRole` and the model ids
 against the catalog. `run_turn` publishes the validated pair on
-`phase_overrides_ctx` (`platform/context.py`) for the length of the turn.
-`create_background_task` reads it and stores it on the new
+`assistant_core.platform.context.phase_overrides_ctx` for the length of the
+turn. `create_background_task` reads it and stores it on the
 `background_tasks.phase_overrides` column (migration `2026_08_30_0002`).
-`jobs/completion_turn.py::_completion_body` reads the row back and rebuilds the
-completion turn's `ChatRequestBody` from it, so `TurnContextRequest` receives
-the same picks the suspending turn ran under.
+`assistant_core.tasks.completion_turn` reads the row back and hands the picks
+to the host, and `jobs/completion.py` rebuilds the completion turn's
+`ChatRequestBody` from them, so `TurnContextRequest` receives the same picks
+the suspending turn ran under.
 
 The picks travel by context variable rather than by argument because the
-deferring caller is `@durable_tool`, which sits under `pathfinder.ai.tools`
-and may not import persistence; the same reason `veupathdb_auth_token_ctx`
-carries the request's WDK token into a tool.
+deferring caller is `@durable_tool`, which the runtime owns and which reads no
+host table; the WDK token takes the other seam, a `DurableJobState` the host
+subclasses.
 
 The value is stored as a plain JSON object. `PhaseRole` lives under
 `pathfinder.ai`, and persistence may not import it, so the roles are typed on
@@ -57,7 +58,7 @@ answering under a model nobody picked.
 
 # Anchor
 
-`apps/api/src/pathfinder/jobs/completion_turn.py::_completion_body`, pinned by
+`apps/api/src/pathfinder/jobs/completion.py::open_completion_turn`, pinned by
 `apps/api/src/pathfinder/tests/integration/jobs/test_completion_turn_phase_overrides.py`
 and
 `apps/api/src/pathfinder/tests/integration/persistence/test_task_phase_overrides_migration.py`.

@@ -7,12 +7,12 @@ from dataclasses import dataclass, field
 from uuid import UUID, uuid4
 
 import pytest
+from assistant_core.errors import ConversationNotFoundError
 from assistant_core.platform.context import application_id_ctx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import pathfinder.services.eval
 from pathfinder.persistence.models import ConversationStrategyView
-from pathfinder.platform.errors import NotFoundError
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 
 _OWNER = UUID(int=1)
@@ -83,15 +83,13 @@ async def test_another_users_conversation_is_not_found(
         ConversationStrategyView(wdk_strategy_id=4242),
     )
 
-    with pytest.raises(NotFoundError) as raised:
+    with pytest.raises(ConversationNotFoundError):
         await pathfinder.services.eval.get_strategy_gene_ids(
             session,
             uuid4(),
             "plasmodb",
             _INTRUDER,
         )
-
-    assert raised.value.status == 404
 
 
 async def test_missing_conversation_is_not_found(
@@ -100,15 +98,13 @@ async def test_missing_conversation_is_not_found(
 ) -> None:
     _wire(monkeypatch, None)
 
-    with pytest.raises(NotFoundError) as raised:
+    with pytest.raises(ConversationNotFoundError):
         await pathfinder.services.eval.get_strategy_gene_ids(
             session,
             uuid4(),
             "plasmodb",
             _OWNER,
         )
-
-    assert raised.value.status == 404
 
 
 async def test_owner_without_a_wdk_link_keeps_the_wire_shape(

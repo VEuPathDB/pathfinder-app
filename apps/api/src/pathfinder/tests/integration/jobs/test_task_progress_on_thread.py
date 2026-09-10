@@ -9,7 +9,7 @@ seconds of silence, and always the last update.
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator
+from collections.abc import Iterator
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -18,29 +18,31 @@ from assistant_core.conversation.event_stream import fetch_chunks_after, iter_ss
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.graph.stream_events import background_task_started_event
 from assistant_core.persistence.models import Conversation, ConversationEvent
-from assistant_core.platform.db import async_session_factory
-from pydantic_ai.ui.vercel_ai.response_types import DoneChunk
-from sqlalchemy import select
-
-from pathfinder.jobs.progress import TaskProgressEmitter
-from pathfinder.jobs.registry import TOOL_REGISTRY, register_tool
-from pathfinder.jobs.runner import run_durable_task
-from pathfinder.persistence.models import User
-from pathfinder.persistence.repositories.background_tasks import (
+from assistant_core.persistence.repositories.background_tasks import (
     BackgroundTaskRepository,
     NewBackgroundTask,
 )
+from assistant_core.platform.db import async_session_factory
+from assistant_core.tasks.declaration import (
+    declare_durable_tool,
+    empty_durable_tools,
+    register_durable_impl,
+)
+from assistant_core.tasks.progress import TaskProgressEmitter
+from assistant_core.tasks.runner import run_durable_task
+from pydantic_ai.ui.vercel_ai.response_types import DoneChunk
+from sqlalchemy import select
+
+from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 TOOL_NAME = "test_thread_progress"
 
 
 @pytest.fixture(autouse=True)
-def _clean_tool_registry() -> AsyncIterator[None]:
-    before = dict(TOOL_REGISTRY)
-    yield
-    TOOL_REGISTRY.clear()
-    TOOL_REGISTRY.update(before)
+def _clean_tool_registry() -> Iterator[None]:
+    with empty_durable_tools():
+        yield
 
 
 async def _seed(user_id: UUID, conversation_id: UUID) -> None:
@@ -119,15 +121,19 @@ def _register_ramp(steps: int) -> None:
             await progress.update(percent=step / 100, message=f"step {step}")
         return {"steps": steps}
 
-    register_tool(TOOL_NAME, _impl)
+    register_durable_impl(
+        declare_durable_tool(tool_name=TOOL_NAME, estimated_duration_seconds=10),
+        _impl,
+    )
 
 
 @pytest.mark.asyncio
 async def test_progress_reaches_the_thread_coalesced(
     db_cleaner: None,
     patch_app_db_engine: None,
+    worker_seams: None,
 ) -> None:
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
     user_id, conversation_id = uuid4(), uuid4()
     await _seed(user_id, conversation_id)
     _register_ramp(20)
@@ -151,8 +157,9 @@ async def test_progress_reaches_the_thread_coalesced(
 async def test_progress_rows_are_untagged_so_the_chat_stream_carries_them(
     db_cleaner: None,
     patch_app_db_engine: None,
+    worker_seams: None,
 ) -> None:
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
     user_id, conversation_id = uuid4(), uuid4()
     await _seed(user_id, conversation_id)
     _register_ramp(3)
@@ -175,8 +182,9 @@ async def test_progress_rows_are_untagged_so_the_chat_stream_carries_them(
 async def test_the_thread_replays_started_progress_completed_in_order(
     db_cleaner: None,
     patch_app_db_engine: None,
+    worker_seams: None,
 ) -> None:
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
     user_id, conversation_id = uuid4(), uuid4()
     await _seed(user_id, conversation_id)
     _register_ramp(3)
@@ -229,8 +237,9 @@ def _framed(frame: str) -> tuple[int, str]:
 async def test_a_tail_from_the_turn_terminator_frames_the_gap(
     db_cleaner: None,
     patch_app_db_engine: None,
+    worker_seams: None,
 ) -> None:
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
     user_id, conversation_id = uuid4(), uuid4()
     await _seed(user_id, conversation_id)
     _register_ramp(3)
@@ -285,8 +294,9 @@ async def test_a_tail_from_the_turn_terminator_frames_the_gap(
 async def test_a_failed_tool_reports_its_failure_on_the_thread(
     db_cleaner: None,
     patch_app_db_engine: None,
+    worker_seams: None,
 ) -> None:
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
     user_id, conversation_id = uuid4(), uuid4()
     await _seed(user_id, conversation_id)
 
@@ -302,7 +312,10 @@ async def test_a_failed_tool_reports_its_failure_on_the_thread(
         msg = "kaboom"
         raise RuntimeError(msg)
 
-    register_tool(TOOL_NAME, _boom)
+    register_durable_impl(
+        declare_durable_tool(tool_name=TOOL_NAME, estimated_duration_seconds=10),
+        _boom,
+    )
 
     task_id = await _run(
         tool_name=TOOL_NAME,
@@ -324,8 +337,9 @@ async def test_a_failed_tool_reports_its_failure_on_the_thread(
 async def test_an_unknown_tool_reports_its_failure_on_the_thread(
     db_cleaner: None,
     patch_app_db_engine: None,
+    worker_seams: None,
 ) -> None:
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
     user_id, conversation_id = uuid4(), uuid4()
     await _seed(user_id, conversation_id)
 
@@ -346,8 +360,9 @@ async def test_an_unknown_tool_reports_its_failure_on_the_thread(
 async def test_a_task_that_reports_nothing_still_completes_on_the_thread(
     db_cleaner: None,
     patch_app_db_engine: None,
+    worker_seams: None,
 ) -> None:
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
     user_id, conversation_id = uuid4(), uuid4()
     await _seed(user_id, conversation_id)
 
@@ -362,7 +377,10 @@ async def test_a_task_that_reports_nothing_still_completes_on_the_thread(
         del context, task_id, progress, memory_store, kwargs
         return {"ok": True}
 
-    register_tool(TOOL_NAME, _silent)
+    register_durable_impl(
+        declare_durable_tool(tool_name=TOOL_NAME, estimated_duration_seconds=10),
+        _silent,
+    )
 
     task_id = await _run(
         tool_name=TOOL_NAME,
@@ -385,8 +403,9 @@ async def test_a_task_that_reports_nothing_still_completes_on_the_thread(
 async def test_each_scoped_lane_leaves_a_part_of_its_own(
     db_cleaner: None,
     patch_app_db_engine: None,
+    worker_seams: None,
 ) -> None:
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
     user_id, conversation_id = uuid4(), uuid4()
     await _seed(user_id, conversation_id)
 
@@ -406,7 +425,10 @@ async def test_each_scoped_lane_leaves_a_part_of_its_own(
             await child.aclose()
         return {"ok": True}
 
-    register_tool(TOOL_NAME, _fanout)
+    register_durable_impl(
+        declare_durable_tool(tool_name=TOOL_NAME, estimated_duration_seconds=10),
+        _fanout,
+    )
 
     task_id = await _run(
         tool_name=TOOL_NAME,

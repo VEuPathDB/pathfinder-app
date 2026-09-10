@@ -10,7 +10,12 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
-from assistant_core.persistence.models import Conversation, ConversationEvent, Message
+from assistant_core.persistence.models import (
+    BackgroundTask,
+    Conversation,
+    ConversationEvent,
+    Message,
+)
 from assistant_core.platform import db
 from veupathdb.domain.parameters.values import NumberValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
@@ -22,7 +27,7 @@ from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.pre_turn import pathfinder_pre_turn
 from pathfinder.ai.tools.standalone._eda_stream_parts import eda_analysis_state_chunk
 from pathfinder.domain.eda_parts import EdaAnalysisState
-from pathfinder.persistence.models import BackgroundTask, ConversationAnalysis, User
+from pathfinder.persistence.models import ConversationAnalysis, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

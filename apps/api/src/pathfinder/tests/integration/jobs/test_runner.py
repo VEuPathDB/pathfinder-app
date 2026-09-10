@@ -1,30 +1,32 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import Iterator
 from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.persistence.models import Conversation
-from assistant_core.platform.db import async_session_factory
-
-from pathfinder.jobs.progress import TaskProgressEmitter
-from pathfinder.jobs.registry import TOOL_REGISTRY, register_tool
-from pathfinder.jobs.runner import run_durable_task
-from pathfinder.persistence.models import User
-from pathfinder.persistence.repositories.background_tasks import (
+from assistant_core.persistence.repositories.background_tasks import (
     BackgroundTaskRepository,
     NewBackgroundTask,
 )
+from assistant_core.platform.db import async_session_factory
+from assistant_core.tasks.declaration import (
+    declare_durable_tool,
+    empty_durable_tools,
+    register_durable_impl,
+)
+from assistant_core.tasks.progress import TaskProgressEmitter
+from assistant_core.tasks.runner import run_durable_task
+
+from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 
 @pytest.fixture(autouse=True)
-def _clean_tool_registry() -> AsyncIterator[None]:
-    before = dict(TOOL_REGISTRY)
-    yield
-    TOOL_REGISTRY.clear()
-    TOOL_REGISTRY.update(before)
+def _clean_tool_registry() -> Iterator[None]:
+    with empty_durable_tools():
+        yield
 
 
 async def _ensure_user_and_chat(user_id: UUID, conversation_id: UUID) -> None:
@@ -45,9 +47,9 @@ async def _ensure_user_and_chat(user_id: UUID, conversation_id: UUID) -> None:
 
 @pytest.mark.asyncio
 async def test_runner_executes_tool_and_marks_complete(
-    db_cleaner: None, patch_app_db_engine: None
+    db_cleaner: None, patch_app_db_engine: None, worker_seams: None
 ) -> None:
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
 
     progress_events: list[tuple[float, str]] = []
 
@@ -64,7 +66,10 @@ async def test_runner_executes_tool_and_marks_complete(
         progress_events.append((0.5, "halfway"))
         return {"echoed": kwargs.get("value")}
 
-    register_tool("test_echo", _echo_impl)
+    register_durable_impl(
+        declare_durable_tool(tool_name="test_echo", estimated_duration_seconds=10),
+        _echo_impl,
+    )
 
     user_id = uuid4()
     conversation_id = uuid4()
@@ -99,9 +104,9 @@ async def test_runner_executes_tool_and_marks_complete(
 
 @pytest.mark.asyncio
 async def test_runner_marks_failed_on_exception(
-    db_cleaner: None, patch_app_db_engine: None
+    db_cleaner: None, patch_app_db_engine: None, worker_seams: None
 ) -> None:
-    del db_cleaner, patch_app_db_engine
+    del db_cleaner, patch_app_db_engine, worker_seams
 
     async def _boom_impl(
         *,
@@ -115,7 +120,10 @@ async def test_runner_marks_failed_on_exception(
         msg = "kaboom"
         raise RuntimeError(msg)
 
-    register_tool("test_boom", _boom_impl)
+    register_durable_impl(
+        declare_durable_tool(tool_name="test_boom", estimated_duration_seconds=10),
+        _boom_impl,
+    )
 
     user_id = uuid4()
     conversation_id = uuid4()

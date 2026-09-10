@@ -8,8 +8,20 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.persistence.models import Conversation
+from assistant_core.persistence.models import (
+    BackgroundTask,
+    Conversation,
+    TaskProgressRow,
+)
+from assistant_core.persistence.repositories.background_tasks import (
+    BackgroundTaskRepository,
+    NewBackgroundTask,
+)
 from assistant_core.platform.db import async_session_factory
+from assistant_core.tasks.declaration import durable_impl
+from assistant_core.tasks.progress import TaskProgressEmitter
+from assistant_core.tasks.runner import run_durable_task
+from assistant_core.tasks.scope import attach_user_id
 from sqlalchemy import select
 from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.json_types import JSONObject
@@ -24,19 +36,11 @@ from veupathdb.wdk.wdk_parameters import (
 )
 from veupathdb_mcp.wdk.enrichment import service
 
-from pathfinder.jobs.auth_context import attach_user_id
 from pathfinder.jobs.impls import register_all_tools
 from pathfinder.jobs.impls.geneset_enrichment_impl import (
     run_gene_set_enrichment_impl,
 )
-from pathfinder.jobs.progress import TaskProgressEmitter
-from pathfinder.jobs.registry import TOOL_REGISTRY
-from pathfinder.jobs.runner import run_durable_task
-from pathfinder.persistence.models import BackgroundTask, GeneSetRow, TaskProgress, User
-from pathfinder.persistence.repositories.background_tasks import (
-    BackgroundTaskRepository,
-    NewBackgroundTask,
-)
+from pathfinder.persistence.models import GeneSetRow, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
 _STEP_ID = 5
@@ -189,8 +193,8 @@ def recorded_wdk(monkeypatch: pytest.MonkeyPatch) -> _RecordedWdk:
 
 def test_geneset_enrichment_registered_in_registry() -> None:
     register_all_tools()
-    assert "geneset_enrichment" in TOOL_REGISTRY
-    assert TOOL_REGISTRY["geneset_enrichment"] is run_gene_set_enrichment_impl
+
+    assert durable_impl("geneset_enrichment") is run_gene_set_enrichment_impl
 
 
 @pytest.mark.asyncio
@@ -255,9 +259,9 @@ async def test_geneset_enrichment_impl_runs_the_analyses_and_emits_progress(
         rows = list(
             (
                 await session.execute(
-                    select(TaskProgress)
-                    .where(TaskProgress.task_id == task_id)
-                    .order_by(TaskProgress.id)
+                    select(TaskProgressRow)
+                    .where(TaskProgressRow.task_id == task_id)
+                    .order_by(TaskProgressRow.id)
                 )
             ).scalars()
         )
@@ -297,6 +301,7 @@ async def test_geneset_enrichment_impl_missing_gene_set(
 async def test_run_durable_task_wiring_geneset_enrichment(
     db_cleaner: None,
     patch_app_db_engine: None,
+    worker_seams: None,
     recorded_wdk: _RecordedWdk,
 ) -> None:
     del db_cleaner, patch_app_db_engine

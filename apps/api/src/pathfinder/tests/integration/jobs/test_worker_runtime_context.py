@@ -55,8 +55,8 @@ async def test_a_thread_with_no_strategy_builds_an_empty_graph(
     conversation_id = await _seed(None)
 
     context = await build_worker_runtime_context(
-        conversation_id=str(conversation_id),
-        task_id="t1",
+        conversation_id=conversation_id,
+        memory_store=None,
     )
 
     graph = context.strategy_session.get_graph(None)
@@ -74,8 +74,8 @@ async def test_a_corrupt_stored_ast_refuses_the_turn_by_name(
 
     with pytest.raises(StrategyAstCorruptError) as excinfo:
         await build_worker_runtime_context(
-            conversation_id=str(conversation_id),
-            task_id="t1",
+            conversation_id=conversation_id,
+            memory_store=None,
         )
 
     assert excinfo.value.code is ErrorCode.STRATEGY_AST_CORRUPT

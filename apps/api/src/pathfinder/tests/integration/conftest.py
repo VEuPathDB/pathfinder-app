@@ -6,9 +6,26 @@ from collections.abc import AsyncGenerator, Iterator
 
 import pytest
 from assistant_core.platform.context import application_id_ctx
+from assistant_core.registry import (
+    install_assistant_registry,
+    reset_assistant_registry,
+)
+from assistant_core.tasks.completion_turn import (
+    install_completion_turn,
+    reset_completion_turn,
+)
+from assistant_core.tasks.job_context import (
+    install_durable_job_context,
+    reset_durable_job_context,
+)
+from assistant_core.tasks.runner import install_worker_context, reset_worker_context
 from sqlalchemy.ext.asyncio import AsyncEngine
 from testcontainers.community.postgres import PostgresContainer
 
+from pathfinder.assistants.registry import get_assistant_registry
+from pathfinder.jobs.completion import open_completion_turn
+from pathfinder.jobs.job_context import WdkJobContext
+from pathfinder.jobs.runtime import build_worker_context
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 
 
@@ -53,3 +70,19 @@ async def _truncate_embedding_index(db_engine: AsyncEngine) -> None:
         await conn.exec_driver_sql(
             "TRUNCATE TABLE embedding_index_entries, embedding_vectors",
         )
+
+
+@pytest.fixture
+def worker_seams() -> Iterator[None]:
+    """Install what ``jobs/worker.py`` installs, so a durable body runs here."""
+    install_durable_job_context(WdkJobContext())
+    install_worker_context(build_worker_context)
+    install_completion_turn(open_completion_turn)
+    install_assistant_registry(get_assistant_registry())
+    try:
+        yield
+    finally:
+        reset_durable_job_context()
+        reset_worker_context()
+        reset_completion_turn()
+        reset_assistant_registry()

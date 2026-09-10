@@ -5,11 +5,11 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
+from assistant_core.conversation.authz import assert_owner
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.domain.eda_parts import EdaDistributionSeries
-from pathfinder.services.conversations.authz import assert_owner
 from pathfinder.services.eda.authoring import variable_distribution, verified_count
 from pathfinder.services.eda.binding import (
     apply_filters,

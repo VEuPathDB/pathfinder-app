@@ -55,15 +55,10 @@ run it is about to make.
 Durable Tools
 -------------
 
-**Purpose:** A durable tool is a deferred tool. At call time it writes a
-``background_tasks`` row, defers a Procrastinate job, emits
-``data-background-task-started`` and raises ``CallDeferred``. The worker runs
-the real implementation and opens a new turn carrying the result.
-
-.. automodule:: pathfinder.ai.tools.durable
-   :members:
-   :undoc-members:
-   :show-inheritance:
+**Purpose:** A durable tool is a deferred tool. The runtime owns the
+declaration, the decorator and the worker-side runner
+(``assistant_core.tasks``); this application declares four of them and
+registers their bodies under ``pathfinder.jobs.impls``.
 
 Catalog Discovery
 -----------------

@@ -4,6 +4,8 @@ import asyncio
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
+from assistant_core.tasks.runner import WorkerContextRequest
+from langgraph.store.postgres.aio import AsyncPostgresStore
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.persistence.repositories import ConversationRepository
@@ -15,14 +17,12 @@ from pathfinder.services.strategies.session_factory import (
 
 async def build_worker_runtime_context(
     *,
-    conversation_id: str,
-    task_id: str,
+    conversation_id: UUID,
+    memory_store: AsyncPostgresStore | None,
 ) -> Context:
-    del task_id
+    """The turn context a durable body reads, built from the thread's strategy."""
     async with async_session_factory() as session:
-        found = await ConversationRepository(session).get_with_strategy(
-            UUID(conversation_id),
-        )
+        found = await ConversationRepository(session).get_with_strategy(conversation_id)
     if found is None:
         msg = f"chat {conversation_id} not found"
         raise LookupError(msg)
@@ -40,5 +40,13 @@ async def build_worker_runtime_context(
         db_session_factory=async_session_factory,
         cancel_event=asyncio.Event(),
         experiment_id=strategy.experiment_id,
-        memory_store=None,
+        memory_store=memory_store,
+    )
+
+
+async def build_worker_context(request: WorkerContextRequest) -> Context:
+    """The seam the runtime calls before it runs a durable body."""
+    return await build_worker_runtime_context(
+        conversation_id=request.conversation_id,
+        memory_store=request.memory_store,
     )
