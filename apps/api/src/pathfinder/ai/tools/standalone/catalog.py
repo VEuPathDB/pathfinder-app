@@ -151,22 +151,23 @@ async def browse_search_categories(
 async def list_searches(
     ctx: RunContext[AgentDeps],
     record_type: str = "transcript",
-) -> ToolReturn[list[JSONObject]]:
-    """List all search names (names only, no descriptions).
+) -> ToolReturn[list[str]]:
+    """List the search names of a record type, and nothing else.
 
-    Use search_for_searches first for targeted discovery with descriptions.
+    A site publishes thousands of searches, so the listing carries names only
+    and stays inside one agent's history. Use search_for_searches for the
+    display name, the description and the ranking.
 
     Args:
         ctx: Agent run context.
         record_type: Record type. Defaults to 'transcript' (gene searches).
     """
     listings = await tool_payloads.list_search_listings(ctx.deps.site_id, record_type)
-    ctx.deps.agent_state.record_catalog_searches(
-        [listing.name for listing in listings if listing.name]
-    )
+    names = [listing.name for listing in listings if listing.name]
+    ctx.deps.agent_state.record_catalog_searches(names)
     return with_summary(
-        [listing.model_dump(by_alias=True) for listing in listings],
-        f"{len(listings)} searches on {record_type}",
+        names,
+        f"{len(names)} searches on {record_type}",
         ctx=ctx,
     )
 

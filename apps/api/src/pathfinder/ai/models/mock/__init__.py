@@ -11,11 +11,9 @@ from assistant_core.models.scripted import (
     RoleMarkers,
     RoleScript,
     ScriptedModel,
-    called_tool_parts,
     current_scope_id,
     current_user_text,
     has_any,
-    last_user_text,
     scripted_call,
     terminal_call,
     tool_return_parts,
@@ -32,6 +30,7 @@ from pathfinder.ai.models.mock.arcs import (
     spec_for,
     verification_succeeds,
 )
+from pathfinder.ai.models.mock.history import acted_tool_names, head_work_order
 from pathfinder.ai.models.mock.specs import (
     CriterionReply,
     SpecPlan,
@@ -82,19 +81,17 @@ def _criterion_replies(messages: list[ModelMessage]) -> list[CriterionReply]:
 def _frame_script(messages: list[ModelMessage]) -> ToolCallPart:
     if has_any(current_user_text.get().lower(), LOOP_MARKERS):
         return scripted_call("list_searches", LOOP_CALL_ARGS)
-    work_order = last_user_text(messages)
+    work_order = head_work_order(messages)
+    called = acted_tool_names(messages)
+    replies = _criterion_replies(messages)
     if work_order.startswith("EDIT work order"):
         return edit_frame_call(
             work_order,
             alt_organism_for(current_scope_id.get()),
-            called_tool_parts(messages),
-            _criterion_replies(messages),
+            called,
+            replies,
         )
-    return frame_call(
-        _active_spec(),
-        called_tool_parts(messages),
-        _criterion_replies(messages),
-    )
+    return frame_call(_active_spec(), called, replies)
 
 
 def _verification_script(messages: list[ModelMessage]) -> ToolCallPart:

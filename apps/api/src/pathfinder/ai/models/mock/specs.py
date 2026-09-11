@@ -232,8 +232,8 @@ def criterion_replies(parts: list[ToolReturnPart]) -> list[CriterionReply]:
 
 def frame_call(
     spec: SpecPlan,
-    already_called: list[ToolCallPart] | None = None,
-    replies: list[CriterionReply] | None = None,
+    already_called: frozenset[str],
+    replies: list[CriterionReply],
 ) -> ToolCallPart:
     """The next FRAME tool call.
 
@@ -243,12 +243,10 @@ def frame_call(
     Progress follows the replies, not the calls, so a refused proposal is
     retried rather than skipped.
     """
-    if not any(c.tool_name == "list_searches" for c in already_called or []):
+    if "list_searches" not in already_called:
         return scripted_call("list_searches", {"record_type": "transcript"})
-    sheets = {
-        r.criterion_id: r.params_template for r in replies or [] if r.params_template
-    }
-    bound = {r.criterion_id for r in replies or [] if r.resolved_params}
+    sheets = {r.criterion_id: r.params_template for r in replies if r.params_template}
+    bound = {r.criterion_id for r in replies if r.resolved_params}
     for crit in spec.criteria:
         if crit.criterion_id in bound:
             continue
@@ -256,7 +254,7 @@ def frame_call(
         if sheet is None:
             return scripted_call("set_criterion", sheet_call_args(crit))
         return scripted_call("set_criterion", proposal_args(crit, sheet))
-    if not any(c.tool_name == "set_structure" for c in already_called or []):
+    if "set_structure" not in already_called:
         return scripted_call("set_structure", set_structure_args(spec))
     return scripted_call("final_result", frame_result(spec))
 
@@ -313,8 +311,8 @@ def workspace_criteria(work_order: str) -> list[WorkspaceCriterion]:
 def edit_frame_call(
     work_order: str,
     organism: str,
-    already_called: list[ToolCallPart] | None = None,
-    replies: list[CriterionReply] | None = None,
+    already_called: frozenset[str],
+    replies: list[CriterionReply],
 ) -> ToolCallPart:
     """Re-bind only the seed criterion under a new organism.
 
@@ -327,9 +325,9 @@ def edit_frame_call(
         return scripted_call(
             "final_result", edit_frame_result(criteria, None, organism)
         )
-    if not any(c.tool_name == "list_searches" for c in already_called or []):
+    if "list_searches" not in already_called:
         return scripted_call("list_searches", {"record_type": "transcript"})
-    bound = {r.criterion_id for r in replies or [] if r.resolved_params}
+    bound = {r.criterion_id for r in replies if r.resolved_params}
     if target.criterion_id in bound:
         return scripted_call(
             "final_result", edit_frame_result(criteria, target, organism)
@@ -340,9 +338,7 @@ def edit_frame_call(
         "search_name": target.search_name,
         "role": target.role,
     }
-    sheets = {
-        r.criterion_id: r.params_template for r in replies or [] if r.params_template
-    }
+    sheets = {r.criterion_id: r.params_template for r in replies if r.params_template}
     sheet = sheets.get(target.criterion_id)
     if sheet is None:
         return scripted_call("set_criterion", args)

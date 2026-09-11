@@ -56,6 +56,25 @@
   became one `_helpers.py::run_one_chat_turn` for the two that drove a plain
   turn; the two files that post their own body (a named assistant, a shared
   client) keep their own shapes.
+* **The search listing carries names only, and the scripted FRAME survives a
+  compaction of its own history.** On veupathdb.org `list_searches` returned
+  2769 `{name, displayName}` rows, 574624 characters and about 143656 estimated
+  tokens against a `COMPACT_AT_ESTIMATED_TOKENS` of 100000, so the FRAME
+  history was rewritten on every model step. One build of a single criterion on
+  the portal made 82 tool calls, 36 of them `set_criterion`, compacted 76 times
+  and hit the 40-request ceiling twice; the edit turn that followed replied
+  "Substituted the organism" while the AST leaf still read
+  `Plasmodium falciparum 3D7`. The tool now returns the names and nothing else,
+  50248 estimated tokens, pinned by
+  `tests/unit/ai/tools/test_catalog_listing_size.py`, which asserts that a FRAME
+  history carrying a portal-sized listing is left uncompacted and that the same
+  history with the display names is not. Recorded as
+  `decisions/the-search-listing-carries-names-only.md`. The mock is fixed on its
+  own side: `ai/models/mock/history.py` reads the work order from the head
+  request's first user prompt and counts the calls a digest records as calls
+  already made, so a compaction no longer restarts the build arc. The same two
+  turns now make 6 and 5 tool calls, compact nothing, log no usage ceiling, and
+  the AST leaf reads `Plasmodium vivax P01`.
 
 ## 2026-09-10
 

@@ -209,7 +209,7 @@ class TestListSearches:
 
         result = (await standalone.catalog.list_searches(_ctx(state))).return_value
 
-        assert [row["name"] for row in result] == ["GenesByTaxon", "GenesByGoTerm"]
+        assert result == ["GenesByTaxon", "GenesByGoTerm"]
         assert state.catalog_search_names == {"GenesByTaxon", "GenesByGoTerm"}
 
     async def test_one_record_type_narrows_the_listing(
@@ -231,11 +231,7 @@ class TestListSearches:
             )
         ).return_value
 
-        assert [row["name"] for row in result] == [
-            "GenesByTaxon",
-            "GenesByLocation",
-            "GenesByText",
-        ]
+        assert result == ["GenesByTaxon", "GenesByLocation", "GenesByText"]
         mock.assert_awaited_once_with("plasmodb", "transcript")
 
     async def test_an_inspected_search_stays_in_the_listing(
@@ -258,4 +254,4 @@ class TestListSearches:
             )
         ).return_value
 
-        assert [row["name"] for row in result] == ["GenesByTaxon", "GenesByText"]
+        assert result == ["GenesByTaxon", "GenesByText"]

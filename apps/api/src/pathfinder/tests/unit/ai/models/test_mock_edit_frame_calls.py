@@ -72,14 +72,14 @@ def _order() -> str:
 
 
 def _call(
-    already: list[ToolCallPart] | None = None,
+    already: frozenset[str] = frozenset(),
     replies: list[CriterionReply] | None = None,
 ) -> ToolCallPart:
-    return edit_frame_call(_order(), _PV, already, replies)
+    return edit_frame_call(_order(), _PV, already, replies or [])
 
 
-def _listed() -> list[ToolCallPart]:
-    return [ToolCallPart(tool_name="list_searches", args={}, tool_call_id="c0")]
+def _listed() -> frozenset[str]:
+    return frozenset({"list_searches"})
 
 
 def test_the_workspace_is_read_from_the_work_order() -> None:

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic import TypeAdapter
-from pydantic_ai.messages import ToolReturnPart
+from pydantic_ai.messages import ToolCallPart, ToolReturnPart
 from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.models.mock.specs import (
@@ -41,6 +41,10 @@ def _reply(criterion_id: str, names: list[str]) -> CriterionReply:
 
 def _bound(criterion_id: str) -> CriterionReply:
     return CriterionReply(criterion_id=criterion_id, resolved_params={"organism": "x"})
+
+
+def _called(*calls: ToolCallPart) -> frozenset[str]:
+    return frozenset(call.tool_name for call in calls)
 
 
 # ── Site awareness ──────────────────────────────────────────────────
@@ -127,7 +131,7 @@ def test_discovery_precedes_every_criterion(spec: SpecPlan) -> None:
     # set_criterion's search_name is enum-guarded to discovered names, so a
     # frame that binds before listing the catalog is refused on its second
     # search. The first call must put the whole catalog in the universe.
-    first = frame_call(spec, [], [])
+    first = frame_call(spec, frozenset(), [])
 
     assert first.tool_name == "list_searches"
     assert first.args_as_dict() == {"record_type": "transcript"}
@@ -135,9 +139,9 @@ def test_discovery_precedes_every_criterion(spec: SpecPlan) -> None:
 
 def test_discovery_is_not_repeated_once_called() -> None:
     spec = interpro_spec(_PF)
-    discovery = frame_call(spec, [], [])
+    discovery = frame_call(spec, frozenset(), [])
 
-    nxt = frame_call(spec, [discovery], [])
+    nxt = frame_call(spec, _called(discovery), [])
 
     assert nxt.tool_name == "set_criterion"
 
@@ -145,18 +149,18 @@ def test_discovery_is_not_repeated_once_called() -> None:
 def test_frame_reads_the_sheet_then_proposes_then_moves_on() -> None:
     spec = interpro_spec(_PF)
     first, second = spec.criteria
-    discovery = frame_call(spec, [], [])
+    discovery = frame_call(spec, frozenset(), [])
 
-    sheet_call = frame_call(spec, [discovery], [])
+    sheet_call = frame_call(spec, _called(discovery), [])
     assert sheet_call.args_as_dict()["criterion_id"] == first.criterion_id
     assert "params" not in sheet_call.args_as_dict()
 
     replies = [_reply(first.criterion_id, ["text_expression"])]
-    proposal = frame_call(spec, [discovery, sheet_call], replies)
+    proposal = frame_call(spec, _called(discovery, sheet_call), replies)
     assert proposal.args_as_dict()["params"] == {"text_expression": "kinase"}
 
     replies = [_bound(first.criterion_id)]
-    nxt = frame_call(spec, [discovery, sheet_call, proposal], replies)
+    nxt = frame_call(spec, _called(discovery, sheet_call, proposal), replies)
     assert nxt.args_as_dict()["criterion_id"] == second.criterion_id
 
 
@@ -165,12 +169,12 @@ def test_a_refused_proposal_is_retried_not_skipped() -> None:
     # carries resolved params. Marching on would build an empty strategy.
     spec = single_spec(_PF)
     crit = spec.criteria[0]
-    discovery = frame_call(spec, [], [])
-    sheet_call = frame_call(spec, [discovery], [])
+    discovery = frame_call(spec, frozenset(), [])
+    sheet_call = frame_call(spec, _called(discovery), [])
     replies = [_reply(crit.criterion_id, ["organism"])]
-    proposal = frame_call(spec, [discovery, sheet_call], replies)
+    proposal = frame_call(spec, _called(discovery, sheet_call), replies)
 
-    again = frame_call(spec, [discovery, sheet_call, proposal], replies)
+    again = frame_call(spec, _called(discovery, sheet_call, proposal), replies)
 
     assert again.tool_name == "set_criterion"
     assert again.args_as_dict()["criterion_id"] == crit.criterion_id
@@ -179,19 +183,22 @@ def test_a_refused_proposal_is_retried_not_skipped() -> None:
 
 def test_structure_follows_once_every_criterion_is_bound() -> None:
     spec = interpro_spec(_PF)
-    discovery = frame_call(spec, [], [])
+    discovery = frame_call(spec, frozenset(), [])
     replies = [_bound(c.criterion_id) for c in spec.criteria]
 
-    assert frame_call(spec, [discovery], replies).tool_name == "set_structure"
+    assert frame_call(spec, _called(discovery), replies).tool_name == "set_structure"
 
 
 def test_the_frame_result_follows_the_structure() -> None:
     spec = interpro_spec(_PF)
-    discovery = frame_call(spec, [], [])
+    discovery = frame_call(spec, frozenset(), [])
     replies = [_bound(c.criterion_id) for c in spec.criteria]
-    structure = frame_call(spec, [discovery], replies)
+    structure = frame_call(spec, _called(discovery), replies)
 
-    assert frame_call(spec, [discovery, structure], replies).tool_name == "final_result"
+    assert (
+        frame_call(spec, _called(discovery, structure), replies).tool_name
+        == "final_result"
+    )
 
 
 def test_the_go_criterion_carries_the_vocabulary_half_only() -> None:
