@@ -1,5 +1,35 @@
 # Log
 
+## 2026-09-11
+
+* **A stated combination of three or more terms is checked at every combine it
+  names, not only where the terms meet.** "kinases OR mass spectrometry
+  evidence OR DeRisi expression" against `UNION(kinase, INTERSECT(mass spec,
+  DeRisi))` returned no violation: the three criteria meet at the root UNION,
+  which carried the required operator, so a tree that answers "kinases OR (mass
+  spec AND DeRisi)" passed the check and reached the user as the strategy they
+  asked for. `combination_check.py::combination_violation` now reads the
+  meeting node and every combine under it whose criteria are two or more of the
+  named ones and nothing else, so the same tree is refused and
+  `UNION(kinase, UNION(mass spec, DeRisi))` is accepted at any depth. A combine
+  that also holds a criterion the statement does not name answers a question of
+  its own and stays unconstrained, so the check never refuses a tree for
+  evidence the user did not talk about. Two-term statements read exactly as
+  before: no combine below their meeting node holds two of the two. The
+  intent-gate docstring on `classify_user_intent` states that the terms of one
+  constraint are one flat group, so a nested shape is stated as one constraint
+  per group. One rule, `combination_check.py::_brought`, says what a branch
+  brings to a combine, and both the meeting node and every combine under it
+  read it: a transform the statement names stands for its whole input, and any
+  other transform brings what its input brings. So
+  `UNION(kinase, INTERSECT(orthologs of mass spec, DeRisi))` is refused under
+  "kinases OR mass spectrometry evidence OR DeRisi expression", which names the
+  mass spec, and refused under "protein kinases OR vivax orthologs OR DeRisi
+  expression", which names the orthologs; the second returned no violation
+  while the branch reported the unnamed mass spec and took the exemption.
+  `operational_spec.py::criteria_under` keeps its one reading, the criteria a
+  subtree states a step for, which `stated_shape.py::structure_criteria` reads.
+
 ## 2026-09-10
 
 * **A criterion that binds an option on another criterion's search has no step,

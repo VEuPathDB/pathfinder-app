@@ -1,7 +1,9 @@
 """Whether a strategy tree combines criteria the way the user stated.
 
 A stated combination names its criteria by their words. This module matches
-those words to criteria and reads the operator of the node where they meet.
+those words to criteria and reads the operators that join them. One rule says
+what a branch brings to a combine: a transform the statement names stands for
+its whole input, and any other transform brings what its input brings.
 """
 
 from __future__ import annotations
@@ -126,28 +128,60 @@ def match_terms(
     return matched
 
 
-def _meeting_node(
-    node: StructureNode, wanted: frozenset[str]
-) -> tuple[frozenset[str], StructureNode | None]:
-    """The distinct wanted criteria under this node, and where they meet.
+class _Brought(NamedTuple):
+    """What a branch carries into the combine above it."""
+
+    named: frozenset[str]
+    unnamed: bool
+
+
+def _brought(node: StructureNode, wanted: frozenset[str]) -> _Brought:
+    """The criteria this branch brings, split by whether the statement names them.
+
+    A leaf brings its own criterion. A transform the statement names stands for
+    its whole input; any other transform brings what its input brings. A
+    combine brings what its inputs bring.
+    """
+    if node.kind == "combine":
+        brought = [_brought(child, wanted) for child in node.inputs]
+        return _Brought(
+            named=frozenset[str]().union(*(item.named for item in brought)),
+            unnamed=any(item.unnamed for item in brought),
+        )
+    criterion_id = node.criterion_id
+    if criterion_id is not None and criterion_id in wanted:
+        return _Brought(named=frozenset({criterion_id}), unnamed=False)
+    if node.kind == "transform" and node.inputs:
+        return _brought(node.inputs[0], wanted)
+    return _Brought(named=frozenset[str](), unnamed=True)
+
+
+def _meeting_node(node: StructureNode, wanted: frozenset[str]) -> StructureNode | None:
+    """The deepest node that brings every wanted criterion, or None.
 
     Distinct ids, not occurrences: a duplicated leaf must not stand in for a
     criterion that sits elsewhere in the tree.
     """
-    seen = (
-        frozenset({node.criterion_id}) if node.criterion_id in wanted else frozenset()
-    )
-    settled: StructureNode | None = None
+    if not wanted <= _brought(node, wanted).named:
+        return None
     for child in node.inputs:
-        found_ids, found = _meeting_node(child, wanted)
-        seen = seen | found_ids
-        if found is not None and settled is None:
-            settled = found
-    if settled is not None:
-        return seen, settled
-    if seen == wanted:
-        return seen, node
-    return seen, None
+        deeper = _meeting_node(child, wanted)
+        if deeper is not None:
+            return deeper
+    return node
+
+
+def _meeting_combine(
+    structure: SpecStructure, criterion_ids: Collection[str]
+) -> StructureNode | None:
+    """The combine node where these criteria meet, or None."""
+    wanted = frozenset(criterion_ids)
+    if len(wanted) < _MIN_MEETING_CRITERIA:
+        return None
+    node = _meeting_node(structure.root, wanted)
+    if node is None or node.kind != "combine":
+        return None
+    return node
 
 
 def meeting_operator(
@@ -156,16 +190,33 @@ def meeting_operator(
     """The operator of the node where these criteria meet.
 
     None when one of them is absent from the tree, or when they meet at a node
-    that combines nothing. A transform is transparent: the criteria under it
-    still meet at the combine above.
+    that combines nothing. A transform the statement does not name is
+    transparent: the criteria under it still meet at the combine above.
     """
-    wanted = frozenset(criterion_ids)
-    if len(wanted) < _MIN_MEETING_CRITERIA:
+    node = _meeting_combine(structure, criterion_ids)
+    return None if node is None else node.operator
+
+
+def _split_operator(
+    node: StructureNode, wanted: frozenset[str], required: CombineOp
+) -> CombineOp | None:
+    """The first operator in this subtree that joins wanted criteria wrongly.
+
+    A combine is constrained when every criterion it brings has a name in the
+    statement. One that also brings an unnamed criterion answers a question of
+    its own, so it carries any operator.
+    """
+    for child in node.inputs:
+        found = _split_operator(child, wanted, required)
+        if found is not None:
+            return found
+    operator = node.operator
+    if operator is None or operator is required:
         return None
-    _, node = _meeting_node(structure.root, wanted)
-    if node is None or node.kind != "combine":
+    held = _brought(node, wanted)
+    if held.unnamed or len(held.named) < _MIN_MEETING_CRITERIA:
         return None
-    return node.operator
+    return operator
 
 
 def combination_violation(
@@ -173,15 +224,27 @@ def combination_violation(
     matched_ids: Collection[str],
     structure: SpecStructure,
 ) -> str | None:
-    """Why this tree does not state the requested combination, or None."""
+    """Why this tree does not state the requested combination, or None.
+
+    Every combine that joins two or more of the named criteria and nothing
+    else carries the stated operator, at any depth under the meeting node.
+    """
     required = required_operator(request.operator)
-    found = meeting_operator(structure, matched_ids)
-    if found is required:
+    meeting = _meeting_combine(structure, matched_ids)
+    if meeting is None or meeting.operator is not required:
+        found = None if meeting is None else meeting.operator
+        joined = "no combine node" if found is None else found.value
+        return (
+            f"the user requires {request.expression!r}: those criteria must meet "
+            f"at {required.value}, but the tree joins them at {joined}"
+        )
+    split = _split_operator(meeting, frozenset(matched_ids), required)
+    if split is None:
         return None
-    joined = "no combine node" if found is None else found.value
     return (
-        f"the user requires {request.expression!r}: those criteria must meet "
-        f"at {required.value}, but the tree joins them at {joined}"
+        f"the user requires {request.expression!r}: every combine over those "
+        f"criteria must be {required.value}, but the tree joins two of them "
+        f"at {split.value}"
     )
 
 

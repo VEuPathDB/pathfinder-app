@@ -51,10 +51,12 @@ def classify_user_intent(
     canonical form "<term> OR <term>" (or AND), with one term per line of
     evidence, written in the user's own words for it. Two terms minimum,
     one operator only: a request that mixes OR and AND is two
-    constraints, one per group. This is the only machine-checkable record
-    of the boolean shape they asked for, so a stated combination that
-    never lands here is a strategy that can silently answer the other
-    question.
+    constraints, one per group. Three or more terms state one flat group:
+    every term joins at that operator, so evidence the user joins with the
+    other operator belongs in a constraint of its own. This is the only
+    machine-checkable record of the boolean shape they asked for, so a
+    stated combination that never lands here is a strategy that can
+    silently answer the other question.
 
     Set ``hard=True`` for non-negotiable requirements ("only", "must",
     "required", "do not use X"); set ``hard=False`` when the user states a

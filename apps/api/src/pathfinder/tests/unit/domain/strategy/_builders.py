@@ -337,3 +337,7 @@ def spec_leaf(criterion_id: str) -> StructureNode:
 
 def spec_joined(operator: CombineOp, *inputs: StructureNode) -> StructureNode:
     return StructureNode(kind="combine", operator=operator, inputs=list(inputs))
+
+
+def spec_transform(criterion_id: str, input_: StructureNode) -> StructureNode:
+    return StructureNode(kind="transform", criterion_id=criterion_id, inputs=[input_])

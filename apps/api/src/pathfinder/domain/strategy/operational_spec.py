@@ -65,6 +65,19 @@ class SpecStructure(CamelModel):
     root: StructureNode
 
 
+def criteria_under(node: StructureNode) -> frozenset[str]:
+    """The criteria this subtree names.
+
+    A leaf and a transform each name one; a combine names none of its own.
+    """
+    own = (
+        frozenset({node.criterion_id})
+        if node.kind != "combine" and node.criterion_id
+        else frozenset[str]()
+    )
+    return own.union(*(criteria_under(child) for child in node.inputs))
+
+
 class SavedStrategyRef(CamelModel):
     """A saved strategy the user reuses as the input of a criterion.
 
