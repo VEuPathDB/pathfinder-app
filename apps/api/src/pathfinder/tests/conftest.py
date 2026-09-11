@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Annotated, Any
 from uuid import UUID, uuid4
 
-# The scanner is built at module import, so the PIGuard model must be on disk
-# before the first pathfinder import.
+# The scanner names its model directory at import, so the PIGuard model must
+# be on disk before the first pathfinder import.
 
 if "PIGUARD_MODEL_DIR" not in os.environ:
     from huggingface_hub import hf_hub_download
@@ -38,6 +38,10 @@ os.environ.setdefault(
     "DATABASE_URL",
     "postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test",
 )
+# No test feeds a real message through the injection model, so the suite
+# screens nothing and the model stays unloaded. A test about screening takes
+# the `piguard_enabled` fixture.
+os.environ.setdefault("PIGUARD_ENABLED", "false")
 os.environ.setdefault("PATHFINDER_CHAT_PROVIDER", "mock")
 os.environ.setdefault("OPENAI_API_KEY", "")
 os.environ.setdefault("ANTHROPIC_API_KEY", "")
@@ -335,11 +339,11 @@ def _test_env_defaults() -> None:
 def _warm_the_input_scanner() -> None:
     """Load the injection model once, the way readiness loads it in production.
 
-    Without this the first chat POST of the process builds the ONNX session
-    inside the enqueue wait, and the red lands on whichever test posted first.
+    The call returns without loading while screening is off. Where it is on,
+    the first chat POST of the process would otherwise build the ONNX session
+    inside the enqueue wait.
     """
-    if get_settings().piguard_enabled:
-        warm_up_scanner()
+    warm_up_scanner()
 
 
 @pytest.fixture

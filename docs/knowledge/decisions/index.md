@@ -66,6 +66,7 @@ Choices with a real alternative, where the reasoning is not recoverable from the
 - [The dev server runs Turbopack](the-dev-server-runs-turbopack.md) - a proxied SSE stream keeps its gaps under both bundlers on Next 16.2.0, so the `--webpack` rule is retired
 - [The e2e stack serves the production build](the-e2e-stack-serves-the-production-build.md) - the e2e overlay builds the `runner` target, so the suite meets no dev overlay and no growing compile cache; bounding the dev server's heap was rejected
 - [Negative fuzzing is off only where the complement cannot be spelled](negative-fuzzing-needs-a-spellable-complement.md) - the conformance lane keeps negative cases on 79 of 94 operations; the parameter value union has no complement, so its fifteen are fuzzed positive-only
+- [The test suite runs with input screening off](the-test-suite-runs-with-input-screening-off.md) - `PIGUARD_ENABLED` is false among the root conftest's defaults and `warm_up_scanner` builds nothing when it is false, so no test loads the ONNX model whose telemetry thread aborts the process after the summary line, and a test about screening takes the `piguard_enabled` fixture; a process-wide `atexit` that releases the session was rejected because it cannot order itself before the library's static destructors, and `onnxruntime` 1.30.0 because it aborts 4 runs in 8
 
 ## Tooling
 

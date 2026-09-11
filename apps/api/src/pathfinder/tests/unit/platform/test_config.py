@@ -30,7 +30,10 @@ def make_settings(**overrides: object) -> Settings:
     return _EnvOnlySettings.model_validate(values)
 
 
-def test_piguard_enabled_defaults_true() -> None:
+def test_piguard_enabled_defaults_true(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Screening is on where the environment says nothing, which the tiers do."""
+    monkeypatch.delenv("PIGUARD_ENABLED", raising=False)
+
     assert make_settings().piguard_enabled is True
 
 

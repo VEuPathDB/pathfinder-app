@@ -36,8 +36,11 @@ class TestARefusalIsA403:
 
     async def test_a_rejection_becomes_a_forbidden_problem(
         self,
+        piguard_enabled: None,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        del piguard_enabled
+
         def refuse(text: str) -> None:
             del text
             raise ScreeningRejectionError(_SCANNER_NAME, _RISK_SCORE)
@@ -53,8 +56,11 @@ class TestARefusalIsA403:
 
     async def test_the_refusal_names_no_scanner_and_no_score(
         self,
+        piguard_enabled: None,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        del piguard_enabled
+
         def refuse(text: str) -> None:
             del text
             raise ScreeningRejectionError(_SCANNER_NAME, _RISK_SCORE)
@@ -73,8 +79,10 @@ class TestARefusalIsA403:
 class TestWarmUp:
     def test_warm_up_loads_the_singleton(
         self,
+        piguard_enabled: None,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        del piguard_enabled
         calls: list[int] = []
 
         monkeypatch.setattr(
@@ -86,8 +94,23 @@ class TestWarmUp:
 
         assert calls == [1]
 
-    def test_every_test_process_starts_with_a_loaded_scanner(self) -> None:
-        """The first chat POST of a test process must not pay the model load."""
-        before = security._scanner.ensure_loaded()
+    def test_warm_up_loads_nothing_when_piguard_is_disabled(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The setting that gates the scan gates the load that serves it."""
+        calls: list[int] = []
 
-        assert security._scanner.ensure_loaded() == before
+        monkeypatch.setattr(
+            security._scanner,
+            "ensure_loaded",
+            lambda: calls.append(1),
+        )
+        monkeypatch.setattr(
+            security,
+            "get_settings",
+            lambda: SimpleNamespace(piguard_enabled=False),
+        )
+        security.warm_up_scanner()
+
+        assert calls == []

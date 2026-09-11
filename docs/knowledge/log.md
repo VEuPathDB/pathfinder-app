@@ -2,6 +2,19 @@
 
 ## 2026-09-11
 
+* **A green unit run exits 0, because the suite loads no ONNX model.**
+  `PIGUARD_ENABLED` is false among the root conftest's environment defaults and
+  `warm_up_scanner` returns without building the session when it is false,
+  which is the setting `scan_user_input` already read. The `onnxruntime` macOS wheel carries a
+  telemetry client whose worker thread outlives interpreter finalization, and a
+  reply that lands after the C++ static destructors ran locks a destroyed
+  `recursive_mutex`, throws on a thread with no handler and aborts the process
+  after the summary line, so a tier in which every test passed exited 134 and
+  the gate ladder stopped there. A unit test that is about screening takes the
+  `piguard_enabled` fixture, so the model still runs where the test is about the
+  model, and the readiness probe reports a subsystem the deployment turned off
+  as ready by policy rather than as loaded.
+
 * **The tests tree is type-checked by the same two checkers, under the same
   rules, as the code it tests.** `[tool.mypy]` in `apps/api/pyproject.toml` and
   the repo-root `pyrightconfig.json` scoped both checkers to `src` minus

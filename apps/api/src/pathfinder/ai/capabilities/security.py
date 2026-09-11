@@ -17,7 +17,12 @@ _REJECTION_DETAIL = "This message was refused by prompt-injection screening. Rew
 
 
 def warm_up_scanner() -> None:
-    """Build the scanners the request path calls, so no request pays the load."""
+    """Build the scanner the request path calls, so no request pays the load.
+
+    A disabled scanner stays unbuilt: one setting gates the load and the scan.
+    """
+    if not get_settings().piguard_enabled:
+        return
     _scanner.ensure_loaded()
 
 

@@ -7,12 +7,13 @@ what left.
 
 ## Ranked
 
-1. [The unit tier aborts with exit 134 after a green run](the-unit-tier-aborts-after-a-green-run.md) - the telemetry thread ONNX Runtime starts for the PIGuard model aborts the pytest process after every test passes, so the gate ladder stops on a green run.
+Nothing outstanding.
 
 ## Known and accepted
 
 Not backlog. Recorded as decisions because they were chosen, not deferred:
 
 - [build_strategy is not revision-guarded](../decisions/build-strategy-is-not-revision-guarded.md)
+- [The test suite runs with input screening off](../decisions/the-test-suite-runs-with-input-screening-off.md)
 - [No faker or msw generation](../decisions/no-faker-or-msw-generation.md)
 - [The nested tree stays at the wire boundary](../decisions/nested-tree-at-the-wire-boundary.md)

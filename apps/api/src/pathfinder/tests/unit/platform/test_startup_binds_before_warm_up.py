@@ -165,10 +165,11 @@ async def test_the_lifespan_leaves_the_process_s_logging_alone(
 
 async def test_the_blocking_model_load_leaves_the_event_loop_free(
     offline_warm_up: None,
+    piguard_enabled: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """``warm_up_scanner`` holds the CPU for seconds, so it belongs on a thread."""
-    del offline_warm_up
+    del offline_warm_up, piguard_enabled
     callers: list[str] = []
 
     def record_model() -> None:
@@ -187,6 +188,35 @@ async def test_the_blocking_model_load_leaves_the_event_loop_free(
 
     assert callers
     assert all(name != threading.main_thread().name for name in callers)
+
+
+async def test_a_disabled_piguard_is_ready_by_policy_and_loads_no_model(
+    offline_warm_up: None,
+    piguard_disabled: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A deployment that screens no input is ready, and holds no ONNX session."""
+    del offline_warm_up, piguard_disabled
+    reset_readiness()
+
+    def fail_load() -> None:
+        pytest.fail("the model must not load when PIGuard is disabled")
+
+    class _Discovery:
+        async def get_catalog(self, site_id: str) -> None:
+            del site_id
+
+    monkeypatch.setattr(main, "warm_up_scanner", fail_load)
+    monkeypatch.setattr(main, "get_site_router", _Router)
+    monkeypatch.setattr(main, "get_discovery_service", _Discovery)
+
+    await main._warm_up_subsystems()
+
+    readiness = get_readiness()
+    assert readiness.piguard.ready is True
+    assert readiness.piguard.error is None
+    assert "piguard" not in readiness.not_ready
+    reset_readiness()
 
 
 async def test_a_warm_up_death_outside_its_handlers_fails_the_loading_subsystems(

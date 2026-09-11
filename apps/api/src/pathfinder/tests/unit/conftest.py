@@ -2,7 +2,7 @@
 
 import asyncio.base_events
 import socket
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterator
 from typing import Any, NoReturn
 from uuid import UUID, uuid4
 
@@ -14,6 +14,28 @@ from veupathdb.domain.strategy.graph_model import flatten_tree
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories import ConversationRepository
+from pathfinder.platform.config import get_settings
+
+# Input screening.
+
+
+@pytest.fixture
+def piguard_enabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Turns input screening on for one test."""
+    monkeypatch.setenv("PIGUARD_ENABLED", "true")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+@pytest.fixture
+def piguard_disabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Turns input screening off for one test."""
+    monkeypatch.setenv("PIGUARD_ENABLED", "false")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
 
 # Network guard.
 
