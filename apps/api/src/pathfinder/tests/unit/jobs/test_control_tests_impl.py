@@ -7,7 +7,6 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from assistant_core.platform.db import AsyncSession
 from assistant_core.tasks.progress import TaskProgressEmitter
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
 from veupathdb.wdk.wdk_models import WDKSearchConfig, WDKStep
@@ -23,15 +22,11 @@ from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.jobs.impls import control_tests_impl
 from pathfinder.jobs.impls.control_tests_impl import run_control_tests_on_step_impl
 from pathfinder.services.experiment.published_names import PublishedNames
+from pathfinder.tests._support.database import no_database
 
 STEP_ID = 440299573
 SEARCH = "GenesByMolecularWeight"
 LABEL = "Genes by Molecular Weight"
-
-
-def _no_session() -> AsyncSession:
-    msg = "this test writes nothing to the database"
-    raise AssertionError(msg)
 
 
 def _context() -> Context:
@@ -39,7 +34,7 @@ def _context() -> Context:
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
-        db_session_factory=_no_session,
+        db_session_factory=no_database,
         cancel_event=asyncio.Event(),
     )
 
@@ -48,11 +43,11 @@ def _emitter() -> TaskProgressEmitter:
     return TaskProgressEmitter(
         task_id=uuid4(),
         conversation_id=uuid4(),
-        session_factory=_no_session,
+        session_factory=no_database,
     )
 
 
-def _refused() -> VEuPathDBError:
+def _refused() -> VEuPathDBError[VEuPathDBErrorCode]:
     return VEuPathDBError(VEuPathDBErrorCode.WDK_ERROR, "no such step")
 
 

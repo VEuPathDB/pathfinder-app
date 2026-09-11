@@ -8,12 +8,8 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from pydantic_ai import RunContext
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
-from pydantic_ai.models.test import TestModel
-from pydantic_ai.usage import RunUsage
-from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
 
@@ -28,13 +24,9 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.tests._support.database import no_database
 
 PartFor = Callable[[list[ModelMessage]], ToolCallPart | list[ToolCallPart]]
-
-
-def never_db_factory() -> AsyncSession:
-    msg = "db factory should not be called in unit tests"
-    raise AssertionError(msg)
 
 
 def lead_runtime(
@@ -51,7 +43,7 @@ def lead_runtime(
             if strategy_session is not None
             else StrategySession(site_id=site_id)
         ),
-        db_session_factory=never_db_factory,
+        db_session_factory=no_database,
         cancel_event=asyncio.Event(),
     )
 
@@ -95,19 +87,6 @@ def lead_deps(
     if record_usage is not None:
         deps.record_sub_agent_usage = record_usage
     return deps
-
-
-def lead_run_context(
-    deps: LeadDeps,
-    tool_call_id: str | None = None,
-) -> RunContext[LeadDeps]:
-    return RunContext(
-        deps=deps,
-        model=TestModel(),
-        usage=RunUsage(),
-        messages=[],
-        tool_call_id=tool_call_id,
-    )
 
 
 def session_with_one_step(

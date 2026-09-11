@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic_ai.ui.vercel_ai.request_types import TextUIPart, UIMessage
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.devtools import chat
@@ -49,14 +50,10 @@ def _payload(conversation_id: UUID) -> ChatTurnPayload:
         body=ChatRequestBody(
             id=message_id,
             messages=[
-                {
-                    "id": message_id,
-                    "role": "user",
-                    "parts": [{"type": "text", "text": "hi"}],
-                },
+                UIMessage(id=message_id, role="user", parts=[TextUIPart(text="hi")]),
             ],
-            conversationId=conversation_id,
-            siteId="plasmodb",
+            conversation_id=conversation_id,
+            site_id="plasmodb",
         ),
         user_id=uuid4(),
         turn_id=uuid4(),

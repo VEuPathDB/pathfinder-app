@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from assistant_core.models.scripted import scripted_call
+from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic_ai.messages import ToolCallPart, ToolReturnPart
 from veupathdb.domain.strategy.ops import CombineOp
@@ -77,7 +78,7 @@ class SpecPlan:
     structure: StructureNode
 
 
-class CriterionReply(BaseModel):
+class CriterionReply(CamelModel):
     """The part of a ``set_criterion`` reply the mock reads back.
 
     The sheet reply carries ``params_template``; the binding reply carries
@@ -85,17 +86,11 @@ class CriterionReply(BaseModel):
     instead of marching on with an unbound criterion.
     """
 
-    model_config = ConfigDict(
-        extra="ignore", populate_by_name=True, from_attributes=True
-    )
+    model_config = ConfigDict(extra="ignore", from_attributes=True)
 
-    criterion_id: str = Field(default="", alias="criterionId")
-    params_template: dict[str, str | None] = Field(
-        default_factory=dict, alias="paramsTemplate"
-    )
-    resolved_params: dict[str, Any] = Field(
-        default_factory=dict, alias="resolvedParams"
-    )
+    criterion_id: str = ""
+    params_template: dict[str, str | None] = Field(default_factory=dict)
+    resolved_params: dict[str, Any] = Field(default_factory=dict)
 
 
 def _leaf(crit: CriterionSpec) -> StructureNode:

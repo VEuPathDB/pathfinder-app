@@ -5,10 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.errors import ValidationError
+from veupathdb_mcp import ToolErrorPayload
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import strategy_edits
@@ -23,6 +25,7 @@ from pathfinder.ai.tools.standalone.strategy_edits import (
 from pathfinder.domain.strategy.operations import DeleteResolution
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import (
     StubAPI,
@@ -40,6 +43,21 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     return install_stub_api(monkeypatch)
 
 
+class DeletedSteps(CamelModel):
+    """The value ``delete_step`` returns."""
+
+    ok: bool
+    deleted: list[str]
+
+
+class ReplacedSubtree(CamelModel):
+    """The value ``replace_subtree`` returns."""
+
+    ok: bool
+    replaced_step_id: str
+    dropped_step_ids: list[str]
+
+
 class TestDeleteStep:
     async def test_deleting_an_input_collapses_its_combine(
         self, stub_api: StubAPI
@@ -49,10 +67,10 @@ class TestDeleteStep:
             wdk_step_ids={"A": 100, "B": 200, "C": 300},
         )
 
-        payload = (await delete_step(ctx(deps), "A")).return_value
+        payload = returned(await delete_step(ctx(deps), "A"), DeletedSteps)
 
-        assert payload["ok"] is True
-        assert sorted(payload["deleted"]) == ["A", "C"]
+        assert payload.ok is True
+        assert sorted(payload.deleted) == ["A", "C"]
         assert stub_api.step_ids("delete_step") == {100, 300}
 
     @pytest.mark.usefixtures("stub_api")
@@ -69,13 +87,14 @@ class TestDeleteStep:
             wdk_step_ids={"a": 100, "b": 200, "c": 300},
         )
 
-        payload = (
+        payload = returned(
             await delete_step(
                 ctx(deps), "c", resolution=DeleteResolution.PROMOTE_PRIMARY
-            )
-        ).return_value
+            ),
+            DeletedSteps,
+        )
 
-        assert sorted(payload["deleted"]) == ["b", "c"]
+        assert sorted(payload.deleted) == ["b", "c"]
         assert stub_api.step_ids("delete_step") == {200, 300}
 
 
@@ -168,7 +187,11 @@ class TestUpdateLeafParams:
         monkeypatch.setattr(strategy_edits, "validate_parameters", _raising_validate)
 
         with pytest.raises(ModelRetry) as excinfo:
-            await update_leaf_params(ctx(deps), "a", {"organism": ["NotARealOrganism"]})
+            await update_leaf_params(
+                ctx(deps),
+                "a",
+                {"organism": MultiPickValue(values=["NotARealOrganism"])},
+            )
 
         msg = str(excinfo.value)
         assert "Invalid parameter value" in msg
@@ -227,10 +250,12 @@ class TestReplaceSubtree:
             wdk_step_ids={"a": 100, "b": 200, "c": 300},
         )
 
-        payload = (await replace_subtree(ctx(deps), "a", leaf("new_a"))).return_value
+        payload = returned(
+            await replace_subtree(ctx(deps), "a", leaf("new_a")), ReplacedSubtree
+        )
 
-        assert payload["replacedStepId"] == "a"
-        assert "a" in payload["droppedStepIds"]
+        assert payload.replaced_step_id == "a"
+        assert "a" in payload.dropped_step_ids
         assert 100 in stub_api.step_ids("delete_step")
         created = stub_api.named("create_step")
         assert any(call.kwargs["search_name"] == "GenesByTaxon" for call in created)
@@ -254,7 +279,9 @@ class TestInsertSavedStrategy:
             db_session_factory=None,
         )
 
-        res = (await insert_saved_strategy(ctx(deps), "a", 12345)).return_value
+        res = returned(
+            await insert_saved_strategy(ctx(deps), "a", 12345), ToolErrorPayload
+        )
 
-        assert res["ok"] is False
-        assert res["code"] == ErrorCode.INTERNAL_ERROR.value
+        assert res.ok is False
+        assert res.code == ErrorCode.INTERNAL_ERROR.value

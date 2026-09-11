@@ -3,17 +3,22 @@ what it registers on the gate, and what it refuses."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import TypeAdapter
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.errors import WDKError
-from veupathdb.wdk.wdk_parameters import WDKStringParam
+from veupathdb.wdk.wdk_models import WDKSearch, WDKSearchResponse
+from veupathdb.wdk.wdk_parameters import WDKParameter, WDKStringParam
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParameterNotOnSearch,
+    SearchOverviewResult,
     search_inspection,
     searches,
 )
@@ -21,7 +26,7 @@ from veupathdb_mcp.catalog import (
 from pathfinder.ai.tools.standalone import catalog_discovery
 from pathfinder.ai.tools.standalone.catalog_discovery import AlreadyReadNotice
 from pathfinder.tests.unit.ai.tools.conftest import (
-    agent_state_ctx,
+    agent_run_context,
     patch_search_details,
     summary_of,
     wdk_param,
@@ -30,12 +35,12 @@ from pathfinder.tests.unit.ai.tools.conftest import (
 _GOAL = "kinase genes expressed in the schizont stage"
 
 
-def _params(names: list[str]) -> list[Any]:
+def _params(names: list[str]) -> list[WDKParameter]:
     return [wdk_param(name) for name in names]
 
 
-def _pin_formatter(monkeypatch: pytest.MonkeyPatch) -> Any:
-    info = MagicMock(kind="parameter_info")
+def _pin_formatter(monkeypatch: pytest.MonkeyPatch) -> ParameterInfo:
+    info = _param_info()
     monkeypatch.setattr(
         search_inspection, "format_typed_param", lambda *_a, **_kw: info
     )
@@ -56,26 +61,67 @@ def _param_info(**overrides: Any) -> ParameterInfo:
     return ParameterInfo.model_validate(base)
 
 
-def _overview_client(monkeypatch: pytest.MonkeyPatch) -> Any:
+@dataclass
+class _OverviewClient:
+    """Serves the GO-term search definition and records each read."""
+
+    reads: list[str] = field(default_factory=list)
+
+    async def get_search_details(
+        self, _record_type: str, search_name: str, *, expand_params: bool = True
+    ) -> WDKSearchResponse:
+        del expand_params
+        self.reads.append(search_name)
+        return WDKSearchResponse(
+            search_data=WDKSearch(
+                url_segment="GenesByGoTerm",
+                display_name="Genes by GO Term",
+                description="Find genes by GO term",
+                summary="summary",
+                parameters=[
+                    WDKStringParam(
+                        name="go_term", is_visible=True, allow_empty_value=False
+                    ),
+                    WDKStringParam(
+                        name="taxon", is_visible=True, allow_empty_value=False
+                    ),
+                ],
+            ),
+            validation=StepValidation(level="NONE", is_valid=False),
+        )
+
+
+@dataclass
+class _FailingClient:
+    """A WDK client whose every search read raises."""
+
+    error: WDKError
+
+    async def get_search_details(
+        self, _record_type: str, _search_name: str, *, expand_params: bool = True
+    ) -> WDKSearchResponse:
+        del expand_params
+        raise self.error
+
+
+def _overview(**_kw: object) -> SearchOverviewResult:
+    """The formatted overview the tool wraps, with nothing of its own to say."""
+    return SearchOverviewResult(
+        search_name="GenesByGoTerm",
+        display_name="Genes by GO Term",
+        description="Find genes by GO term",
+        record_type="transcript",
+    )
+
+
+async def _transcript(*_a: object, **_k: object) -> str:
+    return "transcript"
+
+
+def _overview_client(monkeypatch: pytest.MonkeyPatch) -> _OverviewClient:
     """A search whose overview is formatted by a stub, so only the tool runs."""
-
-    async def _resolve(*_a: Any, **_k: Any) -> str:
-        return "transcript"
-
-    monkeypatch.setattr(search_inspection, "resolve_search_record_type", _resolve)
-    search_data = MagicMock()
-    search_data.url_segment = "GenesByGoTerm"
-    search_data.display_name = "Genes by GO Term"
-    search_data.description = "Find genes by GO term"
-    search_data.summary = "summary"
-    search_data.parameters = [
-        WDKStringParam(name="go_term", is_visible=True, allow_empty_value=False),
-        WDKStringParam(name="taxon", is_visible=True, allow_empty_value=False),
-    ]
-    details = MagicMock()
-    details.search_data = search_data
-    client = MagicMock()
-    client.get_search_details = AsyncMock(return_value=details)
+    monkeypatch.setattr(search_inspection, "resolve_search_record_type", _transcript)
+    client = _OverviewClient()
     monkeypatch.setattr(searches, "get_wdk_client", lambda _site: client)
     return client
 
@@ -85,10 +131,8 @@ class TestTheSearchOverviewRead:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         client = _overview_client(monkeypatch)
-        monkeypatch.setattr(
-            search_inspection, "format_search_overview", lambda **_kw: MagicMock()
-        )
-        ctx = agent_state_ctx()
+        monkeypatch.setattr(search_inspection, "format_search_overview", _overview)
+        ctx = agent_run_context()
 
         first = (
             await catalog_discovery.get_search_overview(
@@ -97,7 +141,7 @@ class TestTheSearchOverviewRead:
         ).return_value
         assert not isinstance(first, AlreadyReadNotice)
         assert ctx.deps.agent_state.get_overview("GenesByGoTerm") is not None
-        assert client.get_search_details.await_count == 1
+        assert client.reads == ["GenesByGoTerm"]
 
         second = (
             await catalog_discovery.get_search_overview(
@@ -106,7 +150,7 @@ class TestTheSearchOverviewRead:
         ).return_value
         assert isinstance(second, AlreadyReadNotice)
         assert second.search_name == "GenesByGoTerm"
-        assert client.get_search_details.await_count == 1
+        assert client.reads == ["GenesByGoTerm"]
 
     async def test_the_sheet_is_ranked_on_the_goal(
         self, monkeypatch: pytest.MonkeyPatch
@@ -114,12 +158,12 @@ class TestTheSearchOverviewRead:
         _overview_client(monkeypatch)
         captured: dict[str, str] = {}
 
-        def _overview(*, query: str, **_kw: Any) -> Any:
+        def _capture_query(*, query: str, **_kw: object) -> SearchOverviewResult:
             captured["query"] = query
-            return MagicMock()
+            return _overview()
 
-        monkeypatch.setattr(search_inspection, "format_search_overview", _overview)
-        ctx = agent_state_ctx()
+        monkeypatch.setattr(search_inspection, "format_search_overview", _capture_query)
+        ctx = agent_run_context()
         ctx.deps.agent_state.operational_spec_draft.goal = _GOAL
 
         await catalog_discovery.get_search_overview(ctx, search_name="GenesByGoTerm")
@@ -131,26 +175,24 @@ class TestTheSearchOverviewRead:
     ) -> None:
         """An invented name must come back as a correction, not a dead turn."""
 
-        async def _resolve(*_a: Any, **_k: Any) -> str:
-            return "transcript"
-
-        monkeypatch.setattr(search_inspection, "resolve_search_record_type", _resolve)
-        client = MagicMock()
-        client.get_search_details = AsyncMock(
-            side_effect=WDKError(
+        monkeypatch.setattr(
+            search_inspection, "resolve_search_record_type", _transcript
+        )
+        client = _FailingClient(
+            WDKError(
                 "Resource 'search: GenesByText_Search' does not exist.", status=404
             )
         )
         monkeypatch.setattr(searches, "get_wdk_client", lambda _s: client)
 
-        async def _valid(_site: str, _rt: str) -> list[Any]:
+        async def _valid(_site: str, _rt: str) -> list[WDKSearch]:
             return [
-                MagicMock(url_segment="GenesByText"),
-                MagicMock(url_segment="GenesByGoTerm"),
+                WDKSearch(url_segment="GenesByText"),
+                WDKSearch(url_segment="GenesByGoTerm"),
             ]
 
         monkeypatch.setattr(search_inspection, "get_raw_searches", _valid)
-        ctx = agent_state_ctx(site_id="vectorbase")
+        ctx = agent_run_context(site_id="vectorbase")
 
         with pytest.raises(ModelRetry) as excinfo:
             await catalog_discovery.get_search_overview(
@@ -165,19 +207,15 @@ class TestTheSearchOverviewRead:
     async def test_a_non_404_wdk_error_propagates(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        async def _resolve(*_a: Any, **_k: Any) -> str:
-            return "transcript"
-
-        monkeypatch.setattr(search_inspection, "resolve_search_record_type", _resolve)
-        client = MagicMock()
-        client.get_search_details = AsyncMock(
-            side_effect=WDKError("upstream 502", status=502)
+        monkeypatch.setattr(
+            search_inspection, "resolve_search_record_type", _transcript
         )
+        client = _FailingClient(WDKError("upstream 502", status=502))
         monkeypatch.setattr(searches, "get_wdk_client", lambda _s: client)
 
         with pytest.raises(WDKError):
             await catalog_discovery.get_search_overview(
-                agent_state_ctx(site_id="vectorbase"), search_name="GenesByText"
+                agent_run_context(site_id="vectorbase"), search_name="GenesByText"
             )
 
 
@@ -193,7 +231,7 @@ class TestTheParameterRead:
 
         result = (
             await catalog_discovery.get_parameter_options(
-                agent_state_ctx(),
+                agent_run_context(),
                 search_name="GenesByESTOverlap",
                 parameter_id="min_pct_idents",
             )
@@ -213,7 +251,7 @@ class TestTheParameterRead:
 
         result = (
             await catalog_discovery.get_parameter_options(
-                agent_state_ctx(),
+                agent_run_context(),
                 search_name="GenesByESTOverlap",
                 parameter_id="minOverlap",
             )
@@ -239,7 +277,7 @@ class TestTheParameterRead:
 
         result = (
             await catalog_discovery.get_parameter_options(
-                agent_state_ctx(),
+                agent_run_context(),
                 search_name="GenesByGoTerm",
                 parameter_id="completely_unrelated_xyz",
             )
@@ -257,7 +295,7 @@ class TestTheParameterRead:
     ) -> None:
         patch_search_details(monkeypatch, parameters=_params(["go_term", "taxon"]))
         info = _pin_formatter(monkeypatch)
-        ctx = agent_state_ctx()
+        ctx = agent_run_context()
 
         first = (
             await catalog_discovery.get_parameter_options(
@@ -280,7 +318,7 @@ class TestTheParameterRead:
     ) -> None:
         patch_search_details(monkeypatch, parameters=_params(["go_term", "taxon"]))
         info = _pin_formatter(monkeypatch)
-        ctx = agent_state_ctx()
+        ctx = agent_run_context()
 
         wrong = (
             await catalog_discovery.get_parameter_options(
@@ -302,16 +340,16 @@ class TestTheOptionCountSummary:
 
     async def _read_summary(
         self, monkeypatch: pytest.MonkeyPatch, info: ParameterInfo
-    ) -> Any:
+    ) -> dict[str, str]:
         monkeypatch.setattr(
             catalog_discovery,
             "read_parameter_options",
             AsyncMock(return_value=info),
         )
         returned = await catalog_discovery.get_parameter_options(
-            agent_state_ctx(), search_name="GenesByMassSpec", parameter_id=info.name
+            agent_run_context(), search_name="GenesByMassSpec", parameter_id=info.name
         )
-        return summary_of(returned).data
+        return TypeAdapter(dict[str, str]).validate_python(summary_of(returned).data)
 
     async def test_a_tree_vocabulary_counts_its_leaves(
         self, monkeypatch: pytest.MonkeyPatch

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Never
 
 import pytest
 from assistant_core.conversation.history import HISTORY_PROCESSORS
@@ -14,7 +15,7 @@ from pathfinder.ai.agents.frame import build_frame_agent
 from pathfinder.ai.agents.verification import build_verification_agent
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 
-_BUILDERS: tuple[Callable[[], Agent[object, object]], ...] = (
+_BUILDERS: tuple[Callable[[], Agent[Never, object]], ...] = (
     build_frame_agent,
     build_execution_agent,
     build_verification_agent,
@@ -22,7 +23,7 @@ _BUILDERS: tuple[Callable[[], Agent[object, object]], ...] = (
 )
 
 
-def _processors(agent: Agent[object, object]) -> tuple[object, ...]:
+def _processors(agent: Agent[Never, object]) -> tuple[object, ...]:
     return tuple(
         capability.processor
         for capability in agent.root_capability.capabilities
@@ -32,7 +33,7 @@ def _processors(agent: Agent[object, object]) -> tuple[object, ...]:
 
 @pytest.mark.parametrize("builder", _BUILDERS, ids=lambda b: b.__name__)
 def test_agent_runs_the_runtime_processors(
-    builder: Callable[[], Agent[object, object]],
+    builder: Callable[[], Agent[Never, object]],
 ) -> None:
     assert _processors(builder()) == HISTORY_PROCESSORS
 

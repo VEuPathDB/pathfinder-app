@@ -8,14 +8,16 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.errors import ValidationError
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.tests._support.eda_doubles import lead_run_context
 from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
+from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
     bound,
     pushing_commit,
@@ -35,7 +37,9 @@ from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
 def lead_ctx() -> RunContext[LeadDeps]:
     session = StrategySession(site_id="plasmodb")
     session.add_graph(StrategyGraph("g1", "Test", "plasmodb"))
-    return lead_run_context(prompt="export the febrile subset", session=session)
+    return lead_run_context(
+        user_prompt="export the febrile subset", strategy_session=session
+    )
 
 
 def _wire(
@@ -53,7 +57,7 @@ async def test_a_subset_export_uses_the_generic_subset_search(
     applied: list[Any] = []
     _wire(monkeypatch, read=read_detail, commit=recording_commit(applied))
 
-    returned = await eda_step.create_eda_step(lead_ctx)
+    answer = await eda_step.create_eda_step(lead_ctx)
 
     step = applied[0][0].step
     assert step.search_name == "GenesByEdaSubset"
@@ -62,10 +66,11 @@ async def test_a_subset_export_uses_the_generic_subset_search(
     assert spec["studyId"] == PHENOTYPE_DATASET
     assert spec["descriptor"]["subset"]["descriptor"][0]["stringSet"] == ["P. berghei"]
     assert step.display_name == "berghei subset"
-    assert returned.return_value.search_name == "GenesByEdaSubset"
-    assert returned.return_value.is_compute_backed is False
-    assert returned.return_value.step_id == step.id
-    assert "330423363" in returned.return_value.guidance
+    result = returned(answer, eda_step.EdaStepCreated)
+    assert result.search_name == "GenesByEdaSubset"
+    assert result.is_compute_backed is False
+    assert result.step_id == step.id
+    assert "330423363" in result.guidance
 
 
 async def test_a_compute_export_uses_the_viz_with_compute_search(
@@ -78,7 +83,7 @@ async def test_a_compute_export_uses_the_viz_with_compute_search(
         commit=recording_commit(applied),
     )
 
-    returned = await eda_step.create_eda_step(
+    answer = await eda_step.create_eda_step(
         lead_ctx,
         effect_size_threshold=1.0,
         significance_threshold=0.05,
@@ -91,8 +96,9 @@ async def test_a_compute_export_uses_the_viz_with_compute_search(
     assert viz["configuration"]["effectSizeThreshold"] == 1.0
     assert viz["configuration"]["significanceThreshold"] == 0.05
     assert viz["configuration"]["effectDirection"] == "upAndDown"
-    assert returned.return_value.search_name == "GenesByEdaVizWithCompute"
-    assert returned.return_value.is_compute_backed is True
+    result = returned(answer, eda_step.EdaStepCreated)
+    assert result.search_name == "GenesByEdaVizWithCompute"
+    assert result.is_compute_backed is True
 
 
 async def test_an_explicit_search_name_wins_over_the_generic_one(
@@ -257,10 +263,12 @@ def test_a_thread_that_framed_no_spec_states_no_criteria(
     assert eda_step._strategy_context(lead_ctx).stated_criteria == frozenset()
 
 
-def _lead_ctx_over(root: object) -> RunContext[LeadDeps]:
+def _lead_ctx_over(root: StrategyStepNode) -> RunContext[LeadDeps]:
     """A Lead context whose session already holds a strategy."""
     session = session_with(root, {})
-    return lead_run_context(prompt="export the febrile subset", session=session)
+    return lead_run_context(
+        user_prompt="export the febrile subset", strategy_session=session
+    )
 
 
 async def test_the_exported_step_becomes_a_criterion_of_the_spec(
@@ -277,11 +285,12 @@ async def test_the_exported_step_becomes_a_criterion_of_the_spec(
         ),
     )
 
-    returned = await eda_step.create_eda_step(lead_ctx)
+    answer = await eda_step.create_eda_step(lead_ctx)
 
     spec = lead_ctx.deps.state.domain.operational_spec
     assert spec is not None
-    assert [c.id for c in spec.criteria] == [returned.return_value.step_id]
+    result = returned(answer, eda_step.EdaStepCreated)
+    assert [c.id for c in spec.criteria] == [result.step_id]
     criterion = spec.criteria[0]
     assert criterion.search_name == "GenesByEdaSubset"
     assert criterion.text == "berghei subset"
@@ -329,9 +338,10 @@ async def test_a_thread_that_framed_no_spec_records_nothing(
         ),
     )
 
-    returned = await eda_step.create_eda_step(lead_ctx)
+    answer = await eda_step.create_eda_step(lead_ctx)
 
     graph = lead_ctx.deps.runtime.strategy_session.get_graph(None)
     assert graph is not None
-    assert list(graph.steps) == [returned.return_value.step_id]
+    result = returned(answer, eda_step.EdaStepCreated)
+    assert list(graph.steps) == [result.step_id]
     assert lead_ctx.deps.state.domain.operational_spec is None

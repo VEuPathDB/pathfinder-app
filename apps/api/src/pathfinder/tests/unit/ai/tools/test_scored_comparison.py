@@ -4,23 +4,25 @@ emit, the refusals they raise, and the Lead surface that reaches them."""
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.tools.standalone import scored_comparison
 from pathfinder.ai.tools.standalone._variant_targets import reject_combine_variants
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
+from pathfinder.services.control_sets import ControlSetResponse
 from pathfinder.services.experiment.scored_comparison import (
     ScoredComparison,
     ScoredVariant,
 )
 from pathfinder.services.experiment.variant_comparison import VariantSpec
-from pathfinder.tests.unit.ai.tools.conftest import runtime_ctx
+from pathfinder.tests._support.tool_returns import returned, summary_text
+from pathfinder.tests.unit.ai.tools.conftest import detached_lead_context
 
 _WDK_STRATEGY_ID = "330531493"
 
@@ -38,11 +40,22 @@ def _pin_control_set(
     positive_ids: list[str],
     negative_ids: list[str],
 ) -> None:
-    control_set = MagicMock()
-    control_set.positive_ids = positive_ids
-    control_set.negative_ids = negative_ids
+    control_set = ControlSetResponse(
+        id=str(uuid4()),
+        name="controls",
+        site_id="plasmodb",
+        record_type="transcript",
+        positive_ids=positive_ids,
+        negative_ids=negative_ids,
+        tags=[],
+        version=1,
+        is_public=False,
+        created_at="2026-01-01T00:00:00Z",
+    )
 
-    async def _get(_session: Any, _control_set_id: Any, _user_id: Any) -> Any:
+    async def _get(
+        _session: AsyncSession, _control_set_id: UUID, _user_id: UUID
+    ) -> ControlSetResponse:
         return control_set
 
     monkeypatch.setattr(scored_comparison, "get_control_set", _get)
@@ -85,14 +98,17 @@ async def test_it_emits_the_scored_card_and_the_summary(
     )
 
     result = await compare_variants_scored(
-        runtime_ctx(), _variants(), control_set_id=str(uuid4()), objective="mcc"
+        detached_lead_context(),
+        _variants(),
+        control_set_id=str(uuid4()),
+        objective="mcc",
     )
 
-    assert result.return_value.winner_label == "b"
+    assert returned(result, ScoredComparison).winner_label == "b"
     assert captured["positive_controls"] == ["g1", "g2"]
     assert captured["objective"] == "mcc"
     assert result.metadata[0].type == "data-scored-comparison"
-    assert "Winner: b" in (result.content or "")
+    assert "Winner: b" in summary_text(result)
 
 
 async def test_it_refuses_a_single_variant(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -100,7 +116,7 @@ async def test_it_refuses_a_single_variant(monkeypatch: pytest.MonkeyPatch) -> N
 
     with pytest.raises(ModelRetry, match="at least 2"):
         await compare_variants_scored(
-            runtime_ctx(),
+            detached_lead_context(),
             [VariantSpec(label="a", search_name="SA", parameters={})],
             control_set_id=str(uuid4()),
         )
@@ -157,9 +173,9 @@ class TestAFailedScoringIsReportedAsOne:
         _pin_control_set(monkeypatch, positive_ids=["g1", "g2"], negative_ids=[])
         _pin_comparison(monkeypatch, self._COMPARISON)
         result = await compare_variants_scored(
-            runtime_ctx(), _variants(), control_set_id=str(uuid4())
+            detached_lead_context(), _variants(), control_set_id=str(uuid4())
         )
-        return result.content or ""
+        return summary_text(result)
 
     async def test_the_summary_says_the_scoring_failed(
         self, monkeypatch: pytest.MonkeyPatch
@@ -181,13 +197,17 @@ class TestAFailedScoringIsReportedAsOne:
 class TestAControlSetIdIsARetry:
     async def test_a_non_uuid_control_set_is_a_retry(self) -> None:
         with pytest.raises(ModelRetry) as err:
-            await compare_variants_scored(runtime_ctx(), _variants(), _WDK_STRATEGY_ID)
+            await compare_variants_scored(
+                detached_lead_context(), _variants(), _WDK_STRATEGY_ID
+            )
 
         assert "control" in str(err.value).lower()
 
     async def test_a_name_instead_of_an_id_is_a_retry(self) -> None:
         with pytest.raises(ModelRetry):
-            await compare_variants_scored(runtime_ctx(), _variants(), "my controls")
+            await compare_variants_scored(
+                detached_lead_context(), _variants(), "my controls"
+            )
 
 
 class TestACombineStepIsNotAVariant:
@@ -203,7 +223,7 @@ class TestACombineStepIsNotAVariant:
     ) -> None:
         with pytest.raises(ModelRetry) as err:
             await compare_variants_scored(
-                runtime_ctx(), _variants(combine_name), str(uuid4())
+                detached_lead_context(), _variants(combine_name), str(uuid4())
             )
 
         assert combine_name in str(err.value)
@@ -211,7 +231,7 @@ class TestACombineStepIsNotAVariant:
     async def test_the_message_names_the_tool_that_takes_a_step(self) -> None:
         with pytest.raises(ModelRetry) as err:
             await compare_variants_scored(
-                runtime_ctx(), _variants("Combine"), str(uuid4())
+                detached_lead_context(), _variants("Combine"), str(uuid4())
             )
 
         assert "run_control_tests_on_step" in str(err.value)
@@ -219,14 +239,14 @@ class TestACombineStepIsNotAVariant:
     async def test_the_offending_label_is_named(self) -> None:
         with pytest.raises(ModelRetry) as err:
             await compare_variants_scored(
-                runtime_ctx(), _variants("Combine"), str(uuid4())
+                detached_lead_context(), _variants("Combine"), str(uuid4())
             )
 
         assert "a" in str(err.value)
 
     async def test_the_unscored_tool_refuses_it_too(self) -> None:
         with pytest.raises(ModelRetry) as err:
-            await compare_search_variants(runtime_ctx(), _variants("Combine"))
+            await compare_search_variants(detached_lead_context(), _variants("Combine"))
 
         assert "run_control_tests_on_step" in str(err.value)
 

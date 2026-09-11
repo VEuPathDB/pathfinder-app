@@ -27,9 +27,11 @@ class _RecordingStrategyAPI(StrategyAPI):
         super().__init__(VEuPathDBClient("https://plasmodb.example.org/plasmo"))
         self.deleted: list[int] = []
 
-    async def delete_strategy(self, strategy_id: int) -> bool:
+    async def delete_strategy(
+        self, strategy_id: int, user_id: str | None = None
+    ) -> None:
+        del user_id
         self.deleted.append(strategy_id)
-        return True
 
 
 def _config() -> IntersectionConfig:
@@ -54,11 +56,11 @@ async def test_the_cleanup_deletes_the_strategy_this_application_tagged() -> Non
     api = _RecordingStrategyAPI()
     tagged = tag_internal_wdk_strategy_name(f"{CONTROL_TEST_STRATEGY_NAME} 12345")
     items = [
-        WDKStrategySummary(strategyId=771, name=tagged, rootStepId=8801),
+        WDKStrategySummary(strategy_id=771, name=tagged, root_step_id=8801),
         WDKStrategySummary(
-            strategyId=772,
+            strategy_id=772,
             name="Kinases the researcher saved",
-            rootStepId=8802,
+            root_step_id=8802,
         ),
     ]
 

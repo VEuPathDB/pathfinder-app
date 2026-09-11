@@ -2,31 +2,37 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
-
 import pytest
 from pydantic_ai import ModelRetry
+from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
+from pydantic_ai.usage import RunUsage
+from veupathdb.wdk.wdk_models import WDKSearch
 from veupathdb_mcp.catalog import RecordTypeInfo
 
 from pathfinder.assistants.site_help import agent
 from pathfinder.assistants.site_help.agent import (
+    SiteDetail,
     SiteHelpDeps,
+    SiteSummary,
     describe_site,
     list_veupathdb_sites,
 )
-
-
-class _Ctx:
-    tool_call_id = "call_1"
+from pathfinder.tests._support.tool_returns import returned
 
 
 def _ctx() -> RunContext[SiteHelpDeps]:
-    return cast("RunContext[SiteHelpDeps]", _Ctx())
+    return RunContext(
+        deps=SiteHelpDeps(site_id="plasmodb"),
+        model=TestModel(),
+        usage=RunUsage(),
+        messages=[],
+        tool_call_id="call_1",
+    )
 
 
 async def test_it_lists_the_registered_sites_with_their_urls() -> None:
-    sites = (await list_veupathdb_sites(_ctx())).return_value
+    sites = returned(await list_veupathdb_sites(_ctx()), list[SiteSummary])
 
     by_id = {site.site_id: site for site in sites}
     assert {"plasmodb", "toxodb", "vectorbase"} <= set(by_id)
@@ -54,14 +60,16 @@ async def test_it_counts_the_searches_of_each_record_type(
             RecordTypeInfo(name="organism", display_name="Organisms"),
         ]
 
-    async def _searches(site_id: str, record_type: str) -> list[Any]:
+    async def _searches(site_id: str, record_type: str) -> list[WDKSearch]:
         del site_id
-        return ["a", "b", "c"] if record_type == "transcript" else []
+        if record_type != "transcript":
+            return []
+        return [WDKSearch(url_segment=f"search_{index}") for index in range(3)]
 
     monkeypatch.setattr(agent, "get_record_types", _record_types)
     monkeypatch.setattr(agent, "get_raw_searches", _searches)
 
-    detail = (await describe_site(_ctx(), "plasmodb")).return_value
+    detail = returned(await describe_site(_ctx(), "plasmodb"), SiteDetail)
 
     assert detail.site_id == "plasmodb"
     assert detail.display_name

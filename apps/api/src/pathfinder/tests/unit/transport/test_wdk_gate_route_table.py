@@ -144,19 +144,15 @@ def _carries_gate(dependant: Dependant) -> bool:
 
 def _gated_routes(app: FastAPI) -> set[tuple[str, str]]:
     return {
-        (method, route.path)
+        pair
         for route in api_routes(app.routes)
         if _carries_gate(route.dependant)
-        for method in route.methods - {"HEAD", "OPTIONS"}
+        for pair in route.pairs
     }
 
 
 def _all_routes(app: FastAPI) -> set[tuple[str, str]]:
-    return {
-        (method, route.path)
-        for route in api_routes(app.routes)
-        for method in route.methods - {"HEAD", "OPTIONS"}
-    }
+    return {pair for route in api_routes(app.routes) for pair in route.pairs}
 
 
 def test_exactly_the_listed_routes_require_a_registered_login(app: FastAPI) -> None:
@@ -200,10 +196,10 @@ def _carries(dependant: Dependant, call: object) -> bool:
 def test_every_spec_gated_route_resolves_its_assistant(app: FastAPI) -> None:
     """A listed route with no resolver would serve every assistant ungated."""
     resolving = {
-        (method, route.path)
+        pair
         for route in api_routes(app.routes)
         if _carries(route.dependant, resolve_chat_assistant)
-        for method in route.methods - {"HEAD", "OPTIONS"}
+        for pair in route.pairs
     }
 
     assert resolving == set(SPEC_GATED)

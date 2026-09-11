@@ -1,12 +1,19 @@
 """The identity a request is served under."""
 
+from uuid import UUID
+
 import pytest
 from pydantic import ValidationError
 
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.platform.principal import Principal
 
-USER_ID = "11111111-2222-3333-4444-555555555555"
+USER_ID = UUID("11111111-2222-3333-4444-555555555555")
+
+
+def _assign(target: object, field: str, value: str) -> None:
+    """Write one field of a model, whatever the model allows."""
+    setattr(target, field, value)
 
 
 class TestPrincipal:
@@ -20,11 +27,13 @@ class TestPrincipal:
         principal = Principal(user_id=USER_ID, credential="pathfinder-cookie")
 
         with pytest.raises(ValidationError):
-            principal.application_id = "other"
+            _assign(principal, "application_id", "other")
 
     def test_an_unknown_credential_kind_is_rejected(self) -> None:
         with pytest.raises(ValidationError):
-            Principal(user_id=USER_ID, credential="basic-auth")
+            Principal.model_validate(
+                {"userId": str(USER_ID), "credential": "basic-auth"}
+            )
 
     def test_the_json_form_uses_camel_case(self) -> None:
         principal = Principal(
@@ -34,7 +43,7 @@ class TestPrincipal:
         )
 
         assert principal.model_dump(by_alias=True, mode="json") == {
-            "userId": USER_ID,
+            "userId": str(USER_ID),
             "applicationId": "analytics",
             "credential": "veupathdb-bearer",
         }

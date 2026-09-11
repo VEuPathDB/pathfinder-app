@@ -24,7 +24,7 @@ from assistant_core.tasks.runner import run_durable_task
 from assistant_core.tasks.scope import attach_user_id
 from sqlalchemy import select
 from veupathdb.domain.strategy.validation import StepValidation
-from veupathdb.json_types import JSONObject
+from veupathdb.json_types import JSONArray, JSONObject
 from veupathdb.wdk.wdk_models import (
     WDKStepAnalysisType,
     WDKStepAnalysisTypeResponse,
@@ -42,6 +42,7 @@ from pathfinder.jobs.impls.geneset_enrichment_impl import (
 )
 from pathfinder.persistence.models import GeneSetRow, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.tests._support.job_context import job_context
 
 _STEP_ID = 5
 _ORGANISM = "Plasmodium falciparum 3D7"
@@ -56,7 +57,7 @@ _STATS: JSONObject = {
     "benjamini": "0.002",
     "bonferroni": "0.005",
 }
-_ROWS: dict[str, list[JSONObject]] = {
+_ROWS: dict[str, JSONArray] = {
     "go-enrichment": [
         {"goId": "GO:0004672", "goTerm": "protein kinase activity", **_STATS}
     ],
@@ -179,11 +180,6 @@ async def _seed_task(task_id: UUID, conversation_id: UUID, user_id: UUID) -> Non
         await session.commit()
 
 
-class _FakeContext:
-    def __init__(self, site_id: str) -> None:
-        self.site_id = site_id
-
-
 @pytest.fixture
 def recorded_wdk(monkeypatch: pytest.MonkeyPatch) -> _RecordedWdk:
     api = _RecordedWdk(gene_count=2)
@@ -219,7 +215,7 @@ async def test_geneset_enrichment_impl_runs_the_analyses_and_emits_progress(
 
     async with attach_user_id(user_id):
         result = await run_gene_set_enrichment_impl(
-            context=_FakeContext(site_id="plasmodb"),
+            context=job_context(),
             task_id=task_id,
             progress=progress,
             memory_store=None,
@@ -289,7 +285,7 @@ async def test_geneset_enrichment_impl_missing_gene_set(
 
     with pytest.raises(LookupError, match="does not exist"):
         await run_gene_set_enrichment_impl(
-            context=_FakeContext(site_id="plasmodb"),
+            context=job_context(),
             task_id=task_id,
             progress=progress,
             memory_store=None,

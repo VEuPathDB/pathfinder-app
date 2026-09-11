@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import pytest
+from assistant_core.scratchpad.compactor import CompactionResult, CompactorDeps
 from assistant_core.scratchpad.models import NoteCreate
 from pydantic import ValidationError
 
-from pathfinder.ai.agents.compactor import (
-    CompactionResult,
-    CompactorDeps,
-    build_compactor_agent,
-)
+from pathfinder.ai.agents.compactor import build_compactor_agent
 
 
 def test_build_returns_agent_with_output_type() -> None:

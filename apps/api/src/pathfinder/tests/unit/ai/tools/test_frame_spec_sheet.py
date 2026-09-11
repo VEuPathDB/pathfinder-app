@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry
-from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.domain.parameters.wdk_vocab import VocabOption, WDKVocabTerm
 from veupathdb.wdk.wdk_parameters import (
     WDKEnumParam,
     WDKParameter,
@@ -31,42 +31,46 @@ from pathfinder.tests.unit.ai.tools.test_frame_spec import (
 
 def genes_by_text_wdk() -> list[WDKParameter]:
     """GenesByText as WDK defines it, matching ``genes_by_text`` param for param."""
-    return [
+    parameters: list[WDKParameter] = [
         WDKStringParam(
-            name="text_expression", displayName="Text", allowEmptyValue=False
+            name="text_expression", display_name="Text", allow_empty_value=False
         ),
         WDKEnumParam(
             name="text_search_organism",
-            displayName="Organism",
+            display_name="Organism",
             type="multi-pick-vocabulary",
-            allowEmptyValue=False,
+            allow_empty_value=False,
             vocabulary=[
-                ("Plasmodium", "Plasmodium", None),
-                ("Plasmodium falciparum 3D7", "P. falciparum 3D7", None),
+                WDKVocabTerm(("Plasmodium", "Plasmodium", None)),
+                WDKVocabTerm(("Plasmodium falciparum 3D7", "P. falciparum 3D7", None)),
             ],
         ),
         WDKStringParam(
             name="document_type",
-            displayName="Document type",
-            allowEmptyValue=True,
-            initialDisplayValue="gene",
+            display_name="Document type",
+            allow_empty_value=True,
+            initial_display_value="gene",
         ),
         WDKEnumParam(
             name="text_fields",
-            displayName="Fields",
+            display_name="Fields",
             type="multi-pick-vocabulary",
-            allowEmptyValue=True,
-            initialDisplayValue='["product", "Notes"]',
-            vocabulary=[("product", "product", None), ("Notes", "Notes", None)],
+            allow_empty_value=True,
+            initial_display_value='["product", "Notes"]',
+            vocabulary=[
+                WDKVocabTerm(("product", "product", None)),
+                WDKVocabTerm(("Notes", "Notes", None)),
+            ],
         ),
     ]
+    return parameters
 
 
 def serve_genes_by_text_definition(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     return serve_definition(
         monkeypatch,
         genes_by_text_wdk(),
-        displayName="Gene Text Search",
+        display_name="Gene Text Search",
         description="Search gene text.",
     )
 

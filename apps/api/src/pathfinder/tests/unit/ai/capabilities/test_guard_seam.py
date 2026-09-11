@@ -21,7 +21,6 @@ from assistant_core.graph.runtime import AssistantDeps
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.agents.tool_vocabulary import (
     READ_ONLY_TOOLS,
@@ -37,17 +36,13 @@ from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import BUILD_SUB_AGENT_BY_ROLE, LeadDeps
 from pathfinder.assistants.pathfinder_spec import RESEARCH_TOOL_SOURCE
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.tests._support.database import no_database
 
 PRODUCT_NAMES = {
     "READ_ONLY_TOOLS",
     "SEARCH_LOOKUP_TOOLS",
     "_SEARCH_LOOKUP_TOOLS",
 }
-
-
-def _never_factory() -> AsyncSession:
-    msg = "the seam test makes no database call"
-    raise AssertionError(msg)
 
 
 def _tool_names(toolset: AbstractToolset[Any]) -> set[str]:
@@ -85,7 +80,7 @@ def _context() -> Context:
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
-        db_session_factory=_never_factory,
+        db_session_factory=no_database,
         cancel_event=asyncio.Event(),
     )
 

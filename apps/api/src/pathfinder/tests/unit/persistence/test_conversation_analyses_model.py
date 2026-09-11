@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from sqlalchemy import Table
+
 from pathfinder.persistence.models import (
     ConversationAnalysis,
     ConversationAnalysisView,
 )
+
+_ANALYSES: Table = ConversationAnalysis.metadata.tables["conversation_analyses"]
 
 
 def test_the_table_is_named_by_the_contract() -> None:
@@ -13,13 +17,13 @@ def test_the_table_is_named_by_the_contract() -> None:
 
 
 def test_the_conversation_is_the_primary_key_so_one_analysis_is_bound() -> None:
-    keys = [c.name for c in ConversationAnalysis.__table__.primary_key.columns]
+    keys = [c.name for c in _ANALYSES.primary_key.columns]
     assert keys == ["conversation_id"]
 
 
 def test_the_row_holds_only_the_reference_and_its_revision() -> None:
     """Storing the descriptor would create a copy that drifts on the next edit."""
-    columns = {c.name for c in ConversationAnalysis.__table__.columns}
+    columns = {c.name for c in _ANALYSES.columns}
     assert columns == {
         "conversation_id",
         "site_id",

@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
 import pytest
-from pydantic_ai.models.test import TestModel
-from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets.abstract import ToolsetTool
 from pydantic_ai.toolsets.function import FunctionToolset
-from pydantic_ai.usage import RunUsage
 
+from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps, ServiceOutageMemory
 from pathfinder.ai.tools.toolsets._dynamic import EnumOverrides, ValidatingEnumToolset
 from pathfinder.ai.tools.toolsets.frame import _frame_enum_overrides, build_toolset
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 # name -> (every argument, the required ones)
 _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
@@ -76,10 +73,7 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
 
 
 async def _mounted_tools() -> dict[str, ToolsetTool[AgentDeps]]:
-    ctx: RunContext[AgentDeps] = RunContext(
-        deps=MagicMock(), model=TestModel(), usage=RunUsage()
-    )
-    return await build_toolset().get_tools(ctx)
+    return await build_toolset().get_tools(agent_run_context())
 
 
 def _shape(tool: ToolsetTool[AgentDeps]) -> tuple[frozenset[str], frozenset[str]]:
@@ -127,16 +121,28 @@ DOWN = "GenesByRNASeqaaegLVP_AGWG_Houri_aegypti_2023_ebi_rnaSeq_RSRCDESeq"
 DOWN_SIBLING = "GenesByRNASeqaaegLVP_AGWG_Houri_aegypti_2023_ebi_rnaSeq_RSRCPercentile"
 
 
+def _inspected(name: str) -> SearchOverview:
+    return SearchOverview(
+        search_name=name,
+        display_name=name,
+        record_type="transcript",
+        description="",
+        parameter_names=[],
+        required_params=[],
+    )
+
+
 def _overrides(
     candidates: list[str],
     outage: ServiceOutageMemory | None = None,
     *,
     discovered: list[str] | None = None,
 ) -> EnumOverrides:
-    ctx = MagicMock()
-    ctx.tool_call_id = "call_1"
-    ctx.deps.agent_state.candidate_search_names.return_value = candidates
-    ctx.deps.agent_state.discovered_search_names.return_value = discovered or []
+    state = AgentToolState()
+    state.record_catalog_searches(candidates)
+    for name in discovered or []:
+        state.discovered_searches[name] = _inspected(name)
+    ctx = agent_run_context(agent_state=state)
     ctx.deps.service_outage = outage or ServiceOutageMemory()
     return _frame_enum_overrides(ctx)
 

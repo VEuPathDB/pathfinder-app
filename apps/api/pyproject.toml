@@ -57,7 +57,7 @@ constraint-dependencies = [
     "soupsieve>=2.8.4",  # PYSEC-2026-3071, PYSEC-2026-3072
 ]
 [tool.uv.sources]
-assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0a5" }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0a6" }
 veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a7" }
 veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0a4" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0a5" }
@@ -185,7 +185,7 @@ plugins = ["pydantic.mypy"]
 warn_return_any = true
 warn_unused_ignores = true
 disable_error_code = ["import-untyped", "untyped-decorator"]
-exclude = ["scripts/", "docs/", "src/pathfinder/tests/"]
+exclude = ["scripts/", "docs/"]
 
 [tool.pydantic-mypy]
 init_typed = false
@@ -459,8 +459,8 @@ ignore_imports = [
     # The one test-support seam: serve_search_details patches validate_parameters
     # through its own module globals, which the package surface cannot reach.
     "pathfinder.tests._support.catalog_builders -> veupathdb_mcp.catalog.param_validation",
-    "pathfinder.tests.integration.ai.test_organism_swap_turn -> veupathdb_mcp.catalog.param_discovery",
-    "pathfinder.tests.integration.ai.test_organism_swap_turn -> veupathdb_mcp.catalog.searches",
+    "pathfinder.tests.integration.ai._organism_swap_wire -> veupathdb_mcp.catalog.param_discovery",
+    "pathfinder.tests.integration.ai._organism_swap_wire -> veupathdb_mcp.catalog.searches",
     "pathfinder.tests.integration.durable.test_geneset_enrichment_durable -> veupathdb_mcp.wdk.enrichment.service",
     "pathfinder.tests.unit.ai.tools.conftest -> veupathdb_mcp.catalog.search_inspection",
     "pathfinder.tests.unit.ai.tools.test_ai_expression_tool -> veupathdb_mcp.wdk.ai_expression",

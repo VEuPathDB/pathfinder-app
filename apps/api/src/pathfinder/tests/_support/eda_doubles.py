@@ -1,16 +1,10 @@
-"""Recorded EDA studies, analysis documents and the run context a tool sees."""
+"""Recorded EDA studies and the analysis documents a test reads them through."""
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Sequence
 from typing import Any
-from uuid import UUID, uuid4
 
-from pydantic_ai import RunContext
-from pydantic_ai.models.test import TestModel
-from pydantic_ai.usage import RunUsage
-from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.eda_study import walk_entities
 from veupathdb.eda.models import (
     EdaAnalysisDetail,
@@ -20,11 +14,7 @@ from veupathdb.eda.models import (
     EdaStudyDetailResponse,
 )
 
-from pathfinder.ai.graph.runtime import Context
-from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.eda_parts import EdaEntityCount
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_DATASET,
     PHENOTYPE_ENTITY,
@@ -34,37 +24,6 @@ from pathfinder.tests._support.eda_wire import (
 
 ANALYSIS_ID = "t4fszEJ"
 SPECIES_VARIABLE = "VAR_035294d0"
-
-
-def no_database() -> AsyncSession:
-    """The factory a tool that must not touch the database is given."""
-    msg = "db factory should not be called in these tests"
-    raise AssertionError(msg)
-
-
-def lead_run_context(
-    *,
-    prompt: str,
-    conversation_id: UUID | None = None,
-    session: StrategySession | None = None,
-) -> RunContext[LeadDeps]:
-    """The context a Lead-mounted tool runs under, with no database behind it."""
-    state = PipelineState(
-        conversation_id=conversation_id or uuid4(),
-        user_id=uuid4(),
-        site_id="plasmodb",
-        mode="strategy",
-        user_prompt=prompt,
-    )
-    runtime = Context(
-        site_id="plasmodb",
-        user_id=state.user_id,
-        strategy_session=session or StrategySession(site_id="plasmodb"),
-        db_session_factory=no_database,
-        cancel_event=asyncio.Event(),
-    )
-    deps = LeadDeps(state=state, intent=None, runtime=runtime, retrieved_memories=[])
-    return RunContext(deps=deps, model=TestModel(), usage=RunUsage(), messages=[])
 
 
 def permission_entry(*, results_all: bool = True) -> EdaPermissionEntry:

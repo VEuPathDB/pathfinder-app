@@ -34,6 +34,7 @@ from pathfinder.persistence.models import (
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.session_factory import build_strategy_session
+from pathfinder.tests._support.database import no_database
 
 
 class _RefusingStrategyApi:
@@ -129,15 +130,11 @@ async def _session_from_postgres(
 
 
 def _context(session: StrategySession) -> Context:
-    def _never_factory() -> AsyncSession:
-        msg = "the pre-turn hook opened a database session"
-        raise AssertionError(msg)
-
     return Context(
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=session,
-        db_session_factory=_never_factory,
+        db_session_factory=no_database,
         cancel_event=asyncio.Event(),
     )
 

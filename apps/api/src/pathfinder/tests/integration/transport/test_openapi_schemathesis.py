@@ -37,11 +37,12 @@ from schemathesis.config import (
     SchemathesisConfig,
 )
 from schemathesis.config import HealthCheck as STHealthCheck
+from schemathesis.core.result import Ok
 from schemathesis.core.transport import Response
 from schemathesis.filters import FilterSet
 from schemathesis.generation import GenerationMode
 from schemathesis.openapi import from_asgi
-from schemathesis.schemas import BaseSchema
+from schemathesis.schemas import APIOperation, BaseSchema
 from schemathesis.specs.openapi.checks import (
     content_type_conformance,
     response_headers_conformance,
@@ -274,7 +275,7 @@ _CHECKS: list[Callable[..., Any]] = [
     ],
 )
 def test_openapi_conformance(
-    case: Case,
+    case: Case[APIOperation[Any, Any, Any, Any]],
     api_schema: _SchemaArtifacts,
 ) -> None:
     """Fuzz one operation and validate the response against its schema."""
@@ -287,6 +288,18 @@ def test_openapi_conformance(
     assert response.status_code < 600
 
 
+def _parsed_operations(schema: BaseSchema) -> list[APIOperation[Any, Any, Any, Any]]:
+    """Every operation the schema parses. One it cannot parse fails the test."""
+    found: list[APIOperation[Any, Any, Any, Any]] = []
+    for result in schema.get_all_operations():
+        if isinstance(result, Ok):
+            found.append(result.ok())
+            continue
+        msg = f"the schema did not parse an operation: {result.err()}"
+        raise AssertionError(msg)
+    return found
+
+
 def test_negative_generation_stays_on_where_a_complement_exists(
     api_schema: _SchemaArtifacts,
 ) -> None:
@@ -294,10 +307,10 @@ def test_negative_generation_stays_on_where_a_complement_exists(
     schema = api_schema.schema
     named = labels_with_uncomplementable_union(schema.raw_schema)
     modes = {
-        operation.ok().label: schema.config.generation_for(
-            operation=operation.ok(), phase="fuzzing"
+        operation.label: schema.config.generation_for(
+            operation=operation, phase="fuzzing"
         ).modes
-        for operation in schema.get_all_operations()
+        for operation in _parsed_operations(schema)
     }
 
     assert modes["POST /api/v1/gene-sets"] == [GenerationMode.POSITIVE]

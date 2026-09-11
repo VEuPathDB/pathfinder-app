@@ -2,28 +2,27 @@
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
+from assistant_core.platform.types import JSONObject
+from pydantic_ai import RunContext
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import RecordTypeInfo, SearchMatch, searches
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools import standalone
-from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.ai.tools.standalone.catalog import (
+    get_record_types,
+    list_searches,
+    search_for_searches,
+)
+from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 
-def _ctx(state: AgentToolState) -> Any:
-    ctx = MagicMock()
-    ctx.tool_call_id = "call_1"
-    ctx.deps = AgentDeps(
-        site_id="plasmodb",
-        strategy_session=StrategySession(site_id="plasmodb"),
-        agent_state=state,
-    )
-    return ctx
+def _ctx(state: AgentToolState) -> RunContext[AgentDeps]:
+    return agent_run_context(agent_state=state)
 
 
 def _inspected(name: str) -> SearchOverview:
@@ -86,9 +85,9 @@ class TestGetRecordTypes:
             ],
         )
 
-        result = (
-            await standalone.catalog.get_record_types(_ctx(AgentToolState()))
-        ).return_value
+        result = returned(
+            await get_record_types(_ctx(AgentToolState())), list[dict[str, str]]
+        )
 
         assert [row["name"] for row in result] == ["transcript", "isolate"]
         assert [row["displayName"] for row in result] == ["Genes", "Isolates"]
@@ -111,11 +110,12 @@ class TestSearchForSearches:
         state = AgentToolState()
         state.register_search("GenesByGoTerm", _inspected("GenesByGoTerm"))
 
-        result = (
-            await standalone.catalog.search_for_searches(
+        result = returned(
+            await search_for_searches(
                 _ctx(state), query="gametocyte RNA-Seq differential expression"
-            )
-        ).return_value
+            ),
+            list[JSONObject],
+        )
 
         assert [row.get("name") for row in result] == [
             "GenesByTaxon",
@@ -138,12 +138,13 @@ class TestSearchForSearches:
         )
         state = AgentToolState()
 
-        result = (
-            await standalone.catalog.search_for_searches(
+        result = returned(
+            await search_for_searches(
                 _ctx(state),
                 query="find genes by organism taxonomy plasmodium falciparum",
-            )
-        ).return_value
+            ),
+            list[JSONObject],
+        )
 
         taxon = next(row for row in result if row["name"] == "GenesByTaxon")
         assert taxon["displayName"] == "Genes by Taxon"
@@ -169,12 +170,13 @@ class TestSearchForSearches:
         state = AgentToolState()
         state.register_search("GenesByTaxon", _inspected("GenesByTaxon"))
 
-        result = (
-            await standalone.catalog.search_for_searches(
+        result = returned(
+            await search_for_searches(
                 _ctx(state),
                 query="find genes by organism taxonomy or go term plasmodium",
-            )
-        ).return_value
+            ),
+            list[JSONObject],
+        )
 
         names = [str(row.get("name")) for row in result]
         assert "GenesByTaxon" in names
@@ -182,11 +184,10 @@ class TestSearchForSearches:
         assert [row for row in result if "note" in row] == []
 
     async def test_a_vague_query_is_refused(self) -> None:
-        result = (
-            await standalone.catalog.search_for_searches(
-                _ctx(AgentToolState()), query="genes"
-            )
-        ).return_value
+        result = returned(
+            await search_for_searches(_ctx(AgentToolState()), query="genes"),
+            list[JSONObject],
+        )
 
         assert len(result) == 1
         assert result[0]["error"] == "query_too_vague"
@@ -207,7 +208,7 @@ class TestListSearches:
         state = AgentToolState()
         state.register_search("GenesByGoTerm", _inspected("GenesByGoTerm"))
 
-        result = (await standalone.catalog.list_searches(_ctx(state))).return_value
+        result = returned(await list_searches(_ctx(state)), list[str])
 
         assert result == ["GenesByTaxon", "GenesByGoTerm"]
         assert state.catalog_search_names == {"GenesByTaxon", "GenesByGoTerm"}
@@ -225,11 +226,10 @@ class TestListSearches:
             ],
         )
 
-        result = (
-            await standalone.catalog.list_searches(
-                _ctx(AgentToolState()), record_type="transcript"
-            )
-        ).return_value
+        result = returned(
+            await list_searches(_ctx(AgentToolState()), record_type="transcript"),
+            list[str],
+        )
 
         assert result == ["GenesByTaxon", "GenesByLocation", "GenesByText"]
         mock.assert_awaited_once_with("plasmodb", "transcript")
@@ -248,10 +248,8 @@ class TestListSearches:
         state = AgentToolState()
         state.register_search("GenesByTaxon", _inspected("GenesByTaxon"))
 
-        result = (
-            await standalone.catalog.list_searches(
-                _ctx(state), record_type="transcript"
-            )
-        ).return_value
+        result = returned(
+            await list_searches(_ctx(state), record_type="transcript"), list[str]
+        )
 
         assert result == ["GenesByTaxon", "GenesByText"]

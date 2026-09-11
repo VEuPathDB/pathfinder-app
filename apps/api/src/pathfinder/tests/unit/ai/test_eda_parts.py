@@ -314,15 +314,17 @@ def test_the_labels_and_values_of_a_series_are_the_same_length() -> None:
 
 def test_the_viz_chart_union_refuses_a_kind_no_renderer_draws() -> None:
     with pytest.raises(ValidationError):
-        EdaVizPart(
-            dataset_id="DS_x",
-            analysis_id="a",
-            chart="pie",
-            effect_size_label="",
-            effect_size_threshold=None,
-            significance_threshold=None,
-            effect_direction=None,
-            total_points=0,
-            retained_points=0,
-            points=[],
+        EdaVizPart.model_validate(
+            {
+                "dataset_id": "DS_x",
+                "analysis_id": "a",
+                "chart": "pie",
+                "effect_size_label": "",
+                "effect_size_threshold": None,
+                "significance_threshold": None,
+                "effect_direction": None,
+                "total_points": 0,
+                "retained_points": 0,
+                "points": [],
+            }
         )

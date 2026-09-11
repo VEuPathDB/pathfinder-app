@@ -9,6 +9,8 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from veupathdb.wdk.site_router import SiteInfo
+from veupathdb_mcp import catalog
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.platform.errors import ErrorCode, SiteUnavailableError
@@ -72,29 +74,31 @@ async def test_a_turn_on_a_degraded_site_is_refused() -> None:
 async def test_a_turn_on_a_loaded_site_is_dispatched() -> None:
     get_readiness().mark_catalog_ready("plasmodb")
 
-    assert await require_available_chat_site(_body("plasmodb")) is None
+    await require_available_chat_site(_body("plasmodb"))
+
     assert get_readiness().degraded == []
 
 
-class _Site:
-    def __init__(self, site_id: str, *, is_portal: bool) -> None:
-        self.id = site_id
-        self.name = site_id.title()
-        self.display_name = f"{site_id.title()} (test)"
-        self.base_url = f"https://{site_id}.org/service"
-        self.project_id = site_id.title()
-        self.is_portal = is_portal
+def _site(site_id: str, *, is_portal: bool) -> SiteInfo:
+    return SiteInfo(
+        id=site_id,
+        name=site_id.title(),
+        display_name=f"{site_id.title()} (test)",
+        base_url=f"https://{site_id}.org/service",
+        project_id=site_id.title(),
+        is_portal=is_portal,
+    )
 
 
 @pytest.fixture
 def two_sites(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def list_sites() -> list[_Site]:
+    async def list_sites() -> list[SiteInfo]:
         return [
-            _Site("plasmodb", is_portal=False),
-            _Site("veupathdb", is_portal=True),
+            _site("plasmodb", is_portal=False),
+            _site("veupathdb", is_portal=True),
         ]
 
-    monkeypatch.setattr(catalog_router.catalog, "list_sites", list_sites)
+    monkeypatch.setattr(catalog, "list_sites", list_sites)
 
 
 async def test_the_sites_list_reports_a_degraded_site(two_sites: None) -> None:

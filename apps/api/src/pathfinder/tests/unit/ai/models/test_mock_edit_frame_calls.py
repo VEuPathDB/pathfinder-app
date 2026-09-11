@@ -6,8 +6,6 @@ from it rather than from a canned spec whose ids the build already replaced.
 
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic_ai.messages import ToolCallPart
 from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
 from veupathdb.domain.strategy.ops import CombineOp
@@ -99,7 +97,7 @@ def test_only_the_seed_criterion_reads_its_sheet() -> None:
     call = _call(_listed())
 
     assert call.tool_name == "set_criterion"
-    args: dict[str, Any] = dict(call.args or {})
+    args = call.args_as_dict()
     assert args["criterion_id"] == "step_taxon"
     assert "params" not in args
 
@@ -111,7 +109,7 @@ def test_the_proposal_moves_only_the_organism() -> None:
 
     call = _call(_listed(), [sheet])
 
-    args: dict[str, Any] = dict(call.args or {})
+    args = call.args_as_dict()
     assert args["params"] == {"organism": [_PV]}
     assert args["role"] == "seed"
 
@@ -122,7 +120,7 @@ def test_the_result_declares_every_criterion_the_workspace_listed() -> None:
     call = _call(_listed(), [bound])
 
     assert call.tool_name == "final_result"
-    args: dict[str, Any] = dict(call.args or {})
+    args = call.args_as_dict()
     assert [(c["criterionId"], c["disposition"]) for c in args["changes"]] == [
         ("step_text", "kept"),
         ("step_taxon", "changed"),

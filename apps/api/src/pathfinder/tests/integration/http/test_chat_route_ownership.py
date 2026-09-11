@@ -25,11 +25,12 @@ async def _count_messages(
     conversation_id: UUID,
 ) -> int:
     async with session_maker() as session:
-        return await session.scalar(
+        found = await session.execute(
             select(func.count())
             .select_from(Message)
             .where(Message.conversation_id == conversation_id),
         )
+        return found.scalar_one()
 
 
 async def test_chat_rejects_a_conversation_owned_by_another_user(

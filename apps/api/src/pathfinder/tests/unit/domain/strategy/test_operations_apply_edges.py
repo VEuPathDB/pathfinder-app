@@ -7,6 +7,8 @@ which is precisely what the delete dialog promises.
 
 from __future__ import annotations
 
+from typing import Literal
+
 import pytest
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import TypeAdapter, ValidationError
@@ -37,13 +39,17 @@ def _pair_graph() -> StrategyGraph:
     return graph_with([combine("c", leaf("a"), leaf("b"))], record_type="transcript")
 
 
-def _cut(source_id: str, slot: str, resolution: DeleteEdgeResolution) -> DeleteEdgeOp:
+def _cut(
+    source_id: str,
+    slot: Literal["primary", "secondary"],
+    resolution: DeleteEdgeResolution,
+) -> DeleteEdgeOp:
     return DeleteEdgeOp(
         source_id=source_id, target_id="c", slot=slot, resolution=resolution
     )
 
 
-def _detach(source_id: str, slot: str) -> DeleteEdgeOp:
+def _detach(source_id: str, slot: Literal["primary", "secondary"]) -> DeleteEdgeOp:
     return _cut(source_id, slot, DeleteEdgeResolution.DETACH)
 
 
@@ -90,7 +96,7 @@ class TestWireContract:
 
     def test_round_trips_through_camel_case(self) -> None:
         op = _cut("b", "primary", DeleteEdgeResolution.COLLAPSE)
-        adapter = TypeAdapter(GraphOperation)
+        adapter: TypeAdapter[GraphOperation] = TypeAdapter(GraphOperation)
 
         restored = adapter.validate_python(op.model_dump(by_alias=True, mode="json"))
 

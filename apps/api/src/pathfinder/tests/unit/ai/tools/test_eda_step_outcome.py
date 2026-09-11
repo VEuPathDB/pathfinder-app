@@ -13,8 +13,10 @@ from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.commit import CommitResult
-from pathfinder.tests._support.eda_doubles import ANALYSIS_ID, lead_run_context
+from pathfinder.tests._support.eda_doubles import ANALYSIS_ID
 from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
+from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
     WDK_STRATEGY_ID,
     bound,
@@ -29,7 +31,9 @@ from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
 def lead_ctx() -> RunContext[LeadDeps]:
     session = StrategySession(site_id="plasmodb")
     session.add_graph(StrategyGraph("g1", "Test", "plasmodb"))
-    return lead_run_context(prompt="export the febrile subset", session=session)
+    return lead_run_context(
+        user_prompt="export the febrile subset", strategy_session=session
+    )
 
 
 def _wire(monkeypatch: pytest.MonkeyPatch, *, read: object, commit: object) -> None:
@@ -43,9 +47,9 @@ async def test_the_step_emits_the_parts_the_workbench_already_listens_to(
 ) -> None:
     _wire(monkeypatch, read=read_detail, commit=recording_commit([]))
 
-    returned = await eda_step.create_eda_step(lead_ctx)
+    answer = await eda_step.create_eda_step(lead_ctx)
 
-    kinds = [c.type for c in returned.metadata]
+    kinds = [c.type for c in answer.metadata]
     assert "data-graph-snapshot" in kinds
     assert "data-strategy-link" not in kinds
 
@@ -61,11 +65,12 @@ async def test_a_commit_with_a_wdk_url_also_emits_the_strategy_link(
         ),
     )
 
-    returned = await eda_step.create_eda_step(lead_ctx)
+    answer = await eda_step.create_eda_step(lead_ctx)
 
-    kinds = [c.type for c in returned.metadata]
+    kinds = [c.type for c in answer.metadata]
     assert kinds == ["data-graph-snapshot", "data-strategy-link"]
-    assert returned.return_value.wdk_strategy_id == WDK_STRATEGY_ID
+    result = returned(answer, eda_step.EdaStepCreated)
+    assert result.wdk_strategy_id == WDK_STRATEGY_ID
 
 
 async def test_a_step_wdk_rejected_is_reported_rather_than_hidden(
@@ -79,10 +84,11 @@ async def test_a_step_wdk_rejected_is_reported_rather_than_hidden(
 
     _wire(monkeypatch, read=read_detail, commit=commit)
 
-    returned = await eda_step.create_eda_step(lead_ctx)
+    answer = await eda_step.create_eda_step(lead_ctx)
 
-    assert returned.return_value.failed_step_ids == ["step_1"]
-    assert returned.return_value.wdk_strategy_id is None
+    result = returned(answer, eda_step.EdaStepCreated)
+    assert result.failed_step_ids == ["step_1"]
+    assert result.wdk_strategy_id is None
 
 
 async def test_the_export_records_the_build_the_turn_left(
@@ -96,9 +102,10 @@ async def test_the_export_records_the_build_the_turn_left(
         commit=pushing_commit([], session=session, count=1543),
     )
 
-    returned = await eda_step.create_eda_step(lead_ctx)
+    answer = await eda_step.create_eda_step(lead_ctx)
 
-    step_id = returned.return_value.step_id
+    result = returned(answer, eda_step.EdaStepCreated)
+    step_id = result.step_id
     state = lead_ctx.deps.state
     outcome = state.domain.last_build_outcome
     assert outcome is not None
@@ -126,7 +133,7 @@ async def test_the_export_records_what_the_case_remembers(
         commit=pushing_commit([], session=session, count=212),
     )
 
-    returned = await eda_step.create_eda_step(
+    answer = await eda_step.create_eda_step(
         lead_ctx,
         effect_size_threshold=1.5,
         significance_threshold=0.01,
@@ -138,7 +145,8 @@ async def test_the_export_records_what_the_case_remembers(
     assert export.dataset_id == PHENOTYPE_DATASET
     assert export.analysis_id == ANALYSIS_ID
     assert export.search_name == "GenesByEdaVizWithCompute"
-    assert export.step_id == returned.return_value.step_id
+    result = returned(answer, eda_step.EdaStepCreated)
+    assert export.step_id == result.step_id
     assert export.is_compute_backed is True
     assert export.effect_size_threshold == 1.5
     assert export.significance_threshold == 0.01
@@ -156,12 +164,13 @@ async def test_a_zero_count_export_is_recorded_as_a_zero_step(
         commit=pushing_commit([], session=session, count=0),
     )
 
-    returned = await eda_step.create_eda_step(lead_ctx)
+    answer = await eda_step.create_eda_step(lead_ctx)
 
     outcome = lead_ctx.deps.state.domain.last_build_outcome
     assert outcome is not None
     assert outcome.root_count == 0
-    assert outcome.zero_step_ids == [returned.return_value.step_id]
+    result = returned(answer, eda_step.EdaStepCreated)
+    assert outcome.zero_step_ids == [result.step_id]
 
 
 async def test_a_draft_export_the_site_never_took_records_no_build(

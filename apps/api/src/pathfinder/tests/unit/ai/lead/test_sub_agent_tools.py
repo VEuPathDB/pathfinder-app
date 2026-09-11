@@ -196,10 +196,12 @@ def _ctx(
     phase_models: dict[PhaseRole, str] | None = None,
     phase_reasoning: dict[PhaseRole, ReasoningEffort] | None = None,
 ) -> Context:
+    models: dict[str, str] = dict((phase_models or {}).items())
+    reasoning: dict[str, ReasoningEffort] = dict((phase_reasoning or {}).items())
     return dataclasses.replace(
         lead_runtime(),
-        phase_models=dict(phase_models or {}),
-        phase_reasoning=dict(phase_reasoning or {}),
+        phase_models=models,
+        phase_reasoning=reasoning,
     )
 
 

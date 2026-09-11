@@ -1,9 +1,9 @@
-import json
-
+from assistant_core.platform.types import JSONObject
 from fastapi import HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from limits import parse
+from pydantic import TypeAdapter
 from slowapi.errors import RateLimitExceeded
 from slowapi.wrappers import Limit
 from starlette.requests import Request
@@ -40,8 +40,8 @@ def _request() -> Request:
     )
 
 
-def _body(resp: JSONResponse) -> dict[str, object]:
-    return json.loads(bytes(resp.body))
+def _body(resp: JSONResponse) -> JSONObject:
+    return TypeAdapter(JSONObject).validate_json(bytes(resp.body))
 
 
 def test_an_application_error_is_a_client_refusal() -> None:
@@ -145,8 +145,7 @@ async def test_request_validation_handler_returns_problem_json() -> None:
     assert resp.status_code == 422
     body = _body(resp)
     assert body["code"] == "VALIDATION_ERROR"
-    errors = body["errors"]
-    assert isinstance(errors, list)
+    errors = TypeAdapter(list[JSONObject]).validate_python(body["errors"])
     assert errors[0]["msg"] == "Field required"
 
 

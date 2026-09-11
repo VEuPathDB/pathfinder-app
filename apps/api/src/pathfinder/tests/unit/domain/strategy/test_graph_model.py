@@ -118,11 +118,13 @@ class TestKindIsExplicit:
         assert rebuild_tree("c", _wired_combine()).search_name == COMBINE_SEARCH_NAME
 
     def test_the_flat_step_of_a_sentinel_combine_has_no_search_name(self) -> None:
-        node = StrategyStepNode(
-            id="c",
-            primary_input=StrategyStepNode(id="a", search_name="a"),
-            secondary_input=StrategyStepNode(id="b", search_name="b"),
-            operator=CombineOp.INTERSECT,
+        node = StrategyStepNode.model_validate(
+            {
+                "id": "c",
+                "primary_input": StrategyStepNode(id="a", search_name="a"),
+                "secondary_input": StrategyStepNode(id="b", search_name="b"),
+                "operator": CombineOp.INTERSECT,
+            }
         )
         step = flatten_tree(node)["c"]
 

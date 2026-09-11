@@ -3,35 +3,46 @@ text the recorded turn carries."""
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 from typing import Any
 from uuid import uuid4
 
 import pytest
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
+from veupathdb.domain.eda_validation import GeneEntityResult
 from veupathdb.wdk.ai_expression import AiExpressionStatus
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import ParameterInfo
 from veupathdb_mcp.gene_lookup import GeneSearchResult
-from veupathdb_mcp.wdk import NO_SUMMARY_ON_THE_SITE, GeneExpressionSummary
+from veupathdb_mcp.wdk import (
+    NO_SUMMARY_ON_THE_SITE,
+    GeneExpressionSummary,
+    StepCountResult,
+)
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.lead import lead_tools
-from pathfinder.ai.tools import standalone
 from pathfinder.ai.tools.standalone import (
     catalog_discovery,
     eda_analysis,
     eda_catalog,
     eda_compute,
+    execution,
     experiment,
+    gene,
     memory_tools,
     strategy_graph,
     workbench,
 )
+from pathfinder.ai.tools.standalone.catalog import search_for_searches
+from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.services.eda.catalog import StudyCard
+from pathfinder.services.eda import EdaStudyDetail
+from pathfinder.services.eda.catalog import StudyCard, StudySearch
+from pathfinder.services.eda.description import EdaPermissionFacts
+from pathfinder.tests._support.eda_doubles import permission_entry, study_of
+from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests.unit.ai.tools.conftest import (
-    agent_state_ctx,
+    agent_run_context,
     summary_chunks,
     summary_of,
 )
@@ -42,12 +53,14 @@ class TestASilentZeroReportsEmpty:
     is the failure the reader cannot see."""
 
     async def test_search_eda_studies(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        async def _none(_site: str, _query: str, *, limit: int) -> Any:
+        async def _none(_site: str, _query: str, *, limit: int) -> StudySearch:
             del limit
-            return SimpleNamespace(cards=[], guidance="")
+            return StudySearch(cards=[], guidance="")
 
         monkeypatch.setattr(eda_catalog, "search_studies", _none)
-        returned = await eda_catalog.search_eda_studies(agent_state_ctx(), "heat shock")
+        returned = await eda_catalog.search_eda_studies(
+            lead_run_context(tool_call_id="call_1"), "heat shock"
+        )
         chunk = summary_of(returned)
         assert chunk.data["summary"] == "No study matched heat shock"
         assert chunk.data["status"] == "empty"
@@ -57,9 +70,9 @@ class TestASilentZeroReportsEmpty:
             return []
 
         monkeypatch.setattr(catalog, "search_for_searches", _none)
-        ctx = agent_state_ctx()
+        ctx = agent_run_context()
         ctx.deps.agent_state = AgentToolState()
-        returned = await standalone.catalog.search_for_searches(ctx, "nothing at all")
+        returned = await search_for_searches(ctx, "nothing at all")
         chunk = summary_of(returned)
         assert chunk.data["summary"] == "0 searches"
         assert chunk.data["status"] == "empty"
@@ -78,7 +91,7 @@ class TestASilentZeroReportsEmpty:
             )
 
         monkeypatch.setattr(catalog_discovery, "read_parameter_options", _no_options)
-        ctx = agent_state_ctx()
+        ctx = agent_run_context()
         ctx.deps.agent_state = AgentToolState()
         ctx.deps.site_id = "plasmodb"
         returned = await catalog_discovery.get_parameter_options(
@@ -89,19 +102,19 @@ class TestASilentZeroReportsEmpty:
         assert chunk.data["status"] == "empty"
 
     async def test_get_estimated_size(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        async def _zero(*_args: Any, **_kwargs: Any) -> Any:
-            return SimpleNamespace(step_id=132, count=0)
+        async def _zero(*_args: Any, **_kwargs: Any) -> StepCountResult:
+            return StepCountResult(step_id=132, count=0)
 
-        monkeypatch.setattr(standalone.execution, "get_estimated_size_for_site", _zero)
-        ctx = agent_state_ctx()
+        monkeypatch.setattr(execution, "get_estimated_size_for_site", _zero)
+        ctx = agent_run_context()
         ctx.deps.strategy_session.site_id = "plasmodb"
-        returned = await standalone.execution.get_estimated_size(ctx, 132)
+        returned = await execution.get_estimated_size(ctx, 132)
         chunk = summary_of(returned)
         assert chunk.data["summary"] == "Step 132: 0 records"
         assert chunk.data["status"] == "empty"
 
     async def test_get_strategy(self) -> None:
-        ctx = agent_state_ctx()
+        ctx = agent_run_context()
         ctx.deps.strategy_session = StrategySession(site_id="plasmodb")
         returned = await strategy_graph.get_strategy(ctx)
         chunk = summary_of(returned)
@@ -109,10 +122,11 @@ class TestASilentZeroReportsEmpty:
         assert chunk.data["status"] == "empty"
 
     async def test_get_live_strategy_state(self) -> None:
-        ctx = agent_state_ctx()
-        ctx.deps.runtime.site_id = "plasmodb"
-        ctx.deps.runtime.strategy_session = StrategySession(site_id="plasmodb")
-        chunk = summary_of(await lead_tools.get_live_strategy_state(ctx))
+        chunk = summary_of(
+            await lead_tools.get_live_strategy_state(
+                lead_run_context(tool_call_id="call_1")
+            )
+        )
         assert chunk.data["summary"] == "No strategy yet"
         assert chunk.data["status"] == "empty"
 
@@ -120,10 +134,10 @@ class TestASilentZeroReportsEmpty:
         async def _none(*_args: Any, **_kwargs: Any) -> GeneSearchResult:
             return GeneSearchResult(records=[], total_count=0)
 
-        monkeypatch.setattr(standalone.gene, "lookup_genes_by_text", _none)
-        ctx = agent_state_ctx()
+        monkeypatch.setattr(gene, "lookup_genes_by_text", _none)
+        ctx = agent_run_context()
         ctx.deps.site_id = "plasmodb"
-        returned = await standalone.gene.lookup_gene_records(ctx, "PfAP2-G")
+        returned = await gene.lookup_gene_records(ctx, "PfAP2-G")
         chunk = summary_of(returned)
         assert chunk.data["summary"] == "0 genes matched PfAP2-G"
         assert chunk.data["status"] == "empty"
@@ -140,16 +154,16 @@ class TestASilentZeroReportsEmpty:
                 unavailable_reason=NO_SUMMARY_ON_THE_SITE,
             )
 
-        monkeypatch.setattr(standalone.gene, "get_gene_expression_summary", _absent)
-        ctx = agent_state_ctx()
+        monkeypatch.setattr(gene, "get_gene_expression_summary", _absent)
+        ctx = agent_run_context()
         ctx.deps.site_id = "plasmodb"
-        returned = await standalone.gene.get_ai_expression_summary(ctx, "PF3D7_0709000")
+        returned = await gene.get_ai_expression_summary(ctx, "PF3D7_0709000")
         chunk = summary_of(returned)
         assert chunk.data["summary"] == "No expression summary for PF3D7_0709000"
         assert chunk.data["status"] == "empty"
 
     async def test_search_memory(self) -> None:
-        ctx = agent_state_ctx()
+        ctx = agent_run_context()
         ctx.deps.memory_store = None
         ctx.deps.user_id = None
         returned = await memory_tools.search_memory(ctx, "gametocytes")
@@ -195,27 +209,42 @@ class TestThePinnedStrings:
             source_type="curated",
         )
 
-        async def _three(_site: str, _query: str, *, limit: int) -> Any:
+        async def _three(_site: str, _query: str, *, limit: int) -> StudySearch:
             del limit
-            return SimpleNamespace(cards=[card, card, card], guidance="")
+            return StudySearch(cards=[card, card, card], guidance="")
 
         monkeypatch.setattr(eda_catalog, "search_studies", _three)
-        returned = await eda_catalog.search_eda_studies(agent_state_ctx(), "heat shock")
+        returned = await eda_catalog.search_eda_studies(
+            lead_run_context(tool_call_id="call_1"), "heat shock"
+        )
         assert summary_of(returned).data["summary"] == "3 studies matched heat shock"
 
     async def test_open_eda_analysis(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """The line names the analysis the researcher named, and nothing after it."""
         name = "Febrile versus normal heat-shock expression"
 
-        async def _study(_site: str, _dataset: str) -> tuple[Any, Any]:
-            return SimpleNamespace(), SimpleNamespace()
+        async def _study(
+            _site: str, _dataset: str
+        ) -> tuple[EdaPermissionFacts, EdaStudyDetail]:
+            return (
+                EdaPermissionFacts.model_validate(permission_entry()),
+                study_of([], entity_id="ENT_g"),
+            )
 
-        async def _bind(_site: str, **_kwargs: Any) -> Any:
-            return SimpleNamespace(
+        async def _bind(_site: str, **_kwargs: Any) -> EdaAnalysisState:
+            return EdaAnalysisState(
+                site_id="plasmodb",
+                dataset_id="DS_e973eadd57",
                 analysis_id="a1",
+                revision=1,
                 study_id="STUDY_e973eadd57",
                 display_name=name,
                 study_display_name="Heat shock",
+                num_filters=0,
+                num_computations=0,
+                filters=[],
+                filter_summaries=[],
+                entity_counts=[],
                 can_export_rows=True,
             )
 
@@ -224,16 +253,16 @@ class TestThePinnedStrings:
         monkeypatch.setattr(
             eda_analysis,
             "find_gene_entity",
-            lambda _study, *, subject: SimpleNamespace(entity_id="ENT_g", error=None),
+            lambda _study, *, subject: GeneEntityResult(entity_id="ENT_g", error=None),
         )
         monkeypatch.setattr(
             eda_analysis,
             "analysis_state_chunks_if_changed",
             lambda _state, domain: [DataChunk(type="data-eda.analysis-state", data={})],
         )
-        ctx = agent_state_ctx()
-        ctx.deps.runtime.site_id = "plasmodb"
-        returned = await eda_analysis.open_eda_analysis(ctx, "DS_e973eadd57", name)
+        returned = await eda_analysis.open_eda_analysis(
+            lead_run_context(tool_call_id="call_1"), "DS_e973eadd57", name
+        )
         assert summary_of(returned).data["summary"] == f"Opened {name}"
 
     def test_run_control_tests_on_step(self) -> None:

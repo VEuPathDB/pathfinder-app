@@ -96,39 +96,39 @@ def _full_registry() -> StreamPartRegistry:
     return registry
 
 
-def test_register_rejects_a_duplicate_kind():
+def test_register_rejects_a_duplicate_kind() -> None:
     registry = StreamPartRegistry()
     registry.register("data-thing", _Payload)
     with pytest.raises(DuplicateStreamPartError):
         registry.register("data-thing", _Payload)
 
 
-def test_register_rejects_a_kind_that_collides_with_a_schema_only_name():
+def test_register_rejects_a_kind_that_collides_with_a_schema_only_name() -> None:
     registry = StreamPartRegistry()
     registry.register_schema_only("thing", _Payload)
     with pytest.raises(DuplicateStreamPartError):
         registry.register("data-thing", _Payload)
 
 
-def test_register_rejects_a_kind_without_the_data_prefix():
+def test_register_rejects_a_kind_without_the_data_prefix() -> None:
     registry = StreamPartRegistry()
     with pytest.raises(InvalidStreamPartNameError):
         registry.register("thing", _Payload)
 
 
-def test_register_rejects_a_kind_that_is_not_an_identifier():
+def test_register_rejects_a_kind_that_is_not_an_identifier() -> None:
     registry = StreamPartRegistry()
     with pytest.raises(InvalidStreamPartNameError):
         registry.register("data-two words", _Payload)
 
 
-def test_register_accepts_a_namespaced_kind():
+def test_register_accepts_a_namespaced_kind() -> None:
     registry = StreamPartRegistry()
     registry.register("data-other.gene-view", _Payload)
     assert registry.kinds() == frozenset({"data-other.gene-view"})
 
 
-def test_core_and_strategy_registrations_are_disjoint():
+def test_core_and_strategy_registrations_are_disjoint() -> None:
     core = StreamPartRegistry()
     register_core_stream_parts(core)
     strategy = StreamPartRegistry()
@@ -138,43 +138,43 @@ def test_core_and_strategy_registrations_are_disjoint():
     assert core_names & strategy_names == set()
 
 
-def test_registered_set_matches_the_pinned_schema_names():
+def test_registered_set_matches_the_pinned_schema_names() -> None:
     registry = _full_registry()
     assert {entry.schema_name for entry in registry.entries()} == PINNED_SCHEMA_NAMES
 
 
-def test_registered_kinds_match_the_pinned_kinds():
+def test_registered_kinds_match_the_pinned_kinds() -> None:
     registry = _full_registry()
     assert registry.kinds() == PINNED_CORE_KINDS | PINNED_STRATEGY_KINDS
 
 
-def test_core_registers_the_runtime_kinds():
+def test_core_registers_the_runtime_kinds() -> None:
     registry = StreamPartRegistry()
     register_core_stream_parts(registry)
     assert registry.kinds() == PINNED_CORE_KINDS
 
 
-def test_strategy_registers_the_science_kinds():
+def test_strategy_registers_the_science_kinds() -> None:
     registry = StreamPartRegistry()
     register_strategy_stream_parts(registry)
     assert registry.kinds() == PINNED_STRATEGY_KINDS
 
 
-def test_entries_are_ordered_by_schema_name():
+def test_entries_are_ordered_by_schema_name() -> None:
     registry = StreamPartRegistry()
     registry.register("data-zeta", _Payload)
     registry.register("data-alpha", _Payload)
     assert [entry.schema_name for entry in registry.entries()] == ["alpha", "zeta"]
 
 
-def test_schema_index_model_carries_one_optional_field_per_entry():
+def test_schema_index_model_carries_one_optional_field_per_entry() -> None:
     registry = _full_registry()
     index = registry.schema_index_model()
     assert set(index.model_fields) == PINNED_SCHEMA_NAMES
     assert index().model_dump(exclude_none=True) == {}
 
 
-def test_openapi_schema_exposes_every_registered_payload():
+def test_openapi_schema_exposes_every_registered_payload() -> None:
     spec = create_app().openapi()
     schemas = spec["components"]["schemas"]
     index = schemas["StreamPartsSchemaIndex"]["properties"]

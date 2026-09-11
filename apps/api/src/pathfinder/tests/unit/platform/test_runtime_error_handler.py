@@ -1,6 +1,6 @@
 """The runtime raises without a status; this application supplies one."""
 
-import json
+from uuid import UUID
 
 from assistant_core.errors import (
     AssistantCoreError,
@@ -8,7 +8,9 @@ from assistant_core.errors import (
     ConversationNotFoundError,
     TurnStillRunningError,
 )
+from assistant_core.platform.types import JSONObject
 from fastapi.responses import JSONResponse
+from pydantic import TypeAdapter
 from starlette.requests import Request
 
 from pathfinder.platform.error_handlers import (
@@ -17,7 +19,7 @@ from pathfinder.platform.error_handlers import (
 )
 
 _PROBLEM_JSON = "application/problem+json"
-_CONVERSATION_ID = "11111111-1111-1111-1111-111111111111"
+_CONVERSATION_ID = UUID("11111111-1111-1111-1111-111111111111")
 
 
 def _request() -> Request:
@@ -34,8 +36,8 @@ def _request() -> Request:
     )
 
 
-def _body(resp: JSONResponse) -> dict[str, object]:
-    return json.loads(bytes(resp.body))
+def _body(resp: JSONResponse) -> JSONObject:
+    return TypeAdapter(JSONObject).validate_json(bytes(resp.body))
 
 
 async def test_a_thread_the_caller_cannot_see_reads_as_not_found() -> None:
@@ -61,7 +63,7 @@ async def test_a_turn_still_in_flight_is_a_conflict() -> None:
     )
     assert resp.status_code == 409
     assert _body(resp)["code"] == "SESSION_CONFLICT"
-    assert _CONVERSATION_ID in str(_body(resp)["detail"])
+    assert str(_CONVERSATION_ID) in str(_body(resp)["detail"])
 
 
 def test_every_refusal_the_runtime_raises_has_a_status_here() -> None:

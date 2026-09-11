@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
+from types import ModuleType
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -112,12 +113,13 @@ async def test_both_callers_build_the_same_session(
     assert worker_graph is not None
     assert spec_graph.to_strategy_ast() == worker_graph.to_strategy_ast()
     assert sorted(spec_graph.steps) == ["step_root"]
-    assert from_spec.strategy_session.sync_state.step_counts == {"step_root": 2122}
-    assert (
-        from_worker.strategy_session.sync_state.step_counts
-        == from_spec.strategy_session.sync_state.step_counts
-    )
-    assert from_worker.strategy_session.sync_state.wdk_step_ids == {"step_root": 990001}
+    spec_sync = from_spec.strategy_session.sync_state
+    worker_sync = from_worker.strategy_session.sync_state
+    assert spec_sync is not None
+    assert worker_sync is not None
+    assert spec_sync.step_counts == {"step_root": 2122}
+    assert worker_sync.step_counts == spec_sync.step_counts
+    assert worker_sync.wdk_step_ids == {"step_root": 990001}
 
 
 async def _spec_context() -> None:
@@ -146,7 +148,13 @@ async def test_a_corrupt_row_stops_both_callers_by_name(
     assert str(_CONVERSATION_ID) in (excinfo.value.detail or "")
 
 
+def _module_attr(module: ModuleType, name: str) -> object:
+    """The object a module holds under a name, re-exported or not."""
+    return getattr(module, name)
+
+
 def test_the_row_to_session_parse_has_one_owner() -> None:
     """Only ``persisted_graph`` turns a stored row into a graph."""
-    assert pathfinder_spec.persisted_graph is session_factory.persisted_graph
-    assert runtime.persisted_graph is session_factory.persisted_graph
+    owner = session_factory.persisted_graph
+    assert _module_attr(pathfinder_spec, "persisted_graph") is owner
+    assert _module_attr(runtime, "persisted_graph") is owner

@@ -45,9 +45,9 @@ async def test_the_pre_sweep_cleanup_matches_the_name_the_sweep_writes(
     matched: list[str] = []
     listed = [
         WDKStrategySummary(
-            strategyId=771,
+            strategy_id=771,
             name=f"__pathfinder_internal__:{CONTROL_TEST_STRATEGY_NAME} 1",
-            rootStepId=8801,
+            root_step_id=8801,
         )
     ]
 
@@ -96,7 +96,7 @@ async def test_an_enrichment_run_names_the_strategy_it_writes(
         site_id="plasmodb",
         record_type="transcript",
         gene_ids=["PF3D7_0100100"],
-        source="manual",
+        source="paste",
     )
     summary = await enrichment.run_enrichment_for_gene_set(gene_set, ["go_process"])
 

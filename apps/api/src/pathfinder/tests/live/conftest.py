@@ -12,6 +12,7 @@ from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 import pytest
 from _pytest.reports import TestReport
 from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.json_types import JSONObject
 from veupathdb.testing.summary import DriftLog, summary_path
 from veupathdb.wdk.factory import get_strategy_api, get_wdk_client
 from veupathdb.wdk.probe import WDKProbe
@@ -87,7 +88,7 @@ def probe(wdk_identity: str) -> Probe:
         site: str,
         method: str,
         path: str,
-        params: dict[str, str] | None = None,
+        params: JSONObject | None = None,
         json: object = None,
     ) -> WDKProbe:
         return await get_wdk_client(site).probe(method, path, params=params, json=json)
@@ -111,8 +112,8 @@ async def owned_strategy(
         api = get_strategy_api(site)
         step = await api.create_step(
             NewStepSpec(
-                searchName="GenesByMolecularWeight",
-                searchConfig=WDKSearchConfig(
+                search_name="GenesByMolecularWeight",
+                search_config=WDKSearchConfig(
                     parameters={
                         "organism": '["Plasmodium falciparum 3D7"]',
                         "min_molecular_weight": "10000",
@@ -124,7 +125,7 @@ async def owned_strategy(
         )
         steps.append((site, step.id))
         strategy = await api.create_strategy(
-            WDKStepTree(stepId=step.id), name="pathfinder-live-lane", is_internal=True
+            WDKStepTree(step_id=step.id), name="pathfinder-live-lane", is_internal=True
         )
         strategies.append((site, strategy.id))
         return strategy.id, step.id

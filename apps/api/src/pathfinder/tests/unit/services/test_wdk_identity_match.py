@@ -11,6 +11,7 @@ from uuid import UUID
 
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.errors import WDKLoginRequiredError
 from veupathdb.wdk.auth_login import VEuPathDBClaims
 
 from pathfinder.platform.errors import ErrorCode, WDKIdentityMismatchError
@@ -83,15 +84,12 @@ class TestTheTokenMustNameTheSessionUser:
     async def test_the_same_account_passes(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        _token_names(monkeypatch, SESSION_USER)
+        seen = _token_names(monkeypatch, SESSION_USER)
         veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
 
-        assert (
-            await wdk_identity.require_session_matches_wdk_identity(
-                _session(), "plasmodb"
-            )
-            is None
-        )
+        await wdk_identity.require_session_matches_wdk_identity(_session(), "plasmodb")
+
+        assert seen == [REGISTERED_TOKEN]
 
     @pytest.mark.asyncio
     async def test_a_request_without_a_token_is_refused(
@@ -99,7 +97,7 @@ class TestTheTokenMustNameTheSessionUser:
     ) -> None:
         seen = _token_names(monkeypatch, OTHER_USER)
 
-        with pytest.raises(wdk_identity.WDKLoginRequiredError):
+        with pytest.raises(WDKLoginRequiredError):
             await wdk_identity.require_session_matches_wdk_identity(
                 _session(), "plasmodb"
             )
@@ -111,15 +109,12 @@ class TestTheTokenMustNameTheSessionUser:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """WDK naming nobody is an outage, not a second account."""
-        _token_names(monkeypatch, None)
+        seen = _token_names(monkeypatch, None)
         veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
 
-        assert (
-            await wdk_identity.require_session_matches_wdk_identity(
-                _session(), "plasmodb"
-            )
-            is None
-        )
+        await wdk_identity.require_session_matches_wdk_identity(_session(), "plasmodb")
+
+        assert seen == [REGISTERED_TOKEN]
 
 
 class TestADevLoginSessionActsAsItsToken:
@@ -132,12 +127,10 @@ class TestADevLoginSessionActsAsItsToken:
         seen = _token_names(monkeypatch, OTHER_USER)
         veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
 
-        assert (
-            await wdk_identity.require_session_matches_wdk_identity(
-                _session("dev-login"), "plasmodb"
-            )
-            is None
+        await wdk_identity.require_session_matches_wdk_identity(
+            _session("dev-login"), "plasmodb"
         )
+
         assert seen == []
 
     @pytest.mark.asyncio
@@ -148,7 +141,7 @@ class TestADevLoginSessionActsAsItsToken:
         _token_names(monkeypatch, OTHER_USER)
         veupathdb_auth_token_ctx.set("guest.veupathdb.token")
 
-        with pytest.raises(wdk_identity.WDKLoginRequiredError):
+        with pytest.raises(WDKLoginRequiredError):
             await require_registered_wdk_identity(_session("dev-login"))
 
     @pytest.mark.asyncio
@@ -173,7 +166,7 @@ class TestTheRouteGateRunsBothChecks:
         seen = _token_names(monkeypatch, OTHER_USER)
         veupathdb_auth_token_ctx.set("guest.veupathdb.token")
 
-        with pytest.raises(wdk_identity.WDKLoginRequiredError):
+        with pytest.raises(WDKLoginRequiredError):
             await require_registered_wdk_identity(_session())
 
         assert seen == []

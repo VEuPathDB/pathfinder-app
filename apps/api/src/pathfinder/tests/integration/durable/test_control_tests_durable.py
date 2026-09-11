@@ -31,6 +31,7 @@ from pathfinder.jobs.impls.control_tests_impl import (
 )
 from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.tests._support.job_context import job_context
 
 
 async def _seed_user_chat(user_id: UUID, conversation_id: UUID) -> None:
@@ -135,7 +136,7 @@ async def test_control_tests_impl_emits_progress_and_returns_dict(
     context = object()  # impl uses only site_id via deps.context.site_id? No — fake
 
     result = await run_control_tests_on_step_impl(
-        context=_FakeContext(site_id="plasmodb"),
+        context=job_context(),
         task_id=task_id,
         progress=progress,
         memory_store=None,
@@ -163,11 +164,6 @@ async def test_control_tests_impl_emits_progress_and_returns_dict(
 
     assert len(rows) >= 1
     assert rows[0].percent <= rows[-1].percent
-
-
-class _FakeContext:
-    def __init__(self, site_id: str) -> None:
-        self.site_id = site_id
 
 
 @pytest.mark.asyncio

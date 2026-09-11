@@ -13,7 +13,7 @@ from assistant_core.memory.deadline import MemoryStoreTimeoutError
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.platform.config import RuntimeSettings, use_settings_source
 from langgraph.runtime import Runtime
-from sqlalchemy.ext.asyncio import AsyncSession
+from langgraph.store.postgres.aio import AsyncPostgresStore
 
 from pathfinder.ai.graph import _lead_turn, nodes
 from pathfinder.ai.graph.runtime import Context
@@ -24,15 +24,15 @@ from pathfinder.ai.graph.state import (
     VerificationDigest,
 )
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.tests._support.database import no_database
 
 
-def _never_factory() -> AsyncSession:
-    msg = "db factory should not be called in this test"
-    raise AssertionError(msg)
-
-
-class _StoreThatNeverAnswers:
+class _StoreThatNeverAnswers(AsyncPostgresStore):
     """Stands in for the LangGraph store with a batch task that never resolves."""
+
+    def __init__(self) -> None:
+        """The store holds no connection and no batch task: every call waits."""
+        self._task = None
 
     async def asearch(self, *args: Any, **kwargs: Any) -> list[Any]:
         del args, kwargs
@@ -65,7 +65,7 @@ def _context() -> Context:
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
-        db_session_factory=_never_factory,
+        db_session_factory=no_database,
         cancel_event=asyncio.Event(),
         memory_store=_StoreThatNeverAnswers(),
     )

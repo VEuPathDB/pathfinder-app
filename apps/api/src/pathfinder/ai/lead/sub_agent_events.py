@@ -30,7 +30,6 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_ai.ui.vercel_ai.response_types import (
-    BaseChunk,
     DataChunk,
     FileChunk,
     SourceDocumentChunk,
@@ -47,6 +46,8 @@ from pathfinder.ai.capabilities.error_classification import is_error_directive
 _RESULT_LIMIT = 8000
 
 _STREAMABLE_METADATA = (DataChunk, SourceUrlChunk, SourceDocumentChunk, FileChunk)
+
+type StreamableChunk = DataChunk | SourceUrlChunk | SourceDocumentChunk | FileChunk
 
 
 def _emit_step(writer: Any, payload: SubAgentStepPayload) -> None:
@@ -104,7 +105,7 @@ class _InnerMetadata:
     """An inner tool's metadata, split into its line and what the stream shows."""
 
     summary: str | None
-    forwarded: list[BaseChunk]
+    forwarded: list[StreamableChunk]
 
 
 def _read_tool_metadata(metadata: object) -> _InnerMetadata:
@@ -118,7 +119,7 @@ def _read_tool_metadata(metadata: object) -> _InnerMetadata:
     if not isinstance(metadata, list):
         return _InnerMetadata(summary=None, forwarded=[])
     summary: str | None = None
-    forwarded: list[BaseChunk] = []
+    forwarded: list[StreamableChunk] = []
     for chunk in metadata:
         if isinstance(chunk, DataChunk) and chunk.type == "data-tool-summary":
             summary = _InnerToolSummary.model_validate(chunk.data).summary or None

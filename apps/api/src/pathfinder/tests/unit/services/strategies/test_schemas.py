@@ -6,10 +6,12 @@ from pathfinder.services.strategies.schemas import step_response_from_strategy_a
 
 
 def test_combine_step_serializes_friendly_label_not_sentinel() -> None:
-    combine = StrategyStepNode(
-        primary_input=StrategyStepNode(search_name="GenesByText"),
-        secondary_input=StrategyStepNode(search_name="GenesByTaxon"),
-        operator=CombineOp.INTERSECT,
+    combine = StrategyStepNode.model_validate(
+        {
+            "primaryInput": {"searchName": "GenesByText"},
+            "secondaryInput": {"searchName": "GenesByTaxon"},
+            "operator": CombineOp.INTERSECT,
+        }
     )
     ast = StrategyAst(record_type="transcript", root=combine)
 

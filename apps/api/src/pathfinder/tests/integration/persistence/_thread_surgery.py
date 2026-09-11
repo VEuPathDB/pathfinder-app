@@ -102,7 +102,7 @@ class FakePush:
         self.seen.append(strategy_ast)
         pushed = len(self.pushed_strategy_ids)
         base = 7000 + 100 * pushed
-        fresh = {
+        fresh: JSONObject = {
             key: base + offset
             for offset, key in enumerate(_plan_step_ids_of(strategy_ast))
         }
@@ -543,9 +543,9 @@ class FakeEda:
             raise EdaNotFoundError(msg, 404)
         filters = self.documents[analysis_id]
         return EdaAnalysisDetail(
-            analysisId=analysis_id,
-            studyId=EDA_DATASET,
-            numFilters=len(filters),
+            analysis_id=analysis_id,
+            study_id=EDA_DATASET,
+            num_filters=len(filters),
             descriptor=EdaAnalysisDescriptor(
                 subset=EdaSubsetDescriptor(descriptor=list(filters)),
             ),

@@ -4,9 +4,10 @@ dependent parameters, the clade lists and the organism hints."""
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
+from pydantic_ai import RunContext
 from veupathdb.domain.parameters.values import SinglePickValue
 from veupathdb.domain.parameters.wdk_vocab import WDKVocabTerm
 from veupathdb.wdk.wdk_parameters import (
@@ -16,15 +17,16 @@ from veupathdb.wdk.wdk_parameters import (
 )
 from veupathdb_mcp.catalog import (
     ParameterInfo,
-    ParameterNotOnSearch,
     ParentContextRequired,
     search_inspection,
 )
 
+from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import catalog_discovery
 from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import (
-    agent_state_ctx,
+    agent_run_context,
     patch_search_details,
     wdk_param,
 )
@@ -34,7 +36,7 @@ def _pin_formatter(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         search_inspection,
         "format_typed_param",
-        lambda *_a, **_kw: MagicMock(kind="parameter_info"),
+        lambda *_a, **_kw: _param_info(),
     )
 
 
@@ -57,8 +59,8 @@ class TestInheritsBoundParentContext:
     binds; without them WDK answers from the search defaults."""
 
     @staticmethod
-    def _ctx_with_bound_profileset() -> Any:
-        ctx = agent_state_ctx()
+    def _ctx_with_bound_profileset() -> RunContext[AgentDeps]:
+        ctx = agent_run_context()
         ctx.deps.agent_state.frame_set_criterion(
             Criterion(
                 id="timecourse",
@@ -85,9 +87,8 @@ class TestInheritsBoundParentContext:
             parameter_id="samples_percentile_generic",
         )
 
-        client.get_search_details_with_params.assert_awaited_once()
-        context = client.get_search_details_with_params.await_args.kwargs["context"]
-        assert context["profileset_generic"] == "DeRisi 3D7 Smoothed"
+        assert len(client.contexts) == 1
+        assert client.contexts[0]["profileset_generic"] == "DeRisi 3D7 Smoothed"
 
     async def test_an_explicit_context_overrides_the_bound_value(
         self, monkeypatch: pytest.MonkeyPatch
@@ -104,8 +105,7 @@ class TestInheritsBoundParentContext:
             context_values={"profileset_generic": "DeRisi Dd2 Smoothed"},
         )
 
-        context = client.get_search_details_with_params.await_args.kwargs["context"]
-        assert context["profileset_generic"] == "DeRisi Dd2 Smoothed"
+        assert client.contexts[0]["profileset_generic"] == "DeRisi Dd2 Smoothed"
 
     async def test_an_unbound_search_still_reads_without_context(
         self, monkeypatch: pytest.MonkeyPatch
@@ -113,14 +113,14 @@ class TestInheritsBoundParentContext:
         patch_search_details(monkeypatch, parameters=[wdk_param("go_term")])
         _pin_formatter(monkeypatch)
 
-        result = (
+        result = returned(
             await catalog_discovery.get_parameter_options(
-                agent_state_ctx(), search_name="GenesByGoTerm", parameter_id="go_term"
-            )
-        ).return_value
+                agent_run_context(), search_name="GenesByGoTerm", parameter_id="go_term"
+            ),
+            ParameterInfo,
+        )
 
         assert result.kind == "parameter_info"
-        assert not isinstance(result, ParameterNotOnSearch)
 
     async def test_the_inherited_context_reaches_the_formatter(
         self, monkeypatch: pytest.MonkeyPatch
@@ -130,9 +130,9 @@ class TestInheritsBoundParentContext:
         )
         seen: dict[str, Any] = {}
 
-        def _format(*_a: Any, **kwargs: Any) -> Any:
+        def _format(*_a: object, **kwargs: Any) -> ParameterInfo:
             seen.update(kwargs)
-            return MagicMock(kind="parameter_info")
+            return _param_info()
 
         monkeypatch.setattr(search_inspection, "format_typed_param", _format)
 
@@ -148,9 +148,13 @@ class TestInheritsBoundParentContext:
 
 
 def _with_dependency(monkeypatch: pytest.MonkeyPatch, child: str, parent: str) -> None:
-    parent_param = wdk_param(parent)
-    parent_param.dependent_params = [child]
-    patch_search_details(monkeypatch, parameters=[parent_param, wdk_param(child)])
+    patch_search_details(
+        monkeypatch,
+        parameters=[
+            wdk_param(parent, dependent_params=[child]),
+            wdk_param(child),
+        ],
+    )
 
 
 class TestADependentReadNeedsItsParent:
@@ -165,7 +169,7 @@ class TestADependentReadNeedsItsParent:
 
         result = (
             await catalog_discovery.get_parameter_options(
-                agent_state_ctx(),
+                agent_run_context(),
                 search_name="GenesByProfile",
                 parameter_id="samples_percentile_generic",
             )
@@ -185,7 +189,7 @@ class TestADependentReadNeedsItsParent:
 
         result = (
             await catalog_discovery.get_parameter_options(
-                agent_state_ctx(),
+                agent_run_context(),
                 search_name="GenesByProfile",
                 parameter_id="samples_percentile_generic",
             )
@@ -200,14 +204,14 @@ class TestADependentReadNeedsItsParent:
         _with_dependency(
             monkeypatch, "samples_percentile_generic", "profileset_generic"
         )
-        info = MagicMock(kind="parameter_info")
+        info = _param_info()
         monkeypatch.setattr(
             search_inspection, "format_typed_param", lambda *_a, **_kw: info
         )
 
         result = (
             await catalog_discovery.get_parameter_options(
-                agent_state_ctx(),
+                agent_run_context(),
                 search_name="GenesByProfile",
                 parameter_id="samples_percentile_generic",
                 context_values={"profileset_generic": "DeRisi 3D7 Smoothed"},
@@ -220,14 +224,14 @@ class TestADependentReadNeedsItsParent:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         patch_search_details(monkeypatch, parameters=[wdk_param("organism")])
-        info = MagicMock(kind="parameter_info")
+        info = _param_info()
         monkeypatch.setattr(
             search_inspection, "format_typed_param", lambda *_a, **_kw: info
         )
 
         result = (
             await catalog_discovery.get_parameter_options(
-                agent_state_ctx(), search_name="GenesByTaxon", parameter_id="organism"
+                agent_run_context(), search_name="GenesByTaxon", parameter_id="organism"
             )
         ).return_value
 
@@ -282,16 +286,17 @@ class TestReadingOnePhyleticList:
         *,
         parameter_id: str = "included_species",
         query: str | None = None,
-    ) -> Any:
+    ) -> ParameterInfo:
         patch_search_details(monkeypatch, parameters=_PHYLETIC_PARAMS)
-        return (
+        return returned(
             await catalog_discovery.get_parameter_options(
-                agent_state_ctx(),
+                agent_run_context(),
                 search_name="GenesByOrthologPattern",
                 parameter_id=parameter_id,
                 query=query,
-            )
-        ).return_value
+            ),
+            ParameterInfo,
+        )
 
     @pytest.mark.parametrize(
         ("query", "expected"),
@@ -355,7 +360,7 @@ class TestTheInvestigationsOrganismsReachTheRead:
     ) -> None:
         read = AsyncMock(return_value=_param_info(name="ms_assay"))
         monkeypatch.setattr(catalog_discovery, "read_parameter_options", read)
-        ctx = agent_state_ctx()
+        ctx = agent_run_context()
         ctx.deps.agent_state.organism_hints = ["Plasmodium falciparum"]
 
         await catalog_discovery.get_parameter_options(
@@ -373,7 +378,7 @@ class TestTheInvestigationsOrganismsReachTheRead:
         monkeypatch.setattr(catalog_discovery, "read_parameter_options", read)
 
         await catalog_discovery.get_parameter_options(
-            agent_state_ctx(),
+            agent_run_context(),
             search_name="GenesByMassSpec",
             parameter_id="ms_assay",
         )

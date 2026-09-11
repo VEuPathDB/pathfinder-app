@@ -17,13 +17,13 @@ from alembic.autogenerate import (
 )
 from alembic.migration import MigrationContext
 from assistant_core.migrate import OWNED_TABLES, VERSION_TABLE
+from assistant_core.persistence.models import Base
 from psycopg.sql import SQL, Identifier
 from sqlalchemy.engine import Connection, make_url
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 from testcontainers.community.postgres import PostgresContainer
 
-from pathfinder.persistence.models import Base
 from pathfinder.platform.migrations import include_object, upgrade_all
 
 DATABASE_NAME = "pathfinder_test_three_chains"
@@ -70,6 +70,7 @@ def _proposed_revision(connection: Connection) -> str:
         opts={"include_object": include_object},
     )
     migrations = produce_migrations(context, Base.metadata)
+    assert migrations.upgrade_ops is not None
     rendered = render_python_code(migrations.upgrade_ops, migration_context=context)
     # Alembic wraps the operations in two comments. A revision that carries no
     # operation renders as `pass`.

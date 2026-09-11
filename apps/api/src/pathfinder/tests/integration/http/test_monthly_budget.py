@@ -11,6 +11,7 @@ from decimal import Decimal
 import pytest
 from assistant_core import quota
 from fastapi import FastAPI, HTTPException
+from pydantic import JsonValue, TypeAdapter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.platform.config import get_settings
@@ -101,7 +102,8 @@ async def test_a_user_who_spent_the_budget_is_refused_with_the_numbers(
         await require_quota_available(db_session, user.id)
 
     assert caught.value.status_code == _TOO_MANY
-    assert caught.value.detail == {
+    detail = TypeAdapter(dict[str, JsonValue]).validate_python(caught.value.detail)
+    assert detail == {
         "code": "monthly_quota_exhausted",
         "usedUsd": "2.000000",
         "limitUsd": "2.0",

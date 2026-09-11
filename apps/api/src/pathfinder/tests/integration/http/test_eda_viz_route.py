@@ -31,6 +31,8 @@ from pathfinder.tests.integration.http._eda_routes import (
     DATASET,
     ENTITY,
     eda_wired,
+)
+from pathfinder.tests.integration.http.conftest import (
     first_frame_client_for,
     make_user,
 )

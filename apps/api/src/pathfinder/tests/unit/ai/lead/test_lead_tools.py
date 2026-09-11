@@ -12,13 +12,15 @@ from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone._conversation_models import ClearStrategyResult
 from pathfinder.ai.tools.toolsets import execution
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.sub_agents import toolset_tool_names
+from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
-    lead_run_context,
     pipeline_state,
     session_with_one_step,
 )
@@ -39,7 +41,7 @@ def _cleared_session() -> StrategySession:
 
 def _ctx() -> RunContext[LeadDeps]:
     state = pipeline_state(user_prompt="scrap this and start again")
-    return lead_run_context(
+    return run_context_for(
         lead_deps(state, strategy_session=_cleared_session()),
         tool_call_id="call_clear",
     )
@@ -114,13 +116,15 @@ def test_the_clear_docstring_does_not_claim_the_provenance_is_lost() -> None:
 async def test_clearing_empties_the_strategy_the_lead_can_see() -> None:
     ctx = _ctx()
 
-    returned = await clear_strategy(ctx, confirm=True)
+    result = await clear_strategy(ctx, confirm=True)
 
-    graph = ctx.deps.runtime.strategy_session.get_graph(None)
+    session = ctx.deps.runtime.strategy_session
+    graph = session.get_graph(None)
     assert graph is not None
     assert graph.steps == {}
-    assert ctx.deps.runtime.strategy_session.sync_state.wdk_strategy_id is None
-    assert returned.return_value.graph_id == "g1"
+    assert session.sync_state is not None
+    assert session.sync_state.wdk_strategy_id is None
+    assert returned(result, ClearStrategyResult).graph_id == "g1"
 
 
 @pytest.mark.usefixtures("_no_persist")

@@ -37,6 +37,9 @@ from assistant_core.persistence.models import Conversation, Message
 from assistant_core.persistence.repositories.message import MessagesRepository
 from assistant_core.platform import db
 from assistant_core.spec import AssistantSpec, TurnContextRequest
+from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.graph.state import CompiledStateGraph
 from pydantic_ai import Agent, Tool
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models.function import FunctionModel
@@ -116,16 +119,18 @@ def recorder() -> _Recorder:
 
 
 @pytest.fixture
-async def saver(patch_app_db_engine: None) -> AsyncIterator[Any]:
+async def saver(patch_app_db_engine: None) -> AsyncIterator[AsyncPostgresSaver]:
     del patch_app_db_engine
     async with lifespan_checkpointer(get_settings().database_url) as opened:
         yield opened
 
 
-def _spec(recorder: _Recorder, saver: Any) -> AssistantSpec:
-    def _build_graph(_checkpointer: Any) -> Any:
+def _spec(recorder: _Recorder, saver: BaseCheckpointSaver[Any]) -> AssistantSpec:
+    def _build_graph(
+        checkpointer: BaseCheckpointSaver[Any],
+    ) -> CompiledStateGraph[TurnState, SiteHelpTurnContext, TurnState, TurnState]:
         return single_agent_graph(
-            checkpointer=saver,
+            checkpointer=checkpointer,
             state_type=TurnState,
             context_type=SiteHelpTurnContext,
             build_agent=recorder.agent,
@@ -190,6 +195,7 @@ async def _run_turn(
     user_id: UUID,
     text: str,
     spec: AssistantSpec,
+    saver: BaseCheckpointSaver[Any],
 ) -> _Turn:
     """Persist the user's message the way the dispatcher does, then drive it."""
     user_message_id = uuid4()
@@ -228,7 +234,7 @@ async def _run_turn(
             user_id=user_id,
         ),
         spec=spec,
-        compiled_graph=spec.build_graph(None),
+        compiled_graph=spec.build_graph(saver),
         runtime_context=context,
         writer=ChatEventWriter(conversation_id=conversation_id, turn_id=turn_id),
     )
@@ -268,7 +274,7 @@ async def test_the_thread_carries_its_tool_calls_into_the_next_turn(
     patch_app_db_engine: None,
     db_cleaner: None,
     recorder: _Recorder,
-    saver: Any,
+    saver: AsyncPostgresSaver,
 ) -> None:
     """The baseline the branch is measured against."""
     del patch_app_db_engine, db_cleaner
@@ -280,12 +286,14 @@ async def test_the_thread_carries_its_tool_calls_into_the_next_turn(
         user_id=user_id,
         text=FIRST_LABEL,
         spec=spec,
+        saver=saver,
     )
     await _run_turn(
         conversation_id=conversation_id,
         user_id=user_id,
         text=SECOND_LABEL,
         spec=spec,
+        saver=saver,
     )
 
     assert recorder.labels_of_last_run() == [FIRST_LABEL, SECOND_LABEL]
@@ -296,7 +304,7 @@ async def test_f2_a_turn_on_a_branch_sees_the_anchor_s_history_and_no_more(
     patch_app_db_engine: None,
     db_cleaner: None,
     recorder: _Recorder,
-    saver: Any,
+    saver: AsyncPostgresSaver,
 ) -> None:
     del patch_app_db_engine, db_cleaner
     spec = _spec(recorder, saver)
@@ -306,12 +314,14 @@ async def test_f2_a_turn_on_a_branch_sees_the_anchor_s_history_and_no_more(
         user_id=user_id,
         text=FIRST_LABEL,
         spec=spec,
+        saver=saver,
     )
     second_answer = await _run_turn(
         conversation_id=conversation_id,
         user_id=user_id,
         text=SECOND_LABEL,
         spec=spec,
+        saver=saver,
     )
     assert await _assistant_message_ids(conversation_id) == [
         str(first.assistant_message_id),
@@ -333,6 +343,7 @@ async def test_f2_a_turn_on_a_branch_sees_the_anchor_s_history_and_no_more(
         user_id=user_id,
         text=THIRD_LABEL,
         spec=spec,
+        saver=saver,
     )
 
     assert recorder.labels_of_last_run() == [FIRST_LABEL, THIRD_LABEL]
@@ -344,7 +355,7 @@ async def test_r3_a_turn_after_a_revert_sees_the_target_s_history_and_no_more(
     patch_app_db_engine: None,
     db_cleaner: None,
     recorder: _Recorder,
-    saver: Any,
+    saver: AsyncPostgresSaver,
 ) -> None:
     del patch_app_db_engine, db_cleaner
     spec = _spec(recorder, saver)
@@ -354,12 +365,14 @@ async def test_r3_a_turn_after_a_revert_sees_the_target_s_history_and_no_more(
         user_id=user_id,
         text=FIRST_LABEL,
         spec=spec,
+        saver=saver,
     )
     second = await _run_turn(
         conversation_id=conversation_id,
         user_id=user_id,
         text=SECOND_LABEL,
         spec=spec,
+        saver=saver,
     )
 
     async with db.async_session_factory() as session:
@@ -376,6 +389,7 @@ async def test_r3_a_turn_after_a_revert_sees_the_target_s_history_and_no_more(
         user_id=user_id,
         text=THIRD_LABEL,
         spec=spec,
+        saver=saver,
     )
 
     assert recorder.labels_of_last_run() == [FIRST_LABEL, THIRD_LABEL]

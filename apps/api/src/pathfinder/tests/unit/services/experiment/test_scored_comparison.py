@@ -98,7 +98,7 @@ async def test_failing_variant_excluded_from_ranking(
 
     async def _search(site_id: str, spec: VariantSpec) -> WDKAnswer:
         del site_id, spec
-        return WDKAnswer(meta=WDKAnswerMeta(totalCount=0), records=[])
+        return WDKAnswer(meta=WDKAnswerMeta(total_count=0), records=[])
 
     monkeypatch.setattr(scored_comparison, "run_experiment", _run)
     monkeypatch.setattr(scored_comparison, "run_variant_search", _search)

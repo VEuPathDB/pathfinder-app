@@ -19,7 +19,11 @@ from pathfinder.domain.strategy.operations import (
     ReplaceSubtreeOp,
     WireInputOp,
 )
-from pathfinder.domain.strategy.operations.types import AttachIntoSlot, AttachNewRoot
+from pathfinder.domain.strategy.operations.types import (
+    AttachIntoSlot,
+    AttachNewRoot,
+    GraphOperation,
+)
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.stated_shape import (
     SlotWrite,
@@ -356,7 +360,7 @@ def test_a_root_add_and_a_free_slot_overwrite_no_step() -> None:
             ),
         ]
     )
-    ops = [
+    ops: list[GraphOperation] = [
         AddLeafOp(step=leaf("new"), attach=AttachNewRoot()),
         AddLeafOp(
             step=leaf("new2"),

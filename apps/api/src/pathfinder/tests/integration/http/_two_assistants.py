@@ -78,11 +78,12 @@ async def assistant_of(
     conversation_id: UUID,
 ) -> str | None:
     async with session_maker() as session:
-        return await session.scalar(
+        found = await session.scalars(
             select(Conversation.assistant_id).where(
                 Conversation.id == conversation_id,
             ),
         )
+        return found.one_or_none()
 
 
 def text_of(chunks: list[dict[str, Any]]) -> str:

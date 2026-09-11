@@ -12,6 +12,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType
 
 from pathfinder.services.experiment import service
 from pathfinder.services.experiment.metrics import (
@@ -25,7 +26,11 @@ from pathfinder.services.experiment.types.experiment import (
 )
 
 
-def _config() -> ExperimentConfig:
+def _config(
+    *,
+    enable_cross_validation: bool = False,
+    enrichment_types: list[EnrichmentAnalysisType] | None = None,
+) -> ExperimentConfig:
     return ExperimentConfig(
         site_id="plasmodb",
         record_type="transcript",
@@ -35,6 +40,8 @@ def _config() -> ExperimentConfig:
         negative_controls=["g7", "g8", *[f"n{i}" for i in range(8)]],
         controls_search_name="GenesByGeneList",
         controls_param_name="ds_gene_ids",
+        enable_cross_validation=enable_cross_validation,
+        enrichment_types=enrichment_types or [],
     )
 
 
@@ -129,9 +136,7 @@ async def test_run_experiment_calls_the_five_phases_in_order(
     ):
         _spy(name)
 
-    config = _config()
-    config.enable_cross_validation = True
-    config.enrichment_types = ["GO"]
+    config = _config(enable_cross_validation=True, enrichment_types=["go_process"])
 
     await run_experiment(config, user_id="u1")
 

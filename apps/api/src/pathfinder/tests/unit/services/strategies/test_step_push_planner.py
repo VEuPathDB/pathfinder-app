@@ -83,7 +83,7 @@ def _four_step_strategy_with_two_combines() -> StrategyAst:
     return _ast(outer)
 
 
-def test_no_old_ast_creates_all_steps():
+def test_no_old_ast_creates_all_steps() -> None:
     a = _leaf("step_a")
     b = _leaf("step_b")
     inner = _combine("step_inner", a, b, op=CombineOp.UNION)
@@ -100,7 +100,7 @@ def test_no_old_ast_creates_all_steps():
     ]
 
 
-def test_unchanged_strategy_skips_everything():
+def test_unchanged_strategy_skips_everything() -> None:
     ast = _four_step_strategy_with_two_combines()
     wdk_ids = {"step_a": 1, "step_b": 2, "step_c": 3, "step_inner": 4, "step_outer": 5}
 
@@ -111,7 +111,7 @@ def test_unchanged_strategy_skips_everything():
     assert len(plan) == 5
 
 
-def test_single_leaf_param_change_patches_only_that_leaf():
+def test_single_leaf_param_change_patches_only_that_leaf() -> None:
     old = _four_step_strategy_with_two_combines()
     a2 = _leaf("step_a", organism=_multi(["Pf3D7", "Pf7G8"]))
     b = _leaf("step_b", organism=_multi(["PvP01"]))
@@ -130,17 +130,19 @@ def test_single_leaf_param_change_patches_only_that_leaf():
     assert by_id["step_c"].action == SkipAction()
     assert by_id["step_inner"].action == SkipAction()
     assert by_id["step_outer"].action == SkipAction()
-    actions = [SkipAction(), CreateAction(), PatchAction(), RecreateAction()]
-    counts = {a: sum(1 for p in plan if p.action == a) for a in actions}
+    counts = {
+        type(action).__name__: sum(1 for p in plan if p.action == action)
+        for action in (SkipAction(), CreateAction(), PatchAction(), RecreateAction())
+    }
     assert counts == {
-        SkipAction(): 4,
-        CreateAction(): 0,
-        PatchAction(): 1,
-        RecreateAction(): 0,
+        "SkipAction": 4,
+        "CreateAction": 0,
+        "PatchAction": 1,
+        "RecreateAction": 0,
     }
 
 
-def test_combine_operator_change_recreates_only_that_combine():
+def test_combine_operator_change_recreates_only_that_combine() -> None:
     old = _four_step_strategy_with_two_combines()
     a = _leaf("step_a", organism=_multi(["Pf3D7"]))
     b = _leaf("step_b", organism=_multi(["PvP01"]))
@@ -161,7 +163,7 @@ def test_combine_operator_change_recreates_only_that_combine():
     assert by_id["step_c"].action == SkipAction()
 
 
-def test_combine_operator_change_propagates_recreate_upward():
+def test_combine_operator_change_propagates_recreate_upward() -> None:
     old = _four_step_strategy_with_two_combines()
     a = _leaf("step_a", organism=_multi(["Pf3D7"]))
     b = _leaf("step_b", organism=_multi(["PvP01"]))
@@ -182,7 +184,7 @@ def test_combine_operator_change_propagates_recreate_upward():
     assert by_id["step_b"].action == SkipAction()
 
 
-def test_combine_input_swap_is_recreate():
+def test_combine_input_swap_is_recreate() -> None:
     a = _leaf("step_a", organism=_multi(["Pf3D7"]))
     b = _leaf("step_b", organism=_multi(["PvP01"]))
     old = _ast(_combine("step_c", a, b, op=CombineOp.UNION))
@@ -198,7 +200,7 @@ def test_combine_input_swap_is_recreate():
     assert by_id["step_b"].action == SkipAction()
 
 
-def test_step_kind_transition_recreates():
+def test_step_kind_transition_recreates() -> None:
     leaf = _leaf("step_a")
     old_root = _transform("step_t", leaf, foo=_string("1"))
     new_root = StrategyStepNode(
@@ -217,7 +219,7 @@ def test_step_kind_transition_recreates():
     assert "step kind changed" in by_id["step_t"].reason
 
 
-def test_added_step_creates_only_that_step():
+def test_added_step_creates_only_that_step() -> None:
     a = _leaf("step_a")
     b = _leaf("step_b")
     old = _ast(_combine("step_c", a, b, op=CombineOp.UNION))
@@ -238,7 +240,7 @@ def test_added_step_creates_only_that_step():
     assert by_id["step_outer"].action == CreateAction()
 
 
-def test_display_name_only_change_patches_leaf():
+def test_display_name_only_change_patches_leaf() -> None:
     old = _ast(
         StrategyStepNode(
             search_name="GenesByTaxon",
@@ -266,7 +268,7 @@ def test_display_name_only_change_patches_leaf():
     ]
 
 
-def test_search_name_change_patches_leaf():
+def test_search_name_change_patches_leaf() -> None:
     old = _ast(_leaf("step_a", "GenesByTaxon", organism=_multi(["Pf3D7"])))
     new = _ast(_leaf("step_a", "GenesByOrtholog", organism=_multi(["Pf3D7"])))
     wdk_ids = {"step_a": 1}
@@ -278,7 +280,7 @@ def test_search_name_change_patches_leaf():
     ]
 
 
-def test_combine_metadata_only_change_patches_combine():
+def test_combine_metadata_only_change_patches_combine() -> None:
     a = _leaf("step_a")
     b = _leaf("step_b")
     old = _ast(_combine("step_c", a, b, op=CombineOp.UNION, display_name="A or B"))
@@ -294,7 +296,7 @@ def test_combine_metadata_only_change_patches_combine():
     assert by_id["step_b"].action == SkipAction()
 
 
-def test_topology_changed_returns_true_when_step_added():
+def test_topology_changed_returns_true_when_step_added() -> None:
     a = _leaf("step_a")
     b = _leaf("step_b")
     old = _ast(_combine("step_c", a, b, op=CombineOp.UNION))
@@ -311,7 +313,7 @@ def test_topology_changed_returns_true_when_step_added():
     assert topology_changed(old, new) is True
 
 
-def test_topology_changed_returns_true_when_step_removed():
+def test_topology_changed_returns_true_when_step_removed() -> None:
     a = _leaf("step_a")
     b = _leaf("step_b")
     c = _leaf("step_c")
@@ -328,7 +330,7 @@ def test_topology_changed_returns_true_when_step_removed():
     assert topology_changed(old, new) is True
 
 
-def test_topology_changed_returns_true_when_input_swapped():
+def test_topology_changed_returns_true_when_input_swapped() -> None:
     a = _leaf("step_a")
     b = _leaf("step_b")
     old = _ast(_combine("step_c", a, b, op=CombineOp.UNION))
@@ -337,7 +339,7 @@ def test_topology_changed_returns_true_when_input_swapped():
     assert topology_changed(old, new) is True
 
 
-def test_topology_changed_returns_false_when_only_params_changed():
+def test_topology_changed_returns_false_when_only_params_changed() -> None:
     a = _leaf("step_a", organism=_multi(["Pf3D7"]))
     b = _leaf("step_b", organism=_multi(["PvP01"]))
     old = _ast(_combine("step_c", a, b, op=CombineOp.UNION))
@@ -347,7 +349,7 @@ def test_topology_changed_returns_false_when_only_params_changed():
     assert topology_changed(old, new) is False
 
 
-def test_topology_changed_returns_true_when_old_ast_is_none():
+def test_topology_changed_returns_true_when_old_ast_is_none() -> None:
     new = _ast(_leaf("step_a"))
 
     assert topology_changed(None, new) is True

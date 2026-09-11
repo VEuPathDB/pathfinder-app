@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field, computed_field
+from assistant_core.platform.pydantic_base import computed
+from pydantic import Field
 from veupathdb.domain.parameters.value_codec import to_wire
 from veupathdb.model import CamelModel
 
@@ -36,19 +37,19 @@ class SpecDiff(CamelModel):
     changes: list[CriterionChange] = Field(default_factory=list)
     structure_changed: bool = False
 
-    @computed_field
+    @computed
     def kept_count(self) -> int:
         return self._count("kept")
 
-    @computed_field
+    @computed
     def changed_count(self) -> int:
         return self._count("changed")
 
-    @computed_field
+    @computed
     def added_count(self) -> int:
         return self._count("added")
 
-    @computed_field
+    @computed
     def dropped_count(self) -> int:
         return self._count("dropped")
 

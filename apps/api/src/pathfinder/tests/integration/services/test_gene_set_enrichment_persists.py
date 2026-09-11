@@ -14,10 +14,9 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb_mcp.wdk.enrichment import EnrichmentResult
+from veupathdb_mcp.wdk.enrichment import EnrichmentResult, EnrichmentService
 
 from pathfinder.persistence.models import User
-from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import GeneSetStore
 from pathfinder.services.gene_sets.types import GeneSet
@@ -89,9 +88,7 @@ async def test_enrichment_is_still_there_after_a_reload(
     async def _fake_batch(**_kwargs: Any) -> tuple[list[EnrichmentResult], list[str]]:
         return [_result("GO:0004672")], []
 
-    monkeypatch.setattr(
-        operations.EnrichmentService, "run_batch", staticmethod(_fake_batch)
-    )
+    monkeypatch.setattr(EnrichmentService, "run_batch", staticmethod(_fake_batch))
 
     returned = await service.run_enrichment(seed_user.id, "gs1", ["go_function"])
     assert len(returned) == 1

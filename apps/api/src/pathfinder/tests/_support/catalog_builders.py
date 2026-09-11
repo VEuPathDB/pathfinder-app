@@ -2,21 +2,27 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Protocol
 
 import pytest
 from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.domain.search import SearchContext
+from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.json_types import JSONObject
-from veupathdb.wdk.wdk_models import (
-    StepValidation,
-    WDKSearch,
-    WDKSearchResponse,
-)
+from veupathdb.wdk.wdk_models import WDKSearch, WDKSearchResponse
 from veupathdb.wdk.wdk_parameters import (
     WDKParameter,
 )
-from veupathdb_mcp.catalog import ResolvedSearch, ValidationCallbacks, param_validation
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    ResolvedSearch,
+    ValidationCallbacks,
+    param_validation,
+)
+
+type ParamsAt = Callable[[dict[str, str]], list[ParameterInfo]]
+"""The parameters a search offers at one context, as a test answers them."""
 
 
 def wdk_search_response(

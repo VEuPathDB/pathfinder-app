@@ -22,7 +22,6 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
-from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.parameters.values import StringValue
 from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
 
@@ -36,6 +35,7 @@ from pathfinder.ai.tools.standalone.strategy_graph import StudyStepCheck
 from pathfinder.ai.tools.toolsets import verification
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.database import no_database
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.fixtures.builders import add_step_to_graph
 
@@ -130,11 +130,6 @@ def _session() -> StrategySession:
     return session
 
 
-def _never_factory() -> AsyncSession:
-    msg = "db factory should not be called in unit tests"
-    raise AssertionError(msg)
-
-
 def _deps(session: StrategySession) -> LeadDeps:
     state = PipelineState(
         conversation_id=uuid4(),
@@ -147,7 +142,7 @@ def _deps(session: StrategySession) -> LeadDeps:
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=session,
-        db_session_factory=_never_factory,
+        db_session_factory=no_database,
         cancel_event=asyncio.Event(),
     )
     return LeadDeps(state=state, intent=None, runtime=context, retrieved_memories=[])

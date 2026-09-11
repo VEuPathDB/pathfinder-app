@@ -2,6 +2,28 @@
 
 ## 2026-09-11
 
+* **The tests tree is type-checked by the same two checkers, under the same
+  rules, as the code it tests.** `[tool.mypy]` in `apps/api/pyproject.toml` and
+  the repo-root `pyrightconfig.json` scoped both checkers to `src` minus
+  `src/pathfinder/tests`, so a library release that widened a field type left
+  every test comparing the old type silently wrong until a live run read a
+  value the test never expected. Neither config excludes the tree now, so
+  `uv run mypy src` and `uv run pyright src/pathfinder` are green only when the
+  tests are green too. Reaching zero replaced the shapes that hid the error
+  rather than the assertions: a tool return value is read through
+  `tests/_support/tool_returns.py::returned` and its summary line through
+  `summary_text`, which bind `ToolReturn.return_value` and `.content` to the
+  shape the tool declares and raise an `AssertionError` naming what came back;
+  a run context is the real `RunContext` the tool's signature states, built by
+  the conftest factories, rather than a `MagicMock` behind a helper returning
+  `Any`; an API route is the typed record `tests/_support/routes.py::ApiRoute`,
+  whose `path`, `methods`, `dependant` and `body_model` are bound once instead
+  of read off FastAPI's wide route context at every call site. Two wrong
+  product annotations surfaced and were corrected, and one integration test was
+  found seeding a column on the wrong model, so the condition it names was
+  never created. Both baselines hold only what is still true: an entry leaves
+  either file when the offender goes, and no entry was added.
+
 * **The active conversation row's meta line is full foreground, and a `motion`
   entrance paints settled under reduced motion.** The row is tinted with the
   site's primary, so the timestamp is a foreground tone read against that tint

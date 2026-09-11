@@ -213,6 +213,8 @@ def test_the_stated_criteria_are_the_ones_that_answer_to_a_step() -> None:
 def test_an_added_criterion_answers_to_the_step_the_structure_states() -> None:
     """The edit mints its step, so the shape counts it before it exists."""
     before, graph = _built()
+    root_id = graph.last_step_id
+    assert root_id is not None
 
     stated = criteria_with_steps(
         [*(c.id for c in before.criteria), "new_leaf"],
@@ -222,13 +224,13 @@ def test_an_added_criterion_answers_to_the_step_the_structure_states() -> None:
                 root=StructureNode(
                     kind="combine",
                     operator=None,
-                    inputs=[_leaf(graph.last_step_id), _leaf("new_leaf")],
+                    inputs=[_leaf(root_id), _leaf("new_leaf")],
                 )
             )
         ),
     )
 
-    assert stated == frozenset({graph.last_step_id, "new_leaf"})
+    assert stated == frozenset({root_id, "new_leaf"})
 
 
 def test_an_option_criterion_is_never_reported_lost() -> None:

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field, computed_field
+from assistant_core.platform.pydantic_base import CamelModel, computed
+from pydantic import Field
 from veupathdb.domain.parameters.value_codec import to_wire
 from veupathdb.domain.parameters.values import (
     MultiPickValue,
@@ -62,7 +62,7 @@ class ContrastSummary(CamelModel):
     reference: str | None = None
     direction: str | None = None
 
-    @computed_field
+    @computed
     def summary(self) -> str:
         subject = self.comparator or "(unset)"
         baseline = self.reference or "(unset)"
@@ -131,7 +131,7 @@ class FrameSection(CamelModel):
     # what a reader needs, and a second whole spec per chunk is not.
     spec_before_turn: OperationalSpec | None = Field(default=None, exclude=True)
 
-    @computed_field
+    @computed
     def present(self) -> bool:
         return self.spec is not None
 
@@ -143,19 +143,19 @@ class FrameSection(CamelModel):
             return None
         return diff_specs(before, self.spec)
 
-    @computed_field
+    @computed
     def diff(self) -> SpecDiff | None:
         return self.spec_diff()
 
-    @computed_field
+    @computed
     def criteria_count(self) -> int:
         return len(self.spec.criteria) if self.spec else 0
 
-    @computed_field
+    @computed
     def bound_count(self) -> int:
         return sum(1 for c in self.spec.criteria if c.bound) if self.spec else 0
 
-    @computed_field
+    @computed
     def open_slot_count(self) -> int:
         if self.spec is None:
             return 0
@@ -163,15 +163,15 @@ class FrameSection(CamelModel):
             len(c.open_params) for c in self.spec.criteria
         )
 
-    @computed_field
+    @computed
     def dropped_count(self) -> int:
         return len(self.spec.dropped) if self.spec else 0
 
-    @computed_field
+    @computed
     def ready_to_build(self) -> bool:
         return self.spec.ready_to_build if self.spec else False
 
-    @computed_field
+    @computed
     def needs_user(self) -> bool:
         if self.spec is None:
             return False
@@ -179,7 +179,7 @@ class FrameSection(CamelModel):
             c.open_params for c in self.spec.criteria
         )
 
-    @computed_field
+    @computed
     def contrasts(self) -> list[ContrastSummary]:
         """One entry per criterion that contrasts two sample groups."""
         if self.spec is None:
@@ -187,7 +187,7 @@ class FrameSection(CamelModel):
         found = (_contrast_for(c) for c in self.spec.criteria)
         return [c for c in found if c is not None]
 
-    @computed_field
+    @computed
     def structure_render(self) -> str | None:
         """Compact combine-tree string for the UI."""
         if self.spec is None or self.spec.structure is None:
@@ -215,20 +215,20 @@ class BuildSection(CamelModel):
             and not self.zero_result_steps
         )
 
-    @computed_field
+    @computed
     def succeeded(self) -> bool:
         return self.is_clean()
 
-    @computed_field
+    @computed
     def node_results(self) -> list[NodeResult]:
         """Per-node build detail for the UI."""
         return list(self.outcome.node_results) if self.outcome else []
 
-    @computed_field
+    @computed
     def wdk_strategy_id(self) -> int | None:
         return self.outcome.wdk_strategy_id if self.outcome else None
 
-    @computed_field
+    @computed
     def wdk_url(self) -> str | None:
         return self.outcome.wdk_url if self.outcome else None
 
@@ -236,11 +236,11 @@ class BuildSection(CamelModel):
 class VerificationSection(CamelModel):
     digest: VerificationDigest | None = None
 
-    @computed_field
+    @computed
     def complete(self) -> bool:
         return self.digest is not None
 
-    @computed_field
+    @computed
     def successful(self) -> bool:
         return self.digest is not None and self.digest.success
 
@@ -300,10 +300,10 @@ class ConstraintSection(CamelModel):
             lines.insert(0, f"- ({elided} more stated earlier)")
         return lines
 
-    @computed_field
+    @computed
     def unmet_count(self) -> int:
         return sum(1 for g in self.grounded if is_blocking(g))
 
-    @computed_field
+    @computed
     def blocking(self) -> bool:
         return any(is_blocking(g) for g in self.grounded)

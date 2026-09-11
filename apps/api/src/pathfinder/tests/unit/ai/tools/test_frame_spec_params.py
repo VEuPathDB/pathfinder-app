@@ -6,10 +6,13 @@ import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters.value_codec import to_wire
 from veupathdb.domain.parameters.wdk_vocab import VocabOption
-from veupathdb_mcp.catalog import ParameterInfo, param_discovery
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    fetch_search_details,
+    param_discovery,
+)
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
 from pathfinder.tests.unit.ai.tools.test_frame_proposals import (
     PHYLETIC_ORGANISM,
@@ -263,7 +266,7 @@ class TestAnOrganismSwapRedecidesItsDependents:
     def _serve(self, monkeypatch: pytest.MonkeyPatch) -> None:
         serve_search(monkeypatch, _profilesets_under_organism)
         monkeypatch.setattr(
-            param_discovery, "fetch_search_details", frame_spec.fetch_search_details
+            param_discovery, "fetch_search_details", fetch_search_details
         )
 
     @pytest.mark.asyncio

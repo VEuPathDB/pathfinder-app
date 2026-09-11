@@ -24,9 +24,10 @@ from typing import Literal
 
 import structlog
 from assistant_core.platform.types import JSONObject
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, RootModel
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.eda.factory import get_eda_client
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 from veupathdb.testing.wdk_credentials import (
     NO_CREDENTIALS_REASON,
     registered_wdk_token,
@@ -34,7 +35,6 @@ from veupathdb.testing.wdk_credentials import (
 
 from pathfinder.tests._support.eda_wire import (
     DE_STUDY,
-    FIXTURE_DIR,
     PHENOTYPE_ENTITY,
     PHENOTYPE_STUDY,
 )
@@ -186,13 +186,13 @@ def fixture_request(name: str) -> EdaFixtureRequest:
     return _BY_NAME[name]
 
 
-def body_shape(body: object) -> str:
+def body_shape(body: JsonValue) -> str:
     """The keys a body carries, which is what a hermetic test reads."""
     match body:
-        case {**fields}:
-            return ",".join(sorted(fields))
-        case [*items]:
-            return f"list[{len(items)}]"
+        case dict():
+            return ",".join(sorted(body))
+        case list():
+            return f"list[{len(body)}]"
         case _:
             return type(body).__name__
 

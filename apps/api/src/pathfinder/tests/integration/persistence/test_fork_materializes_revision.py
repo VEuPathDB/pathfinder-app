@@ -14,7 +14,7 @@ from assistant_core.persistence.models import (
     Message,
 )
 from assistant_core.platform import db
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text
 
 from pathfinder.persistence.models import (
     ConversationStrategy,
@@ -128,7 +128,7 @@ async def test_branch_of_a_thread_with_no_history_is_refused(
     thread = await four_turn_thread(user_id)
     async with db.async_session_factory() as session:
         await session.execute(
-            StrategyRevision.__table__.delete().where(
+            delete(StrategyRevision).where(
                 StrategyRevision.conversation_id == thread.conversation_id,
             ),
         )

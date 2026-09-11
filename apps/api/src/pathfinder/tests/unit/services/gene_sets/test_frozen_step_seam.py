@@ -26,7 +26,7 @@ async def test_the_holding_strategy_carries_this_products_name(
         site_id="plasmodb",
         record_type="transcript",
         gene_ids=["PF3D7_0100100", "PF3D7_0200200"],
-        source="manual",
+        source="paste",
     )
 
     async def _frozen(

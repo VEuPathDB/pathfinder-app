@@ -6,7 +6,7 @@ from collections.abc import Generator
 
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.errors import ExternalServiceError
+from veupathdb.errors import ExternalServiceError, WDKLoginRequiredError
 from veupathdb.wdk.auth_login import VEuPathDBClaims
 
 from pathfinder.platform.errors import ErrorCode
@@ -26,22 +26,27 @@ def _clear_request_token() -> Generator[None]:
     veupathdb_auth_token_ctx.reset(reset)
 
 
-def _claims(monkeypatch: pytest.MonkeyPatch, *, is_guest: bool) -> None:
+def _claims(monkeypatch: pytest.MonkeyPatch, *, is_guest: bool) -> list[str]:
+    """Make every token read as this kind of user, and record the reads."""
+    seen: list[str] = []
+
     async def _validate(token: str, oauth_url: str) -> VEuPathDBClaims:
-        del token, oauth_url
+        del oauth_url
+        seen.append(token)
         return VEuPathDBClaims(sub="1248677203", is_guest=is_guest)
 
     monkeypatch.setattr(wdk_identity, "validate_oauth_token", _validate)
+    return seen
 
 
 class TestTheRequestMustNameARegisteredUser:
     @pytest.mark.asyncio
     async def test_a_request_without_a_token_is_refused(self) -> None:
-        with pytest.raises(wdk_identity.WDKLoginRequiredError) as raised:
+        with pytest.raises(WDKLoginRequiredError) as raised:
             await wdk_identity.require_registered_wdk_login()
 
         assert raised.value.status == 401
-        assert raised.value.code == ErrorCode.WDK_LOGIN_REQUIRED
+        assert raised.value.code.value == ErrorCode.WDK_LOGIN_REQUIRED.value
         assert raised.value.title == _LOGIN_TITLE
         assert raised.value.detail == _LOGIN_DETAIL
 
@@ -52,7 +57,7 @@ class TestTheRequestMustNameARegisteredUser:
         _claims(monkeypatch, is_guest=True)
         veupathdb_auth_token_ctx.set(GUEST_TOKEN)
 
-        with pytest.raises(wdk_identity.WDKLoginRequiredError):
+        with pytest.raises(WDKLoginRequiredError):
             await wdk_identity.require_registered_wdk_login()
 
     @pytest.mark.asyncio
@@ -65,17 +70,19 @@ class TestTheRequestMustNameARegisteredUser:
         monkeypatch.setattr(wdk_identity, "validate_oauth_token", _rejects)
         veupathdb_auth_token_ctx.set("forged")
 
-        with pytest.raises(wdk_identity.WDKLoginRequiredError):
+        with pytest.raises(WDKLoginRequiredError):
             await wdk_identity.require_registered_wdk_login()
 
     @pytest.mark.asyncio
     async def test_a_registered_token_passes(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        _claims(monkeypatch, is_guest=False)
+        seen = _claims(monkeypatch, is_guest=False)
         veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
 
-        assert await wdk_identity.require_registered_wdk_login() is None
+        await wdk_identity.require_registered_wdk_login()
+
+        assert seen == [REGISTERED_TOKEN]
 
 
 class TestAnUnreadableKeyIsNotABadToken:

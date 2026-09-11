@@ -81,6 +81,7 @@ async def test_go_process_enrichment_returns_real_kinase_terms(
     for term in go.terms:
         assert term.term_id.startswith("GO:")
         assert term.term_name
+        assert term.p_value is not None
         assert 0.0 <= term.p_value <= 1.0
         assert all(g.startswith("PF3D7") for g in term.genes)
     # The kinase set enriches strongly for phosphorylation.

@@ -11,6 +11,10 @@ from veupathdb.eda.models import EdaPermissionEntry, EdaStudyDetail
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_catalog
+from pathfinder.ai.tools.standalone._eda_models import (
+    EdaStudyDescription,
+    EdaStudySearchResult,
+)
 from pathfinder.services.eda.catalog import (
     NAME_MATCH_GUIDANCE,
     StudyCard,
@@ -28,6 +32,7 @@ from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_ENTITY,
     PHENOTYPE_STUDY,
 )
+from pathfinder.tests._support.tool_returns import returned
 
 StudyResolver = Any
 
@@ -111,9 +116,10 @@ async def test_search_eda_studies_returns_cards_the_model_can_act_on(
         )
 
     monkeypatch.setattr(eda_catalog, "search_studies", found)
-    result = (
-        await eda_catalog.search_eda_studies(lead_ctx, query="rodent malaria")
-    ).return_value
+    result = returned(
+        await eda_catalog.search_eda_studies(lead_ctx, query="rodent malaria"),
+        EdaStudySearchResult,
+    )
     assert result.studies
     first = result.studies[0]
     assert first.dataset_id == PHENOTYPE_DATASET
@@ -131,9 +137,10 @@ async def test_search_eda_studies_says_so_when_nothing_matches(
         return StudySearch(cards=[])
 
     monkeypatch.setattr(eda_catalog, "search_studies", none)
-    result = (
-        await eda_catalog.search_eda_studies(lead_ctx, query="nothing here")
-    ).return_value
+    result = returned(
+        await eda_catalog.search_eda_studies(lead_ctx, query="nothing here"),
+        EdaStudySearchResult,
+    )
     assert result.studies == []
     assert "No EDA study" in result.guidance
 
@@ -156,9 +163,10 @@ async def test_search_eda_studies_carries_the_name_match_guidance(
         return StudySearch(cards=[card], guidance=NAME_MATCH_GUIDANCE)
 
     monkeypatch.setattr(eda_catalog, "search_studies", by_name)
-    result = (
-        await eda_catalog.search_eda_studies(lead_ctx, query="gametocyte")
-    ).return_value
+    result = returned(
+        await eda_catalog.search_eda_studies(lead_ctx, query="gametocyte"),
+        EdaStudySearchResult,
+    )
 
     assert [study.dataset_id for study in result.studies] == ["DS_heat"]
     assert result.guidance.startswith(NAME_MATCH_GUIDANCE)
@@ -168,9 +176,10 @@ async def test_describe_eda_study_reports_the_entity_tree_and_the_gene_entity(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     _serve_study(monkeypatch, phenotype_study)
-    result = (
-        await eda_catalog.describe_eda_study(lead_ctx, dataset_id=PHENOTYPE_DATASET)
-    ).return_value
+    result = returned(
+        await eda_catalog.describe_eda_study(lead_ctx, dataset_id=PHENOTYPE_DATASET),
+        EdaStudyDescription,
+    )
     assert result.study_id == PHENOTYPE_STUDY
     assert result.gene_entity_id == PHENOTYPE_ENTITY
     entities = {e.entity_id: e for e in result.entities}
@@ -185,11 +194,12 @@ async def test_describe_eda_study_summarises_a_vocabulary_without_dumping_it(
 ) -> None:
     """A tool payload must fit a context window; 4000 terms must not travel."""
     _serve_study(monkeypatch, phenotype_study)
-    result = (
+    result = returned(
         await eda_catalog.describe_eda_study(
             lead_ctx, dataset_id=PHENOTYPE_DATASET, entity_id=PHENOTYPE_ENTITY
-        )
-    ).return_value
+        ),
+        EdaStudyDescription,
+    )
     species = next(v for v in result.variables if v.variable_id == "VAR_035294d0")
     assert species.vocabulary_total == 3
     assert species.vocabulary == ["P. berghei", "P. falciparum", "P. yoelii"]
@@ -203,11 +213,12 @@ async def test_describe_eda_study_lists_a_variable_the_site_hides_everywhere(
 ) -> None:
     """hideFrom is UI advice, not access control; the variable is still filterable."""
     _serve_study(monkeypatch, _hidden_everywhere_study)
-    result = (
+    result = returned(
         await eda_catalog.describe_eda_study(
             lead_ctx, dataset_id=PHENOTYPE_DATASET, entity_id=PHENOTYPE_ENTITY
-        )
-    ).return_value
+        ),
+        EdaStudyDescription,
+    )
     hidden = next(v for v in result.variables if v.variable_id == "VAR_hidden")
     assert hidden.filter_type == "stringSet"
     assert hidden.vocabulary == ["batch-1", "batch-2"]
@@ -217,11 +228,12 @@ async def test_describe_eda_study_truncates_a_long_vocabulary_and_says_so(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     _serve_study(monkeypatch, _wide_vocabulary_study)
-    result = (
+    result = returned(
         await eda_catalog.describe_eda_study(
             lead_ctx, dataset_id=PHENOTYPE_DATASET, entity_id="E"
-        )
-    ).return_value
+        ),
+        EdaStudyDescription,
+    )
     wide = result.variables[0]
     assert wide.vocabulary_total == 500
     assert len(wide.vocabulary) == 40
@@ -233,11 +245,12 @@ async def test_describe_eda_study_names_a_multifilter_category_and_its_children(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     _serve_study(monkeypatch, _multifilter_study)
-    result = (
+    result = returned(
         await eda_catalog.describe_eda_study(
             lead_ctx, dataset_id=PHENOTYPE_DATASET, entity_id="EUPATH_0000096"
-        )
-    ).return_value
+        ),
+        EdaStudyDescription,
+    )
     category = next(v for v in result.variables if v.filter_type == "multiFilter")
     assert category.sub_filter_variable_ids == ["VAR_child_0", "VAR_child_1"]
     assert category.vocabulary == []
@@ -247,9 +260,10 @@ async def test_describe_eda_study_refuses_a_study_with_no_gene_id_variable(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     _serve_study(monkeypatch, no_gene_study)
-    result = (
-        await eda_catalog.describe_eda_study(lead_ctx, dataset_id=PHENOTYPE_DATASET)
-    ).return_value
+    result = returned(
+        await eda_catalog.describe_eda_study(lead_ctx, dataset_id=PHENOTYPE_DATASET),
+        EdaStudyDescription,
+    )
     assert result.gene_entity_id is None
     assert result.gene_entity_problem is not None
     assert "VEUPATHDB_GENE_ID" in result.gene_entity_problem

@@ -20,9 +20,14 @@ from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis, eda_catalog
+from pathfinder.ai.tools.standalone._eda_models import (
+    EdaFiltersResult,
+    EdaStudySearchResult,
+)
 from pathfinder.services.eda.binding import ConversationAnalysisView
 from pathfinder.services.eda.catalog import StudyCard, StudySearch
-from pathfinder.tests.unit.ai.tools.conftest import lead_run_context
+from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 
 FIXTURES = FIXTURE_DIR
 
@@ -42,9 +47,9 @@ def studies_ctx() -> RunContext[LeadDeps]:
     return lead_run_context(user_prompt="which studies measure phenotype scores")
 
 
-def wire_size(returned: ToolReturn[object], tool_name: str) -> int:
+def wire_size[T](answer: ToolReturn[T], tool_name: str) -> int:
     """The bytes the model reads, as the tool return part serializes them."""
-    part = ToolReturnPart(tool_name=tool_name, content=returned.return_value)
+    part = ToolReturnPart(tool_name=tool_name, content=answer.return_value)
     return len(part.model_response_str().encode())
 
 
@@ -114,16 +119,17 @@ def stubbed_services(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_search_eda_studies_stays_under_its_ceiling(
     studies_ctx: RunContext[LeadDeps],
 ) -> None:
-    returned = await eda_catalog.search_eda_studies(studies_ctx, query="rodent malaria")
-    assert wire_size(returned, "search_eda_studies") < EDA_STUDY_SEARCH_CEILING
+    answer = await eda_catalog.search_eda_studies(studies_ctx, query="rodent malaria")
+    assert wire_size(answer, "search_eda_studies") < EDA_STUDY_SEARCH_CEILING
 
 
 async def test_search_eda_studies_names_the_handle_for_the_full_study(
     studies_ctx: RunContext[LeadDeps],
 ) -> None:
-    result = (
-        await eda_catalog.search_eda_studies(studies_ctx, query="rodent malaria")
-    ).return_value
+    result = returned(
+        await eda_catalog.search_eda_studies(studies_ctx, query="rodent malaria"),
+        EdaStudySearchResult,
+    )
     assert len(result.studies) == 5
     assert all(s.dataset_id for s in result.studies)
     assert "describe_eda_study" in result.guidance
@@ -132,8 +138,8 @@ async def test_search_eda_studies_names_the_handle_for_the_full_study(
 async def test_the_eda_filter_sheet_stays_under_its_ceiling(
     studies_ctx: RunContext[LeadDeps],
 ) -> None:
-    returned = await eda_analysis.set_eda_filters(studies_ctx, dataset_id=_DATASET)
-    assert wire_size(returned, "set_eda_filters") < EDA_FILTER_SHEET_CEILING
+    answer = await eda_analysis.set_eda_filters(studies_ctx, dataset_id=_DATASET)
+    assert wire_size(answer, "set_eda_filters") < EDA_FILTER_SHEET_CEILING
 
 
 async def test_the_eda_filter_sheet_keeps_every_filterable_variable(
@@ -141,9 +147,10 @@ async def test_the_eda_filter_sheet_keeps_every_filterable_variable(
 ) -> None:
     """A variable dropped from the sheet is a filter the model cannot write."""
 
-    result = (
-        await eda_analysis.set_eda_filters(studies_ctx, dataset_id=_DATASET)
-    ).return_value
+    result = returned(
+        await eda_analysis.set_eda_filters(studies_ctx, dataset_id=_DATASET),
+        EdaFiltersResult,
+    )
     assert len(result.decide) == 13
     assert all(entry.example for entry in result.decide)
     truncated = [e for e in result.decide if e.vocabulary_total > len(e.vocabulary)]

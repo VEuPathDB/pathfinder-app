@@ -106,7 +106,10 @@ def ends_at_first_frame(app: ASGIApp) -> ASGIApp:
                 await send({"type": "http.response.body", "body": b""})
                 closed.set()
 
-        call = asyncio.create_task(app(scope, receive, capture))
+        async def serve() -> None:
+            await app(scope, receive, capture)
+
+        call = asyncio.create_task(serve())
         waiter = asyncio.create_task(closed.wait())
         done, _pending = await asyncio.wait(
             {call, waiter},

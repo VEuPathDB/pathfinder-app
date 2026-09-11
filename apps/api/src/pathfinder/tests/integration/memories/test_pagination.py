@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from uuid import UUID
 
 import pytest
 from assistant_core.memory.schemas import MemoryValue
@@ -11,7 +11,7 @@ from assistant_core.memory.store import MemoryStore
 from httpx import AsyncClient
 
 
-async def _seed(store: MemoryStore, user_id, n: int) -> list[str]:
+async def _seed(store: MemoryStore, user_id: UUID, n: int) -> list[str]:
     keys: list[str] = []
     for i in range(n):
         value = MemoryValue(
@@ -29,7 +29,7 @@ async def _seed(store: MemoryStore, user_id, n: int) -> list[str]:
 @pytest.mark.asyncio
 async def test_limit_caps_page_and_has_more_flips(
     authed_client: AsyncClient,
-    authed_user_id: Any,
+    authed_user_id: UUID,
     app_memory_store: MemoryStore,
     db_cleaner: None,
     patch_app_db_engine: None,
@@ -56,7 +56,7 @@ async def test_limit_caps_page_and_has_more_flips(
 @pytest.mark.asyncio
 async def test_offset_returns_different_items_than_page_zero(
     authed_client: AsyncClient,
-    authed_user_id: Any,
+    authed_user_id: UUID,
     app_memory_store: MemoryStore,
     db_cleaner: None,
     patch_app_db_engine: None,
@@ -87,7 +87,7 @@ async def test_offset_returns_different_items_than_page_zero(
 @pytest.mark.asyncio
 async def test_has_more_false_when_no_namespace_full(
     authed_client: AsyncClient,
-    authed_user_id: Any,
+    authed_user_id: UUID,
     app_memory_store: MemoryStore,
     db_cleaner: None,
     patch_app_db_engine: None,

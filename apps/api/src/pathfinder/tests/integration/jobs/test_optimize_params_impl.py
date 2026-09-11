@@ -20,6 +20,7 @@ from pathfinder.jobs.impls import optimize_params_impl
 from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.parameter_optimization.config import SweepVariantSpec
+from pathfinder.tests._support.job_context import job_context
 
 
 @dataclass(frozen=True)
@@ -32,11 +33,6 @@ class _ProgressRow:
 @dataclass
 class _ProgressSink:
     rows: list[_ProgressRow]
-
-
-@dataclass(frozen=True)
-class _FakeContext:
-    site_id: str = "plasmodb"
 
 
 async def _seed_user_chat_task(
@@ -170,7 +166,7 @@ def run_impl(
             settings["max_parallel"] = max_parallel
 
         result = await optimize_params_impl.optimize_search_parameters_impl(
-            context=_FakeContext(),
+            context=job_context(),
             task_id=task_id,
             progress=progress,
             memory_store=None,

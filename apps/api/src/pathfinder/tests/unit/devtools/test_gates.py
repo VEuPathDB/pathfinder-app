@@ -3,6 +3,12 @@ from __future__ import annotations
 from uuid import uuid4
 
 from assistant_core.graph.turn_state import UserQuestionAnswer
+from pydantic import TypeAdapter
+from pydantic_ai.ui.vercel_ai.request_types import (
+    DataUIPart,
+    ToolApprovalResponded,
+    ToolApprovalRespondedPart,
+)
 
 from pathfinder.devtools.gates import (
     BodyCtx,
@@ -12,6 +18,11 @@ from pathfinder.devtools.gates import (
 )
 
 _CTX = BodyCtx(conversation_id=uuid4(), site_id="vectorbase", mode="strategy")
+
+
+def _typed[T](value: object, shape: type[T]) -> T:
+    """A value of a wide union type, as the class the builder puts there."""
+    return TypeAdapter(shape).validate_python(value)
 
 
 def test_detect_none_when_no_pending() -> None:
@@ -95,10 +106,11 @@ def test_approval_body_builds_responded_part() -> None:
     )
     msg = body.messages[0]
     assert msg.role == "assistant"
-    part = msg.parts[0]
+    part = _typed(msg.parts[0], ToolApprovalRespondedPart)
     assert part.type == "tool-delete_step"
-    assert part.approval.approved is False
-    assert part.approval.reason == "not now"
+    approval = _typed(part.approval, ToolApprovalResponded)
+    assert approval.approved is False
+    assert approval.reason == "not now"
 
 
 def test_consult_body_has_approval_and_answers() -> None:
@@ -108,11 +120,12 @@ def test_consult_body_has_approval_and_answers() -> None:
         )
     ]
     body = consult_body(_CTX, message_id=uuid4(), tool_call_id="c2", answers=answers)
-    types = [p.type for p in body.messages[0].parts]
+    message = body.messages[0]
+    types = [p.type for p in message.parts]
     assert "tool-consult_user" in types
     assert "data-user-question-answers" in types
-    data_part = next(
-        p for p in body.messages[0].parts if p.type == "data-user-question-answers"
+    data_part = _typed(
+        message.parts[types.index("data-user-question-answers")], DataUIPart
     )
     assert data_part.data["toolCallId"] == "c2"
     assert data_part.data["answers"][0]["chosenLabels"] == ["Liverpool"]

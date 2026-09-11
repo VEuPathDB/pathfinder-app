@@ -5,7 +5,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from veupathdb.domain.strategy.ops import CombineOp
@@ -28,6 +28,7 @@ from pathfinder.services.strategies.commit import (
     apply_and_commit,
     apply_operations_and_commit,
 )
+from pathfinder.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import (
     StubAPI,
@@ -122,13 +123,14 @@ class TestTheApplyOperationsTool:
             "step_u1", leaf("step_k1"), leaf("step_k2"), op=CombineOp.INTERSECT
         )
 
-        payload = (
+        payload = returned(
             await apply_operations(
                 ctx(deps),
                 revision,
                 [ReplaceSubtreeOp(step_id="step_u1", subtree=kept)],
-            )
-        ).return_value
+            ),
+            dict[str, JsonValue],
+        )
 
         assert payload["applied"] == 1
         assert graph.steps["step_u1"].operator == CombineOp.INTERSECT

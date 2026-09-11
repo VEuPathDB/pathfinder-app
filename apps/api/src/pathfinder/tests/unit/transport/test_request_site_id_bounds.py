@@ -5,7 +5,8 @@ longer value reach INSERT, where Postgres raises and the route answers 500.
 """
 
 import pytest
-from pydantic import TypeAdapter, ValidationError
+from assistant_core.platform.types import JSONObject
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from pathfinder.transport.http.deps import RequiredSiteIdQuery, SiteIdQuery
 from pathfinder.transport.http.routers.control_sets import CreateControlSetRequest
@@ -85,7 +86,9 @@ _AST = {"recordType": "transcript", "root": {"searchName": "GenesByTaxon"}}
         ),
     ],
 )
-def test_an_oversized_site_id_is_refused(model: type, payload: dict) -> None:
+def test_an_oversized_site_id_is_refused(
+    model: type[BaseModel], payload: JSONObject
+) -> None:
     with pytest.raises(ValidationError):
         model.model_validate(payload)
 

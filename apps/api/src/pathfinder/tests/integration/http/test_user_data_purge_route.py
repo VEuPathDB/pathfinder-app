@@ -289,7 +289,11 @@ async def test_a_saved_strategy_the_chat_only_imported_is_left_on_wdk(
         db_session, seed_user.id, site_id=SITE, wdk_strategy_id=MINE
     )
     async with db_session.begin_nested():
-        row = await db_session.get(Conversation, conversation)
+        row = await db_session.scalar(
+            select(ConversationStrategy).where(
+                ConversationStrategy.conversation_id == conversation,
+            ),
+        )
         assert row is not None
         row.imported_saved_strategy_ids = [UNREFERENCED]
     await db_session.commit()

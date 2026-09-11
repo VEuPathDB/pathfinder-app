@@ -58,11 +58,12 @@ async def _assistant_of(
     conversation_id: UUID,
 ) -> str | None:
     async with session_maker() as session:
-        return await session.scalar(
+        found = await session.scalars(
             select(Conversation.assistant_id).where(
                 Conversation.id == conversation_id,
             ),
         )
+        return found.one_or_none()
 
 
 async def test_a_turn_creates_the_thread_under_the_default_assistant(

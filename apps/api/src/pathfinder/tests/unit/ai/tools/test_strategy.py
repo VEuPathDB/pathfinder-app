@@ -6,24 +6,31 @@ strategy inputs only, so a refreshed count does not read as an edit.
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import MagicMock
+from collections.abc import Awaitable, Callable, Sequence
 
 import pytest
-from pydantic_ai import Tool
+from pydantic_ai import RunContext, Tool
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.parameters.values import StringValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
 
+from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.strategy import apply_operations, build_strategy
 from pathfinder.ai.tools.toolsets.execution import build_toolset
-from pathfinder.domain.strategy.operations import UpdateStepMetaOp
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.operations import GraphOperation, UpdateStepMetaOp
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
+
+Commit = Callable[..., Awaitable[CommitResult]]
+Build = Callable[..., Awaitable[BuildOutcome]]
 
 
 def _leaf(step_id: str, display: str | None = None) -> StrategyStepNode:
@@ -35,24 +42,21 @@ def _leaf(step_id: str, display: str | None = None) -> StrategyStepNode:
     )
 
 
-def _ctx(graph: StrategyGraph, committed: list[Any]) -> Any:
-    session = MagicMock()
-    session.get_graph.return_value = graph
+def _ctx(
+    graph: StrategyGraph, committed: list[list[GraphOperation]]
+) -> tuple[RunContext[AgentDeps], Commit]:
+    session = StrategySession(site_id="plasmodb")
+    session.add_graph(graph)
     session.sync_state = WDKSyncState()
-    ctx = MagicMock()
-    ctx.tool_call_id = "call_1"
-    ctx.deps.strategy_session = session
 
-    async def _commit(*, deps: Any, ops: Any) -> Any:
+    async def _commit(
+        *, deps: StrategyMutationContext, ops: Sequence[GraphOperation]
+    ) -> CommitResult:
         del deps
         committed.append(list(ops))
-        result = MagicMock()
-        result.description = "applied"
-        result.dropped_step_ids = []
-        return result
+        return CommitResult(description="applied")
 
-    ctx.deps.to_strategy_context.return_value = MagicMock()
-    return ctx, _commit
+    return agent_run_context(strategy_session=session), _commit
 
 
 def _graph_with(node: StrategyStepNode) -> StrategyGraph:
@@ -67,28 +71,18 @@ def _revision_of(graph: StrategyGraph) -> str:
     return strategy_revision(graph.to_strategy_ast())
 
 
-def _outcome() -> Any:
-    outcome = MagicMock()
-    outcome.wdk_url = None
-    outcome.fully_succeeded = True
-    outcome.failed_steps = []
-    outcome.wdk_strategy_id = 1
-    outcome.root_count = 0
-    outcome.pushed_step_ids = []
-    outcome.skipped_step_ids = []
-    outcome.zero_step_ids = []
-    outcome.counts = {}
-    return outcome
+def _outcome() -> BuildOutcome:
+    return BuildOutcome(wdk_strategy_id=1, root_count=0)
 
 
-def _pin_apply(monkeypatch: pytest.MonkeyPatch, commit: Any) -> None:
+def _pin_apply(monkeypatch: pytest.MonkeyPatch, commit: Commit) -> None:
     monkeypatch.setattr(
         "pathfinder.ai.tools.standalone.strategy.apply_operations_and_commit",
         commit,
     )
 
 
-def _pin_build(monkeypatch: pytest.MonkeyPatch, build: Any) -> None:
+def _pin_build(monkeypatch: pytest.MonkeyPatch, build: Build) -> None:
     monkeypatch.setattr(
         "pathfinder.ai.tools.standalone.strategy.build_strategy_from_spec",
         build,
@@ -100,7 +94,7 @@ class TestRevisionPrecondition:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         graph = _graph_with(_leaf("step_a"))
-        committed: list[Any] = []
+        committed: list[list[GraphOperation]] = []
         ctx, commit = _ctx(graph, committed)
         _pin_apply(monkeypatch, commit)
 
@@ -117,7 +111,7 @@ class TestRevisionPrecondition:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         graph = _graph_with(_leaf("step_a"))
-        committed: list[Any] = []
+        committed: list[list[GraphOperation]] = []
         ctx, commit = _ctx(graph, committed)
         _pin_apply(monkeypatch, commit)
 
@@ -155,7 +149,7 @@ class TestRevisionPrecondition:
         write."""
         graph = _graph_with(_leaf("step_a"))
         seen_by_model = _revision_of(graph)
-        committed: list[Any] = []
+        committed: list[list[GraphOperation]] = []
         ctx, commit = _ctx(graph, committed)
         _pin_apply(monkeypatch, commit)
 
@@ -182,7 +176,7 @@ class TestRevisionPrecondition:
         revision valid."""
         graph = _graph_with(_leaf("step_a"))
         before = _revision_of(graph)
-        committed: list[Any] = []
+        committed: list[list[GraphOperation]] = []
         ctx, commit = _ctx(graph, committed)
         _pin_apply(monkeypatch, commit)
 
@@ -202,7 +196,7 @@ class TestRevisionPrecondition:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         graph = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
-        committed: list[Any] = []
+        committed: list[list[GraphOperation]] = []
         ctx, commit = _ctx(graph, committed)
         _pin_apply(monkeypatch, commit)
 
@@ -221,7 +215,7 @@ class TestOperationListValidation:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         graph = _graph_with(_leaf("step_a"))
-        committed: list[Any] = []
+        committed: list[list[GraphOperation]] = []
         ctx, commit = _ctx(graph, committed)
         _pin_apply(monkeypatch, commit)
 
@@ -241,9 +235,9 @@ class TestBuildStrategyNoLongerClobbersSilently:
         revision."""
         graph = _graph_with(_leaf("step_a"))
         ctx, _commit = _ctx(graph, [])
-        built: list[Any] = []
+        built: list[dict[str, object]] = []
 
-        async def _build(**kwargs: Any) -> Any:
+        async def _build(**kwargs: object) -> BuildOutcome:
             built.append(kwargs)
             msg = "build must not run"
             raise AssertionError(msg)
@@ -273,9 +267,9 @@ class TestBuildStrategyNoLongerClobbersSilently:
         """A build over an empty strategy overwrites nothing."""
         graph = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
         ctx, _commit = _ctx(graph, [])
-        built: list[Any] = []
+        built: list[dict[str, object]] = []
 
-        async def _build(**kwargs: Any) -> Any:
+        async def _build(**kwargs: object) -> BuildOutcome:
             built.append(kwargs)
             return _outcome()
 
@@ -292,7 +286,7 @@ class TestBuildStrategyNoLongerClobbersSilently:
         graph = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
         ctx, _commit = _ctx(graph, [])
 
-        async def _build(**kwargs: Any) -> Any:
+        async def _build(**kwargs: object) -> BuildOutcome:
             del kwargs
             return _outcome()
 
@@ -312,9 +306,9 @@ class TestBuildStrategyNoLongerClobbersSilently:
     ) -> None:
         graph = _graph_with(_leaf("step_a"))
         ctx, _commit = _ctx(graph, [])
-        built: list[Any] = []
+        built: list[dict[str, object]] = []
 
-        async def _build(**kwargs: Any) -> Any:
+        async def _build(**kwargs: object) -> BuildOutcome:
             built.append(kwargs)
             return _outcome()
 
@@ -336,7 +330,9 @@ class TestRejectedBatchesAreRetryable:
         graph = _graph_with(_leaf("step_a"))
         ctx, _commit = _ctx(graph, [])
 
-        async def _boom(*, deps: Any, ops: Any) -> Any:
+        async def _boom(
+            *, deps: StrategyMutationContext, ops: Sequence[GraphOperation]
+        ) -> CommitResult:
             del deps, ops
             msg = "step 'ghost' not found"
             raise ApplyError(msg)
@@ -359,7 +355,9 @@ class TestRejectedBatchesAreRetryable:
         graph = _graph_with(_leaf("step_a"))
         ctx, _commit = _ctx(graph, [])
 
-        async def _boom(*, deps: Any, ops: Any) -> Any:
+        async def _boom(
+            *, deps: StrategyMutationContext, ops: Sequence[GraphOperation]
+        ) -> CommitResult:
             del deps, ops
             msg = "nope"
             raise ApplyError(msg)

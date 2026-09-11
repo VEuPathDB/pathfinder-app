@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import Literal, get_origin
 
 from assistant_core.platform.config import RuntimeSettings, use_settings_source
+from assistant_core.platform.pydantic_base import computed
 from assistant_core.platform.types import ModelProvider, TierName
-from pydantic import Field, computed_field
+from pydantic import Field
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -184,7 +185,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     # Default monthly usage quota in USD. The `users` row can override it.
     pathfinder_user_monthly_cost_limit_usd: float = 20.0
 
-    @computed_field
+    @computed
     def is_development(self) -> bool:
         """Check if running in development mode."""
         return self.api_env == "development"

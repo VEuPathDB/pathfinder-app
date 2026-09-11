@@ -30,10 +30,10 @@ def _answer(gene_ids: list[str]) -> Any:
     answer.records = records
     # A real meta, so the count accessor under test actually runs.
     answer.meta = WDKAnswerMeta(
-        totalCount=len(gene_ids),
-        displayTotalCount=len(gene_ids),
-        viewTotalCount=len(gene_ids),
-        displayViewTotalCount=len(gene_ids),
+        total_count=len(gene_ids),
+        display_total_count=len(gene_ids),
+        view_total_count=len(gene_ids),
+        display_view_total_count=len(gene_ids),
     )
     return answer
 

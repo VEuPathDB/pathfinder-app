@@ -15,11 +15,11 @@ import pytest
 from assistant_core.graph.runtime import AssistantDeps, TurnContext
 from assistant_core.graph.turn_state import TurnState
 from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.tests._support.database import no_database
 
 TURN_FIELDS = {
     "conversation_id",
@@ -73,11 +73,6 @@ STRATEGY_RESOURCES = {
     "service_outage",
     "verification_scope",
 }
-
-
-def _never_factory() -> AsyncSession:
-    msg = "db factory should not be called in unit tests"
-    raise AssertionError(msg)
 
 
 def test_turn_state_carries_only_the_generic_turn_fields() -> None:
@@ -161,12 +156,12 @@ def test_context_is_still_frozen_and_built_by_keyword() -> None:
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
-        db_session_factory=_never_factory,
+        db_session_factory=no_database,
         cancel_event=asyncio.Event(),
     )
     assert dataclasses.is_dataclass(ctx)
     with pytest.raises(dataclasses.FrozenInstanceError):
-        ctx.site_id = "toxodb"
+        ctx.__setattr__("site_id", "toxodb")
 
 
 def test_assistant_deps_carries_no_strategy_resource() -> None:

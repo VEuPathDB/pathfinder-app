@@ -86,14 +86,19 @@ def _referenced_name(node: JsonValue) -> str | None:
             return None
 
 
+def _rewritten_object(node: JSONObject) -> JSONObject:
+    """The object with every component pointer moved to the carried definitions."""
+    name = _referenced_name(node)
+    if name is not None:
+        return {"$ref": _DEFS_PREFIX + name}
+    return {key: _rewritten(value) for key, value in node.items()}
+
+
 def _rewritten(node: JsonValue) -> JsonValue:
     """The node with every component pointer moved to the carried definitions."""
     match node:
         case dict():
-            name = _referenced_name(node)
-            if name is not None:
-                return {"$ref": _DEFS_PREFIX + name}
-            return {key: _rewritten(value) for key, value in node.items()}
+            return _rewritten_object(node)
         case list():
             return [_rewritten(item) for item in node]
         case _:
@@ -121,7 +126,7 @@ def _collect(node: JsonValue, schemas: dict[str, JSONObject], out: JSONObject) -
 def _has_no_complement(union: JSONObject, schemas: dict[str, JSONObject]) -> bool:
     carried: JSONObject = {}
     _collect(union, schemas, carried)
-    document = _rewritten({**union, "$defs": carried})
+    document = _rewritten_object({**union, "$defs": carried})
     try:
         negated = jsonschema_rs.canonicalize(document).negate()
     except canonical.CanonicalizationError:

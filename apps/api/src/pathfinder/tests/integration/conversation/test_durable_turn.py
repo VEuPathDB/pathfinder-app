@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 from uuid import UUID, uuid4
 
 import httpx
@@ -53,7 +54,7 @@ async def _wait_until_enqueued(connector: InMemoryConnector) -> None:
         await asyncio.sleep(0.02)
 
 
-def _post_body(conv_id: UUID) -> dict:
+def _post_body(conv_id: UUID) -> dict[str, Any]:
     msg_id = str(uuid4())
     return {
         "trigger": "submit-message",

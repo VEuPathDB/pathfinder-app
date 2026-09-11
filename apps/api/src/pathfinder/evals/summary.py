@@ -7,8 +7,8 @@ make the assistant worse at a real task.
 
 from __future__ import annotations
 
-from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Field, computed_field
+from assistant_core.platform.pydantic_base import CamelModel, computed
+from pydantic import ConfigDict, Field
 
 from pathfinder.evals.distance import StrategyDistance
 from pathfinder.evals.scoring import CaseDifference
@@ -42,23 +42,23 @@ class EvalRunSummary(CamelModel):
     ran_at: str
     cases: list[CaseResult] = Field(default_factory=list)
 
-    @computed_field
+    @computed
     def case_count(self) -> int:
         return len(self.cases)
 
-    @computed_field
+    @computed
     def passed(self) -> int:
         return _passed(self.cases)
 
-    @computed_field
+    @computed
     def failed(self) -> int:
         return sum(1 for case in self.cases if not case.passed and not case.error)
 
-    @computed_field
+    @computed
     def errored(self) -> int:
         return sum(1 for case in self.cases if case.error)
 
-    @computed_field
+    @computed
     def pass_rate(self) -> float:
         if not self.cases:
             return 0.0

@@ -106,7 +106,7 @@ def detail(
 
 def permissions() -> dict[str, Any]:
     """The fixture body, plus the entry that resolves this test's dataset."""
-    body = json.loads((FIXTURES / "permissions.json").read_text())
+    body: dict[str, Any] = json.loads((FIXTURES / "permissions.json").read_text())
     entry = next(iter(body["perDataset"].values()))
     body["perDataset"][DATASET] = {**entry, "studyId": STUDY}
     return body

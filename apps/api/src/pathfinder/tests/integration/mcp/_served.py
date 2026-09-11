@@ -78,13 +78,13 @@ async def owned_step_for(bearer: str) -> AsyncIterator[OwnedStep]:
     api = get_strategy_api(SITE)
     step = await api.create_step(
         NewStepSpec(
-            searchName=TARGET_SEARCH,
-            searchConfig=WDKSearchConfig(parameters=encode_params(TARGET_PARAMETERS)),
+            search_name=TARGET_SEARCH,
+            search_config=WDKSearchConfig(parameters=encode_params(TARGET_PARAMETERS)),
         ),
         record_type=RECORD_TYPE,
     )
     strategy = await api.create_strategy(
-        WDKStepTree(stepId=step.id),
+        WDKStepTree(step_id=step.id),
         name="pathfinder-mcp-live",
         is_internal=True,
     )

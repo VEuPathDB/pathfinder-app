@@ -33,9 +33,9 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
-    lead_run_context,
     pipeline_state,
 )
 
@@ -124,7 +124,7 @@ def _ctx(
     session = (
         _combined_session() if with_strategy else StrategySession(site_id="plasmodb")
     )
-    return lead_run_context(lead_deps(state, strategy_session=session))
+    return run_context_for(lead_deps(state, strategy_session=session))
 
 
 async def test_build_strategy_dispatch_refuses_a_non_empty_strategy() -> None:

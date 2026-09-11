@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncGenerator, Callable, Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -31,6 +31,7 @@ from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.services.conversations.responses import ConversationResponse
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.binding import mutated_analysis_state
 from pathfinder.services.eda.compute import VolcanoThresholds
@@ -42,6 +43,7 @@ from pathfinder.tests._support.eda_wire import (
     eda_transport,
     wire_eda,
 )
+from pathfinder.tests._support.step_params import string_param
 
 pytestmark = pytest.mark.asyncio
 
@@ -148,7 +150,7 @@ def hermetic_wdk(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
 async def thread(
     patch_app_db_engine: None,
     db_cleaner: None,
-) -> AsyncGenerator[tuple[UUID, UUID]]:
+) -> tuple[UUID, UUID]:
     """A user, a conversation holding one step, and an analysis bound to it."""
     del patch_app_db_engine, db_cleaner
     user_id = uuid4()
@@ -238,12 +240,12 @@ async def test_a_subset_export_adds_the_generic_subset_step(
 
     step = await _added_step(conversation_id)
     assert step.search_name == SUBSET_QUERY
-    assert step.parameters["eda_dataset_id"].value == _DATASET
-    spec = json.loads(step.parameters["eda_analysis_spec"].value)
+    assert string_param(step, "eda_dataset_id") == _DATASET
+    spec = json.loads(string_param(step, "eda_analysis_spec"))
     assert spec["studyId"] == _DATASET
     assert spec["descriptor"]["subset"]["descriptor"][0]["stringSet"] == ["P. berghei"]
     assert step.display_name == "berghei subset"
-    assert refreshed["id"] == str(conversation_id)
+    assert ConversationResponse.model_validate(refreshed).id == conversation_id
 
 
 async def test_a_volcano_export_adds_the_compute_step_with_the_thresholds(
@@ -270,7 +272,7 @@ async def test_a_volcano_export_adds_the_compute_step_with_the_thresholds(
     step = await _added_step(conversation_id)
     assert step.search_name == COMPUTE_QUERY
     assert set(step.parameters) == {"eda_dataset_id", "eda_analysis_spec"}
-    spec = json.loads(step.parameters["eda_analysis_spec"].value)
+    spec = json.loads(string_param(step, "eda_analysis_spec"))
     volcano = spec["descriptor"]["computations"][0]["visualizations"][0]
     assert volcano["descriptor"]["configuration"] == {
         "effectSizeThreshold": 2.0,
@@ -447,5 +449,6 @@ async def test_an_export_on_a_thread_with_no_strategy_begins_it(
     assert ast.root.search_name == SUBSET_QUERY
     assert ast.detached_roots == []
     assert _search_names(hermetic_wdk[-1]) == [SUBSET_QUERY]
-    assert refreshed["rootStepId"] == ast.root.id
-    assert [step["searchName"] for step in refreshed["steps"]] == [SUBSET_QUERY]
+    payload = ConversationResponse.model_validate(refreshed)
+    assert payload.root_step_id == ast.root.id
+    assert [step.search_name for step in payload.steps] == [SUBSET_QUERY]

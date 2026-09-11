@@ -25,6 +25,11 @@ uv run python scripts/check_max_lines.py
 uv run python scripts/check_weak_assertions.py
 ```
 
+Both type checkers read the tests tree. `[tool.mypy]` and the repo-root
+`pyrightconfig.json` name no exclusion for `src/pathfinder/tests`, so a test
+runs under the same rules as the code it tests and a gate is green only at
+zero over both.
+
 The two ratchets cover production and tests alike. `check_max_lines.py` fails a
 Python file over 400 meaningful lines; `src/pathfinder/tests/.max-lines-baseline.txt`
 records the count each older offender had when the cap reached tests, and a

@@ -21,10 +21,8 @@ from veupathdb.eda.models import (
     EdaVolcanoDescriptor,
 )
 
-from pathfinder.services.eda.export import (
-    NoComputationError,
-    eda_step_request,
-)
+from pathfinder.services.eda.compute import NoComputationError
+from pathfinder.services.eda.export import eda_step_request
 
 _DATASET = "DS_53f554ec6a"
 _ENTITY = "GENE_PHENOTYPE_DATA_ENTITY"

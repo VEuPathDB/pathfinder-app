@@ -16,6 +16,7 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.jobs.impls import eda_compute_impl
 from pathfinder.jobs.impls.eda_compute_impl import run_eda_compute_impl
+from pathfinder.tests._support.database import no_database
 from pathfinder.tests.integration.jobs import _eda_wire
 
 _ARGS = _eda_wire.ARGS
@@ -46,18 +47,13 @@ class _Progress(TaskProgressEmitter):
         self.updates.append((percent, message))
 
 
-def _never_factory() -> Any:
-    msg = "the impl must not open a database session"
-    raise AssertionError(msg)
-
-
 @pytest.fixture
 def worker_context() -> Context:
     return Context(
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
-        db_session_factory=_never_factory,
+        db_session_factory=no_database,
         cancel_event=asyncio.Event(),
     )
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.values import NumberValue
+from veupathdb.domain.parameters.values import NumberValue, ParamValue
 
 from pathfinder.ai.graph.state import (
     PhaseDisposition,
@@ -168,7 +168,9 @@ def test_differential_intent_surfaces_in_summary() -> None:
 
 
 def _criterion(cid: str, percentile: float | None = None) -> Criterion:
-    params = {} if percentile is None else {"pct": NumberValue(value=percentile)}
+    params: dict[str, ParamValue] = (
+        {} if percentile is None else {"pct": NumberValue(value=percentile)}
+    )
     return Criterion(
         id=cid, text=f"criterion {cid}", search_name=f"By{cid}", resolved_params=params
     )

@@ -32,6 +32,19 @@ def _pair(left: str = "a", right: str = "b") -> tuple[StrategyStepNode, ...]:
     return StrategyStepNode(search_name=left), StrategyStepNode(search_name=right)
 
 
+def _unnamed_combine(
+    primary: StrategyStepNode, secondary: StrategyStepNode, operator: CombineOp
+) -> StrategyStepNode:
+    """A combine node built without a search name, as the wire sends one."""
+    return StrategyStepNode.model_validate(
+        {
+            "primary_input": primary,
+            "secondary_input": secondary,
+            "operator": operator,
+        }
+    )
+
+
 @PROFILE
 @given(ANY_TREE)
 def test_walk_step_tree_is_post_order_and_unique(root: StrategyStepNode) -> None:
@@ -162,7 +175,9 @@ class TestTheValidators:
     def test_a_single_input_node_with_no_name_is_refused(self) -> None:
         """One input is a transform, and a transform names its own search."""
         with pytest.raises(ValidationError, match="searchName"):
-            StrategyStepNode(primary_input=StrategyStepNode(search_name="a"))
+            StrategyStepNode.model_validate(
+                {"primary_input": StrategyStepNode(search_name="a")}
+            )
 
     def test_strategy_ast_rejects_duplicate_ids_across_tree(self) -> None:
         leaf_x = StrategyStepNode(search_name="a", id="dup")
@@ -185,28 +200,26 @@ class TestTheValidators:
 class TestTheDisplayLabel:
     def test_combine_default_search_name_is_injected(self) -> None:
         a, b = _pair()
-        node = StrategyStepNode(
-            primary_input=a, secondary_input=b, operator=CombineOp.INTERSECT
-        )
+        node = _unnamed_combine(a, b, CombineOp.INTERSECT)
 
         assert node.search_name == COMBINE_SEARCH_NAME
 
     def test_display_label_combine_never_leaks_sentinel(self) -> None:
         a, b = _pair()
-        node = StrategyStepNode(
-            primary_input=a, secondary_input=b, operator=CombineOp.INTERSECT
-        )
+        node = _unnamed_combine(a, b, CombineOp.INTERSECT)
 
         assert node.search_name == COMBINE_SEARCH_NAME
         assert node.display_label == "Combine"
 
     def test_display_label_prefers_explicit_display_name(self) -> None:
         a, b = _pair()
-        node = StrategyStepNode(
-            primary_input=a,
-            secondary_input=b,
-            operator=CombineOp.UNION,
-            display_name="My combine",
+        node = StrategyStepNode.model_validate(
+            {
+                "primary_input": a,
+                "secondary_input": b,
+                "operator": CombineOp.UNION,
+                "display_name": "My combine",
+            }
         )
 
         assert node.display_label == "My combine"

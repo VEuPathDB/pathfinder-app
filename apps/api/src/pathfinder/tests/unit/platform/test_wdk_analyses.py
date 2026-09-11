@@ -199,7 +199,10 @@ class TestTheTwoEmptyResultsAreToldApart:
         not_ready = WDKAnalysisNotReadyError(9, 4)
 
         assert isinstance(not_ready, VEuPathDBError)
-        assert (not_ready.status, not_ready.code) == (502, ErrorCode.WDK_ERROR)
+        assert (not_ready.status, not_ready.code.value) == (
+            502,
+            ErrorCode.WDK_ERROR.value,
+        )
 
     def test_an_enrichment_that_found_nothing_carries_no_error(self) -> None:
         found_nothing = EnrichmentResult(

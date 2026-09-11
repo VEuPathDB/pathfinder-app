@@ -5,7 +5,8 @@ from fastapi import FastAPI
 
 
 def _op(spec: dict[str, Any], path: str, method: str) -> dict[str, Any]:
-    return spec["paths"][path][method]
+    operations: dict[str, dict[str, Any]] = spec["paths"][path]
+    return operations[method]
 
 
 async def test_route_miss_404_is_problem_json(app: FastAPI) -> None:

@@ -18,6 +18,7 @@ from veupathdb.eda.models import (
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis
+from pathfinder.ai.tools.standalone._eda_models import EdaFiltersResult
 from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.authoring import SubsetRejectedError
@@ -35,6 +36,7 @@ from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_ENTITY,
     PHENOTYPE_STUDY,
 )
+from pathfinder.tests._support.tool_returns import returned
 
 
 @pytest.fixture(autouse=True)
@@ -181,10 +183,8 @@ async def test_a_first_call_with_no_filters_returns_the_sheet(
 ) -> None:
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
-    returned = await eda_analysis.set_eda_filters(
-        lead_ctx, dataset_id=PHENOTYPE_DATASET
-    )
-    result = returned.return_value
+    answer = await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
+    result = returned(answer, EdaFiltersResult)
     assert result.decide
     assert result.applied is False
 
@@ -194,10 +194,8 @@ async def test_the_sheet_names_the_exact_filter_type_per_variable(
 ) -> None:
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
-    returned = await eda_analysis.set_eda_filters(
-        lead_ctx, dataset_id=PHENOTYPE_DATASET
-    )
-    result = returned.return_value
+    answer = await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
+    result = returned(answer, EdaFiltersResult)
     species = next(e for e in result.decide if e.variable_id == SPECIES_VARIABLE)
     assert species.filter_type == "stringSet"
     assert species.example == {
@@ -217,10 +215,8 @@ async def test_a_date_example_carries_the_time_part_the_service_requires(
         eda_analysis, "get_study_detail_for_dataset", _date_and_number_study
     )
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
-    returned = await eda_analysis.set_eda_filters(
-        lead_ctx, dataset_id=PHENOTYPE_DATASET
-    )
-    result = returned.return_value
+    answer = await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
+    result = returned(answer, EdaFiltersResult)
     collected = next(e for e in result.decide if e.variable_id == "VAR_collected")
     assert collected.filter_type == "dateRange"
     assert collected.date_min == "2017-05-05T00:00:00"
@@ -242,10 +238,8 @@ async def test_a_longitude_variable_is_not_a_number_variable(
     """A longitude takes left and right, so a numberRange on it selects wrongly."""
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", _longitude_study)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
-    returned = await eda_analysis.set_eda_filters(
-        lead_ctx, dataset_id=PHENOTYPE_DATASET
-    )
-    result = returned.return_value
+    answer = await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
+    result = returned(answer, EdaFiltersResult)
     longitude = next(e for e in result.decide if e.variable_id == "VAR_lon")
     assert longitude.filter_type == "longitudeRange"
     assert longitude.example == {
@@ -267,18 +261,19 @@ async def test_a_second_call_applies_the_filters_and_emits_the_state(
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "apply_filters", _apply_ok)
-    returned = await eda_analysis.set_eda_filters(
+    answer = await eda_analysis.set_eda_filters(
         lead_ctx,
         dataset_id=PHENOTYPE_DATASET,
         filters=[_species_filter("P. berghei")],
     )
-    assert returned.return_value.applied is True
-    assert returned.return_value.num_filters == 1
-    assert returned.return_value.filter_summaries == [
+    result = returned(answer, EdaFiltersResult)
+    assert result.applied is True
+    assert result.num_filters == 1
+    assert result.filter_summaries == [
         "Species is one of P. berghei",
     ]
-    assert [c.type for c in returned.metadata] == ["data-eda.analysis-state"]
-    assert returned.metadata[0].data["revision"] == 1
+    assert [c.type for c in answer.metadata] == ["data-eda.analysis-state"]
+    assert answer.metadata[0].data["revision"] == 1
 
 
 async def test_an_out_of_vocabulary_value_raises_a_model_retry_with_the_options(
@@ -333,12 +328,14 @@ async def test_the_second_sheet_for_the_same_study_omits_the_vocabularies(
     """The model already holds them; resending costs the whole prompt cache."""
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
-    first = (
-        await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
-    ).return_value
-    second = (
-        await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
-    ).return_value
+    first = returned(
+        await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET),
+        EdaFiltersResult,
+    )
+    second = returned(
+        await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET),
+        EdaFiltersResult,
+    )
     assert max(len(e.vocabulary) for e in first.decide) > 0
     assert [len(e.vocabulary) for e in second.decide] == [0] * len(second.decide)
     unnoted = [
@@ -356,8 +353,9 @@ async def test_an_empty_filter_list_clears_the_subset(
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "apply_filters", _apply_cleared)
-    returned = await eda_analysis.set_eda_filters(
+    answer = await eda_analysis.set_eda_filters(
         lead_ctx, dataset_id=PHENOTYPE_DATASET, filters=[]
     )
-    assert returned.return_value.applied is True
-    assert returned.return_value.num_filters == 0
+    result = returned(answer, EdaFiltersResult)
+    assert result.applied is True
+    assert result.num_filters == 0

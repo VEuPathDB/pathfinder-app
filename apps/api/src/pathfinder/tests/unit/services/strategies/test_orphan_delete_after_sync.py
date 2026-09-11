@@ -159,7 +159,9 @@ class TestARefusedDeleteIsRetryable:
 
         await _drop_a(deps)
 
-        assert deps.strategy_session.sync_state.wdk_step_ids.get("A") == 100
+        sync = deps.strategy_session.sync_state
+        assert sync is not None
+        assert sync.wdk_step_ids.get("A") == 100
 
     @pytest.mark.asyncio
     async def test_a_deleted_id_is_forgotten(self, wdk: _Recorder) -> None:
@@ -168,7 +170,9 @@ class TestARefusedDeleteIsRetryable:
 
         await _drop_a(deps)
 
-        assert "C" not in deps.strategy_session.sync_state.wdk_step_ids
+        sync = deps.strategy_session.sync_state
+        assert sync is not None
+        assert "C" not in sync.wdk_step_ids
 
     @pytest.mark.asyncio
     async def test_every_id_is_forgotten_when_wdk_accepts(self, wdk: _Recorder) -> None:
@@ -176,6 +180,8 @@ class TestARefusedDeleteIsRetryable:
 
         await _drop_a(deps)
 
-        remaining = deps.strategy_session.sync_state.wdk_step_ids
+        sync = deps.strategy_session.sync_state
+        assert sync is not None
+        remaining = sync.wdk_step_ids
         assert "A" not in remaining
         assert "C" not in remaining

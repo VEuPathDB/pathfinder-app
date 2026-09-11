@@ -6,7 +6,6 @@ from uuid import uuid4
 
 import pytest
 from pydantic_ai.toolsets.function import FunctionToolset
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps, Context
@@ -14,11 +13,7 @@ from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
-
-
-def _never_factory() -> AsyncSession:
-    msg = "db factory should not be called in unit tests"
-    raise AssertionError(msg)
+from pathfinder.tests._support.database import no_database
 
 
 def _build_context(
@@ -28,7 +23,7 @@ def _build_context(
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
-        db_session_factory=_never_factory,
+        db_session_factory=no_database,
         cancel_event=cancel_event or asyncio.Event(),
         experiment_id=experiment_id,
     )
@@ -134,7 +129,7 @@ def test_context_is_a_frozen_dataclass() -> None:
     ctx = _build_context()
     assert dataclasses.is_dataclass(ctx)
     with pytest.raises(dataclasses.FrozenInstanceError):
-        ctx.site_id = "different"
+        ctx.__setattr__("site_id", "different")
 
 
 def test_agent_deps_keeps_existing_agent_tool_state_type() -> None:

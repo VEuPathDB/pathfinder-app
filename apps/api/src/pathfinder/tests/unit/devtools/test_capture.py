@@ -6,6 +6,9 @@ import logging
 from pathlib import Path
 from uuid import uuid4
 
+from assistant_core.platform.types import JSONObject
+from pydantic import TypeAdapter
+
 from pathfinder.devtools.capture import (
     LOOP_THRESHOLD,
     RunCapture,
@@ -14,11 +17,11 @@ from pathfinder.devtools.capture import (
 )
 
 
-def _write(cap: RunCapture, chunk: dict) -> None:
+def _write(cap: RunCapture, chunk: JSONObject) -> None:
     asyncio.run(cap.write(chunk))
 
 
-def _call(phase: str, sub_agent: str, tcid: str, state: str) -> dict:
+def _call(phase: str, sub_agent: str, tcid: str, state: str) -> JSONObject:
     return {
         "type": "data-sub-agent-call",
         "data": {
@@ -31,8 +34,14 @@ def _call(phase: str, sub_agent: str, tcid: str, state: str) -> dict:
 
 
 def _step(
-    tool: str, tcid: str, parent: str, state: str, *, args=None, result=None
-) -> dict:
+    tool: str,
+    tcid: str,
+    parent: str,
+    state: str,
+    *,
+    args: JSONObject | None = None,
+    result: str | None = None,
+) -> JSONObject:
     return {
         "type": "data-sub-agent-step",
         "data": {
@@ -130,7 +139,7 @@ def test_approval_tool_name_comes_from_tool_input(tmp_path: Path) -> None:
 
 def test_flush_writes_full_fidelity_artifacts(tmp_path: Path) -> None:
     cap = _new(tmp_path)
-    big_args = {
+    big_args: JSONObject = {
         "steps": [{"parameters": {"text_expression": "odorant binding protein"}}]
     }
     _write(cap, _call("planning", "build_plan", "p1", "started"))
@@ -233,14 +242,15 @@ def test_capture_tracebacks_captures_structlog_field_traceback(tmp_path: Path) -
     assert "AppNotOpen boom" in files[0].read_text()
 
 
-def _ledger(phase: str, zero_steps: list[str]) -> dict:
+def _ledger(phase: str, zero_steps: list[str]) -> JSONObject:
+    build: JSONObject = {"zeroResultSteps": list(zero_steps)}
     return {
         "type": "data-ledger-update",
-        "data": {"phase": phase, "build": {"zeroResultSteps": zero_steps}},
+        "data": {"phase": phase, "build": build},
     }
 
 
-def _text(delta: str) -> dict:
+def _text(delta: str) -> JSONObject:
     return {"type": "text-delta", "delta": delta}
 
 
@@ -296,9 +306,10 @@ class TestDiagnosisReadsTheReply:
         assert [a for a in cap.anomalies() if a.kind == "silent_zero"]
 
 
-def _fixture_run() -> list[dict]:
+def _fixture_run() -> list[JSONObject]:
     path = Path(__file__).parent / "site_help_mock_run.events.jsonl"
-    return [json.loads(line) for line in path.read_text().splitlines() if line]
+    event: TypeAdapter[JSONObject] = TypeAdapter(JSONObject)
+    return [event.validate_json(line) for line in path.read_text().splitlines() if line]
 
 
 def test_a_one_agent_run_counts_the_calls_its_event_log_announces(
@@ -314,7 +325,7 @@ def test_a_one_agent_run_counts_the_calls_its_event_log_announces(
 
 def test_a_call_announced_twice_counts_once(tmp_path: Path) -> None:
     cap = _new(tmp_path)
-    announce = {
+    announce: JSONObject = {
         "type": "tool-input-available",
         "toolCallId": "call-1",
         "toolName": "list_veupathdb_sites",

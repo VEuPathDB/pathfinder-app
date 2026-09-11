@@ -11,14 +11,14 @@ from pathfinder.ai.agents.state import ParamVocabSnapshot
 def _info() -> ParameterInfo:
     return ParameterInfo(
         name="hard_floor",
-        displayName="Tier floor",
+        display_name="Tier floor",
         type="number-enum",
         required=True,
-        isVisible=True,
+        is_visible=True,
         help="Tier-quantile floor for read counts",
-        valueFormat="single",
-        defaultValue="6772.93",
-        allowedValues=[
+        value_format="single",
+        default_value="6772.93",
+        allowed_values=[
             VocabOption(value="1693.23", display="1693 reads"),
             VocabOption(value="6772.93", display="6772 reads"),
         ],

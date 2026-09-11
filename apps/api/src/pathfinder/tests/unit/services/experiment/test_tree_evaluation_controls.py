@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, override
 
 import pytest
 from assistant_core.platform.types import JSONObject
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.wdk_values import WDKRecordIdPart
+from veupathdb.wdk.client import VEuPathDBClient
+from veupathdb.wdk.strategy_api import StrategyAPI
 from veupathdb.wdk.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
@@ -39,7 +41,7 @@ def _context(positive: list[str], negative: list[str]) -> ControlsContext:
 
 
 def _tree() -> StrategyStepNode:
-    return StrategyStepNode(step_id="s1", search_name="GenesByText")
+    return StrategyStepNode(id="s1", search_name="GenesByText")
 
 
 def _payloads(monkeypatch: pytest.MonkeyPatch, by_label: dict[str, JSONObject]) -> None:
@@ -131,10 +133,11 @@ async def test_a_payload_that_carries_no_identifiers_names_nothing_missing(
     assert result.negative.false_positive_rate == pytest.approx(0.5)
 
 
-class _EvalAPI:
+class _EvalAPI(StrategyAPI):
     """Answers the WDK calls one control-set evaluation makes."""
 
     def __init__(self, found: list[str], counts: list[int]) -> None:
+        super().__init__(VEuPathDBClient("https://plasmodb.example.org/plasmo"))
         self.pages_read: list[int] = []
         self._found = found
         self._counts = counts
@@ -144,30 +147,52 @@ class _EvalAPI:
         self._next += 1
         return WDKIdentifier(id=self._next)
 
-    async def create_step(self, spec: NewStepSpec, record_type: str) -> WDKIdentifier:
-        del spec, record_type
+    @override
+    async def create_step(
+        self, spec: NewStepSpec, record_type: str, user_id: str | None = None
+    ) -> WDKIdentifier:
+        del spec, record_type, user_id
         return self._mint()
 
+    @override
     async def create_combined_step(
-        self, spec: CombinedStepSpec, record_type: str
+        self, spec: CombinedStepSpec, record_type: str, user_id: str | None = None
     ) -> WDKIdentifier:
-        del spec, record_type
+        del spec, record_type, user_id
         return self._mint()
 
+    @override
     async def create_strategy(
-        self, step_tree: WDKStepTree, name: str, is_internal: bool = False
+        self,
+        step_tree: WDKStepTree,
+        name: str,
+        description: str | None = None,
+        *,
+        is_public: bool = False,
+        is_saved: bool = False,
+        is_internal: bool = False,
+        user_id: str | None = None,
     ) -> WDKIdentifier:
-        del step_tree, name, is_internal
+        del step_tree, name, description, is_public, is_saved, is_internal, user_id
         return self._mint()
 
-    async def get_step_count(self, step_id: int) -> int:
-        del step_id
+    @override
+    async def get_step_count(self, step_id: int, user_id: str | None = None) -> int:
+        del step_id, user_id
         return self._counts.pop(0)
 
+    @override
     async def get_step_answer(
-        self, step_id: int, pagination: dict[str, int]
+        self,
+        step_id: int,
+        attributes: list[str] | None = None,
+        pagination: dict[str, int] | None = None,
+        user_id: str | None = None,
     ) -> WDKAnswer:
-        del step_id
+        del step_id, attributes, user_id
+        if pagination is None:
+            msg = "the evaluation reads one page at a time"
+            raise AssertionError(msg)
         self.pages_read.append(pagination["numRecords"])
         return WDKAnswer(
             meta=WDKAnswerMeta(),

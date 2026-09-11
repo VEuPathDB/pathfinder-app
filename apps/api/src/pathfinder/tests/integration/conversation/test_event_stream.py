@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
@@ -46,7 +47,7 @@ async def test_replay_returns_events_past_cursor(
     id2 = await writer.write({"type": "text-delta", "id": "a", "delta": "x"})
     id3 = await writer.write({"type": "text-end", "id": "a"})
 
-    collected: list[tuple[int, dict]] = []
+    collected: list[tuple[int, dict[str, Any]]] = []
 
     async def consume() -> None:
         async for event_id, chunk in replay_and_tail(
@@ -70,7 +71,7 @@ async def test_tail_yields_events_produced_after_subscribe(
     del patch_app_db_engine, db_cleaner
     conv_id, turn_id = await _seed_conversation()
     writer = ChatEventWriter(conversation_id=conv_id, turn_id=turn_id)
-    collected: list[tuple[int, dict]] = []
+    collected: list[tuple[int, dict[str, Any]]] = []
 
     async def consume() -> None:
         async for event_id, chunk in replay_and_tail(

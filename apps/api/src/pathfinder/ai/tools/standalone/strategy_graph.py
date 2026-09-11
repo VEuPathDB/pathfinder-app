@@ -8,8 +8,8 @@ import math
 
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.platform.logging import get_logger
-from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field, JsonValue, ValidationError, computed_field
+from assistant_core.platform.pydantic_base import CamelModel, computed
+from pydantic import Field, JsonValue, ValidationError
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters.value_codec import to_wire
@@ -132,7 +132,7 @@ class StudyStepCheck(CamelModel):
     thresholds: VolcanoThresholds | None = None
     checks: list[ConstraintCheck] = Field(default_factory=list)
 
-    @computed_field
+    @computed
     def fold_change_threshold(self) -> float | None:
         if self.thresholds is None:
             return None

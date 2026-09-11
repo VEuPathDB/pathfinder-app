@@ -181,8 +181,10 @@ async def test_delete_step_collapses_and_calls_wdk_delete(stub_api: _StubAPI) ->
         c.kwargs["step_id"] for c in stub_api.calls if c.name == "delete_step"
     }
     assert deleted_ids == {100, 300}
-    assert "A" not in deps.strategy_session.sync_state.wdk_step_ids
-    assert "C" not in deps.strategy_session.sync_state.wdk_step_ids
+    sync = deps.strategy_session.sync_state
+    assert sync is not None
+    assert "A" not in sync.wdk_step_ids
+    assert "C" not in sync.wdk_step_ids
 
 
 @pytest.mark.asyncio

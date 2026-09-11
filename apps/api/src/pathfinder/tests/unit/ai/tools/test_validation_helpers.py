@@ -6,17 +6,23 @@ it, so a lookup by the VEuPathDB id must reach the graph that built it.
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
+from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import conversation
+from pathfinder.ai.tools.standalone._conversation_models import (
+    ClearStrategyResult,
+    RenameStrategyResult,
+)
 from pathfinder.ai.tools.standalone._validation_helpers import get_graph
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 _WDK_STRATEGY_ID = 330558093
 
@@ -29,11 +35,8 @@ def session() -> StrategySession:
     return session
 
 
-def _ctx(session: StrategySession) -> Any:
-    ctx = MagicMock()
-    ctx.tool_call_id = "call_1"
-    ctx.deps = AgentDeps(site_id="plasmodb", strategy_session=session)
-    return ctx
+def _ctx(session: StrategySession) -> RunContext[AgentDeps]:
+    return agent_run_context(strategy_session=session)
 
 
 def test_the_veupathdb_strategy_id_finds_the_graph(session: StrategySession) -> None:
@@ -78,16 +81,17 @@ class TestTheConversationToolsAddressTheSameWay:
     async def test_rename_takes_the_veupathdb_strategy_id(
         self, session: StrategySession
     ) -> None:
-        returned = await conversation.rename_strategy(
+        answer = await conversation.rename_strategy(
             _ctx(session),
             new_name="Heat shock, refined",
             description="a refined strategy",
             graph_id=str(_WDK_STRATEGY_ID),
         )
 
-        assert returned.return_value.graph_id == "graph-1"
-        assert returned.return_value.old_name == "Heat shock"
-        assert returned.return_value.new_name == "Heat shock, refined"
+        result = returned(answer, RenameStrategyResult)
+        assert result.graph_id == "graph-1"
+        assert result.old_name == "Heat shock"
+        assert result.new_name == "Heat shock, refined"
 
     @pytest.mark.asyncio
     async def test_clear_takes_the_veupathdb_strategy_id(
@@ -99,15 +103,17 @@ class TestTheConversationToolsAddressTheSameWay:
             AsyncMock(),
         )
 
-        returned = await conversation.clear_strategy(
+        answer = await conversation.clear_strategy(
             _ctx(session),
             graph_id=str(_WDK_STRATEGY_ID),
             confirm=True,
         )
 
-        assert returned.return_value.graph_id == "graph-1"
-        assert session.get_graph("graph-1") is not None
-        assert session.get_graph("graph-1").steps == {}
+        result = returned(answer, ClearStrategyResult)
+        assert result.graph_id == "graph-1"
+        cleared = session.get_graph("graph-1")
+        assert cleared is not None
+        assert cleared.steps == {}
 
     @pytest.mark.asyncio
     async def test_rename_still_refuses_another_strategys_id(

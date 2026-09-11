@@ -15,6 +15,7 @@ from veupathdb.eda.models import EdaPermissionEntry, EdaStudyDetail
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis
+from pathfinder.ai.tools.standalone._eda_models import EdaAnalysisOpened
 from pathfinder.services.eda import authoring, binding, catalog
 from pathfinder.services.eda.catalog import UnknownEdaDatasetError
 from pathfinder.tests._support.eda_doubles import (
@@ -31,6 +32,7 @@ from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_STUDY,
     fixture,
 )
+from pathfinder.tests._support.tool_returns import returned
 
 
 @pytest.fixture(autouse=True)
@@ -87,16 +89,17 @@ async def test_open_eda_analysis_creates_the_analysis_and_binds_the_conversation
     monkeypatch.setattr(binding, "read_analysis", read_analysis_detail)
     _serve_study(monkeypatch, phenotype_study)
 
-    returned = await eda_analysis.open_eda_analysis(
+    answer = await eda_analysis.open_eda_analysis(
         lead_ctx, dataset_id=PHENOTYPE_DATASET, purpose="keep the P. berghei rows"
     )
-    assert returned.return_value.analysis_id == ANALYSIS_ID
-    assert returned.return_value.study_id == PHENOTYPE_STUDY
-    assert returned.return_value.gene_entity_id == PHENOTYPE_ENTITY
+    result = returned(answer, EdaAnalysisOpened)
+    assert result.analysis_id == ANALYSIS_ID
+    assert result.study_id == PHENOTYPE_STUDY
+    assert result.gene_entity_id == PHENOTYPE_ENTITY
     assert bound == [(PHENOTYPE_DATASET, ANALYSIS_ID, "plasmodb")]
-    kinds = [chunk.type for chunk in returned.metadata]
+    kinds = [chunk.type for chunk in answer.metadata]
     assert kinds == ["data-eda.analysis-state"]
-    assert returned.metadata[0].data["revision"] == 1
+    assert answer.metadata[0].data["revision"] == 1
 
 
 async def test_open_eda_analysis_cuts_a_long_purpose_before_the_wire(
@@ -131,14 +134,15 @@ async def test_open_eda_analysis_cuts_a_long_purpose_before_the_wire(
     assert len(purpose) == 90
     token = veupathdb_auth_token_ctx.set("t")
     try:
-        returned = await eda_analysis.open_eda_analysis(
+        answer = await eda_analysis.open_eda_analysis(
             lead_ctx, dataset_id="DS_16bc228c8e", purpose=purpose
         )
     finally:
         veupathdb_auth_token_ctx.reset(token)
         await client.close()
 
-    assert returned.return_value.analysis_id == ANALYSIS_ID
+    result = returned(answer, EdaAnalysisOpened)
+    assert result.analysis_id == ANALYSIS_ID
     posts = [r for r in seen if r.method == "POST" and "/analyses/" in r.url.path]
     sent = json.loads(posts[0].content)["displayName"]
     assert sent == "Febrile versus normal differential expression in t"
@@ -177,11 +181,12 @@ async def test_opening_an_analysis_on_a_study_with_no_gene_id_warns_the_model(
     monkeypatch.setattr(binding, "bind_conversation_analysis", _noop_bind)
     _serve_study(monkeypatch, no_gene_study)
 
-    returned = await eda_analysis.open_eda_analysis(
+    answer = await eda_analysis.open_eda_analysis(
         lead_ctx, dataset_id=PHENOTYPE_DATASET, purpose="explore"
     )
-    assert "cannot export" in returned.return_value.guidance
-    assert returned.return_value.can_export_rows is False
+    result = returned(answer, EdaAnalysisOpened)
+    assert "cannot export" in result.guidance
+    assert result.can_export_rows is False
 
 
 async def test_opening_an_analysis_on_an_unknown_dataset_creates_nothing(

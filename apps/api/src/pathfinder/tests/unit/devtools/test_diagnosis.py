@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from assistant_core.platform.types import JSONObject
+
 from pathfinder.devtools.diagnosis import diagnose
 from pathfinder.devtools.models import (
     CapturedToolCall,
     DecodedError,
     RunSummary,
+    ToolStatus,
 )
 
 
@@ -23,9 +26,9 @@ def _failed(seq: int, tool: str, errors: list[DecodedError]) -> CapturedToolCall
 def _call(
     seq: int,
     tool: str,
-    status: str,
+    status: ToolStatus,
     *,
-    args: dict | None = None,
+    args: JSONObject | None = None,
     result: str | None = None,
     phase: str = "discovery",
 ) -> CapturedToolCall:

@@ -111,7 +111,7 @@ async def test_resume_stream_after_snapshot_cap_replays_tool_input_start(
     assert [m["role"] for m in snap_messages] == ["user", "assistant", "user"]
     assert snap_messages[2]["id"] == str(user_first)
 
-    completion = [
+    completion: list[dict[str, Any]] = [
         {
             "type": "tool-input-available",
             "toolCallId": "call_inflight",

@@ -12,6 +12,7 @@ from veupathdb.eda.models import EdaDistributionResponse
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis
+from pathfinder.ai.tools.standalone._eda_models import EdaSubsetPreviewResult
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.authoring import SubsetPreview
 from pathfinder.services.eda.binding import ConversationAnalysisView
@@ -28,6 +29,7 @@ from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_ENTITY,
     fixture,
 )
+from pathfinder.tests._support.tool_returns import returned
 
 
 @pytest.fixture(autouse=True)
@@ -112,20 +114,21 @@ async def test_preview_eda_subset_reports_both_counts_and_emits_the_part(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     _wire(monkeypatch, _preview_ok)
-    returned = await eda_analysis.preview_eda_subset(
+    answer = await eda_analysis.preview_eda_subset(
         lead_ctx,
         entity_id=PHENOTYPE_ENTITY,
         distribution_variable_id=SPECIES_VARIABLE,
     )
-    assert returned.return_value.count == 4011
-    assert returned.return_value.unfiltered_count == 4279
-    assert returned.return_value.labels == [
+    result = returned(answer, EdaSubsetPreviewResult)
+    assert result.count == 4011
+    assert result.unfiltered_count == 4279
+    assert result.labels == [
         "P. berghei",
         "P. falciparum",
         "P. yoelii",
     ]
-    assert returned.return_value.values == [4011.0, 4130.0, 268.0]
-    assert [c.type for c in returned.metadata] == ["data-eda.subset-preview"]
+    assert result.values == [4011.0, 4130.0, 268.0]
+    assert [c.type for c in answer.metadata] == ["data-eda.subset-preview"]
 
 
 async def test_a_preview_puts_the_model_s_caption_on_the_part(
@@ -133,13 +136,13 @@ async def test_a_preview_puts_the_model_s_caption_on_the_part(
 ) -> None:
     """The figure reads the model's sentence, so the tool must carry it."""
     _wire(monkeypatch, _preview_ok)
-    returned = await eda_analysis.preview_eda_subset(
+    answer = await eda_analysis.preview_eda_subset(
         lead_ctx,
         entity_id=PHENOTYPE_ENTITY,
         distribution_variable_id=SPECIES_VARIABLE,
         caption="Species of the phenotyped genes the filters keep",
     )
-    assert _captions(returned.metadata) == [
+    assert _captions(answer.metadata) == [
         "Species of the phenotyped genes the filters keep"
     ]
 
@@ -148,10 +151,8 @@ async def test_a_preview_with_no_caption_leaves_the_part_s_caption_empty(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     _wire(monkeypatch, _preview_ok)
-    returned = await eda_analysis.preview_eda_subset(
-        lead_ctx, entity_id=PHENOTYPE_ENTITY
-    )
-    assert _captions(returned.metadata) == [""]
+    answer = await eda_analysis.preview_eda_subset(lead_ctx, entity_id=PHENOTYPE_ENTITY)
+    assert _captions(answer.metadata) == [""]
 
 
 async def test_a_preview_of_zero_says_which_filter_emptied_the_subset(
@@ -159,11 +160,10 @@ async def test_a_preview_of_zero_says_which_filter_emptied_the_subset(
 ) -> None:
     """Zero is a real answer and the model must not silently narrate a result."""
     _wire(monkeypatch, _preview_zero)
-    returned = await eda_analysis.preview_eda_subset(
-        lead_ctx, entity_id=PHENOTYPE_ENTITY
-    )
-    assert returned.return_value.count == 0
-    assert "selects no records" in returned.return_value.guidance
+    answer = await eda_analysis.preview_eda_subset(lead_ctx, entity_id=PHENOTYPE_ENTITY)
+    result = returned(answer, EdaSubsetPreviewResult)
+    assert result.count == 0
+    assert "selects no records" in result.guidance
 
 
 async def test_a_preview_of_zero_reports_its_summary_as_empty(
@@ -172,10 +172,10 @@ async def test_a_preview_of_zero_reports_its_summary_as_empty(
     """The line carries the zero and the status says empty, never ok."""
     _wire(monkeypatch, _preview_zero)
     ctx = replace(lead_ctx, tool_call_id="call_1")
-    returned = await eda_analysis.preview_eda_subset(ctx, entity_id=PHENOTYPE_ENTITY)
+    answer = await eda_analysis.preview_eda_subset(ctx, entity_id=PHENOTYPE_ENTITY)
     summaries = [
         chunk.data
-        for chunk in returned.metadata
+        for chunk in answer.metadata
         if isinstance(chunk, DataChunk) and chunk.type == "data-tool-summary"
     ]
     assert summaries == [
@@ -192,36 +192,37 @@ async def test_a_subset_that_narrows_nothing_says_so(
 ) -> None:
     """A filter on a child entity can leave the parent entity whole."""
     _wire(monkeypatch, _preview_whole_entity)
-    returned = await eda_analysis.preview_eda_subset(
-        lead_ctx, entity_id=PHENOTYPE_ENTITY
-    )
-    assert "narrow nothing here" in returned.return_value.guidance
+    answer = await eda_analysis.preview_eda_subset(lead_ctx, entity_id=PHENOTYPE_ENTITY)
+    result = returned(answer, EdaSubsetPreviewResult)
+    assert "narrow nothing here" in result.guidance
 
 
 async def test_a_multi_valued_distribution_warns_that_the_values_do_not_partition(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     _wire(monkeypatch, _preview_ok)
-    returned = await eda_analysis.preview_eda_subset(
+    answer = await eda_analysis.preview_eda_subset(
         lead_ctx,
         entity_id=PHENOTYPE_ENTITY,
         distribution_variable_id=SPECIES_VARIABLE,
     )
-    assert returned.return_value.is_multi_valued is True
-    assert "several values per record" in returned.return_value.guidance
+    result = returned(answer, EdaSubsetPreviewResult)
+    assert result.is_multi_valued is True
+    assert "several values per record" in result.guidance
 
 
 async def test_a_preview_reports_the_records_with_no_value_for_the_variable(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     _wire(monkeypatch, _preview_with_missing)
-    returned = await eda_analysis.preview_eda_subset(
+    answer = await eda_analysis.preview_eda_subset(
         lead_ctx,
         entity_id=PHENOTYPE_ENTITY,
         distribution_variable_id=SPECIES_VARIABLE,
     )
-    assert returned.return_value.num_missing_cases == 12
-    assert "12 records" in returned.return_value.guidance
+    result = returned(answer, EdaSubsetPreviewResult)
+    assert result.num_missing_cases == 12
+    assert "12 records" in result.guidance
 
 
 async def test_a_preview_with_no_open_analysis_raises_a_model_retry(

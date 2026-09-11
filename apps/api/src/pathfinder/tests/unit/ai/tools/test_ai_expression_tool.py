@@ -25,7 +25,7 @@ from veupathdb_mcp.wdk import (
 )
 
 from pathfinder.ai.tools.standalone import gene
-from pathfinder.tests.unit.ai.tools.conftest import agent_state_ctx, summary_of
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context, summary_of
 
 REFUSAL = "No Gene record found for the primary key values"
 
@@ -60,7 +60,7 @@ async def test_a_gene_with_experiments_outstanding_reaches_the_agent_as_a_miss(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     transport = _serve(monkeypatch, "ai_expression_experiments_incomplete")
-    ctx = agent_state_ctx()
+    ctx = agent_run_context()
 
     returned = await gene.get_ai_expression_summary(ctx, INCOMPLETE_GENE)
 
@@ -86,7 +86,7 @@ async def test_a_summarized_gene_reaches_the_agent_without_experiment_counts(
 ) -> None:
     """The site sends no count beside a summary, so the tool reports none."""
     _serve(monkeypatch, "ai_expression_summary_present")
-    ctx = agent_state_ctx()
+    ctx = agent_run_context()
 
     returned = await gene.get_ai_expression_summary(ctx, SUMMARIZED_GENE)
 
@@ -118,7 +118,7 @@ async def test_a_summary_built_on_part_of_the_data_says_so(
     client = VEuPathDBClient("https://example.invalid/service")
     monkeypatch.setattr(client, "post", transport)
     monkeypatch.setattr(ai_expression, "get_wdk_client", lambda _site: client)
-    ctx = agent_state_ctx()
+    ctx = agent_run_context()
 
     returned = await gene.get_ai_expression_summary(ctx, SUMMARIZED_GENE)
 
@@ -139,7 +139,7 @@ async def test_a_refused_gene_reaches_the_agent_as_a_tool_error(
         raise WDKError(REFUSAL, status=422)
 
     monkeypatch.setattr(gene, "get_gene_expression_summary", _refuse)
-    ctx = agent_state_ctx()
+    ctx = agent_run_context()
 
     returned = await gene.get_ai_expression_summary(ctx, "NOT_A_GENE")
 

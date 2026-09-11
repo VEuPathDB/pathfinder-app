@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from decimal import Decimal
 from typing import Any
 from uuid import uuid4
@@ -23,6 +21,7 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.models.catalog import context_window_for
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.tests._support.database import detached_session
 
 _LEAD_MODEL = "openai:gpt-5.6-luna"
 
@@ -43,16 +42,6 @@ class _Collector:
         ]
 
 
-class _FakeSession:
-    async def commit(self) -> None:
-        return None
-
-
-@asynccontextmanager
-async def _session_factory() -> AsyncIterator[Any]:
-    yield _FakeSession()
-
-
 def _state() -> PipelineState:
     return PipelineState(
         conversation_id=uuid4(),
@@ -68,7 +57,7 @@ def _context() -> Context:
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
-        db_session_factory=_session_factory,
+        db_session_factory=detached_session,
         cancel_event=asyncio.Event(),
     )
 

@@ -6,9 +6,7 @@ the contract: a route that moves between sub-routers changes the document.
 
 from __future__ import annotations
 
-from fastapi.routing import RouteContext
-
-from pathfinder.tests._support.routes import api_routes
+from pathfinder.tests._support.routes import ApiRoute, api_routes
 from pathfinder.transport.http.routers import gene_sets
 
 _EXPECTED: list[tuple[str, str]] = [
@@ -55,16 +53,12 @@ _EXPECTED_NAMES: list[str] = [
 ]
 
 
-def _routes() -> list[RouteContext]:
+def _routes() -> list[ApiRoute]:
     return api_routes(gene_sets.router.routes)
 
 
 def test_the_routes_are_registered_in_the_published_order() -> None:
-    actual = [
-        (method, route.path)
-        for route in _routes()
-        for method in sorted(route.methods - {"HEAD", "OPTIONS"})
-    ]
+    actual = [pair for route in _routes() for pair in route.pairs]
 
     assert actual == _EXPECTED
 

@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import string
 from collections.abc import Iterable
+from typing import TypeGuard
 
 from hypothesis import HealthCheck, settings
 from hypothesis import strategies as st
 from veupathdb.domain.parameters.values import (
     MultiPickValue,
     NumberValue,
+    ParamValue,
     StringValue,
 )
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
@@ -68,6 +70,12 @@ def graph_with(
 
 _IDS = st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789_", min_size=1, max_size=8)
 
+_CANNED_PARAMS: tuple[dict[str, ParamValue], ...] = (
+    {},
+    {"organism": MultiPickValue(values=["Pf3D7"])},
+    {"text": StringValue(value="kinase")},
+)
+
 
 @st.composite
 def strategy_trees(draw: st.DrawFn) -> StrategyStepNode:
@@ -85,13 +93,7 @@ def strategy_trees(draw: st.DrawFn) -> StrategyStepNode:
         shape = (
             draw(st.sampled_from(["leaf", "transform", "combine"])) if depth else "leaf"
         )
-        params = draw(
-            st.one_of(
-                st.just({}),
-                st.just({"organism": MultiPickValue(values=["Pf3D7"])}),
-                st.just({"text": StringValue(value="kinase")}),
-            )
-        )
+        params = draw(st.sampled_from(_CANNED_PARAMS))
         display = draw(st.one_of(st.none(), st.just("A label")))
         if shape == "leaf":
             return StrategyStepNode(
@@ -126,7 +128,7 @@ _search_names = st.text(
     max_size=20,
 ).filter(lambda s: s != COMBINE_SEARCH_NAME)
 
-_param_values = st.one_of(
+_param_values: st.SearchStrategy[ParamValue] = st.one_of(
     st.builds(StringValue, value=st.text(min_size=1, max_size=10)),
     st.builds(NumberValue, value=st.floats(min_value=-1000, max_value=1000)),
     st.builds(
@@ -171,7 +173,7 @@ _search_node = st.builds(
 
 
 def _transform_factory(
-    child: StrategyStepNode, search_name: str, params: dict[str, object]
+    child: StrategyStepNode, search_name: str, params: dict[str, ParamValue]
 ) -> StrategyStepNode:
     return StrategyStepNode(
         search_name=search_name, parameters=params, primary_input=child
@@ -205,17 +207,18 @@ def _colocate_factory(
     )
 
 
+def _built(node: StrategyStepNode | None) -> TypeGuard[StrategyStepNode]:
+    """A factory returns None for a pair it cannot combine."""
+    return node is not None
+
+
 def _extend(
     children: st.SearchStrategy[StrategyStepNode],
 ) -> st.SearchStrategy[StrategyStepNode]:
     return st.one_of(
         st.builds(_transform_factory, children, _search_names, _param_dicts),
-        st.builds(_combine_factory, children, children, _boolean_ops).filter(
-            lambda n: n is not None,
-        ),
-        st.builds(_colocate_factory, children, children, _colocation).filter(
-            lambda n: n is not None,
-        ),
+        st.builds(_combine_factory, children, children, _boolean_ops).filter(_built),
+        st.builds(_colocate_factory, children, children, _colocation).filter(_built),
     )
 
 

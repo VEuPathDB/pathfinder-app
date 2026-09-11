@@ -20,6 +20,7 @@ from assistant_core.models.scripted import (
     retry_prompt_parts,
     scripted_call,
 )
+from pydantic import TypeAdapter
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
@@ -71,6 +72,13 @@ def _script_for(name: str) -> RoleScript:
     return _run
 
 
+def _answered_tool(model: ScriptedModel, marker: str) -> ToolCallPart:
+    """The tool call a script answered with, or a failure naming what came back."""
+    return TypeAdapter(ToolCallPart).validate_python(
+        model.response_part([], _info(marker))
+    )
+
+
 def test_the_harness_binds_nothing_of_the_product() -> None:
     assert _foreign_bindings(scripted) == set()
 
@@ -87,7 +95,7 @@ def test_the_harness_routes_to_the_first_matching_role() -> None:
         },
         unknown=_script_for("nothing"),
     )
-    assert model.response_part([], _info("shared")).tool_name == "planned"
+    assert _answered_tool(model, "shared").tool_name == "planned"
 
 
 def test_the_harness_falls_back_when_no_marker_matches() -> None:
@@ -96,7 +104,7 @@ def test_the_harness_falls_back_when_no_marker_matches() -> None:
         scripts={"planner": _script_for("planned")},
         unknown=_script_for("nothing"),
     )
-    assert model.response_part([], _info("unrelated")).tool_name == "nothing"
+    assert _answered_tool(model, "unrelated").tool_name == "nothing"
 
 
 def test_a_sequence_skips_the_calls_already_made() -> None:

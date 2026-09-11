@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic_ai import RunContext
 from veupathdb.domain.parameters.values import NumberValue, SinglePickValue
 from veupathdb.domain.search import SearchContext
 from veupathdb.domain.strategy.validation import StepValidation
@@ -19,18 +20,25 @@ from veupathdb_mcp.catalog import (
 )
 
 from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import frame_spec
+from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 
-def _ctx(state: AgentToolState) -> MagicMock:
-    ctx = MagicMock()
-    ctx.tool_call_id = "call_1"
-    ctx.deps.agent_state = state
-    ctx.deps.site_id = "plasmodb"
-    graph = MagicMock()
+def _transcript_session() -> StrategySession:
+    """A session holding one transcript graph, which every criterion binds on."""
+    session = StrategySession(site_id="plasmodb")
+    graph = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
     graph.record_type = "transcript"
-    ctx.deps.strategy_session.get_graph.return_value = graph
-    return ctx
+    session.add_graph(graph)
+    return session
+
+
+def _ctx(state: AgentToolState) -> RunContext[AgentDeps]:
+    return agent_run_context(agent_state=state, strategy_session=_transcript_session())
 
 
 def _resolved() -> ResolvedParams:
@@ -46,7 +54,9 @@ def _resolved() -> ResolvedParams:
     )
 
 
-async def _bind(monkeypatch: pytest.MonkeyPatch, state: AgentToolState):
+async def _bind(
+    monkeypatch: pytest.MonkeyPatch, state: AgentToolState
+) -> SetCriterionResult:
     async def _resolve(**_kw: object) -> ResolvedParams:
         return _resolved()
 
@@ -63,7 +73,7 @@ async def _bind(monkeypatch: pytest.MonkeyPatch, state: AgentToolState):
         record_type: str, name: str, *, expand_params: bool = True
     ) -> WDKSearchResponse:
         return WDKSearchResponse(
-            searchData=WDKSearch(urlSegment=name),
+            search_data=WDKSearch(url_segment=name),
             validation=StepValidation(level="NONE", is_valid=False),
         )
 
@@ -72,7 +82,7 @@ async def _bind(monkeypatch: pytest.MonkeyPatch, state: AgentToolState):
     ) -> tuple[WDKSearchResponse, str]:
         return (
             WDKSearchResponse(
-                searchData=WDKSearch(urlSegment=ctx.search_name),
+                search_data=WDKSearch(url_segment=ctx.search_name),
                 validation=StepValidation(level="NONE", is_valid=False),
             ),
             ctx.record_type,
@@ -85,15 +95,16 @@ async def _bind(monkeypatch: pytest.MonkeyPatch, state: AgentToolState):
     monkeypatch.setattr(frame_spec, "resolve_params_with_intent", _resolve)
     monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
     monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)
-    return (
+    return returned(
         await frame_spec.set_criterion(
             _ctx(state),
             criterion_id="expression",
             text="top 10 percent of expression",
             search_name="GenesByMicroarray",
             params={},
-        )
-    ).return_value
+        ),
+        SetCriterionResult,
+    )
 
 
 class TestTheToolReportsWhatItDefaulted:

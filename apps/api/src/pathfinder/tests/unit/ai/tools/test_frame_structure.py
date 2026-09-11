@@ -2,27 +2,28 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
 import pytest
-from pydantic_ai import ModelRetry
+from pydantic_ai import ModelRetry, RunContext
 from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.tools.standalone.frame_structure import set_structure
+from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone.frame_structure import (
+    SetStructureResult,
+    set_structure,
+)
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion, StructureNode
+from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 
-def _ctx(state: AgentToolState) -> MagicMock:
-    ctx = MagicMock()
-    ctx.tool_call_id = "call_1"
-    ctx.deps.agent_state = state
-    return ctx
+def _ctx(state: AgentToolState) -> RunContext[AgentDeps]:
+    return agent_run_context(agent_state=state)
 
 
 def _leaf(criterion_id: str) -> StructureNode:
@@ -137,7 +138,9 @@ class TestNestedBranches:
     async def test_a_single_leaf_is_still_valid(self) -> None:
         st = AgentToolState()
 
-        result = (await set_structure(_ctx(st), root=_leaf("only"))).return_value
+        result = returned(
+            await set_structure(_ctx(st), root=_leaf("only")), SetStructureResult
+        )
 
         root = _drafted_root(st)
         assert root.kind == "leaf"
@@ -148,7 +151,7 @@ class TestNestedBranches:
     async def test_it_counts_every_criterion_in_the_tree(self) -> None:
         st = AgentToolState()
 
-        result = (
+        result = returned(
             await set_structure(
                 _ctx(st),
                 root=_combine(
@@ -156,8 +159,9 @@ class TestNestedBranches:
                     _leaf("a"),
                     _combine(CombineOp.UNION, _leaf("b"), _leaf("c")),
                 ),
-            )
-        ).return_value
+            ),
+            SetStructureResult,
+        )
 
         assert result.criteria_combined == 3
 
@@ -235,7 +239,7 @@ class TestStatedCombinationGate:
     async def test_the_same_tree_with_a_union_branch_is_written(self) -> None:
         st = _combination_state()
 
-        result = (
+        result = returned(
             await set_structure(
                 _ctx(st),
                 root=_combine(
@@ -243,8 +247,9 @@ class TestStatedCombinationGate:
                     _kinase_union(),
                     _combine(CombineOp.UNION, _leaf("c_ms"), _leaf("c_derisi")),
                 ),
-            )
-        ).return_value
+            ),
+            SetStructureResult,
+        )
 
         assert result.criteria_combined == 6
         assert _drafted_root(st).operator == CombineOp.INTERSECT

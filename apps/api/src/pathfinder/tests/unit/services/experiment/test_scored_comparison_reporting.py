@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 from pydantic import ValidationError as PydanticValidationError
+from veupathdb.domain.wdk_values import WDKRecordIdPart
 from veupathdb.wdk.wdk_models import (
     WDKAnswer,
     WDKAnswerMeta,
@@ -67,7 +68,7 @@ def _completed(name: str, found: list[str]) -> Experiment:
         config=_config(name),
         status="completed",
         metrics=compute_metrics(cm),
-        truePositiveGenes=[GeneInfo(id=gene) for gene in found],
+        true_positive_genes=[GeneInfo(id=gene) for gene in found],
     )
 
 
@@ -85,9 +86,10 @@ def _wdk_validation_error() -> PydanticValidationError:
 
 def _answer(ids: list[str]) -> WDKAnswer:
     return WDKAnswer(
-        meta=WDKAnswerMeta(totalCount=len(ids), displayTotalCount=len(ids)),
+        meta=WDKAnswerMeta(total_count=len(ids), display_total_count=len(ids)),
         records=[
-            WDKRecordInstance(id=[{"name": "source_id", "value": gene}]) for gene in ids
+            WDKRecordInstance(id=[WDKRecordIdPart(name="source_id", value=gene)])
+            for gene in ids
         ],
     )
 

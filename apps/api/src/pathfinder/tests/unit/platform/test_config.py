@@ -1,8 +1,15 @@
 from pathlib import Path
 
 import pytest
+from pydantic_settings import SettingsConfigDict
 
 from pathfinder.platform.config import Settings, TomlConfigSettingsSource
+
+
+class _EnvOnlySettings(Settings):
+    """Settings that read the process environment and no ``.env`` file."""
+
+    model_config = SettingsConfigDict(env_file=None)
 
 
 def make_settings(**overrides: object) -> Settings:
@@ -20,7 +27,7 @@ def make_settings(**overrides: object) -> Settings:
         "langfuse_secret_key": "",
     }
     values.update(overrides)
-    return Settings(_env_file=None, **values)
+    return _EnvOnlySettings.model_validate(values)
 
 
 def test_piguard_enabled_defaults_true() -> None:
@@ -101,8 +108,7 @@ def test_empty_env_value_is_ignored_for_complex_settings(
 ) -> None:
     monkeypatch.setenv("CORS_ORIGINS", "")
 
-    settings = Settings(
-        _env_file=None,
+    settings = _EnvOnlySettings(
         api_env="test",
         api_secret_key="pathfinder-test-secret-key-1234567890",
         database_url="postgresql+asyncpg://postgres:postgres@db:5432/pathfinder",

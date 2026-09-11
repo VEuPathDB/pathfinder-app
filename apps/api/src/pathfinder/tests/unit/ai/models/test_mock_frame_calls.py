@@ -26,7 +26,8 @@ from pathfinder.ai.models.mock.specs import (
     sheet_call_args,
     single_spec,
 )
-from pathfinder.ai.tools.standalone.frame_spec import ParamProposals, SetCriterionResult
+from pathfinder.ai.tools.standalone._frame_proposals import ParamProposals
+from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
 from pathfinder.domain.strategy.operational_spec import StructureNode
 
 _PF = "Plasmodium falciparum 3D7"

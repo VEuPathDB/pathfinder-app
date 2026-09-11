@@ -45,13 +45,12 @@ async def _heterogeneous_producer() -> AsyncIterator[StartEvent | CompleteEvent]
 
 
 async def _collect_body(resp: StreamingResponse) -> str:
-    chunks: list[str] = []
-    async for chunk in resp.body_iterator:
-        if isinstance(chunk, bytes):
-            chunks.append(chunk.decode())
-        else:
-            chunks.append(chunk)
-    return "".join(chunks)
+    return "".join(
+        [
+            chunk if isinstance(chunk, str) else bytes(chunk).decode()
+            async for chunk in resp.body_iterator
+        ]
+    )
 
 
 async def test_typed_event_stream_response_emits_json_lines() -> None:
@@ -91,10 +90,8 @@ async def test_typed_event_stream_response_exception_mid_stream_flushes_done() -
     exc_type: type[BaseException] | None = None
     try:
         async for chunk in resp.body_iterator:
-            if isinstance(chunk, bytes):
-                chunks.append(chunk.decode())
-            else:
-                chunks.append(chunk)
+            text = chunk if isinstance(chunk, str) else bytes(chunk).decode()
+            chunks.append(text)
     except RuntimeError:
         exc_type = RuntimeError
     text = "".join(chunks)

@@ -14,10 +14,9 @@ from uuid import UUID
 
 import httpx
 from fastapi import FastAPI
-from fastapi.routing import RouteContext
 from pydantic import BaseModel
 
-from pathfinder.tests._support.routes import api_routes
+from pathfinder.tests._support.routes import ApiRoute, api_routes
 
 MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 REFUSAL_STATUSES = frozenset({403, 404})
@@ -237,18 +236,14 @@ def _model_keys(model: type[BaseModel], depth: int) -> set[str]:
     return keys
 
 
-def _body_keys(route: RouteContext) -> set[str]:
+def _body_keys(route: ApiRoute) -> set[str]:
     """Field names of the request body, one level into nested models."""
-    body = route.body_field
-    if body is None:
+    if route.body_model is None:
         return set()
-    annotation = body.field_info.annotation
-    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
-        return _model_keys(annotation, depth=1)
-    return set()
+    return _model_keys(route.body_model, depth=1)
 
 
-def _is_scoped(route: RouteContext, resource: Resource) -> bool:
+def _is_scoped(route: ApiRoute, resource: Resource) -> bool:
     if resource.prefix and route.path.startswith(resource.prefix):
         return True
     return bool((_path_keys(route.path) | _body_keys(route)) & resource.keys)
@@ -269,11 +264,10 @@ def scoped_routes(app: FastAPI, resource: Resource) -> set[tuple[str, str]]:
 
 
 def registered_routes(app: FastAPI) -> set[tuple[str, str]]:
-    return {
-        (method, route.path)
-        for route in api_routes(app.routes)
-        for method in route.methods
-    }
+    found: set[tuple[str, str]] = set()
+    for route in api_routes(app.routes):
+        found |= {(method, route.path) for method in route.methods}
+    return found
 
 
 def stale_exclusions(app: FastAPI) -> list[str]:
@@ -282,15 +276,13 @@ def stale_exclusions(app: FastAPI) -> list[str]:
     Such an exclusion hides nothing, and its reason no longer describes the app.
     """
     by_name = {resource.name: resource for resource in RESOURCES}
-    routes = {
-        (method, route.path): route
-        for route in api_routes(app.routes)
-        for method in route.methods
-    }
+    routes: dict[tuple[str, str], ApiRoute] = {}
+    for route in api_routes(app.routes):
+        routes.update({(method, route.path): route for method in route.methods})
     stale: list[str] = []
     for (resource_name, method, path), reason in NOT_RESOURCE_SCOPED.items():
-        route = routes.get((method, path))
-        if route is None or not _is_scoped(route, by_name[resource_name]):
+        excluded = routes.get((method, path))
+        if excluded is None or not _is_scoped(excluded, by_name[resource_name]):
             stale.append(f"{resource_name} {method} {path} ({reason})")
     return stale
 

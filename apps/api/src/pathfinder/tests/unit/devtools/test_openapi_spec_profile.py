@@ -9,6 +9,7 @@ from pathfinder.devtools.openapi import (
     _dev_only_paths,
     _refuse_dev_routes,
     _spec_with_stable_overrides,
+    _SpecPaths,
     generate_openapi_json,
 )
 from pathfinder.main import create_app
@@ -23,7 +24,8 @@ def test_the_spec_never_carries_dev_routes(monkeypatch: pytest.MonkeyPatch) -> N
 
     spec = _spec_with_stable_overrides()
 
-    dev_paths = [p for p in spec["paths"] if p.startswith("/api/v1/dev/")]
+    paths = _SpecPaths.model_validate(spec).paths
+    dev_paths = [p for p in paths if p.startswith("/api/v1/dev/")]
     assert dev_paths == []
 
 

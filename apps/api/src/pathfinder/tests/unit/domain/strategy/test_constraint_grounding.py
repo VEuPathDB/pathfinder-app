@@ -23,11 +23,6 @@ from pathfinder.domain.strategy.operational_spec import (
 _MICROARRAY_SEARCH = (
     "GenesByMicroarrayaaegLVP_AGWG_microarrayExpression_GSE22339_male_vs_female_RSRC"
 )
-_MICROARRAY_FACTS: dict[str, list[str] | set[str] | dict[str, str]] = {
-    "search_names": [_MICROARRAY_SEARCH],
-    "param_names": {"fold_change"},
-    "param_values": {"fold_change": "2"},
-}
 
 
 def _explicit(kind: ConstraintKind, value: str, label: str) -> Constraint:
@@ -39,41 +34,44 @@ def _explicit(kind: ConstraintKind, value: str, label: str) -> Constraint:
     )
 
 
+def _ground_on_microarray(constraint: Constraint) -> GroundedConstraint:
+    [grounded] = ground_constraints(
+        [constraint],
+        search_names=[_MICROARRAY_SEARCH],
+        param_names={"fold_change"},
+        param_values={"fold_change": "2"},
+    )
+    return grounded
+
+
 class TestGroundingAgainstTheBuiltSearch:
     def test_rnaseq_requested_but_microarray_used_is_substituted(self) -> None:
-        [grounded] = ground_constraints(
-            [_explicit(ConstraintKind.DATA_TYPE, "RNA-Seq", "data type")],
-            **_MICROARRAY_FACTS,
+        grounded = _ground_on_microarray(
+            _explicit(ConstraintKind.DATA_TYPE, "RNA-Seq", "data type")
         )
 
         assert grounded.status is ConstraintStatus.SUBSTITUTED
         assert grounded.realized_value == "microarray"
 
     def test_pvalue_threshold_with_no_significance_param_is_ungroundable(self) -> None:
-        [grounded] = ground_constraints(
-            [
-                _explicit(
-                    ConstraintKind.STATISTICAL_THRESHOLD,
-                    "adjusted p <= 0.05",
-                    "significance",
-                )
-            ],
-            **_MICROARRAY_FACTS,
+        grounded = _ground_on_microarray(
+            _explicit(
+                ConstraintKind.STATISTICAL_THRESHOLD,
+                "adjusted p <= 0.05",
+                "significance",
+            )
         )
 
         assert grounded.status is ConstraintStatus.UNGROUNDABLE
         assert grounded.realized_value is None
 
     def test_fold_change_present_is_grounded(self) -> None:
-        [grounded] = ground_constraints(
-            [
-                Constraint(
-                    kind=ConstraintKind.FOLD_CHANGE,
-                    requested_value="2",
-                    label="fold change",
-                )
-            ],
-            **_MICROARRAY_FACTS,
+        grounded = _ground_on_microarray(
+            Constraint(
+                kind=ConstraintKind.FOLD_CHANGE,
+                requested_value="2",
+                label="fold change",
+            )
         )
 
         assert grounded.status is ConstraintStatus.GROUNDED

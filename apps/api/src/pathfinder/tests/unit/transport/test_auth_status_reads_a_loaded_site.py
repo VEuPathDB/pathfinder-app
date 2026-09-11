@@ -28,7 +28,7 @@ def _reset() -> None:
 def _app(monkeypatch: pytest.MonkeyPatch, seen: list[str]) -> FastAPI:
     async def _fetch(site_id: str) -> WDKUserInfo:
         seen.append(site_id)
-        return WDKUserInfo(id=7, isGuest=False, email="researcher@upenn.edu")
+        return WDKUserInfo(id=7, is_guest=False, email="researcher@upenn.edu")
 
     monkeypatch.setattr(
         "pathfinder.transport.http.routers.veupathdb_auth.fetch_current_user", _fetch

@@ -168,11 +168,9 @@ class TestAWdkOutageNamesNobody:
         veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
         session = Principal(user_id=SESSION_USER, credential="pathfinder-cookie")
 
-        kept = await wdk_identity.require_session_matches_wdk_identity(
-            session, "plasmodb"
-        )
+        await wdk_identity.require_session_matches_wdk_identity(session, "plasmodb")
 
-        assert (kept, seen, session.user_id) == (None, ["plasmodb"], SESSION_USER)
+        assert (seen, session.user_id) == (["plasmodb"], SESSION_USER)
 
 
 class TestTheRouteGateRefusesADegradedSiteBeforeAnyIdentityCall:

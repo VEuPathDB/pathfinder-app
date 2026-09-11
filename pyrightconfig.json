@@ -3,6 +3,5 @@
   "pythonPlatform": "Linux",
   "venvPath": ".",
   "venv": "apps/api/.venv",
-  "include": ["apps/api/src"],
-  "exclude": ["apps/api/src/pathfinder/tests"]
+  "include": ["apps/api/src"]
 }

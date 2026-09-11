@@ -34,6 +34,7 @@ from pydantic_ai.messages import RetryPromptPart, ToolReturnPart
 from pydantic_ai.ui.vercel_ai import response_types
 from pydantic_ai.ui.vercel_ai.response_types import (
     TextDeltaChunk,
+    ToolApprovalRequestChunk,
     ToolInputStartChunk,
     ToolOutputAvailableChunk,
     ToolOutputErrorChunk,
@@ -163,9 +164,8 @@ def test_every_tool_chunk_type_is_classified() -> None:
 def test_approval_chunks_are_exempt_so_the_user_can_answer() -> None:
     # Suppressing an approval request would hang the turn on a question the
     # user never sees.
-    assert _CHUNKS_EXEMPT_FROM_SUPPRESSION, "approvals must stay reachable"
-    for chunk_type in _CHUNKS_EXEMPT_FROM_SUPPRESSION:
-        assert chunk_type not in _TOOL_CALL_CHUNKS
+    assert ToolApprovalRequestChunk in _CHUNKS_EXEMPT_FROM_SUPPRESSION
+    assert set(_CHUNKS_EXEMPT_FROM_SUPPRESSION).isdisjoint(_TOOL_CALL_CHUNKS)
 
 
 class TestTheCardTellsTheTruth:

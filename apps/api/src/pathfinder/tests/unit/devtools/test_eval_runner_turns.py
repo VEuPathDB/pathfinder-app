@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Any
+from typing import NamedTuple
 from uuid import UUID
 
 import pytest
@@ -40,10 +41,19 @@ class _Capture:
         return self._text
 
 
+class _Installed(NamedTuple):
+    """What the stubs recorded, and the stubs themselves for a test to wrap."""
+
+    driven: list[RunArgs]
+    read: list[UUID]
+    drive: Callable[[RunArgs], Awaitable[tuple[_Capture, object]]]
+    step_ids: Callable[[UUID], Awaitable[set[int]]]
+
+
 def _install(
     monkeypatch: pytest.MonkeyPatch,
     step_ids: list[set[int]],
-) -> tuple[list[RunArgs], list[UUID]]:
+) -> _Installed:
     driven: list[RunArgs] = []
     read: list[UUID] = []
     remaining = list(step_ids)
@@ -72,19 +82,20 @@ def _install(
     monkeypatch.setattr(eval_runner, "drive_run", _drive)
     monkeypatch.setattr(eval_runner, "persisted_wdk_step_ids", _step_ids)
     monkeypatch.setattr(eval_runner, "observe", _observe)
-    return driven, read
+    return _Installed(driven=driven, read=read, drive=_drive, step_ids=_step_ids)
 
 
 async def test_the_turns_are_driven_in_order_on_one_thread(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    driven, _read = _install(monkeypatch, [{100, 200}, {100, 200}])
+    installed = _install(monkeypatch, [{100, 200}, {100, 200}])
 
     await eval_runner.run_one_case(
         _case("build it", "now change one thing"),
         run_root=tmp_path,
     )
 
+    driven = installed.driven
     assert [args.prompt for args in driven] == ["build it", "now change one thing"]
     assert len({args.conversation_id for args in driven}) == 1
     assert [args.run_dir.name for args in driven] == ["turn-1", "turn-2"]
@@ -131,17 +142,15 @@ async def test_the_read_happens_before_the_last_turn_and_after_it(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     order: list[str] = []
-    _driven, _read = _install(monkeypatch, [{100}, {100}])
-    drive = eval_runner.drive_run
-    step_ids = eval_runner.persisted_wdk_step_ids
+    installed = _install(monkeypatch, [{100}, {100}])
 
-    async def _drive(args: Any) -> Any:
+    async def _drive(args: RunArgs) -> tuple[_Capture, object]:
         order.append(f"turn:{args.prompt}")
-        return await drive(args)
+        return await installed.drive(args)
 
     async def _step_ids(conversation_id: UUID) -> set[int]:
         order.append("read")
-        return await step_ids(conversation_id)
+        return await installed.step_ids(conversation_id)
 
     monkeypatch.setattr(eval_runner, "drive_run", _drive)
     monkeypatch.setattr(eval_runner, "persisted_wdk_step_ids", _step_ids)

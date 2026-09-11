@@ -28,9 +28,9 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     coerce_proposals,
 )
 from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
+from pathfinder.tests._support.catalog_builders import ParamsAt
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     KINASE_PARAMS,
-    ParamsAt,
     Proposals,
     bind,
     genes_by_text,
@@ -125,11 +125,13 @@ def _enum(
     param_type: str = "multi-pick-vocabulary",
     **fields: object,
 ) -> WDKEnumParam:
-    return WDKEnumParam(
-        name=name,
-        type=param_type,
-        vocabulary=[WDKVocabTerm(t) for t in terms],
-        **fields,
+    return WDKEnumParam.model_validate(
+        {
+            "name": name,
+            "type": param_type,
+            "vocabulary": [WDKVocabTerm(t) for t in terms],
+            **fields,
+        }
     )
 
 

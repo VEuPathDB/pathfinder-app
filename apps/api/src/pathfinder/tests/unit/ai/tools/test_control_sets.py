@@ -4,21 +4,48 @@ report what did not resolve, list what exists, and refuse a WDK id."""
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.tools.standalone import control_sets
 from pathfinder.ai.tools.standalone.control_sets import (
+    BuiltControlSet,
+    ControlSetSummary,
     build_control_set,
     import_control_ids_from_strategy,
     list_control_sets,
 )
+from pathfinder.services.control_sets import ControlSetResponse, NewControlSet
 from pathfinder.services.experiment.control_sourcing import ResolvedControls
-from pathfinder.tests.unit.ai.tools.conftest import runtime_ctx
+from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools.conftest import detached_lead_context
 
 _WDK_STRATEGY_ID = "330531493"
+
+
+def _stored(
+    *,
+    control_set_id: str,
+    name: str,
+    positive_ids: list[str] | None = None,
+    negative_ids: list[str] | None = None,
+) -> ControlSetResponse:
+    """A persisted control set, as the service hands one back."""
+    return ControlSetResponse(
+        id=control_set_id,
+        name=name,
+        site_id="plasmodb",
+        record_type="transcript",
+        positive_ids=positive_ids or [],
+        negative_ids=negative_ids or [],
+        tags=[],
+        version=1,
+        is_public=False,
+        created_at="2026-01-01T00:00:00Z",
+    )
 
 
 def _patch_validate(
@@ -45,26 +72,27 @@ async def test_build_control_set_validates_persists_and_reports_unresolved(
             "n1": ResolvedControls(valid_ids=["n1"], unresolved_ids=[]),
         },
     )
-    created = MagicMock()
-    created.id = "cs_123"
-    created.name = "my controls"
-    persisted: list[Any] = []
+    created = _stored(control_set_id="cs_123", name="my controls")
+    persisted: list[NewControlSet] = []
 
-    async def _create(_session: Any, spec: Any, *, user_id: Any) -> Any:
+    async def _create(
+        _session: AsyncSession, spec: NewControlSet, *, user_id: UUID
+    ) -> ControlSetResponse:
         del user_id
         persisted.append(spec)
         return created
 
     monkeypatch.setattr(control_sets, "create_control_set", _create)
 
-    out = (
+    out = returned(
         await build_control_set(
-            runtime_ctx(),
+            detached_lead_context(),
             name="my controls",
             positive_ids=["g1", "typo", "g2"],
             negative_ids=["n1"],
-        )
-    ).return_value
+        ),
+        BuiltControlSet,
+    )
 
     assert out.control_set_id == "cs_123"
     assert out.positive_count == 2
@@ -83,35 +111,44 @@ async def test_build_control_set_refuses_when_no_positive_resolves(
         {"bad1,bad2": ResolvedControls(valid_ids=[], unresolved_ids=["bad1", "bad2"])},
     )
 
-    persisted: list[Any] = []
+    persisted: list[NewControlSet] = []
 
-    async def _create(_session: Any, spec: Any, *, user_id: Any) -> Any:
+    async def _create(
+        _session: AsyncSession, spec: NewControlSet, *, user_id: UUID
+    ) -> ControlSetResponse:
         del user_id
         persisted.append(spec)
-        return MagicMock()
+        return _stored(control_set_id="cs_unused", name=spec.name)
 
     monkeypatch.setattr(control_sets, "create_control_set", _create)
 
     with pytest.raises(ModelRetry, match="No positive control"):
-        await build_control_set(runtime_ctx(), name="x", positive_ids=["bad1", "bad2"])
+        await build_control_set(
+            detached_lead_context(), name="x", positive_ids=["bad1", "bad2"]
+        )
 
     assert persisted == []
 
 
 async def test_list_control_sets_summarizes(monkeypatch: pytest.MonkeyPatch) -> None:
-    stored = MagicMock()
-    stored.id = "cs_1"
-    stored.name = "set"
-    stored.positive_ids = ["g1", "g2"]
-    stored.negative_ids = ["n1"]
+    stored = _stored(
+        control_set_id="cs_1",
+        name="set",
+        positive_ids=["g1", "g2"],
+        negative_ids=["n1"],
+    )
 
-    async def _list(_session: Any, *, site_id: str, user_id: Any) -> list[Any]:
+    async def _list(
+        _session: AsyncSession, *, site_id: str, user_id: UUID
+    ) -> list[ControlSetResponse]:
         del site_id, user_id
         return [stored]
 
     monkeypatch.setattr(control_sets, "list_control_sets_for_site", _list)
 
-    out = (await list_control_sets(runtime_ctx())).return_value
+    out = returned(
+        await list_control_sets(detached_lead_context()), list[ControlSetSummary]
+    )
 
     assert len(out) == 1
     assert out[0].control_set_id == "cs_1"
@@ -126,16 +163,22 @@ class TestAWdkStrategyIdIsARetry:
 
     async def test_it_does_not_raise_value_error(self) -> None:
         with pytest.raises(ModelRetry):
-            await import_control_ids_from_strategy(runtime_ctx(), _WDK_STRATEGY_ID)
+            await import_control_ids_from_strategy(
+                detached_lead_context(), _WDK_STRATEGY_ID
+            )
 
     async def test_the_message_names_the_value_it_got(self) -> None:
         with pytest.raises(ModelRetry) as err:
-            await import_control_ids_from_strategy(runtime_ctx(), _WDK_STRATEGY_ID)
+            await import_control_ids_from_strategy(
+                detached_lead_context(), _WDK_STRATEGY_ID
+            )
 
         assert _WDK_STRATEGY_ID in str(err.value)
 
     async def test_the_message_says_which_id_is_wanted(self) -> None:
         with pytest.raises(ModelRetry) as err:
-            await import_control_ids_from_strategy(runtime_ctx(), _WDK_STRATEGY_ID)
+            await import_control_ids_from_strategy(
+                detached_lead_context(), _WDK_STRATEGY_ID
+            )
 
         assert "conversation" in str(err.value).lower()

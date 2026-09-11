@@ -9,8 +9,6 @@ from __future__ import annotations
 import asyncio
 from uuid import uuid4
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph._lead_delta import _build_state_delta
@@ -21,11 +19,7 @@ from pathfinder.ai.lead.lead_agent import LeadResponse
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.staleness import StaleBuild
-
-
-def _never_factory() -> AsyncSession:
-    msg = "db factory should not be called in unit tests"
-    raise AssertionError(msg)
+from pathfinder.tests._support.database import no_database
 
 
 def _overview() -> SearchOverview:
@@ -57,7 +51,7 @@ def _deps(state: PipelineState, intent: UserIntent | None = None) -> LeadDeps:
             site_id="plasmodb",
             user_id=uuid4(),
             strategy_session=StrategySession(site_id="plasmodb"),
-            db_session_factory=_never_factory,
+            db_session_factory=no_database,
             cancel_event=asyncio.Event(),
         ),
         retrieved_memories=[],

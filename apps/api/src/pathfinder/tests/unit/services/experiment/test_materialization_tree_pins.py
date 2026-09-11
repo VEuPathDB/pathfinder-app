@@ -19,6 +19,7 @@ from veupathdb.wdk.wdk_models import (
 
 from pathfinder.services.experiment import materialization
 from pathfinder.services.experiment.materialization import _persist_experiment_strategy
+from pathfinder.services.experiment.types.core import ExperimentMode
 from pathfinder.services.experiment.types.experiment import ExperimentConfig
 
 
@@ -105,7 +106,7 @@ def _tree() -> StrategyStepNode:
 
 
 def _config(
-    root: StrategyStepNode | None, mode: str = "multi-step"
+    root: StrategyStepNode | None, mode: ExperimentMode = "multi-step"
 ) -> ExperimentConfig:
     return ExperimentConfig(
         site_id="plasmodb",

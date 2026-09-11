@@ -7,8 +7,8 @@ lands back on it is a regression even when every other test still passes.
 from __future__ import annotations
 
 from assistant_core.persistence.models import Conversation
-from sqlalchemy import Index
-from sqlalchemy.dialects import postgresql
+from sqlalchemy import Index, Table
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from pathfinder.persistence.models import (
     ConversationStrategy,
@@ -44,6 +44,11 @@ STRATEGY_COLUMNS = {
 }
 
 
+_THREADS: Table = Conversation.metadata.tables["conversations"]
+_SIDE_TABLE: Table = ConversationStrategy.metadata.tables["conversation_strategies"]
+_REVISIONS: Table = StrategyRevision.metadata.tables["strategy_revisions"]
+
+
 def _column_names(model: type[Conversation] | type[ConversationStrategy]) -> set[str]:
     return {column.name for column in model.__table__.columns}
 
@@ -67,7 +72,7 @@ def test_the_side_table_has_no_application_of_its_own() -> None:
 
 
 def test_the_side_row_is_the_primary_key_and_cascades_from_its_parent() -> None:
-    table = ConversationStrategy.__table__
+    table = _SIDE_TABLE
     assert [column.name for column in table.primary_key.columns] == ["conversation_id"]
     parent = next(
         fk
@@ -79,12 +84,12 @@ def test_the_side_row_is_the_primary_key_and_cascades_from_its_parent() -> None:
 
 
 def test_the_unique_wdk_strategy_index_moved_to_the_side_table() -> None:
-    conversation_indexes = {index.name for index in Conversation.__table__.indexes}
+    conversation_indexes = {index.name for index in _THREADS.indexes}
     assert "ix_conversations_wdk_strategy_id" not in conversation_indexes
 
     index: Index = next(
         index
-        for index in ConversationStrategy.__table__.indexes
+        for index in _SIDE_TABLE.indexes
         if index.name == "ix_conversation_strategies_wdk_strategy_id"
     )
     assert index.unique
@@ -95,12 +100,12 @@ def test_the_unique_wdk_strategy_index_moved_to_the_side_table() -> None:
 
 def test_the_strategy_ast_column_maps_the_jsonb_the_chain_built() -> None:
     """Both columns that hold a strategy AST compile to the type the chain built."""
-    dialect = postgresql.dialect()
-    column = ConversationStrategy.__table__.c.strategy_ast
+    dialect = create_async_engine("postgresql+asyncpg://pathfinder@db/pf").dialect
+    column = _SIDE_TABLE.c.strategy_ast
 
     assert column.type.compile(dialect) == "JSONB"
     assert column.nullable is False
-    assert StrategyRevision.__table__.c.strategy_ast.type.compile(dialect) == "JSONB"
+    assert _REVISIONS.c.strategy_ast.type.compile(dialect) == "JSONB"
 
 
 def test_the_thread_declares_no_relationship_to_the_science() -> None:

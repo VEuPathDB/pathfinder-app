@@ -21,7 +21,6 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage, UsageLimits
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.agents._instructions import pinned_run_budget
 from pathfinder.ai.agents.execution import build_execution_agent
@@ -33,6 +32,7 @@ from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.tests._support.database import no_database
 from pathfinder.tests._support.instructions import pinned_instructions
 
 _LIMITS = UsageLimits(
@@ -126,7 +126,7 @@ def _lead_ctx(usage: RunUsage, limits: UsageLimits) -> RunContext[LeadDeps]:
         site_id="plasmodb",
         user_id=state.user_id,
         strategy_session=StrategySession(site_id="plasmodb"),
-        db_session_factory=_no_database,
+        db_session_factory=no_database,
         cancel_event=asyncio.Event(),
     )
     deps = LeadDeps(state=state, intent=None, runtime=runtime, retrieved_memories=[])
@@ -136,11 +136,6 @@ def _lead_ctx(usage: RunUsage, limits: UsageLimits) -> RunContext[LeadDeps]:
         usage=usage,
         usage_limits=limits,
     )
-
-
-def _no_database() -> AsyncSession:
-    msg = "db factory should not be called in unit tests"
-    raise AssertionError(msg)
 
 
 def test_a_lead_tool_reads_the_budget_of_the_run_that_called_it() -> None:

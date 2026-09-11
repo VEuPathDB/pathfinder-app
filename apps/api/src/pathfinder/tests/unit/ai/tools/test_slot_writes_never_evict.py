@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
@@ -24,7 +25,8 @@ from pathfinder.domain.strategy.operations import (
 from pathfinder.domain.strategy.operations.types import AttachIntoSlot, AttachNewRoot
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.stated_shape import stated_shape
-from pathfinder.tests._support.eda_doubles import lead_run_context
+from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools._eda_step_doubles import bound, read_detail
 
 from ._strategy_edit_stubs import (
@@ -63,8 +65,8 @@ def _eda_ctx(
     monkeypatch.setattr(eda_step, "bound_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read_detail)
     run_ctx = lead_run_context(
-        prompt="export the febrile subset",
-        session=session_with(root, _EDA_WDK_IDS),
+        user_prompt="export the febrile subset",
+        strategy_session=session_with(root, _EDA_WDK_IDS),
     )
     run_ctx.deps.state.domain.operational_spec = spec
     return run_ctx
@@ -127,11 +129,12 @@ class TestAnEdaExportIntoASlot:
         graph = run_ctx.deps.runtime.strategy_session.graph
         assert graph is not None
 
-        returned = await eda_step.create_eda_step(
+        answer = await eda_step.create_eda_step(
             run_ctx, attach_to_step_id="step_c1", slot="secondary"
         )
 
-        exported = returned.return_value.step_id
+        result = returned(answer, eda_step.EdaStepCreated)
+        exported = result.step_id
         assert graph.steps["step_c1"].secondary_input_id == exported
         assert graph.steps[exported].search_name == "GenesByEdaSubset"
         assert stub_api.named("create_step") != []
@@ -230,7 +233,10 @@ class TestABatchThatWritesASlot:
             ),
         ]
 
-        payload = (await apply_operations(ctx(deps), _revision(deps), ops)).return_value
+        payload = returned(
+            await apply_operations(ctx(deps), _revision(deps), ops),
+            dict[str, JsonValue],
+        )
 
         assert payload["applied"] == 3
         assert graph.steps["step_c1"].secondary_input_id == "step_c2"

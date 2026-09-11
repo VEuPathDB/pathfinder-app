@@ -39,9 +39,9 @@ from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.tests._support.instructions import pinned_instructions
+from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
-    lead_run_context,
     pipeline_state,
     user_intent,
 )
@@ -181,7 +181,7 @@ def test_the_blaming_reply_is_refused_and_told_the_real_stop() -> None:
 
     with pytest.raises(ModelRetry) as raised:
         refuse_blaming_the_site(
-            lead_run_context(deps), LeadResponse(prose=_BLAMING_REPLY)
+            run_context_for(deps), LeadResponse(prose=_BLAMING_REPLY)
         )
 
     assert "the framing pass stopped on its call budget after 60 calls" in str(
@@ -194,9 +194,9 @@ def test_the_refusal_is_asked_once_per_turn() -> None:
     output = LeadResponse(prose=_BLAMING_REPLY)
 
     with pytest.raises(ModelRetry):
-        refuse_blaming_the_site(lead_run_context(deps), output)
+        refuse_blaming_the_site(run_context_for(deps), output)
 
-    assert refuse_blaming_the_site(lead_run_context(deps), output) is output
+    assert refuse_blaming_the_site(run_context_for(deps), output) is output
 
 
 def test_a_reply_naming_a_real_wdk_failure_stands() -> None:
@@ -209,19 +209,19 @@ def test_a_reply_naming_a_real_wdk_failure_stands() -> None:
     )
     output = LeadResponse(prose=_REAL_FAILURE_REPLY)
 
-    assert refuse_blaming_the_site(lead_run_context(deps), output) is output
+    assert refuse_blaming_the_site(run_context_for(deps), output) is output
 
 
 def test_a_reply_that_blames_nothing_stands() -> None:
     output = LeadResponse(prose=_CLEAN_REPLY)
 
-    assert refuse_blaming_the_site(lead_run_context(_blame_deps()), output) is output
+    assert refuse_blaming_the_site(run_context_for(_blame_deps()), output) is output
 
 
 def test_a_deferred_request_is_not_prose() -> None:
     output = DeferredToolRequests()
 
-    assert refuse_blaming_the_site(lead_run_context(_blame_deps()), output) is output
+    assert refuse_blaming_the_site(run_context_for(_blame_deps()), output) is output
 
 
 def _nudge_deps(

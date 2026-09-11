@@ -8,238 +8,48 @@ request never mentions come out byte for byte identical.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, Callable
-from dataclasses import dataclass, field
+from collections.abc import AsyncGenerator
 from typing import Any
-from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.persistence.models import Conversation
+from pydantic_ai import RunContext
+from pydantic_ai.models.test import TestModel
+from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
-from veupathdb.domain.parameters.wdk_vocab import VocabOption
-from veupathdb.domain.search import SearchContext
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.validation import StepValidation
-from veupathdb.wdk.wdk_models import (
-    WDKSearch,
-    WDKSearchConfig,
-    WDKSearchResponse,
-    WDKStep,
-    WDKStepTree,
-    WDKStrategyDetails,
-)
-from veupathdb_mcp.catalog import (
-    ParameterInfo,
-    ParamFetcher,
-    ValidatedParams,
-    param_discovery,
-    searches,
-)
 
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead import edit_dispatch, frame_dispatch
+from pathfinder.ai.lead import frame_dispatch
 from pathfinder.ai.lead.deltas import EditDelta, FrameResult
 from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone import frame_spec
-from pathfinder.ai.tools.standalone.frame_spec import set_criterion
+from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult, set_criterion
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.integration.ai._organism_swap_wire import (
+    DERISI,
+    PF,
+    PV,
+    WDK_IDS,
+    ZHU,
+    RecordingAPI,
+    wdk,
+)
 
-_PF = "Plasmodium falciparum 3D7"
-_PV = "Plasmodium vivax P01"
-_DERISI = "DeRisi 3D7 Smoothed"
-_ZHU = "Zhu P01 time course"
-
-WDK_IDS = {
-    "step_text": 100,
-    "step_go": 200,
-    "step_c1": 300,
-    "step_expr": 400,
-    "step_c2": 500,
-}
-
-ParamsAt = Callable[[dict[str, str]], list[ParameterInfo]]
-
-
-@dataclass
-class _Call:
-    name: str
-    kwargs: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class _RecordingAPI:
-    calls: list[_Call] = field(default_factory=list)
-
-    def named(self, name: str) -> list[_Call]:
-        return [c for c in self.calls if c.name == name]
-
-    async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
-        del user_id
-        self.calls.append(_Call("delete_step", {"step_id": step_id}))
-
-    async def update_step_search_config(
-        self,
-        step_id: int,
-        search_config: WDKSearchConfig,
-        record_type: str,
-        search_name: str,
-        *,
-        user_id: str | None = None,
-    ) -> None:
-        del user_id, record_type
-        self.calls.append(
-            _Call(
-                "update_step_search_config",
-                {
-                    "step_id": step_id,
-                    "search_name": search_name,
-                    "parameters": dict(search_config.parameters),
-                },
-            )
-        )
-
-    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
-        del user_id
-        return WDKStep(
-            id=step_id,
-            search_name="GenesByProfile",
-            search_config=WDKSearchConfig(parameters={}),
-        )
-
-    async def get_strategy(
-        self, strategy_id: int, user_id: str | None = None
-    ) -> WDKStrategyDetails:
-        del user_id
-        return WDKStrategyDetails(
-            strategy_id=strategy_id,
-            name="Test strategy",
-            root_step_id=500,
-            step_tree=WDKStepTree(step_id=500),
-            steps={
-                str(wdk_id): WDKStep(
-                    id=wdk_id,
-                    search_name="GenesByProfile",
-                    search_config=WDKSearchConfig(parameters={}),
-                    estimated_size=11,
-                )
-                for wdk_id in WDK_IDS.values()
-            },
-        )
-
-
-def _organism_info() -> ParameterInfo:
-    return ParameterInfo(
-        name="organism",
-        display_name="organism",
-        type="multi-pick-vocabulary",
-        required=True,
-        is_visible=True,
-        help="",
-        value_format="",
-        vocab_leaves=[
-            VocabOption(value=_PF, display="P. falciparum 3D7"),
-            VocabOption(value=_PV, display="P. vivax P01"),
-        ],
-    )
-
-
-def _profileset_info(options: list[VocabOption], default: str) -> ParameterInfo:
-    return ParameterInfo(
-        name="profileset",
-        display_name="profileset",
-        type="single-pick-vocabulary",
-        required=True,
-        is_visible=True,
-        help="",
-        value_format="",
-        default_value=default,
-        allowed_values=options,
-        vocab_depends_on=["organism"],
-    )
-
-
-def _params_under(context: dict[str, str]) -> list[ParameterInfo]:
-    if _PV in context.get("organism", ""):
-        return [
-            _organism_info(),
-            _profileset_info([VocabOption(value=_ZHU, display="Zhu P01")], _ZHU),
-        ]
-    return [
-        _organism_info(),
-        _profileset_info([VocabOption(value=_DERISI, display=_DERISI)], _DERISI),
-    ]
-
-
-def _search_response(search_name: str) -> WDKSearchResponse:
-    """A search the catalog serves, with no validation of its own."""
-    return WDKSearchResponse(
-        searchData=WDKSearch(urlSegment=search_name),
-        validation=StepValidation(level="NONE", is_valid=False),
-    )
-
-
-@pytest.fixture
-def wdk(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
-    api = _RecordingAPI()
-    for module in (commit, step_wdk_push, sync, live_counts):
-        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
-
-    async def _noop_validate_plan(*_a: Any, **_k: Any) -> set[str]:
-        return set()
-
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate_plan)
-
-    async def _noop_reconcile(*_a: Any, **_k: Any) -> None:
-        return None
-
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
-    monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _chunk: None)
-
-    def _fetch_at(*_args: object) -> ParamFetcher:
-        async def fetch_at(context: dict[str, str]) -> list[ParameterInfo]:
-            return _params_under(context)
-
-        return fetch_at
-
-    monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)
-
-    async def _definition(
-        record_type: str, name: str, *, expand_params: bool = True
-    ) -> WDKSearchResponse:
-        del record_type, expand_params
-        return _search_response(name)
-
-    client = MagicMock()
-    client.get_search_details = _definition
-    monkeypatch.setattr(searches, "get_wdk_client", lambda _site: client)
-
-    async def _details(
-        ctx: SearchContext, **_kw: object
-    ) -> tuple[WDKSearchResponse, str]:
-        return (_search_response(ctx.search_name), "etag")
-
-    monkeypatch.setattr(param_discovery, "fetch_search_details", _details)
-    monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
-
-    async def _validate(*_a: object, **_k: object) -> ValidatedParams:
-        return ValidatedParams()
-
-    monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
-    return api
+__all__ = ["wdk"]
 
 
 @pytest.fixture
@@ -294,8 +104,8 @@ def _root() -> StrategyStepNode:
             search_name="GenesByProfile",
             display_name="expression profile",
             parameters={
-                "organism": MultiPickValue(values=[_PF]),
-                "profileset": SinglePickValue(value=_DERISI),
+                "organism": MultiPickValue(values=[PF]),
+                "profileset": SinglePickValue(value=DERISI),
             },
         ),
     )
@@ -373,25 +183,30 @@ def _frame_that_swaps_the_organism(monkeypatch: pytest.MonkeyPatch) -> list[str]
 
     async def _fake(**kwargs: Any) -> FrameResult:
         agent_deps: AgentDeps = kwargs["agent_deps"]
-        ctx = MagicMock()
-        ctx.tool_call_id = "call_1"
-        ctx.deps = agent_deps
-        first = (
+        ctx: RunContext[AgentDeps] = RunContext(
+            deps=agent_deps,
+            model=TestModel(),
+            usage=RunUsage(),
+            messages=[],
+            tool_call_id="call_1",
+        )
+        first = returned(
             await set_criterion(
                 ctx,
                 criterion_id="step_expr",
                 text="expression profile",
                 search_name="GenesByProfile",
-                params={"organism": [_PV], "profileset": _DERISI},
-            )
-        ).return_value
+                params={"organism": [PV], "profileset": DERISI},
+            ),
+            SetCriterionResult,
+        )
         rounds.extend(entry.name for entry in first.redecide)
         await set_criterion(
             ctx,
             criterion_id="step_expr",
             text="expression profile",
             search_name="GenesByProfile",
-            params={"organism": [_PV], "profileset": _ZHU},
+            params={"organism": [PV], "profileset": ZHU},
         )
         return FrameResult(
             disposition="spec_ready",
@@ -402,7 +217,7 @@ def _frame_that_swaps_the_organism(monkeypatch: pytest.MonkeyPatch) -> list[str]
                 CriterionChange(
                     criterion_id="step_expr",
                     disposition="changed",
-                    changed_params={"organism": f'["{_PV}"]', "profileset": _ZHU},
+                    changed_params={"organism": f'["{PV}"]', "profileset": ZHU},
                 ),
             ],
         )
@@ -415,7 +230,7 @@ async def test_the_swap_re_resolves_the_dependent_and_keeps_the_rest(
     db_session: AsyncSession,
     session_maker: async_sessionmaker[AsyncSession],
     seed_user: User,
-    wdk: _RecordingAPI,
+    wdk: RecordingAPI,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     conv_id = await _seed(db_session, seed_user)
@@ -433,8 +248,8 @@ async def test_the_swap_re_resolves_the_dependent_and_keeps_the_rest(
     after = deps.state.domain.operational_spec
     assert after is not None
     swapped = next(c for c in after.criteria if c.id == "step_expr")
-    assert swapped.resolved_params["organism"] == MultiPickValue(values=[_PV])
-    assert swapped.resolved_params["profileset"] == SinglePickValue(value=_ZHU)
+    assert swapped.resolved_params["organism"] == MultiPickValue(values=[PV])
+    assert swapped.resolved_params["profileset"] == SinglePickValue(value=ZHU)
     # Every criterion the request never named is byte for byte what it was.
     for criterion_id in ("step_text", "step_go"):
         was = next(c for c in before.criteria if c.id == criterion_id)
@@ -447,7 +262,7 @@ async def test_the_swap_patches_one_step_and_keeps_every_wdk_id(
     db_session: AsyncSession,
     session_maker: async_sessionmaker[AsyncSession],
     seed_user: User,
-    wdk: _RecordingAPI,
+    wdk: RecordingAPI,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     conv_id = await _seed(db_session, seed_user)

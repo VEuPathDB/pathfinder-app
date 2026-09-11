@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID, uuid4
@@ -70,6 +70,7 @@ from pathfinder.services.eda import authoring, binding, catalog
 from pathfinder.services.eda.binding import bound_conversation_analysis
 from pathfinder.services.strategies import commit
 from pathfinder.services.strategies.commit import _WDKCommitOutcome
+from pathfinder.tests._support.step_params import string_param
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -310,7 +311,7 @@ async def seam(
     db_cleaner: None,
     in_memory_jobs: InMemoryConnector,
     monkeypatch: pytest.MonkeyPatch,
-) -> Iterator[_Seam]:
+) -> AsyncIterator[_Seam]:
     """The EDA assistant under site help's id, over the recorded EDA wire."""
     del patch_app_db_engine, db_cleaner
     store = _AnalysesStore()
@@ -477,7 +478,7 @@ def _summary_for(rows: list[dict[str, Any]], tool_name: str) -> dict[str, Any]:
         for row in _of_type(rows, "tool-input-available")
         if row["toolName"] == tool_name
     )
-    found = [
+    found: list[dict[str, Any]] = [
         row["data"]
         for row in _of_type(rows, "data-tool-summary")
         if row["data"]["toolCallId"] == call_id
@@ -522,8 +523,8 @@ def _assert_step_persisted(strategy: StrategyAst) -> None:
     root = strategy.root
     assert root.search_name == _SUBSET_SEARCH
     assert root.display_name == _PURPOSE
-    assert root.parameters["eda_dataset_id"].value == _DATASET
-    spec = json.loads(root.parameters["eda_analysis_spec"].value)
+    assert string_param(root, "eda_dataset_id") == _DATASET
+    spec = json.loads(string_param(root, "eda_analysis_spec"))
     assert spec["studyId"] == _DATASET
     assert spec["displayName"] == _PURPOSE
     assert spec["descriptor"]["subset"]["descriptor"] == [_FILTER]

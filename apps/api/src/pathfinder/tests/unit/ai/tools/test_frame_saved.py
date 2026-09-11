@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import re
 from unittest.mock import AsyncMock, MagicMock
-from uuid import uuid4
 
 import pytest
-from pydantic_ai import ModelRetry
+from pydantic_ai import ModelRetry, RunContext
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from veupathdb.domain.strategy.ops import CombineOp
 
@@ -15,13 +14,27 @@ from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.strategy_instructions import pinned_frame_workspace
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import _frame_saved
-from pathfinder.ai.tools.standalone.frame_spec import drop_criterion, set_criterion
-from pathfinder.ai.tools.standalone.saved_strategies import list_saved_strategies
+from pathfinder.ai.tools.standalone.frame_spec import (
+    DropCriterionResult,
+    SetCriterionResult,
+    drop_criterion,
+    set_criterion,
+)
+from pathfinder.ai.tools.standalone.saved_strategies import (
+    SavedStrategiesResult,
+    list_saved_strategies,
+)
 from pathfinder.ai.tools.toolsets._dynamic import ValidatingEnumToolset
 from pathfinder.ai.tools.toolsets.frame import build_toolset
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.services.strategies.insert_saved import ClonedSavedStrategy
 from pathfinder.services.strategies.saved_library import SavedStrategyListing
+from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools.conftest import (
+    agent_run_context,
+    unwrap_function_toolset,
+)
 
 _CONVERSATION_ID = "9bd3a584-0000-4000-8000-000000000001"
 _SAVED_NAME = "Pf protease union (text OR GO)"
@@ -55,14 +68,8 @@ def _cloned() -> ClonedSavedStrategy:
     )
 
 
-def _ctx(state: AgentToolState) -> MagicMock:
-    ctx = MagicMock()
-    ctx.tool_call_id = "call_1"
-    ctx.deps.agent_state = state
-    ctx.deps.site_id = "plasmodb"
-    ctx.deps.user_id = uuid4()
-    ctx.deps.db_session_factory = MagicMock()
-    return ctx
+def _ctx(state: AgentToolState) -> RunContext[AgentDeps]:
+    return agent_run_context(agent_state=state, db_session_factory=no_database)
 
 
 def _serve_library(
@@ -82,14 +89,16 @@ def _serve_library(
 class TestTheFrameToolsetOffersTheLibrary:
     def test_list_saved_strategies_is_registered(self) -> None:
         toolset = build_toolset()
-        assert "list_saved_strategies" in set(toolset.wrapped.tools)
+        assert "list_saved_strategies" in set(unwrap_function_toolset(toolset).tools)
 
     @pytest.mark.asyncio
     async def test_the_listing_reports_name_id_count_and_steps(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _serve_library(monkeypatch, _listing())
-        result = (await list_saved_strategies(_ctx(AgentToolState()))).return_value
+        result = returned(
+            await list_saved_strategies(_ctx(AgentToolState())), SavedStrategiesResult
+        )
         assert len(result.saved_strategies) == 1
         entry = result.saved_strategies[0]
         assert entry.name == _SAVED_NAME
@@ -106,15 +115,16 @@ class TestACriterionStartsFromASavedStrategy:
     ) -> None:
         _serve_library(monkeypatch, _listing())
         state = AgentToolState()
-        result = (
+        result = returned(
             await set_criterion(
                 _ctx(state),
                 criterion_id="c_saved",
                 text=f"start from my saved strategy {_SAVED_NAME!r}",
                 role="seed",
                 saved_strategy=_SAVED_NAME,
-            )
-        ).return_value
+            ),
+            SetCriterionResult,
+        )
         assert result.saved_strategy is not None
         assert result.saved_strategy.wdk_strategy_id == _SAVED_WDK_ID
         criterion = state.operational_spec_draft.criteria[0]
@@ -227,9 +237,12 @@ class TestAnUnknownReferenceStopsTheBuild:
     def test_a_criterion_without_a_saved_slot_still_drops(self) -> None:
         state = AgentToolState()
         state.frame_set_criterion(Criterion(id="c1", text="t", search_name="S1"))
-        result = drop_criterion(
-            _ctx(state), criterion_id="c1", reason="no realizable search"
-        ).return_value
+        result = returned(
+            drop_criterion(
+                _ctx(state), criterion_id="c1", reason="no realizable search"
+            ),
+            DropCriterionResult,
+        )
         assert result.criterion_id == "c1"
         assert state.operational_spec_draft.criteria == []
 

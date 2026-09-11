@@ -32,7 +32,7 @@ _WDK_STEP_IDS = {_ROOT: 900_003, _TEXT: 900_001, _SU: 900_002}
 # What the last build wrote, and what the editor's save left behind.
 _STORED_COUNTS: dict[str, int | None] = {_ROOT: 15, _TEXT: 2122, _SU: None}
 # What the site holds after the percentile moved from 80 to 90.
-_SITE_SIZES = {900_003: 7, 900_001: 2122, 900_002: 752}
+_SITE_SIZES: dict[int, int | None] = {900_003: 7, 900_001: 2122, 900_002: 752}
 
 
 def _details(sizes: dict[int, int | None]) -> WDKStrategyDetails:

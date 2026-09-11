@@ -13,7 +13,6 @@ from typing import Any
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.wdk.wdk_models import WDKStrategyDetails
 
 from pathfinder.ai.graph import lead_node
@@ -24,17 +23,13 @@ from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.database import no_database
 
 WDK_NAMES = {
     "read_wdk_step_counts",
     "detect_build_staleness",
     "get_strategy_api",
 }
-
-
-def _never_factory() -> AsyncSession:
-    msg = "db factory should not be called in unit tests"
-    raise AssertionError(msg)
 
 
 def _details(sizes: dict[int, int | None]) -> WDKStrategyDetails:
@@ -73,7 +68,7 @@ def _context(session: StrategySession) -> Context:
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=session,
-        db_session_factory=_never_factory,
+        db_session_factory=no_database,
         cancel_event=asyncio.Event(),
     )
 

@@ -12,11 +12,9 @@ from collections.abc import Iterator
 import pytest
 from fastapi import FastAPI
 from fastapi.dependencies.models import Dependant
-from fastapi.routing import RouteContext
-from pydantic import BaseModel
 
 from pathfinder.main import create_app
-from pathfinder.tests._support.routes import api_routes
+from pathfinder.tests._support.routes import ApiRoute, api_routes
 from pathfinder.transport.http.deps import (
     require_available_site,
     require_registered_wdk_identity,
@@ -171,19 +169,15 @@ def _carries(dependant: Dependant, call: object) -> bool:
 
 def _routes_with(app: FastAPI, call: object) -> set[tuple[str, str]]:
     return {
-        (method, route.path)
+        pair
         for route in api_routes(app.routes)
         if _carries(route.dependant, call)
-        for method in route.methods - {"HEAD", "OPTIONS"}
+        for pair in route.pairs
     }
 
 
 def _all_routes(app: FastAPI) -> set[tuple[str, str]]:
-    return {
-        (method, route.path)
-        for route in api_routes(app.routes)
-        for method in route.methods - {"HEAD", "OPTIONS"}
-    }
+    return {pair for route in api_routes(app.routes) for pair in route.pairs}
 
 
 def _flat(dependant: Dependant) -> Iterator[Dependant]:
@@ -192,27 +186,23 @@ def _flat(dependant: Dependant) -> Iterator[Dependant]:
         yield from _flat(sub)
 
 
-def _names_a_site(route: RouteContext) -> bool:
+def _names_a_site(route: ApiRoute) -> bool:
     """Whether the request itself carries a site id, in a parameter or a body."""
     for dependant in _flat(route.dependant):
         for param in dependant.path_params + dependant.query_params:
             if "site" in param.alias.lower():
                 return True
-    body = route.body_field
-    if body is None:
+    if route.body_model is None:
         return False
-    model: object = body.field_info.annotation
-    if not (isinstance(model, type) and issubclass(model, BaseModel)):
-        return False
-    return any("site" in name.lower() for name in model.model_fields)
+    return any("site" in name.lower() for name in route.body_model.model_fields)
 
 
 def _site_scoped_routes(app: FastAPI) -> set[tuple[str, str]]:
     return {
-        (method, route.path)
+        pair
         for route in api_routes(app.routes)
         if _names_a_site(route)
-        for method in route.methods - {"HEAD", "OPTIONS"}
+        for pair in route.pairs
     }
 
 
@@ -283,7 +273,10 @@ def test_no_exception_is_secretly_gated(app: FastAPI) -> None:
 def test_every_site_path_parameter_is_named_the_same(app: FastAPI) -> None:
     """A second spelling of the site id would need a second dependency."""
     site_paths = sorted(
-        route.path for route in api_routes(app.routes) if "site_id" in route.path
+        path
+        for route in api_routes(app.routes)
+        for _method, path in route.pairs
+        if "site_id" in path
     )
 
     assert site_paths == []
@@ -292,12 +285,12 @@ def test_every_site_path_parameter_is_named_the_same(app: FastAPI) -> None:
 def test_every_site_parameter_is_named_the_same(app: FastAPI) -> None:
     """The wire spelling is ``siteId`` in a query as well as in a path."""
     misspelled = sorted(
-        (method, route.path, param.alias)
+        (method, path, param.alias)
         for route in api_routes(app.routes)
         for dependant in _flat(route.dependant)
         for param in dependant.path_params + dependant.query_params
         if "site" in param.alias.lower() and param.alias != "siteId"
-        for method in route.methods - {"HEAD", "OPTIONS"}
+        for method, path in route.pairs
     )
 
     assert misspelled == []

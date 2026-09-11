@@ -28,7 +28,6 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.tools import DeferredToolRequests
 from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph import _lead_turn
 from pathfinder.ai.graph._lead_turn import pending_approval
@@ -36,6 +35,7 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.tests._support.database import no_database
 
 # What the runtime parks. The Lead adds only ``sub_agent`` and
 # ``user_message_id`` on top of these.
@@ -59,11 +59,6 @@ _DISPATCH = ToolCallPart(
 )
 
 
-def _never_factory() -> AsyncSession:
-    msg = "db factory should not be called in unit tests"
-    raise AssertionError(msg)
-
-
 def _deps() -> LeadDeps:
     return LeadDeps(
         state=PipelineState(
@@ -78,7 +73,7 @@ def _deps() -> LeadDeps:
             site_id="plasmodb",
             user_id=uuid4(),
             strategy_session=StrategySession(site_id="plasmodb"),
-            db_session_factory=_never_factory,
+            db_session_factory=no_database,
             cancel_event=asyncio.Event(),
         ),
         retrieved_memories=[],

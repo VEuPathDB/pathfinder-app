@@ -13,7 +13,7 @@ from pathfinder.ai.stream_part_payloads import (
 )
 
 
-def test_graph_snapshot_validates_required_fields():
+def test_graph_snapshot_validates_required_fields() -> None:
     snapshot = GraphSnapshot(
         strategy_id="s_abc123",
         gene_count=87,
@@ -31,17 +31,17 @@ def test_graph_snapshot_validates_required_fields():
     assert len(snapshot.nodes) == 1
 
 
-def test_graph_snapshot_rejects_missing_strategy_id():
+def test_graph_snapshot_rejects_missing_strategy_id() -> None:
     with pytest.raises(ValidationError):
-        GraphSnapshot(gene_count=0, nodes=[], edges=[])
+        GraphSnapshot.model_validate({"gene_count": 0, "nodes": [], "edges": []})
 
 
-def test_graph_snapshot_rejects_negative_gene_count():
+def test_graph_snapshot_rejects_negative_gene_count() -> None:
     with pytest.raises(ValidationError):
         GraphSnapshot(strategy_id="s_x", gene_count=-1, nodes=[], edges=[])
 
 
-def test_strategy_meta_validates():
+def test_strategy_meta_validates() -> None:
     meta = StrategyMeta(
         strategy_id="s_x",
         name="My strategy",
@@ -52,7 +52,7 @@ def test_strategy_meta_validates():
     assert meta.name == "My strategy"
 
 
-def test_strategy_link_validates():
+def test_strategy_link_validates() -> None:
     link = StrategyLink(
         strategy_id="s_x",
         url="https://plasmodb.org/plasmo/app/record/dataset/s_x",
@@ -61,7 +61,7 @@ def test_strategy_link_validates():
     assert link.url.startswith("https://")
 
 
-def test_gene_set_validates():
+def test_gene_set_validates() -> None:
     gs = GeneSet(
         gene_set_id="gs_1",
         name="exported-proteins",
@@ -78,7 +78,7 @@ def test_gene_set_validates():
 # tests above but silently breaks the frontend contract.
 
 
-def test_camel_model_accepts_camel_case_input():
+def test_camel_model_accepts_camel_case_input() -> None:
     snapshot = GraphSnapshot.model_validate(
         {
             "strategyId": "s_abc",
@@ -92,7 +92,7 @@ def test_camel_model_accepts_camel_case_input():
     assert snapshot.nodes[0].search_name == "ByText"
 
 
-def test_camel_model_accepts_snake_case_input_via_populate_by_name():
+def test_camel_model_accepts_snake_case_input_via_populate_by_name() -> None:
     snapshot = GraphSnapshot.model_validate(
         {
             "strategy_id": "s_abc",
@@ -104,7 +104,7 @@ def test_camel_model_accepts_snake_case_input_via_populate_by_name():
     assert snapshot.strategy_id == "s_abc"
 
 
-def test_camel_model_emits_camel_case_on_by_alias_dump():
+def test_camel_model_emits_camel_case_on_by_alias_dump() -> None:
     snapshot = GraphSnapshot(
         strategy_id="s_abc",
         gene_count=42,
@@ -118,7 +118,7 @@ def test_camel_model_emits_camel_case_on_by_alias_dump():
     assert "searchName" in dumped["nodes"][0]
 
 
-def test_camel_model_ignores_extra_fields():
+def test_camel_model_ignores_extra_fields() -> None:
     # `extra="ignore"` on CamelModel means protocol additions from newer servers
     # don't crash old clients. Unknown fields are dropped silently.
     snapshot = GraphSnapshot.model_validate(
@@ -138,13 +138,13 @@ def test_camel_model_ignores_extra_fields():
     assert "anotherExtra" not in dumped
 
 
-def test_graph_edge_operator_accepts_all_seven_wdk_operators():
+def test_graph_edge_operator_accepts_all_seven_wdk_operators() -> None:
     """GraphEdge.operator must match WDK's full BooleanOperator set."""
     for op in ("INTERSECT", "UNION", "MINUS", "RMINUS", "LONLY", "RONLY", "COLOCATE"):
         edge = GraphEdge(source="a", target="b", operator=op)
         assert edge.operator == op
 
 
-def test_graph_edge_operator_rejects_unknown_operator():
+def test_graph_edge_operator_rejects_unknown_operator() -> None:
     with pytest.raises(ValidationError):
-        GraphEdge(source="a", target="b", operator="TELEPORT")
+        GraphEdge.model_validate({"source": "a", "target": "b", "operator": "TELEPORT"})

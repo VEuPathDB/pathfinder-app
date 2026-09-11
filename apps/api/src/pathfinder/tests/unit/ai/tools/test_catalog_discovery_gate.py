@@ -3,15 +3,24 @@ the vocabulary snapshot and the per-turn read ledger."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from pydantic_ai import RunContext
 from veupathdb.domain.parameters.values import SinglePickValue
 from veupathdb.domain.parameters.wdk_vocab import VocabOption
 from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk.wdk_models import WDKSearchResponse
-from veupathdb_mcp.catalog import ParameterInfo, search_inspection, searches
+from veupathdb.wdk.wdk_parameters import WDKParameter
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    ParameterNotOnSearch,
+    SearchOverviewResult,
+    format_search_overview,
+    search_inspection,
+    searches,
+)
 
 from pathfinder.ai.agents.state import (
     AgentToolState,
@@ -21,9 +30,10 @@ from pathfinder.ai.agents.state import (
 from pathfinder.ai.agents.strategy_instructions import pinned_discovered_searches
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import catalog_discovery
-from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.ai.tools.standalone.catalog_discovery import AlreadyReadNotice
+from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import (
-    agent_state_ctx,
+    agent_run_context,
     patch_search_details,
     wdk_param,
 )
@@ -31,28 +41,49 @@ from pathfinder.tests.unit.ai.tools.conftest import (
 _GOAL = "kinase genes expressed in the schizont stage"
 
 
-def _params(names: list[str]) -> list[Any]:
+def _params(names: list[str]) -> list[WDKParameter]:
     return [wdk_param(name) for name in names]
+
+
+@dataclass
+class _RecordedClient:
+    """Serves one recorded WDK search response and records each read."""
+
+    response: WDKSearchResponse
+    reads: list[str] = field(default_factory=list)
+    contexts: list[dict[str, str]] = field(default_factory=list)
+
+    async def get_search_details(
+        self, _record_type: str, search_name: str, *, expand_params: bool = True
+    ) -> WDKSearchResponse:
+        del expand_params
+        self.reads.append(search_name)
+        return self.response
+
+    async def get_search_details_with_params(
+        self,
+        _record_type: str,
+        search_name: str,
+        context: dict[str, str],
+        *,
+        expand_params: bool = True,
+    ) -> WDKSearchResponse:
+        del expand_params
+        self.reads.append(search_name)
+        self.contexts.append(context)
+        return self.response
 
 
 def _fixture_ctx(
     state: AgentToolState, monkeypatch: pytest.MonkeyPatch, fixture: str
-) -> tuple[Any, MagicMock]:
+) -> tuple[RunContext[AgentDeps], _RecordedClient]:
     """A context reading one recorded WDK search response."""
-    response = WDKSearchResponse.model_validate(load_recorded(fixture).json_body())
-    client = MagicMock()
-    client.get_search_details = AsyncMock(return_value=response)
-    client.get_search_details_with_params = AsyncMock(return_value=response)
+    client = _RecordedClient(
+        WDKSearchResponse.model_validate(load_recorded(fixture).json_body())
+    )
     monkeypatch.setattr(searches, "get_wdk_client", lambda _site: client)
     monkeypatch.setattr(search_inspection, "get_wdk_client", lambda _site: client)
-    ctx = MagicMock()
-    ctx.tool_call_id = "call_1"
-    ctx.deps = AgentDeps(
-        site_id="plasmodb",
-        strategy_session=StrategySession(site_id="plasmodb"),
-        agent_state=state,
-    )
-    return ctx, client
+    return agent_run_context(agent_state=state), client
 
 
 class TestTheSearchOverviewGate:
@@ -95,9 +126,9 @@ class TestTheSearchOverviewGate:
             state, monkeypatch, "search_genes_by_molecular_weight"
         )
         captured: dict[str, str | None] = {}
-        original = search_inspection.format_search_overview
+        original = format_search_overview
 
-        def _capture(**kwargs: Any) -> Any:
+        def _capture(**kwargs: Any) -> SearchOverviewResult:
             captured["query"] = kwargs["query"]
             return original(**kwargs)
 
@@ -119,14 +150,15 @@ class TestTheSearchOverviewGate:
         await catalog_discovery.get_search_overview(
             ctx, search_name="GenesByMolecularWeight", record_type="transcript"
         )
-        repeat = (
+        repeat = returned(
             await catalog_discovery.get_search_overview(
                 ctx, search_name="GenesByMolecularWeight", record_type="transcript"
-            )
-        ).return_value
+            ),
+            AlreadyReadNotice,
+        )
 
         assert repeat.kind == "already_read"
-        assert client.get_search_details.await_count == 1
+        assert client.reads == ["GenesByMolecularWeight"]
 
 
 class TestTheParameterReadGate:
@@ -139,22 +171,24 @@ class TestTheParameterReadGate:
             ctx, search_name="GenesByLocation", record_type="transcript"
         )
 
-        first = (
+        first = returned(
             await catalog_discovery.get_parameter_options(
                 ctx,
                 search_name="GenesByLocation",
                 parameter_id="organismSinglePick",
                 record_type="transcript",
-            )
-        ).return_value
-        repeat = (
+            ),
+            ParameterInfo,
+        )
+        repeat = returned(
             await catalog_discovery.get_parameter_options(
                 ctx,
                 search_name="GenesByLocation",
                 parameter_id="organismSinglePick",
                 record_type="transcript",
-            )
-        ).return_value
+            ),
+            AlreadyReadNotice,
+        )
 
         assert first.kind == "parameter_info"
         assert repeat.kind == "already_read"
@@ -176,19 +210,19 @@ class TestTheParameterReadGate:
 
         monkeypatch.setattr(state, "resolved_params_for", _bound)
 
-        result = (
+        result = returned(
             await catalog_discovery.get_parameter_options(
                 ctx,
                 search_name="GenesByLocation",
                 parameter_id="chromosomeOptional",
                 record_type="transcript",
-            )
-        ).return_value
+            ),
+            ParameterInfo,
+        )
 
         assert result.kind == "parameter_info"
         assert captured["asked"] == "GenesByLocation"
-        context = client.get_search_details_with_params.await_args.kwargs["context"]
-        assert context["organismSinglePick"] == "P. falciparum 3D7"
+        assert client.contexts[0]["organismSinglePick"] == "P. falciparum 3D7"
 
     async def test_an_unknown_parameter_is_not_ledgered(
         self, monkeypatch: pytest.MonkeyPatch
@@ -196,14 +230,15 @@ class TestTheParameterReadGate:
         state = AgentToolState()
         ctx, _client = _fixture_ctx(state, monkeypatch, "search_genes_by_location")
 
-        result = (
+        result = returned(
             await catalog_discovery.get_parameter_options(
                 ctx,
                 search_name="GenesByLocation",
                 parameter_id="organism_single_pick",
                 record_type="transcript",
-            )
-        ).return_value
+            ),
+            ParameterNotOnSearch,
+        )
 
         assert result.kind == "parameter_not_on_search"
         assert state.read_param_options == set()
@@ -250,13 +285,14 @@ class TestTheParamVocabSnapshot:
             search_inspection, "format_typed_param", lambda *_a, **_kw: info
         )
 
-        result = (
+        result = returned(
             await catalog_discovery.get_parameter_options(
-                agent_state_ctx(state),
+                agent_run_context(agent_state=state),
                 search_name="RNASeqHardFloor",
                 parameter_id="hard_floor",
-            )
-        ).return_value
+            ),
+            ParameterInfo,
+        )
         assert result is info
 
         overview = state.get_overview("RNASeqHardFloor")
@@ -313,7 +349,7 @@ class TestTheParamVocabSnapshot:
             lambda filtered_param, **_kw: info_for[filtered_param.name],
         )
 
-        ctx = agent_state_ctx(state)
+        ctx = agent_run_context(agent_state=state)
         await catalog_discovery.get_parameter_options(
             ctx, search_name="FoldChange", parameter_id="hard_floor"
         )
@@ -348,7 +384,7 @@ class TestTheParamVocabSnapshot:
         )
         state.register_search(overview.search_name, overview)
 
-        rendered = pinned_discovered_searches(agent_state_ctx(state))
+        rendered = pinned_discovered_searches(agent_run_context(agent_state=state))
 
         assert rendered is not None
         assert "param_vocab" in rendered

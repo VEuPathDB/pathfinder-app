@@ -6,11 +6,11 @@ listing over the compaction threshold rewrites the FRAME history on every step.
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from assistant_core.conversation.history import compact_history
+from pydantic_ai import RunContext
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
@@ -18,11 +18,11 @@ from pydantic_ai.messages import (
 )
 from veupathdb_mcp import tool_payloads
 
-from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools import standalone
-from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.ai.tools.standalone.catalog import list_searches
 from pathfinder.tests._support.tool_exchange import tool_exchange
+from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 # The transcript listing of veupathdb.org, read from the site: 2769 searches,
 # 189916 characters of name and 293176 of display name.
@@ -49,15 +49,8 @@ def _portal_rows() -> list[tool_payloads.SearchListing]:
     ]
 
 
-def _ctx() -> Any:
-    ctx = MagicMock()
-    ctx.tool_call_id = "call_listing"
-    ctx.deps = AgentDeps(
-        site_id="veupathdb",
-        strategy_session=StrategySession(site_id="veupathdb"),
-        agent_state=AgentToolState(),
-    )
-    return ctx
+def _ctx() -> RunContext[AgentDeps]:
+    return agent_run_context(site_id="veupathdb", tool_call_id="call_listing")
 
 
 def _frame_history(listing: object) -> list[ModelMessage]:
@@ -96,7 +89,7 @@ async def test_the_portal_listing_leaves_the_frame_history_uncompacted(
         tool_payloads, "list_search_listings", AsyncMock(return_value=_portal_rows())
     )
 
-    listing = (await standalone.catalog.list_searches(_ctx())).return_value
+    listing = returned(await list_searches(_ctx()), list[str])
     history = _frame_history(listing)
 
     assert len(listing) == PORTAL_SEARCHES

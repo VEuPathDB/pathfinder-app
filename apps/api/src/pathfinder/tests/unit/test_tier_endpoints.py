@@ -146,16 +146,21 @@ async def test_quality_tier_lead_uses_a_reasoning_model_per_provider() -> None:
         )
 
 
+def _assign(target: object, field: str, value: object) -> None:
+    """Write one field of a model, whatever the model allows."""
+    setattr(target, field, value)
+
+
 def test_tier_preset_is_frozen() -> None:
     """Mutability would let runtime code reshape presets — pin the immutability."""
     preset = TIER_PRESETS["anthropic"]["quality"]
     assert preset.model_config.get("frozen") is True
     with pytest.raises(ValidationError):
-        preset.lead = preset.execution
+        _assign(preset, "lead", preset.execution)
 
 
 def test_phase_tier_config_is_frozen() -> None:
     cfg = TIER_PRESETS["anthropic"]["quality"].lead
     assert cfg.model_config.get("frozen") is True
     with pytest.raises(ValidationError):
-        cfg.model_id = "openai:gpt-5.6-luna"
+        _assign(cfg, "model_id", "openai:gpt-5.6-luna")

@@ -7,7 +7,7 @@ what left.
 
 ## Ranked
 
-1. [The test tree is type-checked by nothing](the-test-tree-is-type-checked-by-nothing.md) - mypy 1158 / pyright 1486 errors over `apps/api/src/pathfinder/tests`; a widened library type left a live assertion silently wrong until it ran.
+1. [The unit tier aborts with exit 134 after a green run](the-unit-tier-aborts-after-a-green-run.md) - the telemetry thread ONNX Runtime starts for the PIGuard model aborts the pytest process after every test passes, so the gate ladder stops on a green run.
 
 ## Known and accepted
 

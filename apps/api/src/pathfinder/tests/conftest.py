@@ -199,7 +199,7 @@ def _apply_procrastinate_schema_sync(database_url: str) -> None:
         )
         if cursor.fetchone() is not None:
             return
-        cursor.execute(_PROCRASTINATE_SCHEMA_SQL)
+        cursor.execute(_PROCRASTINATE_SCHEMA_SQL.encode())
 
 
 @pytest.fixture(scope="session")

@@ -5,11 +5,43 @@ the browser hand-writes the union and the two copies drift. Each name below is
 a component, and its value set is the wire contract.
 """
 
-from typing import Any
-
 import pytest
+from assistant_core.platform.types import JSONObject
+from pydantic import BaseModel, ConfigDict, Field
 
 from pathfinder.devtools.openapi import _spec_with_stable_overrides
+
+
+class _NamedSchemas(BaseModel):
+    """The component map of an OpenAPI document."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    schemas: dict[str, JSONObject] = Field(default_factory=dict)
+
+
+class _Spec(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    components: _NamedSchemas = Field(default_factory=_NamedSchemas)
+
+
+class _StringEnum(BaseModel):
+    """A component that carries its value set on the wire."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    type: str = ""
+    enum: list[str] = Field(default_factory=list)
+
+
+class _Properties(BaseModel):
+    """The fields of one component."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    properties: dict[str, JSONObject] = Field(default_factory=dict)
+
 
 _EXPECTED_VALUES: dict[str, list[str]] = {
     "ModelProvider": ["openai", "anthropic", "google", "ollama", "mock"],
@@ -26,22 +58,22 @@ _EXPECTED_VALUES: dict[str, list[str]] = {
 
 
 @pytest.fixture(scope="module")
-def schemas() -> dict[str, Any]:
-    components: dict[str, Any] = _spec_with_stable_overrides()["components"]
-    named: dict[str, Any] = components["schemas"]
-    return named
+def schemas() -> dict[str, JSONObject]:
+    return _Spec.model_validate(_spec_with_stable_overrides()).components.schemas
 
 
 @pytest.mark.parametrize("name", sorted(_EXPECTED_VALUES))
 def test_the_enum_is_a_named_string_component(
-    name: str, schemas: dict[str, Any]
+    name: str, schemas: dict[str, JSONObject]
 ) -> None:
-    assert schemas[name]["type"] == "string"
+    assert _StringEnum.model_validate(schemas[name]).type == "string"
 
 
 @pytest.mark.parametrize("name", sorted(_EXPECTED_VALUES))
-def test_the_enum_carries_its_wire_values(name: str, schemas: dict[str, Any]) -> None:
-    assert schemas[name]["enum"] == _EXPECTED_VALUES[name]
+def test_the_enum_carries_its_wire_values(
+    name: str, schemas: dict[str, JSONObject]
+) -> None:
+    assert _StringEnum.model_validate(schemas[name]).enum == _EXPECTED_VALUES[name]
 
 
 @pytest.mark.parametrize(
@@ -82,15 +114,18 @@ def test_the_enum_carries_its_wire_values(name: str, schemas: dict[str, Any]) ->
 def test_the_field_references_the_component(
     schema_name: str,
     field_name: str,
-    expected: dict[str, Any],
-    schemas: dict[str, Any],
+    expected: JSONObject,
+    schemas: dict[str, JSONObject],
 ) -> None:
-    assert schemas[schema_name]["properties"][field_name] == expected
+    fields = _Properties.model_validate(schemas[schema_name]).properties
+    assert fields[field_name] == expected
 
 
-def test_the_enrichment_chunk_carries_typed_results() -> None:
-    schemas = _spec_with_stable_overrides()["components"]["schemas"]
-    results = schemas["EnrichmentResultsChunk"]["properties"]["results"]
+def test_the_enrichment_chunk_carries_typed_results(
+    schemas: dict[str, JSONObject],
+) -> None:
+    chunk = _Properties.model_validate(schemas["EnrichmentResultsChunk"])
+    results = chunk.properties["results"]
 
     assert results["type"] == "array"
     assert results["items"] == {"$ref": "#/components/schemas/EnrichmentResult"}

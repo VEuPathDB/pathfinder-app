@@ -3,17 +3,19 @@ durable answer carries them as an exhibit."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 from uuid import UUID
 
 import pytest
+from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, DataChunk
 from veupathdb.domain.parameters.values import StringValue
 from veupathdb_mcp.controls import ControlSetData, ControlTargetData, ControlTestResult
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.tools.standalone import experiment
 from pathfinder.services.experiment.published_names import PublishedNames
-from pathfinder.tests.unit.ai.tools.conftest import agent_state_ctx, summary_of
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context, summary_of
 
 
 def _measured() -> ControlTestResult:
@@ -74,7 +76,7 @@ def _measured_service(monkeypatch: pytest.MonkeyPatch) -> None:
 
 async def test_the_tool_returns_the_measured_counts_not_empty_defaults() -> None:
     returned = await experiment.run_control_tests_on_search(
-        agent_state_ctx(),
+        agent_run_context(),
         "GenesByMolecularWeight",
         {"organism": StringValue(value="Plasmodium falciparum 3D7")},
         positive_controls=["PF3D7_1222600", "PF3D7_1031000", "PF3D7_0000001"],
@@ -94,7 +96,7 @@ async def test_the_tool_returns_the_measured_counts_not_empty_defaults() -> None
 
 async def test_the_summary_names_the_positives_the_search_recovered() -> None:
     returned = await experiment.run_control_tests_on_search(
-        agent_state_ctx(),
+        agent_run_context(),
         "GenesByMolecularWeight",
         {},
         positive_controls=["PF3D7_1222600"],
@@ -128,8 +130,17 @@ def _durable_result(**overrides: Any) -> dict[str, Any]:
     return {"status": "success", "result": dumped}
 
 
-def _exhibits(chunks: list[Any]) -> list[Any]:
-    return [chunk for chunk in chunks if chunk.type == "data-control-test-results"]
+def _data_chunks(chunks: Sequence[BaseChunk]) -> list[DataChunk]:
+    """Every chunk the tool emitted, read as the data chunk it is."""
+    return [DataChunk.model_validate(chunk) for chunk in chunks]
+
+
+def _exhibits(chunks: Sequence[BaseChunk]) -> list[DataChunk]:
+    return [
+        chunk
+        for chunk in _data_chunks(chunks)
+        if chunk.type == "data-control-test-results"
+    ]
 
 
 def test_the_durable_answer_emits_the_exhibit_beside_the_summary() -> None:
@@ -139,7 +150,7 @@ def test_the_durable_answer_emits_the_exhibit_beside_the_summary() -> None:
         "call_sLwqd6ToSyX9TDfOm62FTIT6",
     )
 
-    kinds = [chunk.type for chunk in chunks]
+    kinds = [chunk.type for chunk in _data_chunks(chunks)]
     assert kinds == ["data-control-test-results", "data-tool-summary"]
     exhibit = _exhibits(chunks)[0].data
     assert exhibit["taskId"] == "3d221443-0074-47d8-8300-addadd147989"
@@ -236,7 +247,7 @@ def test_a_long_parameter_value_is_cut_to_a_readable_length() -> None:
 
 async def test_a_search_level_test_leaves_the_same_exhibit() -> None:
     returned = await experiment.run_control_tests_on_search(
-        agent_state_ctx(),
+        agent_run_context(),
         "GenesByMolecularWeight",
         {"organism": StringValue(value="Plasmodium falciparum 3D7")},
         positive_controls=["PF3D7_1222600"],

@@ -6,6 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from pydantic import TypeAdapter
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.platform.errors import AppError, ErrorCode
@@ -76,10 +77,11 @@ async def test_the_snapshot_is_pushed_with_no_wdk_ids_of_its_own(
     assert [type(entry.action) for entry in push.plans[0]] == [CreateAction] * 3
     assert result.wdk_strategy_id == 330534153
     assert result.step_count == 3
-    assert result.strategy_ast["wdkStepIds"] == _FRESH_IDS
-    assert set(result.strategy_ast["wdkStepIds"].values()).isdisjoint(
-        _SOURCE_IDS.values(),
+    pushed = TypeAdapter(dict[str, int]).validate_python(
+        result.strategy_ast["wdkStepIds"]
     )
+    assert pushed == _FRESH_IDS
+    assert set(pushed.values()).isdisjoint(_SOURCE_IDS.values())
 
 
 async def test_a_wdk_failure_leaves_the_thread_with_the_plan_alone(

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.tasks import decorator
@@ -16,7 +16,7 @@ from pathfinder.ai.tools.standalone import eda_compute
 from pathfinder.ai.tools.standalone.eda_compute import EdaVariableSpecIn
 from pathfinder.jobs.impls import register_all_tools
 from pathfinder.jobs.impls.eda_compute_impl import run_eda_compute_impl
-from pathfinder.tests.unit.ai.tools.conftest import lead_run_context
+from pathfinder.tests._support.run_context import lead_run_context
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ def dispatch(
     created: list[dict[str, Any]] = []
     deferred: list[dict[str, Any]] = []
 
-    async def create(**kwargs: Any) -> Any:
+    async def create(**kwargs: Any) -> UUID:
         created.append(dict(kwargs))
         return uuid4()
 

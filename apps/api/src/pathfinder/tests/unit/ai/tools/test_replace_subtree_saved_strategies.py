@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.ops import CombineOp
@@ -22,6 +23,7 @@ from pathfinder.domain.strategy.operational_spec import (
     build_step_tree,
     renumber_criteria,
 )
+from pathfinder.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import StubAPI, combine, ctx, install_stub_api, session_with
 
@@ -96,13 +98,14 @@ class TestASavedStrategyReference:
             if step.search_name == "GenesByInterpro"
         )
 
-        payload = (
+        payload = returned(
             await replace_subtree(
                 ctx(deps),
                 interpro,
                 StrategyStepNode(id=interpro, search_name="GenesByInterpro"),
-            )
-        ).return_value
+            ),
+            dict[str, JsonValue],
+        )
 
         assert payload["ok"] is True
         assert len(graph.steps) == 5
@@ -186,7 +189,7 @@ class TestASavedStrategyWithNoCombineOverIt:
             if step.search_name == "GenesByGoTerm"
         )
 
-        payload = (
+        payload = returned(
             await replace_subtree(
                 ctx(deps),
                 go_term,
@@ -195,8 +198,9 @@ class TestASavedStrategyWithNoCombineOverIt:
                     search_name="GenesByGoTerm",
                     display_name="protein kinase activity",
                 ),
-            )
-        ).return_value
+            ),
+            dict[str, JsonValue],
+        )
 
         assert payload["ok"] is True
         assert len(graph.steps) == 3

@@ -5,11 +5,11 @@ The scaffolding at the top is shared with the other frame test modules.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from unittest.mock import MagicMock
 
 import pytest
-from pydantic_ai import ModelRetry
+from pydantic_ai import ModelRetry, RunContext
 from veupathdb.domain.parameters.values import MultiPickValue, ParamValue, StringValue
 from veupathdb.domain.parameters.wdk_vocab import VocabOption
 from veupathdb.domain.search import SearchContext
@@ -33,6 +33,7 @@ from veupathdb_mcp.catalog import (
 )
 
 from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.ai.tools.standalone._frame_proposals import DeclaredAssumption
 from pathfinder.ai.tools.standalone.frame_spec import (
@@ -46,21 +47,25 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
-from pathfinder.tests._support.catalog_builders import serve_search_details
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.tests._support.catalog_builders import ParamsAt, serve_search_details
+from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
-ParamsAt = Callable[[dict[str, str]], list[ParameterInfo]]
 Proposals = dict[str, str | list[str] | None]
 
 
-def frame_ctx(state: AgentToolState) -> MagicMock:
-    ctx = MagicMock()
-    ctx.tool_call_id = "call_1"
-    ctx.deps.agent_state = state
-    ctx.deps.site_id = "plasmodb"
-    graph = MagicMock()
+def _transcript_session() -> StrategySession:
+    """A session holding one transcript graph, which every criterion binds on."""
+    session = StrategySession(site_id="plasmodb")
+    graph = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
     graph.record_type = "transcript"
-    ctx.deps.strategy_session.get_graph.return_value = graph
-    return ctx
+    session.add_graph(graph)
+    return session
+
+
+def frame_ctx(state: AgentToolState) -> RunContext[AgentDeps]:
+    return agent_run_context(agent_state=state, strategy_session=_transcript_session())
 
 
 def param_info(
@@ -75,7 +80,7 @@ def param_info(
         "help": "",
         "value_format": "",
     }
-    return ParameterInfo(**(defaults | fields))
+    return ParameterInfo.model_validate(defaults | fields)
 
 
 def serve_params(monkeypatch: pytest.MonkeyPatch, at: ParamsAt) -> None:
@@ -101,8 +106,8 @@ def serve_definition(
         del record_type, expand_params
         reads.append(name)
         return WDKSearchResponse(
-            searchData=WDKSearch(
-                urlSegment=name, parameters=parameters or [], **fields
+            search_data=WDKSearch.model_validate(
+                {"url_segment": name, "parameters": parameters or [], **fields}
             ),
             validation=StepValidation(level="NONE", is_valid=False),
         )
@@ -129,11 +134,13 @@ def serve_catalog(
         seen.append(ctx)
         return (
             WDKSearchResponse(
-                searchData=WDKSearch(
-                    urlSegment=ctx.search_name,
-                    parameters=parameters,
-                    properties=properties or {},
-                    **fields,
+                search_data=WDKSearch.model_validate(
+                    {
+                        "url_segment": ctx.search_name,
+                        "parameters": parameters,
+                        "properties": properties or {},
+                        **fields,
+                    }
                 ),
                 validation=StepValidation(level="NONE", is_valid=False),
             ),
@@ -174,7 +181,7 @@ async def bind(
     text: str = "kinases",
     assumed: list[DeclaredAssumption] | None = None,
 ) -> SetCriterionResult:
-    return (
+    return returned(
         await set_criterion(
             frame_ctx(state),
             criterion_id=criterion_id,
@@ -182,8 +189,9 @@ async def bind(
             search_name=search_name,
             params=params,
             assumed=assumed,
-        )
-    ).return_value
+        ),
+        SetCriterionResult,
+    )
 
 
 _ORGANISMS = [

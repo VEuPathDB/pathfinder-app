@@ -5,7 +5,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.ops import CombineOp
@@ -19,6 +19,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
 )
+from pathfinder.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import (
     StubAPI,
@@ -152,9 +153,10 @@ class TestReplaceSubtreeAgainstTheSpec:
             ),
         )
 
-        payload = (
-            await replace_subtree(ctx(deps), "step_c1", replacement)
-        ).return_value
+        payload = returned(
+            await replace_subtree(ctx(deps), "step_c1", replacement),
+            dict[str, JsonValue],
+        )
 
         graph = deps.strategy_session.graph
         assert graph is not None
@@ -183,9 +185,10 @@ class TestReplaceSubtreeAgainstTheSpec:
             ),
         )
 
-        payload = (
-            await replace_subtree(ctx(deps), "step_c1", replacement)
-        ).return_value
+        payload = returned(
+            await replace_subtree(ctx(deps), "step_c1", replacement),
+            dict[str, JsonValue],
+        )
 
         graph = deps.strategy_session.graph
         assert graph is not None
@@ -331,7 +334,7 @@ class TestAnExportedEdaStep:
         graph = deps.strategy_session.graph
         assert graph is not None
 
-        payload = (
+        payload = returned(
             await replace_subtree(
                 ctx(deps),
                 "step_c1",
@@ -341,8 +344,9 @@ class TestAnExportedEdaStep:
                     leaf("step_k2"),
                     op=CombineOp.UNION,
                 ),
-            )
-        ).return_value
+            ),
+            dict[str, JsonValue],
+        )
 
         assert payload["ok"] is True
         assert len(graph.steps) == 5
@@ -445,9 +449,10 @@ class TestAnOptionCriterion:
             ),
         )
 
-        payload = (
-            await replace_subtree(ctx(deps), "step_c1", replacement)
-        ).return_value
+        payload = returned(
+            await replace_subtree(ctx(deps), "step_c1", replacement),
+            dict[str, JsonValue],
+        )
 
         graph = deps.strategy_session.graph
         assert graph is not None

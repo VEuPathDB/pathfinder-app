@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.memory.schemas import MemoryValue
@@ -14,7 +14,7 @@ from httpx import AsyncClient
 @pytest.mark.asyncio
 async def test_list_returns_real_keys_so_delete_works(
     authed_client: AsyncClient,
-    authed_user_id,
+    authed_user_id: UUID,
     app_memory_store: MemoryStore,
     db_cleaner: None,
     patch_app_db_engine: None,
@@ -51,7 +51,7 @@ async def test_list_returns_real_keys_so_delete_works(
 @pytest.mark.asyncio
 async def test_edit_preserves_key_and_persists(
     authed_client: AsyncClient,
-    authed_user_id,
+    authed_user_id: UUID,
     app_memory_store: MemoryStore,
     db_cleaner: None,
     patch_app_db_engine: None,
@@ -79,7 +79,7 @@ async def test_edit_preserves_key_and_persists(
 @pytest.mark.asyncio
 async def test_search_returns_real_keys(
     authed_client: AsyncClient,
-    authed_user_id,
+    authed_user_id: UUID,
     app_memory_store: MemoryStore,
     db_cleaner: None,
     patch_app_db_engine: None,

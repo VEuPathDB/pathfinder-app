@@ -19,7 +19,6 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests._support.eda_doubles import (
     SPECIES_VARIABLE,
     analysis_detail,
-    lead_run_context,
 )
 from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_DATASET,
@@ -29,6 +28,7 @@ from pathfinder.tests._support.eda_wire import (
     eda_transport,
     wire_eda,
 )
+from pathfinder.tests._support.run_context import lead_run_context
 
 
 @pytest.fixture(autouse=True)
@@ -73,7 +73,9 @@ async def bound_thread(db_cleaner: None, patch_app_db_engine: None) -> UUID:
 
 
 def _ctx_for(thread_id: UUID) -> RunContext[LeadDeps]:
-    return lead_run_context(prompt="keep the berghei rows", conversation_id=thread_id)
+    return lead_run_context(
+        user_prompt="keep the berghei rows", conversation_id=thread_id
+    )
 
 
 async def test_an_identical_reading_mutation_adds_no_second_card(

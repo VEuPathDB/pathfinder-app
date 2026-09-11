@@ -8,38 +8,37 @@ state.user_question_answers, and the body now reads it.
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import MagicMock
-from uuid import uuid4
-
 import pytest
 from assistant_core.graph.turn_state import (
     ConsultQuestion,
     PendingApproval,
     UserQuestionAnswer,
 )
-from pydantic_ai import Tool
+from pydantic_ai import RunContext, Tool
+from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.lead_consult import consult_user
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintSource
+from pathfinder.tests._support.run_context import run_context_for
+from pathfinder.tests._support.tool_returns import returned, summary_text
+from pathfinder.tests.unit.ai.lead.conftest import (
+    lead_deps,
+    pipeline_state,
+)
 
 
-def _ctx(state: PipelineState) -> Any:
-    ctx = MagicMock()
-    ctx.tool_call_id = "call_1"
-    ctx.deps = MagicMock()
-    ctx.deps.state = state
-    return ctx
+def _ctx(state: PipelineState) -> RunContext[LeadDeps]:
+    return run_context_for(lead_deps(state), "call_1")
 
 
 def _state() -> PipelineState:
-    return PipelineState(
-        conversation_id=uuid4(),
-        user_id=uuid4(),
-        site_id="plasmodb",
-        mode="strategy",
-    )
+    return pipeline_state()
+
+
+def _answers(result: ToolReturn[list[UserQuestionAnswer]]) -> list[UserQuestionAnswer]:
+    return returned(result, list[UserQuestionAnswer])
 
 
 _QUESTIONS = [
@@ -71,12 +70,13 @@ async def test_returns_user_answers_and_instructs_replan() -> None:
     }
     result = await consult_user(_ctx(state), questions=_QUESTIONS)
 
-    assert [a.question_id for a in result.return_value] == ["q1", "q2"]
-    assert "Fold-change threshold?" in result.content
-    assert "2-fold" in result.content
-    assert "RNA-seq is enough" in result.content
+    assert [a.question_id for a in _answers(result)] == ["q1", "q2"]
+    summary = summary_text(result)
+    assert "Fold-change threshold?" in summary
+    assert "2-fold" in summary
+    assert "RNA-seq is enough" in summary
     # The Lead is told to re-frame with the answers, not to execute.
-    assert "frame_problem" in result.content
+    assert "frame_problem" in summary
 
 
 @pytest.mark.asyncio
@@ -86,9 +86,10 @@ async def test_no_answers_yet_reports_awaiting() -> None:
         phase="lead", tool_call_id="call_1", tool_name="consult_user"
     )
     result = await consult_user(_ctx(state), questions=_QUESTIONS)
-    assert result.return_value == []
-    assert "2" in result.content  # presented 2 questions
-    assert "awaiting" in result.content.lower()
+    assert _answers(result) == []
+    summary = summary_text(result)
+    assert "2" in summary  # presented 2 questions
+    assert "awaiting" in summary.lower()
 
 
 def _answered(state: PipelineState, *answers: UserQuestionAnswer) -> None:
@@ -214,4 +215,5 @@ def test_the_call_takes_only_questions_and_says_where_context_goes() -> None:
     schema = tool.function_schema.json_schema
     assert sorted(schema["properties"]) == ["questions"]
     assert schema["additionalProperties"] is False
+    assert tool.description is not None
     assert "question's ``context``" in tool.description
