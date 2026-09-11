@@ -22,7 +22,7 @@ from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.errors import WDKError
 from veupathdb.wdk.factory import get_wdk_client
 from veupathdb.wdk.wdk_models import WDKAnswer, WDKSearchConfig
-from veupathdb_mcp.wdk.helpers import extract_record_ids
+from veupathdb_mcp.wdk import extract_record_ids
 
 _CONCURRENCY = 4
 _MAX_RECORDS = 50_000

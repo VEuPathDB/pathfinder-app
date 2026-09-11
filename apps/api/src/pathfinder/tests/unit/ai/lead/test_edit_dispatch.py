@@ -7,19 +7,19 @@ from typing import Any
 import pytest
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters.values import MultiPickValue
-from veupathdb.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import edit_dispatch
 from pathfinder.ai.lead.edit_dispatch import run_edit
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 

@@ -86,6 +86,18 @@ the expansion. A step `create_eda_step` wires into the main tree is stated as a
 criterion of its own, so an analysis exported into a strategy is measured like
 any other step rather than as a step no criterion states.
 
+Only the criteria that answer to a step are measured
+(`stated_shape.py::criteria_with_steps`): the ones the strategy holds a step for
+before the edit, plus the ones the edit mints a step for. All three call sites
+state that second set the way each one knows it - the edit path from the
+criteria the edited structure names, the two write paths from the step ids the
+graph gains once the operations apply - so a batch that adds a criterion's leaf
+and combines it applies instead of being refused for a step no criterion states.
+A criterion in neither set binds an option on another criterion's search, so the
+step carrying that search states it and it has no step of its own; it is never
+planned as a change or a delete, never reported lost, and never named in a
+refusal.
+
 The same choke point holds a second invariant, which needs no spec: a write into
 an input slot never overwrites the step that slot holds off the tree. Each
 `AddLeafOp` into a slot and each `WireInputOp` records the step it displaces, and

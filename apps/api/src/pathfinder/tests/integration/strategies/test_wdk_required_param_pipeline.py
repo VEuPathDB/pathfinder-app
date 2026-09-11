@@ -7,9 +7,11 @@ from veupathdb.domain.search import SearchContext
 from veupathdb.errors import ValidationError
 from veupathdb.wdk.factory import get_wdk_client
 from veupathdb.wdk.wdk_models import WDKSearchResponse
-from veupathdb_mcp.catalog.param_adapters import adapt_param_specs_from_search
-from veupathdb_mcp.catalog.param_validation import validate_parameters
-from veupathdb_mcp.catalog.validation_callbacks import make_validation_callbacks
+from veupathdb_mcp.catalog import (
+    adapt_param_specs_from_search,
+    make_validation_callbacks,
+    validate_parameters,
+)
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 

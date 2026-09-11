@@ -12,7 +12,7 @@ import pytest
 from pydantic_ai import RunContext
 from veupathdb.wdk.wdk_models import WDKStrategySummary
 from veupathdb_mcp import tool_payloads
-from veupathdb_mcp.embeddings.embedder import EmbeddingUnavailableError
+from veupathdb_mcp.embeddings import EmbeddingUnavailableError
 from veupathdb_mcp.tools import catalog_tools
 
 from pathfinder.ai.graph.runtime import AgentDeps

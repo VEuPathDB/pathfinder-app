@@ -12,7 +12,6 @@ from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.eda_study import walk_entities
-from veupathdb.domain.strategy.session import StrategySession
 from veupathdb.eda.models import (
     EdaAnalysisDetail,
     EdaFilter,
@@ -25,6 +24,7 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.eda_parts import EdaEntityCount
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_DATASET,
     PHENOTYPE_ENTITY,

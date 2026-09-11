@@ -11,11 +11,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import conversation
 from pathfinder.ai.tools.standalone._validation_helpers import get_graph
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 _WDK_STRATEGY_ID = 330558093

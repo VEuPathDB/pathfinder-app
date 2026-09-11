@@ -3,7 +3,7 @@
 from typing import cast, get_args
 
 from fastapi import Depends
-from veupathdb_mcp.wdk.gene_set_steps import SetOperation
+from veupathdb_mcp.wdk import SetOperation
 
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets.operations import GeneSetService

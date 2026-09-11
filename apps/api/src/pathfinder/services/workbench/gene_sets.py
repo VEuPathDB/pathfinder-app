@@ -4,7 +4,7 @@ do to a stored gene set."""
 from uuid import UUID
 
 from assistant_core.platform.types import JSONObject
-from veupathdb_mcp.wdk.enrichment.types import EnrichmentAnalysisType
+from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType
 
 from pathfinder.services.gene_sets.enrichment import run_enrichment_for_gene_set
 from pathfinder.services.gene_sets.store import get_gene_set_store

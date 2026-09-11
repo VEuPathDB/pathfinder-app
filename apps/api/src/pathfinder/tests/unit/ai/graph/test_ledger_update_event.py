@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult, EnrichmentTerm
+from veupathdb_mcp.wdk.enrichment import EnrichmentResult, EnrichmentTerm
 
 from pathfinder.ai.graph.stream_events import (
     enrichment_results_event,

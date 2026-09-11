@@ -5,7 +5,7 @@ from veupathdb.domain.parameters.wdk_vocab import vocab_keys
 from veupathdb.domain.search import SearchContext
 from veupathdb.errors import WDKError
 from veupathdb.wdk.wdk_parameters import WDKEnumParam
-from veupathdb_mcp.catalog.discovery_service import get_discovery_service
+from veupathdb_mcp.catalog import get_discovery_service
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 

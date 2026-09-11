@@ -10,11 +10,6 @@ from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy.build_outcome import BuildOutcome
-from veupathdb.domain.strategy.operational_spec import (
-    build_step_tree,
-    renumber_criteria,
-)
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -36,6 +31,11 @@ from pathfinder.ai.lead.sub_agent_stream import (
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
 from pathfinder.ai.tools.standalone._stream_parts import graph_snapshot_chunk
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.operational_spec import (
+    build_step_tree,
+    renumber_criteria,
+)
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )

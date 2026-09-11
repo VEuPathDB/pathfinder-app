@@ -8,12 +8,12 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 from veupathdb.errors import ValidationError
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.eda_doubles import lead_run_context
 from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
 from pathfinder.tests.unit.ai.tools._eda_step_doubles import (

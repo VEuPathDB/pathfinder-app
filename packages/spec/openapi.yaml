@@ -11585,7 +11585,7 @@ components:
       title: CriterionChange
       type: object
     DroppedCriterion:
-      description: A criterion with no realizable WDK search — surfaced, never silently lost.
+      description: A criterion with no realizable WDK search. It is surfaced, never dropped.
       properties:
         text:
           title: Text
@@ -12162,17 +12162,13 @@ components:
       title: NodeResult
       type: object
     OpenSlot:
-      description: 'A required param FRAME could not resolve — surfaced to the user (Tier-3).
+      description: 'An unbound parameter, and the criterion of this spec that holds it.
 
 
-        ``criterion_id`` is empty when the resolver emits a param-level slot; FRAME
+        ``criterion_id`` is empty while the slot names a parameter alone, and holds
 
-        fills it when the slot is attached to a bound criterion.'
+        the criterion once the slot is attached to one.'
       properties:
-        criterionId:
-          default: ''
-          title: Criterionid
-          type: string
         paramName:
           title: Paramname
           type: string
@@ -12185,6 +12181,10 @@ components:
             type: string
           title: Options
           type: array
+        criterionId:
+          default: ''
+          title: Criterionid
+          type: string
       required:
       - paramName
       title: OpenSlot

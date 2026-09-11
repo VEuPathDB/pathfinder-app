@@ -3,12 +3,12 @@
 from fastapi import APIRouter
 from veupathdb.domain.search import SearchContext
 from veupathdb_mcp import catalog
-from veupathdb_mcp.catalog.models import ParamSpecResponse
-from veupathdb_mcp.catalog.param_specs_formatting import (
+from veupathdb_mcp.catalog import (
+    ParamSpecResponse,
+    ValidationResponse,
     build_param_specs,
     build_param_specs_from_list,
 )
-from veupathdb_mcp.catalog.param_validation import ValidationResponse
 
 from pathfinder.transport.http.deps import AvailableSite
 from pathfinder.transport.http.schemas import (

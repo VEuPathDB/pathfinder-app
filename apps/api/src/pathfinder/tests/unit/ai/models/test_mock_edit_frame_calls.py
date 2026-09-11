@@ -10,12 +10,6 @@ from typing import Any
 
 from pydantic_ai.messages import ToolCallPart
 from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
-from veupathdb.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
 from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.lead.edit_messages import edit_work_order
@@ -23,6 +17,12 @@ from pathfinder.ai.models.mock.specs import (
     CriterionReply,
     edit_frame_call,
     workspace_criteria,
+)
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
 )
 
 _PV = "Plasmodium vivax P01"

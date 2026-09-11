@@ -8,10 +8,6 @@ import pytest
 from pydantic import ValidationError
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-)
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.domain.strategy.tree import walk
 
@@ -19,6 +15,10 @@ from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.strategy_edits import delete_step, replace_subtree
 from pathfinder.ai.tools.toolsets.execution import build_toolset
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+)
 
 from ._strategy_edit_stubs import (
     StubAPI,
@@ -162,6 +162,37 @@ class TestReplaceSubtreeAgainstTheSpec:
         assert len(graph.steps) == 16
         assert graph.steps["step_u2"].operator == CombineOp.INTERSECT
         assert stub_api.named("create_combined_step") != []
+
+    async def test_a_replacement_that_mints_a_stated_criterion_is_applied(
+        self, stub_api: StubAPI
+    ) -> None:
+        """A criterion answers to the step the replacement adds for it."""
+        deps = _deps()
+        deps.agent_state.operational_spec_draft.criteria.append(
+            Criterion(id="step_k5", text="signal peptide", search_name="GenesByTaxon")
+        )
+        replacement = combine(
+            "step_c1",
+            combine("step_u1", leaf("step_k1"), leaf("step_k2"), op=CombineOp.UNION),
+            combine(
+                "step_u2",
+                combine(
+                    "step_u4", leaf("step_k3"), leaf("step_k5"), op=CombineOp.UNION
+                ),
+                leaf("step_k4"),
+            ),
+        )
+
+        payload = (
+            await replace_subtree(ctx(deps), "step_c1", replacement)
+        ).return_value
+
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        assert payload["ok"] is True
+        assert graph.steps["step_k5"].search_name == "GenesByTaxon"
+        assert graph.steps["step_u4"].operator == CombineOp.UNION
+        assert stub_api.named("create_step") != []
 
     @pytest.mark.usefixtures("stub_api")
     async def test_a_placeholder_search_name_never_validates(self) -> None:
@@ -360,3 +391,66 @@ class TestAnExportedEdaStep:
             )
         assert "step_k2" in str(excinfo.value)
         assert stub_api.calls == []
+
+
+_OPTION_ID = "gametocyte_timecourse_option"
+
+
+def _deps_with_an_option_criterion() -> AgentDeps:
+    """The kinase spec, plus a criterion that binds an option on a search."""
+    spec = _spec()
+    spec.criteria.append(
+        Criterion(
+            id=_OPTION_ID,
+            text="use the gametocyte timecourse dataset",
+            search_name="GenesByTaxon",
+        )
+    )
+    return AgentDeps(
+        site_id="plasmodb",
+        strategy_session=session_with(_kinase_strategy(), _WDK_STEP_IDS),
+        conversation_id=uuid4(),
+        agent_state=AgentToolState(operational_spec_draft=spec),
+    )
+
+
+class TestAnOptionCriterion:
+    """A criterion with no step of its own leaves the guard armed."""
+
+    async def test_a_replacement_that_drops_criteria_is_still_refused(
+        self, stub_api: StubAPI
+    ) -> None:
+        deps = _deps_with_an_option_criterion()
+        graph = deps.strategy_session.graph
+        assert graph is not None
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await replace_subtree(ctx(deps), "step_c1", _placeholder_subtree())
+
+        message = str(excinfo.value)
+        assert "step_k1" in message
+        assert _OPTION_ID not in message
+        assert len(graph.steps) == 16
+        assert stub_api.calls == []
+
+    async def test_a_replacement_that_keeps_every_criterion_is_applied(
+        self, stub_api: StubAPI
+    ) -> None:
+        deps = _deps_with_an_option_criterion()
+        replacement = combine(
+            "step_c1",
+            combine("step_u1", leaf("step_k1"), leaf("step_k2"), op=CombineOp.UNION),
+            combine(
+                "step_u2", leaf("step_k3"), leaf("step_k4"), op=CombineOp.INTERSECT
+            ),
+        )
+
+        payload = (
+            await replace_subtree(ctx(deps), "step_c1", replacement)
+        ).return_value
+
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        assert payload["ok"] is True
+        assert graph.steps["step_u2"].operator == CombineOp.INTERSECT
+        assert stub_api.named("create_combined_step") != []

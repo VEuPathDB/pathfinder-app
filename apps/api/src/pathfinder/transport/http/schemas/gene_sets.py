@@ -3,11 +3,8 @@
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from veupathdb.domain.parameters.values import ParamValue
-from veupathdb_mcp.wdk.enrichment.types import (
-    EnrichmentAnalysisType,
-    EnrichmentResult,
-)
-from veupathdb_mcp.wdk.gene_set_steps import SetOperation
+from veupathdb_mcp.wdk import SetOperation
+from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType, EnrichmentResult
 
 from pathfinder.services.gene_sets.types import GeneSetSource
 from pathfinder.transport.http.schemas.site_id import SiteId

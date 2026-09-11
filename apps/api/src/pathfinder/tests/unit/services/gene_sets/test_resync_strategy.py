@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import pytest
-from veupathdb_mcp.wdk.gene_set_steps import GeneSetWdkContext
+from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.operations import GeneSetService

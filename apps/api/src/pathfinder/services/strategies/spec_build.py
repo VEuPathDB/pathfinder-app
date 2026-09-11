@@ -6,26 +6,23 @@ from assistant_core.platform.logging import get_logger
 from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.domain.search import SearchContext
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.build_outcome import (
-    BuildOutcome,
-    NodeResult,
-    StepPushFailure,
-    node_status,
-)
 from veupathdb.domain.strategy.graph_model import (
     StrategyStep,
     flatten_tree,
     runs_a_wdk_search,
     wdk_search_name,
 )
-from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.domain.strategy.tree import subtree_ids
 from veupathdb.errors import ValidationError, VEuPathDBError
-from veupathdb_mcp.catalog.param_validation import validate_parameters
-from veupathdb_mcp.catalog.validation_callbacks import (
-    make_validation_callbacks,
-)
+from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
 
+from pathfinder.domain.strategy.build_outcome import (
+    BuildOutcome,
+    NodeResult,
+    StepPushFailure,
+    node_status,
+)
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,

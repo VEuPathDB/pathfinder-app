@@ -18,13 +18,13 @@ from pydantic_ai.toolsets.wrapper import WrapperToolset
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, DataChunk
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy.session import StrategySession
 from veupathdb_mcp.catalog import search_inspection
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.session import StrategySession
 
 
 class SessionCM:

@@ -12,7 +12,7 @@ status: stable
 
 "What state is this step in" was answered in four places and answered differently: `is_built` from a WDK id, `defer_incomplete_new_steps` inferring draft from "validation failed AND never pushed", `is_computable` from the wiring, and the client's own `isBuilt: false`. That inference produced a live 422.
 
-`step_status()` in `graph_model.py` is now the single answer.
+`step_status()` in `pathfinder/domain/strategy/step_status.py` is now the single answer.
 
 # Derived, not stored
 
@@ -30,4 +30,11 @@ A step already live in WDK is never demoted to draft. `_validate_plan_params` re
 
 # Anchor
 
-`step_status()` and `StepStatus` in `graph_model.py`; `defer_draft_steps`, which replaced `defer_incomplete_new_steps`.
+`step_status()` and `StepStatus` in `apps/api/src/pathfinder/domain/strategy/step_status.py`;
+`defer_draft_steps`, which replaced `defer_incomplete_new_steps`.
+
+The lifecycle is this application's, not WDK's: the derivation reads the keyed
+step map and the validation bundle from the client
+(`veupathdb-py: src/veupathdb/domain/strategy/graph_model.py`,
+`veupathdb-py: src/veupathdb/domain/strategy/validation.py`) and states a build
+state no WDK endpoint answers.

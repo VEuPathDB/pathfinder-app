@@ -9,13 +9,12 @@ from __future__ import annotations
 
 from assistant_core.mcp.untrusted import STREAM_PART_META_KEY
 from assistant_core.persistence.models import Base
-from veupathdb_mcp import tool_meta
-from veupathdb_mcp.embeddings.settings import (
+from veupathdb_mcp import McpSettings, get_mcp_settings, tool_meta
+from veupathdb_mcp.embeddings import (
+    EmbeddingBase,
     EmbeddingSettings,
     get_embedding_settings,
 )
-from veupathdb_mcp.embeddings.tables import EmbeddingBase
-from veupathdb_mcp.settings import McpSettings, get_mcp_settings
 
 from pathfinder.platform.config import Settings, get_settings
 

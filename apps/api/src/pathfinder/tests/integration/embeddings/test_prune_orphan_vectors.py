@@ -5,13 +5,13 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select, update
-from veupathdb_mcp.embeddings.db import embedding_session
-from veupathdb_mcp.embeddings.record_manager import (
+from veupathdb_mcp.embeddings import (
+    EmbeddingVector,
     IndexEntry,
+    embedding_session,
     prune_orphan_vectors,
     sync_index,
 )
-from veupathdb_mcp.embeddings.tables import EmbeddingVector
 
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.tasks import ORPHAN_VECTOR_GRACE, ensure_registered

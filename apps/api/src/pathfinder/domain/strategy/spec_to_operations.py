@@ -15,12 +15,15 @@ from veupathdb.domain.strategy.ast import (
     generate_step_id,
 )
 from veupathdb.domain.strategy.graph_model import StepKind, rebuild_tree
-from veupathdb.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.tree import subtree_ids
+
+from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     StructureNode,
 )
-from veupathdb.domain.strategy.operations import (
+from pathfinder.domain.strategy.operations import (
     AddCombineOp,
     AddLeafOp,
     AddTransformOp,
@@ -32,14 +35,16 @@ from veupathdb.domain.strategy.operations import (
     UpdateStepParamsOp,
     WireInputOp,
 )
-from veupathdb.domain.strategy.operations.apply import apply_operation
-from veupathdb.domain.strategy.operations.resolutions import compute_delete_choices
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph
-from veupathdb.domain.strategy.spec_diff import SpecDiff
-from veupathdb.domain.strategy.tree import subtree_ids
-
-from pathfinder.domain.strategy.stated_shape import stated_shape, working_copy
+from pathfinder.domain.strategy.operations.apply import apply_operation
+from pathfinder.domain.strategy.operations.resolutions import compute_delete_choices
+from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.spec_diff import SpecDiff
+from pathfinder.domain.strategy.stated_shape import (
+    criteria_with_steps,
+    stated_shape,
+    structure_criteria,
+    working_copy,
+)
 
 __all__ = ["UnsupportedEditError", "operations_for"]
 
@@ -58,6 +63,8 @@ class _Plan:
     ops: list[GraphOperation] = field(default_factory=list)
     added: frozenset[str] = frozenset()
     criteria: dict[str, Criterion] = field(default_factory=dict)
+    stated: frozenset[str] = frozenset()
+    """The criteria that answer to a step, which is what the shape measures."""
     rewires: bool = False
     """The structure states a wiring the live graph does not hold."""
 
@@ -107,13 +114,21 @@ def _plan_the_named_changes(
             c.criterion_id for c in diff.changes if c.disposition == "added"
         ),
         criteria={c.id: c for c in after.criteria},
+        stated=criteria_with_steps(
+            [c.id for c in after.criteria],
+            graph.steps,
+            minted=structure_criteria(after.structure),
+        ),
     )
     before_by_id = {c.id: c for c in before.criteria}
+    # A criterion the structure leaves out binds an option on another
+    # criterion's search, so the strategy holds no step of its own to change or
+    # to delete.
     for change in diff.changes:
-        if change.disposition == "dropped":
+        if change.disposition == "dropped" and change.criterion_id in plan.graph.steps:
             plan.emit(_delete_op(plan.graph, change.criterion_id))
     for change in diff.changes:
-        if change.disposition == "changed":
+        if change.disposition == "changed" and change.criterion_id in plan.graph.steps:
             plan.emit(
                 _change_op(
                     plan.graph,
@@ -135,7 +150,7 @@ def _refuse_a_shape_the_edit_did_not_state(
     shape = stated_shape(
         graph=plan.graph,
         root_id=root_id,
-        criteria=set(plan.criteria),
+        criteria=plan.stated,
         outside=outside,
     )
     if shape.roots_elsewhere:
@@ -154,7 +169,7 @@ def _refuse_a_shape_the_edit_did_not_state(
     if shape.lost or shape.unstated:
         msg = (
             f"the planned strategy holds {list(shape.searches)} where the "
-            f"edited spec states {sorted(plan.criteria)}"
+            f"edited spec states {sorted(plan.stated)}"
         )
         raise UnsupportedEditError(msg)
     if shape.stranded:
@@ -175,9 +190,6 @@ def _delete_op(graph: StrategyGraph, step_id: str) -> DeleteStepOp:
 def _change_op(
     graph: StrategyGraph, before: Criterion, after: Criterion
 ) -> GraphOperation:
-    if after.id not in graph.steps:
-        msg = f"criterion {after.id!r} names no step in the strategy"
-        raise UnsupportedEditError(msg)
     removed = set(before.resolved_params) - set(after.resolved_params)
     if before.search_name == after.search_name and not removed:
         return UpdateStepParamsOp(

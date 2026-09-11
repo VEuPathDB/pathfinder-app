@@ -4,6 +4,7 @@ from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
+from veupathdb_mcp import ToolErrorPayload, tool_error
 from veupathdb_mcp.gene_lookup import (
     MAX_GENE_IDS,
     GeneResolveResult,
@@ -12,11 +13,7 @@ from veupathdb_mcp.gene_lookup import (
     normalize_gene_ids,
     resolve_gene_ids,
 )
-from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
-from veupathdb_mcp.wdk.ai_expression import (
-    GeneExpressionSummary,
-    get_gene_expression_summary,
-)
+from veupathdb_mcp.wdk import GeneExpressionSummary, get_gene_expression_summary
 
 from pathfinder.ai.graph.runtime import AgentDeps
 

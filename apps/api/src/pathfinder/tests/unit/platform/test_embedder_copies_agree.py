@@ -12,14 +12,12 @@ from pathlib import Path
 
 import assistant_core.embeddings.embedder
 import assistant_core.embeddings.fake
-import assistant_core.embeddings.openai_embedder
 import pytest
 import veupathdb_mcp
+import veupathdb_mcp.embeddings
 import veupathdb_mcp.embeddings.embedder
-import veupathdb_mcp.embeddings.fake
-import veupathdb_mcp.embeddings.openai_embedder
 from assistant_core.platform.config import RuntimeSettings
-from veupathdb_mcp.embeddings.settings import EmbeddingSettings
+from veupathdb_mcp.embeddings import EmbeddingSettings
 
 MODULES = ("embedder.py", "fake.py", "openai_embedder.py")
 SETTINGS_FIELDS = (
@@ -95,24 +93,14 @@ def test_both_chains_build_the_vector_column_at_that_width() -> None:
     assert _stored_width(TOOL_SERVER_REVISION) == 1024
 
 
-def test_both_copies_keep_the_same_request_budget_and_retry_count() -> None:
-    """One API answers both copies, so the request shape stays identical."""
-    runtime = assistant_core.embeddings.openai_embedder
-    tool_server = veupathdb_mcp.embeddings.openai_embedder
-
-    assert runtime.REQUEST_CHAR_BUDGET == 200_000
-    assert tool_server.REQUEST_CHAR_BUDGET == runtime.REQUEST_CHAR_BUDGET
-    assert runtime._MAX_RETRIES == 5
-    assert tool_server._MAX_RETRIES == runtime._MAX_RETRIES
-
-
-def test_both_copies_seed_the_fake_embedder_the_same_way() -> None:
+async def test_both_copies_seed_the_fake_embedder_the_same_way() -> None:
     """The offline embedder answers the same vector in both distributions."""
-    assert assistant_core.embeddings.fake._SEED_BYTES == 4
-    assert (
-        veupathdb_mcp.embeddings.fake._SEED_BYTES
-        == assistant_core.embeddings.fake._SEED_BYTES
-    )
+    text = "PF3D7_1133400 apical membrane antigen 1"
+    runtime = await assistant_core.embeddings.fake.FakeEmbedder().embed_query(text)
+    tool_server = await veupathdb_mcp.embeddings.FakeEmbedder().embed_query(text)
+
+    assert len(runtime) == 1024
+    assert runtime == tool_server
 
 
 @pytest.mark.parametrize("field", SETTINGS_FIELDS)

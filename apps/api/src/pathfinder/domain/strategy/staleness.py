@@ -9,7 +9,7 @@ turns that silence into an explicit warning.
 
 from dataclasses import dataclass, field
 
-from veupathdb.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
 
 __all__ = ["StaleBuild", "detect_build_staleness"]
 

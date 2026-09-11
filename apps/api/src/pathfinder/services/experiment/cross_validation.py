@@ -11,11 +11,11 @@ from assistant_core.platform.logging import get_logger
 from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.errors import ValidationError, VEuPathDBError
-from veupathdb_mcp.controls.control_tests import run_positive_negative_controls
-from veupathdb_mcp.controls.control_types import (
+from veupathdb_mcp.controls import (
     ControlsContext,
     ControlTestResult,
     IntersectionConfig,
+    run_positive_negative_controls,
 )
 
 from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME

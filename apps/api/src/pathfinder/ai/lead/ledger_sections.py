@@ -12,8 +12,11 @@ from veupathdb.domain.parameters.values import (
     ParamValue,
     SinglePickValue,
 )
-from veupathdb.domain.strategy.build_outcome import BuildOutcome, NodeResult
-from veupathdb.domain.strategy.constraints import (
+from veupathdb_mcp.catalog import contrast_role_of, is_direction_param
+
+from pathfinder.ai.graph.state import VerificationDigest
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
+from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
@@ -21,18 +24,12 @@ from veupathdb.domain.strategy.constraints import (
     GroundedConstraint,
     is_blocking,
 )
-from veupathdb.domain.strategy.operational_spec import (
+from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     StructureNode,
 )
-from veupathdb.domain.strategy.spec_diff import SpecDiff, diff_specs
-from veupathdb_mcp.catalog.param_intent import (
-    contrast_role_of,
-    is_direction_param,
-)
-
-from pathfinder.ai.graph.state import VerificationDigest
+from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.staleness import StaleBuild
 
 RecoveryKind = Literal[

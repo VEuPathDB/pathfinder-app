@@ -9,6 +9,7 @@ from typing import Any
 import assistant_core.migrate
 import psycopg
 import pytest
+import veupathdb_mcp.migrate
 from alembic.autogenerate import (
     compare_metadata,
     produce_migrations,
@@ -23,11 +24,7 @@ from sqlalchemy.pool import NullPool
 from testcontainers.community.postgres import PostgresContainer
 
 from pathfinder.persistence.models import Base
-from pathfinder.platform.migrations import (
-    MCP_VERSION_TABLE,
-    include_object,
-    upgrade_all,
-)
+from pathfinder.platform.migrations import include_object, upgrade_all
 
 DATABASE_NAME = "pathfinder_test_three_chains"
 RUNTIME_HEAD = "2026_09_09_0004"
@@ -132,7 +129,7 @@ def test_the_entry_point_stamps_all_three_version_tables(
 ) -> None:
     """Each distribution records its position in a version table of its own."""
     assert _revisions(migrated_database, VERSION_TABLE) == [RUNTIME_HEAD]
-    assert len(_revisions(migrated_database, MCP_VERSION_TABLE)) == 1
+    assert len(_revisions(migrated_database, veupathdb_mcp.migrate.VERSION_TABLE)) == 1
     assert len(_revisions(migrated_database, "alembic_version")) == 1
 
 

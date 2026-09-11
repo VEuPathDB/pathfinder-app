@@ -17,7 +17,6 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy.operations import GraphOperation
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.domain.strategy.strategy_ast import (
     StrategyAst,
@@ -26,6 +25,7 @@ from veupathdb.domain.strategy.tree import walk
 from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.wdk.factory import get_strategy_api
 
+from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.persistence.models import ConversationStrategy
 from pathfinder.persistence.repositories import (
     ConversationRepository,

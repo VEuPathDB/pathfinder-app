@@ -8,8 +8,8 @@ from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import VEuPathDBError
-from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
-from veupathdb_mcp.wdk.step_size import get_estimated_size_for_site
+from veupathdb_mcp import ToolErrorPayload, tool_error
+from veupathdb_mcp.wdk import get_estimated_size_for_site
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._result_models import EstimatedSizeResult

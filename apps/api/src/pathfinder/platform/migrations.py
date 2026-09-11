@@ -8,13 +8,8 @@ from alembic import command
 from alembic.config import Config
 from assistant_core.platform.db import get_engine
 from sqlalchemy.engine import Connection
-from veupathdb_mcp.embeddings.tables import EmbeddingBase
 
 ALEMBIC_INI = Path(__file__).resolve().parents[3] / "alembic.ini"
-
-# The tool server names its version table inside its alembic environment, a
-# directory with no `__init__.py`, so the name cannot be imported from there.
-MCP_VERSION_TABLE = "alembic_version_veupathdb_mcp"
 
 # The graph checkpointer and the memory store build these when they open.
 LANGGRAPH_TABLES = frozenset(
@@ -40,8 +35,8 @@ FOREIGN_TABLES = frozenset(
     {
         *assistant_core.migrate.OWNED_TABLES,
         assistant_core.migrate.VERSION_TABLE,
-        *EmbeddingBase.metadata.tables,
-        MCP_VERSION_TABLE,
+        *veupathdb_mcp.migrate.OWNED_TABLES,
+        veupathdb_mcp.migrate.VERSION_TABLE,
         *LANGGRAPH_TABLES,
     }
 )

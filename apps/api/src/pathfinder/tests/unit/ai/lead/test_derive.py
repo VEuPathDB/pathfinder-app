@@ -3,14 +3,6 @@
 from __future__ import annotations
 
 from veupathdb.domain.parameters.values import NumberValue
-from veupathdb.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
-from veupathdb.domain.strategy.operational_spec import (
-    Criterion,
-    OpenSlot,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
 
 from pathfinder.ai.graph.state import (
     PhaseDisposition,
@@ -20,6 +12,14 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OpenSlot,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
 

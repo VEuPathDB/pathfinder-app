@@ -9,11 +9,9 @@ what left.
 
 1. [The combination check under-enforces three or more terms](combination-lca-under-enforces-many-terms.md) - two-term constraints are exact; "A OR B OR C" accepts a tree that ANDs two branches.
 2. [The portal search listing exceeds the compaction threshold](portal-search-listing-exceeds-the-compaction-threshold.md) - 2769 listings, about 144K tokens, so FRAME is compacted after every step on veupathdb.org and the scripted mock re-runs the build arc; two thread-surgery journeys are red on the portal.
-3. [Re-cut the authoring model out of veupathdb-py](re-cut-the-authoring-model-out-of-veupathdb-py.md) - the client ships PathFinder's strategy authoring model because `veupathdb.wdk` names it: 47 measured edges into `ast`, `ops`, `tree`, `graph_model`, `session` and `operational_spec`.
-4. [The SSE golden depends on when the title task finishes](sse-golden-depends-on-title-scheduling.md) - the title chunk's position in a turn is a scheduling outcome, so the simple-turn golden pins an order the runner does not guarantee.
-5. [The test tree is type-checked by nothing](the-test-tree-is-type-checked-by-nothing.md) - mypy 1158 / pyright 1486 errors over `apps/api/src/pathfinder/tests`; a widened library type left a live assertion silently wrong until it ran.
-6. [The tool server publishes no list of the tables it owns](the-tool-server-publishes-no-table-names.md) - the runtime publishes `OWNED_TABLES` and `VERSION_TABLE`; the tool server names its version table only inside its alembic environment, so the autogenerate filter holds one retyped literal.
-7. [The tool server declares almost no public surface](the-tool-server-declares-almost-no-public-surface.md) - 66 names imported out of `veupathdb_mcp`, 52 of them submodules their own package never publishes, so a file rename in the tool server is an outage here.
+3. [The SSE golden depends on when the title task finishes](sse-golden-depends-on-title-scheduling.md) - the title chunk's position in a turn is a scheduling outcome, so the simple-turn golden pins an order the runner does not guarantee.
+4. [The test tree is type-checked by nothing](the-test-tree-is-type-checked-by-nothing.md) - mypy 1158 / pyright 1486 errors over `apps/api/src/pathfinder/tests`; a widened library type left a live assertion silently wrong until it ran.
+5. [An option criterion binds no parameter](an-option-criterion-binds-no-parameter.md) - FRAME records a parameter-option choice as a criterion, but `build_step_tree` mints steps only for what the structure names, so the option never reaches the search WDK runs.
 
 ## Known and accepted
 

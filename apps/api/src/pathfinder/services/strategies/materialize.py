@@ -12,10 +12,7 @@ from uuid import UUID
 
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
-from veupathdb.domain.strategy.strategy_ast import (
-    PersistedStrategyGraph,
-    StrategyAst,
-)
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.domain.strategy.tree import walk
 from veupathdb.errors import VEuPathDBError
 
@@ -23,6 +20,7 @@ from pathfinder.domain.strategy.revision import (
     parse_strategy_ast,
     without_wdk_ids,
 )
+from pathfinder.persistence.models import PersistedStrategyGraph
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.step_push_planner import plan_step_pushes
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan

@@ -20,10 +20,10 @@ from veupathdb.testing.wdk_fixtures import (
     RecordedWDKResponse,
 )
 from veupathdb.wdk.site_search_client import STREAM_MEDIA_TYPE
-from veupathdb_mcp.gene_lookup import lookup_genes_by_text
-from veupathdb_mcp.gene_lookup.site_search import (
+from veupathdb_mcp.gene_lookup import (
     SITE_SEARCH_PAGE_LIMIT,
     fetch_site_search_genes,
+    lookup_genes_by_text,
 )
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]

@@ -5,8 +5,7 @@ called from several.
 """
 
 from veupathdb.domain.parameters.values import ParamValue
-from veupathdb_mcp.controls.control_tests import run_positive_negative_controls
-from veupathdb_mcp.controls.control_types import ControlTestResult
+from veupathdb_mcp.controls import ControlTestResult, run_positive_negative_controls
 
 from pathfinder.services.experiment.helpers import (
     extract_and_hydrate_genes,

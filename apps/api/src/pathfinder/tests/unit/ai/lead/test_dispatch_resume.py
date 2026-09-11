@@ -19,8 +19,6 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.tools import DeferredToolResults, ToolDenied
 from pydantic_ai.toolsets import FunctionToolset
-from veupathdb.domain.strategy.build_outcome import BuildOutcome
-from veupathdb.domain.strategy.operational_spec import Criterion
 
 from pathfinder.ai.agents.execution import EXECUTION_MODEL, ExecutionAgent
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -33,6 +31,8 @@ from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentRe
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentRunUsage
 from pathfinder.ai.lead.verify_dispatch import run_verification
 from pathfinder.ai.tools.toolsets import execution, verification
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,

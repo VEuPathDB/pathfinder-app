@@ -8,8 +8,8 @@ from veupathdb.domain.parameters.values import (
 )
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.wdk.factory import get_results_api
-from veupathdb_mcp.controls.control_tests import run_step_control_tests
-from veupathdb_mcp.wdk.enrichment.service import EnrichmentService
+from veupathdb_mcp.controls import run_step_control_tests
+from veupathdb_mcp.wdk.enrichment import EnrichmentService
 
 from pathfinder.platform.identity import ENRICHMENT_STRATEGY_NAME
 from pathfinder.tests.integration.strategies.conftest import BuildAndRead, RoundTrip
@@ -104,14 +104,14 @@ async def test_control_tests_recall_and_fpr_on_curated_kinase_set(
         negative_controls=sorted(phosphatases),
     )
 
-    assert result.positive_controls_count == len(go_kinases)
-    assert result.positive_intersection is not None
-    assert result.positive_intersection >= 80
-    assert result.positive_recall is not None
-    assert result.positive_recall >= 0.80
+    assert result.positive is not None
+    assert result.positive.controls_count == len(go_kinases)
+    assert result.positive.intersection_count >= 80
+    assert result.positive.recall is not None
+    assert result.positive.recall >= 0.80
 
-    assert result.negative_controls_count == len(phosphatases)
-    assert result.negative_intersection is not None
-    assert result.negative_intersection <= 10
-    assert result.negative_false_positive_rate is not None
-    assert result.negative_false_positive_rate <= 0.20
+    assert result.negative is not None
+    assert result.negative.controls_count == len(phosphatases)
+    assert result.negative.intersection_count <= 10
+    assert result.negative.false_positive_rate is not None
+    assert result.negative.false_positive_rate <= 0.20

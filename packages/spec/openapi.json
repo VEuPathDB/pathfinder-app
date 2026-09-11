@@ -18132,7 +18132,7 @@
         "type": "object"
       },
       "DroppedCriterion": {
-        "description": "A criterion with no realizable WDK search \u2014 surfaced, never silently lost.",
+        "description": "A criterion with no realizable WDK search. It is surfaced, never dropped.",
         "properties": {
           "text": {
             "title": "Text",
@@ -18942,13 +18942,8 @@
         "type": "object"
       },
       "OpenSlot": {
-        "description": "A required param FRAME could not resolve \u2014 surfaced to the user (Tier-3).\n\n``criterion_id`` is empty when the resolver emits a param-level slot; FRAME\nfills it when the slot is attached to a bound criterion.",
+        "description": "An unbound parameter, and the criterion of this spec that holds it.\n\n``criterion_id`` is empty while the slot names a parameter alone, and holds\nthe criterion once the slot is attached to one.",
         "properties": {
-          "criterionId": {
-            "default": "",
-            "title": "Criterionid",
-            "type": "string"
-          },
           "paramName": {
             "title": "Paramname",
             "type": "string"
@@ -18964,6 +18959,11 @@
             },
             "title": "Options",
             "type": "array"
+          },
+          "criterionId": {
+            "default": "",
+            "title": "Criterionid",
+            "type": "string"
           }
         },
         "required": [

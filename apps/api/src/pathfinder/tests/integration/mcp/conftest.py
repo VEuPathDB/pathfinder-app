@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator
 
 import httpx
 import pytest
-from veupathdb_mcp.service_tokens import ServiceTokenRegistry
+from veupathdb_mcp import ServiceTokenRegistry
 
 from pathfinder.tests.integration.mcp._served import (
     SERVICE_TOKENS_VARIABLE,

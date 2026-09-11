@@ -4,8 +4,7 @@ import pytest
 from veupathdb.domain.parameters.values import MultiPickValue, StringValue
 from veupathdb.domain.search import SearchContext
 from veupathdb.errors import ValidationError
-from veupathdb_mcp.catalog.param_validation import validate_parameters
-from veupathdb_mcp.catalog.validation_callbacks import make_validation_callbacks
+from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 

@@ -37,6 +37,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.model import CamelModel
 
 
 class User(Base):
@@ -231,6 +233,17 @@ class ConversationStrategyView(BaseModel):
     gene_set_auto_imported: bool = False
     experiment_id: str | None = None
     imported_saved_strategy_ids: list[int] = Field(default_factory=list)
+
+
+class PersistedStrategyGraph(CamelModel):
+    """Outer container for a strategy AST snapshot, parsed at the load boundary."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: str | None = None
+    name: str | None = None
+    strategy_ast: StrategyAst | None = None
+    wdk_strategy_id: int | None = None
 
 
 # A thread with no side row reads as a thread whose strategy was never built.

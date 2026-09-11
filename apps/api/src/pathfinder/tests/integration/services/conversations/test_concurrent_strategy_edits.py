@@ -13,10 +13,6 @@ from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.parameters.values import MultiPickValue, ParamValue, StringValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.operations import (
-    UpdateCombineOperatorOp,
-    UpdateStepParamsOp,
-)
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.domain.strategy.tree import walk
@@ -28,8 +24,12 @@ from veupathdb.wdk.wdk_models import (
     WDKSearchConfig,
     WDKStep,
 )
-from veupathdb_mcp.catalog.param_validation import ValidatedParams
+from veupathdb_mcp.catalog import ValidatedParams
 
+from pathfinder.domain.strategy.operations import (
+    UpdateCombineOperatorOp,
+    UpdateStepParamsOp,
+)
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

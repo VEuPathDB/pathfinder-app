@@ -11,10 +11,8 @@ from pydantic import ConfigDict, model_validator
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import VEuPathDBError
-from veupathdb_mcp import catalog, tool_payloads
-from veupathdb_mcp.catalog import UNIVERSAL_SEARCHES
-from veupathdb_mcp.catalog.searches import VagueSearchQueryError
-from veupathdb_mcp.tool_errors import ToolErrorPayload
+from veupathdb_mcp import ToolErrorPayload, catalog, tool_payloads
+from veupathdb_mcp.catalog import UNIVERSAL_SEARCHES, VagueSearchQueryError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 

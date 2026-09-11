@@ -16,14 +16,14 @@ from veupathdb.domain.parameters.values import (
     StringValue,
 )
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.build_outcome import BuildOutcome
-from veupathdb.domain.strategy.strategy_ast import PersistedStrategyGraph, StrategyAst
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.wdk.factory import (
     get_results_api,
     get_strategy_api,
 )
 
-from pathfinder.persistence.models import User
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.persistence.models import PersistedStrategyGraph, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.session_factory import build_strategy_session

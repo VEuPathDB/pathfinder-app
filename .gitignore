@@ -126,3 +126,5 @@ apps/api/.pf-runs/
 # nightly WDK lane artifacts
 apps/api/wdk-live-summary.json
 apps/api/wdk-hidden-defaults.json
+# Site catalog cache written at runtime
+apps/api/data/catalogs/

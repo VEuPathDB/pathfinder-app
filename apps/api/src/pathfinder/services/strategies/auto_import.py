@@ -11,7 +11,7 @@ from uuid import UUID
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from veupathdb.errors import VEuPathDBError
-from veupathdb_mcp.wdk.gene_set_steps import GeneSetWdkContext
+from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import (

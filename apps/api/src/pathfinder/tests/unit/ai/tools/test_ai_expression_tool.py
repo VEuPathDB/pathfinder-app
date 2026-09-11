@@ -17,11 +17,11 @@ from veupathdb.wdk.ai_expression import (
     AiExpressionStatus,
 )
 from veupathdb.wdk.client import VEuPathDBClient
-from veupathdb_mcp.tool_errors import ToolErrorPayload
-from veupathdb_mcp.wdk import ai_expression
-from veupathdb_mcp.wdk.ai_expression import (
+from veupathdb_mcp import ToolErrorPayload
+from veupathdb_mcp.wdk import (
     NO_SUMMARY_ON_THE_SITE,
     GeneExpressionSummary,
+    ai_expression,
 )
 
 from pathfinder.ai.tools.standalone import gene

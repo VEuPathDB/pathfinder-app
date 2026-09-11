@@ -8,13 +8,15 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.domain.parameters.values import MultiPickValue, NumberValue
-from veupathdb.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.ops import CombineOp
+
+from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SpecStructure,
     StructureNode,
 )
-from veupathdb.domain.strategy.operations import (
+from pathfinder.domain.strategy.operations import (
     AddCombineOp,
     AddLeafOp,
     AddTransformOp,
@@ -24,8 +26,6 @@ from veupathdb.domain.strategy.operations import (
     UpdateCombineOperatorOp,
     UpdateStepParamsOp,
 )
-from veupathdb.domain.strategy.ops import CombineOp
-
 from pathfinder.domain.strategy.spec_to_operations import UnsupportedEditError
 
 from ._builders import (

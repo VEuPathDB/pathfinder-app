@@ -3,17 +3,6 @@
 from __future__ import annotations
 
 from veupathdb.domain.parameters.values import NumberValue, SinglePickValue
-from veupathdb.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
-    ConstraintStatus,
-)
-from veupathdb.domain.strategy.operational_spec import (
-    AssumedValue,
-    Criterion,
-    OperationalSpec,
-)
 
 from pathfinder.ai.graph.state import (
     ConstraintCheck,
@@ -25,6 +14,17 @@ from pathfinder.ai.graph.state import (
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.ledger_render import render_constraints_full
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+    ConstraintStatus,
+)
+from pathfinder.domain.strategy.operational_spec import (
+    AssumedValue,
+    Criterion,
+    OperationalSpec,
+)
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
 _MICROARRAY_SEARCH = (

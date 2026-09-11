@@ -22,7 +22,6 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
-from veupathdb.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 
 from pathfinder.ai.agents._instructions import pinned_user_memories
 from pathfinder.ai.graph import lead_node
@@ -38,6 +37,7 @@ from pathfinder.ai.lead.lead_agent import (
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.tests._support.instructions import pinned_instructions
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,

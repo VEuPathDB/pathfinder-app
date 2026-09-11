@@ -11,7 +11,6 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.wdk.site_router import SiteInfo
 from veupathdb.wdk.strategy_api import StrategyAPI
@@ -21,6 +20,7 @@ from veupathdb.wdk.wdk_models import (
     WDKStrategyDetails,
 )
 
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies import sync
 from pathfinder.services.strategies.sync import SyncResult, sync_strategy_for_site
 from pathfinder.services.strategies.sync_state import WDKSyncState

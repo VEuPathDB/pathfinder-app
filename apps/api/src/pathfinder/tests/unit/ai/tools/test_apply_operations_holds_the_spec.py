@@ -7,16 +7,22 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
-from veupathdb.domain.strategy.operations import ReplaceSubtreeOp
-from veupathdb.domain.strategy.operations.apply import ApplyError
+from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.strategy import apply_operations
 from pathfinder.ai.tools.toolsets.execution import build_toolset
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.operations import (
+    AddCombineOp,
+    AddLeafOp,
+    GraphOperation,
+    ReplaceSubtreeOp,
+)
+from pathfinder.domain.strategy.operations.apply import ApplyError
+from pathfinder.domain.strategy.operations.types import AttachNewRoot
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.strategies.commit import (
     apply_and_commit,
@@ -211,6 +217,55 @@ class TestTheCommitService:
         assert "step_k2" in str(excinfo.value)
         assert len(graph.steps) == 5
         assert stub_api.calls == []
+
+    async def test_a_batch_that_mints_the_step_a_criterion_states_is_applied(
+        self, stub_api: StubAPI
+    ) -> None:
+        """A criterion answers to the step the same batch adds for it."""
+        deps = _deps()
+        deps.agent_state.operational_spec_draft.criteria.append(
+            Criterion(
+                id="step_k3", text="secreted proteins", search_name="GenesByTaxon"
+            )
+        )
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        ops: list[GraphOperation] = [
+            ReplaceSubtreeOp(
+                step_id="step_k1",
+                subtree=StrategyStepNode(
+                    id="step_k1", search_name="GenesByMolecularWeight"
+                ),
+            ),
+            AddLeafOp(step=leaf("step_k3"), attach=AttachNewRoot()),
+            AddCombineOp(
+                step=StrategyStepNode(
+                    id="step_c2",
+                    search_name=COMBINE_SEARCH_NAME,
+                    operator=CombineOp.INTERSECT,
+                ),
+                left_id="step_c1",
+                right_id="step_k3",
+            ),
+        ]
+
+        result = await apply_operations_and_commit(
+            deps=deps.to_strategy_context(), ops=ops
+        )
+
+        assert result.description != ""
+        assert set(graph.steps) == {
+            "step_k1",
+            "step_k2",
+            "step_ms",
+            "step_u1",
+            "step_c1",
+            "step_k3",
+            "step_c2",
+        }
+        assert graph.steps["step_k1"].search_name == "GenesByMolecularWeight"
+        assert graph.steps["step_c2"].secondary_input_id == "step_k3"
+        assert stub_api.named("create_combined_step") != []
 
     async def test_a_batch_the_spec_does_not_address_is_left_alone(
         self, stub_api: StubAPI

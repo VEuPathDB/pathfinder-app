@@ -8,8 +8,7 @@ import httpx
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.eda.models import EdaPermissionEntry, EdaStudyOverview
-from veupathdb_mcp.embeddings.embedder import EmbeddingUnavailableError
-from veupathdb_mcp.embeddings.study_index import sync_study_index
+from veupathdb_mcp.embeddings import EmbeddingUnavailableError, sync_study_index
 
 from pathfinder.platform.config import get_settings
 from pathfinder.services.eda import catalog

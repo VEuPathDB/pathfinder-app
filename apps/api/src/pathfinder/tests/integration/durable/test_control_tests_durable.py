@@ -18,6 +18,11 @@ from assistant_core.tasks.declaration import durable_impl
 from assistant_core.tasks.progress import TaskProgressEmitter
 from assistant_core.tasks.runner import run_durable_task
 from sqlalchemy import select
+from veupathdb_mcp.controls import (
+    ControlSetData,
+    ControlTargetData,
+    ControlTestResult,
+)
 from veupathdb_mcp.tool_payloads import ControlOutcome, DownloadLinks
 
 from pathfinder.jobs.impls import control_tests_impl, register_all_tools
@@ -50,22 +55,29 @@ async def _fake_run_step(
     wdk_step_id: int,
     positive_controls: list[str] | None = None,
     negative_controls: list[str] | None = None,
-) -> ControlOutcome:
+) -> ControlTestResult:
     del site_id
     pos = positive_controls or []
     neg = negative_controls or []
-    return ControlOutcome(
-        step_id=wdk_step_id,
-        estimated_size=100,
-        positive_intersection=len(pos),
-        positive_controls_count=len(pos),
-        positive_recall=1.0 if pos else None,
-        positive_intersection_ids=pos,
-        positive_missing_ids=[],
-        negative_intersection=0,
-        negative_controls_count=len(neg),
-        negative_false_positive_rate=0.0 if neg else None,
-        negative_intersection_ids=[],
+    return ControlTestResult(
+        site_id="plasmodb",
+        record_type="transcript",
+        target=ControlTargetData(step_id=wdk_step_id, estimated_size=100),
+        positive=ControlSetData(
+            controls_count=len(pos),
+            intersection_count=len(pos),
+            intersection_ids_sample=pos,
+            recall=1.0 if pos else None,
+        )
+        if pos
+        else None,
+        negative=ControlSetData(
+            controls_count=len(neg),
+            intersection_count=0,
+            false_positive_rate=0.0 if neg else None,
+        )
+        if neg
+        else None,
     )
 
 

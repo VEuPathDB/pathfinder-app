@@ -22,10 +22,7 @@ from veupathdb.domain.parameters.wdk_vocab import VocabOption
 from veupathdb.domain.search import SearchContext
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.operational_spec import OperationalSpec
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
-from veupathdb.domain.strategy.spec_diff import CriterionChange
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.wdk.wdk_models import (
@@ -36,10 +33,13 @@ from veupathdb.wdk.wdk_models import (
     WDKStepTree,
     WDKStrategyDetails,
 )
-from veupathdb_mcp.catalog import param_discovery, searches
-from veupathdb_mcp.catalog.param_dag import ParamFetcher
-from veupathdb_mcp.catalog.param_formatting import ParameterInfo
-from veupathdb_mcp.catalog.param_validation import ValidatedParams
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    ParamFetcher,
+    ValidatedParams,
+    param_discovery,
+    searches,
+)
 
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
@@ -49,6 +49,9 @@ from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

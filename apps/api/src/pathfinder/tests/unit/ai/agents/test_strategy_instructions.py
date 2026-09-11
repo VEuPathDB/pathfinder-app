@@ -14,19 +14,19 @@ from veupathdb.domain.parameters.values import (
     StringValue,
 )
 from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.operational_spec import (
-    Criterion,
-    OpenSlot,
-    OperationalSpec,
-)
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 
 from pathfinder.ai.agents.strategy_instructions import (
     pinned_frame_workspace,
     pinned_graph_state,
     pinned_ledger,
 )
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OpenSlot,
+    OperationalSpec,
+)
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests.fixtures.builders import add_step_to_graph
 

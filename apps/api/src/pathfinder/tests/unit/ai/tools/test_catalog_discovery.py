@@ -11,10 +11,11 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters.wdk_vocab import VocabOption
 from veupathdb.errors import WDKError
 from veupathdb.wdk.wdk_parameters import WDKStringParam
-from veupathdb_mcp.catalog import search_inspection, searches
-from veupathdb_mcp.catalog.param_formatting import (
+from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParameterNotOnSearch,
+    search_inspection,
+    searches,
 )
 
 from pathfinder.ai.tools.standalone import catalog_discovery

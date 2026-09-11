@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 from assistant_core.platform.types import JSONArray, JSONObject
 from pydantic import TypeAdapter
-from veupathdb_mcp.wdk.enrichment.types import (
+from veupathdb_mcp.wdk.enrichment import (
     EnrichmentAnalysisType,
     EnrichmentResult,
     EnrichmentTerm,

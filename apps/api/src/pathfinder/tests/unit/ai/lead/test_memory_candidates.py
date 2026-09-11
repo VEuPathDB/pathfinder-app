@@ -6,7 +6,6 @@ from uuid import uuid4
 
 import pytest
 from assistant_core.memory.schemas import MemoryEntryDraft, MemoryValue
-from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 from pathfinder.ai.graph.state import (
     PhaseDisposition,
@@ -16,6 +15,7 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
 _PREFERENCE = (

@@ -25,11 +25,11 @@ from veupathdb.domain.strategy.graph_model import (
     rebuild_tree,
     wdk_search_name,
 )
-from veupathdb.domain.strategy.session import StrategySession
 from veupathdb.domain.strategy.tree import clone_with_fresh_ids, subtree_ids
 from veupathdb.errors import ValidationError
 from veupathdb.wdk.factory import get_strategy_api
 
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.strategies.step_wdk_push import push_step_to_wdk
 from pathfinder.services.strategies.sync import build_step_tree_from_graph

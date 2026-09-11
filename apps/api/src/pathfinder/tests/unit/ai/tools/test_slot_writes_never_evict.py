@@ -8,20 +8,20 @@ import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
-from veupathdb.domain.strategy.operations import (
-    AddCombineOp,
-    AddLeafOp,
-    GraphOperation,
-    WireInputOp,
-)
-from veupathdb.domain.strategy.operations.types import AttachIntoSlot, AttachNewRoot
 from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.ai.tools.standalone.strategy import apply_operations
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.operations import (
+    AddCombineOp,
+    AddLeafOp,
+    GraphOperation,
+    WireInputOp,
+)
+from pathfinder.domain.strategy.operations.types import AttachIntoSlot, AttachNewRoot
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.stated_shape import stated_shape
 from pathfinder.tests._support.eda_doubles import lead_run_context

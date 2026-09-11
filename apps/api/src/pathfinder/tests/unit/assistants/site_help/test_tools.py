@@ -7,7 +7,7 @@ from typing import Any, cast
 import pytest
 from pydantic_ai import ModelRetry
 from pydantic_ai.tools import RunContext
-from veupathdb_mcp.catalog.models import RecordTypeInfo
+from veupathdb_mcp.catalog import RecordTypeInfo
 
 from pathfinder.assistants.site_help import agent
 from pathfinder.assistants.site_help.agent import (

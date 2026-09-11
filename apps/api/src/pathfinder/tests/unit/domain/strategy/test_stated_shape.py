@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from veupathdb.domain.strategy.graph_model import StepKind
-from veupathdb.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.ops import CombineOp
+
+from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SavedStrategyRef,
@@ -12,15 +14,13 @@ from veupathdb.domain.strategy.operational_spec import (
     build_step_tree,
     renumber_criteria,
 )
-from veupathdb.domain.strategy.operations import (
+from pathfinder.domain.strategy.operations import (
     AddLeafOp,
     ReplaceSubtreeOp,
     WireInputOp,
 )
-from veupathdb.domain.strategy.operations.types import AttachIntoSlot, AttachNewRoot
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph
-
+from pathfinder.domain.strategy.operations.types import AttachIntoSlot, AttachNewRoot
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.stated_shape import (
     SlotWrite,
     evicted_by,

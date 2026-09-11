@@ -10,13 +10,6 @@ from assistant_core.mcp.declaration import ToolSourceDeclaration
 from assistant_core.platform.db import async_session_factory
 from assistant_core.spec import AssistantSpec, TurnContextRequest, TurnStart
 from pydantic_ai.models import Model
-from veupathdb.domain.strategy.build_outcome import (
-    BuildOutcome,
-    NodeResult,
-    StepPushFailure,
-)
-from veupathdb.domain.strategy.constraints import ConstraintKind, ConstraintSource
-from veupathdb.domain.strategy.operational_spec import OperationalSpec
 from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.agents.state import SearchOverview
@@ -34,6 +27,13 @@ from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.memory_candidates import PRODUCT_MEMORY_KINDS
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.strategy_stream_parts import register_strategy_stream_parts
+from pathfinder.domain.strategy.build_outcome import (
+    BuildOutcome,
+    NodeResult,
+    StepPushFailure,
+)
+from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintSource
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

@@ -15,12 +15,12 @@ from veupathdb.wdk.ai_expression import (
 )
 from veupathdb.wdk.factory import get_wdk_client
 from veupathdb.wdk.wdk_models import WDKSearchConfig
-from veupathdb_mcp.wdk.ai_expression import (
+from veupathdb_mcp.wdk import (
     NO_SUMMARY_ON_THE_SITE,
     GeneExpressionSummary,
+    extract_record_ids,
     get_gene_expression_summary,
 )
-from veupathdb_mcp.wdk.helpers import extract_record_ids
 
 from pathfinder.tests.live.conftest import Probe
 

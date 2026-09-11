@@ -14,12 +14,10 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters.value_codec import coerce_context_values
-from veupathdb_mcp.catalog.overview_formatting import SearchOverviewResult
-from veupathdb_mcp.catalog.param_formatting import (
+from veupathdb_mcp.catalog import (
     GetParameterOptionsResult,
     ParameterInfo,
-)
-from veupathdb_mcp.catalog.search_inspection import (
+    SearchOverviewResult,
     UnknownSearchError,
     VocabNarrowing,
     inspect_search,

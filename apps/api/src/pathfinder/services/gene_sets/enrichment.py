@@ -5,8 +5,7 @@ from typing import cast
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from pydantic import JsonValue
-from veupathdb_mcp.wdk.enrichment.service import EnrichmentService
-from veupathdb_mcp.wdk.enrichment.types import EnrichmentAnalysisType
+from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType, EnrichmentService
 
 from pathfinder.platform.identity import ENRICHMENT_STRATEGY_NAME
 from pathfinder.services.export import get_export_service

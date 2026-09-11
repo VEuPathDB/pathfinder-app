@@ -3,8 +3,7 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.parameters.values import MultiPickValue, StringValue
 from veupathdb.errors import WDKError
-from veupathdb_mcp.controls.control_tests import run_positive_negative_controls
-from veupathdb_mcp.controls.control_types import IntersectionConfig
+from veupathdb_mcp.controls import IntersectionConfig, run_positive_negative_controls
 
 from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
 

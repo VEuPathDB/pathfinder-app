@@ -14,12 +14,12 @@ from collections.abc import Awaitable, Callable
 import pytest
 from veupathdb.testing.summary import DriftLog
 from veupathdb.wdk.factory import get_strategy_api
-from veupathdb_mcp.wdk.enrichment.gene_ids import (
+from veupathdb_mcp.wdk import fetch_gene_ids_from_step
+from veupathdb_mcp.wdk.enrichment import (
     MAX_ENRICHMENT_GENE_IDS,
+    BackgroundSource,
     enrich_gene_ids_by_value,
 )
-from veupathdb_mcp.wdk.enrichment.types import BackgroundSource
-from veupathdb_mcp.wdk.gene_set_steps import fetch_gene_ids_from_step
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 

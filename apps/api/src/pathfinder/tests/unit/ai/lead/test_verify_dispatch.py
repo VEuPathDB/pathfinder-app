@@ -12,15 +12,7 @@ from collections.abc import AsyncIterator
 import pytest
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
-from veupathdb.domain.strategy.build_outcome import BuildOutcome
 from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 
 from pathfinder.ai.lead import sub_agent_tools
 from pathfinder.ai.lead.deltas import VerificationDelta
@@ -28,6 +20,14 @@ from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification, verify_strategy
 from pathfinder.ai.tools.toolsets import verification
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.sub_agents import (
     agent_tool_names,

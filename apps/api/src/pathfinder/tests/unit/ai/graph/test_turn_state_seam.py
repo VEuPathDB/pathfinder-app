@@ -16,10 +16,10 @@ from assistant_core.graph.runtime import AssistantDeps, TurnContext
 from assistant_core.graph.turn_state import TurnState
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
+from pathfinder.domain.strategy.session import StrategySession
 
 TURN_FIELDS = {
     "conversation_id",

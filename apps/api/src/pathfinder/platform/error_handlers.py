@@ -17,9 +17,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException
-from veupathdb.domain.strategy.operations.apply import ApplyError
 from veupathdb.errors import VEuPathDBError
 
+from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.platform.errors import ErrorCode, ProblemDetail
 
 _logger = structlog.get_logger(__name__)

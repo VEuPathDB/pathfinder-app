@@ -12,26 +12,14 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.domain.search import SearchContext
 from veupathdb.domain.strategy.graph_model import StepKind
-from veupathdb.domain.strategy.operational_spec import Criterion
-from veupathdb.domain.strategy.operations import (
-    DeleteResolution,
-    DeleteStepOp,
-    ReplaceSubtreeOp,
-    UpdateCombineOperatorOp,
-    UpdateStepMetaOp,
-    UpdateStepParamsOp,
-)
 from veupathdb.domain.strategy.ops import ColocationParams, CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.errors import ValidationError
-from veupathdb_mcp.catalog.param_validation import (
+from veupathdb_mcp import ToolErrorPayload, tool_error
+from veupathdb_mcp.catalog import (
     ValidationCallbacks,
+    make_validation_callbacks,
     validate_parameters,
 )
-from veupathdb_mcp.catalog.validation_callbacks import (
-    make_validation_callbacks,
-)
-from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._graph_helpers import (
@@ -51,7 +39,20 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     validation_error_payload,
     validation_model_retry,
 )
-from pathfinder.domain.strategy.stated_shape import StatedShape, shape_after
+from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.domain.strategy.operations import (
+    DeleteResolution,
+    DeleteStepOp,
+    ReplaceSubtreeOp,
+    UpdateCombineOperatorOp,
+    UpdateStepMetaOp,
+    UpdateStepParamsOp,
+)
+from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.stated_shape import (
+    StatedShape,
+    shape_after,
+)
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.insert_saved import (
@@ -242,15 +243,14 @@ def _refuse_a_write_the_spec_did_not_state(
 ) -> None:
     """The write leaves the strategy holding the criteria the spec states.
 
-    The spec addresses this graph by step id, so it states nothing about a
-    graph whose steps it does not name.
+    The spec addresses this graph by step id, so a criterion that answers to no
+    step of it, before or after the write, states nothing about it.
     """
-    criteria = {c.id: c for c in deps.agent_state.operational_spec_draft.criteria}
-    if not criteria or not set(criteria) <= set(graph.steps):
+    spec = deps.agent_state.operational_spec_draft
+    shape = shape_after(op, graph=graph, criteria=[c.id for c in spec.criteria])
+    if not shape.stated or shape.holds:
         return
-    shape = shape_after(op, graph=graph, criteria=set(criteria))
-    if shape.holds:
-        return
+    criteria = {c.id: c for c in spec.criteria if c.id in shape.stated}
     raise ModelRetry(_write_refusal(shape, criteria))
 
 

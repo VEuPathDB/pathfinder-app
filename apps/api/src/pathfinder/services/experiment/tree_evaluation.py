@@ -14,18 +14,16 @@ from veupathdb.wdk.wdk_models import (
     WDKSearchConfig,
     WDKStepTree,
 )
-from veupathdb_mcp.controls.control_helpers import delete_temp_strategy
-from veupathdb_mcp.controls.control_tests import (
-    _extract_intersection_data,
-    resolve_controls_param_type,
-)
-from veupathdb_mcp.controls.control_types import (
+from veupathdb_mcp.controls import (
     ControlsContext,
     ControlSetData,
     ControlTargetData,
     ControlTestResult,
+    delete_temp_strategy,
+    resolve_controls_param_type,
+    summarize_intersection,
 )
-from veupathdb_mcp.wdk.helpers import extract_record_ids
+from veupathdb_mcp.wdk import extract_record_ids
 
 from pathfinder.services.experiment.materialization import (
     _materialize_step_tree,
@@ -107,7 +105,7 @@ async def _eval_control_set(
         target_total = await api.get_step_count(root_tree.step_id)
         intersection_total = await api.get_step_count(combined_step_id)
 
-        intersection_ids: list[str] = []
+        intersection_ids: list[str] | None = None
         if len(control_ids) <= _MAX_CONTROL_IDS_FOR_ANSWER:
             answer = await api.get_step_answer(
                 combined_step_id,
@@ -118,8 +116,10 @@ async def _eval_control_set(
             )
             intersection_ids = extract_record_ids(answer.records)
 
-        ids_list: JSONArray = list(intersection_ids)
-        ids_sample: JSONArray = list(intersection_ids[:50])
+        ids_list: JSONArray | None = (
+            list(intersection_ids) if intersection_ids is not None else None
+        )
+        ids_sample: JSONArray = list(intersection_ids[:50] if intersection_ids else ())
         return {
             "controlsCount": len(control_ids),
             "intersectionCount": intersection_total,
@@ -161,12 +161,13 @@ async def run_controls_against_tree(
         pos_payload = await _eval_control_set(api, ctx, tree, pos, "positive")
         pos_data = ControlSetData.model_validate(pos_payload)
 
-        pos_count, found_ids, has_ids = _extract_intersection_data(pos_payload)
-        missing = [x for x in pos if x not in found_ids] if has_ids else []
+        found = summarize_intersection(pos_payload)
+        recovered = found.found_ids
+        missing = [x for x in pos if x not in recovered] if found.ids_were_read else []
 
         target.estimated_size = pos_data.target_estimated_size
         pos_data.missing_ids_sample = missing[:50]
-        pos_data.recall = pos_count / len(pos) if pos else None
+        pos_data.recall = found.intersection_count / len(pos) if pos else None
         result.positive = pos_data
 
     if neg:
@@ -176,10 +177,11 @@ async def run_controls_against_tree(
         if target.estimated_size is None:
             target.estimated_size = neg_data.target_estimated_size
 
-        neg_count, hit_ids, _ = _extract_intersection_data(neg_payload)
-        unexpected_hits = sorted(hit_ids)[:50] if hit_ids else []
-        neg_data.unexpected_hits_sample = unexpected_hits
-        neg_data.false_positive_rate = neg_count / len(neg) if neg else None
+        hits = summarize_intersection(neg_payload)
+        neg_data.unexpected_hits_sample = sorted(hits.found_ids)[:50]
+        neg_data.false_positive_rate = (
+            hits.intersection_count / len(neg) if neg else None
+        )
         result.negative = neg_data
 
     return result

@@ -260,19 +260,24 @@ class _TransientArgs(BaseModel):
     search_name: str | None = None
 
 
-def _outage_directive(tool_name: str, search_name: str, error: Exception) -> str:
+def _outage_directive(tool_name: str, subject: str, error: Exception) -> str:
+    """The directive a caller reads when a transient failure does not clear.
+
+    The subject is the search when the call names one, and the tool itself
+    when it does not.
+    """
     return build_error_directive(
         error_type="SEARCH_UNAVAILABLE",
         tool_name=tool_name,
-        tool_args={"search_name": search_name},
+        tool_args={"search_name": subject},
         detail=(
-            f"'{search_name}' returned repeated transient server errors and did "
+            f"'{subject}' returned repeated transient server errors and did "
             f"not recover within this turn's retries: {error}. The search itself "
             f"is valid; this is a temporary VEuPathDB outage, not a bad call."
         ),
         next_actions=_NEXT_ACTIONS_OUTAGE,
         do_not=(
-            f"Do not keep retrying '{search_name}' this turn; the outage is not "
+            f"Do not keep retrying '{subject}' this turn; the outage is not "
             f"clearing right now. But do NOT treat it as permanently broken or "
             f"drop it as invalid; it is a transient server error that may recover."
         ),
@@ -288,8 +293,9 @@ def _outage_directive(tool_name: str, search_name: str, error: Exception) -> str
 class ToolResilience(AbstractCapability[AgentDeps]):
     """Route each tool execution error to a recovery strategy by its category.
 
-    A transient error raises ModelRetry. Every other category returns a
-    directive string as the tool result.
+    A transient error raises ModelRetry until the tool reaches its retry
+    ceiling, and answers with the outage directive after that. Every other
+    category returns a directive string as the tool result.
     """
 
     search_lookup_tools: frozenset[str] = frozenset()
@@ -329,10 +335,17 @@ class ToolResilience(AbstractCapability[AgentDeps]):
 
         if category == ErrorCategory.TRANSIENT:
             search_name = _TransientArgs.model_validate(args).search_name
-            if search_name is not None:
+            if search_name:
                 seen = ctx.deps.service_outage.record_search_failure(search_name)
                 if seen >= OUTAGE_GIVE_UP_THRESHOLD:
                     return _outage_directive(tool_name, search_name, error)
+            if ctx.retries.get(tool_name, 0) >= self.circuit_break_threshold:
+                logger.warning(
+                    "Circuit breaker: answering with the outage directive",
+                    tool_name=tool_name,
+                    threshold=self.circuit_break_threshold,
+                )
+                return _outage_directive(tool_name, search_name or tool_name, error)
             retry_message = (
                 f"Transient error in {tool_name}: {error}. "
                 "The service may be temporarily unavailable. Retrying."
@@ -366,28 +379,3 @@ class ToolResilience(AbstractCapability[AgentDeps]):
             next_actions=_NEXT_ACTIONS_UNKNOWN,
             do_not="Do not retry this exact call — an unexpected internal error occurred",
         )
-
-    async def prepare_tools(
-        self,
-        ctx: RunContext[AgentDeps],
-        tool_defs: list[ToolDefinition],
-    ) -> list[ToolDefinition]:
-        """Remove tools whose retry count reaches the circuit-break threshold."""
-        if not ctx.retries:
-            return tool_defs
-
-        filtered = [
-            td
-            for td in tool_defs
-            if ctx.retries.get(td.name, 0) < self.circuit_break_threshold
-        ]
-
-        removed = [td.name for td in tool_defs if td not in filtered]
-        if removed:
-            logger.warning(
-                "Circuit breaker: removing tools past retry threshold",
-                removed_tools=removed,
-                threshold=self.circuit_break_threshold,
-            )
-
-        return filtered

@@ -14,15 +14,15 @@ from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.domain.strategy.tree import walk
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.strategy_edits import replace_subtree
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

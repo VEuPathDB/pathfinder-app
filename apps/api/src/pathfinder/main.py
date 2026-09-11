@@ -22,21 +22,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.domain.strategy.operations.apply import ApplyError
 from veupathdb.eda.factory import close_all_eda_clients
 from veupathdb.errors import VEuPathDBError
 from veupathdb.observability.otel import OpenTelemetryObserver
 from veupathdb.observer import set_observer
 from veupathdb.wdk.factory import close_all_clients
 from veupathdb.wdk.site_router import get_site_router
-from veupathdb_mcp.catalog.discovery_service import (
-    get_discovery_service,
-)
-from veupathdb_mcp.embeddings.db import use_embedding_session_factory
+from veupathdb_mcp.catalog import get_discovery_service
+from veupathdb_mcp.embeddings import use_embedding_session_factory
 
 from pathfinder import __version__
 from pathfinder.ai.capabilities.security import warm_up_scanner
 from pathfinder.assistants.registry import get_assistant_registry
+from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.context import request_base_url_ctx

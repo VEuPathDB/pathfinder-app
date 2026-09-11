@@ -19,15 +19,16 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.parameters.values import MultiPickValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.session import StrategyGraph
-from veupathdb.domain.strategy.strategy_ast import (
-    PersistedStrategyGraph,
-    StrategyAst,
-)
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.conversation import clear_strategy
-from pathfinder.persistence.models import ConversationStrategy, User
+from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.persistence.models import (
+    ConversationStrategy,
+    PersistedStrategyGraph,
+    User,
+)
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.session_factory import build_strategy_session

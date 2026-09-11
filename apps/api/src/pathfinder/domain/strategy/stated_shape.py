@@ -1,7 +1,8 @@
 """The two invariants every write to a strategy holds.
 
-The steps that run a search are exactly the criteria the spec states: none is
-adopted from outside, none is stranded, and no step carries a placeholder name.
+The steps that run a search are exactly the criteria that answer to a step:
+none is adopted from outside, none is stranded, and no step carries a
+placeholder name.
 A write into an input slot never takes the step that slot holds off the tree.
 """
 
@@ -12,24 +13,58 @@ from dataclasses import dataclass
 
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.operations import GraphOperation
-from veupathdb.domain.strategy.operations.apply import apply_operation
-from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.domain.strategy.tree import subtree_ids, walk
+
+from pathfinder.domain.strategy.operational_spec import SpecStructure, StructureNode
+from pathfinder.domain.strategy.operations import GraphOperation
+from pathfinder.domain.strategy.operations.apply import apply_operation
+from pathfinder.domain.strategy.session import StrategyGraph
 
 __all__ = [
     "SlotWrite",
     "StatedShape",
+    "criteria_with_steps",
     "evicted_by",
     "overwritten_slot",
     "placeholder_names",
     "shape_after",
     "stated_shape",
+    "structure_criteria",
     "working_copy",
 ]
 
 _SENTINEL_MARK = "__"
 _SHORTEST_SENTINEL = 5
+
+
+def criteria_with_steps(
+    criteria: Collection[str],
+    live_step_ids: Collection[str],
+    *,
+    minted: Collection[str] = (),
+) -> frozenset[str]:
+    """The criteria that answer to a step of their own after the edit.
+
+    A criterion answers to a step the strategy already holds, or to one the
+    edit mints for it. A criterion in neither set binds an option on another
+    criterion's search, so the step carrying that search states it.
+    """
+    answered = set(live_step_ids) | set(minted)
+    return frozenset(cid for cid in criteria if cid in answered)
+
+
+def structure_criteria(structure: SpecStructure | None) -> frozenset[str]:
+    """The criterion ids a structure states a step for."""
+    if structure is None:
+        return frozenset()
+    return frozenset(_named_by(structure.root))
+
+
+def _named_by(node: StructureNode) -> set[str]:
+    own = {node.criterion_id} if node.kind != "combine" and node.criterion_id else set()
+    for child in node.inputs:
+        own |= _named_by(child)
+    return own
 
 
 @dataclass(frozen=True)
@@ -38,6 +73,7 @@ class StatedShape:
 
     root_id: str
     live_root_id: str | None
+    stated: tuple[str, ...]
     searches: tuple[str, ...]
     adopted: tuple[str, ...]
     lost: tuple[str, ...]
@@ -77,6 +113,7 @@ def stated_shape(
     return StatedShape(
         root_id=root_id,
         live_root_id=graph.primary_root_id(),
+        stated=tuple(sorted(stated)),
         searches=tuple(sorted(searches)),
         adopted=tuple(sorted(reachable & set(outside))),
         lost=tuple(sorted(stated - searches)),
@@ -176,7 +213,8 @@ def shape_after(
     """The shape the graph takes once ``op`` applies, measured on a copy.
 
     The root is read after the operation, so re-rooting the tree at its own
-    root is no departure; the leaf set is what the criteria state.
+    root is no departure. ``criteria`` is every criterion the spec states; the
+    shape holds the ones that answer to a step once the operation applies.
     """
     entry_root = graph.primary_root_id() or ""
     outside = set(graph.steps) - set(subtree_ids(entry_root, graph.steps))
@@ -185,7 +223,9 @@ def shape_after(
     return stated_shape(
         graph=planned,
         root_id=planned.primary_root_id() or "",
-        criteria=criteria,
+        criteria=criteria_with_steps(
+            criteria, graph.steps, minted=set(planned.steps) - set(graph.steps)
+        ),
         outside=outside,
     )
 

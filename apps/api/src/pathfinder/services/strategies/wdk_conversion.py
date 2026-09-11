@@ -22,8 +22,8 @@ from veupathdb.wdk.wdk_models import (
     WDKStepTree,
     WDKStrategyDetails,
 )
-from veupathdb_mcp.catalog.param_adapters import adapt_param_specs_from_search
-from veupathdb_mcp.catalog.search_context import (
+from veupathdb_mcp.catalog import (
+    adapt_param_specs_from_search,
     get_search_params_under_context,
 )
 

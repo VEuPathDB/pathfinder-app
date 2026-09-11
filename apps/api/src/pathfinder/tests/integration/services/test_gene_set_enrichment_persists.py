@@ -14,7 +14,7 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult
+from veupathdb_mcp.wdk.enrichment import EnrichmentResult
 
 from pathfinder.persistence.models import User
 from pathfinder.services.gene_sets import operations

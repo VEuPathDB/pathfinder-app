@@ -45,6 +45,22 @@ For WDK rules the anchor is mechanical: `scripts/check-wdk-rules.mjs` fails the 
 when a citation is unpinned, an anchor path or symbol has moved, or a test named as
 enforcing a rule no longer exists.
 
+A page in another repository cannot be a relative link, so it is cited as that
+repository's prefix, a colon, a space and the path, inside a code span: for
+example `assistant-platform: docs/knowledge/conventions/verification-gates.md`,
+which states the same rule for that bundle. The four prefixes
+`scripts/check-knowledge.mjs` reads are `pathfinder`, `veupathdb-py`,
+`veupathdb-mcp` and `assistant-platform`. It resolves the path against a
+checkout of that repository beside this one, fails when the checkout has no such
+path, reports the citation as unverified when there is no checkout to read, and
+fails on a citation written without the space wherever it runs. A fenced block
+holds no code span, so that is where the form is quoted as an example rather
+than cited:
+
+```
+veupathdb-py: docs/knowledge/wdk/rules/searches-and-answers.md
+```
+
 # Shape
 
 Per OKF v0.2:

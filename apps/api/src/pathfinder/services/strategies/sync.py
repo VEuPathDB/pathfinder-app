@@ -9,7 +9,6 @@ from veupathdb.domain.strategy.graph_model import (
     rebuild_tree,
     record_class_of,
 )
-from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.domain.strategy.tree import walk
 from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.errors import VEuPathDBError
@@ -19,12 +18,10 @@ from veupathdb.wdk.wdk_models import (
     WDKStepTree,
     WDKStrategyDetails,
 )
-from veupathdb_mcp.catalog.searches import (
-    assign_step_record_classes,
-    make_record_type_resolver,
-)
-from veupathdb_mcp.wdk.step_tree import MissingWDKStepIdError, build_wdk_step_tree
+from veupathdb_mcp.catalog import assign_step_record_classes, make_record_type_resolver
+from veupathdb_mcp.wdk import MissingWDKStepIdError, build_wdk_step_tree
 
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.validate import validate_strategy
 from pathfinder.platform.errors import StrategyCompilationError
 from pathfinder.services.strategies.build import RootResolutionError, resolve_root_step

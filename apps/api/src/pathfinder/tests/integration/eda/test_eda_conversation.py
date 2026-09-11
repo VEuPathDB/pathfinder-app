@@ -45,7 +45,7 @@ from veupathdb.eda import factory
 from veupathdb.eda.client import EdaClient
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 from veupathdb.wdk.factory import get_site
-from veupathdb_mcp.embeddings.study_index import sync_study_index
+from veupathdb_mcp.embeddings import sync_study_index
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState

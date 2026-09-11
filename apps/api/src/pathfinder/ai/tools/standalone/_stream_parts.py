@@ -10,8 +10,6 @@ from pydantic_ai.ui.vercel_ai.response_types import (
     DataChunk,
 )
 from veupathdb.domain.strategy.graph_model import wdk_search_name
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
-from veupathdb.domain.strategy.types import SyncStateProtocol
 
 from pathfinder.ai.stream_part_payloads import (
     GeneSet,
@@ -23,6 +21,8 @@ from pathfinder.ai.stream_part_payloads import (
     StrategyLink,
     StrategyMeta,
 )
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.types import SyncStateProtocol
 
 # --- Operator coercion -----------------------------------------------------
 

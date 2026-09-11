@@ -15,11 +15,11 @@ from veupathdb.domain.parameters.values import NumberValue, SinglePickValue
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 from veupathdb.wdk.strategy_api import StrategyAPI
 from veupathdb.wdk.wdk_models import WDKStrategyDetails
 
 from pathfinder.ai.lead.live_state import read_live_state
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import live_counts
 from pathfinder.services.strategies.sync_state import WDKSyncState
 

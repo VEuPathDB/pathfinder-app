@@ -57,10 +57,10 @@ constraint-dependencies = [
     "soupsieve>=2.8.4",  # PYSEC-2026-3071, PYSEC-2026-3072
 ]
 [tool.uv.sources]
-assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0a4" }
-veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a6" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0a2" }
-veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0a4" }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0a5" }
+veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a7" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0a4" }
+veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0a5" }
 
 [build-system]
 requires = ["hatchling"]
@@ -314,14 +314,17 @@ forbidden_modules = [
 ]
 
 
-# A distribution's public surface is what its package exports. A module whose
-# name starts with an underscore is that distribution's own business: it may be
-# renamed or deleted in any release, and this application pins each library by
-# tag, so an import of one turns a library refactor into an outage here. The
-# list is explicit because import-linter matches whole segments only; a new
-# private module in a library is added here in the release that takes it.
+# A distribution's public surface is what its package exports. A private module
+# and a module behind a package surface are both that distribution's own
+# business: either may be renamed or deleted in any release, and this
+# application pins each library by tag, so an import of one turns a library
+# refactor into an outage here. The tool server publishes every name it means a
+# host to read on one of its packages, so every module of it that is not one of
+# those packages is named below. The list is explicit because import-linter
+# matches whole segments only; a module a library adds is named here in the
+# release that takes it.
 [[tool.importlinter.contracts]]
-name = "The application imports no private module of an installed distribution"
+name = "The application imports no module a distribution does not publish"
 type = "forbidden"
 as_packages = true
 allow_indirect_imports = true
@@ -333,18 +336,144 @@ forbidden_modules = [
     "veupathdb.wdk._http",
     "veupathdb.wdk._observability",
     "veupathdb.wdk._searches",
-    "veupathdb.domain.strategy.operations._delete",
-    "veupathdb.domain.strategy.operations._graph_edit",
-    "veupathdb_mcp.catalog._param_binding",
-    "veupathdb_mcp.catalog._param_filters",
-    "veupathdb_mcp.catalog._param_validation_errors",
-    "veupathdb_mcp.research.literature.clients._base",
     "assistant_core.conversation._chunk_handlers",
     "assistant_core.conversation._chunk_state",
     "assistant_core.persistence.repositories._message_metadata",
+    "veupathdb_mcp.__main__",
+    "veupathdb_mcp.auth",
+    "veupathdb_mcp.catalog._param_binding",
+    "veupathdb_mcp.catalog._param_filters",
+    "veupathdb_mcp.catalog._param_validation_errors",
+    "veupathdb_mcp.catalog.catalog_metadata",
+    "veupathdb_mcp.catalog.discovery",
+    "veupathdb_mcp.catalog.discovery_service",
+    "veupathdb_mcp.catalog.disk_cache",
+    "veupathdb_mcp.catalog.eda_backed",
+    "veupathdb_mcp.catalog.models",
+    "veupathdb_mcp.catalog.overview_formatting",
+    "veupathdb_mcp.catalog.param_adapters",
+    "veupathdb_mcp.catalog.param_dag",
+    "veupathdb_mcp.catalog.param_discovery",
+    "veupathdb_mcp.catalog.param_formatting",
+    "veupathdb_mcp.catalog.param_intent",
+    "veupathdb_mcp.catalog.param_phyletic",
+    "veupathdb_mcp.catalog.param_resolution",
+    "veupathdb_mcp.catalog.param_sheet",
+    "veupathdb_mcp.catalog.param_specs_formatting",
+    "veupathdb_mcp.catalog.param_validation",
+    "veupathdb_mcp.catalog.parameters",
+    "veupathdb_mcp.catalog.public_strategy_search",
+    "veupathdb_mcp.catalog.radio_pairs",
+    "veupathdb_mcp.catalog.record_type_resolution",
+    "veupathdb_mcp.catalog.scoring",
+    "veupathdb_mcp.catalog.search_collection",
+    "veupathdb_mcp.catalog.search_context",
+    "veupathdb_mcp.catalog.search_inspection",
+    "veupathdb_mcp.catalog.searches",
+    "veupathdb_mcp.catalog.semantic_matching",
+    "veupathdb_mcp.catalog.sites",
+    "veupathdb_mcp.catalog.validation_callbacks",
+    "veupathdb_mcp.catalog.vocab_rendering",
+    "veupathdb_mcp.catalog.wdk_substitution",
+    "veupathdb_mcp.controls.control_helpers",
+    "veupathdb_mcp.controls.control_tests",
+    "veupathdb_mcp.controls.control_types",
+    "veupathdb_mcp.embeddings.db",
+    "veupathdb_mcp.embeddings.embedder",
+    "veupathdb_mcp.embeddings.errors",
+    "veupathdb_mcp.embeddings.fake",
+    "veupathdb_mcp.embeddings.openai_embedder",
+    "veupathdb_mcp.embeddings.record_manager",
+    "veupathdb_mcp.embeddings.semantic_index",
+    "veupathdb_mcp.embeddings.settings",
+    "veupathdb_mcp.embeddings.study_index",
+    "veupathdb_mcp.embeddings.tables",
+    "veupathdb_mcp.gene_lookup.hydrate",
+    "veupathdb_mcp.gene_lookup.lookup",
+    "veupathdb_mcp.gene_lookup.organism",
+    "veupathdb_mcp.gene_lookup.organisms",
+    "veupathdb_mcp.gene_lookup.rerank",
+    "veupathdb_mcp.gene_lookup.result",
+    "veupathdb_mcp.gene_lookup.scoring",
+    "veupathdb_mcp.gene_lookup.site_search",
+    "veupathdb_mcp.gene_lookup.wdk",
+    "veupathdb_mcp.identity",
+    "veupathdb_mcp.locks",
+    "veupathdb_mcp.logging_setup",
+    "veupathdb_mcp.metadata",
+    "veupathdb_mcp.research.__main__",
+    "veupathdb_mcp.research.auth",
+    "veupathdb_mcp.research.citations",
+    "veupathdb_mcp.research.literature",
+    "veupathdb_mcp.research.literature.clients",
+    "veupathdb_mcp.research.literature.clients._base",
+    "veupathdb_mcp.research.literature.clients.arxiv",
+    "veupathdb_mcp.research.literature.clients.crossref",
+    "veupathdb_mcp.research.literature.clients.europepmc",
+    "veupathdb_mcp.research.literature.clients.openalex",
+    "veupathdb_mcp.research.literature.clients.preprint",
+    "veupathdb_mcp.research.literature.clients.pubmed",
+    "veupathdb_mcp.research.literature.clients.semanticscholar",
+    "veupathdb_mcp.research.literature.papers",
+    "veupathdb_mcp.research.literature.processing",
+    "veupathdb_mcp.research.literature.search",
+    "veupathdb_mcp.research.metadata",
+    "veupathdb_mcp.research.models",
+    "veupathdb_mcp.research.server",
+    "veupathdb_mcp.research.settings",
+    "veupathdb_mcp.research.text",
+    "veupathdb_mcp.research.tools",
+    "veupathdb_mcp.research.web",
+    "veupathdb_mcp.research.web.search",
+    "veupathdb_mcp.service_tokens",
+    "veupathdb_mcp.settings",
+    "veupathdb_mcp.tool_errors",
+    "veupathdb_mcp.tools.catalog_tools",
+    "veupathdb_mcp.tools.user_tools",
+    "veupathdb_mcp.wdk.ai_expression",
+    "veupathdb_mcp.wdk.enrichment.gene_ids",
+    "veupathdb_mcp.wdk.enrichment.html",
+    "veupathdb_mcp.wdk.enrichment.parser",
+    "veupathdb_mcp.wdk.enrichment.ranking",
+    "veupathdb_mcp.wdk.enrichment.service",
+    "veupathdb_mcp.wdk.enrichment.types",
+    "veupathdb_mcp.wdk.gene_set_steps",
+    "veupathdb_mcp.wdk.helpers",
+    "veupathdb_mcp.wdk.params",
+    "veupathdb_mcp.wdk.plan_counts",
+    "veupathdb_mcp.wdk.record_types",
+    "veupathdb_mcp.wdk.step_preview",
+    "veupathdb_mcp.wdk.step_results",
+    "veupathdb_mcp.wdk.step_results_models",
+    "veupathdb_mcp.wdk.step_size",
+    "veupathdb_mcp.wdk.step_tree",
 ]
 # Cleared as each library publishes the name the test needs. An exception that
-# no longer matches fails this gate, so a stale line cannot survive.
+# no longer matches fails this gate, so a stale line cannot survive. Two shapes
+# stand here: a test that patches an attribute of a library module needs the
+# module object, and `catalog.radio_pairs` is a function whose name is also a
+# module, so the package attribute reads as the deep module to the checker.
 ignore_imports = [
     "pathfinder.tests.unit.ai.capabilities.test_wdk_failure_classification -> veupathdb.wdk._failures",
+    "pathfinder.ai.tools.standalone._frame_proposals -> veupathdb_mcp.catalog.radio_pairs",
+    # The one test-support seam: serve_search_details patches validate_parameters
+    # through its own module globals, which the package surface cannot reach.
+    "pathfinder.tests._support.catalog_builders -> veupathdb_mcp.catalog.param_validation",
+    "pathfinder.tests.integration.ai.test_organism_swap_turn -> veupathdb_mcp.catalog.param_discovery",
+    "pathfinder.tests.integration.ai.test_organism_swap_turn -> veupathdb_mcp.catalog.searches",
+    "pathfinder.tests.integration.durable.test_geneset_enrichment_durable -> veupathdb_mcp.wdk.enrichment.service",
+    "pathfinder.tests.unit.ai.tools.conftest -> veupathdb_mcp.catalog.search_inspection",
+    "pathfinder.tests.unit.ai.tools.test_ai_expression_tool -> veupathdb_mcp.wdk.ai_expression",
+    "pathfinder.tests.unit.ai.tools.test_catalog -> veupathdb_mcp.catalog.searches",
+    "pathfinder.tests.unit.ai.tools.test_catalog_discovery -> veupathdb_mcp.catalog.search_inspection",
+    "pathfinder.tests.unit.ai.tools.test_catalog_discovery -> veupathdb_mcp.catalog.searches",
+    "pathfinder.tests.unit.ai.tools.test_catalog_discovery_gate -> veupathdb_mcp.catalog.search_inspection",
+    "pathfinder.tests.unit.ai.tools.test_catalog_discovery_gate -> veupathdb_mcp.catalog.searches",
+    "pathfinder.tests.unit.ai.tools.test_catalog_discovery_options -> veupathdb_mcp.catalog.search_inspection",
+    "pathfinder.tests.unit.ai.tools.test_frame_spec -> veupathdb_mcp.catalog.search_inspection",
+    "pathfinder.tests.unit.ai.tools.test_frame_spec -> veupathdb_mcp.catalog.searches",
+    "pathfinder.tests.unit.ai.tools.test_frame_spec_defaults -> veupathdb_mcp.catalog.searches",
+    "pathfinder.tests.unit.ai.tools.test_frame_spec_params -> veupathdb_mcp.catalog.param_discovery",
+    "pathfinder.tests.unit.ai.tools.test_public_strategy_search -> veupathdb_mcp.tools.catalog_tools",
+    "pathfinder.tests.unit.platform.test_embedder_copies_agree -> veupathdb_mcp.embeddings.embedder",
 ]

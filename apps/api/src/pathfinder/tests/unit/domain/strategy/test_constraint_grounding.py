@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.strategy.constraints import (
+from veupathdb.domain.strategy.ops import CombineOp
+
+from pathfinder.domain.strategy.constraint_grounding import ground_constraints
+from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
@@ -10,14 +13,11 @@ from veupathdb.domain.strategy.constraints import (
     GroundedConstraint,
     is_blocking,
 )
-from veupathdb.domain.strategy.operational_spec import (
+from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     SpecStructure,
     StructureNode,
 )
-from veupathdb.domain.strategy.ops import CombineOp
-
-from pathfinder.domain.strategy.constraint_grounding import ground_constraints
 
 # The realized facts of a single microarray fold-change leaf.
 _MICROARRAY_SEARCH = (

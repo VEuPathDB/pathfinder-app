@@ -5,7 +5,7 @@ from typing import Literal, cast
 
 from fastapi import APIRouter, Query, Request
 from veupathdb.errors import ValidationError
-from veupathdb_mcp.wdk.gene_set_steps import GeneSetWdkContext
+from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.platform.security import limiter
 from pathfinder.services.export import get_export_service

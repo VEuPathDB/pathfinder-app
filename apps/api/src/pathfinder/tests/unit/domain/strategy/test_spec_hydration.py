@@ -12,14 +12,14 @@ from veupathdb.domain.parameters.values import (
     StringValue,
 )
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.operational_spec import (
-    OperationalSpec,
-    build_step_tree,
-)
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.domain.strategy.tree import walk
 
+from pathfinder.domain.strategy.operational_spec import (
+    OperationalSpec,
+    build_step_tree,
+)
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 
 

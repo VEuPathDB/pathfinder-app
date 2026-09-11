@@ -10,7 +10,7 @@ import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.eda.client import EdaClient
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
-from veupathdb_mcp.embeddings.study_index import sync_study_index
+from veupathdb_mcp.embeddings import sync_study_index
 
 from pathfinder.services.eda import catalog
 

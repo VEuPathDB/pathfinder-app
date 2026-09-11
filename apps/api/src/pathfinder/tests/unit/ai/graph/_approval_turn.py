@@ -21,8 +21,6 @@ from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 from pydantic_ai.toolsets import FunctionToolset
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy.build_outcome import BuildOutcome
-from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
@@ -34,6 +32,8 @@ from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.toolsets import verification
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 
 OPTIMIZE_ARGS: dict[str, Any] = {

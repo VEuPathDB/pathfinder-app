@@ -9,12 +9,17 @@ from uuid import uuid4
 import pytest
 from assistant_core.platform.db import AsyncSession
 from assistant_core.tasks.progress import TaskProgressEmitter
-from veupathdb.domain.strategy.session import StrategySession
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
 from veupathdb.wdk.wdk_models import WDKSearchConfig, WDKStep
+from veupathdb_mcp.controls import (
+    ControlSetData,
+    ControlTargetData,
+    ControlTestResult,
+)
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.graph.runtime import Context
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.jobs.impls import control_tests_impl
 from pathfinder.jobs.impls.control_tests_impl import run_control_tests_on_step_impl
 from pathfinder.services.experiment.published_names import PublishedNames
@@ -81,14 +86,17 @@ def _measured(monkeypatch: pytest.MonkeyPatch) -> None:
         wdk_step_id: int,
         positive_controls: list[str] | None = None,
         negative_controls: list[str] | None = None,
-    ) -> ControlOutcome:
+    ) -> ControlTestResult:
         del site_id, negative_controls
-        return ControlOutcome(
-            step_id=wdk_step_id,
-            estimated_size=132,
-            positive_intersection=2,
-            positive_controls_count=len(positive_controls or []),
-            positive_recall=2 / 3,
+        return ControlTestResult(
+            site_id="plasmodb",
+            record_type="transcript",
+            target=ControlTargetData(step_id=wdk_step_id, estimated_size=132),
+            positive=ControlSetData(
+                controls_count=len(positive_controls or []),
+                intersection_count=2,
+                recall=2 / 3,
+            ),
         )
 
     async def no_export(outcome: ControlOutcome, name: str) -> ControlOutcome:

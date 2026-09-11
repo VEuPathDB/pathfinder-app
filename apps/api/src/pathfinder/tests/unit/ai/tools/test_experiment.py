@@ -8,11 +8,7 @@ from uuid import UUID
 
 import pytest
 from veupathdb.domain.parameters.values import StringValue
-from veupathdb_mcp.controls.control_types import (
-    ControlSetData,
-    ControlTargetData,
-    ControlTestResult,
-)
+from veupathdb_mcp.controls import ControlSetData, ControlTargetData, ControlTestResult
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.tools.standalone import experiment

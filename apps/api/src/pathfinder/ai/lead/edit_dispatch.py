@@ -11,11 +11,6 @@ from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy.build_outcome import BuildOutcome
-from veupathdb.domain.strategy.operational_spec import OperationalSpec
-from veupathdb.domain.strategy.operations.apply import ApplyError
-from veupathdb.domain.strategy.session import StrategyGraph
-from veupathdb.domain.strategy.spec_diff import SpecDiff, diff_specs
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import EditDelta
@@ -36,7 +31,12 @@ from pathfinder.ai.lead.frame_dispatch import run_frame
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._stream_parts import graph_snapshot_chunk
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
+from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.spec_to_operations import (
     UnsupportedEditError,
     operations_for,

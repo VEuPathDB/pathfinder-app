@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 
 from pathfinder.ai.tools.standalone._graph_helpers import build_context_strategy_ast
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests.fixtures.builders import add_step_to_graph
 

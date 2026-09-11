@@ -24,7 +24,6 @@ from veupathdb.domain.strategy.graph_model import (
     record_class_of,
 )
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.wdk.wdk_models import (
     CombinedStepSpec,
     NewStepSpec,
@@ -32,12 +31,13 @@ from veupathdb.wdk.wdk_models import (
     WDKSearchConfig,
     WDKStep,
 )
-from veupathdb_mcp.catalog.param_validation import (
+from veupathdb_mcp.catalog import (
     ValidatedParams,
     ValidationCallbacks,
+    assign_step_record_classes,
 )
-from veupathdb_mcp.catalog.searches import assign_step_record_classes
 
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies import step_wdk_push
 from pathfinder.services.strategies.step_push_planner import CreateAction, StepPushPlan
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan

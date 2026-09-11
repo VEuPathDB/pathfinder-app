@@ -6,10 +6,7 @@ import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters.value_codec import to_wire
 from veupathdb.domain.parameters.wdk_vocab import VocabOption
-from veupathdb_mcp.catalog import param_discovery
-from veupathdb_mcp.catalog.param_formatting import (
-    ParameterInfo,
-)
+from veupathdb_mcp.catalog import ParameterInfo, param_discovery
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone import frame_spec

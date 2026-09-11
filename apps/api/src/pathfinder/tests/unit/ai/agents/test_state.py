@@ -7,16 +7,16 @@ from veupathdb.domain.parameters.values import (
     ParamValue,
     SinglePickValue,
 )
-from veupathdb.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.ops import CombineOp
+
+from pathfinder.ai.agents.state import AgentToolState, SearchOverview
+from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
     OperationalSpec,
     SpecStructure,
     StructureNode,
 )
-from veupathdb.domain.strategy.ops import CombineOp
-
-from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 
 
 def _ov(

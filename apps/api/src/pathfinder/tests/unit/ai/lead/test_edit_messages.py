@@ -7,15 +7,15 @@ over them, so it re-frames the goal instead of rewiring the strategy.
 from __future__ import annotations
 
 from veupathdb.domain.parameters.values import MultiPickValue
-from veupathdb.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.ops import CombineOp
+
+from pathfinder.ai.lead.edit_messages import edit_work_order, unsupported_edit_message
+from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SpecStructure,
     StructureNode,
 )
-from veupathdb.domain.strategy.ops import CombineOp
-
-from pathfinder.ai.lead.edit_messages import edit_work_order, unsupported_edit_message
 
 
 def _spec() -> OperationalSpec:

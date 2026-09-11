@@ -17,11 +17,11 @@ from veupathdb.eda.models import (
 )
 from veupathdb.errors import WDKLoginRequiredError
 from veupathdb.wdk.site_router import get_site_router
-from veupathdb_mcp.embeddings.errors import SemanticIndexUnavailableError
-from veupathdb_mcp.embeddings.record_manager import SyncReport
-from veupathdb_mcp.embeddings.semantic_index import strip_markup
-from veupathdb_mcp.embeddings.study_index import (
+from veupathdb_mcp.embeddings import (
+    SemanticIndexUnavailableError,
+    SyncReport,
     search_study_index,
+    strip_markup,
     study_index_is_built,
     sync_study_index,
 )

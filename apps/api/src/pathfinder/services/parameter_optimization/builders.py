@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from veupathdb_mcp.controls.control_types import ControlTestResult
+from veupathdb_mcp.controls import ControlTestResult
 
 
 @dataclass(frozen=True, slots=True)

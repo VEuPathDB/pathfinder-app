@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The client library is a distribution, so PathFinder cannot reach into it
-description: pathfinder/{veupathdb, integrations/veupathdb, integrations/eda} and the WDK-shaped half of domain/ moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, knowledge bundle and CI lane, consumed by repository URL at a commit; import-linter contracts 1 and 4 were deleted and replaced by the package's dependency list plus its own boundary suite. Keeping the client in-repo behind import contracts was rejected, because the owner is publishing the folder as its own GitHub repository.
+description: pathfinder/{veupathdb, integrations/veupathdb, integrations/eda} and the WDK-shaped half of domain/ moved out of apps/api into a repository of its own with its own pyproject, lock, tests, README, knowledge bundle and CI lane, consumed by repository URL at a tag; import-linter contracts 1 and 4 were deleted and replaced by the package's dependency list plus its own boundary suite. Keeping the client in-repo behind import contracts was rejected, because the owner is publishing the folder as its own GitHub repository. The authoring model the client carried at first came back to this application at v0.1.0a7.
 tags: [veupathdb-py, split, architecture, packaging, import-linter, wdk, eda]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
@@ -56,16 +56,26 @@ distribution](the-mcp-server-is-a-distribution.md), which deleted the empty
 the four `ignore_imports` that named `wdk_models`: a third-party module needs no
 exemption.
 
-# The accepted risk: the authoring model ships in the client
+# The authoring model came back
 
-`veupathdb.domain.strategy` carries PathFinder's authoring model, not WDK's:
-`operational_spec.py`, `constraints.py`, `spec_diff.py`, `session.py` and
-`combination_check.py`. They ship here because `veupathdb.wdk` imports them, measured
-as 12 edges into `ast`, 10 into `ops`, 8 into `tree`, 7 into `graph_model`, 5 into
-`session` and 5 into `operational_spec`. A second consumer of `veupathdb-py` would find
-them puzzling. The cost of cutting them out is that `veupathdb/wdk/**` must stop naming
-them, which is a refactor of the client's own call sites and not a folder move; it is
-[a backlog card](../backlog/re-cut-the-authoring-model-out-of-veupathdb-py.md).
+The client shipped PathFinder's authoring model for one release line, because
+`veupathdb.wdk` named it. At `v0.1.0a7` it left: `operational_spec.py`,
+`constraints.py`, `spec_diff.py`, `session.py`, `combination_check.py`,
+`build_outcome.py`, `operations/`, `types.py`, the step lifecycle
+(`StepStatus` and `step_status`) and `PersistedStrategyGraph` are all in this
+application. `pathfinder.domain.strategy` holds the first eight and the
+lifecycle; `pathfinder.persistence.models` holds the stored container.
+
+What stays in `veupathdb.domain.strategy` is seven WDK shapes: `ast`,
+`graph_model`, `tree`, `ops`, `validation`, `strategy_ast` and `organism`. The
+client's own gate test names every departed module, so a returning one fails
+there rather than here. The rule that governs a new module in that package is
+the client's `only-a-wdk-shape-enters-the-strategy-package`.
+
+The one name that split rather than moved is the unbound parameter. WDK states
+a parameter with no bound value, so `veupathdb.domain.parameters.unbound`
+holds `UnboundParameter`; the criterion that carries it is this application's,
+so `OpenSlot` subclasses it here with `criterion_id`.
 
 # What was rejected
 

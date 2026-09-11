@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.operations import DeleteResolution
-from veupathdb.domain.strategy.operations.resolutions import compute_delete_choices
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph
+
+from pathfinder.domain.strategy.operations import DeleteResolution
+from pathfinder.domain.strategy.operations.resolutions import compute_delete_choices
+from pathfinder.domain.strategy.session import StrategyGraph
 
 from ._builders import graph_with, leaf
 

@@ -6,7 +6,7 @@ say so and a probability that is not computable must stay blank.
 
 from __future__ import annotations
 
-from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult, EnrichmentTerm
+from veupathdb_mcp.wdk.enrichment import EnrichmentResult, EnrichmentTerm
 
 from pathfinder.services.export.service import enrichment_rows
 

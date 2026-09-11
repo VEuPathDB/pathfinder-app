@@ -10,7 +10,7 @@ from veupathdb.eda.models import (
     EdaVolcanoConfiguration,
     EdaVolcanoDescriptor,
 )
-from veupathdb_mcp.catalog.eda_backed import EdaStepRequest
+from veupathdb_mcp.catalog import EdaStepRequest
 
 from pathfinder.domain.eda_parts import EdaEffectDirection
 from pathfinder.services.eda.authoring import serialize_spec

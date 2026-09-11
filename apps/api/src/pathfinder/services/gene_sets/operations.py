@@ -9,18 +9,18 @@ from veupathdb.errors import ValidationError
 from veupathdb.wdk.factory import (
     get_strategy_api,
 )
-from veupathdb_mcp.wdk.enrichment.service import EnrichmentService
-from veupathdb_mcp.wdk.enrichment.types import (
-    EnrichmentAnalysisType,
-    EnrichmentResult,
-)
-from veupathdb_mcp.wdk.gene_set_steps import (
+from veupathdb_mcp.wdk import (
     GeneSetWdkContext,
+    StepResultsService,
     build_enrichment_params_from_gene_ids,
     frozen_step_id,
     resolve_wdk_context,
 )
-from veupathdb_mcp.wdk.step_results import StepResultsService
+from veupathdb_mcp.wdk.enrichment import (
+    EnrichmentAnalysisType,
+    EnrichmentResult,
+    EnrichmentService,
+)
 
 from pathfinder.platform.errors import InternalError, NotFoundError
 from pathfinder.platform.identity import (

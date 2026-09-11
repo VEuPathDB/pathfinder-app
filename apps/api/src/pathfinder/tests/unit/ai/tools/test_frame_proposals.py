@@ -15,8 +15,9 @@ from veupathdb.wdk.wdk_parameters import (
     WDKParameter,
     WDKStringParam,
 )
-from veupathdb_mcp.catalog.param_dag import ResolvedParams, UnknownParameterError
-from veupathdb_mcp.catalog.param_formatting import (
+from veupathdb_mcp.catalog import (
+    ResolvedParams,
+    UnknownParameterError,
     format_param_info_typed,
 )
 

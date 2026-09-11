@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from veupathdb_mcp.catalog.eda_backed import COMPUTE_QUERY, SUBSET_QUERY
+from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.services.eda.steps import eda_search_name
 

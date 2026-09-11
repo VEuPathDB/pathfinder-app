@@ -9,10 +9,10 @@ from veupathdb.wdk.strategy_api import (
     tag_internal_wdk_strategy_name,
 )
 from veupathdb.wdk.wdk_models import WDKStrategySummary
-from veupathdb_mcp.controls.control_helpers import (
+from veupathdb_mcp.controls import (
+    IntersectionConfig,
     cleanup_internal_control_test_strategies,
 )
-from veupathdb_mcp.controls.control_types import IntersectionConfig
 
 from pathfinder.platform.identity import (
     CONTROL_TEST_STRATEGY_NAME,

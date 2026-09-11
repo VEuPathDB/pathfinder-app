@@ -17,7 +17,7 @@ from assistant_core.platform.db import async_session_factory
 from pydantic import TypeAdapter
 from sqlalchemy import select
 from veupathdb.domain.parameters.values import ParamValue
-from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult
+from veupathdb_mcp.wdk.enrichment import EnrichmentResult
 
 from pathfinder.persistence.models import GeneSetRow
 from pathfinder.platform.store import WriteThruStore

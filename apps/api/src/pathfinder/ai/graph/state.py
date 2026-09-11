@@ -9,12 +9,6 @@ from assistant_core.graph.turn_state import TurnState
 from assistant_core.memory.schemas import MemoryEntryDraft
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field
-from veupathdb.domain.strategy.build_outcome import (
-    BuildOutcome,
-)
-from veupathdb.domain.strategy.combination_check import combination_terms_overlap
-from veupathdb.domain.strategy.constraints import Constraint, ConstraintKind
-from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.lead.intent import (
@@ -23,6 +17,12 @@ from pathfinder.ai.lead.intent import (
     UserIntent,
 )
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
+from pathfinder.domain.strategy.build_outcome import (
+    BuildOutcome,
+)
+from pathfinder.domain.strategy.combination_check import combination_terms_overlap
+from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.staleness import StaleBuild
 
 PhaseName = Literal[

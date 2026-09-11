@@ -18,7 +18,7 @@ from veupathdb.wdk.analysis_result import (
 )
 from veupathdb.wdk.client import VEuPathDBClient
 from veupathdb.wdk.wdk_models import WDKFilterValue
-from veupathdb_mcp.wdk.enrichment.types import EnrichmentResult
+from veupathdb_mcp.wdk.enrichment import EnrichmentResult
 
 from pathfinder.platform.errors import ErrorCode
 

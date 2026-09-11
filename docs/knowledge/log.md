@@ -2,6 +2,25 @@
 
 ## 2026-09-10
 
+* **A criterion that binds an option on another criterion's search has no step,
+  and no refusal may ask it for one.** A framed spec stated three criteria and
+  a structure over two of them; the build minted two leaf steps, and the third
+  criterion, which names a parameter option on one of those searches, kept its
+  framing id. `edit_strategy` then refused three times with "criterion
+  'gametocyte_timecourse_option' names no step in the strategy" and the turn
+  ended as `UnexpectedModelBehavior`, because the edit path and the leaf-set
+  invariant both measured the graph against every criterion. The refusal
+  predates the shared invariant: the code at `95503633` refuses the same shape
+  with the same words. `stated_shape.py::criteria_with_steps` now states which
+  criteria answer to a step, and the edit path plans no change and no delete
+  for a criterion that has none. The same rule re-arms the subtree guard, which
+  one such criterion used to disarm for the rest of the thread. The two write
+  paths read the rule against the step ids the graph holds once the batch
+  applies, so an edit that adds a filter and changes an existing step is no
+  longer refused for adding a step the spec was about to state.
+
+* **A tool past its retry ceiling is answered, not removed, and the tool server publishes the search-details resolver.** `ToolResilience` used to drop a tool's `ToolDefinition` once its retry count reached the threshold, so the call the model had already chosen resolved against the filtered list, raised `Unknown tool name` at the retry maximum, and ended the turn as `UnexpectedModelBehavior`; a 14.5 minute DNS failure inside the compose network ended two turns that way, one after 240.322 s of work. The filter is gone and `on_tool_execute_error` returns `_outage_directive` on the call at the ceiling, naming the search when the call carries one and the tool when it does not, so the model reads a sentence and picks another search. Recorded as `decisions/a-tool-past-its-retry-ceiling-is-answered-not-removed.md`. Separately, `veupathdb-mcp` moves to v0.2.0a4, which publishes `resolve_search_details` on `veupathdb_mcp.catalog`: the four test seams that patched the private name now go through one helper, `tests/_support/catalog_builders.py::serve_search_details`, and the sixth layering contract holds 20 ignored imports instead of 22.
+
 * **Every subtree write holds the leaf-set invariant, not just the edit path.**
   `replace_subtree` applied whatever tree the model sent once the step id
   existed, so a recovery pass replaced a seven-step kinase branch with four
@@ -211,6 +230,42 @@
   metadata. `absorb_sub_agent_usage` now adds each pass into the dispatch's
   `SubAgentCallUsage`, and a pass that continues one reads that total as its
   baseline, so the running card never drops either.
+
+* **The authoring model came home.** `veupathdb-py` v0.1.0a7 keeps seven WDK
+  shapes in `veupathdb.domain.strategy` and nothing else. The strategy session,
+  the fifteen edit operations, the spec, the constraints, the spec diff, the
+  combination check, the build outcome, the sync-state protocol and the step
+  lifecycle now live in `pathfinder/domain/strategy/`, with their 117 tests
+  beside the eight modules already there; the stored container
+  `PersistedStrategyGraph` sits in `pathfinder/persistence/models.py`, which is
+  where the row it parses is read. `OpenSlot` split: WDK states a parameter
+  with no bound value, so `veupathdb.domain.parameters.unbound.UnboundParameter`
+  carries the name, the question and the options, and the criterion that holds
+  it stays here as a subclass. `docs/knowledge/decisions/the-client-library-is-a-distribution.md`
+  states the outcome in place of the accepted risk, and `step-status-is-derived.md`
+  names the module the derivation now lives in.
+
+* **The tool server publishes what a host reads, so this application stopped
+  naming its files.** `veupathdb-mcp` v0.2.0a3 declares thirteen surfaces over
+  268 names, and every import here reads a name from the package that publishes
+  it. `run_step_control_tests` returns a `ControlTestResult`, so the worker
+  reads the two control sets by name and validates a `ControlOutcome` out of it
+  for the export; `summarize_intersection` replaced a private helper a service
+  had been reading; `intersection_ids` is None when a control set is over the
+  answer-page limit, which is a state, not an empty list, so the four gene
+  lists read it as one; the autogenerate filter reads `OWNED_TABLES` and
+  `VERSION_TABLE` from `veupathdb_mcp.migrate` instead of a retyped literal and
+  a metadata spread. The sixth import-linter contract now names every deep
+  module of the tool server, so a file-path import fails `lint-imports` rather
+  than a release.
+
+* **A cross-repository citation resolves or fails.** `scripts/check-knowledge.mjs`
+  is the shared copy that reads a `repository: path` citation against the
+  sibling checkout: present and resolving is silent, present and missing is a
+  failure, absent is unverified and never a failure, so CI still passes with no
+  siblings. Three citations here were prose, not paths: a deleted acceptance
+  tree, a test that moved into this repository with the spec it covers, and the
+  citation form quoted as an example.
 
 ## 2026-09-09
 
@@ -748,7 +803,8 @@
   cases that read the document from a sibling folder are green from the installed
   distribution and the api unit suite is 3236 passed, 0 failed. Every path that named a
   folder was already gone; what remained and stayed is the bundle's citation form
-  (`assistant-platform: packages/assistant-core/...`), the dated entries above, and the
+  (the `assistant-platform` prefix over a path inside that repository), the dated
+  entries above, and the
   two `subdirectory` values in `[tool.uv.sources]`, which name a path inside the platform
   repository and not a folder here.
 

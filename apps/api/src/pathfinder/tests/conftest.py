@@ -43,14 +43,12 @@ os.environ.setdefault("OPENAI_API_KEY", "")
 os.environ.setdefault("ANTHROPIC_API_KEY", "")
 os.environ.setdefault("GEMINI_API_KEY", "")
 
-import assistant_core.embeddings.embedder
 import httpx
 import procrastinate
 import psycopg
 import pydantic_ai.models
 import pytest
 import structlog
-import veupathdb_mcp.embeddings.embedder
 from assistant_core.conversation.checkpointer import to_psycopg_url
 from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.memory.store import MemoryStore
@@ -75,11 +73,12 @@ from veupathdb.testing.wdk_credentials import (
 )
 from veupathdb.wdk import auth_login
 from veupathdb.wdk.site_router import get_site_router
-from veupathdb_mcp.catalog.discovery_service import _discovery_holder
-from veupathdb_mcp.embeddings.db import use_embedding_session_factory
-from veupathdb_mcp.embeddings.embedder import get_embedder
-from veupathdb_mcp.embeddings.fake import FakeEmbedder
-from veupathdb_mcp.embeddings.tables import EmbeddingBase
+from veupathdb_mcp.embeddings import (
+    EmbeddingBase,
+    FakeEmbedder,
+    get_embedder,
+    use_embedding_session_factory,
+)
 
 from pathfinder.ai.capabilities.security import warm_up_scanner
 from pathfinder.ai.conversation.assistant_routing import resolve_turn_assistant
@@ -272,15 +271,11 @@ def _restored_logger_config() -> Generator[None]:
 
 
 @pytest.fixture(autouse=True)
-def fake_embedder() -> Generator[FakeEmbedder]:
-    """A fresh deterministic embedder, so one test never reads another's calls."""
-    assistant_core.embeddings.embedder._holder.instance = None
-    veupathdb_mcp.embeddings.embedder._holder.instance = None
+def fake_embedder() -> FakeEmbedder:
+    """The embedder in force is the deterministic fake, never a live API."""
     built = get_embedder()
     assert isinstance(built, FakeEmbedder)
-    yield built
-    assistant_core.embeddings.embedder._holder.instance = None
-    veupathdb_mcp.embeddings.embedder._holder.instance = None
+    return built
 
 
 @pytest.fixture
@@ -465,12 +460,10 @@ def require_wdk_creds(wdk_registered_token: str | None) -> str:
 
 @pytest.fixture(autouse=True)
 async def _close_wdk_clients_after_test() -> AsyncGenerator[None]:
-    """Closes the shared WDK clients and clears the discovery cache after a test.
+    """Closes the shared WDK clients after a test.
 
-    Both are process-wide caches, so a test must not inherit them.
+    The clients are process-wide, so a test must not inherit an open one.
     """
-    _discovery_holder.clear()
-
     yield
     try:
         router = get_site_router()

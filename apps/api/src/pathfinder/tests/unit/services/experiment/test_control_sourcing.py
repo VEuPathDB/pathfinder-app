@@ -9,8 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from veupathdb_mcp.gene_lookup.result import GeneResult
-from veupathdb_mcp.gene_lookup.wdk import GeneResolveResult
+from veupathdb_mcp.gene_lookup import GeneResolveResult, GeneResult
 
 from pathfinder.services.experiment import control_sourcing
 from pathfinder.services.experiment.control_sourcing import (

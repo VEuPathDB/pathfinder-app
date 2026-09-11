@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.strategy.operational_spec import Criterion
-
 from pathfinder.ai.lead.ledger_sections import (
     BuildSection,
     ConstraintSection,
@@ -11,6 +9,7 @@ from pathfinder.ai.lead.ledger_sections import (
     VerificationSection,
     render_structure,
 )
+from pathfinder.domain.strategy.operational_spec import Criterion
 
 
 def render_constraints_full(section: ConstraintSection) -> str:

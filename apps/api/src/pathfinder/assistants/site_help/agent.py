@@ -12,8 +12,7 @@ from pydantic_ai.messages import ToolReturn
 from pydantic_ai.models import Model
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets import AbstractToolset
-from veupathdb_mcp.catalog.searches import get_raw_searches
-from veupathdb_mcp.catalog.sites import get_record_types, list_sites
+from veupathdb_mcp.catalog import get_raw_searches, get_record_types, list_sites
 
 from pathfinder.assistants.site_help.mock import build_site_help_mock
 from pathfinder.platform.config import get_settings

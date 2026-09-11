@@ -24,11 +24,11 @@ from assistant_core.persistence.models import (
 from assistant_core.platform import db
 from langgraph.runtime import Runtime
 from sqlalchemy import select, text
-from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph import _lead_turn
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import (
     ConversationStrategy,
     ExperimentRow,

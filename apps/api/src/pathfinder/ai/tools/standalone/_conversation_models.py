@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from assistant_core.platform.pydantic_base import CamelModel
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
+
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 
 
 class RenameStrategyResult(CamelModel):

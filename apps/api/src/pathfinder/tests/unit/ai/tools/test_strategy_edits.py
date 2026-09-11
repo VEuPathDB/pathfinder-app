@@ -7,7 +7,6 @@ from typing import Any
 import pytest
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
-from veupathdb.domain.strategy.operations import DeleteResolution
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.errors import ValidationError
 
@@ -21,6 +20,7 @@ from pathfinder.ai.tools.standalone.strategy_edits import (
     update_leaf_params,
     update_step_metadata,
 )
+from pathfinder.domain.strategy.operations import DeleteResolution
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.sync_state import WDKSyncState
 

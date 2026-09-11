@@ -3,13 +3,11 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from veupathdb_mcp.wdk.step_results import (
-    StepResultsService,
-    step_results_service,
-)
-from veupathdb_mcp.wdk.step_results_models import (
+from veupathdb_mcp.wdk import (
     AttributesResponse,
     RecordDetailResponse,
+    StepResultsService,
+    step_results_service,
 )
 
 from pathfinder.platform.errors import NotFoundError

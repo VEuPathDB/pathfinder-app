@@ -17,8 +17,7 @@ from veupathdb.domain.strategy.ast import (
     StepReport,
 )
 from veupathdb.domain.strategy.graph_model import StrategyStep
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
-from veupathdb_mcp.tool_errors import ToolErrorPayload
+from veupathdb_mcp import ToolErrorPayload
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._graph_helpers import step_ok_response
@@ -27,6 +26,7 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     StepOkResponse,
     get_graph_and_step,
 )
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 
 
 def _step_updated_return(

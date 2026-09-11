@@ -20,6 +20,11 @@ from assistant_core.tasks.runner import run_durable_task
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
+from veupathdb_mcp.controls import (
+    ControlSetData,
+    ControlTargetData,
+    ControlTestResult,
+)
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.assistants import registry
@@ -80,24 +85,22 @@ def failing_second_step(
         wdk_step_id: int,
         positive_controls: list[str] | None = None,
         negative_controls: list[str] | None = None,
-    ) -> ControlOutcome:
+    ) -> ControlTestResult:
         del site_id, negative_controls
         if wdk_step_id == STEP_B:
             msg = "WDK rejected step 440230653"
             raise RuntimeError(msg)
         found = positive_controls or []
-        return ControlOutcome(
-            step_id=wdk_step_id,
-            estimated_size=132,
-            positive_intersection=len(found),
-            positive_controls_count=len(found),
-            positive_recall=1.0,
-            positive_intersection_ids=found,
-            positive_missing_ids=[],
-            negative_intersection=0,
-            negative_controls_count=0,
-            negative_false_positive_rate=None,
-            negative_intersection_ids=[],
+        return ControlTestResult(
+            site_id="plasmodb",
+            record_type="transcript",
+            target=ControlTargetData(step_id=wdk_step_id, estimated_size=132),
+            positive=ControlSetData(
+                controls_count=len(found),
+                intersection_count=len(found),
+                intersection_ids_sample=found,
+                recall=1.0,
+            ),
         )
 
     monkeypatch.setattr(control_tests_impl, "run_step_control_tests", _run_step)
@@ -111,21 +114,23 @@ def controls_wire(monkeypatch: pytest.MonkeyPatch) -> None:
         wdk_step_id: int,
         positive_controls: list[str] | None = None,
         negative_controls: list[str] | None = None,
-    ) -> ControlOutcome:
+    ) -> ControlTestResult:
         del site_id
         found = positive_controls or []
-        return ControlOutcome(
-            step_id=wdk_step_id,
-            estimated_size=132,
-            positive_intersection=len(found),
-            positive_controls_count=len(found),
-            positive_recall=1.0 if found else None,
-            positive_intersection_ids=found,
-            positive_missing_ids=[],
-            negative_intersection=0,
-            negative_controls_count=len(negative_controls or []),
-            negative_false_positive_rate=None,
-            negative_intersection_ids=[],
+        neg = negative_controls or []
+        return ControlTestResult(
+            site_id="plasmodb",
+            record_type="transcript",
+            target=ControlTargetData(step_id=wdk_step_id, estimated_size=132),
+            positive=ControlSetData(
+                controls_count=len(found),
+                intersection_count=len(found),
+                intersection_ids_sample=found,
+                recall=1.0 if found else None,
+            ),
+            negative=ControlSetData(controls_count=len(neg), intersection_count=0)
+            if neg
+            else None,
         )
 
     async def _export(

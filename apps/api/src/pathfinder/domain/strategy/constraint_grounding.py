@@ -6,12 +6,14 @@ import re
 from collections.abc import Collection, Mapping, Sequence
 
 from pydantic import Field
-from veupathdb.domain.strategy.combination_check import (
+from veupathdb.model import CamelModel
+
+from pathfinder.domain.strategy.combination_check import (
     combination_violation,
     match_terms,
     meeting_operator,
 )
-from veupathdb.domain.strategy.constraints import (
+from pathfinder.domain.strategy.constraints import (
     CombinationRequest,
     Constraint,
     ConstraintKind,
@@ -19,8 +21,7 @@ from veupathdb.domain.strategy.constraints import (
     GroundedConstraint,
     PercentileRequest,
 )
-from veupathdb.domain.strategy.operational_spec import Criterion, SpecStructure
-from veupathdb.model import CamelModel
+from pathfinder.domain.strategy.operational_spec import Criterion, SpecStructure
 
 _SIGNIFICANCE_RE = re.compile(
     r"p_?value|p_?adj|fdr|q_?value|significance", re.IGNORECASE

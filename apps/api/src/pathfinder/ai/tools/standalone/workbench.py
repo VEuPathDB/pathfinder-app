@@ -21,10 +21,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
-from veupathdb_mcp.wdk.enrichment.types import (
-    EnrichmentAnalysisType,
-    EnrichmentResult,
-)
+from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType, EnrichmentResult
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.stream_events import enrichment_results_event

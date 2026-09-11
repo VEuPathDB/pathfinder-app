@@ -16,7 +16,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic import ValidationError as PydanticValidationError
 from veupathdb.errors import WDKError
-from veupathdb_mcp.wdk.helpers import extract_record_ids
+from veupathdb_mcp.wdk import extract_record_ids
 
 from pathfinder.services.experiment.service import run_experiment
 from pathfinder.services.experiment.types.experiment import (

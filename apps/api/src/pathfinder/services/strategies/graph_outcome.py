@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Collection, Mapping
 
-from veupathdb.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from veupathdb.domain.strategy.graph_model import wdk_search_name
-from veupathdb.domain.strategy.session import StrategyGraph
 
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies.spec_build import node_results
 from pathfinder.services.strategies.sync_state import WDKSyncState
 

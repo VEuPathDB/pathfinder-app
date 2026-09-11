@@ -26,7 +26,7 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.testing.wdk_credentials import NO_CREDENTIALS_REASON
 from veupathdb.wdk.factory import get_strategy_api
 from veupathdb_mcp.server import SERVER_NAME, TOOLS
-from veupathdb_mcp.wdk.gene_set_steps import fetch_gene_ids_from_step
+from veupathdb_mcp.wdk import fetch_gene_ids_from_step
 
 from pathfinder.tests.integration.mcp._served import (
     RECORD_TYPE,

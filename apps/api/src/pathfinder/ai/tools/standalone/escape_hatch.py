@@ -22,7 +22,7 @@ from __future__ import annotations
 from assistant_core.platform.logging import get_logger
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb_mcp.catalog.overview_formatting import SearchOverviewResult
+from veupathdb_mcp.catalog import SearchOverviewResult
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.catalog_discovery import (

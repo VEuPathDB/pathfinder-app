@@ -11,14 +11,7 @@ from typing import Any
 import pytest
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters.values import MultiPickValue, NumberValue
-from veupathdb.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.spec_diff import CriterionChange
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
@@ -26,6 +19,13 @@ from pathfinder.ai.lead import frame_dispatch
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
+from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _PROMPT = "use the DeRisi dataset for the expression filter, keep the rest"

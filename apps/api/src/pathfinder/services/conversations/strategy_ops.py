@@ -12,10 +12,10 @@ from assistant_core.conversation.authz import get_owned_conversation
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import JSONObject
-from veupathdb.domain.strategy.operations import GraphOperation
 from veupathdb.domain.strategy.ops import CombineOp
 from veupathdb.errors import ValidationError
 
+from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,

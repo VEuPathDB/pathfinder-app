@@ -7,8 +7,7 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb_mcp.catalog.eda_backed import list_eda_backed
-from veupathdb_mcp.catalog.searches import get_raw_searches
+from veupathdb_mcp.catalog import get_raw_searches, list_eda_backed
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 

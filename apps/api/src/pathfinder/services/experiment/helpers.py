@@ -6,14 +6,12 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.errors import VEuPathDBError
-from veupathdb_mcp.controls.control_types import (
+from veupathdb_mcp.controls import (
     ControlsContext,
-    ControlSetData,
     ControlTestResult,
     IntersectionConfig,
 )
-from veupathdb_mcp.gene_lookup.result import GeneResult
-from veupathdb_mcp.gene_lookup.wdk import resolve_gene_ids
+from veupathdb_mcp.gene_lookup import GeneResult, resolve_gene_ids
 
 from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
 from pathfinder.services.experiment.types import ExperimentConfig, GeneInfo
@@ -60,32 +58,9 @@ def controls_context_from_config(config: ExperimentConfig) -> ControlsContext:
     )
 
 
-def _ids_to_gene_infos(ids: list[str]) -> list[GeneInfo]:
-    """Wrap gene ID strings as gene info objects."""
-    return [GeneInfo(id=g) for g in ids]
-
-
-def _gene_infos_from_section(
-    section: ControlSetData | None,
-    field_name: str,
-    *,
-    fallback_from_controls: bool = False,
-    all_controls: list[str] | None = None,
-    hit_ids: set[str] | None = None,
-) -> list[GeneInfo]:
-    """Extract a gene list from one field of a control set.
-
-    :param fallback_from_controls: If the field is empty, take all controls that
-        are not hits.
-    """
-    if section is not None:
-        ids = getattr(section, field_name, [])
-        if ids:
-            return _ids_to_gene_infos(ids)
-
-    if fallback_from_controls and all_controls and hit_ids is not None:
-        return [GeneInfo(id=g) for g in all_controls if g not in hit_ids]
-    return []
+def _ids_to_gene_infos(ids: list[str] | None) -> list[GeneInfo]:
+    """Wrap gene ID strings as gene info objects. A set that read no ids is empty."""
+    return [GeneInfo(id=g) for g in ids or ()]
 
 
 def _hydrate_list(
@@ -145,20 +120,23 @@ async def extract_and_hydrate_genes(
 ) -> tuple[list[GeneInfo], list[GeneInfo], list[GeneInfo], list[GeneInfo]]:
     """Extract the four control-test gene lists and add WDK metadata.
 
+    A control set that read no identifiers names no gene in either of its two
+    lists. The counts on the result carry that run; a list built without the
+    identifiers would contradict them.
+
     :returns: Tuple of (true positive, false negative, false positive, true negative).
     """
-    tp = _gene_infos_from_section(result.positive, "intersection_ids")
-    fn = _gene_infos_from_section(result.positive, "missing_ids_sample")
-    fp = _gene_infos_from_section(result.negative, "intersection_ids")
+    positive = result.positive
+    negative = result.negative
+    tp = _ids_to_gene_infos(positive.intersection_ids if positive else None)
+    fn = _ids_to_gene_infos(positive.missing_ids_sample if positive else None)
+    fp = _ids_to_gene_infos(negative.intersection_ids if negative else None)
 
-    neg_hit_ids = set(result.negative.intersection_ids) if result.negative else set()
-    tn = _gene_infos_from_section(
-        result.negative,
-        "missing_ids_sample",
-        fallback_from_controls=True,
-        all_controls=negative_controls,
-        hit_ids=neg_hit_ids,
-    )
+    tn = _ids_to_gene_infos(negative.missing_ids_sample if negative else None)
+    hits = negative.intersection_ids if negative else None
+    if not tn and negative_controls and hits is not None:
+        hit_ids = set(hits)
+        tn = [GeneInfo(id=g) for g in negative_controls if g not in hit_ids]
 
     try:
         lookup = await _resolve_gene_lookup(site_id, (tp, fn, fp, tn))

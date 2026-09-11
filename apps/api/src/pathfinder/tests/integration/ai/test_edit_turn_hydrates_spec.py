@@ -18,18 +18,19 @@ from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.parameters.values import MultiPickValue, NumberValue
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategySession
-from veupathdb.domain.strategy.strategy_ast import (
-    PersistedStrategyGraph,
-    StrategyAst,
-)
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
-from pathfinder.persistence.models import ConversationStrategy, User
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.persistence.models import (
+    ConversationStrategy,
+    PersistedStrategyGraph,
+    User,
+)
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.session_factory import build_strategy_session

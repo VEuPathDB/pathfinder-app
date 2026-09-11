@@ -10,10 +10,10 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, SkipValidation
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
-from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.strategies.context import StrategyMutationContext
 
 # A search is abandoned once it has failed this many times in a turn. The

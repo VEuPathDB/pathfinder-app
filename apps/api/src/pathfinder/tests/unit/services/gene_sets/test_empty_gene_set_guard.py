@@ -14,7 +14,7 @@ from uuid import uuid4
 
 import pytest
 from veupathdb.errors import ValidationError
-from veupathdb_mcp.wdk.gene_set_steps import GeneSetWdkContext
+from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.operations import GeneSetService

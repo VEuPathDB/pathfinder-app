@@ -6,16 +6,16 @@ from unittest.mock import MagicMock
 
 import pytest
 from pydantic_ai import ModelRetry
-from veupathdb.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
-)
-from veupathdb.domain.strategy.operational_spec import Criterion, StructureNode
 from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone.frame_structure import set_structure
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
+from pathfinder.domain.strategy.operational_spec import Criterion, StructureNode
 
 
 def _ctx(state: AgentToolState) -> MagicMock:

@@ -5,12 +5,14 @@ from __future__ import annotations
 from veupathdb.domain.parameters.value_codec import to_wire
 from veupathdb.domain.parameters.wdk_vocab import match_exact_option
 from veupathdb.wdk.wdk_models import WDKSearch
-from veupathdb_mcp.catalog.param_dag import ParamFetcher, ResolvedParams
-from veupathdb_mcp.catalog.param_formatting import (
+from veupathdb_mcp.catalog import (
     ParameterInfo,
+    ParamFetcher,
+    ResolvedParams,
+    SheetEntry,
+    build_sheet,
     format_param_info_typed,
 )
-from veupathdb_mcp.catalog.param_sheet import SheetEntry, build_sheet
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_proposals import (

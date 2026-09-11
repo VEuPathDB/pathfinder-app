@@ -5,13 +5,6 @@ from __future__ import annotations
 
 from assistant_core.memory.tombstones import compute_content_hash
 from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.build_outcome import BuildOutcome, NodeResult
-from veupathdb.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
 
 from pathfinder.ai.graph.state import (
     PhaseDisposition,
@@ -23,6 +16,13 @@ from pathfinder.ai.graph.state import (
 from pathfinder.ai.lead.case_memory import collect_case_candidates
 from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
 

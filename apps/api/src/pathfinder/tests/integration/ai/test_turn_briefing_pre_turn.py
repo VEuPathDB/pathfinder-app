@@ -19,7 +19,6 @@ from assistant_core.persistence.models import (
 from assistant_core.platform import db
 from veupathdb.domain.parameters.values import NumberValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.session import StrategySession
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
 
 from pathfinder.ai.graph.runtime import Context
@@ -27,6 +26,7 @@ from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.pre_turn import pathfinder_pre_turn
 from pathfinder.ai.tools.standalone._eda_stream_parts import eda_analysis_state_chunk
 from pathfinder.domain.eda_parts import EdaAnalysisState
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import ConversationAnalysis, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate

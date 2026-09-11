@@ -9,10 +9,13 @@ from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import VEuPathDBError
-from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
+from veupathdb_mcp import ToolErrorPayload, tool_error
 from veupathdb_mcp.tool_payloads import StepDownloadUrl, gene_sample_attributes
-from veupathdb_mcp.wdk.step_preview import step_download_url, step_sample_records
-from veupathdb_mcp.wdk.step_results_models import SampleRecordsResult
+from veupathdb_mcp.wdk import (
+    SampleRecordsResult,
+    step_download_url,
+    step_sample_records,
+)
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._result_models import (

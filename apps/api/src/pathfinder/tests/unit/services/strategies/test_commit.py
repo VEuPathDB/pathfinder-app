@@ -5,13 +5,7 @@ from uuid import uuid4
 import pytest
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.operations import (
-    DeleteResolution,
-    DeleteStepOp,
-    UpdateStepMetaOp,
-)
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 from veupathdb.wdk.strategy_api.steps import StepsMixin
 from veupathdb.wdk.wdk_models import (
     NewStepSpec,
@@ -21,6 +15,12 @@ from veupathdb.wdk.wdk_models import (
     WDKStep,
 )
 
+from pathfinder.domain.strategy.operations import (
+    DeleteResolution,
+    DeleteStepOp,
+    UpdateStepMetaOp,
+)
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import commit, step_wdk_push, sync
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext

@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Protocol
+
+import pytest
+from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.domain.search import SearchContext
 from veupathdb.json_types import JSONObject
 from veupathdb.wdk.wdk_models import (
@@ -12,7 +16,7 @@ from veupathdb.wdk.wdk_models import (
 from veupathdb.wdk.wdk_parameters import (
     WDKParameter,
 )
-from veupathdb_mcp.catalog.param_validation import ValidationCallbacks
+from veupathdb_mcp.catalog import ResolvedSearch, ValidationCallbacks, param_validation
 
 
 def wdk_search_response(
@@ -60,3 +64,30 @@ async def no_dependent_refresh(
 ) -> list[WDKParameter]:
     del ctx, parameter_name, context_values
     return []
+
+
+class SearchDetailsResolver(Protocol):
+    """The signature of the catalog read a test answers in place of WDK."""
+
+    async def __call__(
+        self,
+        ctx: SearchContext,
+        /,
+        *,
+        resolved_record_type: str,
+        parameters: dict[str, ParamValue],
+    ) -> ResolvedSearch: ...
+
+
+def serve_search_details(
+    monkeypatch: pytest.MonkeyPatch, resolver: SearchDetailsResolver
+) -> None:
+    """Answer the catalog's search-details read, and refresh no dependent parameter.
+
+    This is the one place that reaches into the tool server's validation
+    module, so a rename there is fixed here and nowhere else.
+    """
+    monkeypatch.setattr(param_validation, "resolve_search_details", resolver)
+    monkeypatch.setattr(
+        param_validation, "get_refreshed_dependent_params", no_dependent_refresh
+    )

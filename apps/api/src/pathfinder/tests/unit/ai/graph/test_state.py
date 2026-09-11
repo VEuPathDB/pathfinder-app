@@ -5,13 +5,6 @@ from uuid import uuid4
 
 import pytest
 from pydantic import ValidationError
-from veupathdb.domain.strategy.build_outcome import BuildOutcome
-from veupathdb.domain.strategy.constraints import (
-    Constraint,
-    ConstraintKind,
-    ConstraintSource,
-)
-from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.graph.state import (
@@ -23,6 +16,13 @@ from pathfinder.ai.graph.state import (
     VerificationDigest,
 )
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 
 @pytest.fixture

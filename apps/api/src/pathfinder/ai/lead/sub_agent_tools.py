@@ -18,11 +18,6 @@ from assistant_core.graph.turn_state import DurableDeferral, SubAgentApprovalPen
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.models.settings import build_model_settings
 from pydantic_ai.usage import RunUsage, UsageLimits
-from veupathdb.domain.strategy.constraints import (
-    CombinationRequest,
-    Constraint,
-    ConstraintKind,
-)
 
 from pathfinder.ai.agents.execution import EXECUTION_MODEL, build_execution_agent
 from pathfinder.ai.agents.frame import FRAME_MODEL, build_frame_agent
@@ -38,6 +33,11 @@ from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.models.tiers import PhaseTierConfig, resolve_phase_tier_config
+from pathfinder.domain.strategy.constraints import (
+    CombinationRequest,
+    Constraint,
+    ConstraintKind,
+)
 from pathfinder.platform.config import get_settings
 
 # Binding one criterion costs up to ten calls: find a search, read it, read its

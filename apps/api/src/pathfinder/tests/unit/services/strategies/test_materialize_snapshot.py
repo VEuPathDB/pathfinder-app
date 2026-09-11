@@ -6,8 +6,8 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from veupathdb.domain.strategy.session import StrategyGraph
 
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.platform.errors import AppError, ErrorCode
 from pathfinder.services.strategies import materialize
 from pathfinder.services.strategies.materialize import materialize_strategy_snapshot

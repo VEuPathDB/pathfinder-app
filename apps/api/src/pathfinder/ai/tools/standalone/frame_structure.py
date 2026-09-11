@@ -6,11 +6,11 @@ from assistant_core.graph.tool_summary import with_summary
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.strategy.combination_check import first_combination_violation
-from veupathdb.domain.strategy.operational_spec import SpecStructure, StructureNode
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.domain.strategy.combination_check import first_combination_violation
+from pathfinder.domain.strategy.operational_spec import SpecStructure, StructureNode
 
 
 class SetStructureResult(CamelModel):

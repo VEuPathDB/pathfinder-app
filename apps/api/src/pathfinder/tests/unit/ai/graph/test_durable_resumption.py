@@ -24,7 +24,6 @@ from pydantic_ai.messages import (
 from pydantic_ai.tools import DeferredToolRequests
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.graph._lead_turn import (
     ConcurrentDurableDispatchError,
@@ -34,6 +33,7 @@ from pathfinder.ai.graph._lead_turn import (
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentDurablePark
+from pathfinder.domain.strategy.session import StrategySession
 
 _TASK_ID = UUID("0c6100d2-0000-4000-8000-000000000001")
 _HISTORY = ModelMessagesTypeAdapter.dump_json(

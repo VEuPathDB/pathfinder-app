@@ -27,7 +27,7 @@ from veupathdb.eda.models import (
     EdaSubsetDescriptor,
     EdaVariableSpec,
 )
-from veupathdb_mcp.catalog.eda_backed import COMPUTE_QUERY, SUBSET_QUERY
+from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

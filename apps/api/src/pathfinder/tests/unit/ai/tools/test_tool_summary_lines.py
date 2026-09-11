@@ -9,15 +9,11 @@ from uuid import uuid4
 
 import pytest
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb.domain.strategy.session import StrategySession
 from veupathdb.wdk.ai_expression import AiExpressionStatus
 from veupathdb_mcp import catalog
-from veupathdb_mcp.catalog.param_formatting import ParameterInfo
+from veupathdb_mcp.catalog import ParameterInfo
 from veupathdb_mcp.gene_lookup import GeneSearchResult
-from veupathdb_mcp.wdk.ai_expression import (
-    NO_SUMMARY_ON_THE_SITE,
-    GeneExpressionSummary,
-)
+from veupathdb_mcp.wdk import NO_SUMMARY_ON_THE_SITE, GeneExpressionSummary
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.lead import lead_tools
@@ -32,6 +28,7 @@ from pathfinder.ai.tools.standalone import (
     strategy_graph,
     workbench,
 )
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.eda.catalog import StudyCard
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_state_ctx,

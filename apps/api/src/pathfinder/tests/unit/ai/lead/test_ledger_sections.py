@@ -3,14 +3,6 @@
 from __future__ import annotations
 
 from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
-from veupathdb.domain.strategy.build_outcome import BuildOutcome, NodeResult
-from veupathdb.domain.strategy.operational_spec import (
-    Criterion,
-    OpenSlot,
-    OperationalSpec,
-    SpecStructure,
-    StructureNode,
-)
 from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
@@ -18,6 +10,14 @@ from pathfinder.ai.lead.ledger_sections import (
     BuildSection,
     FrameSection,
     VerificationSection,
+)
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OpenSlot,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
 )
 
 

@@ -9,11 +9,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from veupathdb.domain.parameters.values import SinglePickValue
 from veupathdb.domain.parameters.wdk_vocab import VocabOption
-from veupathdb.domain.strategy.session import StrategySession
 from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk.wdk_models import WDKSearchResponse
-from veupathdb_mcp.catalog import search_inspection, searches
-from veupathdb_mcp.catalog.param_formatting import ParameterInfo
+from veupathdb_mcp.catalog import ParameterInfo, search_inspection, searches
 
 from pathfinder.ai.agents.state import (
     AgentToolState,
@@ -23,6 +21,7 @@ from pathfinder.ai.agents.state import (
 from pathfinder.ai.agents.strategy_instructions import pinned_discovered_searches
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import catalog_discovery
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_state_ctx,
     patch_search_details,

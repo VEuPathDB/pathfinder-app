@@ -17,23 +17,25 @@ from veupathdb.domain.parameters.values import MultiPickValue, ParamValue, Strin
 from veupathdb.domain.search import SearchContext
 from veupathdb.eda.models import EdaStringSetFilter
 from veupathdb.errors import ValidationError
-from veupathdb.wdk.wdk_models import WDKSearchResponse
+from veupathdb.wdk.wdk_models import WDKSearchResponse, encode_wdk_params
 from veupathdb.wdk.wdk_parameters import (
     WDKEnumParam,
     WDKParameter,
     WDKStringParam,
 )
-from veupathdb_mcp.catalog import param_validation
-from veupathdb_mcp.catalog.eda_backed import (
+from veupathdb_mcp.catalog import (
     COMPUTE_QUERY,
     EDA_ANALYSIS_SPEC_PARAM,
     EDA_DATASET_ID_PARAM,
     SUBSET_QUERY,
+    ResolvedSearch,
+    ValidatedParams,
+    validate_parameters,
 )
 
 from pathfinder.services.eda.authoring import new_analysis, serialize_spec
 from pathfinder.tests._support.catalog_builders import (
-    no_dependent_refresh,
+    serve_search_details,
     validation_callbacks,
     wdk_search_response,
 )
@@ -100,14 +102,14 @@ class _WDK:
         *,
         resolved_record_type: str,
         parameters: dict[str, ParamValue],
-    ) -> param_validation.ResolvedSearch:
+    ) -> ResolvedSearch:
         del ctx, resolved_record_type
-        sent = param_validation.encode_wdk_params(parameters)
+        sent = encode_wdk_params(parameters)
         self.asked.append(sent)
         picked = json.loads(sent.get("samples", "[]"))
         leaf_count = len([v for v in picked if v in _LEAVES])
         # WDK echoes the leaves it read, in its own order.
-        return param_validation.ResolvedSearch(
+        return ResolvedSearch(
             response=_profile_response(
                 rejects_samples=leaf_count == 0,
                 echoed=json.dumps(sorted(picked, reverse=True)),
@@ -119,15 +121,12 @@ class _WDK:
 @pytest.fixture
 def wdk(monkeypatch: pytest.MonkeyPatch) -> _WDK:
     stub = _WDK()
-    monkeypatch.setattr(param_validation, "_resolve_search_details", stub)
-    monkeypatch.setattr(
-        param_validation, "get_refreshed_dependent_params", no_dependent_refresh
-    )
+    serve_search_details(monkeypatch, stub)
     return stub
 
 
-async def _validate_samples(values: list[str]) -> param_validation.ValidatedParams:
-    return await param_validation.validate_parameters(
+async def _validate_samples(values: list[str]) -> ValidatedParams:
+    return await validate_parameters(
         _PROFILE_CTX,
         parameters={"samples": MultiPickValue(values=values)},
         callbacks=validation_callbacks(),
@@ -238,20 +237,15 @@ def _serve(monkeypatch: pytest.MonkeyPatch, response: WDKSearchResponse) -> None
         *,
         resolved_record_type: str,
         parameters: dict[str, ParamValue],
-    ) -> param_validation.ResolvedSearch:
+    ) -> ResolvedSearch:
         del ctx, resolved_record_type, parameters
-        return param_validation.ResolvedSearch(response=response, values_were_read=True)
+        return ResolvedSearch(response=response, values_were_read=True)
 
-    monkeypatch.setattr(param_validation, "_resolve_search_details", _details)
-    monkeypatch.setattr(
-        param_validation, "get_refreshed_dependent_params", no_dependent_refresh
-    )
+    serve_search_details(monkeypatch, _details)
 
 
-async def _validate_spec(
-    search_name: str, spec: str
-) -> param_validation.ValidatedParams:
-    return await param_validation.validate_parameters(
+async def _validate_spec(search_name: str, spec: str) -> ValidatedParams:
+    return await validate_parameters(
         SearchContext(
             site_id="plasmodb", record_type="transcript", search_name=search_name
         ),
@@ -356,7 +350,7 @@ class TestAPlainSearchIsUntouched:
             ),
         )
 
-        result = await param_validation.validate_parameters(
+        result = await validate_parameters(
             SearchContext(
                 site_id="plasmodb", record_type="transcript", search_name="GenesByText"
             ),

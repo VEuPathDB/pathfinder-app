@@ -10,7 +10,7 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb_mcp.catalog.eda_backed import COMPUTE_QUERY, SUBSET_QUERY
+from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests._support.eda_wire import JOB_ID, AnalysisStore

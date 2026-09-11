@@ -6,7 +6,6 @@ import pytest
 from veupathdb.domain.parameters.values import ParamValue, StringValue
 from veupathdb.domain.search import SearchContext
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.build_outcome import BuildOutcome
 from veupathdb.domain.strategy.graph_model import StrategyStep, flatten_tree
 from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.eda.models import EdaStringSetFilter
@@ -18,16 +17,19 @@ from veupathdb.wdk.wdk_parameters import (
     WDKParameter,
     WDKStringParam,
 )
-from veupathdb_mcp.catalog import param_validation
-from veupathdb_mcp.catalog.eda_backed import (
+from veupathdb_mcp.catalog import (
     COMPUTE_QUERY,
     EDA_ANALYSIS_SPEC_PARAM,
     EDA_DATASET_ID_PARAM,
+    ResolvedSearch,
+    ValidationCallbacks,
 )
 
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.services.eda.authoring import new_analysis, serialize_spec
 from pathfinder.services.strategies import spec_build
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.catalog_builders import serve_search_details
 
 _DATASET_ID = "DS_e973eadd57"
 _DESEQ_SEARCH = "GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRCDESeq"
@@ -88,7 +90,7 @@ def _response() -> WDKSearchResponse:
     )
 
 
-def _callbacks(site_id: str, **_kw: object) -> param_validation.ValidationCallbacks:
+def _callbacks(site_id: str, **_kw: object) -> ValidationCallbacks:
     del site_id
 
     async def _record_type(
@@ -102,7 +104,7 @@ def _callbacks(site_id: str, **_kw: object) -> param_validation.ValidationCallba
         del search_name, record_type
         return None
 
-    return param_validation.ValidationCallbacks(
+    return ValidationCallbacks(
         resolve_record_type_for_search=_record_type, find_record_type_hint=_hint
     )
 
@@ -116,20 +118,9 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> list[StrategyStep]:
         *,
         resolved_record_type: str,
         parameters: dict[str, ParamValue],
-    ) -> param_validation.ResolvedSearch:
+    ) -> ResolvedSearch:
         del ctx, resolved_record_type, parameters
-        return param_validation.ResolvedSearch(
-            response=_response(), values_were_read=True
-        )
-
-    async def _no_refresh(
-        ctx: SearchContext,
-        *,
-        parameter_name: str,
-        context_values: dict[str, ParamValue],
-    ) -> list[WDKParameter]:
-        del ctx, parameter_name, context_values
-        return []
+        return ResolvedSearch(response=_response(), values_were_read=True)
 
     async def _push(
         *,
@@ -144,8 +135,7 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> list[StrategyStep]:
         pushed.append(step)
         return 440185943, None, None
 
-    monkeypatch.setattr(param_validation, "_resolve_search_details", _resolved)
-    monkeypatch.setattr(param_validation, "get_refreshed_dependent_params", _no_refresh)
+    serve_search_details(monkeypatch, _resolved)
     monkeypatch.setattr(spec_build, "make_validation_callbacks", _callbacks)
     monkeypatch.setattr(spec_build, "push_step_to_wdk", _push)
     return pushed

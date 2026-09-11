@@ -23,7 +23,7 @@ from assistant_core.tasks.job_context import install_durable_job_context
 from assistant_core.tasks.names import WORKER_QUEUES
 from assistant_core.tasks.runner import install_worker_context, register_durable_jobs
 from procrastinate.worker import Worker
-from veupathdb_mcp.embeddings.db import use_embedding_session_factory
+from veupathdb_mcp.embeddings import use_embedding_session_factory
 
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.app import procrastinate_app

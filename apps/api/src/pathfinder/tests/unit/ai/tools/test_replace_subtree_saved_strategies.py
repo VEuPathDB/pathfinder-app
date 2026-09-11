@@ -7,7 +7,13 @@ from uuid import uuid4
 import pytest
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.operational_spec import (
+from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy.tree import walk
+
+from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone.strategy_edits import replace_subtree
+from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SavedStrategyRef,
@@ -16,12 +22,6 @@ from veupathdb.domain.strategy.operational_spec import (
     build_step_tree,
     renumber_criteria,
 )
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.tree import walk
-
-from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone.strategy_edits import replace_subtree
 
 from ._strategy_edit_stubs import StubAPI, combine, ctx, install_stub_api, session_with
 

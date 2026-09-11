@@ -15,11 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.parameters.values import MultiPickValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.strategy_ast import PersistedStrategyGraph
 from veupathdb.domain.strategy.tree import walk
 from veupathdb.wdk.factory import get_strategy_api
 
-from pathfinder.persistence.models import User
+from pathfinder.persistence.models import PersistedStrategyGraph, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.session_factory import build_strategy_session

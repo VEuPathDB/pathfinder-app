@@ -9,7 +9,6 @@ from uuid import uuid4
 import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.operational_spec import Criterion
 from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.ai.agents.state import AgentToolState
@@ -20,6 +19,7 @@ from pathfinder.ai.tools.standalone.frame_spec import drop_criterion, set_criter
 from pathfinder.ai.tools.standalone.saved_strategies import list_saved_strategies
 from pathfinder.ai.tools.toolsets._dynamic import ValidatingEnumToolset
 from pathfinder.ai.tools.toolsets.frame import build_toolset
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.services.strategies.insert_saved import ClonedSavedStrategy
 from pathfinder.services.strategies.saved_library import SavedStrategyListing
 

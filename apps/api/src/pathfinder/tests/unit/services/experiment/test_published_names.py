@@ -5,8 +5,7 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.search import SearchContext
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
-from veupathdb_mcp.catalog.param_formatting import ParameterInfo
-from veupathdb_mcp.catalog.param_resolution import SearchParametersResult
+from veupathdb_mcp.catalog import ParameterInfo, SearchParametersResult
 
 from pathfinder.services.experiment import published_names as module
 

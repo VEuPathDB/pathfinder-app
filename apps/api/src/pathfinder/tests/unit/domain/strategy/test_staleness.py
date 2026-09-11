@@ -7,8 +7,7 @@ answers "how many genes now?" with the pre-edit number and no hedge.
 
 from __future__ import annotations
 
-from veupathdb.domain.strategy.build_outcome import BuildOutcome, NodeResult
-
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
 from pathfinder.domain.strategy.staleness import detect_build_staleness
 
 

@@ -21,11 +21,11 @@ from veupathdb.domain.strategy.graph_model import (
     rebuild_tree,
 )
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.domain.strategy.tree import clone_with_fresh_ids
 from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.wdk.factory import get_strategy_api
 
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,

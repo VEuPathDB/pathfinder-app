@@ -11,7 +11,9 @@ from pydantic import TypeAdapter
 from veupathdb.domain.parameters.values import StringValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.operations import (
+from veupathdb.domain.strategy.ops import CombineOp
+
+from pathfinder.domain.strategy.operations import (
     AddCombineOp,
     AddLeafOp,
     AddTransformOp,
@@ -27,9 +29,8 @@ from veupathdb.domain.strategy.operations import (
     UpdateStepParamsOp,
     UpdateStrategyMetaOp,
 )
-from veupathdb.domain.strategy.operations.apply import ApplyError, apply_operation
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.operations.apply import ApplyError, apply_operation
+from pathfinder.domain.strategy.session import StrategyGraph
 
 from ._builders import combine, graph_with, leaf, transform
 

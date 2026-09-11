@@ -22,7 +22,6 @@ from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy.session import StrategySession
 
 from pathfinder.ai.agents.tool_vocabulary import (
     READ_ONLY_TOOLS,
@@ -37,6 +36,7 @@ from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import BUILD_SUB_AGENT_BY_ROLE, LeadDeps
 from pathfinder.assistants.pathfinder_spec import RESEARCH_TOOL_SOURCE
+from pathfinder.domain.strategy.session import StrategySession
 
 PRODUCT_NAMES = {
     "READ_ONLY_TOOLS",

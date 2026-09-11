@@ -6,14 +6,13 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from veupathdb.domain.strategy.session import StrategySession
 from veupathdb_mcp import catalog
-from veupathdb_mcp.catalog import searches
-from veupathdb_mcp.catalog.models import RecordTypeInfo, SearchMatch
+from veupathdb_mcp.catalog import RecordTypeInfo, SearchMatch, searches
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools import standalone
+from pathfinder.domain.strategy.session import StrategySession
 
 
 def _ctx(state: AgentToolState) -> Any:

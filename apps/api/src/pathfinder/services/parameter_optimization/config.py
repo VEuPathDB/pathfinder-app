@@ -6,7 +6,7 @@ from typing import Literal, Self
 from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat
 from pydantic import ConfigDict, Field, model_validator
 from veupathdb.domain.parameters.values import ParamValue
-from veupathdb_mcp.controls.control_types import ControlValueFormat
+from veupathdb_mcp.controls import ControlValueFormat
 
 from pathfinder.services.experiment.types import (
     OptimizationObjective,

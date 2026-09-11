@@ -17,17 +17,15 @@ from veupathdb.domain.parameters.wdk_vocab import (
     nearest_entries,
 )
 from veupathdb.wdk.wdk_models import WDKSearch
-from veupathdb_mcp.catalog.param_formatting import ParameterInfo
-from veupathdb_mcp.catalog.param_phyletic import (
+from veupathdb_mcp.catalog import (
+    RADIO_OFF,
+    ParameterInfo,
     PhyleticNoSelection,
     PhyleticUnresolvedProposal,
-    derive_phyletic_overrides,
-    is_phyletic_sheet,
-)
-from veupathdb_mcp.catalog.radio_pairs import (
-    RADIO_OFF,
     RadioPairIssue,
     check_radio_pairs,
+    derive_phyletic_overrides,
+    is_phyletic_sheet,
     radio_pairs,
 )
 

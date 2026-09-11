@@ -12,7 +12,7 @@ from uuid import UUID
 
 from assistant_core.memory.store import MemoryStore
 from assistant_core.tasks.progress import TaskProgressEmitter
-from veupathdb_mcp.wdk.enrichment.types import (
+from veupathdb_mcp.wdk.enrichment import (
     ALL_ENRICHMENT_ANALYSIS_TYPES,
     EnrichmentAnalysisType,
 )

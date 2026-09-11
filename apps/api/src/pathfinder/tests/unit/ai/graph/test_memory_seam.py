@@ -19,7 +19,6 @@ from assistant_core.memory.autowrite import auto_write_memories
 from assistant_core.memory.retrieval import retrieve_relevant_memories
 from assistant_core.memory.schemas import MemoryEntryDraft
 from assistant_core.memory.store import memory_namespace
-from veupathdb.domain.strategy.operational_spec import OperationalSpec
 
 from pathfinder.ai.graph.state import (
     PhaseDisposition,
@@ -31,6 +30,7 @@ from pathfinder.ai.lead.memory_candidates import (
     PRODUCT_MEMORY_KINDS,
     collect_memory_candidates,
 )
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
 
 FOREIGN_PACKAGES = (
     "veupathdb.domain.strategy",

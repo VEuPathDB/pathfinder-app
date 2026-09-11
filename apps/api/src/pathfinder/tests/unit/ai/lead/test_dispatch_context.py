@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.strategy.constraints import (
-    ConstraintKind,
-    organism_hints_from,
-)
-from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
-
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.domain.strategy.constraints import (
+    ConstraintKind,
+    organism_hints_from,
+)
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,

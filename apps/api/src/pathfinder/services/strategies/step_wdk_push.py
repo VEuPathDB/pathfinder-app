@@ -12,26 +12,25 @@ from veupathdb.domain.parameters.values import ParamValue
 from veupathdb.domain.search import SearchContext
 from veupathdb.domain.strategy.graph_model import (
     StepKind,
-    StepStatus,
     StrategyStep,
     record_class_of,
     runs_a_wdk_search,
-    step_status,
     wdk_search_name,
 )
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.wdk.factory import get_strategy_api
 from veupathdb.wdk.value_decoding import encode_params
-from veupathdb_mcp.catalog.param_validation import (
+from veupathdb_mcp.catalog import (
     ValidationCallbacks,
+    assign_step_record_classes,
+    make_validation_callbacks,
     validate_parameters,
 )
-from veupathdb_mcp.catalog.searches import assign_step_record_classes
-from veupathdb_mcp.catalog.validation_callbacks import make_validation_callbacks
 
+from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.step_status import StepStatus, step_status
 from pathfinder.services.strategies._wdk_step_calls import (
     _patch_combine_metadata,
     _push_combine_step,

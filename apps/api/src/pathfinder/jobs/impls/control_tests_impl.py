@@ -12,7 +12,8 @@ from pydantic import Field
 from veupathdb.errors import VEuPathDBError
 from veupathdb.logging import get_logger
 from veupathdb.wdk.factory import get_strategy_api
-from veupathdb_mcp.controls.control_tests import run_step_control_tests
+from veupathdb_mcp.controls import run_step_control_tests
+from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.services.experiment.published_names import published_names
@@ -86,33 +87,33 @@ async def run_control_tests_on_step_impl(
     )
 
     tested = await _tested_step(context.site_id, wdk_step_id)
-    result.search_name = tested.search_name
+    result.target.search_name = tested.search_name
 
     emitted = 0
-    if has_positives:
+    if result.positive is not None:
         emitted += 1
         await progress.update(
             percent=emitted / (total_sets + 1),
             message="Compared against positive controls",
             data={
-                "positive_controls_count": result.positive_controls_count,
-                "positive_intersection": result.positive_intersection,
+                "positive_controls_count": result.positive.controls_count,
+                "positive_intersection": result.positive.intersection_count,
             },
         )
-    if has_negatives:
+    if result.negative is not None:
         emitted += 1
         await progress.update(
             percent=emitted / (total_sets + 1),
             message="Compared against negative controls",
             data={
-                "negative_controls_count": result.negative_controls_count,
-                "negative_intersection": result.negative_intersection,
+                "negative_controls_count": result.negative.controls_count,
+                "negative_intersection": result.negative.intersection_count,
             },
         )
 
     await progress.update(percent=0.9, message="Exporting results", data=None)
     exported = await attach_control_downloads(
-        result, f"step_{wdk_step_id}_control_tests"
+        ControlOutcome.model_validate(result), f"step_{wdk_step_id}_control_tests"
     )
     await progress.update(percent=1.0, message="Control tests complete", data=None)
     # The library's outcome carries the numbers; only WDK names the step and

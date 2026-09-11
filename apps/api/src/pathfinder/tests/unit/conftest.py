@@ -10,8 +10,8 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.session import StrategyGraph
 
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories import ConversationRepository
 

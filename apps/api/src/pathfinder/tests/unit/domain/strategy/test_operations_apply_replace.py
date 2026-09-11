@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.operations import ReplaceStrategyOp
-from veupathdb.domain.strategy.operations.apply import ApplyError, apply_operation
 from veupathdb.domain.strategy.ops import CombineOp
+
+from pathfinder.domain.strategy.operations import ReplaceStrategyOp
+from pathfinder.domain.strategy.operations.apply import ApplyError, apply_operation
 
 from ._builders import combine, graph_with, leaf
 

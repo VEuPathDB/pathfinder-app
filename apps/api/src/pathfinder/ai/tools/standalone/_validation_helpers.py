@@ -9,12 +9,12 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field, JsonValue
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import StrategyStep
-from veupathdb.domain.strategy.operations import GraphOperation
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.errors import ValidationError
-from veupathdb_mcp.tool_errors import ToolErrorPayload, tool_error
+from veupathdb_mcp import ToolErrorPayload, tool_error
 
+from pathfinder.domain.strategy.operations import GraphOperation
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.stated_shape import placeholder_names
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.schemas import StepResponse

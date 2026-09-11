@@ -13,16 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.domain.parameters.values import MultiPickValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
 from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.operations import (
-    AddLeafOp,
-    AttachNewRoot,
-    DeleteResolution,
-    DeleteStepOp,
-    UpdateStepMetaOp,
-)
-from veupathdb.domain.strategy.operations.apply import ApplyError
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph, StrategySession
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.domain.strategy.tree import walk
 from veupathdb.errors import WDKError
@@ -35,6 +26,15 @@ from veupathdb.wdk.wdk_models import (
     WDKStep,
 )
 
+from pathfinder.domain.strategy.operations import (
+    AddLeafOp,
+    AttachNewRoot,
+    DeleteResolution,
+    DeleteStepOp,
+    UpdateStepMetaOp,
+)
+from pathfinder.domain.strategy.operations.apply import ApplyError
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

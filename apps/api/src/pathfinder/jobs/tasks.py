@@ -18,7 +18,7 @@ from assistant_core.tasks.names import (
     MAINTENANCE_QUEUE,
     RELEASE_STALLED_JOBS_TASK,
 )
-from veupathdb_mcp.embeddings.record_manager import prune_orphan_vectors
+from veupathdb_mcp.embeddings import prune_orphan_vectors
 
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.auth_context import attach_application

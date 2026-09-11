@@ -8,9 +8,10 @@ counts has to be checked against the server to mean anything.
 from __future__ import annotations
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.strategy.types import SyncStateProtocol
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk.factory import get_strategy_api
+
+from pathfinder.domain.strategy.types import SyncStateProtocol
 
 logger = get_logger(__name__)
 

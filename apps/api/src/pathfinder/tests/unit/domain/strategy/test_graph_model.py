@@ -22,9 +22,9 @@ from veupathdb.domain.strategy.graph_model import (
     wdk_search_name,
 )
 from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.domain.strategy.tree import root_ids, subtree_ids
 
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.tests.fixtures.builders import add_step_to_graph
 
 from ._builders import FAST_PROFILE, combine, strategy_trees

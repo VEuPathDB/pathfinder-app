@@ -9,20 +9,20 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from veupathdb.domain.parameters.values import SinglePickValue
 from veupathdb.domain.parameters.wdk_vocab import WDKVocabTerm
-from veupathdb.domain.strategy.operational_spec import Criterion
 from veupathdb.wdk.wdk_parameters import (
     WDKEnumParam,
     WDKParameter,
     WDKStringParam,
 )
-from veupathdb_mcp.catalog import search_inspection
-from veupathdb_mcp.catalog.param_formatting import (
+from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParameterNotOnSearch,
     ParentContextRequired,
+    search_inspection,
 )
 
 from pathfinder.ai.tools.standalone import catalog_discovery
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_state_ctx,
     patch_search_details,

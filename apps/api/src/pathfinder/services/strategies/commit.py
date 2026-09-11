@@ -3,23 +3,24 @@ from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.domain.strategy.graph_model import pushable_root_id
-from veupathdb.domain.strategy.operations import (
-    GraphOperation,
-    ReplaceStrategyOp,
-)
-from veupathdb.domain.strategy.operations.apply import (
-    ApplyError,
-    ApplyResult,
-    apply_operation,
-)
-from veupathdb.domain.strategy.session import StrategyGraph
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.domain.strategy.tree import subtree_ids
 from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.wdk.factory import get_strategy_api
 
+from pathfinder.domain.strategy.operations import (
+    GraphOperation,
+    ReplaceStrategyOp,
+)
+from pathfinder.domain.strategy.operations.apply import (
+    ApplyError,
+    ApplyResult,
+    apply_operation,
+)
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.stated_shape import (
     SlotWrite,
+    criteria_with_steps,
     evicted_by,
     overwritten_slot,
     stated_shape,
@@ -116,7 +117,7 @@ def _departure_from_the_spec(
         return None
     return (
         f"a replaced subtree would leave the strategy holding "
-        f"{list(shape.searches)} where the spec states {sorted(stated)}"
+        f"{list(shape.searches)} where the spec states {list(shape.stated)}"
     )
 
 
@@ -151,16 +152,9 @@ async def apply_operations_and_commit(
         raise ValidationError(title="No operations", detail=msg)
 
     graph = _require_graph(deps)
-    stated = deps.stated_criteria
-    # The spec addresses this graph by step id, so it states nothing about a
-    # graph whose steps it does not name.
-    guarded = (
-        bool(stated)
-        and stated <= set(graph.steps)
-        and any(_replaces_a_subtree(op) for op in ops)
-    )
+    entry_step_ids = set(graph.steps)
     entry_reachable = set(subtree_ids(graph.primary_root_id() or "", graph.steps))
-    outside = set(graph.steps) - entry_reachable if guarded else set[str]()
+    replaces_a_subtree = any(_replaces_a_subtree(op) for op in ops)
     sync_state = ensure_sync_state(deps.strategy_session)
     snapshot = graph.to_strategy_ast(sync_state=sync_state)
     # Deep-copy: apply_operation mutates the live nodes in-place, so a shallow
@@ -183,14 +177,21 @@ async def apply_operations_and_commit(
         _restore_graph(graph, old_ast)
         raise
 
+    # The spec addresses this graph by step id, so a criterion answers to a
+    # step the graph held before the batch or to one the batch mints.
+    stated = criteria_with_steps(
+        deps.stated_criteria,
+        entry_step_ids,
+        minted=set(graph.steps) - entry_step_ids,
+    )
     eviction = evicted_by(graph, slot_writes, was_reachable=entry_reachable)
     if eviction is not None:
         _restore_graph(graph, old_ast)
         raise ApplyError(_eviction_message(eviction, stated=stated))
 
-    if guarded:
+    if replaces_a_subtree and stated:
         departure = _departure_from_the_spec(
-            graph=graph, stated=stated, outside=outside
+            graph=graph, stated=stated, outside=entry_step_ids - entry_reachable
         )
         if departure is not None:
             _restore_graph(graph, old_ast)

@@ -9,14 +9,14 @@ from veupathdb.domain.parameters.values import (
     StringValue,
 )
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.constraints import (
+from veupathdb.domain.strategy.strategy_ast import StrategyAst
+
+from pathfinder.ai.lead.turn_briefing import MAX_BRIEFING_LINES, compose_turn_briefing
+from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
 )
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-
-from pathfinder.ai.lead.turn_briefing import MAX_BRIEFING_LINES, compose_turn_briefing
 from pathfinder.services.conversations.thread_activity import (
     AnalysisDrift,
     FinishedTask,

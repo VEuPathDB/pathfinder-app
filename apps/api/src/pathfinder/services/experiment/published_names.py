@@ -7,7 +7,7 @@ from pydantic import Field
 from veupathdb.domain.search import SearchContext
 from veupathdb.errors import VEuPathDBError
 from veupathdb.logging import get_logger
-from veupathdb_mcp.catalog.param_resolution import get_search_parameters
+from veupathdb_mcp.catalog import get_search_parameters
 
 logger = get_logger(__name__)
 

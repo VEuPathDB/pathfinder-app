@@ -9,11 +9,11 @@ from assistant_core.platform.types import JSONObject
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.parameters.values import StringValue
 from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.operations import AddLeafOp
-from veupathdb.domain.strategy.operations.types import AttachNewRoot
 from veupathdb.eda.models import EdaAnalysisDetail
-from veupathdb_mcp.catalog.eda_backed import COMPUTE_QUERY, SUBSET_QUERY
+from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
+from pathfinder.domain.strategy.operations import AddLeafOp
+from pathfinder.domain.strategy.operations.types import AttachNewRoot
 from pathfinder.services.conversations.service import ConversationService
 from pathfinder.services.eda.binding import open_analysis_or_conflict
 from pathfinder.services.eda.compute import VolcanoThresholds

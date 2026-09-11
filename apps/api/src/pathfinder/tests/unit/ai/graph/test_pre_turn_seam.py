@@ -14,8 +14,6 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy.build_outcome import BuildOutcome, NodeResult
-from veupathdb.domain.strategy.session import StrategySession
 from veupathdb.wdk.wdk_models import WDKStrategyDetails
 
 from pathfinder.ai.graph import lead_node
@@ -23,6 +21,8 @@ from pathfinder.ai.graph.lead_node import make_lead_node
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 WDK_NAMES = {

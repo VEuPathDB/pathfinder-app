@@ -5,8 +5,6 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from veupathdb.domain.strategy.operations.apply import apply_operation
-from veupathdb.domain.strategy.session import StrategySession
 from veupathdb.eda.models import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
@@ -20,6 +18,8 @@ from veupathdb.eda.models import (
     EdaVariableSpec,
 )
 
+from pathfinder.domain.strategy.operations.apply import apply_operation
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.services.strategies.sync import SyncResult

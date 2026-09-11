@@ -8,14 +8,12 @@ from veupathdb.domain.strategy.ast import (
     StepReport,
     StrategyStepNode,
 )
-from veupathdb.domain.strategy.graph_model import (
-    StepStatus,
-    flatten_tree,
-    step_status,
-)
+from veupathdb.domain.strategy.graph_model import flatten_tree
 from veupathdb.domain.strategy.ops import ColocationParams
 from veupathdb.domain.strategy.strategy_ast import StrategyAst
 from veupathdb.domain.strategy.validation import StepValidation
+
+from pathfinder.domain.strategy.step_status import StepStatus, step_status
 
 
 class StepResponse(CamelModel):

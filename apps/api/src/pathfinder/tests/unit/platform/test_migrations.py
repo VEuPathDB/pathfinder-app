@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import pytest
+import veupathdb_mcp.migrate
 from assistant_core.migrate import OWNED_TABLES, VERSION_TABLE
-from veupathdb_mcp.embeddings.tables import EmbeddingBase
 
+from pathfinder.platform import migrations
 from pathfinder.platform.migrations import (
+    FOREIGN_TABLES,
     LANGGRAPH_TABLES,
-    MCP_VERSION_TABLE,
     PROCRASTINATE_PREFIX,
     include_object,
 )
@@ -30,7 +31,7 @@ def test_the_filter_drops_the_version_table_the_runtime_chain_writes() -> None:
     assert _verdict(VERSION_TABLE, reflected=True) is False
 
 
-@pytest.mark.parametrize("name", sorted(EmbeddingBase.metadata.tables))
+@pytest.mark.parametrize("name", veupathdb_mcp.migrate.OWNED_TABLES)
 def test_the_filter_drops_a_table_the_tool_server_owns(name: str) -> None:
     """The semantic index is the tool server's chain, not this one's."""
     assert _verdict(name, reflected=True) is False
@@ -38,8 +39,21 @@ def test_the_filter_drops_a_table_the_tool_server_owns(name: str) -> None:
 
 def test_the_filter_drops_the_version_table_the_tool_server_chain_writes() -> None:
     """The tool server stamps a version table of its own."""
-    assert MCP_VERSION_TABLE == "alembic_version_veupathdb_mcp"
-    assert _verdict(MCP_VERSION_TABLE, reflected=True) is False
+    assert veupathdb_mcp.migrate.VERSION_TABLE == "alembic_version_veupathdb_mcp"
+    assert _verdict(veupathdb_mcp.migrate.VERSION_TABLE, reflected=True) is False
+
+
+def test_the_application_retypes_no_table_name_the_tool_server_publishes() -> None:
+    """A second copy of a name drifts when the tool server renames its chain."""
+    assert "MCP_VERSION_TABLE" not in vars(migrations)
+    assert veupathdb_mcp.migrate.OWNED_TABLES == (
+        "embedding_vectors",
+        "embedding_index_entries",
+    )
+    assert {
+        *veupathdb_mcp.migrate.OWNED_TABLES,
+        veupathdb_mcp.migrate.VERSION_TABLE,
+    } <= FOREIGN_TABLES
 
 
 @pytest.mark.parametrize(

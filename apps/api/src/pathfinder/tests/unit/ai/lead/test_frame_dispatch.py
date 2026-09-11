@@ -6,8 +6,6 @@ from typing import Any
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy.constraints import ConstraintKind
-from veupathdb.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead import frame_dispatch
@@ -16,6 +14,8 @@ from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_stream import PhaseRun
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
