@@ -10,6 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 
 import type { Command, CommandContext } from "./types";
@@ -55,6 +56,11 @@ export function SlashPopover({
   const [activeIdx, setActiveIdx] = useState(0);
   const [filterKey, setFilterKey] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
+  const entrance = useEntrance({
+    initial: { opacity: 0, y: 6 },
+    exit: { opacity: 0, y: 6 },
+    transition: { duration: 0.12 },
+  });
 
   // Render-time reset: when the filtered set changes identity we restart at 0
   // instead of firing an effect after paint.
@@ -98,10 +104,8 @@ export function SlashPopover({
         <motion.div
           key="slash-popover"
           ref={listRef}
-          initial={{ opacity: 0, y: 6 }}
+          {...entrance}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 6 }}
-          transition={{ duration: 0.12 }}
           data-testid="slash-popover"
           className={cn(
             "absolute bottom-full left-0 right-0 z-20 mb-2",

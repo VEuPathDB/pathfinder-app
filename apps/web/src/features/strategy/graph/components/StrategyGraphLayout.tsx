@@ -19,7 +19,7 @@ import { StepEdge } from "@/features/strategy/graph/components/edges/StepEdge";
 import { ValidationAlert } from "@/features/strategy/graph/components/ValidationAlert";
 import { useStrategyGraphCtx } from "@/features/strategy/graph/StrategyGraphContext";
 import { isNodeToolbarOrMenuTarget } from "@/features/strategy/graph/nodeClickTarget";
-import { usePrefersReducedMotion } from "@/features/strategy/graph/usePrefersReducedMotion";
+import { usePrefersReducedMotion } from "@/lib/motion";
 import { findOrphanSteps } from "@/features/strategy/graph";
 import { useStrategyStore } from "@/state/strategy/store";
 

@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 
 import { FileRow, TextAreaRow, TextRow } from "./ParamRows";
@@ -29,6 +30,11 @@ export function ParamStepper({
   const [stepIdx, setStepIdx] = useState(0);
   const [values, setValues] = useState<ParamValues>({});
   const [lastOpen, setLastOpen] = useState(open);
+  const entrance = useEntrance({
+    initial: { opacity: 0, y: 6 },
+    exit: { opacity: 0, y: 6 },
+    transition: { duration: 0.15 },
+  });
 
   // Render-time reset: when the stepper closes we clear state for the next
   // open without firing an effect after paint.
@@ -62,10 +68,8 @@ export function ParamStepper({
     <AnimatePresence>
       <motion.div
         key="param-stepper"
-        initial={{ opacity: 0, y: 6 }}
+        {...entrance}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 6 }}
-        transition={{ duration: 0.15 }}
         data-testid="slash-param-stepper"
         className={cn(
           "absolute bottom-full left-0 right-0 z-20 mb-2",

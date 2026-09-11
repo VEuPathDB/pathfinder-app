@@ -7,6 +7,7 @@ import { Settings2, X } from "lucide-react";
 import { siteDisplayName } from "@pathfinder/shared";
 
 import suggestedQuestions from "@/features/conversation/data/suggestedQuestions.json";
+import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useSettingsStore } from "@/state/useSettingsStore";
@@ -34,22 +35,32 @@ export function ChatEmptyState() {
   const dismissHint = useSettingsStore((s) => s.dismissFirstRunHint);
   const suggestions = suggestionsForSite(siteId);
   const greeting = greetingForHour(new Date().getHours());
+  const headingEntrance = useEntrance({
+    initial: { opacity: 0, y: 8 },
+    transition: { duration: 0.4, ease: suggestionEase, delay: 0.05 },
+  });
+  const blurbEntrance = useEntrance({
+    initial: { opacity: 0, y: 8 },
+    transition: { duration: 0.4, ease: suggestionEase, delay: 0.12 },
+  });
+  const hintEntrance = useEntrance({
+    initial: { opacity: 0, y: 8 },
+    transition: { duration: 0.4, ease: suggestionEase, delay: 0.2 },
+  });
 
   return (
     <AuiIf condition={(s) => s.thread.isEmpty}>
       <div className="flex min-h-[60vh] flex-1 flex-col items-center justify-center px-6 py-10 text-center">
         <motion.h1
-          initial={{ opacity: 0, y: 8 }}
+          {...headingEntrance}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: suggestionEase, delay: 0.05 }}
           className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
         >
           {greeting}
         </motion.h1>
         <motion.p
-          initial={{ opacity: 0, y: 8 }}
+          {...blurbEntrance}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: suggestionEase, delay: 0.12 }}
           className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground"
         >
           Build and refine multi-step {displayName} search strategies with guided
@@ -58,9 +69,8 @@ export function ChatEmptyState() {
 
         {!hintDismissed && (
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            {...hintEntrance}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: suggestionEase, delay: 0.2 }}
             className="mt-6 flex max-w-md items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-left text-xs text-muted-foreground"
           >
             <Settings2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />
@@ -91,35 +101,40 @@ export function ChatEmptyState() {
             style={{ scrollbarWidth: "none" }}
           >
             {suggestions.map((prompt, i) => (
-              <motion.div
-                key={prompt}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  delay: 0.18 + 0.06 * i,
-                  duration: 0.4,
-                  ease: suggestionEase,
-                }}
-                className="min-w-[240px] shrink-0 sm:min-w-0 sm:shrink"
-              >
-                <ThreadPrimitive.Suggestion
-                  prompt={prompt}
-                  send
-                  className={cn(
-                    "h-auto w-full whitespace-normal rounded-xl border border-border/60 bg-card/40 px-4 py-3",
-                    "text-left text-[13px] leading-relaxed text-muted-foreground",
-                    "transition-all duration-200",
-                    "hover:-translate-y-0.5 hover:bg-card/80 hover:text-foreground hover:shadow-sm",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  )}
-                >
-                  {prompt}
-                </ThreadPrimitive.Suggestion>
-              </motion.div>
+              <SuggestionCard key={prompt} prompt={prompt} index={i} />
             ))}
           </div>
         )}
       </div>
     </AuiIf>
+  );
+}
+
+function SuggestionCard({ prompt, index }: { prompt: string; index: number }) {
+  const entrance = useEntrance({
+    initial: { opacity: 0, y: 16 },
+    transition: { delay: 0.18 + 0.06 * index, duration: 0.4, ease: suggestionEase },
+  });
+
+  return (
+    <motion.div
+      {...entrance}
+      animate={{ opacity: 1, y: 0 }}
+      className="min-w-[240px] shrink-0 sm:min-w-0 sm:shrink"
+    >
+      <ThreadPrimitive.Suggestion
+        prompt={prompt}
+        send
+        className={cn(
+          "h-auto w-full whitespace-normal rounded-xl border border-border/60 bg-card/40 px-4 py-3",
+          "text-left text-[13px] leading-relaxed text-muted-foreground",
+          "transition-all duration-200",
+          "hover:-translate-y-0.5 hover:bg-card/80 hover:text-foreground hover:shadow-sm",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
+        {prompt}
+      </ThreadPrimitive.Suggestion>
+    </motion.div>
   );
 }

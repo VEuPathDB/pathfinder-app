@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion } from "motion/react";
 
+import { useEntrance } from "@/lib/motion";
+
 import type { ConversationItem } from "@/features/sidebar/components/conversationSidebarTypes";
 import { ConversationListItem } from "@/features/sidebar/components/ConversationListItem";
 import { ConversationSubtree } from "@/features/sidebar/components/ConversationSubtree";
@@ -39,6 +41,11 @@ export function ConversationList({
   onDuplicate,
 }: ConversationListProps) {
   const roots = toTreeRoots(items);
+  const entrance = useEntrance({
+    initial: { opacity: 0, y: -4 },
+    exit: { opacity: 0, y: -4 },
+    transition: { duration: 0.15 },
+  });
 
   return (
     <div className="-mr-1 min-h-0 flex-1 overflow-y-auto pr-1">
@@ -55,10 +62,8 @@ export function ConversationList({
             <motion.div
               key={root.item.id}
               layout
-              initial={{ opacity: 0, y: -4 }}
+              {...entrance}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
             >
               <ConversationListItem
                 item={root.item}

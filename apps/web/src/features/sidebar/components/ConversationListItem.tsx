@@ -98,7 +98,7 @@ export function ConversationListItem({
             <div
               className={cn(
                 "mt-0.5 truncate text-xs",
-                isActive ? "text-foreground/70" : "text-muted-foreground",
+                isActive ? "text-foreground" : "text-muted-foreground",
               )}
             >
               {metaParts.join(" · ")}

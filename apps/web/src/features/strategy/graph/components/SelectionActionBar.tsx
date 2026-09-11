@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useEntrance } from "@/lib/motion";
 
 interface SelectionActionBarProps {
   selectedCount: number;
@@ -28,6 +29,11 @@ export function SelectionActionBar({
   onCombine,
   onOrtholog,
 }: SelectionActionBarProps) {
+  const entrance = useEntrance({
+    initial: { scale: 0.8, opacity: 0 },
+    exit: { scale: 0.8, opacity: 0 },
+    transition: POP_TRANSITION,
+  });
   const visible = selectedCount > 0;
   const canCombine = selectedCount >= 2;
   const canOrtholog = selectedCount === 1;
@@ -37,10 +43,8 @@ export function SelectionActionBar({
       {visible && (
         <motion.div
           key="selection-action-bar"
-          initial={{ scale: 0.8, opacity: 0 }}
+          {...entrance}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.8, opacity: 0 }}
-          transition={POP_TRANSITION}
           data-testid="selection-action-bar"
         >
           <TooltipProvider delayDuration={150}>

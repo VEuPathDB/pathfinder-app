@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { viewportIsNarrow } from "@/lib/layout/viewport";
+import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 import { useChatHelpers } from "../runtime/chatHelpersContext";
 import { shouldAutoOpenLedger } from "./autoOpenLedger";
@@ -78,6 +79,21 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
   const activity = computeRailActivity(chat.messages);
 
   const [autoOpenChecked, setAutoOpenChecked] = useState<string | null>(null);
+  const panelEntrance = useEntrance({
+    initial: { width: 0, opacity: 0 },
+    exit: { width: 0, opacity: 0 },
+    transition: PANEL_TRANSITION,
+  });
+  const bodyEntrance = useEntrance({
+    initial: { opacity: 0, y: 4 },
+    exit: { opacity: 0, y: -4 },
+    transition: { duration: 0.15 },
+  });
+  const dotEntrance = useEntrance({
+    initial: { scale: 0, opacity: 0 },
+    exit: { scale: 0, opacity: 0 },
+    transition: { type: "spring", stiffness: 500, damping: 24 },
+  });
   if (
     shouldAutoOpenLedger({
       hasUserMessage: activity.hasUserMessage,
@@ -124,20 +140,16 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
           <motion.div
             key="rail-panel"
             data-testid="rail-panel"
-            initial={{ width: 0, opacity: 0 }}
+            {...panelEntrance}
             animate={{ width: RAIL_PANEL_WIDTH, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={PANEL_TRANSITION}
             className="h-full shrink-0 overflow-hidden border-l border-border bg-background"
           >
             <div style={{ width: RAIL_PANEL_WIDTH }} className="h-full">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={openPanel}
-                  initial={{ opacity: 0, y: 4 }}
+                  {...bodyEntrance}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.15 }}
                   className="h-full"
                 >
                   {openPanel === "strategy" && (
@@ -189,10 +201,8 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
                     {showDot && (
                       <motion.span
                         key="dot"
-                        initial={{ scale: 0, opacity: 0 }}
+                        {...dotEntrance}
                         animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 24 }}
                         aria-label={`${label} has updates`}
                         className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary"
                       />

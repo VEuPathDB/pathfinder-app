@@ -162,7 +162,8 @@ describe("NodeShell motion stagger", () => {
     renderShell({ enterDelayIndex: 5 });
 
     const props = motionDivCalls[0]!;
-    expect(props.initial).toEqual({ opacity: 1, y: 0 });
+    // `initial: false` renders the node at its `animate` values.
+    expect(props.initial).toBe(false);
     expect(props.animate).toEqual({ opacity: 1, y: 0 });
     expect(props.transition).toEqual({ duration: 0 });
   });

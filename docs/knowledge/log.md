@@ -2,6 +2,25 @@
 
 ## 2026-09-11
 
+* **The active conversation row's meta line is full foreground, and a `motion`
+  entrance paints settled under reduced motion.** The row is tinted with the
+  site's primary, so the timestamp is a foreground tone read against that tint
+  and axe holds it to 4.5:1. An alpha on that tone leaves the ratio near the
+  gate on every palette, close enough that a later change to the tint walks it
+  under; full foreground clears the gate by more than a factor of two, so the
+  row survives a palette that moves. A `motion` entrance is JavaScript, so the
+  CSS rules that zero transitions and animations under
+  `prefers-reduced-motion: reduce` do not
+  reach it, and a row caught mid-entrance reads at a fraction of its opacity,
+  below the ratio, for an audit and for the viewer. `lib/motion.ts` owns the
+  rule: `usePrefersReducedMotion` reads the preference, and `useEntrance`
+  returns the entrance untouched or, under the preference, `initial: false`
+  with a zero-duration transition, so the element paints at its `animate`
+  values from the first frame. Every `motion` entrance in the app reads its
+  `initial`, `exit` and `transition` through that hook; an element that keeps
+  its own reduced-motion branch states the rule a second time and will drift
+  from it.
+
 * **The option a criterion states rides the step that runs its search.** A
   framed spec stated `gametocyte_expression` and `gametocyte_timecourse_option`,
   both on `GenesByRNASeqEvidence`, with a structure over the first alone; the

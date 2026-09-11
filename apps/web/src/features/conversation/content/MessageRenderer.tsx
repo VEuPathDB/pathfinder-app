@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { toUserMessage } from "@/lib/api/errors";
+import { useEntrance } from "@/lib/motion";
 
 import {
   Message,
@@ -100,15 +101,16 @@ const contentComponents = {
   data: { by_name: dataPartRenderers, Fallback: UnknownDataPartError },
 } as const;
 
-const MESSAGE_FADE_IN = {
+const MESSAGE_ENTRANCE = {
   initial: { opacity: 0, y: 6 },
-  animate: { opacity: 1, y: 0 },
   transition: { duration: 0.2, ease: "easeOut" as const },
 };
+const MESSAGE_SETTLED = { opacity: 1, y: 0 };
 
 export function UserMessage() {
+  const entrance = useEntrance(MESSAGE_ENTRANCE);
   return (
-    <motion.div {...MESSAGE_FADE_IN}>
+    <motion.div {...entrance} animate={MESSAGE_SETTLED}>
       <Message from="user">
         <MessageContent>
           <MessagePrimitive.Content components={contentComponents} />
@@ -134,8 +136,9 @@ export function UserMessage() {
 
 export function UserEditComposer() {
   const isLast = useAuiState((s) => s.message.isLast);
+  const entrance = useEntrance(MESSAGE_ENTRANCE);
   return (
-    <motion.div {...MESSAGE_FADE_IN}>
+    <motion.div {...entrance} animate={MESSAGE_SETTLED}>
       <Message from="user">
         <ComposerPrimitive.Root
           data-testid="user-edit-composer"
@@ -215,8 +218,9 @@ function AssistantStoppedNotice() {
 
 export function AssistantMessage() {
   const messageId = useAuiState((s) => s.message.id);
+  const entrance = useEntrance(MESSAGE_ENTRANCE);
   return (
-    <motion.div {...MESSAGE_FADE_IN}>
+    <motion.div {...entrance} animate={MESSAGE_SETTLED}>
       <Message from="assistant" id={messageAnchorId(messageId)}>
         <MessageContent>
           <SupersededBadge />

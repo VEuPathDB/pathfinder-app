@@ -9,6 +9,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 
 import { useChatHelpers, type ChatHelpers } from "../../runtime/chatHelpersContext";
@@ -66,6 +67,11 @@ export function ConsultCarouselView({
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [answers, setAnswers] = useState<Record<string, AnswerState>>({});
+  const entrance = useEntrance({
+    initial: { opacity: 0, x: direction * 24 },
+    exit: { opacity: 0, x: direction * -24 },
+    transition: SLIDE_TRANSITION,
+  });
 
   const q = questions[index];
   const current = q ? answers[q.id] : undefined;
@@ -142,10 +148,8 @@ export function ConsultCarouselView({
             <motion.div
               key={index}
               custom={direction}
-              initial={{ opacity: 0, x: direction * 24 }}
+              {...entrance}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: direction * -24 }}
-              transition={SLIDE_TRANSITION}
             >
               {q ? (
                 <ConsultSlide

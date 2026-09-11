@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import type { Step } from "@pathfinder/shared";
 import { cn } from "@/lib/utils/cn";
-import { usePrefersReducedMotion } from "@/features/strategy/graph/usePrefersReducedMotion";
+import { useEntrance } from "@/lib/motion";
 import { STAGGER_DELAY_MS } from "@/features/strategy/graph/motion";
 import { CornerDot } from "./CornerDot";
 import { HoverActions } from "./HoverActions";
@@ -69,7 +69,6 @@ export function NodeShell({
   children,
   handles,
 }: NodeShellProps) {
-  const reduced = usePrefersReducedMotion();
   const hasError =
     snapshot.isInvalid || snapshot.isFailed || snapshot.wdkPushError != null;
   // A step whose search metadata never loaded has no name to show.
@@ -106,14 +105,14 @@ export function NodeShell({
 
   const safeIndex =
     enterDelayIndex != null && enterDelayIndex >= 0 ? enterDelayIndex : 0;
-  const enterTransition = reduced
-    ? { duration: 0 }
-    : {
-        delay: safeIndex * (STAGGER_DELAY_MS / 1000),
-        duration: 0.2,
-        ease: "easeOut" as const,
-      };
-  const enterInitial = reduced ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 };
+  const entrance = useEntrance({
+    initial: { opacity: 0, y: 6 },
+    transition: {
+      delay: safeIndex * (STAGGER_DELAY_MS / 1000),
+      duration: 0.2,
+      ease: "easeOut",
+    },
+  });
 
   return (
     <motion.div
@@ -126,9 +125,8 @@ export function NodeShell({
       data-enter-delay-index={safeIndex}
       className={cn("group relative", isOrphan && "opacity-70")}
       style={{ width, height }}
-      initial={enterInitial}
+      {...entrance}
       animate={{ opacity: 1, y: 0 }}
-      transition={enterTransition}
     >
       {handles}
       {isSyncing && (

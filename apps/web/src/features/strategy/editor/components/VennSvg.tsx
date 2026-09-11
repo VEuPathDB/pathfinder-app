@@ -1,6 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEntrance, usePrefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 
 const P_TOP = "140 35.74";
@@ -40,8 +41,18 @@ export function VennSvg({
   showB,
   isColocate,
 }: VennSvgProps) {
-  const reduceMotion = useReducedMotion() === true;
+  const reduceMotion = usePrefersReducedMotion();
   const transition = reduceMotion ? { duration: 0 } : SPRING;
+  const fadeEntrance = useEntrance({
+    initial: { opacity: 0 },
+    exit: { opacity: 0 },
+    transition: { duration: 0.18 },
+  });
+  const arrowEntrance = useEntrance({
+    initial: { opacity: 0, scale: 0.6 },
+    exit: { opacity: 0, scale: 0.6 },
+    transition: { duration: 0.25, delay: 0.12 },
+  });
   const leftCx = isColocate ? COLOCATE_LEFT_CX : OVERLAP_LEFT_CX;
   const rightCx = isColocate ? COLOCATE_RIGHT_CX : OVERLAP_RIGHT_CX;
   const r = isColocate ? COLOCATE_R : OVERLAP_R;
@@ -99,13 +110,7 @@ export function VennSvg({
 
       <AnimatePresence>
         {!isColocate && (
-          <motion.g
-            key="regions"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduceMotion ? 0 : 0.18 }}
-          >
+          <motion.g key="regions" {...fadeEntrance} animate={{ opacity: 1 }}>
             <RegionPath
               label="A only"
               d={REGION_PATHS.A}
@@ -130,13 +135,7 @@ export function VennSvg({
 
       <AnimatePresence>
         {isColocate && (
-          <motion.g
-            key="colocate-targets"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduceMotion ? 0 : 0.18 }}
-          >
+          <motion.g key="colocate-targets" {...fadeEntrance} animate={{ opacity: 1 }}>
             <RegionCircle
               label="A only"
               cx={leftCx}
@@ -157,13 +156,8 @@ export function VennSvg({
         {isColocate && (
           <motion.g
             key="colocate-arrow"
-            initial={{ opacity: 0, scale: 0.6 }}
+            {...arrowEntrance}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.6 }}
-            transition={{
-              duration: reduceMotion ? 0 : 0.25,
-              delay: reduceMotion ? 0 : 0.12,
-            }}
             style={{ transformOrigin: "140px 90px", pointerEvents: "none" }}
           >
             <line

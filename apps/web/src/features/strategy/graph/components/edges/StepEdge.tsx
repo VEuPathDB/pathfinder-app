@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { type EdgeProps, getSmoothStepPath } from "@xyflow/react";
-import { usePrefersReducedMotion } from "@/features/strategy/graph/usePrefersReducedMotion";
+import { useEntrance } from "@/lib/motion";
 import { EDGE_DRAW_DURATION_MS } from "@/features/strategy/graph/motion";
 
 const STROKE_WIDTH = 1.5;
@@ -21,7 +21,11 @@ export function StepEdge(props: EdgeProps) {
     markerEnd,
   } = props;
 
-  const reduced = usePrefersReducedMotion();
+  const entrance = useEntrance({
+    initial: { pathLength: 0 },
+    exit: { pathLength: 0 },
+    transition: { duration: EDGE_DRAW_DURATION_MS / 1000, ease: "easeOut" },
+  });
   const [path, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -54,13 +58,8 @@ export function StepEdge(props: EdgeProps) {
         strokeWidth={STROKE_WIDTH}
         markerEnd={markerEnd}
         className="pointer-events-none text-muted-foreground"
-        initial={reduced ? { pathLength: 1 } : { pathLength: 0 }}
+        {...entrance}
         animate={{ pathLength: 1 }}
-        exit={reduced ? { pathLength: 1 } : { pathLength: 0 }}
-        transition={{
-          duration: reduced ? 0 : EDGE_DRAW_DURATION_MS / 1000,
-          ease: "easeOut",
-        }}
       />
     </>
   );

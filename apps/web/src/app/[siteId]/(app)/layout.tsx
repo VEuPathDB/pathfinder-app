@@ -26,6 +26,7 @@ import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
 import { sitesOptions } from "@/lib/api/sites";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
+import { useEntrance } from "@/lib/motion";
 import { chatRoot } from "@/lib/routes";
 import { siteIsDown } from "@/lib/sites/availability";
 import { requiresFullScreenSignIn } from "@/state/useAuthGateStore";
@@ -85,6 +86,13 @@ function AppShellInner({
   const toggleLeft = useLeftSidebarStore((s) => s.toggle);
   useAutoCollapsePanels();
   const modals = useModalState();
+  const sidebarEntrance = useEntrance({
+    initial: { width: 0, opacity: 0 },
+    exit: { width: 0, opacity: 0 },
+    transition: isDragging
+      ? { duration: 0 }
+      : { type: "spring", stiffness: 380, damping: 36 },
+  });
 
   const handleSiteChange = (nextSite: string) => {
     router.push(chatRoot(nextSite));
@@ -140,14 +148,8 @@ function AppShellInner({
           {!leftCollapsed && (
             <motion.div
               key="sidebar-expanded"
-              initial={{ width: 0, opacity: 0 }}
+              {...sidebarEntrance}
               animate={{ width: sidebarWidth, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={
-                isDragging
-                  ? { duration: 0 }
-                  : { type: "spring", stiffness: 380, damping: 36 }
-              }
               className="h-full shrink-0 overflow-hidden border-r border-border bg-sidebar"
             >
               <div style={{ width: sidebarWidth }} className="h-full">
