@@ -78,6 +78,7 @@ Choices with a real alternative, where the reasoning is not recoverable from the
 
 - [NUL is rejected at the ASGI boundary](nul-rejected-at-the-asgi-boundary.md) - why not a validator, and why not an exception handler
 - [A write the caller reads back commits before its response](a-write-commits-before-its-response.md) - the session dependency commits after the response, and an in-process transport cannot see the race
+- [The thread title is the last chunk before a turn finishes](the-thread-title-is-the-last-chunk-before-finish.md) - the title used to ride the first graph chunk that arrived after its task finished, so the same turn put it at index 4 or at index 7; it is now awaited before `finish` under a 15 s ceiling
 - [The API rewrite carries a long call](the-api-rewrite-carries-a-long-call.md) - Next's 30 s rewrite cap answered the data purge with its own bare 500
 - [A VEuPathDB bearer token is the user; a service token is the application](bearer-identity-and-service-tokens.md) - the ES512 JWKS protocol, and why `proxied-user-id` cannot serve a service that acts as the user
 - [A resource is owned by a user under one application](application-id-tenancy.md) - the scope key, isolated memories, a per-user cap with per-application attribution, and why not one user row or one database per application

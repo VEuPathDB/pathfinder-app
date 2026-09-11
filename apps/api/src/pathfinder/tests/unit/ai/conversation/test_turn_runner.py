@@ -193,7 +193,6 @@ async def _drive(
         graph_input={"turn_message_id": writer.turn_id, "user_id": uuid4()},
         compiled_graph=graph,
         runtime_context=_RuntimeCtx(cancel_event=cancel_event or asyncio.Event()),
-        title_task=None,
         writer=writer,
     )
 
@@ -308,3 +307,27 @@ def test_the_log_of_a_failed_turn_reduces_to_a_visible_failure() -> None:
         "data-turn-failed",
     ]
     assert parts[2]["data"] == {"errorText": _ERROR_TEXT}
+
+
+async def test_a_pending_title_is_awaited_and_written(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A title still running when the turn ends is waited for, not cancelled."""
+
+    async def _slow_title() -> str:
+        await asyncio.sleep(0.2)
+        return "Kinases in gametocytes"
+
+    async def _named(conversation_id: UUID, *, title: str) -> bool:
+        del conversation_id, title
+        return True
+
+    monkeypatch.setattr(turn_runner, "name_conversation_if_unnamed", _named)
+    title_task = asyncio.create_task(_slow_title())
+    writer = _writer()
+
+    await turn_runner._write_title(title_task, writer.conversation_id, writer)
+
+    assert title_task.cancelled() is False
+    assert [chunk["type"] for chunk in writer.chunks] == ["data-conversation-title"]
+    assert writer.chunks[0]["data"]["title"] == "Kinases in gametocytes"

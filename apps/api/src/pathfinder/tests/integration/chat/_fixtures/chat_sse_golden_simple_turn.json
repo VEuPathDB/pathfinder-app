@@ -26,12 +26,6 @@
   },
   {
     "data": {
-      "title": "hi"
-    },
-    "type": "data-conversation-title"
-  },
-  {
-    "data": {
       "label": "Reading the thread",
       "waitingOnLlm": false
     },
@@ -176,6 +170,12 @@
       }
     },
     "type": "data-ledger-update"
+  },
+  {
+    "data": {
+      "title": "hi"
+    },
+    "type": "data-conversation-title"
   },
   {
     "finishReason": "stop",

@@ -8,9 +8,8 @@ what left.
 ## Ranked
 
 1. [The portal search listing exceeds the compaction threshold](portal-search-listing-exceeds-the-compaction-threshold.md) - 2769 listings, about 144K tokens, so FRAME is compacted after every step on veupathdb.org and the scripted mock re-runs the build arc; two thread-surgery journeys are red on the portal.
-2. [The SSE golden depends on when the title task finishes](sse-golden-depends-on-title-scheduling.md) - the title chunk's position in a turn is a scheduling outcome, so the simple-turn golden pins an order the runner does not guarantee.
-3. [The test tree is type-checked by nothing](the-test-tree-is-type-checked-by-nothing.md) - mypy 1158 / pyright 1486 errors over `apps/api/src/pathfinder/tests`; a widened library type left a live assertion silently wrong until it ran.
-4. [An option criterion binds no parameter](an-option-criterion-binds-no-parameter.md) - FRAME records a parameter-option choice as a criterion, but `build_step_tree` mints steps only for what the structure names, so the option never reaches the search WDK runs.
+2. [The test tree is type-checked by nothing](the-test-tree-is-type-checked-by-nothing.md) - mypy 1158 / pyright 1486 errors over `apps/api/src/pathfinder/tests`; a widened library type left a live assertion silently wrong until it ran.
+3. [An option criterion binds no parameter](an-option-criterion-binds-no-parameter.md) - FRAME records a parameter-option choice as a criterion, but `build_step_tree` mints steps only for what the structure names, so the option never reaches the search WDK runs.
 
 ## Known and accepted
 

@@ -1,13 +1,8 @@
 """Conversation-title generation using the provider's smallest model.
 
-Called once per chat, on the first user message, to name the conversation in
-the sidebar. Uses a tiny, fast, cheap model per provider (nano for OpenAI,
-haiku for Anthropic, flash for Google, local for Ollama) so the title is ready
-quickly and the main agent pipeline isn't slowed down.
-
-The generated title flows to the UI via the native AI SDK metadata channel —
-see `pipeline_dispatcher._drive_pipeline` for where it is attached to the
-`MessageMetadataChunk`'s `conversationTitle` field.
+The title names the thread in the sidebar. It runs beside the turn, and the
+turn runner writes it as `data-conversation-title`, the last chunk before
+`finish`.
 """
 
 from __future__ import annotations
@@ -32,7 +27,7 @@ MAX_TITLE_CHARS = 60
 _MIN_QUOTED_LEN = 2
 
 _TITLE_INSTRUCTIONS = (
-    "You produce conversation titles. Respond with ONLY the title — no "
+    "You produce conversation titles. Respond with ONLY the title, no "
     "quotes, no punctuation, no leading dash, no trailing period, no "
     "wrapping characters. Use Title Case. Use at most 7 words. Summarize "
     "the subject of the user's request, not the request itself. Examples:\n"

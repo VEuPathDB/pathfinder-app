@@ -18,11 +18,18 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
+import httpx
+from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
 from pathfinder.jobs.app import procrastinate_app
+from pathfinder.platform.security import create_user_token
 
 _CHAT_TURN_TASK = "chat_turn:run"
+
+# A ceiling on a hung turn, not a budget for a fast one. The mock provider
+# answers in under a second, so a wait near this bound is a deadlock.
+_DEADLOCK_CEILING_SECONDS = 120.0
 
 _VOLATILE_KEYS: frozenset[str] = frozenset(
     {
@@ -114,6 +121,43 @@ async def run_deferred_chat_turns() -> None:
             listen_notify=False,
             install_signal_handlers=False,
         )
+
+
+async def run_one_chat_turn(
+    *,
+    app: FastAPI,
+    user_id: UUID,
+    connector: InMemoryConnector,
+    prompt: str,
+) -> list[dict[str, Any]]:
+    """Post one prompt, run the deferred turn, and return its SSE chunks."""
+    conversation_id = uuid4()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+        cookies={"pathfinder-auth": create_user_token(user_id)},
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    ) as client:
+        post_task = asyncio.create_task(
+            client.post(
+                "/api/v1/chat",
+                json=chat_post_body(conversation_id, prompt),
+                timeout=30.0,
+            ),
+        )
+        await asyncio.wait_for(
+            wait_until_chat_turn_deferred(connector),
+            timeout=_DEADLOCK_CEILING_SECONDS,
+        )
+        await run_deferred_chat_turns()
+        response = await asyncio.wait_for(
+            post_task,
+            timeout=_DEADLOCK_CEILING_SECONDS,
+        )
+    if response.status_code != 200:
+        msg = f"chat returned {response.status_code}; body={response.text[:500]!r}"
+        raise AssertionError(msg)
+    return parse_sse_body(response.text)
 
 
 def parse_sse_body(body: str) -> list[dict[str, Any]]:

@@ -30,6 +30,33 @@
   `operational_spec.py::criteria_under` keeps its one reading, the criteria a
   subtree states a step for, which `stated_shape.py::structure_criteria` reads.
 
+* **The thread title is written at one defined point of a turn, so the SSE
+  golden pins an order the runner guarantees.** `run_turn` used to carry the
+  title opportunistically: `_handle_custom` checked `title_task.done()` on every
+  chunk the graph streamed and wrote `data-conversation-title` on the first one
+  that arrived afterwards, so the position followed the scheduler. The same
+  prompt on the same build, with only the cost of the title task changed, put
+  the chunk at index 4 when the title was ready immediately and at index 7 when
+  it took 0.4 s, in a turn of 24 chunks that was otherwise identical, and
+  `chat_sse_golden_simple_turn.json` recorded whichever one the recording
+  machine produced. The runner now writes the title after the epilogue and
+  immediately before `finish`, awaiting the task there under
+  `_TITLE_WAIT_SECONDS` (15) so a slow title model cannot hold the turn open;
+  a title past the wait is dropped with a warning and the next turn names the
+  thread. `PROTOCOL.md` states no position for the part and states "before
+  `finish`" for its two conversation-level neighbours, and the web client reads
+  it by kind, so the rule follows the protocol without changing it. Recorded as
+  `decisions/the-thread-title-is-the-last-chunk-before-finish.md`. Proven by
+  `tests/integration/chat/test_conversation_title_position.py` (a title ready at
+  0.0 s and one ready at 0.4 s both land at `len - 3`, and a title past the wait
+  is cancelled at the ceiling and leaves a turn that still finishes with
+  `stop`), and the golden was re-recorded
+  once through `PATHFINDER_RECORD_GOLDEN=1` and now asserts the last three chunk
+  types by name. Four hand-rolled turn drivers in `tests/integration/chat`
+  became one `_helpers.py::run_one_chat_turn` for the two that drove a plain
+  turn; the two files that post their own body (a named assistant, a shared
+  client) keep their own shapes.
+
 ## 2026-09-10
 
 * **A criterion that binds an option on another criterion's search has no step,

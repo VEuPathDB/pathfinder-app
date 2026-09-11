@@ -15,25 +15,16 @@ Re-record with::
 
 from __future__ import annotations
 
-import asyncio
 import json
 import os
 from pathlib import Path
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
-import httpx
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
-from pathfinder.platform.security import create_user_token
-from pathfinder.tests.integration.chat._helpers import (
-    chat_post_body,
-    parse_sse_body,
-    redact,
-    run_deferred_chat_turns,
-    wait_until_chat_turn_deferred,
-)
+from pathfinder.tests.integration.chat._helpers import redact, run_one_chat_turn
 
 _FIXTURE_PATH = Path(__file__).parent / "_fixtures" / "chat_sse_golden_simple_turn.json"
 
@@ -41,11 +32,6 @@ _FIXTURE_PATH = Path(__file__).parent / "_fixtures" / "chat_sse_golden_simple_tu
 # a single supervisor decision + a turn-qa data chunk + finish/done. No
 # phase nodes run. Keeps the snapshot small and bit-stable.
 _PROMPT = "hi"
-
-# A ceiling on a hung turn, not a budget for a fast one: the mock provider
-# answers this prompt in under a second, so anything near this bound is a
-# deadlock and not a slow machine.
-_DEADLOCK_CEILING_SECONDS = 120.0
 
 # The full set of chunk ``type`` values the dispatcher is allowed to emit on
 # this turn. Any chunk type outside this set indicates new behavior the
@@ -74,43 +60,6 @@ _ALLOWED_CHUNK_TYPES: frozenset[str] = frozenset(
         "message-metadata",
     }
 )
-
-
-async def _run_turn_and_collect(
-    app: FastAPI,
-    user_id: UUID,
-    in_memory_jobs: InMemoryConnector,
-) -> list[dict[str, Any]]:
-    conv_id = uuid4()
-    token = create_user_token(user_id)
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app),
-        base_url="http://test",
-        cookies={"pathfinder-auth": token},
-        headers={"X-Requested-With": "XMLHttpRequest"},
-    ) as client:
-        post_task = asyncio.create_task(
-            client.post(
-                "/api/v1/chat",
-                json=chat_post_body(conv_id, _PROMPT),
-                timeout=30.0,
-            ),
-        )
-        await asyncio.wait_for(
-            wait_until_chat_turn_deferred(in_memory_jobs),
-            timeout=_DEADLOCK_CEILING_SECONDS,
-        )
-        await run_deferred_chat_turns()
-        response = await asyncio.wait_for(
-            post_task,
-            timeout=_DEADLOCK_CEILING_SECONDS,
-        )
-
-    if response.status_code != 200:
-        msg = f"chat returned {response.status_code}; body={response.text[:500]!r}"
-        raise AssertionError(msg)
-    raw_chunks = parse_sse_body(response.text)
-    return [redact(c) for c in raw_chunks]
 
 
 def _load_fixture() -> list[dict[str, Any]]:
@@ -154,7 +103,13 @@ async def test_chat_sse_golden_snapshot_simple_turn(
 ) -> None:
     """One simple-turn SSE stream, frozen as a golden chunk list."""
     del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
-    chunks = await _run_turn_and_collect(app, authed_user_id, in_memory_jobs)
+    raw_chunks = await run_one_chat_turn(
+        app=app,
+        user_id=authed_user_id,
+        connector=in_memory_jobs,
+        prompt=_PROMPT,
+    )
+    chunks = [redact(chunk) for chunk in raw_chunks]
 
     if os.environ.get("PATHFINDER_RECORD_GOLDEN") == "1":
         _save_fixture(chunks)
@@ -183,5 +138,7 @@ async def test_chat_sse_golden_snapshot_simple_turn(
     assert chunks[0]["data"]["label"] == "Queued"
     assert types[1] == "start"
     assert types[-1] == "done"
+    # The title is written at one defined point, so the fixture can pin it.
+    assert types[-3:] == ["data-conversation-title", "finish", "done"]
 
     assert chunks == expected, _diff_message(chunks, expected)

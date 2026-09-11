@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import dataclasses
-from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
@@ -58,12 +57,15 @@ logger = get_logger(__name__)
 
 _TASK_STARTED = "data-background-task-started"
 
+# A ceiling on the wait for the thread title. The turn finishes without a
+# title when the title model is slower than this.
+_TITLE_WAIT_SECONDS = 15.0
+
 
 @dataclass
 class _DriveResult:
     suspended: bool = False
     encountered_error: bool = False
-    title_emitted: bool = False
     cancelled: bool = False
 
 
@@ -87,8 +89,6 @@ class _StreamConsumerCtx:
     graph_input: dict[str, Any]
     thread_config: dict[str, Any]
     runtime_context: Any
-    title_task: asyncio.Task[str] | None
-    body: ChatRequestBody
     writer: ChatWriter
     result: _DriveResult
 
@@ -118,7 +118,7 @@ async def run_turn(
 ) -> None:
     """Drive one chat turn to completion, writing chunks through ``writer``.
 
-    Runs to completion regardless of client state — no disconnect cancellation.
+    Runs to completion regardless of client state; a disconnect cancels nothing.
     The procrastinate worker that calls this coroutine is the owner; any client
     reattaches via the events SSE endpoint in a later task.
     """
@@ -215,13 +215,8 @@ async def _run_turn_with_context(
         graph_input=graph_input,
         compiled_graph=compiled_graph,
         runtime_context=runtime_context,
-        title_task=title_task,
         writer=writer,
     )
-
-    if title_task is not None and not result.title_emitted:
-        async for t in _emit_title(title_task, body.conversation_id):
-            await writer.write(t)
 
     finish_reason = (
         "error"
@@ -245,6 +240,8 @@ async def _run_turn_with_context(
     if spec.turn_epilogue is not None:
         for chunk in await spec.turn_epilogue(body.conversation_id):
             await writer.write(chunk)
+    if title_task is not None:
+        await _write_title(title_task, body.conversation_id, writer)
     await writer.write(
         FinishChunk(finish_reason=finish_reason).model_dump(
             by_alias=True,
@@ -264,13 +261,7 @@ async def _consume_graph_stream(ctx: _StreamConsumerCtx) -> None:
         context=ctx.runtime_context,
         stream_mode="custom",
     ):
-        await _handle_custom(
-            payload,
-            ctx.title_task,
-            ctx.body.conversation_id,
-            ctx.result,
-            ctx.writer,
-        )
+        await _handle_custom(payload, ctx.result, ctx.writer)
 
 
 async def _drive_graph(
@@ -279,7 +270,6 @@ async def _drive_graph(
     graph_input: dict[str, Any],
     compiled_graph: Any,
     runtime_context: Any,
-    title_task: asyncio.Task[str] | None,
     writer: ChatWriter,
 ) -> _DriveResult:
     result = _DriveResult()
@@ -307,8 +297,6 @@ async def _drive_graph(
                 graph_input=graph_input,
                 thread_config=thread_config,
                 runtime_context=runtime_context,
-                title_task=title_task,
-                body=body,
                 writer=tracked,
                 result=result,
             ),
@@ -367,28 +355,31 @@ async def _drive_graph(
 
 async def _handle_custom(
     payload: object,
-    title_task: asyncio.Task[str] | None,
-    conversation_id: UUID,
     result: _DriveResult,
     writer: ChatWriter,
 ) -> None:
     chunk = _extract_chunk(payload)
-    if chunk is not None:
-        if chunk.get("type") == _TASK_STARTED:
-            result.suspended = True
-        await writer.write(chunk)
-    if not result.title_emitted and title_task is not None and title_task.done():
-        async for t in _emit_title(title_task, conversation_id):
-            await writer.write(t)
-            result.title_emitted = True
+    if chunk is None:
+        return
+    if chunk.get("type") == _TASK_STARTED:
+        result.suspended = True
+    await writer.write(chunk)
 
 
-async def _emit_title(
+async def _write_title(
     title_task: asyncio.Task[str],
     conversation_id: UUID,
-) -> AsyncGenerator[dict[str, Any]]:
+    writer: ChatWriter,
+) -> None:
+    """Write the thread's title as the last chunk before the turn finishes."""
     try:
-        title = await title_task
+        title = await asyncio.wait_for(title_task, _TITLE_WAIT_SECONDS)
+    except TimeoutError:
+        logger.warning(
+            "Conversation title generation exceeded its wait",
+            conversation_id=str(conversation_id),
+        )
+        return
     except Exception:
         logger.exception("Conversation title generation failed")
         return
@@ -396,8 +387,10 @@ async def _emit_title(
         return
     if not await name_conversation_if_unnamed(conversation_id, title=title):
         return
-    yield conversation_title_event(title=title).model_dump(
-        by_alias=True,
-        mode="json",
-        exclude_none=True,
+    await writer.write(
+        conversation_title_event(title=title).model_dump(
+            by_alias=True,
+            mode="json",
+            exclude_none=True,
+        ),
     )
