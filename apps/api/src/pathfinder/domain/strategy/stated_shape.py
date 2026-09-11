@@ -15,7 +15,6 @@ from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
 from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
 from veupathdb.domain.strategy.tree import subtree_ids, walk
 
-from pathfinder.domain.strategy.operational_spec import SpecStructure, criteria_under
 from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategyGraph
@@ -29,7 +28,6 @@ __all__ = [
     "placeholder_names",
     "shape_after",
     "stated_shape",
-    "structure_criteria",
     "working_copy",
 ]
 
@@ -51,13 +49,6 @@ def criteria_with_steps(
     """
     answered = set(live_step_ids) | set(minted)
     return frozenset(cid for cid in criteria if cid in answered)
-
-
-def structure_criteria(structure: SpecStructure | None) -> frozenset[str]:
-    """The criterion ids a structure states a step for."""
-    if structure is None:
-        return frozenset()
-    return criteria_under(structure.root)
 
 
 @dataclass(frozen=True)

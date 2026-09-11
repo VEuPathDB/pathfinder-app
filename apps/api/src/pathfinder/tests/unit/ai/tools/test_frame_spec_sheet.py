@@ -14,6 +14,7 @@ from veupathdb.wdk.wdk_parameters import (
 from veupathdb_mcp.catalog import FilterFieldInfo, ParameterInfo
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
+from pathfinder.ai.tools.standalone._frame_proposals import DeclaredAssumption
 from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
 from pathfinder.domain.strategy.operational_spec import AssumedValue
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
@@ -295,7 +296,7 @@ _FILTER_FIELD = FilterFieldInfo(
     term="Sample type", display="Sample type", type="string", values=["a", "b"]
 )
 _DERISI = "GenesByMicroarrayDerisi"
-_TROPHOZOITE = AssumedValue(
+_TROPHOZOITE = DeclaredAssumption(
     param_name="samples_percentile_generic",
     value="17-30h",
     reason="the request says trophozoite and this window covers 17-30 hours",
@@ -306,11 +307,13 @@ _STATED: Proposals = {
     "ref_samples": "Sample type=a",
     "comp_samples": "Sample type=b",
 }
-_REFUSED_ASSUMPTIONS: list[tuple[Proposals, list[AssumedValue], tuple[str, ...]]] = [
+_REFUSED_ASSUMPTIONS: list[
+    tuple[Proposals, list[DeclaredAssumption], tuple[str, ...]]
+] = [
     (
         dict(_STATED),
         [
-            AssumedValue(
+            DeclaredAssumption(
                 param_name="comp_samples", value="Sample type=b", reason="sensible"
             )
         ],
@@ -318,7 +321,11 @@ _REFUSED_ASSUMPTIONS: list[tuple[Proposals, list[AssumedValue], tuple[str, ...]]
     ),
     (
         dict(_STATED),
-        [AssumedValue(param_name="samples_percentile", value="17-30h", reason="typo")],
+        [
+            DeclaredAssumption(
+                param_name="samples_percentile", value="17-30h", reason="typo"
+            )
+        ],
         ("samples_percentile",),
     ),
     (
@@ -351,7 +358,10 @@ class TestADeclaredAssumptionIsRecorded:
         serve_search(monkeypatch, _derisi_params)
 
     async def _bind(
-        self, state: AgentToolState, params: Proposals, assumed: list[AssumedValue]
+        self,
+        state: AgentToolState,
+        params: Proposals,
+        assumed: list[DeclaredAssumption],
     ) -> None:
         await bind(
             state,
@@ -368,7 +378,20 @@ class TestADeclaredAssumptionIsRecorded:
         await self._bind(state, dict(_STATED), [_TROPHOZOITE])
 
         [criterion] = state.operational_spec_draft.criteria
-        assert criterion.assumptions == [_TROPHOZOITE]
+        assert criterion.assumptions == [
+            AssumedValue(
+                param_name=_TROPHOZOITE.param_name,
+                value=_TROPHOZOITE.value,
+                reason=_TROPHOZOITE.reason,
+            )
+        ]
+
+    def test_the_declared_shape_carries_no_fold_record(self) -> None:
+        """``carried_from`` is the fold's, so the sheet the model fills has none."""
+        declared = set(DeclaredAssumption.model_json_schema()["properties"])
+
+        assert declared == {"paramName", "value", "reason"}
+        assert "carriedFrom" in AssumedValue.model_json_schema()["properties"]
 
     @pytest.mark.asyncio
     async def test_a_criterion_without_assumptions_records_none(self) -> None:
@@ -384,7 +407,7 @@ class TestADeclaredAssumptionIsRecorded:
     async def test_a_refused_assumption_names_the_parameter(
         self,
         params: Proposals,
-        assumed: list[AssumedValue],
+        assumed: list[DeclaredAssumption],
         fragments: tuple[str, ...],
     ) -> None:
         state = AgentToolState()

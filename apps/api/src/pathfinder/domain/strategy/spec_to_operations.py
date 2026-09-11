@@ -22,6 +22,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     StructureNode,
+    structure_criteria,
 )
 from pathfinder.domain.strategy.operations import (
     AddCombineOp,
@@ -42,7 +43,6 @@ from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.strategy.stated_shape import (
     criteria_with_steps,
     stated_shape,
-    structure_criteria,
     working_copy,
 )
 

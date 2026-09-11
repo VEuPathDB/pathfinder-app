@@ -6,12 +6,20 @@ is not ready to build, or whose account of an edit does not match what changed.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Sequence
+
+from veupathdb.domain.parameters.value_codec import to_wire
 
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    carried_values,
+    structure_criteria,
+)
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 
 
@@ -172,6 +180,66 @@ def build_would_replace_the_strategy(step_count: int) -> str:
         f"request names. If the request really is to throw this strategy away "
         f"and start over, call clear_strategy, which asks the user to approve "
         f"the deletion before anything is removed."
+    )
+
+
+def option_binds_no_step_message(spec: OperationalSpec, unplaced: Sequence[str]) -> str:
+    """Why a spec whose option no single step carries is refused.
+
+    WDK holds a choice inside a search as a value in that search's parameters,
+    so an option belongs to exactly one criterion that runs the search.
+    """
+    named = structure_criteria(spec.structure)
+    carriers: defaultdict[str, list[Criterion]] = defaultdict(list)
+    for criterion in spec.criteria:
+        if criterion.id in named and criterion.search_name:
+            carriers[criterion.search_name].append(criterion)
+    wanted = set(unplaced)
+    problems = [
+        _unplaced_option(criterion, carriers[criterion.search_name])
+        for criterion in spec.criteria
+        if criterion.id in wanted
+    ]
+    return (
+        f"The build cannot place the value(s) these criteria state: "
+        f"{'; '.join(problems)}. A choice inside a search is a value in that "
+        f"search's own parameters: call set_criterion on the criterion that "
+        f"runs the search, with the value in its params, and drop_criterion on "
+        f"the one that states it alone. A criterion that runs a search of its "
+        f"own belongs in set_structure instead."
+    )
+
+
+def _unplaced_option(option: Criterion, carriers: Sequence[Criterion]) -> str:
+    values = ", ".join(sorted(option.resolved_params))
+    if not carriers:
+        return (
+            f"{option.id} ({option.text[:80]}) states {values} on "
+            f"{option.search_name}, and no criterion in the structure runs that "
+            f"search"
+        )
+    if len(carriers) == 1:
+        return _contradicted_option(option, carriers[0])
+    return (
+        f"{option.id} ({option.text[:80]}) states {values} on "
+        f"{option.search_name}, and {len(carriers)} criteria in the structure "
+        f"run that search ({', '.join(c.id for c in carriers)})"
+    )
+
+
+def _contradicted_option(option: Criterion, carrier: Criterion) -> str:
+    """Why an option one criterion runs the search for is still unplaced."""
+    carried = carried_values(carrier)
+    defaulted = set(option.defaulted_params)
+    clashes = [
+        f"{name}={to_wire(value)} where {carrier.id} already carries "
+        f"{name}={carried[name]}"
+        for name, value in option.resolved_params.items()
+        if name not in defaulted and name in carried and carried[name] != to_wire(value)
+    ]
+    return (
+        f"{option.id} ({option.text[:80]}) states "
+        f"{'; '.join(clashes)} on {option.search_name}"
     )
 
 

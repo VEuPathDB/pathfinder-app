@@ -2,6 +2,37 @@
 
 ## 2026-09-11
 
+* **The option a criterion states rides the step that runs its search.** A
+  framed spec stated `gametocyte_expression` and `gametocyte_timecourse_option`,
+  both on `GenesByRNASeqEvidence`, with a structure over the first alone; the
+  build minted one step and pushed `dataset=all_rnaseq`, the search default,
+  where the request asked for `pfal3D7_Gametocyte_Timecourse_rnaSeq`, so the
+  count answered a broader question than the one asked.
+  `operational_spec.py::fold_option_criteria` now moves the values a criterion
+  with no step states onto the criterion that names the same search and drops
+  those names from its defaulted list. A value the carrier's own text states
+  holds; a value it defaulted or FRAME assumed is overridden, because an
+  assumption is the value the model chose and the option is the one the user
+  states. The carrier keeps the text that names its step, and each moved value
+  rides as an `AssumedValue` whose reason is the option's text and whose
+  `carried_from` names the option, replacing any assumption the carrier held for
+  that name, so the constraints show the user's choice and not the model's
+  guess. An option no single criterion in the structure carries is reported
+  unplaced, and so is one that restates a parameter an earlier fold already
+  carried with a different value; a second option that states the same value
+  carries nothing more. The two seams that
+  take a spec the model just wrote refuse an unplaced option:
+  `build_strategy` and the new side of `run_edit` raise
+  `dispatch_messages.py::option_binds_no_step_message`, which names the option
+  and the criteria that run its search, or the parameter and both values when
+  one criterion runs it. The stored side of `run_edit`
+  folds leniently, because a spec an earlier turn left is not this turn's
+  statement, and the edit stores the folded spec beside its commit so a build
+  and an edit leave the thread the same spec. FRAME's instructions now say that
+  a choice inside one search is a value in that criterion's `params` and that
+  the tree names every criterion that stands for a search of its own.
+  `structure_criteria` moves to `operational_spec`, where the structure lives.
+
 * **A stated combination of three or more terms is checked at every combine it
   names, not only where the terms meet.** "kinases OR mass spectrometry
   evidence OR DeRisi expression" against `UNION(kinase, INTERSECT(mass spec,
@@ -56,6 +87,7 @@
   became one `_helpers.py::run_one_chat_turn` for the two that drove a plain
   turn; the two files that post their own body (a named assistant, a shared
   client) keep their own shapes.
+
 * **The search listing carries names only, and the scripted FRAME survives a
   compaction of its own history.** On veupathdb.org `list_searches` returned
   2769 `{name, displayName}` rows, 574624 characters and about 143656 estimated

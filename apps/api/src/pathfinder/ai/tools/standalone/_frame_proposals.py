@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Annotated
 
+from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, BeforeValidator, ConfigDict, field_validator
 from pydantic import ValidationError as PydanticValidationError
 from pydantic_ai import ModelRetry
@@ -28,6 +29,14 @@ from veupathdb_mcp.catalog import (
     is_phyletic_sheet,
     radio_pairs,
 )
+
+
+class DeclaredAssumption(CamelModel):
+    """A value the model chose that the criterion text does not state."""
+
+    param_name: str
+    value: str
+    reason: str
 
 
 class _Proposal(BaseModel):

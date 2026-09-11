@@ -8,7 +8,6 @@ what left.
 ## Ranked
 
 1. [The test tree is type-checked by nothing](the-test-tree-is-type-checked-by-nothing.md) - mypy 1158 / pyright 1486 errors over `apps/api/src/pathfinder/tests`; a widened library type left a live assertion silently wrong until it ran.
-2. [An option criterion binds no parameter](an-option-criterion-binds-no-parameter.md) - FRAME records a parameter-option choice as a criterion, but `build_step_tree` mints steps only for what the structure names, so the option never reaches the search WDK runs.
 
 ## Known and accepted
 

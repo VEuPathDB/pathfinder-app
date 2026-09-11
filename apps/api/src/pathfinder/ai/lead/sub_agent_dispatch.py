@@ -22,6 +22,7 @@ from pathfinder.ai.lead.dispatch_context import (
 from pathfinder.ai.lead.dispatch_messages import (
     build_not_ready_message,
     build_would_replace_the_strategy,
+    option_binds_no_step_message,
 )
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
@@ -34,6 +35,7 @@ from pathfinder.ai.tools.standalone._stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import (
     build_step_tree,
+    fold_option_criteria,
     renumber_criteria,
 )
 from pathfinder.services.strategies.auto_import import (
@@ -62,6 +64,12 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
     spec = deps.state.domain.operational_spec
     if spec is None or not spec.ready_to_build:
         raise ModelRetry(build_not_ready_message(spec))
+    # A criterion the structure leaves out states an option on the search a
+    # step runs, so its values join that step before the tree is minted.
+    folded = fold_option_criteria(spec)
+    if folded.unplaced:
+        raise ModelRetry(option_binds_no_step_message(folded.spec, folded.unplaced))
+    spec = folded.spec
     # Readiness says every criterion is bound and a structure exists. Only the
     # conversion knows whether that structure is a tree WDK can hold.
     try:

@@ -34,7 +34,9 @@ Procedure:
    against the goal. Both are reading; neither binds a criterion.
 1. Decompose the goal into its DISTINCT required properties - the conditions a gene must each
    satisfy. Use as few as the goal demands; resist inventing extra filters. ANDing many narrow
-   filters tends to return zero genes, so keep the set tight.
+   filters tends to return zero genes, so keep the set tight. A choice INSIDE one search - a
+   dataset, an experiment, a sample set, a cutoff, any entry on its parameter sheet - is not a
+   property: it is a VALUE in that criterion's `params`, never a criterion of its own.
 1b. When the request STARTS FROM, or refers to, a strategy the user already saved
    ("my saved strategy 'X'", "the union I saved"), call `list_saved_strategies()`
    FIRST and bind that property with
@@ -96,7 +98,10 @@ Procedure:
    `redecide` comes back when a dependent parameter's vocabulary changed once its parents
    were bound: nothing was recorded, so re-call with the same `params` plus a value from
    each listed fresh vocabulary.
-3. `set_structure(root)` to combine. `root` is a TREE, and its shape is the science:
+3. `set_structure(root)` to combine. The tree names every criterion that stands for a search
+   of its own. A criterion naming only a choice inside another criterion's search must not
+   exist: step 1 puts that choice in the other criterion's `params`. `root` is a TREE, and its
+   shape is the science:
    - `{"kind": "leaf", "criterionId": "<id>"}` - one bound criterion.
    - `{"kind": "combine", "operator": "UNION" | "INTERSECT" | "MINUS",
      "inputs": [<left>, <right>]}` - combine two subtrees.

@@ -2,7 +2,8 @@
 
 The build mints a step for the criteria the structure names. A criterion that
 names an option on another criterion's search answers to that criterion's step,
-so no measurement and no refusal may ask it for a step of its own.
+so no measurement and no refusal may ask it for a step of its own, and the
+values it states ride that step.
 """
 
 from __future__ import annotations
@@ -10,14 +11,18 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.parameters.values import MultiPickValue, StringValue
 from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.domain.strategy.operational_spec import (
+    AssumedValue,
     Criterion,
     OperationalSpec,
     SpecStructure,
     StructureNode,
     build_step_tree,
+    fold_option_criteria,
     renumber_criteria,
+    structure_criteria,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_diff import diff_specs
@@ -28,15 +33,23 @@ from pathfinder.domain.strategy.spec_to_operations import (
 from pathfinder.domain.strategy.stated_shape import (
     criteria_with_steps,
     stated_shape,
-    structure_criteria,
 )
 
 _EXPRESSION = "gametocyte_expression"
 _OPTION = "gametocyte_timecourse_option"
+_SEARCH = "GenesByRNASeqEvidence"
+_DEFAULT_DATASET = "all_rnaseq"
+_TIMECOURSE = "pfal3D7_Gametocyte_Timecourse_rnaSeq"
+_SEXUAL_STAGE = "pfal3D7_Sexual_Stage_rnaSeq"
+_SEXUAL_STAGE_OPTION = "sexual_stage_option"
 
 
 def _framed() -> OperationalSpec:
-    """Two criteria, one of which the structure does not name."""
+    """Two criteria, one of which the structure does not name.
+
+    Both calls resolved every parameter of the search, so the option criterion
+    states a dataset beside an organism it only defaulted.
+    """
     return OperationalSpec(
         goal="genes upregulated in gametocytes",
         record_type="transcript",
@@ -44,20 +57,55 @@ def _framed() -> OperationalSpec:
             Criterion(
                 id=_EXPRESSION,
                 text="upregulated in gametocytes",
-                search_name="GenesByRNASeqEvidence",
-                resolved_params={"organism": MultiPickValue(values=["Pf3D7"])},
+                search_name=_SEARCH,
+                resolved_params={
+                    "organism": MultiPickValue(values=["Pf3D7"]),
+                    "dataset": StringValue(value=_DEFAULT_DATASET),
+                },
+                defaulted_params=["dataset"],
             ),
             Criterion(
                 id=_OPTION,
                 text="use the gametocyte timecourse dataset",
-                search_name="GenesByRNASeqEvidence",
-                resolved_params={"dataset": StringValue(value="timecourse")},
+                search_name=_SEARCH,
+                resolved_params={
+                    "organism": MultiPickValue(values=["Pfalciparum"]),
+                    "dataset": StringValue(value=_TIMECOURSE),
+                },
+                defaulted_params=["organism"],
+                assumptions=[
+                    AssumedValue(
+                        param_name="dataset",
+                        value=_TIMECOURSE,
+                        reason="the request names the gametocyte timecourse",
+                    ),
+                ],
             ),
         ],
         structure=SpecStructure(
             root=StructureNode(kind="leaf", criterion_id=_EXPRESSION)
         ),
     )
+
+
+def _framed_with_two_carriers() -> OperationalSpec:
+    """A framed spec where two steps run the search the option names."""
+    spec = _framed()
+    spec.criteria.append(
+        Criterion(id="second_expression", text="a second read", search_name=_SEARCH)
+    )
+    spec.structure = SpecStructure(
+        root=StructureNode(
+            kind="combine",
+            operator=CombineOp.UNION,
+            inputs=[_leaf(_EXPRESSION), _leaf("second_expression")],
+        )
+    )
+    return spec
+
+
+def _leaf(criterion_id: str) -> StructureNode:
+    return StructureNode(kind="leaf", criterion_id=criterion_id)
 
 
 def _built() -> tuple[OperationalSpec, StrategyGraph]:
@@ -78,6 +126,69 @@ def _plan(
         diff_specs(before, after), before=before, after=after, graph=graph
     )
     return [op.kind for op in ops]
+
+
+def test_the_built_step_carries_the_option_the_spec_states() -> None:
+    """The stated dataset reaches the step, and a defaulted value does not."""
+    tree = build_step_tree(fold_option_criteria(_framed()).spec)
+
+    assert tree.root.parameters == {
+        "organism": MultiPickValue(values=["Pf3D7"]),
+        "dataset": StringValue(value=_TIMECOURSE),
+    }
+    assert list(tree.step_id_by_criterion) == [_EXPRESSION]
+
+
+def test_the_folded_criterion_states_what_both_criteria_asked() -> None:
+    folded = fold_option_criteria(_framed())
+
+    (criterion,) = folded.spec.criteria
+    assert criterion.id == _EXPRESSION
+    assert criterion.resolved_params["dataset"] == StringValue(value=_TIMECOURSE)
+    assert criterion.defaulted_params == []
+    assert [a.param_name for a in criterion.assumptions] == ["dataset"]
+
+
+def test_a_structure_that_names_every_criterion_folds_nothing() -> None:
+    spec = _framed()
+    spec.structure = SpecStructure(
+        root=StructureNode(
+            kind="combine",
+            operator=CombineOp.INTERSECT,
+            inputs=[_leaf(_EXPRESSION), _leaf(_OPTION)],
+        )
+    )
+
+    folded = fold_option_criteria(spec)
+
+    assert folded.spec is spec
+    assert [c.id for c in folded.spec.criteria] == [_EXPRESSION, _OPTION]
+
+
+def test_a_criterion_of_another_search_is_left_where_it_is() -> None:
+    """Only the search the step runs can carry the values a criterion states."""
+    spec = _framed()
+    spec.criteria[1].search_name = "GenesByTaxon"
+
+    folded = fold_option_criteria(spec)
+
+    assert [c.id for c in folded.spec.criteria] == [_EXPRESSION, _OPTION]
+    assert folded.spec.criteria[0].resolved_params["dataset"] == StringValue(
+        value=_DEFAULT_DATASET
+    )
+
+
+def test_an_option_two_steps_could_carry_is_left_where_it_is() -> None:
+    """Two steps run the search, so which one states the option is unknown."""
+    spec = _framed_with_two_carriers()
+
+    folded = fold_option_criteria(spec)
+
+    assert [c.id for c in folded.spec.criteria] == [
+        _EXPRESSION,
+        _OPTION,
+        "second_expression",
+    ]
 
 
 def test_the_build_mints_no_step_for_a_criterion_the_structure_leaves_out() -> None:
@@ -111,10 +222,7 @@ def test_an_added_criterion_answers_to_the_step_the_structure_states() -> None:
                 root=StructureNode(
                     kind="combine",
                     operator=None,
-                    inputs=[
-                        StructureNode(kind="leaf", criterion_id=graph.last_step_id),
-                        StructureNode(kind="leaf", criterion_id="new_leaf"),
-                    ],
+                    inputs=[_leaf(graph.last_step_id), _leaf("new_leaf")],
                 )
             )
         ),
@@ -177,11 +285,139 @@ def test_a_refusal_names_no_criterion_that_can_have_no_step() -> None:
         *after.criteria,
         Criterion(id="added_leaf", text="a second search", search_name="GenesByTaxon"),
     ]
-    after.structure = SpecStructure(
-        root=StructureNode(kind="leaf", criterion_id="added_leaf")
-    )
+    after.structure = SpecStructure(root=_leaf("added_leaf"))
 
     with pytest.raises(UnsupportedEditError) as excinfo:
         _plan(before, after, graph)
 
     assert _OPTION not in str(excinfo.value)
+
+
+def test_the_carrier_keeps_a_value_it_states_of_its_own() -> None:
+    """The option fills what the carrier leaves open, never what it states."""
+    spec = _framed()
+    spec.criteria[1].resolved_params["organism"] = MultiPickValue(values=["Pvivax"])
+    spec.criteria[1].defaulted_params = []
+
+    (carrier,) = fold_option_criteria(spec).spec.criteria
+
+    assert carrier.resolved_params == {
+        "organism": MultiPickValue(values=["Pf3D7"]),
+        "dataset": StringValue(value=_TIMECOURSE),
+    }
+
+
+def test_the_carrier_keeps_its_text_and_assumes_the_option() -> None:
+    """The step name stays the carrier's, and the option rides as a constraint."""
+    (carrier,) = fold_option_criteria(_framed()).spec.criteria
+
+    assert carrier.text == "upregulated in gametocytes"
+    assert carrier.assumptions == [
+        AssumedValue(
+            param_name="dataset",
+            value=_TIMECOURSE,
+            reason="use the gametocyte timecourse dataset",
+            carried_from=_OPTION,
+        )
+    ]
+
+
+def test_an_option_two_steps_could_carry_is_reported_unplaced() -> None:
+    spec = _framed_with_two_carriers()
+
+    assert fold_option_criteria(spec).unplaced == (_OPTION,)
+
+
+def test_an_option_no_step_runs_the_search_for_is_reported_unplaced() -> None:
+    spec = _framed()
+    spec.criteria[1].search_name = "GenesByTaxon"
+
+    assert fold_option_criteria(spec).unplaced == (_OPTION,)
+
+
+def _second_option(dataset: str) -> Criterion:
+    return Criterion(
+        id=_SEXUAL_STAGE_OPTION,
+        text="use the sexual stage dataset",
+        search_name=_SEARCH,
+        resolved_params={"dataset": StringValue(value=dataset)},
+    )
+
+
+def test_two_options_that_state_one_value_fold_once() -> None:
+    """The second statement of a value the fold carried has nothing to do."""
+    spec = _framed()
+    spec.criteria.append(_second_option(_TIMECOURSE))
+
+    folded = fold_option_criteria(spec)
+
+    (carrier,) = folded.spec.criteria
+    assert folded.unplaced == ()
+    assert carrier.resolved_params["dataset"] == StringValue(value=_TIMECOURSE)
+    assert [a.reason for a in carrier.assumptions] == [
+        "use the gametocyte timecourse dataset"
+    ]
+
+
+def test_an_option_that_contradicts_a_carried_value_is_reported_unplaced() -> None:
+    """Two options state one parameter two ways, so neither value is the answer."""
+    spec = _framed()
+    spec.criteria.append(_second_option(_SEXUAL_STAGE))
+
+    folded = fold_option_criteria(spec)
+
+    assert folded.unplaced == (_SEXUAL_STAGE_OPTION,)
+    assert [c.id for c in folded.spec.criteria] == [_EXPRESSION, _SEXUAL_STAGE_OPTION]
+    assert folded.spec.criteria[0].resolved_params["dataset"] == StringValue(
+        value=_TIMECOURSE
+    )
+
+
+def _frame_assumed_carrier() -> OperationalSpec:
+    """The carrier's dataset is a value the model chose, not one its text states."""
+    spec = _framed()
+    spec.criteria[0].defaulted_params = []
+    spec.criteria[0].assumptions = [
+        AssumedValue(
+            param_name="dataset",
+            value=_DEFAULT_DATASET,
+            reason="the request names no dataset",
+        )
+    ]
+    return spec
+
+
+def test_an_option_overrides_a_value_the_carrier_assumed() -> None:
+    """The user's choice replaces the model's guess and records which one it is."""
+    folded = fold_option_criteria(_frame_assumed_carrier())
+
+    (carrier,) = folded.spec.criteria
+    assert folded.unplaced == ()
+    assert carrier.resolved_params["dataset"] == StringValue(value=_TIMECOURSE)
+    assert carrier.assumptions == [
+        AssumedValue(
+            param_name="dataset",
+            value=_TIMECOURSE,
+            reason="use the gametocyte timecourse dataset",
+            carried_from=_OPTION,
+        )
+    ]
+
+
+def test_an_assumption_the_option_does_not_name_stays() -> None:
+    spec = _frame_assumed_carrier()
+    spec.criteria[0].assumptions.insert(
+        0,
+        AssumedValue(
+            param_name="organism",
+            value='["Pf3D7"]',
+            reason="the request names one strain",
+        ),
+    )
+
+    (carrier,) = fold_option_criteria(spec).spec.criteria
+
+    assert [(a.param_name, a.reason) for a in carrier.assumptions] == [
+        ("organism", "the request names one strain"),
+        ("dataset", "use the gametocyte timecourse dataset"),
+    ]

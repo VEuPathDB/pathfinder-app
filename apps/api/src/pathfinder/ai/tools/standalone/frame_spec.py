@@ -32,6 +32,7 @@ from pathfinder.ai.tools.standalone._catalog_models import (
     register_search,
 )
 from pathfinder.ai.tools.standalone._frame_proposals import (
+    DeclaredAssumption,
     ParamProposals,
     _CriterionCall,
     _phyletic_overrides,
@@ -93,7 +94,7 @@ class DropCriterionResult(CamelModel):
 
 def _refuse_bad_assumptions(
     call: _CriterionCall,
-    assumed: list[AssumedValue],
+    assumed: list[DeclaredAssumption],
     infos: list[ParameterInfo],
 ) -> None:
     """An assumption names a parameter this call gave a value to.
@@ -177,7 +178,7 @@ async def set_criterion(
     search_name: str = "",
     role: CriterionRole = "filter",
     params: ParamProposals | None = None,
-    assumed: list[AssumedValue] | None = None,
+    assumed: list[DeclaredAssumption] | None = None,
     saved_strategy: str = "",
 ) -> ToolReturn[SetCriterionResult]:
     """Bind a criterion to a WDK search, in two calls.
@@ -346,7 +347,10 @@ async def set_criterion(
             resolved_params=resolved.params,
             defaulted_params=defaulted,
             open_params=open_params,
-            assumptions=list(assumed or []),
+            assumptions=[
+                AssumedValue(param_name=e.param_name, value=e.value, reason=e.reason)
+                for e in assumed or []
+            ],
         )
     )
     return _criterion_return(

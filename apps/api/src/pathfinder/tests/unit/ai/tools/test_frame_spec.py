@@ -34,13 +34,13 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone import frame_spec
+from pathfinder.ai.tools.standalone._frame_proposals import DeclaredAssumption
 from pathfinder.ai.tools.standalone.frame_spec import (
     SetCriterionResult,
     drop_criterion,
     set_criterion,
 )
 from pathfinder.domain.strategy.operational_spec import (
-    AssumedValue,
     Criterion,
     OpenSlot,
     SpecStructure,
@@ -172,7 +172,7 @@ async def bind(
     *,
     criterion_id: str = "c1",
     text: str = "kinases",
-    assumed: list[AssumedValue] | None = None,
+    assumed: list[DeclaredAssumption] | None = None,
 ) -> SetCriterionResult:
     return (
         await set_criterion(

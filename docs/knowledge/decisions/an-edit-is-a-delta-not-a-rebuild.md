@@ -96,7 +96,24 @@ and combines it applies instead of being refused for a step no criterion states.
 A criterion in neither set binds an option on another criterion's search, so the
 step carrying that search states it and it has no step of its own; it is never
 planned as a change or a delete, never reported lost, and never named in a
-refusal.
+refusal. `operational_spec.py::fold_option_criteria` is what puts its stated
+values on that step: the build folds the spec before it mints the tree, and the
+edit folds both sides before it measures the difference, because WDK holds an
+option as a value in the search's own parameters. A value the carrier's own text
+states holds; a value it defaulted or FRAME assumed is overridden, because an
+assumption is the value the model chose and the option is the one the user
+states. Each value the option moves is recorded as an assumed value whose reason
+is the option's text and whose `carried_from` names the option, replacing any
+assumption the carrier held for that name, so the step keeps its own name and
+the constraints carry the user's choice rather than the model's guess. An option
+that no single criterion in the structure carries is placed nowhere, and so is
+one that restates a parameter an earlier fold already carried with a different
+value, because two options stating one parameter of one step two ways is a
+contradiction in the spec itself. A count from a
+step that ignored a stated value is the harm this whole rule exists to prevent,
+so the two seams that take a spec the model just wrote refuse both:
+`build_strategy` and the new side of `run_edit`. The stored side of `run_edit` folds leniently, because a
+refusal over a spec an earlier turn left is one this turn cannot satisfy.
 
 The same choke point holds a second invariant, which needs no spec: a write into
 an input slot never overwrites the step that slot holds off the tree. Each

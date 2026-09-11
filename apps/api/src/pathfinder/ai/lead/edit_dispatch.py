@@ -20,6 +20,7 @@ from pathfinder.ai.lead.dispatch_context import (
     dispatch_call_id,
     refuse_and_restore,
 )
+from pathfinder.ai.lead.dispatch_messages import option_binds_no_step_message
 from pathfinder.ai.lead.edit_messages import (
     changed_revision_message,
     edit_bound_nothing_message,
@@ -32,7 +33,10 @@ from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentRe
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    OperationalSpec,
+    fold_option_criteria,
+)
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
@@ -79,6 +83,16 @@ async def run_edit(
     after = deps.state.domain.operational_spec
     if after is None or not after.criteria:
         refuse_and_restore(deps, edit_bound_nothing_message())
+    # Both sides state an option as a value on the step that runs its search,
+    # so the difference between them is a difference between steps. The stored
+    # spec is what an earlier turn left, so only this turn's side is refused.
+    before = fold_option_criteria(before).spec
+    folded_after = fold_option_criteria(after)
+    if folded_after.unplaced:
+        refuse_and_restore(
+            deps, option_binds_no_step_message(folded_after.spec, folded_after.unplaced)
+        )
+    after = folded_after.spec
     diff = diff_specs(before, after)
     if frame.disposition != "spec_ready":
         return EditDelta(
@@ -129,6 +143,9 @@ async def _push_the_edit(
         # The batch rolls back, so the strategy is exactly as it was.
         refuse_and_restore(deps, unsupported_edit_message(str(exc)))
     outcome = await _outcome_after_edit(agent_deps, commit)
+    # The spec the thread carries states the option on the step that runs it,
+    # exactly as the spec a build leaves behind does.
+    deps.state.domain.operational_spec = after
     deps.state.record_build(outcome)
     _emit_graph_snapshot(agent_deps)
     return EditDelta(
