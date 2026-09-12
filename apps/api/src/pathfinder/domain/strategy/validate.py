@@ -11,6 +11,81 @@ from veupathdb.domain.strategy import (
 )
 
 
+def _scope_text(scope: set[str]) -> str:
+    return ", ".join(sorted(scope))
+
+
+def _path_to(node: StrategyStepNode, step_id: str) -> list[StrategyStepNode] | None:
+    """The nodes from this one down to the step, the step last."""
+    if node.id == step_id:
+        return [node]
+    for child in node.inputs():
+        below = _path_to(child, step_id)
+        if below is not None:
+            return [node, *below]
+    return None
+
+
+def _transforms_above(
+    root: StrategyStepNode, combine: StrategyStepNode
+) -> list[tuple[str, set[str]]]:
+    """The transforms the combine sits under that change the organism, nearest
+    first. A transform beside the combine cannot hold the combine's criteria."""
+    found: list[tuple[str, set[str]]] = []
+    for node in reversed(_path_to(root, combine.id) or []):
+        source = node.primary_input
+        if node.infer_kind() != "transform" or source is None:
+            continue
+        output = extract_output_organisms(node)
+        if output is not None and output != extract_output_organisms(source):
+            found.append((node.search_name, output))
+    return found
+
+
+def _remedy(
+    root: StrategyStepNode,
+    combine: StrategyStepNode,
+    primary: set[str],
+    secondary: set[str],
+) -> str:
+    """The edit that makes the two scopes meet."""
+    for search_name, output in _transforms_above(root, combine):
+        for side in (primary, secondary):
+            if output == side:
+                return (
+                    f"Move the {_scope_text(side)} criteria above the "
+                    f"{search_name} transform."
+                )
+    return (
+        f"Scope every seed to one organism: {_scope_text(primary)} or "
+        f"{_scope_text(secondary)}."
+    )
+
+
+def cross_organism_refusal(
+    combine: StrategyStepNode, root: StrategyStepNode
+) -> str | None:
+    """Why the combine returns nothing, or None when its inputs can meet.
+
+    Gene ids from different species never match, so an INTERSECT of two known
+    and disjoint scopes is always empty.
+    """
+    if combine.operator is not CombineOp.INTERSECT:
+        return None
+    if combine.primary_input is None or combine.secondary_input is None:
+        return None
+    primary = extract_output_organisms(combine.primary_input)
+    secondary = extract_output_organisms(combine.secondary_input)
+    if primary is None or secondary is None or not primary.isdisjoint(secondary):
+        return None
+    return (
+        f"Cannot INTERSECT steps with different organism scopes "
+        f"({_scope_text(primary)} vs {_scope_text(secondary)}). Gene IDs from "
+        f"different species never match, so this always returns 0 results. "
+        f"{_remedy(root, combine, primary, secondary)}"
+    )
+
+
 @dataclass
 class StepValidationIssue:
     """One issue found during validation."""
@@ -63,7 +138,7 @@ class StrategyValidator:
                 )
             )
 
-        self._validate_node(root, "root", record_type, errors)
+        self._validate_node(root, root, "root", record_type, errors)
 
         return (
             ValidationResult.success()
@@ -114,33 +189,18 @@ class StrategyValidator:
     def _validate_cross_organism_intersect(
         self,
         node: StrategyStepNode,
+        root: StrategyStepNode,
         path: str,
         errors: list[StepValidationIssue],
     ) -> None:
-        """Rejects an INTERSECT between disjoint organism scopes.
-
-        Gene ids from different species never match. The check applies only when both
-        sides have a known scope. A UNION over species is valid and passes.
-        """
-        if node.operator is not CombineOp.INTERSECT:
-            return
-        if node.primary_input is None or node.secondary_input is None:
-            return
-        primary = extract_output_organisms(node.primary_input)
-        secondary = extract_output_organisms(node.secondary_input)
-        if primary is None or secondary is None or not primary.isdisjoint(secondary):
+        """Rejects an INTERSECT between disjoint organism scopes."""
+        message = cross_organism_refusal(node, root)
+        if message is None:
             return
         errors.append(
             StepValidationIssue(
                 path=f"{path}.operator",
-                message=(
-                    "Cannot INTERSECT steps with different organism scopes "
-                    f"({', '.join(sorted(primary))} vs "
-                    f"{', '.join(sorted(secondary))}). Gene IDs from different "
-                    "species never match, so this always returns 0 results. "
-                    "Apply organism-specific filters BEFORE any ortholog "
-                    "transform, not after."
-                ),
+                message=message,
                 code="CROSS_ORGANISM_INTERSECT",
             )
         )
@@ -188,6 +248,7 @@ class StrategyValidator:
     def _validate_node(
         self,
         node: StrategyStepNode,
+        root: StrategyStepNode,
         path: str,
         expected_record_type: str,
         errors: list[StepValidationIssue],
@@ -217,18 +278,23 @@ class StrategyValidator:
 
         if node.infer_kind() == "combine":
             self._validate_combine_node(node, path, errors)
-            self._validate_cross_organism_intersect(node, path, errors)
+            self._validate_cross_organism_intersect(node, root, path, errors)
 
         if node.secondary_input is not None:
             self._validate_node(
                 node.secondary_input,
+                root,
                 f"{path}.secondaryInput",
                 expected_record_type,
                 errors,
             )
         if node.primary_input is not None:
             self._validate_node(
-                node.primary_input, f"{path}.primaryInput", expected_record_type, errors
+                node.primary_input,
+                root,
+                f"{path}.primaryInput",
+                expected_record_type,
+                errors,
             )
 
 

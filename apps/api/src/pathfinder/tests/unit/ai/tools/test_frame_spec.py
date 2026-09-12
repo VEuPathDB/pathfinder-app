@@ -99,7 +99,7 @@ def serve_params(monkeypatch: pytest.MonkeyPatch, at: ParamsAt) -> None:
 def serve_definition(
     monkeypatch: pytest.MonkeyPatch,
     parameters: list[WDKParameter] | None = None,
-    **fields: str,
+    **fields: object,
 ) -> list[str]:
     reads: list[str] = []
 

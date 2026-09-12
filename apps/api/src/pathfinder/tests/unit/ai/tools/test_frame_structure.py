@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry, RunContext
-from veupathdb.domain.strategy import CombineOp
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    CombineOp,
+    StrategyAst,
+    StrategyStepNode,
+)
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -17,7 +22,12 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion, StructureNode
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    CriterionRole,
+    StructureNode,
+)
+from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -276,3 +286,83 @@ class TestStatedCombinationGate:
         )
 
         assert _drafted_root(st).operator == CombineOp.INTERSECT
+
+
+def _bound(criterion_id: str, role: CriterionRole) -> Criterion:
+    return Criterion(
+        id=criterion_id, text=criterion_id, search_name="GenesByText", role=role
+    )
+
+
+class TestTheTreeAndTheRolesAgree:
+    """A criterion that runs on an input step is a transform in both places."""
+
+    @pytest.mark.asyncio
+    async def test_a_transform_node_needs_a_transform_criterion(self) -> None:
+        st = AgentToolState()
+        st.frame_set_criterion(_bound("c_ortho", "filter"))
+        st.frame_set_criterion(_bound("c_seed", "seed"))
+
+        with pytest.raises(ModelRetry) as exc:
+            await set_structure(
+                _ctx(st),
+                root=StructureNode(
+                    kind="transform", criterion_id="c_ortho", inputs=[_leaf("c_seed")]
+                ),
+            )
+
+        assert "c_ortho" in str(exc.value)
+        assert st.operational_spec_draft.structure is None
+
+    @pytest.mark.asyncio
+    async def test_a_transform_criterion_is_not_a_leaf(self) -> None:
+        st = AgentToolState()
+        st.frame_set_criterion(_bound("c_ortho", "transform"))
+
+        with pytest.raises(ModelRetry) as exc:
+            await set_structure(_ctx(st), root=_leaf("c_ortho"))
+
+        assert "c_ortho" in str(exc.value)
+        assert st.operational_spec_draft.structure is None
+
+    @pytest.mark.asyncio
+    async def test_a_matching_pair_is_written(self) -> None:
+        st = AgentToolState()
+        st.frame_set_criterion(_bound("c_ortho", "transform"))
+        st.frame_set_criterion(_bound("c_seed", "seed"))
+
+        await set_structure(
+            _ctx(st),
+            root=StructureNode(
+                kind="transform", criterion_id="c_ortho", inputs=[_leaf("c_seed")]
+            ),
+        )
+
+        assert _drafted_root(st).kind == "transform"
+
+    @pytest.mark.asyncio
+    async def test_a_hydrated_spec_is_written_unchanged(self) -> None:
+        """A resumed strategy re-submits the tree it already has."""
+        ast_root = StrategyStepNode(
+            id="t",
+            search_name="GenesByOrthologs",
+            primary_input=StrategyStepNode(
+                id="c",
+                search_name=COMBINE_SEARCH_NAME,
+                operator=CombineOp.INTERSECT,
+                primary_input=StrategyStepNode(id="a", search_name="GenesByText"),
+                secondary_input=StrategyStepNode(id="b", search_name="GenesByGoTerm"),
+            ),
+        )
+        spec = spec_from_ast(
+            StrategyAst(record_type="transcript", root=ast_root), goal="kinases"
+        )
+        st = AgentToolState()
+        for criterion in spec.criteria:
+            st.frame_set_criterion(criterion)
+        hydrated = spec.structure
+        assert hydrated is not None
+
+        await set_structure(_ctx(st), root=hydrated.root)
+
+        assert _drafted_root(st) == hydrated.root

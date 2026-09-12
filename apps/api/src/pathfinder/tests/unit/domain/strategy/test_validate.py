@@ -14,6 +14,7 @@ from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from pathfinder.domain.strategy.validate import (
     StrategyValidator,
     ValidationResult,
+    cross_organism_refusal,
     validate_strategy,
 )
 
@@ -53,6 +54,7 @@ def _taxon(step_id: str, organism: str) -> StrategyStepNode:
 
 _PF = "Plasmodium falciparum 3D7"
 _TG = "Toxoplasma gondii ME49"
+_GENUS = "Plasmodium"
 
 
 class TestTheStructuralChecks:
@@ -191,3 +193,98 @@ class TestCrossOrganismIntersect:
         step = combine("c", _taxon("a", _PF), _taxon("b", _TG), CombineOp.UNION)
 
         assert _verdict(validate_strategy(step, "transcript")) == (True, [])
+
+
+def _orthologs(
+    step_id: str, organism: str, source: StrategyStepNode
+) -> StrategyStepNode:
+    return StrategyStepNode(
+        id=step_id,
+        search_name="GenesByOrthologs",
+        parameters={"organism": MultiPickValue(values=[organism])},
+        primary_input=source,
+    )
+
+
+def _genus_seeds() -> StrategyStepNode:
+    return combine("u", _taxon("k1", _GENUS), _taxon("k2", _GENUS), CombineOp.UNION)
+
+
+_PREAMBLE = (
+    "Cannot INTERSECT steps with different organism scopes "
+    "({primary} vs {secondary}). Gene IDs from different species never match, "
+    "so this always returns 0 results. "
+)
+
+
+def _refusal(primary: str, secondary: str, remedy: str) -> str:
+    return _PREAMBLE.format(primary=primary, secondary=secondary) + remedy
+
+
+class TestTheCrossOrganismRemedy:
+    """The remedy matches the shape: a transform target moves above the
+    transform, and a plain disjoint intersect scopes its seeds."""
+
+    def test_a_transform_target_intersected_below_it_moves_above_it(self) -> None:
+        below = combine("c", _genus_seeds(), _taxon("f", _PF))
+        root = _orthologs("t", _PF, below)
+
+        assert cross_organism_refusal(below, root) == _refusal(
+            _GENUS,
+            _PF,
+            f"Move the {_PF} criteria above the GenesByOrthologs transform.",
+        )
+
+    def test_without_a_transform_the_seeds_are_scoped(self) -> None:
+        root = combine("c", _taxon("a", _GENUS), _taxon("b", _PF))
+
+        assert cross_organism_refusal(root, root) == _refusal(
+            _GENUS, _PF, f"Scope every seed to one organism: {_GENUS} or {_PF}."
+        )
+
+    def test_the_seed_remedy_does_not_flip_with_the_operand_order(self) -> None:
+        """Widening one side to the other's genus does not make them meet."""
+        swapped = combine("c", _taxon("a", _PF), _taxon("b", _GENUS))
+
+        assert cross_organism_refusal(swapped, swapped) == _refusal(
+            _PF, _GENUS, f"Scope every seed to one organism: {_PF} or {_GENUS}."
+        )
+
+    def test_a_shared_scope_has_no_refusal(self) -> None:
+        root = combine("c", _taxon("a", _PF), _taxon("b", _PF))
+
+        assert cross_organism_refusal(root, root) is None
+        assert _verdict(validate_strategy(root, "transcript")) == (True, [])
+
+    def test_a_transform_that_keeps_the_scope_is_not_the_remedy(self) -> None:
+        """Only a transform that changes the organism can hold the criteria."""
+        below = combine("c", _genus_seeds(), _taxon("f", _PF))
+        root = StrategyStepNode(
+            id="t", search_name="GenesByWeight", primary_input=below
+        )
+
+        assert cross_organism_refusal(below, root) == _refusal(
+            _GENUS, _PF, f"Scope every seed to one organism: {_GENUS} or {_PF}."
+        )
+
+    def test_a_transform_beside_the_combine_is_not_the_remedy(self) -> None:
+        """Only a transform the combine sits under can hold the criteria."""
+        beside = _orthologs("t", _PF, _taxon("b", _TG))
+        root = combine("c", _taxon("a", _GENUS), beside)
+
+        assert cross_organism_refusal(root, root) == _refusal(
+            _GENUS, _PF, f"Scope every seed to one organism: {_GENUS} or {_PF}."
+        )
+
+    def test_the_validator_reports_the_matching_remedy(self) -> None:
+        below = combine("c", _genus_seeds(), _taxon("f", _PF))
+        root = _orthologs("t", _PF, below)
+
+        result = validate_strategy(root, "transcript")
+
+        assert _verdict(result) == (False, ["CROSS_ORGANISM_INTERSECT"])
+        assert result.errors[0].message == _refusal(
+            _GENUS,
+            _PF,
+            f"Move the {_PF} criteria above the GenesByOrthologs transform.",
+        )

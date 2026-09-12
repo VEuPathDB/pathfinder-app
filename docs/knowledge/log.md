@@ -2,6 +2,34 @@
 
 ## 2026-09-12
 
+* **A cross-organism refusal names the remedy its own tree admits.**
+  `domain/strategy/validate.py::cross_organism_refusal` reads the combine and the tree
+  root: when a transform the combine sits UNDER maps its input into one of the two
+  disjoint scopes, the refusal says to move that scope's criteria above that transform.
+  A transform beside the combine holds none of its criteria, so only the path from the
+  root down to the combine is searched, and the transforms on it are those whose output
+  organisms differ from their primary input's. With no such transform the refusal names
+  both scopes and asks for one, because widening a species to a genus leaves the two
+  organism names as disjoint as before, and which scope sits in the secondary slot is a
+  WDK wire detail. FRAME's structure guidance carries the same rule in one sentence.
+
+* **A criterion takes only the role its search can play, and the tree says the same.**
+  `set_criterion` reads `allowedPrimaryInputRecordClassNames` off the search definition it
+  already fetches: a search that accepts no input step is refused the `transform` role, and
+  a search that accepts one is refused every other role. A criterion that starts from a
+  saved strategy is an input, so it is refused the `transform` role before the library is
+  read. `set_structure` refuses a `transform` node whose criterion holds another role and a
+  `leaf` node whose criterion holds `transform`, so the role decides the node kind that
+  builds the step. Both gates sit in FRAME: the question needs catalog metadata, which the
+  pure domain cannot read and the synchronous push validator has no site for. Every
+  transform name the model is shown is recorded as seen, by `list_transforms` and by the
+  refusal that offers the record type's transforms, so the name the refusal names passes
+  the `search_name` guard on `get_search_overview`, `get_parameter_options` and
+  `set_criterion` instead of being refused by it on the next call. Correcting the card:
+  that guard's vocabulary is the names a listing recorded this turn, not the site's leaf
+  searches, and `list_searches` already carries transform names into it; `list_transforms`
+  was the one listing tool that showed a name it never recorded.
+
 * **A saved conversation outlives the build that saved it.** The turn state drops a
   field the resuming build no longer declares and is rebuilt as this build's models
   at the turn's entry; a value the build cannot read ends the turn with one sentence

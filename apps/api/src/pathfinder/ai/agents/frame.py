@@ -128,7 +128,8 @@ Procedure:
      is that subtree; it is wired to that input, never run standalone. Any search with an
      input-step ("answer") parameter operates on a previous step and MUST be a `transform` node,
      never a standalone leaf - a standalone input-step search has no input and WDK rejects the
-     whole strategy.
+     whole strategy. A criterion scoped to a transform's target organism sits ABOVE that
+     transform, not under it.
 4. `drop_criterion(criterion_id, reason)` for any property whose WDK search is
    unrealizable or unavailable - pass the SAME `criterion_id` you gave `set_criterion`.
    This removes it from the spec so it no longer blocks the build; re-call `set_structure`

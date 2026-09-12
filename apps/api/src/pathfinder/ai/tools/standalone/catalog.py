@@ -188,6 +188,9 @@ async def list_transforms(
     transforms = await tool_payloads.list_transform_listings(
         ctx.deps.site_id, record_type
     )
+    ctx.deps.agent_state.record_catalog_searches(
+        [transform.name for transform in transforms]
+    )
     return with_summary(
         [transform.model_dump(by_alias=True) for transform in transforms],
         f"{len(transforms)} transforms on {record_type}",

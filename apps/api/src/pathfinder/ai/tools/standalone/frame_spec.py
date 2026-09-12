@@ -39,6 +39,10 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     _refuse_unknown_names,
     _refuse_unmatched_values,
 )
+from pathfinder.ai.tools.standalone._frame_roles import (
+    refuse_a_role_the_search_cannot_take,
+    refuse_a_transform_on_a_saved_strategy,
+)
 from pathfinder.ai.tools.standalone._frame_saved import (
     bind_saved_criterion,
     holds_open_saved_slot,
@@ -221,6 +225,7 @@ async def set_criterion(
     and it closes. Re-call the same way once the user answers an open slot."""
     state = ctx.deps.agent_state
     if saved_strategy:
+        refuse_a_transform_on_a_saved_strategy(criterion_id, role)
         match = await bind_saved_criterion(
             ctx,
             criterion_id=criterion_id,
@@ -247,6 +252,7 @@ async def set_criterion(
         definition = await read_search_definition(
             ctx.deps.site_id, record_type, search_name
         )
+        await refuse_a_role_the_search_cannot_take(ctx, record_type, definition, role)
         register_search(state, definition, record_type)
         return _criterion_return(
             ctx,
@@ -259,17 +265,18 @@ async def set_criterion(
                 sheet_pinned=True,
             ),
         )
+    search = SearchContext(ctx.deps.site_id, record_type, search_name)
+    definition = await _search_definition(search)
+    await refuse_a_role_the_search_cannot_take(ctx, record_type, definition, role)
     await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
     fetch_at = _memoized_fetch(ctx.deps.site_id, record_type, search_name)
     infos = await fetch_at({})
-    search = SearchContext(ctx.deps.site_id, record_type, search_name)
     call = _CriterionCall(
         criterion_id=criterion_id, search_name=search_name, text=text, params=params
     )
     _refuse_unknown_names(call, infos)
     _refuse_undecided(call, infos)
     _refuse_bad_assumptions(call, assumed or [], infos)
-    definition = await _search_definition(search)
     phyletic = _phyletic_overrides(definition, call, infos)
     radio = _radio_overrides(definition, call, infos)
     _refuse_unmatched_values(

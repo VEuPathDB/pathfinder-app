@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai import ModelRetry, RunContext
@@ -47,6 +49,38 @@ def _refuse_a_tree_that_breaks_a_stated_combination(
     raise ModelRetry(msg)
 
 
+def _criterion_nodes(node: StructureNode) -> Iterator[tuple[str, str]]:
+    if node.criterion_id:
+        yield node.criterion_id, node.kind
+    for child in node.inputs:
+        yield from _criterion_nodes(child)
+
+
+def _refuse_a_node_the_role_contradicts(
+    state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """A criterion runs on an input step or it runs alone, and the tree says which."""
+    by_id = {crit.id: crit for crit in state.operational_spec_draft.criteria}
+    for criterion_id, kind in _criterion_nodes(proposed.root):
+        criterion = by_id.get(criterion_id)
+        if criterion is None:
+            continue
+        if kind == "transform" and criterion.role != "transform":
+            msg = (
+                f"{criterion.id} is bound to {criterion.search_name}, which takes no "
+                f"input step, so it cannot be a transform node. Make it a leaf, or "
+                f"bind the criterion to a search that takes an input step."
+            )
+            raise ModelRetry(msg)
+        if kind == "leaf" and criterion.role == "transform":
+            msg = (
+                f"{criterion.id} is bound to {criterion.search_name}, which runs on a "
+                f"previous step, so it cannot be a leaf. Wire it as a transform node "
+                f"over the subtree it maps."
+            )
+            raise ModelRetry(msg)
+
+
 async def set_structure(
     ctx: RunContext[AgentDeps],
     *,
@@ -75,6 +109,7 @@ async def set_structure(
     """
     proposed = SpecStructure(root=root)
     _refuse_a_tree_that_breaks_a_stated_combination(ctx.deps.agent_state, proposed)
+    _refuse_a_node_the_role_contradicts(ctx.deps.agent_state, proposed)
     ctx.deps.agent_state.frame_set_structure(proposed)
     combined = _count_criteria(root)
     return with_summary(
