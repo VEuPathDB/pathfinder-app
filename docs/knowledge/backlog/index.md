@@ -13,8 +13,8 @@ what left.
 4. [Only one agent answers a refusal, and no sub-agent keeps a defect loud](only-one-agent-answers-a-refusal-and-none-keeps-a-defect-loud.md) - the refusal seam is the Lead's alone; the three sub-agents route a defect into a directive.
 5. [A new goal is not honored while a dimensionless question stands](a-new-goal-is-not-honored-while-a-dimensionless-question-stands.md) - a message that abandons the request keeps the old requirements, and the abandoned combination re-arms the FRAME structure gate, while a question FRAME recorded as bare text is open.
 6. [The thread adds up the roots of a split graph](the-thread-adds-up-the-roots-of-a-split-graph.md) - the graph snapshot's headline count sums every root, so a detached fragment inflates the number the thread draws.
-7. [A tail on a dead turn streams forever](a-tail-on-a-dead-turn-streams-forever.md) - the events route derives in-flight from the log's tip alone, so a thread whose worker died reopens as a turn that never ends.
-8. [A replaced subtree may restate a stated value](a-replaced-subtree-may-restate-a-stated-value.md) - the value guard is per operation, so a subtree rewrite that restates a user-stated parameter inside a leaf is not compared with the spec.
+7. [A replaced subtree may restate a stated value](a-replaced-subtree-may-restate-a-stated-value.md) - the value guard is per operation, so a subtree rewrite that restates a user-stated parameter inside a leaf is not compared with the spec.
+8. [A killed durable worker leaves its task running for good](a-killed-durable-worker-leaves-its-task-running-for-good.md) - the stalled-job sweep closes a chat turn's stream and never a durable call's, so the task row stays `running`, the thread keeps streaming, and the rail shows work that ended.
 
 ## Known and accepted
 

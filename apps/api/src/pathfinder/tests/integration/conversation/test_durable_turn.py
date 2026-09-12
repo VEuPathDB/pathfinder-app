@@ -10,12 +10,17 @@ import httpx
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform import db
+from assistant_core.tasks.chat_turn import defer_chat_turn
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.security import create_user_token
+from pathfinder.tests._support.worker_heartbeat import (
+    clear_workers,
+    insert_worker_heartbeat,
+)
 
 # A ceiling on a hung request, not a budget for a fast one: every hop is
 # in-process against the mock provider and settles in under a second, so a
@@ -242,15 +247,17 @@ async def test_events_endpoint_returns_204_on_empty_conversation(
     assert res.status_code == 204
 
 
-async def test_events_endpoint_streams_when_last_event_is_not_done(
+async def test_events_endpoint_streams_when_the_turns_job_is_running(
     app: FastAPI,
     patch_app_db_engine: None,
     db_cleaner: None,
     authed_user_id: UUID,
 ) -> None:
-    """The events endpoint streams while the last event is not a done chunk."""
+    """The events endpoint streams while a live worker holds the thread."""
     del patch_app_db_engine, db_cleaner
     conv_id = await _seed_conversation(authed_user_id)
+    await clear_workers()
+    await insert_worker_heartbeat(age_seconds=2)
     writer = ChatEventWriter(conversation_id=conv_id, turn_id=uuid4())
     await writer.write({"type": "start", "messageId": "live"})
     await writer.write({"type": "text-start", "id": "a"})
@@ -262,12 +269,22 @@ async def test_events_endpoint_streams_when_last_event_is_not_done(
         await writer.write({"type": "text-end", "id": "a"})
         await writer.write({"type": "done"})
 
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app),
-        base_url="http://test",
-        cookies={"pathfinder-auth": token},
-        headers={"X-Requested-With": "XMLHttpRequest"},
-    ) as client:
+    async with (
+        procrastinate_app.open_async(),
+        httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://test",
+            cookies={"pathfinder-auth": token},
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        ) as client,
+    ):
+        await defer_chat_turn(
+            conversation_id=conv_id,
+            payload={
+                "turnId": str(writer.turn_id),
+                "body": {"conversationId": str(conv_id)},
+            },
+        )
         finisher_task = asyncio.create_task(_finisher())
         res = await client.get(
             f"/api/v1/conversations/{conv_id}/events",
@@ -276,6 +293,7 @@ async def test_events_endpoint_streams_when_last_event_is_not_done(
         )
         await finisher_task
 
+    await clear_workers()
     assert res.status_code == 200
     assert "[DONE]" in res.text
     assert res.text.count("data:") >= 4

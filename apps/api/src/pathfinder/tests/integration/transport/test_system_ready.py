@@ -3,7 +3,6 @@ from collections.abc import AsyncIterator
 import httpx
 import pytest
 from assistant_core.platform import db
-from sqlalchemy import text
 
 from pathfinder.platform.health import worker_is_alive
 from pathfinder.platform.readiness import (
@@ -11,25 +10,11 @@ from pathfinder.platform.readiness import (
     get_readiness,
     reset_readiness,
 )
+from pathfinder.tests._support.worker_heartbeat import (
+    clear_workers,
+    insert_worker_heartbeat,
+)
 from pathfinder.transport.http.routers import health
-
-
-async def _clear_workers() -> None:
-    async with db.async_session_factory() as session:
-        await session.execute(text("DELETE FROM procrastinate_workers"))
-        await session.commit()
-
-
-async def _insert_worker_heartbeat(*, age_seconds: float) -> None:
-    async with db.async_session_factory() as session:
-        await session.execute(
-            text(
-                "INSERT INTO procrastinate_workers (last_heartbeat) "
-                "VALUES (now() - make_interval(secs => :s))"
-            ),
-            {"s": age_seconds},
-        )
-        await session.commit()
 
 
 @pytest.fixture
@@ -48,11 +33,11 @@ async def test_worker_is_alive_true_for_fresh_heartbeat(
     db_cleaner: None,
 ) -> None:
     del patch_app_db_engine, db_cleaner
-    await _clear_workers()
-    await _insert_worker_heartbeat(age_seconds=5)
+    await clear_workers()
+    await insert_worker_heartbeat(age_seconds=5)
     async with db.async_session_factory() as session:
         assert await worker_is_alive(session) is True
-    await _clear_workers()
+    await clear_workers()
 
 
 async def test_worker_is_alive_false_for_stale_heartbeat(
@@ -60,11 +45,11 @@ async def test_worker_is_alive_false_for_stale_heartbeat(
     db_cleaner: None,
 ) -> None:
     del patch_app_db_engine, db_cleaner
-    await _clear_workers()
-    await _insert_worker_heartbeat(age_seconds=120)
+    await clear_workers()
+    await insert_worker_heartbeat(age_seconds=120)
     async with db.async_session_factory() as session:
         assert await worker_is_alive(session) is False
-    await _clear_workers()
+    await clear_workers()
 
 
 async def test_worker_is_alive_false_when_no_workers(
@@ -72,7 +57,7 @@ async def test_worker_is_alive_false_when_no_workers(
     db_cleaner: None,
 ) -> None:
     del patch_app_db_engine, db_cleaner
-    await _clear_workers()
+    await clear_workers()
     async with db.async_session_factory() as session:
         assert await worker_is_alive(session) is False
 
@@ -82,8 +67,8 @@ async def test_system_ready_true_when_api_ready_and_worker_alive(
     api_ready: None,
 ) -> None:
     del api_ready
-    await _clear_workers()
-    await _insert_worker_heartbeat(age_seconds=2)
+    await clear_workers()
+    await insert_worker_heartbeat(age_seconds=2)
     resp = await client.get("/health/system")
     assert resp.status_code == 200
     body = resp.json()
@@ -91,7 +76,7 @@ async def test_system_ready_true_when_api_ready_and_worker_alive(
     assert body["apiReady"] is True
     assert body["workerAlive"] is True
     assert body["notReady"] == []
-    await _clear_workers()
+    await clear_workers()
 
 
 async def test_system_ready_false_when_worker_dead(
@@ -99,7 +84,7 @@ async def test_system_ready_false_when_worker_dead(
     api_ready: None,
 ) -> None:
     del api_ready
-    await _clear_workers()
+    await clear_workers()
     resp = await client.get("/health/system")
     assert resp.status_code == 200
     body = resp.json()
@@ -113,15 +98,15 @@ async def test_system_ready_false_when_api_not_ready(
     client: httpx.AsyncClient,
 ) -> None:
     reset_readiness()
-    await _clear_workers()
-    await _insert_worker_heartbeat(age_seconds=2)
+    await clear_workers()
+    await insert_worker_heartbeat(age_seconds=2)
     resp = await client.get("/health/system")
     assert resp.status_code == 200
     body = resp.json()
     assert body["ready"] is False
     assert body["apiReady"] is False
     assert body["workerAlive"] is True
-    await _clear_workers()
+    await clear_workers()
 
 
 async def test_readiness_recovers_after_a_transient_db_failure(
@@ -141,12 +126,12 @@ async def test_system_ready_recovers_after_a_transient_db_failure(
     api_ready: None,
 ) -> None:
     del api_ready
-    await _clear_workers()
-    await _insert_worker_heartbeat(age_seconds=2)
+    await clear_workers()
+    await insert_worker_heartbeat(age_seconds=2)
     get_readiness().mark_failed("database", "transient blip")
     resp = await client.get("/health/system")
     assert resp.json()["apiReady"] is True
-    await _clear_workers()
+    await clear_workers()
 
 
 async def test_a_failed_ping_records_a_non_empty_error(
@@ -218,8 +203,8 @@ async def test_system_ready_names_the_degraded_sites(
     api_ready: None,
 ) -> None:
     del api_ready
-    await _clear_workers()
-    await _insert_worker_heartbeat(age_seconds=2)
+    await clear_workers()
+    await insert_worker_heartbeat(age_seconds=2)
     get_readiness().mark_catalog_failed("veupathdb", "ReadTimeout")
 
     resp = await client.get("/health/system")
@@ -227,4 +212,4 @@ async def test_system_ready_names_the_degraded_sites(
     body = resp.json()
     assert body["apiReady"] is True
     assert body["degraded"] == ["veupathdb"]
-    await _clear_workers()
+    await clear_workers()

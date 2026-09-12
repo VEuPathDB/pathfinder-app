@@ -2,6 +2,26 @@
 
 ## 2026-09-12
 
+* **A tail streams only while a live worker holds the thread.** The events route no
+  longer reads "in flight" off the log's tip: `services/conversations/turn_liveness.py`
+  answers it, and an open log counts as a running turn only when a procrastinate job locks
+  that conversation and a worker is beating (`platform/health.py::worker_is_alive`, the
+  heartbeat window procrastinate prunes its own workers by). The job alone does not say a
+  turn runs: procrastinate releases nothing on its own, so a job outlives the worker that
+  held it, and a queue no worker consumes keeps its rows for good. A chat turn and a durable
+  call both take the thread id as their job lock, so the one read covers a queued turn, a
+  running turn, a running durable call and the turn a finished durable task opens; the job
+  table is read once per tail, by lock, through
+  `persistence/repositories/thread_job.py`. A thread no live worker holds answers 204 and
+  reopens as a static thread with its prompt, which PROTOCOL section 4 allows and the client
+  falls back to the snapshot for. The tip is read before the job, which bounds a wrong 204 to
+  the two statements a dispatch takes to log its prompt and to defer the job; a reconnect
+  inside that window reads the snapshot and streams on its next reconnect. The card said the
+  tip of such a thread is a prompt envelope; it is not. The dispatcher writes a
+  `data-turn-status` chunk after the prompt, so the tip of a dead turn is that status or
+  whatever chunk the worker wrote last, and the worker is what separates a dead turn from a
+  live one.
+
 * **A thread reopened while its turn runs follows that turn.** The snapshot
   says whether a turn is in flight: `AssistantClient.snapshot` answers
   `turnInFlight` when the last chunk it read is a prompt envelope, which is the
