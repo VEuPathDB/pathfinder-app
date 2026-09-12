@@ -32,7 +32,7 @@ from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.toolsets import verification
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 
@@ -198,9 +198,16 @@ def lead_state() -> PipelineState:
         user_prompt="Tune the RNA-Seq fold change against my controls.",
         user_message_id=uuid4(),
     )
+    # A recovery dispatch answers a build that failed, so the state carries one.
     state.domain.last_build_outcome = BuildOutcome(
-        pushed_step_ids=["s1", "s2"],
-        failed_steps=[],
+        pushed_step_ids=["s1"],
+        failed_steps=[
+            StepPushFailure(
+                step_id="s2",
+                search_name="GenesByRNASeqEvidence",
+                error="422 min_fold_change: Invalid value",
+            ),
+        ],
         root_count=0,
     )
     return state

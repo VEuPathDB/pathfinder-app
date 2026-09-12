@@ -89,6 +89,7 @@ def _strategy_context(ctx: RunContext[LeadDeps]) -> StrategyMutationContext:
         stated_criteria=(
             frozenset() if spec is None else frozenset(c.id for c in spec.criteria)
         ),
+        stated_structure=None if spec is None else spec.structure,
     )
 
 

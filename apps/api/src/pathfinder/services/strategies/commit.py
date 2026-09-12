@@ -22,6 +22,10 @@ from pathfinder.domain.strategy.operations.apply import (
     apply_operation,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.spec_edit_guard import (
+    contradicted_joins,
+    new_join_contradiction,
+)
 from pathfinder.domain.strategy.stated_shape import (
     SlotWrite,
     criteria_with_steps,
@@ -162,6 +166,7 @@ async def apply_operations_and_commit(
         raise ValidationError(title="No operations", detail=msg)
 
     graph = _require_graph(deps)
+    entry_joins = contradicted_joins(deps.stated_structure, graph, deps.stated_criteria)
     entry_step_ids = set(graph.steps)
     entry_reachable = set(subtree_ids(graph.primary_root_id() or "", graph.steps))
     replaces_a_subtree = any(_replaces_a_subtree(op) for op in ops)
@@ -206,6 +211,16 @@ async def apply_operations_and_commit(
         if departure is not None:
             _restore_graph(graph, old_ast)
             raise ApplyError(departure)
+
+    join = new_join_contradiction(
+        structure=deps.stated_structure,
+        graph=graph,
+        criteria=deps.stated_criteria,
+        before=entry_joins,
+    )
+    if join is not None:
+        _restore_graph(graph, old_ast)
+        raise ApplyError(join)
 
     result = ApplyResult(
         description="; ".join(descriptions),

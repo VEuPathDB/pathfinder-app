@@ -44,7 +44,8 @@ route - do NOT call ``frame_problem`` again here:
 5. **VERIFY.** ``verify_strategy`` checks the strategy the build left. Read \
 ``ledger.verification``:
    - ``successful = True`` -> synthesize the answer for the user; ``next_state=complete``.
-   - otherwise -> surface the caveats; recover or re-frame as the verification disposition indicates.
+   - otherwise -> surface the caveats. A build that failed a step recovers; a build whose \
+     every step pushed changes through ``edit_strategy``.
 6. **Synthesize.** Return a ``LeadResponse`` with substantive prose and ``next_state``. \
 Every question your prose asks the user goes in ``asked_questions`` too, each with the value you \
 recommend for it and the dimension it decides. That record is what the next turn binds: a \

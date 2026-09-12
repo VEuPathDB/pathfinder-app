@@ -47,6 +47,9 @@ class GroundedConstraint(CamelModel):
     constraint: Constraint
     status: ConstraintStatus
     realized_value: str | None = None
+    # The parameter the value was read from, empty when the grounding read no
+    # single parameter.
+    realized_param: str = ""
     note: str = ""
 
 

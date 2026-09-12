@@ -6,6 +6,7 @@ import re
 from collections.abc import Collection, Mapping, Sequence
 
 from pydantic import Field
+from veupathdb.domain.parameters import to_wire
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.combination_check import (
@@ -21,7 +22,11 @@ from pathfinder.domain.strategy.constraints import (
     GroundedConstraint,
     PercentileRequest,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion, SpecStructure
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+)
 
 _SIGNIFICANCE_RE = re.compile(
     r"p_?value|p_?adj|fdr|q_?value|significance", re.IGNORECASE
@@ -138,17 +143,22 @@ def _ground_percentile(c: Constraint, realized: _RealizedSpec) -> GroundedConstr
             constraint=c,
             status=ConstraintStatus.UNGROUNDABLE,
             realized_value=raw,
+            realized_param=name,
             note=f"{name} holds {raw!r}, which is not a percentile",
         )
     if bound == request.bound:
         return GroundedConstraint(
-            constraint=c, status=ConstraintStatus.GROUNDED, realized_value=raw
+            constraint=c,
+            status=ConstraintStatus.GROUNDED,
+            realized_value=raw,
+            realized_param=name,
         )
     meant = _plain(request.share_of(bound))
     return GroundedConstraint(
         constraint=c,
         status=ConstraintStatus.SUBSTITUTED,
         realized_value=raw,
+        realized_param=name,
         note=f"bound {_plain(bound)} means {request.direction} {meant}%",
     )
 
@@ -226,3 +236,27 @@ def ground_constraints(
         else:
             out.append(handler(c, realized))
     return out
+
+
+def _param_names(spec: OperationalSpec) -> set[str]:
+    names = {p for c in spec.criteria for p in c.resolved_params}
+    names |= {s.param_name for c in spec.criteria for s in c.open_params}
+    return names | {s.param_name for s in spec.open_slots}
+
+
+def ground_against_spec(
+    constraints: Sequence[Constraint], spec: OperationalSpec
+) -> list[GroundedConstraint]:
+    """Ground each constraint against the facts this spec realizes."""
+    return ground_constraints(
+        list(constraints),
+        search_names=[c.search_name for c in spec.criteria if c.search_name],
+        param_names=_param_names(spec),
+        param_values={
+            name: to_wire(value)
+            for c in spec.criteria
+            for name, value in c.resolved_params.items()
+        },
+        structure=spec.structure,
+        criteria=spec.criteria,
+    )

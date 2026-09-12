@@ -34,6 +34,7 @@ from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.spec_edit_guard import edit_contradiction
 from pathfinder.services.strategies.commit import apply_operations_and_commit
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
 
@@ -214,6 +215,12 @@ async def apply_operations(
             f"the researcher may have already made this change themselves."
         )
         raise ModelRetry(msg)
+
+    spec = deps.agent_state.operational_spec_draft
+    for op in operations:
+        contradiction = edit_contradiction(spec, op)
+        if contradiction is not None:
+            raise ModelRetry(contradiction)
 
     try:
         result = await apply_operations_and_commit(

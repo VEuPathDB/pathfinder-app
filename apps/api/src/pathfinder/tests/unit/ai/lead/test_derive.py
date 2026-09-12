@@ -92,16 +92,50 @@ def test_frame_render_section_surfaces_criteria_and_structure() -> None:
     assert "protein kinases" in rendered
 
 
-def test_build_section_recovery_kind_empty_result() -> None:
+def test_a_realized_zero_is_a_result_and_not_a_recovery() -> None:
+    """Every step of the spec pushed and is valid, and the root reads 0."""
     outcome = BuildOutcome(
-        pushed_step_ids=["s1"],
-        wdk_strategy_id=42,
-        zero_step_ids=["s1"],
+        pushed_step_ids=[
+            "step_4f51bc4f",
+            "step_044e4c5c",
+            "step_4951705a",
+            "step_780fd940",
+            "step_fb1f017c",
+        ],
+        wdk_strategy_id=227235400,
+        root_count=0,
+        zero_step_ids=["step_811d87da", "step_95c8dca2"],
     )
     ledger = derive_ledger(_state(last_build_outcome=outcome), None)
-    assert ledger.build.recovery_kind == "empty_result_review"
-    assert ledger.build.needs_recovery is True
+    assert ledger.build.needs_recovery is False
+    assert ledger.build.recovery_kind == "none"
+    assert ledger.build.zero_result_steps == ["step_811d87da", "step_95c8dca2"]
     assert ledger.build.succeeded is False
+
+
+def test_a_push_error_needs_recovery() -> None:
+    outcome = BuildOutcome(
+        pushed_step_ids=["step_4f51bc4f"],
+        failed_steps=[
+            StepPushFailure(
+                step_id="step_4951705a",
+                search_name="GenesByOrthologPattern",
+                error="422 profile_pattern: Invalid value",
+            ),
+        ],
+        root_count=0,
+        zero_step_ids=["step_811d87da"],
+    )
+    ledger = derive_ledger(_state(last_build_outcome=outcome), None)
+    assert ledger.build.needs_recovery is True
+    assert ledger.build.recovery_kind == "param_replan"
+
+
+def test_a_skipped_step_needs_recovery() -> None:
+    outcome = BuildOutcome(pushed_step_ids=["s1"], skipped_step_ids=["s2"])
+    ledger = derive_ledger(_state(last_build_outcome=outcome), None)
+    assert ledger.build.needs_recovery is True
+    assert ledger.build.recovery_kind == "user_clarify"
 
 
 def test_build_section_recovery_kind_transient() -> None:

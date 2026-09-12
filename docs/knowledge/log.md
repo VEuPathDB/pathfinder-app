@@ -13,6 +13,28 @@
   no tail, so a report of an idle thread cannot end a turn the user starts
   meanwhile. PROTOCOL 2.0.1 states the client rule.
 
+* **A realized zero is a result, and a write may not restate the spec.** A build
+  whose every step pushed and is valid needs no recovery, whatever count it
+  reached: the build section derives `needs_recovery` and `recovery_kind` from
+  the outcome's `fully_succeeded` alone, `empty_result_review` is gone, and
+  `recover_failed_steps` leaves the Lead's tool list on a turn whose build did
+  not fail, so a zero is reported and offered a change instead of dispatched.
+  Independently, every write into the commit path is measured against the spec
+  it realizes: a combine whose criteria the spec's structure joins at another
+  operator is refused, whether the write is an operator change, a replaced
+  subtree or a new combine. A combine that also brings a step no criterion
+  states asks a question of its own and carries any operator, and only a
+  contradiction the write introduces is refused, so a tree that already departed
+  keeps its answer until something restates it. A parameter is user-stated when
+  the criterion's own words carry its wire form or a requirement the user stated
+  grounds onto that parameter, which is why a grounding now records the
+  parameter it read and not only the value; every other value is FRAME's or the
+  search's own and recovery may change it, which is what keeps `param_replan`
+  alive. Both refusals name the framing route and tell the
+  caller to stop and report. The card blamed a widened parameter on a
+  user-stated value; the measured criterion states no size for it, so what
+  answers that turn is the operator guard.
+
 * **An open parameter sheet is pinned until its criterion is decided.** The
   sheet always carried every parameter's vocabulary; what lost it was the
   runtime's history elision, which keeps the three most recent tool returns

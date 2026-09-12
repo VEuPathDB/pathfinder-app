@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from veupathdb.domain.parameters import to_wire
-
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.ledger import InvestigationLedger
@@ -18,7 +16,7 @@ from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
     StepPushFailure,
 )
-from pathfinder.domain.strategy.constraint_grounding import ground_constraints
+from pathfinder.domain.strategy.constraint_grounding import ground_against_spec
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintSource,
@@ -143,25 +141,9 @@ def _derive_constraint_section(
             recommended=recommended,
             carried=carried,
         )
-    search_names = [c.search_name for c in spec.criteria if c.search_name]
-    param_names: set[str] = {p for c in spec.criteria for p in c.resolved_params}
-    param_names |= {s.param_name for c in spec.criteria for s in c.open_params}
-    param_names |= {s.param_name for s in spec.open_slots}
-    param_values = {
-        name: to_wire(value)
-        for c in spec.criteria
-        for name, value in c.resolved_params.items()
-    }
     return ConstraintSection(
         grounded=[
-            *ground_constraints(
-                merged,
-                search_names=search_names,
-                param_names=param_names,
-                param_values=param_values,
-                structure=spec.structure,
-                criteria=spec.criteria,
-            ),
+            *ground_against_spec(merged, spec),
             *assumed,
         ],
         recommended=recommended,
@@ -173,26 +155,21 @@ def _derive_build_section(state: PipelineState) -> BuildSection:
     outcome = state.domain.last_build_outcome
     if outcome is None:
         return BuildSection(stale_build=state.domain.stale_build)
-    failed_count = len(outcome.failed_steps)
-    skipped_count = len(outcome.skipped_step_ids)
-    zero_steps = list(outcome.zero_step_ids)
-    needs_recovery = bool(failed_count or skipped_count or zero_steps)
     return BuildSection(
         outcome=outcome,
         stale_build=state.domain.stale_build,
         pushed_count=len(outcome.pushed_step_ids),
-        failed_count=failed_count,
-        skipped_count=skipped_count,
-        zero_result_steps=zero_steps,
-        needs_recovery=needs_recovery,
+        failed_count=len(outcome.failed_steps),
+        skipped_count=len(outcome.skipped_step_ids),
+        zero_result_steps=list(outcome.zero_step_ids),
+        needs_recovery=not outcome.fully_succeeded,
         recovery_kind=_recovery_kind(outcome),
     )
 
 
 def _recovery_kind(outcome: BuildOutcome) -> RecoveryKind:
-    if not outcome.failed_steps and not outcome.skipped_step_ids:
-        if outcome.zero_step_ids:
-            return "empty_result_review"
+    """What a failed build needs next. A build that fully pushed needs nothing."""
+    if outcome.fully_succeeded:
         return "none"
     classified = {_classify_failure(f) for f in outcome.failed_steps}
     if "transient_retry" in classified:

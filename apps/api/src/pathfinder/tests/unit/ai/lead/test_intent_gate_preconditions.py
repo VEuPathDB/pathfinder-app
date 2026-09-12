@@ -19,7 +19,7 @@ from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
 from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -104,6 +104,18 @@ def _zero_build() -> BuildOutcome:
     return BuildOutcome(pushed_step_ids=["step_a"], zero_step_ids=["step_a"])
 
 
+def _failed_build() -> BuildOutcome:
+    return BuildOutcome(
+        failed_steps=[
+            StepPushFailure(
+                step_id="step_a",
+                search_name="GenesByTaxon",
+                error="422 organism: Invalid value",
+            ),
+        ],
+    )
+
+
 def test_a_prior_turns_intent_does_not_unlock_this_turn() -> None:
     """A building classification carried over from an earlier message is stale."""
     offered = _offered(
@@ -183,6 +195,27 @@ def test_a_new_message_reopens_frame_after_an_empty_build() -> None:
     )
 
     assert "frame_problem" in _offered(deps)
+
+
+def test_recovery_is_hidden_when_a_realized_build_read_zero() -> None:
+    """A zero from a build whose every step pushed is a result, not a failure."""
+    deps = _deps(
+        classification=IntentClassification.NEW_STRATEGY,
+        domain=StrategyDomainState(last_build_outcome=_zero_build()),
+        with_steps=True,
+    )
+
+    assert "recover_failed_steps" not in _offered(deps)
+
+
+def test_recovery_is_offered_when_a_step_failed_to_push() -> None:
+    deps = _deps(
+        classification=IntentClassification.NEW_STRATEGY,
+        domain=StrategyDomainState(last_build_outcome=_failed_build()),
+        with_steps=True,
+    )
+
+    assert "recover_failed_steps" in _offered(deps)
 
 
 def test_build_is_hidden_when_the_strategy_already_has_steps() -> None:

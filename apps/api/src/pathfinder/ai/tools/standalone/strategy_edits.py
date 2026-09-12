@@ -48,18 +48,21 @@ from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.operations import (
     DeleteResolution,
     DeleteStepOp,
+    GraphOperation,
     ReplaceSubtreeOp,
     UpdateCombineOperatorOp,
     UpdateStepMetaOp,
     UpdateStepParamsOp,
 )
+from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.spec_edit_guard import value_contradiction
 from pathfinder.domain.strategy.stated_shape import (
     StatedShape,
     shape_after,
 )
 from pathfinder.platform.errors import ErrorCode
-from pathfinder.services.strategies.commit import apply_and_commit
+from pathfinder.services.strategies.commit import CommitResult, apply_and_commit
 from pathfinder.services.strategies.insert_saved import (
     insert_saved_into_conversation,
 )
@@ -67,6 +70,15 @@ from pathfinder.services.strategies.insert_saved import (
 
 def _make_callbacks(site_id: str) -> ValidationCallbacks:
     return make_validation_callbacks(site_id, error_payload=validation_error_payload)
+
+
+async def _commit_or_retry(deps: AgentDeps, op: GraphOperation) -> CommitResult:
+    """Apply one operation, or answer with why the strategy refused it."""
+    try:
+        return await apply_and_commit(deps=deps.to_strategy_context(), op=op)
+    except ApplyError as exc:
+        msg = f"REJECTED: {exc}. Nothing was applied and the strategy is unchanged."
+        raise ModelRetry(msg) from exc
 
 
 async def update_leaf_params(
@@ -100,6 +112,14 @@ async def update_leaf_params(
         )
         raise ModelRetry(msg)
 
+    contradiction = value_contradiction(
+        deps.agent_state.operational_spec_draft,
+        step_id=step_id,
+        parameters=parameters,
+    )
+    if contradiction is not None:
+        raise ModelRetry(contradiction)
+
     record_type = graph.record_type or "transcript"
     merged = {**step.parameters, **parameters}
     try:
@@ -115,9 +135,8 @@ async def update_leaf_params(
             searchName=step.search_name,
         ) from exc
 
-    result = await apply_and_commit(
-        deps=deps.to_strategy_context(),
-        op=UpdateStepParamsOp(step_id=step_id, parameters=dict(canonical.params)),
+    result = await _commit_or_retry(
+        deps, UpdateStepParamsOp(step_id=step_id, parameters=dict(canonical.params))
     )
     refusal = _wdk_refused_the_edit(result)
     if refusal is not None:
@@ -159,10 +178,9 @@ async def update_combine_operator(
     if operator != CombineOp.COLOCATE and colocation_params is not None:
         msg = "VALIDATION_ERROR: colocation_params is only valid for COLOCATE."
         raise ModelRetry(msg)
-
-    result = await apply_and_commit(
-        deps=deps.to_strategy_context(),
-        op=UpdateCombineOperatorOp(
+    result = await _commit_or_retry(
+        deps,
+        UpdateCombineOperatorOp(
             step_id=step_id,
             operator=operator,
             colocation_params=colocation_params,
@@ -194,9 +212,8 @@ async def update_step_metadata(
         return _step_not_found(ctx, resolved, step_id)
     graph, step = resolved
 
-    result = await apply_and_commit(
-        deps=deps.to_strategy_context(),
-        op=UpdateStepMetaOp(step_id=step_id, display_name=display_name),
+    result = await _commit_or_retry(
+        deps, UpdateStepMetaOp(step_id=step_id, display_name=display_name)
     )
     refusal = _wdk_refused_the_edit(result)
     if refusal is not None:
@@ -234,9 +251,8 @@ async def delete_step(
         )
         raise ModelRetry(msg)
 
-    result = await apply_and_commit(
-        deps=deps.to_strategy_context(),
-        op=DeleteStepOp(step_id=step_id, resolution=resolution),
+    result = await _commit_or_retry(
+        deps, DeleteStepOp(step_id=step_id, resolution=resolution)
     )
     # The graph keeps the delete whatever WDK answers, so the spec drops the
     # criteria of the removed steps before the answer is decided.
@@ -316,7 +332,7 @@ async def replace_subtree(
 
     op = ReplaceSubtreeOp(step_id=step_id, subtree=new_subtree)
     _refuse_a_write_the_spec_did_not_state(deps, graph, op)
-    result = await apply_and_commit(deps=deps.to_strategy_context(), op=op)
+    result = await _commit_or_retry(deps, op)
     refusal = _wdk_refused_the_edit(result)
     if refusal is not None:
         return _refused(ctx, refusal, f"VEuPathDB refused the subtree at {step_id}")

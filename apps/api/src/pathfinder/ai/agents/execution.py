@@ -76,6 +76,9 @@ Use after a build to confirm step ids before edits.
 not build + delete.
 - **Delete abandoned steps**: if a build attempt fails or you change \
 approach, ``delete_step`` immediately.
+- **The spec owns the operators and the stated values**: a combine operator or \
+a parameter value the operational spec states changes in the framing pass \
+first, never through an edit here.
 
 ## How to build a strategy
 

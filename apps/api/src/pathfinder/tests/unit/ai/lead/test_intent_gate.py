@@ -26,8 +26,13 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 _PROSE = "I can build that whenever you want. Want me to?"
 
 # The building tools a fresh thread meets the preconditions of: nothing is
-# built, so verification has nothing to check and no EDA subset was counted.
-UNLOCKED_ON_A_FRESH_THREAD = BUILDING_TOOLS - {"verify_strategy", "create_eda_step"}
+# built, so verification has nothing to check, no build failed and no EDA
+# subset was counted.
+UNLOCKED_ON_A_FRESH_THREAD = BUILDING_TOOLS - {
+    "create_eda_step",
+    "recover_failed_steps",
+    "verify_strategy",
+}
 
 
 def _deps(prompt: str) -> LeadDeps:

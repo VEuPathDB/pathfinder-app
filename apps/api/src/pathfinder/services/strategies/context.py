@@ -12,6 +12,7 @@ from uuid import UUID
 from assistant_core.platform.db import DBSessionFactory
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pathfinder.domain.strategy.operational_spec import SpecStructure
 from pathfinder.domain.strategy.session import StrategySession
 
 
@@ -26,6 +27,11 @@ class StrategyMutationContext:
 
     A batch that replaces a subtree holds them, so a write cannot drop the
     evidence the spec claims.
+    """
+    stated_structure: SpecStructure | None = None
+    """The tree the spec declares, or nothing when the turn framed none.
+
+    A write that joins those criteria at another operator is refused.
     """
     locked_session: AsyncSession | None = None
     """A session that already owns the thread's strategy lock.

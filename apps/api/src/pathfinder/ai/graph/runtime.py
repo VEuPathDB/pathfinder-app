@@ -114,4 +114,5 @@ class AgentDeps(AssistantDeps):
             stated_criteria=frozenset(
                 c.id for c in self.agent_state.operational_spec_draft.criteria
             ),
+            stated_structure=self.agent_state.operational_spec_draft.structure,
         )

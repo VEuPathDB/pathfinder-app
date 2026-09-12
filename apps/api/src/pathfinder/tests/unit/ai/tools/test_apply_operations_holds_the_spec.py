@@ -7,18 +7,26 @@ from uuid import uuid4
 import pytest
 from pydantic import JsonValue, ValidationError
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategyStepNode
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.strategy import apply_operations
 from pathfinder.ai.tools.toolsets.execution import build_toolset
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
 from pathfinder.domain.strategy.operations import (
     AddCombineOp,
     AddLeafOp,
     GraphOperation,
     ReplaceSubtreeOp,
+    UpdateCombineOperatorOp,
+    UpdateStepParamsOp,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.operations.types import AttachNewRoot
@@ -177,6 +185,125 @@ class TestTheApplyOperationsTool:
         )
 
         assert args["operations"][0].step.search_name == "GenesByTaxon"
+
+
+class TestABatchTheSpecContradicts:
+    """A batch may not restate the operator or the values the spec states."""
+
+    @staticmethod
+    def _structure() -> SpecStructure:
+        """``(k1 UNION k2) INTERSECT ms``, the way the spec declares it."""
+        return SpecStructure(
+            root=StructureNode(
+                kind="combine",
+                operator=CombineOp.INTERSECT,
+                inputs=[
+                    StructureNode(
+                        kind="combine",
+                        operator=CombineOp.UNION,
+                        inputs=[
+                            StructureNode(kind="leaf", criterion_id="step_k1"),
+                            StructureNode(kind="leaf", criterion_id="step_k2"),
+                        ],
+                    ),
+                    StructureNode(kind="leaf", criterion_id="step_ms"),
+                ],
+            ),
+        )
+
+    def _deps_with_structure(self) -> AgentDeps:
+        deps = _deps()
+        deps.agent_state.operational_spec_draft.structure = self._structure()
+        return deps
+
+    async def test_an_operator_the_spec_does_not_declare_is_refused(
+        self, stub_api: StubAPI
+    ) -> None:
+        deps = self._deps_with_structure()
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        revision = strategy_revision(graph.to_strategy_ast())
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await apply_operations(
+                ctx(deps),
+                revision,
+                [
+                    UpdateCombineOperatorOp(
+                        step_id="step_u1", operator=CombineOp.INTERSECT
+                    )
+                ],
+            )
+
+        assert "set_structure" in str(excinfo.value)
+        assert graph.steps["step_u1"].operator == CombineOp.UNION
+        assert stub_api.calls == []
+
+    async def test_a_combine_that_brings_an_unstated_step_is_applied(
+        self, stub_api: StubAPI
+    ) -> None:
+        """A join over a step no criterion states asks a question of its own."""
+        deps = self._deps_with_structure()
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        revision = strategy_revision(graph.to_strategy_ast())
+
+        payload = returned(
+            await apply_operations(
+                ctx(deps),
+                revision,
+                [
+                    AddLeafOp(step=leaf("step_new"), attach=AttachNewRoot()),
+                    AddCombineOp(
+                        step=StrategyStepNode(
+                            id="step_c2",
+                            search_name=COMBINE_SEARCH_NAME,
+                            operator=CombineOp.UNION,
+                        ),
+                        left_id="step_c1",
+                        right_id="step_new",
+                    ),
+                ],
+            ),
+            dict[str, JsonValue],
+        )
+
+        assert payload["applied"] == 2
+        assert graph.steps["step_c2"].operator == CombineOp.UNION
+        assert stub_api.named("create_combined_step") != []
+
+    async def test_a_value_the_criterion_states_is_refused(
+        self, stub_api: StubAPI
+    ) -> None:
+        deps = self._deps_with_structure()
+        criterion = next(
+            c
+            for c in deps.agent_state.operational_spec_draft.criteria
+            if c.id == "step_k1"
+        )
+        criterion.text = "the kinase PF3D7_1133400"
+        criterion.resolved_params = {
+            "gene_id": StringValue(value="PF3D7_1133400"),
+        }
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        revision = strategy_revision(graph.to_strategy_ast())
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await apply_operations(
+                ctx(deps),
+                revision,
+                [
+                    UpdateStepParamsOp(
+                        step_id="step_k1",
+                        parameters={"gene_id": StringValue(value="PF3D7_0930300")},
+                    )
+                ],
+            )
+
+        assert "set_criterion" in str(excinfo.value)
+        assert graph.steps["step_k1"].parameters == {}
+        assert stub_api.calls == []
 
 
 class TestTheCommitService:

@@ -110,6 +110,8 @@ def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
         unmet.add("frame_problem")
     if steps:
         unmet.add("build_strategy")
+    if not ledger.build.needs_recovery:
+        unmet.add("recover_failed_steps")
     if (ledger.build.outcome is None and not steps) or markers.verified:
         unmet.add("verify_strategy")
     if not markers.eda_previewed:

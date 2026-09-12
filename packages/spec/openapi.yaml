@@ -11138,7 +11138,6 @@ components:
           - param_replan
           - search_replan
           - user_clarify
-          - empty_result_review
           title: Recoverykind
           type: string
         succeeded:
@@ -11966,6 +11965,10 @@ components:
           - type: string
           - type: 'null'
           title: Realizedvalue
+        realizedParam:
+          default: ''
+          title: Realizedparam
+          type: string
         note:
           default: ''
           title: Note

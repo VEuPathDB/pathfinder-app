@@ -38,7 +38,6 @@ RecoveryKind = Literal[
     "param_replan",
     "search_replan",
     "user_clarify",
-    "empty_result_review",
 ]
 SubAgentName = Literal[
     "frame",

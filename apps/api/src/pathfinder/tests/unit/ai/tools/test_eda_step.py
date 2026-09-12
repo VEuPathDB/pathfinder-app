@@ -8,12 +8,17 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy import StrategyStepNode
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from veupathdb.errors import ValidationError
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
 from pathfinder.tests._support.run_context import lead_run_context
@@ -30,6 +35,17 @@ from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     combine,
     leaf,
     session_with,
+)
+
+_TWO_STEP_STRUCTURE = SpecStructure(
+    root=StructureNode(
+        kind="combine",
+        operator=CombineOp.INTERSECT,
+        inputs=[
+            StructureNode(kind="leaf", criterion_id="step_a"),
+            StructureNode(kind="leaf", criterion_id="step_b"),
+        ],
+    ),
 )
 
 
@@ -250,11 +266,13 @@ def test_the_commit_context_carries_the_criteria_the_spec_states(
             Criterion(id="step_a", text="febrile subset", search_name="GenesByTaxon"),
             Criterion(id="step_b", text="kinase domain", search_name="GenesByInterpro"),
         ],
+        structure=_TWO_STEP_STRUCTURE,
     )
 
     context = eda_step._strategy_context(lead_ctx)
 
     assert context.stated_criteria == frozenset({"step_a", "step_b"})
+    assert context.stated_structure == _TWO_STEP_STRUCTURE
 
 
 def test_a_thread_that_framed_no_spec_states_no_criteria(
