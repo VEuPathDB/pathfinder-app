@@ -21,6 +21,7 @@ from pathfinder.ai.stream_part_payloads import (
     StrategyLink,
     StrategyMeta,
 )
+from pathfinder.domain.strategy.build_outcome import citable_count
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.types import SyncStateProtocol
 
@@ -49,12 +50,15 @@ def _coerce_operator(op: str | None) -> GraphEdgeOperator | None:
 # --- Graph snapshot --------------------------------------------------------
 
 
-def _count_for_step(step_id: str, sync_state: SyncStateProtocol | None) -> int:
-    """Look up the estimated size of a step. Unknown steps count as 0."""
+def _count_for_step(step_id: str, sync_state: SyncStateProtocol | None) -> int | None:
+    """The count a step may be cited with, or nothing when it has none."""
     if sync_state is None:
-        return 0
-    count = sync_state.step_counts.get(step_id)
-    return count if isinstance(count, int) else 0
+        return None
+    return citable_count(
+        step_id,
+        counts=sync_state.step_counts,
+        refused=sync_state.wdk_push_errors,
+    )
 
 
 def _snapshot_edges(graph: StrategyGraph) -> list[GraphEdge]:
@@ -85,15 +89,26 @@ def _snapshot_edges(graph: StrategyGraph) -> list[GraphEdge]:
     return edges
 
 
+def _root_total(
+    graph: StrategyGraph, sync_state: SyncStateProtocol | None
+) -> int | None:
+    """The genes the roots hold together, or nothing when a root has no
+    citable count."""
+    total = 0
+    for root_id in graph.roots:
+        count = _count_for_step(root_id, sync_state)
+        if count is None:
+            return None
+        total += count
+    return total
+
+
 def build_graph_snapshot_payload(
     session: StrategySession,
     graph: StrategyGraph,
 ) -> GraphSnapshot:
     """Build the graph snapshot payload for the current graph."""
     sync_state = session.sync_state
-    total_genes = 0
-    for root_id in graph.roots:
-        total_genes += _count_for_step(root_id, sync_state)
     nodes = [
         GraphNode(
             id=step.id,
@@ -105,7 +120,7 @@ def build_graph_snapshot_payload(
     edges = _snapshot_edges(graph)
     return GraphSnapshot(
         strategy_id=graph.id,
-        gene_count=total_genes,
+        gene_count=_root_total(graph, sync_state),
         nodes=nodes,
         edges=edges,
     )
@@ -132,20 +147,13 @@ def graph_cleared_chunk(*, reason: str | None = None) -> DataChunk:
 # --- Strategy metadata -----------------------------------------------------
 
 
-def strategy_meta_chunk(graph: StrategyGraph) -> DataChunk:
+def strategy_meta_chunk(session: StrategySession, graph: StrategyGraph) -> DataChunk:
     """Build the strategy metadata chunk for a graph."""
-    sync_state = getattr(graph, "sync_state", None)
-    total_size = 0
-    if sync_state is not None:
-        for root_id in graph.roots:
-            count = sync_state.step_counts.get(root_id)
-            if isinstance(count, int):
-                total_size += count
     payload = StrategyMeta(
         strategy_id=graph.id,
         name=graph.name,
         is_saved=False,
-        estimated_size=total_size,
+        estimated_size=_root_total(graph, session.sync_state),
         record_class_name=graph.record_type or "transcript",
     )
     return DataChunk(

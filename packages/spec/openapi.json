@@ -18603,9 +18603,16 @@
             "type": "string"
           },
           "estimatedSize": {
-            "minimum": 0,
-            "title": "Estimatedsize",
-            "type": "integer"
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimatedsize"
           }
         },
         "required": [
@@ -18623,9 +18630,16 @@
             "type": "string"
           },
           "geneCount": {
-            "minimum": 0,
-            "title": "Genecount",
-            "type": "integer"
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Genecount"
           },
           "nodes": {
             "items": {
@@ -19424,9 +19438,16 @@
             "type": "boolean"
           },
           "estimatedSize": {
-            "minimum": 0,
-            "title": "Estimatedsize",
-            "type": "integer"
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimatedsize"
           },
           "recordClassName": {
             "title": "Recordclassname",

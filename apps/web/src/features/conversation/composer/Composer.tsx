@@ -6,7 +6,6 @@ import {
   useAui,
   useAuiState,
 } from "@assistant-ui/react";
-import { useQuery } from "@tanstack/react-query";
 import { FileText, Paperclip, Send, Square, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -16,11 +15,11 @@ import { SlashPopover } from "@/features/conversation/slash/SlashPopover";
 import { commands, findCommand } from "@/features/conversation/slash/registry";
 import type { Command, CommandResult } from "@/features/conversation/slash/types";
 import { parseSlashInput } from "@/features/conversation/slash/parser";
-import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
+import { beginConversation } from "@/features/conversation/api/beginConversation";
 import { toUserMessage } from "@/lib/api/errors";
 import { getAuthHeaders } from "@/lib/api/http";
-import { strategyQueryOptions } from "@/lib/api/strategy";
 import { handleWdkAuthRefusal } from "@/state/useAuthGateStore";
+import { useConversationDetail } from "@/state/useConversationExists";
 import { useSessionStore } from "@/state/useSessionStore";
 
 import { QuotaExhaustedBanner, useQuotaExhausted } from "./QuotaExhaustedBanner";
@@ -137,7 +136,7 @@ export function Composer({ conversationId }: { conversationId: string }) {
     }
     requestServerCancel();
   };
-  const { data: conversationDetail } = useQuery(strategyQueryOptions(conversationId));
+  const { data: conversationDetail } = useConversationDetail(conversationId);
   const stepCount = conversationDetail?.steps.length ?? 0;
 
   const [pendingCommand, setPendingCommand] = useState<Command | null>(null);
@@ -149,7 +148,7 @@ export function Composer({ conversationId }: { conversationId: string }) {
     const ctx = { conversationId, siteId, stepCount };
 
     try {
-      await beginStrategy(conversationId, { siteId });
+      await beginConversation(conversationId, { siteId });
     } catch (err) {
       const retry = (): void => void runCommand(command, values);
       if (!handleWdkAuthRefusal(err, retry)) {

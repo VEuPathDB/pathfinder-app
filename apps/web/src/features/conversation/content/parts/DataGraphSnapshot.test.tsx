@@ -42,6 +42,26 @@ describe("DataGraphSnapshot", () => {
     );
   });
 
+  it("says the count is not available when none was measured", () => {
+    render(
+      <DataGraphSnapshot
+        data={{
+          ...SNAPSHOT,
+          geneCount: null,
+          nodes: [{ ...TEXT_STEP, estimatedSize: null }],
+        }}
+      />,
+    );
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "1 step, count not available",
+    );
+  });
+
+  it("keeps a measured zero, which says the search matched nothing", () => {
+    render(<DataGraphSnapshot data={{ ...SNAPSHOT, geneCount: 0 }} />);
+    expect(screen.getByTestId("figure-caption").textContent).toBe("2 steps, 0 genes");
+  });
+
   it("carries its own testid inside a figure that draws no chrome", () => {
     const { container } = render(<DataGraphSnapshot data={SNAPSHOT} />);
     const line = screen.getByTestId("data-graph-snapshot");

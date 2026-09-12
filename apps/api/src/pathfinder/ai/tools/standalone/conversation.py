@@ -75,7 +75,7 @@ async def rename_strategy(
         ),
         f"Renamed to {new_name}",
         ctx=ctx,
-        extra=[strategy_meta_chunk(graph)],
+        extra=[strategy_meta_chunk(session, graph)],
     )
 
 

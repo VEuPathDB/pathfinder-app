@@ -108,7 +108,7 @@ describe("ChatView error boundary", () => {
     const { ChatView } = await import("./ChatView");
     const tl = await import("@testing-library/react");
 
-    tl.render(<ChatView conversationId="conv-1" allowMissing={false} />);
+    tl.render(<ChatView conversationId="conv-1" />);
 
     expect(
       tl.screen.getByText(/A message with the same id already exists/),
@@ -126,7 +126,7 @@ describe("ChatView error boundary", () => {
     const { ChatView } = await import("./ChatView");
     const tl = await import("@testing-library/react");
 
-    tl.render(<ChatView conversationId="conv-1" allowMissing={false} />);
+    tl.render(<ChatView conversationId="conv-1" />);
 
     expect(tl.screen.getAllByTestId("thread")).toHaveLength(1);
     expect(

@@ -7,6 +7,13 @@ import { AssistantRuntimeProvider, useLocalRuntime } from "@assistant-ui/react";
 import type { ReactNode } from "react";
 import type { UIMessage } from "ai";
 
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn(),
+  useParams: () => ({ siteId: "plasmodb" }),
+  usePathname: () => "/plasmodb/conversation",
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { createTestWrapper } from "@/lib/query/testing";
 import { useSessionStore } from "@/state/useSessionStore";

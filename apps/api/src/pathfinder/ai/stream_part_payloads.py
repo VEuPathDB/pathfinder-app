@@ -20,7 +20,7 @@ GraphEdgeOperator = Literal[
 class GraphNode(CamelModel):
     id: str
     search_name: str
-    estimated_size: int = Field(ge=0)
+    estimated_size: int | None = Field(ge=0)
 
 
 class GraphEdge(CamelModel):
@@ -31,7 +31,7 @@ class GraphEdge(CamelModel):
 
 class GraphSnapshot(CamelModel):
     strategy_id: str
-    gene_count: int = Field(ge=0)
+    gene_count: int | None = Field(ge=0)
     nodes: list[GraphNode]
     edges: list[GraphEdge]
 
@@ -48,7 +48,7 @@ class StrategyMeta(CamelModel):
     strategy_id: str
     name: str
     is_saved: bool
-    estimated_size: int = Field(ge=0)
+    estimated_size: int | None = Field(ge=0)
     record_class_name: str
 
 

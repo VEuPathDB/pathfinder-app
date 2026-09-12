@@ -1,7 +1,6 @@
 "use client";
 
 import { ThreadPrimitive, useAui, useAuiEvent } from "@assistant-ui/react";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import {
@@ -9,7 +8,6 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { strategyQueryOptions } from "@/lib/api/strategy";
 import { chatUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 
@@ -59,21 +57,14 @@ export function ChatThread({
     <>
       <ChatUrlSync conversationId={conversationId} />
       <ThreadPrimitive.Root className="flex h-full min-h-0 flex-col">
-        <SessionAwareBody conversationId={conversationId} assistantId={assistantId} />
+        <ThreadBody assistantId={assistantId} />
         <Composer conversationId={conversationId} />
       </ThreadPrimitive.Root>
     </>
   );
 }
 
-function SessionAwareBody({
-  conversationId,
-  assistantId,
-}: {
-  conversationId: string;
-  assistantId: string;
-}) {
-  useQuery(strategyQueryOptions(conversationId));
+function ThreadBody({ assistantId }: { assistantId: string }) {
   return (
     <>
       <Conversation>

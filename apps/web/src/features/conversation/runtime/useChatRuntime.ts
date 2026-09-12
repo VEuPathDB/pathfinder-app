@@ -18,7 +18,6 @@ import { turnUsageSchema } from "@pathfinder/shared/generated/zod/turnUsageSchem
 import { resumeDurableThread } from "@veupathdb/assistant-client/ai-sdk";
 
 import { getAuthHeaders } from "@/lib/api/http";
-import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
 import { strategyQueryKey, strategyQueryOptions } from "@/lib/api/strategy";
 import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
@@ -30,6 +29,7 @@ import { useSettingsStore } from "@/state/useSettingsStore";
 import { useStrategyStore } from "@/state/strategy/store";
 
 import { conversationCursors } from "../api/assistantClient";
+import { beginConversation } from "../api/beginConversation";
 
 import { buildChatRequestBody } from "./buildRequestBody";
 import type { ChatHelpers } from "./chatHelpersContext";
@@ -73,7 +73,7 @@ export function useChatRuntime({
       prepareSendMessagesRequest: async ({ id, messages, trigger, body }) => {
         const siteId = useSessionStore.getState().selectedSite;
         const { phaseModels, phaseReasoning } = useSettingsStore.getState();
-        const begun = await beginStrategy(conversationId, {
+        const begun = await beginConversation(conversationId, {
           siteId,
           ...(assistantId !== undefined && { assistantId }),
         });

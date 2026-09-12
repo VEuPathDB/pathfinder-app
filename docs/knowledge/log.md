@@ -70,6 +70,27 @@
   pinned summary, and the FRAME work order names the request the answer belongs
   to, not the answer alone.
 
+* **A draft thread reads nothing, and a turn in flight is not re-read.** The
+  conversation is read only once it has a row: the caller opened on it, or an
+  action in this tab created it. One pair of hooks in `state/` owns that
+  question and every reader goes through them, and `beginConversation` is the
+  one place that creates the row and records the id they wait for, so no read
+  can race the create. The transcript is read only by a view that opened on a
+  thread that already had one, because the snapshot of a turn in flight is cut
+  at its prompt and reading it clears the record the transport replays that
+  turn from. A revert opens the thread again, so the truncated transcript is
+  read at the new mount.
+
+* **A count nobody measured is sent as no count.** The graph snapshot and the
+  strategy metadata carry `int | None` and read `citable_count`, so a step with
+  a recorded push error or no measured size reports no number and the thread
+  says the count is not available. A measured zero stays zero, which says the
+  search matched nothing. The metadata read a `sync_state` attribute the graph
+  never carries, so it reported 0 for every strategy; it now takes the session
+  that holds it. The generated zod schema drops the lower bound when a field
+  becomes a nullable union, so the Pydantic model is the only place that
+  refuses a negative count.
+
 * **A step runs the search it was created with.** A node whose search name
   changes is pushed to WDK as a new step and the tree is rewired to it, because
   the search-config endpoint validates the values against the step's own search

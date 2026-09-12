@@ -10,6 +10,7 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
   useParams: () => ({ siteId: "plasmodb" }),
   usePathname: () => `/plasmodb/conversation/${CONVERSATION_ID}`,
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ push: vi.fn() }),
 }));
 
@@ -20,7 +21,7 @@ import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { createTestWrapper } from "@/lib/query/testing";
 import { useSessionStore } from "@/state/useSessionStore";
 
-import { ChatView } from "./ChatView";
+import { ChatShell } from "./ChatShell";
 
 const CONVERSATION_ID = "11111111-1111-4111-8111-111111111111";
 const FIRST_USER_ID = "aaaaaaa1-1111-4111-8111-111111111111";
@@ -121,15 +122,16 @@ function installHandlers(stubs: RevertStubs): void {
   );
 }
 
+/** The thread this tab created with its first message, reopened on its own id.
+ * The shell is the subject: a revert reopens the thread through its key. */
 function renderChat(): void {
   const { queryClient, Wrapper } = createTestWrapper();
   queryClient.setQueryData(
     authStatusOptions(useSessionStore.getState().selectedSite).queryKey,
     { signedIn: true },
   );
-  render(<ChatView conversationId={CONVERSATION_ID} allowMissing />, {
-    wrapper: Wrapper,
-  });
+  useSessionStore.setState({ createdConversationId: CONVERSATION_ID });
+  render(<ChatShell />, { wrapper: Wrapper });
 }
 
 // Every wait here is on a snapshot or revert response served by msw, not on a
@@ -164,6 +166,7 @@ async function revertSecondTurn(): Promise<void> {
 describe("revert truncates the client thread", { timeout: 30_000 }, () => {
   afterEach(() => {
     useSessionStore.getState().setPendingUserSubmission(null);
+    useSessionStore.setState({ createdConversationId: null, chatResetCounter: 0 });
   });
 
   it("replaces the thread with the re-snapshotted log before the edit is sent", async () => {

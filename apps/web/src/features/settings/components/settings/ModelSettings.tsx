@@ -6,7 +6,7 @@ import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useLi
 import { listTiersQueryOptions } from "@pathfinder/shared/generated/hooks/useListTiers";
 import { useSettingsStore } from "@/state/useSettingsStore";
 import { assistantLabel } from "@/lib/assistants";
-import { useActiveAssistantId } from "@/lib/hooks/useActiveAssistantId";
+import { useActiveAssistantId } from "@/features/settings/useActiveAssistantId";
 import { phaseDescription, phaseLabel } from "@/lib/models/phaseRoles";
 import { ModelPicker } from "@/features/settings/components/ModelPicker";
 import { TierPicker } from "@/features/settings/components/TierPicker";

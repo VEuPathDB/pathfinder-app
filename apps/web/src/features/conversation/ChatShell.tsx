@@ -4,6 +4,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { ASSISTANT_PARAM, conversationIdFromPath } from "@/lib/routes";
+import { useSessionStore } from "@/state/useSessionStore";
 
 import { ChatView } from "./ChatView";
 
@@ -20,7 +21,6 @@ export function isEdaRoute(pathname: string): boolean {
 
 export interface ChatResolution {
   conversationId: string;
-  allowMissing: boolean;
   resumable: boolean;
 }
 
@@ -32,11 +32,12 @@ export function computeChatResolution({
   generatedChatId: string;
 }): ChatResolution {
   const chatIdFromUrl = conversationIdFromPath(pathname);
-  const conversationId = chatIdFromUrl ?? generatedChatId;
-  const allowMissing = conversationId === generatedChatId;
   // A conversation named in the URL can have a turn running in it. Whether
   // this tab generated the id says nothing about that.
-  return { conversationId, allowMissing, resumable: chatIdFromUrl !== null };
+  return {
+    conversationId: chatIdFromUrl ?? generatedChatId,
+    resumable: chatIdFromUrl !== null,
+  };
 }
 
 /**
@@ -55,6 +56,7 @@ export function draftRoute(
 export function ChatShell() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const chatResetCounter = useSessionStore((s) => s.chatResetCounter);
   const chatIdFromUrl = conversationIdFromPath(pathname);
   const requestedAssistantId = searchParams.get(ASSISTANT_PARAM);
   const currentDraft = draftRoute(pathname, requestedAssistantId);
@@ -72,16 +74,16 @@ export function ChatShell() {
   // A route that owns the main pane renders its own page instead of the thread.
   if (isStrategyRoute(pathname) || isEdaRoute(pathname)) return null;
 
-  const { conversationId, allowMissing, resumable } = computeChatResolution({
+  const { conversationId, resumable } = computeChatResolution({
     pathname,
     generatedChatId,
   });
 
   return (
+    // A revert opens the thread again, on a conversation that now has a row.
     <ChatView
-      key={conversationId}
+      key={`${conversationId}:${chatResetCounter}`}
       conversationId={conversationId}
-      allowMissing={allowMissing}
       resumable={resumable}
       requestedAssistantId={requestedAssistantId}
     />

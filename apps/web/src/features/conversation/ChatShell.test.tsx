@@ -14,39 +14,28 @@ import {
 type ReactQueryExports = typeof ReactQueryModule;
 
 describe("ChatShell.computeChatResolution", () => {
-  it("uses generated id and allowMissing=true on bare /conversation", () => {
+  it("uses the generated id on the bare conversation route", () => {
     const r = computeChatResolution({
       pathname: "/conversation",
       generatedChatId: "gen-1",
     });
     expect(r.conversationId).toBe("gen-1");
-    expect(r.allowMissing).toBe(true);
   });
 
-  it("keeps allowMissing=true after URL rewrites to /conversation/<generated-id>", () => {
+  it("keeps the generated id after the URL rewrites to it", () => {
     const r = computeChatResolution({
       pathname: "/conversation/gen-1",
       generatedChatId: "gen-1",
     });
     expect(r.conversationId).toBe("gen-1");
-    expect(r.allowMissing).toBe(true);
   });
 
-  it("uses URL id and allowMissing=false when navigating to an existing conversation", () => {
+  it("uses the URL id when the route names a conversation", () => {
     const r = computeChatResolution({
       pathname: "/conversation/existing-id",
       generatedChatId: "gen-1",
     });
     expect(r.conversationId).toBe("existing-id");
-    expect(r.allowMissing).toBe(false);
-  });
-
-  it("allows missing when the URL id happens to equal a client-generated id", () => {
-    const r = computeChatResolution({
-      pathname: "/conversation/gen-1",
-      generatedChatId: "gen-1",
-    });
-    expect(r.allowMissing).toBe(true);
   });
 });
 
@@ -75,7 +64,6 @@ describe("ChatShell.computeChatResolution resumability", () => {
       generatedChatId: "gen-1",
     });
     expect(r.resumable).toBe(true);
-    expect(r.allowMissing).toBe(true);
   });
 });
 
@@ -118,48 +106,11 @@ describe("ChatShell.isEdaRoute", () => {
   });
 });
 
-describe("ChatShell integration: no redirect during first-send URL rewrite", () => {
+// A draft is never redirected away: that case is covered against real queries
+// in draftFetches.test.tsx, where the view mounts before the URL rewrite.
+describe("ChatShell integration: the rail reads the conversation the view holds", () => {
   beforeEach(() => {
     vi.resetModules();
-  });
-
-  it("ChatView does not invoke redirect() when conversationId matches the generated id but detail 404s", async () => {
-    const redirectSpy = vi.fn();
-    vi.doMock("next/navigation", () => ({
-      redirect: redirectSpy,
-      usePathname: () => "/conversation/gen-xyz",
-      useParams: () => ({ conversationId: "/conversation/gen-xyz".split("/").pop() }),
-    }));
-    vi.doMock("@tanstack/react-query", async () => {
-      const actual = await vi.importActual<ReactQueryExports>("@tanstack/react-query");
-      return {
-        ...actual,
-        useQuery: (opts: { queryKey: readonly unknown[] }) => {
-          const key = opts.queryKey.join("/");
-          if (key.includes("/detail")) {
-            return { data: null, isFetched: true, isPending: false };
-          }
-          return { data: [], isFetched: true, isPending: false };
-        },
-      };
-    });
-    vi.doMock("./ChatThread", () => ({
-      ChatThread: () => null,
-    }));
-    vi.doMock("./branches/BranchSwitcher", () => ({
-      BranchSwitcher: () => null,
-    }));
-    vi.doMock("nuqs", () => ({
-      useQueryState: () => [null, () => {}],
-      parseAsString: {},
-    }));
-
-    const { ChatView } = await import("./ChatView");
-    const { render } = await import("@testing-library/react");
-
-    render(<ChatView conversationId="gen-xyz" allowMissing={true} />);
-
-    expect(redirectSpy).not.toHaveBeenCalled();
   });
 
   it("ChatView passes the strategy and siteId into the rail StrategyPanel when steps exist", async () => {
@@ -218,7 +169,7 @@ describe("ChatShell integration: no redirect during first-send URL rewrite", () 
     // Force the rail to be open on the strategy panel for this test.
     useRightRailStore.setState({ openPanel: "strategy" });
 
-    render(<ChatView conversationId="with-steps" allowMissing={false} />);
+    render(<ChatView conversationId="with-steps" />);
 
     expect(strategyPanelSpy).toHaveBeenCalled();
     const lastCall = strategyPanelSpy.mock.calls.at(-1);
@@ -284,7 +235,7 @@ describe("ChatShell integration: no redirect during first-send URL rewrite", () 
 
     useRightRailStore.setState({ openPanel: "strategy" });
 
-    render(<ChatView conversationId="no-steps" allowMissing={false} />);
+    render(<ChatView conversationId="no-steps" />);
 
     expect(strategyPanelSpy).toHaveBeenCalled();
     const lastCall = strategyPanelSpy.mock.calls.at(-1);
@@ -330,7 +281,7 @@ describe("ChatShell integration: no redirect during first-send URL rewrite", () 
     const { ChatView } = await import("./ChatView");
     const { render } = await import("@testing-library/react");
 
-    render(<ChatView conversationId="stranger" allowMissing={false} />);
+    render(<ChatView conversationId="stranger" />);
 
     // useParams mock omits siteId, so the redirect interpolates an empty
     // segment. The production code prefixes the route with `/${siteId}/`.

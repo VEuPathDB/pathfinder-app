@@ -4,15 +4,18 @@ import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import type { UIMessage } from "ai";
 import { redirect, useParams } from "next/navigation";
+import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
 import type { Strategy } from "@pathfinder/shared";
 import { resolveAssistantId } from "@/lib/assistants";
-import { strategyQueryOptions } from "@/lib/api/strategy";
 import { conversationSnapshotOptions } from "@/features/conversation/api/conversationSnapshot";
 import { chatRoot } from "@/lib/routes";
 import { Spinner } from "@/components/ui/spinner";
-import { useSessionStore } from "@/state/useSessionStore";
+import {
+  useConversationDetail,
+  useConversationExists,
+} from "@/state/useConversationExists";
 
 import { ChatThread } from "./ChatThread";
 import { ChatViewError } from "./ChatViewError";
@@ -22,12 +25,10 @@ import { useChatRuntime } from "./runtime/useChatRuntime";
 
 export function ChatView({
   conversationId,
-  allowMissing = false,
   resumable = false,
   requestedAssistantId = null,
 }: {
   conversationId: string;
-  allowMissing?: boolean;
   resumable?: boolean;
   /** The assistant the URL names, honoured only by a thread that is new. */
   requestedAssistantId?: string | null;
@@ -35,19 +36,22 @@ export function ChatView({
   const params = useParams<{ siteId?: string }>();
   const siteSegment = params.siteId ?? "";
   const conversationsHref = chatRoot(siteSegment);
-  const chatResetCounter = useSessionStore((s) => s.chatResetCounter);
 
-  const detailQuery = useQuery(strategyQueryOptions(conversationId));
+  const exists = useConversationExists(conversationId);
+  // A thread with no row when this view opened renders from local state; it
+  // waits for no read, and it is never sent back to the conversation list.
+  const [mountedAsDraft] = useState(() => !exists);
+  const detailQuery = useConversationDetail(conversationId);
   const messagesQuery = useQuery({
     ...conversationSnapshotOptions(conversationId),
-    enabled: allowMissing || detailQuery.data != null,
+    enabled: !mountedAsDraft && detailQuery.data != null,
   });
 
-  if (!allowMissing && detailQuery.isFetched && detailQuery.data === null) {
+  if (!mountedAsDraft && detailQuery.isFetched && detailQuery.data === null) {
     redirect(conversationsHref);
   }
 
-  if (detailQuery.isPending || messagesQuery.isPending) {
+  if (!mountedAsDraft && (detailQuery.isPending || messagesQuery.isPending)) {
     return (
       <div className="flex h-full items-center justify-center bg-card">
         <Spinner className="size-5" />
@@ -65,13 +69,11 @@ export function ChatView({
   return (
     // A thread that cannot render leaves the rest of the app reachable.
     <ErrorBoundary
-      resetKeys={[conversationId, chatResetCounter]}
       fallbackRender={({ error }) => (
         <ChatViewError error={error} conversationsHref={conversationsHref} />
       )}
     >
       <ChatViewBody
-        key={`${conversationId}:${chatResetCounter}`}
         conversationId={conversationId}
         initialMessages={messagesQuery.data ?? []}
         resumable={resumable}

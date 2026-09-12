@@ -30,6 +30,20 @@ describe("DataStrategyMeta", () => {
     );
   });
 
+  it("says the count is not available when none was measured", () => {
+    render(<DataStrategyMeta data={{ ...META, estimatedSize: null }} />);
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "Febrile kinases - count not available",
+    );
+  });
+
+  it("keeps a measured zero, which says the search matched nothing", () => {
+    render(<DataStrategyMeta data={{ ...META, estimatedSize: 0 }} />);
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "Febrile kinases - 0 genes",
+    );
+  });
+
   it("carries its own testid and no title, because it has no body", () => {
     const { container } = render(<DataStrategyMeta data={META} />);
     expect(screen.getByTestId("data-strategy-meta")).toHaveTextContent(
