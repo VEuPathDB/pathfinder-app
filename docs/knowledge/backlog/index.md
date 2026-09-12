@@ -8,11 +8,13 @@ what left.
 ## Ranked
 
 1. [A transform criterion binds a search that takes no input](a-transform-criterion-binds-a-search-that-takes-no-input.md) - FRAME bound the P. vivax orthologs transform to the phyletic-profile leaf search and every push answered 422; the precise protease gold does not build.
-2. [A stored preference is not applied to the next request](a-stored-preference-is-not-applied-to-the-next-request.md) - turn-entry retrieval is top-8 by similarity across every kind, so a default-organism preference never reaches a request about signal peptides and the assistant asks the question the preference answers.
-3. [An enrichment request on a saved gene set has no tool that runs it](an-enrichment-request-on-a-saved-gene-set-has-no-tool.md) - the enrichment durable tool is VERIFY-only and gated on a build delta, so a workbench request for GO enrichment on a named set is honestly refused.
-4. [A killed durable worker leaves its task running for good](a-killed-durable-worker-leaves-its-task-running-for-good.md) - the stalled-job sweep closes a chat turn's stream and never a durable call's, so the task row stays `running`, the thread keeps streaming, and the rail shows work that ended.
-5. [The Lead reaches into private tool modules](the-lead-reaches-into-private-tool-modules.md) - six imports across four Lead modules name a leading-underscore module under the standalone tools, a surface nothing declares.
-6. [A departed value and a canonicalizer read as a new departure](a-departed-value-and-a-canonicalizer-read-as-a-new-departure.md) - a stated value that already departed in the graph, rewritten by the catalog's canonicalizer, refuses a patch that touched nothing stated.
+2. [A step the editor deleted cannot be added back by the assistant](a-step-the-editor-deleted-cannot-be-added-back-by-the-assistant.md) - the turn starts from the checkpoint's framed spec, never reconciled with the graph the editor changed, so the re-added criterion diffs as kept and nothing is pushed.
+3. [A stored preference is not applied to the next request](a-stored-preference-is-not-applied-to-the-next-request.md) - turn-entry retrieval is top-8 by similarity across every kind, so a default-organism preference never reaches a request about signal peptides and the assistant asks the question the preference answers.
+4. [An enrichment request on a saved gene set has no tool that runs it](an-enrichment-request-on-a-saved-gene-set-has-no-tool.md) - the enrichment durable tool is VERIFY-only and gated on a build delta, so a workbench request for GO enrichment on a named set is honestly refused.
+5. [A study that is not in the catalog is searched for thirty-seven times](a-study-that-is-not-in-the-catalog-is-searched-for-thirty-seven-times.md) - the study search reports a semantic top-k as a match and nothing caps one discovery tool per turn, so an absent study costs a dollar and twelve minutes before the honest answer.
+6. [A killed durable worker leaves its task running for good](a-killed-durable-worker-leaves-its-task-running-for-good.md) - the stalled-job sweep closes a chat turn's stream and never a durable call's, so the task row stays `running`, the thread keeps streaming, and the rail shows work that ended.
+7. [The Lead reaches into private tool modules](the-lead-reaches-into-private-tool-modules.md) - six imports across four Lead modules name a leading-underscore module under the standalone tools, a surface nothing declares.
+8. [A departed value and a canonicalizer read as a new departure](a-departed-value-and-a-canonicalizer-read-as-a-new-departure.md) - a stated value that already departed in the graph, rewritten by the catalog's canonicalizer, refuses a patch that touched nothing stated.
 
 ## Known and accepted
 
