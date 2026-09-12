@@ -7,7 +7,7 @@ what left.
 
 ## Ranked
 
-1. [A durable tool started by a completion turn has no WDK login](a-durable-tool-started-by-a-completion-turn-has-no-wdk-login.md) - the completion turn opens outside the carried job context, so the second analysis of a two-analysis request is refused for a login the researcher has.
+1. [A completion turn runs with no WDK login](a-durable-tool-started-by-a-completion-turn-has-no-wdk-login.md) - the completion turn opens outside the carried job context, so every WDK-backed tool in it, durable or not, is refused for a login the researcher has (measured on two sites).
 2. [A transform criterion binds a search that takes no input](a-transform-criterion-binds-a-search-that-takes-no-input.md) - FRAME bound the P. vivax orthologs transform to the phyletic-profile leaf search and every push answered 422; the precise protease gold does not build.
 3. [A step the editor deleted cannot be added back by the assistant](a-step-the-editor-deleted-cannot-be-added-back-by-the-assistant.md) - the turn starts from the checkpoint's framed spec, never reconciled with the graph the editor changed, so the re-added criterion diffs as kept and nothing is pushed.
 4. [A transform named in an AND statement can meet at no combine](a-transform-named-in-an-and-statement-can-meet-at-no-combine.md) - the combination check matches a statement's terms to the transform criterion and then wants it as a member of a combine, so a transform-then-filter request is refused until FRAME runs out of retries.
