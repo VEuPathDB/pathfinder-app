@@ -10,13 +10,14 @@ from __future__ import annotations
 import importlib
 import inspect
 import pkgutil
+from dataclasses import fields
 from types import ModuleType
 from uuid import uuid4
 
 import pytest
 from assistant_core import memory
 from assistant_core.memory.autowrite import auto_write_memories
-from assistant_core.memory.retrieval import retrieve_relevant_memories
+from assistant_core.memory.retrieval import RetrievalScope, retrieve_relevant_memories
 from assistant_core.memory.schemas import MemoryEntryDraft
 from assistant_core.memory.store import memory_namespace
 
@@ -71,7 +72,8 @@ def test_autowrite_is_handed_its_candidates() -> None:
 
 
 def test_retrieval_is_told_which_kinds_to_search() -> None:
-    assert "kinds" in inspect.signature(retrieve_relevant_memories).parameters
+    assert "scope" in inspect.signature(retrieve_relevant_memories).parameters
+    assert "always_kinds" in {f.name for f in fields(RetrievalScope)}
 
 
 def test_the_namespace_accepts_a_kind_the_core_never_declared() -> None:

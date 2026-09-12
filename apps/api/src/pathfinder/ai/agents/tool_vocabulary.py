@@ -10,6 +10,7 @@ from __future__ import annotations
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 
 __all__ = [
+    "DISCOVERY_CALL_CAPS",
     "READ_ONLY_TOOLS",
     "SEARCH_LOOKUP_TOOLS",
     "build_tool_repetition_guard",
@@ -42,6 +43,9 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "get_confidence_scores",
         "get_experiment_config",
         "get_result_gene_lists",
+        # EDA catalog
+        "search_eda_studies",
+        "describe_eda_study",
         # Research, served by the research tool source
         "research_web_search",
         "research_literature_search",
@@ -64,6 +68,20 @@ SEARCH_LOOKUP_TOOLS: frozenset[str] = frozenset(
 )
 
 
+# A discovery tool answers from a fixed catalog, so a run that keeps rephrasing
+# its query reads the same source again. The cap is the run's budget for one
+# tool, whatever the arguments.
+DISCOVERY_CALL_CAPS: dict[str, int] = {
+    "search_eda_studies": 6,
+    "research_web_search": 8,
+    "research_literature_search": 6,
+    "search_for_searches": 12,
+}
+
+
 def build_tool_repetition_guard() -> ToolRepetitionGuard:
     """A repetition guard that watches PathFinder's read-only tools."""
-    return ToolRepetitionGuard(read_only_tools=READ_ONLY_TOOLS)
+    return ToolRepetitionGuard(
+        read_only_tools=READ_ONLY_TOOLS,
+        call_caps=DISCOVERY_CALL_CAPS,
+    )

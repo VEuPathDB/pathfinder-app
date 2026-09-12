@@ -4,7 +4,10 @@ import re
 from collections import defaultdict
 from typing import Any
 
-from assistant_core.capabilities.repetition_guard import REPETITION_MARKER
+from assistant_core.capabilities.repetition_guard import (
+    CALL_CAP_MARKER,
+    REPETITION_MARKER,
+)
 
 from pathfinder.devtools.models import (
     Anomaly,
@@ -75,7 +78,9 @@ def _catch_22(calls: list[CapturedToolCall]) -> list[Anomaly]:
 
 def _guard_refused(call: CapturedToolCall) -> bool:
     """Did the repetition guard produce this call's result?"""
-    return call.result is not None and REPETITION_MARKER in call.result
+    if call.result is None:
+        return False
+    return REPETITION_MARKER in call.result or CALL_CAP_MARKER in call.result
 
 
 def _loops(calls: list[CapturedToolCall]) -> list[Anomaly]:

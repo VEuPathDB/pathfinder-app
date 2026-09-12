@@ -26,7 +26,7 @@ from assistant_core.memory.deadline import (
     MemoryStoreTimeoutError,
     memory_store_deadline,
 )
-from assistant_core.memory.retrieval import retrieve_relevant_memories
+from assistant_core.memory.retrieval import RetrievalScope, retrieve_relevant_memories
 from assistant_core.memory.store import MemoryStore, StoredMemory
 from assistant_core.platform.logging import get_logger
 from langgraph.runtime import Runtime
@@ -53,7 +53,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
     LeadDeps,
     SubAgentDurablePark,
 )
-from pathfinder.domain.memory import MEMORY_KINDS
+from pathfinder.domain.memory import MEMORY_KINDS, STANDING_MEMORY_KINDS
 
 logger = get_logger(__name__)
 
@@ -82,9 +82,12 @@ async def retrieve_memories(
                 store=mem_store,
                 user_id=state.user_id,
                 query=state.user_prompt,
-                keep=lambda memory: memory.site_id in (None, state.site_id),
-                kinds=MEMORY_KINDS,
-                top_k=8,
+                scope=RetrievalScope(
+                    kinds=MEMORY_KINDS,
+                    always_kinds=STANDING_MEMORY_KINDS,
+                    keep=lambda memory: memory.site_id in (None, state.site_id),
+                    top_k=8,
+                ),
             )
     except MemoryStoreTimeoutError as exc:
         logger.warning(

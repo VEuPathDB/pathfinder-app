@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import pytest
 from assistant_core.memory.lifespan import lifespan_memory_store
-from assistant_core.memory.retrieval import retrieve_relevant_memories
+from assistant_core.memory.retrieval import RetrievalScope, retrieve_relevant_memories
 from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.db import async_session_factory
 from langgraph.runtime import Runtime
@@ -284,8 +284,10 @@ async def test_a_later_turn_retrieves_the_case_for_a_similar_goal(
             store=MemoryStore(store=raw),
             user_id=user_id,
             query="which kinases does P. falciparum have",
-            keep=lambda memory: memory.site_id in (None, "plasmodb"),
-            kinds=MEMORY_KINDS,
+            scope=RetrievalScope(
+                kinds=MEMORY_KINDS,
+                keep=lambda memory: memory.site_id in (None, "plasmodb"),
+            ),
         )
 
     assert "case" in [stored.value.kind for stored in found]
