@@ -3,7 +3,7 @@
 import { Download, Upload } from "lucide-react";
 
 import { listGeneSets } from "@/features/workbench/api/geneSets";
-import { loadSnapshotMessages } from "@/features/conversation/api/conversationSnapshot";
+import { loadConversationSnapshot } from "@/features/conversation/api/conversationSnapshot";
 
 import { downloadTextFile, fetchJson, renderChatMarkdown } from "./registryUtils";
 import type { Command } from "./types";
@@ -89,7 +89,7 @@ export const exportCommand: Command = {
       };
     }
     if (what === "chat") {
-      const messages = await loadSnapshotMessages(ctx.conversationId);
+      const { messages } = await loadConversationSnapshot(ctx.conversationId);
       if (format === "md") {
         const md = renderChatMarkdown(messages);
         downloadTextFile(`chat-${ctx.conversationId}.md`, md, "text/markdown");

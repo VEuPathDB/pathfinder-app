@@ -2,6 +2,17 @@
 
 ## 2026-09-12
 
+* **A thread reopened while its turn runs follows that turn.** The snapshot
+  says whether a turn is in flight: `AssistantClient.snapshot` answers
+  `turnInFlight` when the last chunk it read is a prompt envelope, which is the
+  shape a snapshot takes while a turn the host has not terminated is running.
+  The thread view re-attaches on that fact as well as on a message a durable
+  task left open, and tails from the snapshot's cursor, so a fresh tab draws the
+  rows the turn has already logged and the ones that follow. A tail that answers
+  204 leaves the snapshot standing, and a mount that found no running turn opens
+  no tail, so a report of an idle thread cannot end a turn the user starts
+  meanwhile. PROTOCOL 2.0.1 states the client rule.
+
 * **An open parameter sheet is pinned until its criterion is decided.** The
   sheet always carried every parameter's vocabulary; what lost it was the
   runtime's history elision, which keeps the three most recent tool returns

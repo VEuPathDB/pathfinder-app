@@ -12,7 +12,7 @@ import { server } from "../../../../vitest.msw-setup";
 import { conversationCursors } from "./assistantClient";
 import {
   conversationSnapshotOptions,
-  loadSnapshotMessages,
+  loadConversationSnapshot,
 } from "./conversationSnapshot";
 
 const SNAPSHOT_ROUTE =
@@ -33,11 +33,11 @@ beforeEach(() => {
   sessionStorage.clear();
 });
 
-describe("loadSnapshotMessages", () => {
+describe("loadConversationSnapshot", () => {
   it("reads the thread's snapshot endpoint", async () => {
     const seen = serveSnapshot({ cursor: 0, chunks: [] });
 
-    await loadSnapshotMessages("c1");
+    await loadConversationSnapshot("c1");
 
     expect(seen).toEqual(["/api/v1/conversations/c1/events/snapshot"]);
   });
@@ -56,7 +56,7 @@ describe("loadSnapshotMessages", () => {
       ],
     });
 
-    const messages = await loadSnapshotMessages("c1");
+    const { messages } = await loadConversationSnapshot("c1");
 
     expect(messages.map((message) => message.id)).toEqual(["u1", "a1"]);
     expect(messages[1]?.parts).toEqual([
@@ -67,7 +67,7 @@ describe("loadSnapshotMessages", () => {
   it("advances the resume cursor to the one the snapshot reports", async () => {
     serveSnapshot({ cursor: 9, chunks: [] });
 
-    await loadSnapshotMessages("c1");
+    await loadConversationSnapshot("c1");
 
     expect(conversationCursors.read("c1")).toBe(9);
   });
@@ -78,15 +78,29 @@ describe("loadSnapshotMessages", () => {
     conversationCursors.write("c1", 42);
     serveSnapshot({ cursor: 7, chunks: [] });
 
-    await loadSnapshotMessages("c1");
+    await loadConversationSnapshot("c1");
 
     expect(conversationCursors.read("c1")).toBe(42);
+  });
+
+  it("reports the turn a snapshot that ends at the prompt left running", async () => {
+    serveSnapshot({
+      cursor: 220744,
+      chunks: [
+        { type: "user-message", message: { id: "u1", role: "user", parts: [] } },
+      ],
+    });
+
+    expect((await loadConversationSnapshot("c1")).turnInFlight).toBe(true);
   });
 
   it("reads a conversation with no event log as an empty transcript", async () => {
     server.use(http.get(SNAPSHOT_ROUTE, () => new HttpResponse(null, { status: 404 })));
 
-    expect(await loadSnapshotMessages("gone")).toEqual([]);
+    expect(await loadConversationSnapshot("gone")).toEqual({
+      messages: [],
+      turnInFlight: false,
+    });
   });
 
   it("reports any other failure with the sentence the server offered", async () => {
@@ -96,7 +110,7 @@ describe("loadSnapshotMessages", () => {
       ),
     );
 
-    const failure = await loadSnapshotMessages("c1").then(
+    const failure = await loadConversationSnapshot("c1").then(
       () => null,
       (err: unknown) => err,
     );

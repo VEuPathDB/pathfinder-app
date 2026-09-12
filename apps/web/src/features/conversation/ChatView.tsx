@@ -75,7 +75,8 @@ export function ChatView({
     >
       <ChatViewBody
         conversationId={conversationId}
-        initialMessages={messagesQuery.data ?? []}
+        initialMessages={messagesQuery.data?.messages ?? []}
+        turnInFlight={messagesQuery.data?.turnInFlight ?? false}
         resumable={resumable}
         strategy={strategy}
         siteId={siteId}
@@ -88,6 +89,7 @@ export function ChatView({
 function ChatViewBody({
   conversationId,
   initialMessages,
+  turnInFlight,
   resumable,
   strategy,
   siteId,
@@ -95,6 +97,7 @@ function ChatViewBody({
 }: {
   conversationId: string;
   initialMessages: UIMessage[];
+  turnInFlight: boolean;
   resumable: boolean;
   strategy: Strategy | null;
   siteId: string;
@@ -103,6 +106,7 @@ function ChatViewBody({
   const { runtime, chat } = useChatRuntime({
     conversationId,
     resume: resumable,
+    turnInFlight,
     initialMessages,
     assistantId,
   });

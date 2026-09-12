@@ -40,6 +40,8 @@ interface UseChatRuntimeArgs {
   conversationId: string;
   initialMessages?: UIMessage[];
   resume?: boolean;
+  /** The snapshot ended at a prompt, so the thread has a turn to follow. */
+  turnInFlight?: boolean;
   /** The assistant this thread runs under. */
   assistantId?: string;
 }
@@ -48,6 +50,7 @@ export function useChatRuntime({
   conversationId,
   initialMessages,
   resume = false,
+  turnInFlight = false,
   assistantId,
 }: UseChatRuntimeArgs): {
   runtime: ReturnType<typeof useAISDKRuntime<UIMessage>>;
@@ -165,11 +168,14 @@ export function useChatRuntime({
     },
   });
 
-  // Only a message the snapshot left open before this mount is re-attached. A
-  // tail on an idle thread reports no turn in flight, and that report ends a
-  // turn the user starts while it is open.
+  // A turn the snapshot found before this mount is re-attached: one it left
+  // running, or a message a durable task left open. A tail on an idle thread
+  // reports no turn in flight, and that report ends a turn started meanwhile.
   const [reattach] = useState(
-    () => resume && conversationCursors.readOpenMessage(conversationId) !== undefined,
+    () =>
+      resume &&
+      (turnInFlight ||
+        conversationCursors.readOpenMessage(conversationId) !== undefined),
   );
 
   // A turn the log still holds is read across its turn boundaries: the SDK
