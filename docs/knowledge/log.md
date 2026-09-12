@@ -25,6 +25,27 @@
   test pinned and the forty-three it did not. `jobs/impls` still holds two such reads, so
   the guard names `ai/lead` and `ai/graph` only and the worker's half is a backlog card.
 
+* **A patched step and a written subtree state both sides of the stated-value guard in
+  the catalog's own form.** The guard asks whether a batch introduced a departure from a
+  value the spec states, so it compares what a step held with what the batch leaves
+  behind. Those two were read in different forms: a push canonicalizes the graph in place
+  (`services/strategies/step_wdk_push.py::_validate_plan_params`), while a patch and a
+  written tree carry the model's form, so a vocabulary, tree or range parameter the
+  catalog rewrites read as a departure the batch had not made.
+  `ai/tools/standalone/_spec_edit_checks.py::canonical_sides` now answers both sides for
+  the steps a write names: `update_leaf_params` hands it the step it patches and
+  `replace_subtree` the stated leaves it writes, which it puts in the catalog's form
+  first, and `StrategyMutationContext.entry_values` carries the entry side to
+  `domain/strategy/spec_edit_guard.py::contradicted_values`, whose `held` argument is
+  required so a new caller decides what it means. A value the batch leaves where it found
+  it costs no catalog read, because both sides then carry one string; a value the batch
+  writes over is read on the entry side too, which is what separates a rewritten wire form
+  from a dependent vocabulary that moves a stated value: the first is applied, the second
+  is refused. A parameter the write sends is answered for by the write. The other four
+  paths into the guard (`build_strategy`, `apply_operations`, the Lead's spec edits and
+  `eda_step`) still compare one form against the other, measured and carried as a backlog
+  card.
+
 * **A tail streams only while a live worker holds the thread.** The events route no
   longer reads "in flight" off the log's tip: `services/conversations/turn_liveness.py`
   answers it, and an open log counts as a running turn only when a procrastinate job locks

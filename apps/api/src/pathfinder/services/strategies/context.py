@@ -1,7 +1,7 @@
 """Narrow context for strategy-mutation services.
 
 The strategy build/commit/persist services need only a strategy session,
-a site id, and (for persistence) a conversation id + DB session factory —
+a site id, and (for persistence) a conversation id + DB session factory,
 not the full AI ``AgentDeps`` container. Depending on this narrow context
 keeps the service layer free of any AI-layer import.
 """
@@ -12,6 +12,7 @@ from uuid import UUID
 
 from assistant_core.platform.db import DBSessionFactory
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.parameters import ParamValue
 
 from pathfinder.domain.strategy.operational_spec import SpecStructure
 from pathfinder.domain.strategy.session import StrategySession
@@ -40,6 +41,12 @@ class StrategyMutationContext:
 
     A write that sends another value for one of them is refused, wherever the
     value rides: a parameter patch or a leaf inside a written tree.
+    """
+    entry_values: Mapping[str, Mapping[str, ParamValue]] = field(default_factory=dict)
+    """What a step held when the batch began, in the form the catalog writes it.
+
+    Keyed by step id. A caller that canonicalizes its write states the entry
+    side here, so a rewrite of a value the batch never sent is not a departure.
     """
     locked_session: AsyncSession | None = None
     """A session that already owns the thread's strategy lock.

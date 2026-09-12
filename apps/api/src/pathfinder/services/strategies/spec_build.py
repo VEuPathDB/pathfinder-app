@@ -116,7 +116,7 @@ def _a_build_the_spec_refuses(
     return new_value_contradiction(
         stated=deps.stated_values,
         graph=candidate,
-        before=contradicted_values(deps.stated_values, graph),
+        before=contradicted_values(deps.stated_values, graph, deps.entry_values),
     )
 
 

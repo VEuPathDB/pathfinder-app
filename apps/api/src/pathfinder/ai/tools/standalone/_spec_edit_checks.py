@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+from typing import NamedTuple
 
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue, to_wire
-from veupathdb.domain.strategy import StrategyStep
+from veupathdb.domain.strategy import StrategyStepNode, leaves
 from veupathdb_mcp.catalog import ValidationCallbacks, validate_parameters
 
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -21,61 +22,169 @@ from pathfinder.domain.strategy.spec_edit_guard import (
 from pathfinder.domain.strategy.stated_shape import StatedShape, shape_after
 
 
+class WrittenStep(NamedTuple):
+    """A step a batch writes, and the search that canonicalizes its values."""
+
+    step_id: str
+    search: SearchContext
+    names_sent: frozenset[str]
+    written: Mapping[str, ParamValue]
+
+
+class CanonicalSides(NamedTuple):
+    """The two sides the stated-value guard compares, in the catalog's form.
+
+    ``stated`` holds the spec's values and ``entry`` what a step held before
+    the batch, both keyed by step id.
+    """
+
+    stated: Mapping[str, StatedCriterion]
+    entry: Mapping[str, Mapping[str, ParamValue]]
+
+
 def _needs_a_second_look(
     criterion: StatedCriterion,
     *,
-    step: StrategyStep,
-    patch: Mapping[str, ParamValue],
+    held: Mapping[str, ParamValue],
+    names_sent: frozenset[str],
 ) -> bool:
     """Whether the stated values need a canonicalization of their own.
 
-    The write's own call already canonicalizes every stated value the step
-    holds and the patch leaves alone, so only a name the patch sends or a
-    value the step does not already hold has to be asked for.
+    A step that already holds the stated form needs none, because both sides
+    then read the same string.
     """
     for name, value in criterion.values.items():
-        held = step.parameters.get(name)
-        if name in patch or (held is not None and to_wire(held) != to_wire(value)):
+        carried = held.get(name)
+        if name in names_sent or (
+            carried is not None and to_wire(carried) != to_wire(value)
+        ):
             return True
     return False
 
 
-async def canonical_stated_values(
+def _moves_a_stated_value(
+    criterion: StatedCriterion,
+    *,
+    held: Mapping[str, ParamValue],
+    written: Mapping[str, ParamValue],
+) -> bool:
+    """Whether the batch writes another value where the criterion states one."""
+    for name in criterion.values:
+        before = held.get(name)
+        after = written.get(name)
+        if before is None or after is None:
+            continue
+        if to_wire(before) != to_wire(after):
+            return True
+    return False
+
+
+async def _canonical_stated(
+    criterion: StatedCriterion,
+    *,
+    write: WrittenStep,
+    held: Mapping[str, ParamValue],
+    callbacks: ValidationCallbacks,
+) -> StatedCriterion:
+    if not _needs_a_second_look(criterion, held=held, names_sent=write.names_sent):
+        return criterion
+    overlay = await validate_parameters(
+        write.search,
+        parameters={**held, **criterion.values},
+        callbacks=callbacks,
+    )
+    return StatedCriterion(
+        text=criterion.text,
+        values={
+            name: overlay.params[name]
+            for name in criterion.values
+            if name in overlay.params
+        },
+    )
+
+
+async def _canonical_entry(
+    criterion: StatedCriterion,
+    *,
+    write: WrittenStep,
+    held: Mapping[str, ParamValue],
+    callbacks: ValidationCallbacks,
+) -> Mapping[str, ParamValue]:
+    if not _moves_a_stated_value(criterion, held=held, written=write.written):
+        return {name: held[name] for name in criterion.values if name in held}
+    overlay = await validate_parameters(
+        write.search, parameters=dict(held), callbacks=callbacks
+    )
+    return {
+        name: overlay.params[name]
+        for name in criterion.values
+        if name in overlay.params
+    }
+
+
+async def canonical_sides(
     deps: AgentDeps,
     *,
-    step: StrategyStep,
-    patch: Mapping[str, ParamValue],
-    written: Mapping[str, ParamValue],
-    search: SearchContext,
+    graph: StrategyGraph,
+    writes: Sequence[WrittenStep],
     callbacks: ValidationCallbacks,
-) -> Mapping[str, StatedCriterion]:
-    """The spec's stated values in the form the catalog writes them.
+) -> CanonicalSides:
+    """Both sides of the stated-value guard, in the form the catalog writes.
 
-    A patch reaches the graph canonicalized, so a value it is compared with
-    passes through the same canonicalizer. Without this a catalog that
-    rewrites a parameter the write never sent reads as a departure.
+    A value the batch leaves where it found it needs no catalog read: both
+    sides carry the same string. A value the batch writes over is read on the
+    entry side too, so a rewritten wire form is not a departure and a
+    dependent vocabulary that moves a stated value is one.
     """
     stated = spec_stated_values(deps.agent_state.operational_spec_draft)
-    criterion = stated.get(step.id)
-    if criterion is None:
-        return stated
-    canonical = written
-    if _needs_a_second_look(criterion, step=step, patch=patch):
-        overlay = await validate_parameters(
-            search,
-            parameters={**step.parameters, **criterion.values},
-            callbacks=callbacks,
+    canonical: dict[str, StatedCriterion] = dict(stated)
+    entry: dict[str, Mapping[str, ParamValue]] = {}
+    for write in writes:
+        criterion = stated.get(write.step_id)
+        if criterion is None:
+            continue
+        step = graph.get_step(write.step_id)
+        held: Mapping[str, ParamValue] = {} if step is None else step.parameters
+        canonical[write.step_id] = await _canonical_stated(
+            criterion, write=write, held=held, callbacks=callbacks
         )
-        canonical = overlay.params
-    return {
-        **stated,
-        step.id: StatedCriterion(
-            text=criterion.text,
-            values={
-                name: canonical[name] for name in criterion.values if name in canonical
-            },
-        ),
-    }
+        entry[write.step_id] = await _canonical_entry(
+            criterion, write=write, held=held, callbacks=callbacks
+        )
+    return CanonicalSides(stated=canonical, entry=entry)
+
+
+async def canonicalize_stated_leaves(
+    deps: AgentDeps,
+    *,
+    subtree: StrategyStepNode,
+    record_type: str,
+    callbacks: ValidationCallbacks,
+) -> list[WrittenStep]:
+    """Put every leaf the spec states a value for in the catalog's own form.
+
+    A written leaf reaches the graph the way a patched step does, so the guard
+    reads one form on both sides of the batch.
+    """
+    stated = spec_stated_values(deps.agent_state.operational_spec_draft)
+    writes: list[WrittenStep] = []
+    for node in leaves(subtree):
+        if node.id not in stated:
+            continue
+        search = SearchContext(deps.site_id, record_type, node.search_name)
+        validated = await validate_parameters(
+            search, parameters=dict(node.parameters), callbacks=callbacks
+        )
+        node.parameters = dict(validated.params)
+        writes.append(
+            WrittenStep(
+                step_id=node.id,
+                search=search,
+                names_sent=frozenset(node.parameters),
+                written=node.parameters,
+            )
+        )
+    return writes
 
 
 def refuse_a_write_the_spec_did_not_state(

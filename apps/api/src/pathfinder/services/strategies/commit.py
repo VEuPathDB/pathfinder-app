@@ -158,7 +158,7 @@ def _entry_state(deps: StrategyMutationContext, graph: StrategyGraph) -> _EntryS
         step_ids=set(graph.steps),
         reachable=set(subtree_ids(graph.primary_root_id() or "", graph.steps)),
         joins=contradicted_joins(deps.stated_structure, graph, deps.stated_criteria),
-        values=contradicted_values(deps.stated_values, graph),
+        values=contradicted_values(deps.stated_values, graph, deps.entry_values),
     )
 
 

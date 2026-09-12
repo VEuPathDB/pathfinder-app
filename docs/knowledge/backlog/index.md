@@ -20,9 +20,9 @@ what left.
 11. [Site help cannot name a site's organisms](site-help-cannot-name-a-sites-organisms.md) - describe_site carries no organism vocabulary, so the site's help assistant honestly refuses the first question a researcher asks.
 12. [The cross-organism refusal prescribes the wrong remedy after a transform](the-cross-organism-refusal-prescribes-the-wrong-remedy-after-a-transform.md) - the validator's fixed advice moves target-organism filters below the transform, the shape it just refused, so the precise drug-target gold ends with no strategy.
 13. [A killed durable worker leaves its task running for good](a-killed-durable-worker-leaves-its-task-running-for-good.md) - the stalled-job sweep closes a chat turn's stream and never a durable call's, so the task row stays `running`, the thread keeps streaming, and the rail shows work that ended.
-14. [A departed value and a canonicalizer read as a new departure](a-departed-value-and-a-canonicalizer-read-as-a-new-departure.md) - a stated value that already departed in the graph, rewritten by the catalog's canonicalizer, refuses a patch that touched nothing stated.
-15. [The worker reaches into private tool modules](the-worker-reaches-into-private-tool-modules.md) - two job bodies import private modules of the tool package, the same shape the Lead guard now forbids under ai/lead and ai/graph.
-16. [The revert dialog says the strategy graph is kept](the-revert-dialog-says-the-strategy-graph-is-kept.md) - the copy promises the graph survives; the service restores the snapshot as a new WDK strategy.
+14. [The worker reaches into private tool modules](the-worker-reaches-into-private-tool-modules.md) - two job bodies import private modules of the tool package, the same shape the Lead guard now forbids under ai/lead and ai/graph.
+15. [The revert dialog says the strategy graph is kept](the-revert-dialog-says-the-strategy-graph-is-kept.md) - the copy promises the graph survives; the service restores the snapshot as a new WDK strategy.
+16. [A written tree and a canonical graph read as a new departure](a-written-tree-and-a-canonical-graph-read-as-a-new-departure.md) - four write paths still compare the model's wire form against the catalog's, so a canonicalizer can turn an untouched value into a refusal.
 
 ## Known and accepted
 

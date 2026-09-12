@@ -193,21 +193,26 @@ class ValueContradiction(NamedTuple):
 
 
 def contradicted_values(
-    stated: Mapping[str, StatedCriterion], graph: StrategyGraph
+    stated: Mapping[str, StatedCriterion],
+    graph: StrategyGraph,
+    held: Mapping[str, Mapping[str, ParamValue]],
 ) -> dict[tuple[str, str], ValueContradiction]:
     """Every parameter of this graph that departs from the value the spec states.
 
     Keyed by criterion id and parameter name, so a rewritten leaf that keeps
-    the step id answers for the same value. A parameter the step does not
-    carry states nothing.
+    the step id answers for the same value. A step ``held`` names is measured
+    on those values and every other step on the graph, which is how a
+    canonicalized state compares with a canonicalized write. A parameter
+    neither carries states nothing.
     """
     found: dict[tuple[str, str], ValueContradiction] = {}
     for criterion_id, criterion in stated.items():
         step = graph.get_step(criterion_id)
         if step is None:
             continue
+        parameters = held.get(criterion_id, step.parameters)
         for name, value in criterion.values.items():
-            written = step.parameters.get(name)
+            written = parameters.get(name)
             if written is None or to_wire(written) == to_wire(value):
                 continue
             found[(criterion_id, name)] = ValueContradiction(
@@ -230,7 +235,7 @@ def new_value_contradiction(
     Only a value the write introduces is refused. A value that already
     departed keeps its answer until something restates the criterion.
     """
-    for pair, found in contradicted_values(stated, graph).items():
+    for pair, found in contradicted_values(stated, graph, {}).items():
         if before.get(pair) == found:
             continue
         return (
