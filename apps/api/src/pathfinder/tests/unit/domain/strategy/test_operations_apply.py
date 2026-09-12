@@ -8,10 +8,13 @@ from typing import Any
 
 import pytest
 from pydantic import TypeAdapter
-from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StepKind,
+    StrategyStep,
+    StrategyStepNode,
+)
 
 from pathfinder.domain.strategy.operations import (
     AddCombineOp,

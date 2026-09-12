@@ -11,8 +11,8 @@ matches nothing.
 
 from __future__ import annotations
 
-from veupathdb.domain.wdk_values import WDKRecordIdPart
-from veupathdb.wdk.wdk_models import WDKRecordInstance
+from veupathdb.domain import WDKRecordIdPart
+from veupathdb.wdk import WDKRecordInstance
 
 from pathfinder.services.experiment.classification import (
     _classify_gene_id,

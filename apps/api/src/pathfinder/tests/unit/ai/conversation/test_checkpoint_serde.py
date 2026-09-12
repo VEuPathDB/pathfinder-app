@@ -24,8 +24,8 @@ from assistant_core.graph.turn_state import (
 )
 from assistant_core.memory.schemas import MemoryEntryDraft, MemoryValue
 from pydantic_ai.ui.vercel_ai.request_types import TextUIPart, ToolApprovalResponded
-from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.graph.state import (

@@ -8,8 +8,8 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.parameters.values import ParamValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.strategy import StrategyStepNode
 from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb_mcp.controls import (
     ControlsContext,

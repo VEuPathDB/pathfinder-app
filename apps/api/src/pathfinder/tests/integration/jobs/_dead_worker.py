@@ -13,12 +13,12 @@ from uuid import UUID
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.persistence.models import ConversationEvent
 from assistant_core.platform.db import async_session_factory
+from assistant_core.tasks.chat_turn import defer_chat_turn
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.jobs.payloads import ChatTurnPayload
-from pathfinder.jobs.tasks import run_chat_turn_job
 from pathfinder.platform.config import get_settings
 
 TOOL_CALL_ID = "call_search_eda_studies_1"
@@ -59,9 +59,10 @@ async def stage_chat_turn_job(
         turn_id=turn_id,
         assistant_id="pathfinder",
     )
-    job_id = await run_chat_turn_job.configure(
-        lock=str(conversation_id),
-    ).defer_async(payload=payload.model_dump(mode="json", by_alias=True))
+    job_id = await defer_chat_turn(
+        conversation_id=conversation_id,
+        payload=payload.model_dump(mode="json", by_alias=True),
+    )
     now = datetime.datetime.now(tz=datetime.UTC)
     connector.workers[job_id] = now - datetime.timedelta(seconds=heartbeat_age_seconds)
     connector.jobs[job_id]["status"] = "doing"

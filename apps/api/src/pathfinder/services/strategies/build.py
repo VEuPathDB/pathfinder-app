@@ -1,6 +1,6 @@
 """Strategy build service: the root step a local graph is pushed from."""
 
-from veupathdb.domain.strategy.graph_model import StrategyStep
+from veupathdb.domain.strategy import StrategyStep
 
 from pathfinder.domain.strategy.session import StrategyGraph
 

@@ -6,15 +6,18 @@ whose spec is missing can describe its own strategy without asking anyone.
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.values import (
+from veupathdb.domain.parameters import (
     MultiPickValue,
     NumberValue,
     StringValue,
 )
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import walk
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    CombineOp,
+    StrategyAst,
+    StrategyStepNode,
+    walk,
+)
 
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,

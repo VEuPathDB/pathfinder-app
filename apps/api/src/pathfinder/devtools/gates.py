@@ -14,7 +14,6 @@ from pydantic_ai.ui.vercel_ai.request_types import (
     UIMessage,
 )
 
-from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 
 _USER_QUESTION_ANSWERS_TYPE = "data-user-question-answers"
@@ -124,7 +123,7 @@ class BodyCtx(CamelModel):
     conversation_id: UUID
     site_id: str
     mode: str = "strategy"
-    phase_models: dict[PhaseRole, str] = Field(default_factory=dict)
+    phase_models: dict[str, str] = Field(default_factory=dict)
 
 
 def _body(ctx: BodyCtx, message: UIMessage) -> ChatRequestBody:

@@ -6,7 +6,7 @@ the step ids a build mints. The check reads the tree the criteria meet in.
 
 from __future__ import annotations
 
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.domain.strategy.combination_check import (
     combination_terms_overlap,

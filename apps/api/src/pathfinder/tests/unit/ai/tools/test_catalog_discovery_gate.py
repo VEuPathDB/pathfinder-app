@@ -8,11 +8,9 @@ from typing import Any
 
 import pytest
 from pydantic_ai import RunContext
-from veupathdb.domain.parameters.values import SinglePickValue
-from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.domain.parameters import SinglePickValue, VocabOption
 from veupathdb.testing.wdk_fixtures import load_recorded
-from veupathdb.wdk.wdk_models import WDKSearchResponse
-from veupathdb.wdk.wdk_parameters import WDKParameter
+from veupathdb.wdk import WDKParameter, WDKSearchResponse
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParameterNotOnSearch,

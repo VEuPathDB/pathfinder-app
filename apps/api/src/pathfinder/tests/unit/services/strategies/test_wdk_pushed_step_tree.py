@@ -7,14 +7,14 @@ reaches the wire shape.
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.graph_model import (
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import (
+    CombineOp,
     StepKind,
     StrategyStep,
     pushable_root_id,
     rebuild_tree,
 )
-from veupathdb.domain.strategy.ops import CombineOp
 
 from pathfinder.platform.errors import StrategyCompilationError
 from pathfinder.services.strategies.sync import build_step_tree_from_graph

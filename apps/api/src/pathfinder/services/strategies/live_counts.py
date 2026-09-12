@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.errors import VEuPathDBError
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk import get_strategy_api
 
 from pathfinder.domain.strategy.types import SyncStateProtocol
 

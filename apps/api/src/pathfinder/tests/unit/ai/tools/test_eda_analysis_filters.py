@@ -9,7 +9,7 @@ from uuid import UUID
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaFilter,
     EdaPermissionEntry,
     EdaStringSetFilter,

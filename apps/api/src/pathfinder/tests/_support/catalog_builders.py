@@ -6,13 +6,14 @@ from collections.abc import Callable
 from typing import Protocol
 
 import pytest
-from veupathdb.domain.parameters.values import ParamValue
-from veupathdb.domain.search import SearchContext
-from veupathdb.domain.strategy.validation import StepValidation
-from veupathdb.json_types import JSONObject
-from veupathdb.wdk.wdk_models import WDKSearch, WDKSearchResponse
-from veupathdb.wdk.wdk_parameters import (
+from veupathdb import JSONObject
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.strategy import StepValidation
+from veupathdb.wdk import (
     WDKParameter,
+    WDKSearch,
+    WDKSearchResponse,
 )
 from veupathdb_mcp.catalog import (
     ParameterInfo,

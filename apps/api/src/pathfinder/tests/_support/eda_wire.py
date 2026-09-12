@@ -12,13 +12,14 @@ from typing import Any
 
 import httpx
 import pytest
-from veupathdb.eda import factory
-from veupathdb.eda.client import EdaClient
-from veupathdb.eda.models import (
+from veupathdb.eda import (
+    EdaAnalysesClient,
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
+    EdaClient,
 )
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
+from veupathdb.wdk import get_site
 
 from pathfinder.services.eda import authoring, binding, catalog, compute
 
@@ -114,6 +115,18 @@ def eda_transport(
     return httpx.MockTransport(handler)
 
 
+def wire_eda_client(monkeypatch: pytest.MonkeyPatch, client: EdaClient) -> None:
+    """Point every service that opens an EDA client or analysis store at ``client``."""
+
+    def analyses(site_id: str) -> EdaAnalysesClient:
+        return EdaAnalysesClient(client=client, project_id=get_site(site_id).project_id)
+
+    for module in (catalog, authoring, compute):
+        monkeypatch.setattr(module, "get_eda_client", lambda _site: client)
+    for module in (authoring, binding):
+        monkeypatch.setattr(module, "get_eda_analyses_client", analyses)
+
+
 def wire_eda(
     monkeypatch: pytest.MonkeyPatch, transport: httpx.MockTransport
 ) -> EdaClient:
@@ -123,8 +136,7 @@ def wire_eda(
     that one lookup is answered here too.
     """
     client = EdaClient(base_url=BASE_URL, transport=transport)
-    for module in (catalog, authoring, compute, factory):
-        monkeypatch.setattr(module, "get_eda_client", lambda _site: client)
+    wire_eda_client(monkeypatch, client)
 
     async def user_id(_site: str) -> str:
         return EDA_USER_ID

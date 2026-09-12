@@ -12,9 +12,7 @@ import os
 from collections.abc import Awaitable, Callable, Sequence
 
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.wdk.client import VEuPathDBClient
-from veupathdb.wdk.factory import get_site
-from veupathdb.wdk.strategy_api import StrategyAPI
+from veupathdb.wdk import StrategyAPI, VEuPathDBClient, get_site
 
 from pathfinder.tests.integration.mcp._served import SITE
 

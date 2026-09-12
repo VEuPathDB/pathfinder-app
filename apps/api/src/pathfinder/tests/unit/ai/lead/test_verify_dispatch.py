@@ -12,7 +12,7 @@ from collections.abc import AsyncIterator
 import pytest
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
+from veupathdb.domain.strategy import StepKind, StrategyStep
 
 from pathfinder.ai.lead import sub_agent_tools
 from pathfinder.ai.lead.deltas import VerificationDelta

@@ -4,28 +4,25 @@ from __future__ import annotations
 
 import json
 
-from veupathdb.domain.eda_compute_validation import (
+from veupathdb.domain import (
     ComputeConfigFacts,
-    validate_compute_config,
-)
-from veupathdb.domain.eda_filter_checks import (
     DateSetFacts,
+    EntityFacts,
     FilterFacts,
     LongitudeBoundsFacts,
     MultiFilterFacts,
     NumberSetFacts,
     RangeBoundsFacts,
     StringSetFacts,
-    SubFilterFacts,
-)
-from veupathdb.domain.eda_study import (
-    EntityFacts,
     StudyFacts,
+    SubFilterFacts,
     ValueVariableFacts,
     VariableFacts,
+    find_gene_entity,
+    validate_compute_config,
+    validate_filters,
 )
-from veupathdb.domain.eda_validation import find_gene_entity, validate_filters
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaCategoryVariable,
     EdaComparator,
     EdaDateRangeFilter,
@@ -48,9 +45,9 @@ from veupathdb.eda.models import (
     EdaSubFilter,
     EdaVariableSpec,
 )
-from veupathdb.testing import eda_fixtures
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
-FIXTURES = eda_fixtures.FIXTURE_DIR
+FIXTURES = FIXTURE_DIR
 
 _SAMPLES = "ENT_8151325d"
 _COUNTS = "ENT_fd574cd6"

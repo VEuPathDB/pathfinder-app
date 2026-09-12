@@ -7,8 +7,7 @@ from collections.abc import AsyncGenerator, Generator
 import httpx
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.eda.client import EdaClient
-from veupathdb.eda.models import EdaStudyOverview
+from veupathdb.eda import EdaClient, EdaStudyOverview
 
 from pathfinder.services.eda import catalog
 

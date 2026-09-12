@@ -15,13 +15,13 @@ from assistant_core.conversation.vercel_adapter import VERCEL_AI_DSP_HEADERS
 from assistant_core.graph.stream_events import turn_status_event
 from assistant_core.persistence.repositories.message import MessagesRepository
 from assistant_core.spec import AssistantSpec
+from assistant_core.tasks.chat_turn import defer_chat_turn
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.capabilities.security import scan_user_input
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.jobs.payloads import ChatTurnPayload
-from pathfinder.jobs.tasks import run_chat_turn_job
 from pathfinder.platform.errors import AssistantMismatchError
 from pathfinder.services.conversations.begin import begin_conversation
 
@@ -103,9 +103,8 @@ async def dispatch(
             exclude_none=True,
         ),
     )
-    # Every turn for one conversation writes the same checkpoint thread, so the
-    # lock keeps concurrent workers from running two of them together.
-    await run_chat_turn_job.configure(lock=str(body.conversation_id)).defer_async(
+    await defer_chat_turn(
+        conversation_id=body.conversation_id,
         payload=payload.model_dump(mode="json", by_alias=True),
     )
 

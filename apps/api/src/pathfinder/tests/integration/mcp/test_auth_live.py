@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.wdk.current_user import fetch_current_user
-from veupathdb_mcp import CredentialMode, VEuPathDBTokenVerifier, wdk_identity
+from veupathdb.wdk import fetch_current_user
+from veupathdb_mcp.auth import CredentialMode, VEuPathDBTokenVerifier, wdk_identity
 
 pytestmark = pytest.mark.live_wdk
 

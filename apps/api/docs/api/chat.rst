@@ -56,18 +56,6 @@ assistant, runs its identity gate, persists the user message, defers the
    :undoc-members:
    :show-inheritance:
 
-Assistant Routing
------------------
-
-**Purpose:** Decide which assistant answers a turn. A new conversation takes
-the assistant the request names, or the default; naming a different one on an
-existing thread is refused.
-
-.. automodule:: pathfinder.ai.conversation.assistant_routing
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Request Body
 ------------
 

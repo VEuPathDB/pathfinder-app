@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.testing.wdk_credentials import (
+from veupathdb.testing import (
     NO_CREDENTIALS_REASON,
     wdk_test_account,
 )

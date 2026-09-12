@@ -8,8 +8,7 @@ transaction; a caller that does not takes the lock for the write alone.
 from __future__ import annotations
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import walk
+from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.domain.strategy.session import StrategyGraph

@@ -7,8 +7,8 @@ from it rather than from a canned spec whose ids the build already replaced.
 from __future__ import annotations
 
 from pydantic_ai.messages import ToolCallPart
-from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.lead.edit_messages import edit_work_order
 from pathfinder.ai.models.mock.specs import (

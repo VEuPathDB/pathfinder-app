@@ -12,7 +12,7 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 import pytest
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.graph.stream_events import strategy_revision_event
 from pathfinder.assistants import pathfinder_spec

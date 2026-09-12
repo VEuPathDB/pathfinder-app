@@ -5,11 +5,13 @@ from uuid import UUID
 
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import walk
+from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import VEuPathDBError
-from veupathdb.wdk.factory import get_strategy_api
-from veupathdb.wdk.strategy_api import StrategyAPI
+from veupathdb.wdk import StrategyAPI, get_strategy_api
+from veupathdb_mcp.wdk import (
+    build_snapshot_from_wdk,
+    canonicalize_synced_parameters,
+)
 
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import (
@@ -23,11 +25,6 @@ from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
 )
 from pathfinder.platform.errors import InternalError
-
-from .wdk_conversion import (
-    build_snapshot_from_wdk,
-    canonicalize_synced_parameters,
-)
 
 logger = get_logger(__name__)
 

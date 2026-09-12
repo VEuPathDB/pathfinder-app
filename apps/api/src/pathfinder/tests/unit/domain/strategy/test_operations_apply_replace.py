@@ -8,8 +8,7 @@ graph's root.
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 
 from pathfinder.domain.strategy.operations import ReplaceStrategyOp
 from pathfinder.domain.strategy.operations.apply import ApplyError, apply_operation

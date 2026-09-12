@@ -23,8 +23,8 @@ import veupathdb_mcp
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.testing.wdk_credentials import NO_CREDENTIALS_REASON
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.testing import NO_CREDENTIALS_REASON
+from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.server import SERVER_NAME, TOOLS
 from veupathdb_mcp.wdk import fetch_gene_ids_from_step
 
@@ -46,6 +46,8 @@ pytestmark = pytest.mark.live_wdk
 
 BEARER_VARIABLE = "MCP_CONFORMANCE_BEARER"
 SECOND_BEARER_VARIABLE = "MCP_CONFORMANCE_BEARER_SECOND"
+# The shortest bearer this deployment admits, in characters.
+BEARER_MINIMUM = 32
 
 # Where a lane collects the record it publishes. Unset, the run keeps it beside
 # the arguments it wrote, and the record is still read by the checks below.
@@ -221,6 +223,8 @@ def conformance_options(ini: Path, samples: Path, report: Path) -> list[str]:
         SLOW_TOOL,
         "--mcp-max-call-seconds",
         str(SLOW_TOOL_BUDGET_SECONDS),
+        "--mcp-bearer-minimum",
+        str(BEARER_MINIMUM),
     ]
 
 

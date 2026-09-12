@@ -17,9 +17,8 @@ from assistant_core.persistence.models import (
     Message,
 )
 from assistant_core.platform import db
-from veupathdb.domain.parameters.values import NumberValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.parameters import NumberValue
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState

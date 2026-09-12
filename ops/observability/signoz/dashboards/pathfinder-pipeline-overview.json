@@ -1,6 +1,6 @@
 {
   "collapsable_rows_migrated": true,
-  "description": "End-to-end AI turn latency and throughput for chat and plan-action runs.",
+  "description": "Assistant turn latency, throughput and token use, end to end.",
   "name": "pathfinder-pipeline-overview",
   "title": "PathFinder Pipeline Overview",
   "version": "v4",
@@ -56,42 +56,6 @@
       "w": 12,
       "x": 0,
       "y": 16
-    },
-    {
-      "h": 8,
-      "i": "widget-6",
-      "moved": false,
-      "static": false,
-      "w": 12,
-      "x": 12,
-      "y": 16
-    },
-    {
-      "h": 8,
-      "i": "widget-7",
-      "moved": false,
-      "static": false,
-      "w": 12,
-      "x": 0,
-      "y": 24
-    },
-    {
-      "h": 8,
-      "i": "widget-8",
-      "moved": false,
-      "static": false,
-      "w": 12,
-      "x": 12,
-      "y": 24
-    },
-    {
-      "h": 8,
-      "i": "widget-9",
-      "moved": false,
-      "static": false,
-      "w": 12,
-      "x": 0,
-      "y": 32
     }
   ],
   "variables": {},
@@ -99,7 +63,7 @@
     {
       "id": "widget-1",
       "title": "Turn Duration p95",
-      "description": "p95 wall-clock duration for full pipeline turns.",
+      "description": "p95 wall-clock time from a turn's start chunk to its terminator.",
       "panelTypes": "graph",
       "yAxisUnit": "s",
       "query": {
@@ -112,10 +76,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.pipeline.turn_duration.bucket--float64--Histogram--true",
+                "id": "assistant.turn.duration.bucket--float64--Histogram--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.pipeline.turn_duration.bucket",
+                "key": "assistant.turn.duration.bucket",
                 "type": "Histogram"
               },
               "aggregateOperator": "count",
@@ -141,60 +105,8 @@
     },
     {
       "id": "widget-2",
-      "title": "Turn Duration p95 by Intent",
-      "description": "p95 turn duration split by classified turn intent.",
-      "panelTypes": "graph",
-      "yAxisUnit": "s",
-      "query": {
-        "queryType": "builder",
-        "builder": {
-          "queryData": [
-            {
-              "queryName": "A",
-              "expression": "A",
-              "dataSource": "metrics",
-              "aggregateAttribute": {
-                "dataType": "float64",
-                "id": "pathfinder.pipeline.turn_duration.bucket--float64--Histogram--true",
-                "isColumn": true,
-                "isJSON": false,
-                "key": "pathfinder.pipeline.turn_duration.bucket",
-                "type": "Histogram"
-              },
-              "aggregateOperator": "count",
-              "spaceAggregation": "p95",
-              "timeAggregation": "",
-              "reduceTo": "avg",
-              "legend": "{{intent}}",
-              "stepInterval": 60,
-              "disabled": false,
-              "filters": {
-                "items": [],
-                "op": "AND"
-              },
-              "functions": [],
-              "groupBy": [
-                {
-                  "dataType": "string",
-                  "id": "intent--string--tag--false",
-                  "isColumn": false,
-                  "isJSON": false,
-                  "key": "intent",
-                  "type": "tag"
-                }
-              ],
-              "having": [],
-              "limit": null,
-              "orderBy": []
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "widget-3",
       "title": "Time To First Assistant Delta p95",
-      "description": "p95 time to the first streamed assistant chunk.",
+      "description": "p95 time from a turn's start chunk to its first text delta.",
       "panelTypes": "graph",
       "yAxisUnit": "s",
       "query": {
@@ -207,10 +119,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.pipeline.time_to_first_assistant_delta.bucket--float64--Histogram--true",
+                "id": "assistant.turn.time_to_first_delta.bucket--float64--Histogram--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.pipeline.time_to_first_assistant_delta.bucket",
+                "key": "assistant.turn.time_to_first_delta.bucket",
                 "type": "Histogram"
               },
               "aggregateOperator": "count",
@@ -235,9 +147,9 @@
       }
     },
     {
-      "id": "widget-4",
+      "id": "widget-3",
       "title": "Time To First Tool Call p95",
-      "description": "p95 latency before the first tool call in a turn.",
+      "description": "p95 time from a turn's start chunk to its first tool call.",
       "panelTypes": "graph",
       "yAxisUnit": "s",
       "query": {
@@ -250,10 +162,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.pipeline.time_to_first_tool_call.bucket--float64--Histogram--true",
+                "id": "assistant.turn.time_to_first_tool_call.bucket--float64--Histogram--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.pipeline.time_to_first_tool_call.bucket",
+                "key": "assistant.turn.time_to_first_tool_call.bucket",
                 "type": "Histogram"
               },
               "aggregateOperator": "count",
@@ -278,9 +190,61 @@
       }
     },
     {
+      "id": "widget-4",
+      "title": "Turn Rate by Finish Reason",
+      "description": "Rate of turns that reached a finish chunk, split by finish reason.",
+      "panelTypes": "graph",
+      "yAxisUnit": "",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "queryName": "A",
+              "expression": "A",
+              "dataSource": "metrics",
+              "aggregateAttribute": {
+                "dataType": "float64",
+                "id": "assistant.turn.runs--float64--Sum--true",
+                "isColumn": true,
+                "isJSON": false,
+                "key": "assistant.turn.runs",
+                "type": "Sum"
+              },
+              "aggregateOperator": "rate",
+              "spaceAggregation": "sum",
+              "timeAggregation": "rate",
+              "reduceTo": "avg",
+              "legend": "{{finish_reason}}",
+              "stepInterval": 60,
+              "disabled": false,
+              "filters": {
+                "items": [],
+                "op": "AND"
+              },
+              "functions": [],
+              "groupBy": [
+                {
+                  "dataType": "string",
+                  "id": "finish_reason--string--tag--false",
+                  "isColumn": false,
+                  "isJSON": false,
+                  "key": "finish_reason",
+                  "type": "tag"
+                }
+              ],
+              "having": [],
+              "limit": null,
+              "orderBy": []
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": "widget-5",
-      "title": "Pipeline Runs Rate by Surface",
-      "description": "Rate of completed or failed pipeline runs split by user-facing workflow surface.",
+      "title": "Token Usage Rate",
+      "description": "Rate of tokens finished turns accounted for.",
       "panelTypes": "graph",
       "yAxisUnit": "",
       "query": {
@@ -293,17 +257,17 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.pipeline.runs--float64--Sum--true",
+                "id": "assistant.turn.tokens--float64--Sum--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.pipeline.runs",
+                "key": "assistant.turn.tokens",
                 "type": "Sum"
               },
               "aggregateOperator": "rate",
               "spaceAggregation": "sum",
               "timeAggregation": "rate",
               "reduceTo": "avg",
-              "legend": "{{surface}}",
+              "legend": "Token Usage Rate",
               "stepInterval": 60,
               "disabled": false,
               "filters": {
@@ -311,224 +275,7 @@
                 "op": "AND"
               },
               "functions": [],
-              "groupBy": [
-                {
-                  "dataType": "string",
-                  "id": "surface--string--tag--false",
-                  "isColumn": false,
-                  "isJSON": false,
-                  "key": "surface",
-                  "type": "tag"
-                }
-              ],
-              "having": [],
-              "limit": null,
-              "orderBy": []
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "widget-6",
-      "title": "Pipeline Runs Rate by Intent",
-      "description": "Rate of completed or failed pipeline runs split by classified intent.",
-      "panelTypes": "graph",
-      "yAxisUnit": "",
-      "query": {
-        "queryType": "builder",
-        "builder": {
-          "queryData": [
-            {
-              "queryName": "A",
-              "expression": "A",
-              "dataSource": "metrics",
-              "aggregateAttribute": {
-                "dataType": "float64",
-                "id": "pathfinder.pipeline.runs--float64--Sum--true",
-                "isColumn": true,
-                "isJSON": false,
-                "key": "pathfinder.pipeline.runs",
-                "type": "Sum"
-              },
-              "aggregateOperator": "rate",
-              "spaceAggregation": "sum",
-              "timeAggregation": "rate",
-              "reduceTo": "avg",
-              "legend": "{{intent}}",
-              "stepInterval": 60,
-              "disabled": false,
-              "filters": {
-                "items": [],
-                "op": "AND"
-              },
-              "functions": [],
-              "groupBy": [
-                {
-                  "dataType": "string",
-                  "id": "intent--string--tag--false",
-                  "isColumn": false,
-                  "isJSON": false,
-                  "key": "intent",
-                  "type": "tag"
-                }
-              ],
-              "having": [],
-              "limit": null,
-              "orderBy": []
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "widget-7",
-      "title": "Pipeline Errors Rate by Phase",
-      "description": "Rate of pipeline-level errors split by the phase that failed.",
-      "panelTypes": "graph",
-      "yAxisUnit": "",
-      "query": {
-        "queryType": "builder",
-        "builder": {
-          "queryData": [
-            {
-              "queryName": "A",
-              "expression": "A",
-              "dataSource": "metrics",
-              "aggregateAttribute": {
-                "dataType": "float64",
-                "id": "pathfinder.pipeline.errors--float64--Sum--true",
-                "isColumn": true,
-                "isJSON": false,
-                "key": "pathfinder.pipeline.errors",
-                "type": "Sum"
-              },
-              "aggregateOperator": "rate",
-              "spaceAggregation": "sum",
-              "timeAggregation": "rate",
-              "reduceTo": "avg",
-              "legend": "{{phase}}",
-              "stepInterval": 60,
-              "disabled": false,
-              "filters": {
-                "items": [],
-                "op": "AND"
-              },
-              "functions": [],
-              "groupBy": [
-                {
-                  "dataType": "string",
-                  "id": "phase--string--tag--false",
-                  "isColumn": false,
-                  "isJSON": false,
-                  "key": "phase",
-                  "type": "tag"
-                }
-              ],
-              "having": [],
-              "limit": null,
-              "orderBy": []
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "widget-8",
-      "title": "Token Usage Rate by Type",
-      "description": "Rate of token consumption split across input, output, and cached tokens.",
-      "panelTypes": "graph",
-      "yAxisUnit": "",
-      "query": {
-        "queryType": "builder",
-        "builder": {
-          "queryData": [
-            {
-              "queryName": "A",
-              "expression": "A",
-              "dataSource": "metrics",
-              "aggregateAttribute": {
-                "dataType": "float64",
-                "id": "pathfinder.tokens.usage--float64--Sum--true",
-                "isColumn": true,
-                "isJSON": false,
-                "key": "pathfinder.tokens.usage",
-                "type": "Sum"
-              },
-              "aggregateOperator": "rate",
-              "spaceAggregation": "sum",
-              "timeAggregation": "rate",
-              "reduceTo": "avg",
-              "legend": "{{type}}",
-              "stepInterval": 60,
-              "disabled": false,
-              "filters": {
-                "items": [],
-                "op": "AND"
-              },
-              "functions": [],
-              "groupBy": [
-                {
-                  "dataType": "string",
-                  "id": "type--string--tag--false",
-                  "isColumn": false,
-                  "isJSON": false,
-                  "key": "type",
-                  "type": "tag"
-                }
-              ],
-              "having": [],
-              "limit": null,
-              "orderBy": []
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "widget-9",
-      "title": "Token Usage Rate by Model",
-      "description": "Rate of token consumption split by configured model.",
-      "panelTypes": "graph",
-      "yAxisUnit": "",
-      "query": {
-        "queryType": "builder",
-        "builder": {
-          "queryData": [
-            {
-              "queryName": "A",
-              "expression": "A",
-              "dataSource": "metrics",
-              "aggregateAttribute": {
-                "dataType": "float64",
-                "id": "pathfinder.tokens.usage--float64--Sum--true",
-                "isColumn": true,
-                "isJSON": false,
-                "key": "pathfinder.tokens.usage",
-                "type": "Sum"
-              },
-              "aggregateOperator": "rate",
-              "spaceAggregation": "sum",
-              "timeAggregation": "rate",
-              "reduceTo": "avg",
-              "legend": "{{model}}",
-              "stepInterval": 60,
-              "disabled": false,
-              "filters": {
-                "items": [],
-                "op": "AND"
-              },
-              "functions": [],
-              "groupBy": [
-                {
-                  "dataType": "string",
-                  "id": "model--string--tag--false",
-                  "isColumn": false,
-                  "isJSON": false,
-                  "key": "model",
-                  "type": "tag"
-                }
-              ],
+              "groupBy": [],
               "having": [],
               "limit": null,
               "orderBy": []

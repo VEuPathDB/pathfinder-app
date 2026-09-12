@@ -6,10 +6,10 @@ from unittest.mock import MagicMock
 
 import pytest
 from pydantic_ai import RunContext
-from veupathdb.domain.parameters.values import NumberValue, SinglePickValue
-from veupathdb.domain.search import SearchContext
-from veupathdb.domain.strategy.validation import StepValidation
-from veupathdb.wdk.wdk_models import WDKSearch, WDKSearchResponse
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import NumberValue, SinglePickValue
+from veupathdb.domain.strategy import StepValidation
+from veupathdb.wdk import WDKSearch, WDKSearchResponse
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,

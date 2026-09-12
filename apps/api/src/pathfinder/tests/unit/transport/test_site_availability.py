@@ -9,7 +9,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from veupathdb.wdk.site_router import SiteInfo
+from veupathdb.wdk import SiteInfo
 from veupathdb_mcp import catalog
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody

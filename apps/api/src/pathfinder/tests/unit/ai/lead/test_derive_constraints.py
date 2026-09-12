@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.values import NumberValue, SinglePickValue
+from veupathdb.domain.parameters import NumberValue, SinglePickValue
 
 from pathfinder.ai.graph.state import (
     ConstraintCheck,

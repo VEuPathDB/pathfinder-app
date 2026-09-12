@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry, RunContext
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps

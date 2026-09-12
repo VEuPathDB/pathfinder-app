@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 from veupathdb.errors import WDKError
 from veupathdb.testing.wdk_fixtures import load_recorded
-from veupathdb.wdk._failures import validation_bundle, wdk_failure
+from veupathdb.wdk import validation_bundle, wdk_failure
 
 from pathfinder.ai.capabilities.error_classification import (
     ErrorCategory,

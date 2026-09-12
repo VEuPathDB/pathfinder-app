@@ -27,17 +27,17 @@ from assistant_core.persistence.repositories.background_tasks import (
     BackgroundTaskRepository,
 )
 from assistant_core.platform.db import async_session_factory
+from assistant_core.registry import resolve_turn_assistant
 from assistant_core.spec import AssistantSpec
+from assistant_core.tasks.chat_turn import defer_chat_turn
 from assistant_core.tasks.job_context import install_durable_job_context
 from assistant_core.tasks.scope import attach_user_id
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 from sqlalchemy import select
-from veupathdb.devtools.wdk_capture import capture_wdk
-from veupathdb.wdk.auth_login import password_login
+from veupathdb.devtools import capture_wdk
+from veupathdb.wdk import password_login
 
-from pathfinder.ai.agents.roles import PhaseRole
-from pathfinder.ai.conversation.assistant_routing import resolve_turn_assistant
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
 from pathfinder.assistants.registry import get_assistant_registry
@@ -56,7 +56,6 @@ from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.auth_context import attach_application, attach_wdk_auth
 from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.jobs.payloads import ChatTurnPayload
-from pathfinder.jobs.tasks import run_chat_turn_job
 from pathfinder.persistence.repositories.user import UserRepository
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.tool_sources import admitted_tool_sources
@@ -82,7 +81,7 @@ class RunArgs(BaseModel):
     email: str | None = None
     password: str | None = None
     assistant: str | None = None
-    phase_models: dict[PhaseRole, str] = {}
+    phase_models: dict[str, str] = {}
 
 
 class RespondArgs(RunArgs):
@@ -442,9 +441,8 @@ async def _exec_one(
 async def _defer_chat_turn(payload: ChatTurnPayload) -> None:
     """Defer one turn under the conversation's lock, as the API route does."""
     async with procrastinate_app.open_async():
-        await run_chat_turn_job.configure(
-            lock=str(payload.body.conversation_id),
-        ).defer_async(
+        await defer_chat_turn(
+            conversation_id=payload.body.conversation_id,
             payload=payload.model_dump(mode="json", by_alias=True),
         )
 

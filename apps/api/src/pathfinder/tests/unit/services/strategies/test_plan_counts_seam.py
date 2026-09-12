@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 from pathfinder.platform.identity import STEP_COUNTS_STRATEGY_NAME
 from pathfinder.services.strategies import wdk_counts

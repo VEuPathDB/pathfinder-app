@@ -1,15 +1,14 @@
 """The WDK calls that create or patch one step of a strategy."""
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.strategy.graph_model import StrategyStep, wdk_search_name
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.wdk.strategy_api import StrategyAPI
-from veupathdb.wdk.value_decoding import encode_params
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain.strategy import CombineOp, StrategyStep, wdk_search_name
+from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
     PatchStepSpec,
+    StrategyAPI,
     WDKSearchConfig,
+    encode_params,
 )
 
 from pathfinder.services.strategies.sync_state import WDKSyncState

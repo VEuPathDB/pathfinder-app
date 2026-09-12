@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.tree import walk
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree, walk
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies.insert_saved import _build_new_root

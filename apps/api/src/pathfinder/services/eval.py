@@ -15,12 +15,12 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.wdk.factory import get_strategy_api
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain.strategy import StrategyStepNode
+from veupathdb.wdk import (
     WDKDatasetConfigIdList,
     WDKDatasetIdListContent,
     WDKRecordInstance,
+    get_strategy_api,
 )
 
 from pathfinder.persistence.repositories.conversation import ConversationRepository

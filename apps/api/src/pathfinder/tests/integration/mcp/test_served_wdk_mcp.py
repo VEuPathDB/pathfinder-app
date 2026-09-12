@@ -16,8 +16,7 @@ from mcp.types import Tool
 from pydantic import BaseModel
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.wdk.factory import get_strategy_api
-from veupathdb.wdk.wdk_models import WDKAnswer
+from veupathdb.wdk import WDKAnswer, get_strategy_api
 from veupathdb_mcp.controls import ControlTestResult
 from veupathdb_mcp.server import TOOLS
 from veupathdb_mcp.tool_meta import MAX_CALL_SECONDS_META_KEY

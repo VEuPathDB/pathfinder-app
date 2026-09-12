@@ -6,7 +6,7 @@ from typing import Literal
 from uuid import UUID
 
 from assistant_core.platform.context import calling_application
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.wdk.enrichment import EnrichmentResult
 
 GeneSetSource = Literal["strategy", "paste", "upload", "derived", "saved"]

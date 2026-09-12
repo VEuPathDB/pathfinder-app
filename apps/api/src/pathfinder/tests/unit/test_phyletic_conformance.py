@@ -6,15 +6,15 @@ from pathlib import Path
 
 import pytest
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from veupathdb.domain.parameters.phyletic import (
+from veupathdb.domain.parameters import (
     PhyleticBinding,
     PhyleticTree,
     PhyleticUnresolved,
     TriState,
+    WDKVocabTerm,
     derive_binding,
     read_census,
 )
-from veupathdb.domain.parameters.wdk_vocab import WDKVocabTerm
 
 CONFORMANCE_FIXTURE = (
     Path(__file__).resolve().parents[6]

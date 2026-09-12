@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.ledger_sections import (

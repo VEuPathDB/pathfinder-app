@@ -9,7 +9,7 @@ import json
 from collections.abc import Iterable
 
 from cachetools import LRUCache
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy import StrategyAst
 from veupathdb_mcp.wdk import compute_plan_step_counts
 
 from pathfinder.platform.identity import STEP_COUNTS_STRATEGY_NAME

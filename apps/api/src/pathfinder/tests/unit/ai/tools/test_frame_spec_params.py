@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry
-from veupathdb.domain.parameters.value_codec import to_wire
-from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.domain.parameters import VocabOption, to_wire
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     fetch_search_details,

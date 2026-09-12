@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy import StrategyStepNode
 from veupathdb.errors import ValidationError
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps

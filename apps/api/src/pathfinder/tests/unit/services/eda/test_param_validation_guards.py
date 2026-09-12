@@ -13,15 +13,16 @@ from typing import cast
 import pytest
 from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, JsonValue
-from veupathdb.domain.parameters.values import MultiPickValue, ParamValue, StringValue
-from veupathdb.domain.search import SearchContext
-from veupathdb.eda.models import EdaStringSetFilter
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
+from veupathdb.eda import EdaStringSetFilter
 from veupathdb.errors import ValidationError
-from veupathdb.wdk.wdk_models import WDKSearchResponse, encode_wdk_params
-from veupathdb.wdk.wdk_parameters import (
+from veupathdb.wdk import (
     WDKEnumParam,
     WDKParameter,
+    WDKSearchResponse,
     WDKStringParam,
+    encode_wdk_params,
 )
 from veupathdb_mcp.catalog import (
     COMPUTE_QUERY,

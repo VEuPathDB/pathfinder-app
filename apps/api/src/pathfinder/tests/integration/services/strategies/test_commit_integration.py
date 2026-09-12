@@ -10,14 +10,16 @@ from uuid import UUID, uuid4
 import pytest
 from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb.domain.parameters.values import MultiPickValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import walk
+from veupathdb.domain.parameters import MultiPickValue
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StrategyAst,
+    StrategyStepNode,
+    flatten_tree,
+    walk,
+)
 from veupathdb.errors import WDKError
-from veupathdb.wdk.wdk_models import (
+from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
     PatchStepSpec,
@@ -277,11 +279,7 @@ async def _seed_conversation(
     root: StrategyStepNode,
     wdk_step_ids: dict[str, int],
 ) -> UUID:
-    ast = StrategyAst(
-        record_type="transcript",
-        root=root,
-        wdk_step_ids=wdk_step_ids,
-    )
+    ast = StrategyAst(record_type="transcript", root=root, wdk_step_ids=wdk_step_ids)
     conv = Conversation(
         assistant_id=PATHFINDER_ASSISTANT_ID,
         id=uuid4(),

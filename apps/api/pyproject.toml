@@ -36,7 +36,7 @@ dependencies = [
     "cachetools>=7.0.5",
     "procrastinate>=3.8.1",
     "pydantic-evals>=2.41.0,<3",
-    "veupathdb-py[otel]",
+    "veupathdb-py[otel,devtools]",
     "veupathdb-mcp",
 ]
 
@@ -57,10 +57,10 @@ constraint-dependencies = [
     "soupsieve>=2.8.4",  # PYSEC-2026-3071, PYSEC-2026-3072
 ]
 [tool.uv.sources]
-assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0a6" }
-veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a7" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0a4" }
-veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0a5" }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0a7" }
+veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a10" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0a7" }
+veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0a7" }
 
 [build-system]
 requires = ["hatchling"]
@@ -340,7 +340,6 @@ forbidden_modules = [
     "assistant_core.conversation._chunk_state",
     "assistant_core.persistence.repositories._message_metadata",
     "veupathdb_mcp.__main__",
-    "veupathdb_mcp.auth",
     "veupathdb_mcp.catalog._param_binding",
     "veupathdb_mcp.catalog._param_filters",
     "veupathdb_mcp.catalog._param_validation_errors",
@@ -400,7 +399,6 @@ forbidden_modules = [
     "veupathdb_mcp.identity",
     "veupathdb_mcp.locks",
     "veupathdb_mcp.logging_setup",
-    "veupathdb_mcp.metadata",
     "veupathdb_mcp.research.__main__",
     "veupathdb_mcp.research.auth",
     "veupathdb_mcp.research.citations",
@@ -426,7 +424,6 @@ forbidden_modules = [
     "veupathdb_mcp.research.web",
     "veupathdb_mcp.research.web.search",
     "veupathdb_mcp.service_tokens",
-    "veupathdb_mcp.settings",
     "veupathdb_mcp.tool_errors",
     "veupathdb_mcp.tools.catalog_tools",
     "veupathdb_mcp.tools.user_tools",
@@ -454,7 +451,6 @@ forbidden_modules = [
 # module object, and `catalog.radio_pairs` is a function whose name is also a
 # module, so the package attribute reads as the deep module to the checker.
 ignore_imports = [
-    "pathfinder.tests.unit.ai.capabilities.test_wdk_failure_classification -> veupathdb.wdk._failures",
     "pathfinder.ai.tools.standalone._frame_proposals -> veupathdb_mcp.catalog.radio_pairs",
     # The one test-support seam: serve_search_details patches validate_parameters
     # through its own module globals, which the package surface cannot reach.
@@ -475,5 +471,4 @@ ignore_imports = [
     "pathfinder.tests.unit.ai.tools.test_frame_spec_defaults -> veupathdb_mcp.catalog.searches",
     "pathfinder.tests.unit.ai.tools.test_frame_spec_params -> veupathdb_mcp.catalog.param_discovery",
     "pathfinder.tests.unit.ai.tools.test_public_strategy_search -> veupathdb_mcp.tools.catalog_tools",
-    "pathfinder.tests.unit.platform.test_embedder_copies_agree -> veupathdb_mcp.embeddings.embedder",
 ]

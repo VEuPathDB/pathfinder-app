@@ -9,14 +9,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from veupathdb.domain.strategy.ast import (
+from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
+    CombineOp,
+    StepKind,
     StrategyStepNode,
     generate_step_id,
+    rebuild_tree,
+    subtree_ids,
 )
-from veupathdb.domain.strategy.graph_model import StepKind, rebuild_tree
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.tree import subtree_ids
 
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,

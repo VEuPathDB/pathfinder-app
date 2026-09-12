@@ -12,8 +12,8 @@ from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import Field, JsonValue, ValidationError
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.parameters.value_codec import to_wire
-from veupathdb.domain.strategy.graph_model import StrategyStep
+from veupathdb.domain.parameters import to_wire
+from veupathdb.domain.strategy import StrategyStep
 from veupathdb_mcp import ToolErrorPayload, tool_error
 from veupathdb_mcp.catalog import EdaStepRequest
 

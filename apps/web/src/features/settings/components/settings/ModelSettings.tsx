@@ -5,12 +5,9 @@ import type { ModelCatalogEntry, ReasoningEffort } from "@pathfinder/shared";
 import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
 import { listTiersQueryOptions } from "@pathfinder/shared/generated/hooks/useListTiers";
 import { useSettingsStore } from "@/state/useSettingsStore";
-import {
-  PHASE_DESCRIPTIONS,
-  PHASE_LABELS,
-  PHASE_ROLES,
-  type PhaseRole,
-} from "@/lib/models/phaseRoles";
+import { assistantLabel } from "@/lib/assistants";
+import { useActiveAssistantId } from "@/lib/hooks/useActiveAssistantId";
+import { phaseDescription, phaseLabel } from "@/lib/models/phaseRoles";
 import { ModelPicker } from "@/features/settings/components/ModelPicker";
 import { TierPicker } from "@/features/settings/components/TierPicker";
 import { ReasoningToggle } from "@/features/settings/components/ReasoningToggle";
@@ -18,14 +15,13 @@ import {
   applyTierPreset,
   deriveActiveTier,
   presetsForProvider,
+  rolesForAssistant,
 } from "@/features/settings/tierPresets";
 
 export function ModelSettings() {
   const { data } = useQuery(listModelsQueryOptions());
   const modelCatalog = data?.models ?? [];
-  const phaseDefaults = (data?.phaseDefaults ?? {}) as Partial<
-    Record<PhaseRole, string>
-  >;
+  const phaseDefaults = data?.phaseDefaults ?? {};
   const phaseModels = useSettingsStore((s) => s.phaseModels);
   const setPhaseModel = useSettingsStore((s) => s.setPhaseModel);
   const phaseReasoning = useSettingsStore((s) => s.phaseReasoning);
@@ -34,9 +30,12 @@ export function ModelSettings() {
 
   const { data: tierData } = useQuery(listTiersQueryOptions());
   const provider = data?.defaultProvider ?? "";
-  const tierPresets = presetsForProvider(tierData?.presets, provider);
+  const assistantId = useActiveAssistantId();
+  const tierPresets = presetsForProvider(tierData?.presets, assistantId, provider);
+  const roles = rolesForAssistant(tierData?.presets, assistantId, provider);
   const activeTier = deriveActiveTier(
     tierData?.presets,
+    assistantId,
     provider,
     phaseModels,
     phaseReasoning,
@@ -46,8 +45,9 @@ export function ModelSettings() {
     <div className="space-y-1">
       <div className="mb-3">
         <p className="text-xs text-muted-foreground">
-          The assistant runs each stage below on its own model. Pick a preset, or set a
-          model + reasoning effort per stage; leave a stage blank to use the default.
+          {assistantLabel(assistantId)} runs each stage below on its own model. Pick a
+          preset, or set a model + reasoning effort per stage; leave a stage blank to
+          use the default.
         </p>
       </div>
 
@@ -63,7 +63,7 @@ export function ModelSettings() {
       />
 
       <div className="divide-y divide-border/40">
-        {PHASE_ROLES.map((role) => (
+        {roles.map((role) => (
           <PhaseRow
             key={role}
             role={role}
@@ -81,7 +81,7 @@ export function ModelSettings() {
 }
 
 interface PhaseRowProps {
-  role: PhaseRole;
+  role: string;
   models: ModelCatalogEntry[];
   defaultModelId: string | null;
   selectedModelId: string | null;
@@ -107,8 +107,8 @@ function PhaseRow({
   return (
     <div className="grid grid-cols-[1fr_auto_auto] items-start gap-3 py-3">
       <div>
-        <div className="text-sm font-medium text-foreground">{PHASE_LABELS[role]}</div>
-        <div className="text-xs text-muted-foreground">{PHASE_DESCRIPTIONS[role]}</div>
+        <div className="text-sm font-medium text-foreground">{phaseLabel(role)}</div>
+        <div className="text-xs text-muted-foreground">{phaseDescription(role)}</div>
         {defaultModelId !== null && selectedModelId === null && (
           <div className="mt-0.5 text-[10px] text-muted-foreground">
             Default: {defaultModelId}

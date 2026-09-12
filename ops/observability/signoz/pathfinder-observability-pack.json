@@ -21,22 +21,30 @@
     {
       "name": "site_host",
       "description": "The VEuPathDB host serving a dependency request, such as plasmodb.org. Use this when latency or retries might be isolated to one site.",
-      "appliesTo": ["dependency-reliability"]
+      "appliesTo": [
+        "dependency-reliability"
+      ]
     },
     {
-      "name": "intent",
-      "description": "The classified turn intent, such as new_strategy, edit_strategy, or follow_up. Use this to separate behavior by user goal rather than by raw prompt text.",
-      "appliesTo": ["pipeline-overview", "approval-and-execution"]
+      "name": "finish_reason",
+      "description": "How a turn ended, as the finish chunk reported it. Use this to separate turns that answered from turns that stopped or failed.",
+      "appliesTo": [
+        "pipeline-overview"
+      ]
     },
     {
-      "name": "model",
-      "description": "The configured model handling the turn or phase. Use this to compare latency, errors, and token usage across model choices.",
-      "appliesTo": ["pipeline-overview", "approval-and-execution"]
+      "name": "reason",
+      "description": "Why an event-stream subscription closed. Use this to tell a reader that left from a stream that reached its terminator.",
+      "appliesTo": [
+        "streaming-delivery"
+      ]
     },
     {
-      "name": "surface",
-      "description": "The user-facing workflow family. Today this distinguishes chat vs plan_action on pipeline metrics, and chat vs workbench-style streams on SSE metrics.",
-      "appliesTo": ["pipeline-overview", "approval-and-execution", "streaming-delivery"]
+      "name": "kind",
+      "description": "The chunk kind of a frame served to a subscriber. Use this to see which part types dominate a stream.",
+      "appliesTo": [
+        "streaming-delivery"
+      ]
     }
   ],
   "dashboards": [
@@ -44,176 +52,59 @@
       "slug": "pathfinder-pipeline-overview",
       "name": "pathfinder-pipeline-overview",
       "title": "PathFinder Pipeline Overview",
-      "description": "End-to-end AI turn latency and throughput for chat and plan-action runs.",
-      "tags": ["pathfinder", "pipeline", "ai", "otlp"],
-      "recommendedFilters": ["intent", "model", "run_kind", "surface", "phase", "type"],
+      "description": "Assistant turn latency, throughput and token use, end to end.",
+      "tags": [
+        "pathfinder",
+        "pipeline",
+        "ai",
+        "otlp"
+      ],
+      "recommendedFilters": [
+        "finish_reason"
+      ],
       "panels": [
         {
           "title": "Turn Duration p95",
-          "description": "p95 wall-clock duration for full pipeline turns.",
-          "metric": "pathfinder.pipeline.turn_duration",
+          "description": "p95 wall-clock time from a turn's start chunk to its terminator.",
+          "metric": "assistant.turn.duration",
           "metricType": "Histogram",
           "aggregateOperator": "p95",
-          "unit": "s"
-        },
-        {
-          "title": "Turn Duration p95 by Intent",
-          "description": "p95 turn duration split by classified turn intent.",
-          "metric": "pathfinder.pipeline.turn_duration",
-          "metricType": "Histogram",
-          "aggregateOperator": "p95",
-          "groupBy": ["intent"],
-          "legend": "{{intent}}",
           "unit": "s"
         },
         {
           "title": "Time To First Assistant Delta p95",
-          "description": "p95 time to the first streamed assistant chunk.",
-          "metric": "pathfinder.pipeline.time_to_first_assistant_delta",
+          "description": "p95 time from a turn's start chunk to its first text delta.",
+          "metric": "assistant.turn.time_to_first_delta",
           "metricType": "Histogram",
           "aggregateOperator": "p95",
           "unit": "s"
         },
         {
           "title": "Time To First Tool Call p95",
-          "description": "p95 latency before the first tool call in a turn.",
-          "metric": "pathfinder.pipeline.time_to_first_tool_call",
+          "description": "p95 time from a turn's start chunk to its first tool call.",
+          "metric": "assistant.turn.time_to_first_tool_call",
           "metricType": "Histogram",
           "aggregateOperator": "p95",
           "unit": "s"
         },
         {
-          "title": "Pipeline Runs Rate by Surface",
-          "description": "Rate of completed or failed pipeline runs split by user-facing workflow surface.",
-          "metric": "pathfinder.pipeline.runs",
+          "title": "Turn Rate by Finish Reason",
+          "description": "Rate of turns that reached a finish chunk, split by finish reason.",
+          "metric": "assistant.turn.runs",
           "metricType": "Sum",
           "aggregateOperator": "rate",
-          "groupBy": ["surface"],
-          "legend": "{{surface}}",
+          "groupBy": [
+            "finish_reason"
+          ],
+          "legend": "{{finish_reason}}",
           "unit": ""
         },
         {
-          "title": "Pipeline Runs Rate by Intent",
-          "description": "Rate of completed or failed pipeline runs split by classified intent.",
-          "metric": "pathfinder.pipeline.runs",
+          "title": "Token Usage Rate",
+          "description": "Rate of tokens finished turns accounted for.",
+          "metric": "assistant.turn.tokens",
           "metricType": "Sum",
           "aggregateOperator": "rate",
-          "groupBy": ["intent"],
-          "legend": "{{intent}}",
-          "unit": ""
-        },
-        {
-          "title": "Pipeline Errors Rate by Phase",
-          "description": "Rate of pipeline-level errors split by the phase that failed.",
-          "metric": "pathfinder.pipeline.errors",
-          "metricType": "Sum",
-          "aggregateOperator": "rate",
-          "groupBy": ["phase"],
-          "legend": "{{phase}}",
-          "unit": ""
-        },
-        {
-          "title": "Token Usage Rate by Type",
-          "description": "Rate of token consumption split across input, output, and cached tokens.",
-          "metric": "pathfinder.tokens.usage",
-          "metricType": "Sum",
-          "aggregateOperator": "rate",
-          "groupBy": ["type"],
-          "legend": "{{type}}",
-          "unit": ""
-        },
-        {
-          "title": "Token Usage Rate by Model",
-          "description": "Rate of token consumption split by configured model.",
-          "metric": "pathfinder.tokens.usage",
-          "metricType": "Sum",
-          "aggregateOperator": "rate",
-          "groupBy": ["model"],
-          "legend": "{{model}}",
-          "unit": ""
-        }
-      ]
-    },
-    {
-      "slug": "pathfinder-approval-and-execution",
-      "name": "pathfinder-approval-and-execution",
-      "title": "PathFinder Approval And Execution",
-      "description": "Operational view of approval latency, execution time, phase transitions, and recoveries.",
-      "tags": ["pathfinder", "approval", "execution", "ai"],
-      "recommendedFilters": ["phase", "status", "kind", "model", "intent", "run_kind", "surface"],
-      "panels": [
-        {
-          "title": "Approval Wait p95",
-          "description": "p95 wait time between plan presentation and approval.",
-          "metric": "pathfinder.pipeline.approval_wait",
-          "metricType": "Histogram",
-          "aggregateOperator": "p95",
-          "unit": "s"
-        },
-        {
-          "title": "Resume After Approval p95",
-          "description": "p95 latency from user approval to resumed work.",
-          "metric": "pathfinder.pipeline.resume_after_approval",
-          "metricType": "Histogram",
-          "aggregateOperator": "p95",
-          "unit": "s"
-        },
-        {
-          "title": "Execution Duration p95",
-          "description": "p95 duration of the execution phase.",
-          "metric": "pathfinder.pipeline.execution_duration",
-          "metricType": "Histogram",
-          "aggregateOperator": "p95",
-          "unit": "s"
-        },
-        {
-          "title": "Phase Event Rate by Phase",
-          "description": "Rate of phase lifecycle events split by pipeline phase.",
-          "metric": "pathfinder.pipeline.phase_events",
-          "metricType": "Sum",
-          "aggregateOperator": "rate",
-          "groupBy": ["phase"],
-          "legend": "{{phase}}",
-          "unit": ""
-        },
-        {
-          "title": "Phase Event Rate by Status",
-          "description": "Rate of phase lifecycle events split by event status such as started, completed, or failed.",
-          "metric": "pathfinder.pipeline.phase_events",
-          "metricType": "Sum",
-          "aggregateOperator": "rate",
-          "groupBy": ["status"],
-          "legend": "{{status}}",
-          "unit": ""
-        },
-        {
-          "title": "Phase Duration p95 by Phase",
-          "description": "p95 duration of individual pipeline phases split by phase name.",
-          "metric": "pathfinder.pipeline.phase_duration",
-          "metricType": "Histogram",
-          "aggregateOperator": "p95",
-          "groupBy": ["phase"],
-          "legend": "{{phase}}",
-          "unit": "s"
-        },
-        {
-          "title": "Recovery Rate by Kind",
-          "description": "Rate of recovered orchestration or contract issues split by recovery kind.",
-          "metric": "pathfinder.pipeline.recoveries",
-          "metricType": "Sum",
-          "aggregateOperator": "rate",
-          "groupBy": ["kind"],
-          "legend": "{{kind}}",
-          "unit": ""
-        },
-        {
-          "title": "Recovery Rate by Phase",
-          "description": "Rate of recovered orchestration or contract issues split by the phase that recovered.",
-          "metric": "pathfinder.pipeline.recoveries",
-          "metricType": "Sum",
-          "aggregateOperator": "rate",
-          "groupBy": ["phase"],
-          "legend": "{{phase}}",
           "unit": ""
         }
       ]
@@ -223,81 +114,76 @@
       "name": "pathfinder-streaming-delivery",
       "title": "PathFinder Streaming Delivery",
       "description": "Live delivery health for SSE subscriptions and user-visible streaming behavior.",
-      "tags": ["pathfinder", "sse", "streaming", "delivery"],
-      "recommendedFilters": ["surface", "operation_type", "stream_kind", "reason", "event_type", "resumed"],
+      "tags": [
+        "pathfinder",
+        "sse",
+        "streaming",
+        "delivery"
+      ],
+      "recommendedFilters": [
+        "reason",
+        "kind",
+        "resumed"
+      ],
       "panels": [
         {
           "title": "Active SSE Subscriptions",
-          "description": "Current number of active SSE subscriptions.",
-          "metric": "pathfinder.sse.active_subscriptions",
+          "description": "Event-stream subscriptions open now.",
+          "metric": "assistant.sse.active_subscriptions",
           "metricType": "Sum",
           "aggregateOperator": "avg",
           "unit": ""
         },
         {
           "title": "Subscription Duration p95",
-          "description": "p95 lifetime of SSE subscriptions.",
-          "metric": "pathfinder.sse.subscription_duration",
+          "description": "p95 lifetime of one event-stream subscription.",
+          "metric": "assistant.sse.subscription_duration",
           "metricType": "Histogram",
           "aggregateOperator": "p95",
           "unit": "s"
         },
         {
           "title": "Disconnect Rate by Reason",
-          "description": "Rate of SSE subscription disconnects split by disconnect reason.",
-          "metric": "pathfinder.sse.disconnects",
+          "description": "Rate of subscriptions closed, split by reason.",
+          "metric": "assistant.sse.disconnects",
           "metricType": "Sum",
           "aggregateOperator": "rate",
-          "groupBy": ["reason"],
+          "groupBy": [
+            "reason"
+          ],
           "legend": "{{reason}}",
           "unit": ""
         },
         {
-          "title": "Disconnect Rate by Surface",
-          "description": "Rate of SSE subscription disconnects split by user-facing workflow surface.",
-          "metric": "pathfinder.sse.disconnects",
+          "title": "Event Send Rate by Chunk Kind",
+          "description": "Rate of frames served to a subscriber, split by chunk kind.",
+          "metric": "assistant.sse.events_sent",
           "metricType": "Sum",
           "aggregateOperator": "rate",
-          "groupBy": ["surface"],
-          "legend": "{{surface}}",
-          "unit": ""
-        },
-        {
-          "title": "Event Send Rate by Type",
-          "description": "Rate of SSE events sent to clients split by event type.",
-          "metric": "pathfinder.sse.events_sent",
-          "metricType": "Sum",
-          "aggregateOperator": "rate",
-          "groupBy": ["event_type"],
-          "legend": "{{event_type}}",
+          "groupBy": [
+            "kind"
+          ],
+          "legend": "{{kind}}",
           "unit": ""
         },
         {
           "title": "Keepalive Rate",
-          "description": "Rate of SSE keepalive comments sent while streams wait for data.",
-          "metric": "pathfinder.sse.keepalives_sent",
+          "description": "Rate of keepalive comments served to a subscriber.",
+          "metric": "assistant.sse.keepalives_sent",
           "metricType": "Sum",
           "aggregateOperator": "rate",
           "unit": ""
         },
         {
-          "title": "Subscription Open Rate by Operation Type",
-          "description": "Rate of new SSE subscriptions split by operation type.",
-          "metric": "pathfinder.sse.subscriptions",
+          "title": "Subscription Open Rate by Whether It Resumed",
+          "description": "Rate of subscriptions opened, split by whether the reader resumed.",
+          "metric": "assistant.sse.subscriptions",
           "metricType": "Sum",
           "aggregateOperator": "rate",
-          "groupBy": ["operation_type"],
-          "legend": "{{operation_type}}",
-          "unit": ""
-        },
-        {
-          "title": "Subscription Open Rate by Stream Kind",
-          "description": "Rate of new SSE subscriptions split by stream kind.",
-          "metric": "pathfinder.sse.subscriptions",
-          "metricType": "Sum",
-          "aggregateOperator": "rate",
-          "groupBy": ["stream_kind"],
-          "legend": "{{stream_kind}}",
+          "groupBy": [
+            "resumed"
+          ],
+          "legend": "{{resumed}}",
           "unit": ""
         }
       ]
@@ -306,45 +192,31 @@
       "slug": "pathfinder-dependency-reliability",
       "name": "pathfinder-dependency-reliability",
       "title": "PathFinder Dependency Reliability",
-      "description": "Backplane and external dependency health across Redis Streams, WDK, and site-search.",
-      "tags": ["pathfinder", "redis", "wdk", "site-search", "dependencies"],
-      "recommendedFilters": ["site_host", "endpoint_group", "method", "status_family", "outcome", "error_kind", "stream_kind", "event_type"],
+      "description": "External dependency health across WDK and site-search.",
+      "tags": [
+        "pathfinder",
+        "wdk",
+        "site-search",
+        "dependencies"
+      ],
+      "recommendedFilters": [
+        "site_host",
+        "endpoint_group",
+        "method",
+        "status_family",
+        "outcome",
+        "error_kind"
+      ],
       "panels": [
-        {
-          "title": "Redis Stream Emit Duration p95",
-          "description": "p95 latency for Redis Stream append operations.",
-          "metric": "pathfinder.redis.stream_emit_duration",
-          "metricType": "Histogram",
-          "aggregateOperator": "p95",
-          "unit": "s"
-        },
-        {
-          "title": "Redis Event Rate by Type",
-          "description": "Rate of successfully emitted Redis Stream events split by event type.",
-          "metric": "pathfinder.redis.stream_events_emitted",
-          "metricType": "Sum",
-          "aggregateOperator": "rate",
-          "groupBy": ["event_type"],
-          "legend": "{{event_type}}",
-          "unit": ""
-        },
-        {
-          "title": "Redis Emit Attempts by Stream Kind",
-          "description": "Rate of Redis Stream append attempts split by stream kind.",
-          "metric": "pathfinder.redis.stream_emit_attempts",
-          "metricType": "Sum",
-          "aggregateOperator": "rate",
-          "groupBy": ["stream_kind"],
-          "legend": "{{stream_kind}}",
-          "unit": ""
-        },
         {
           "title": "WDK Request Duration p95 by Site Host",
           "description": "p95 end-to-end duration of WDK requests including retries, split by target site host.",
           "metric": "veupathdb.wdk.request_duration",
           "metricType": "Histogram",
           "aggregateOperator": "p95",
-          "groupBy": ["site_host"],
+          "groupBy": [
+            "site_host"
+          ],
           "legend": "{{site_host}}",
           "unit": "s"
         },
@@ -354,7 +226,9 @@
           "metric": "veupathdb.wdk.requests",
           "metricType": "Sum",
           "aggregateOperator": "rate",
-          "groupBy": ["endpoint_group"],
+          "groupBy": [
+            "endpoint_group"
+          ],
           "legend": "{{endpoint_group}}",
           "unit": ""
         },
@@ -364,7 +238,9 @@
           "metric": "veupathdb.wdk.request_retries",
           "metricType": "Sum",
           "aggregateOperator": "rate",
-          "groupBy": ["endpoint_group"],
+          "groupBy": [
+            "endpoint_group"
+          ],
           "legend": "{{endpoint_group}}",
           "unit": ""
         },
@@ -374,7 +250,9 @@
           "metric": "veupathdb.site_search.request_duration",
           "metricType": "Histogram",
           "aggregateOperator": "p95",
-          "groupBy": ["site_host"],
+          "groupBy": [
+            "site_host"
+          ],
           "legend": "{{site_host}}",
           "unit": "s"
         },
@@ -384,7 +262,9 @@
           "metric": "veupathdb.site_search.requests",
           "metricType": "Sum",
           "aggregateOperator": "rate",
-          "groupBy": ["site_host"],
+          "groupBy": [
+            "site_host"
+          ],
           "legend": "{{site_host}}",
           "unit": ""
         }
@@ -397,7 +277,7 @@
       "title": "High Turn Latency",
       "severity": "warning",
       "signal": "metrics",
-      "metric": "pathfinder.pipeline.turn_duration",
+      "metric": "assistant.turn.duration",
       "metricType": "Histogram",
       "aggregateOperator": "p95",
       "comparison": "above",
@@ -411,7 +291,7 @@
         "class": "latency"
       },
       "summary": "PathFinder p95 turn latency is elevated.",
-      "description": "Investigate model/provider slowness, WDK latency, site-search latency, and Redis stream health. Correlate with SSE and dependency dashboards before assuming the model is the only cause.",
+      "description": "Investigate model or provider slowness, WDK latency and site-search latency. Correlate with the streaming and dependency dashboards before assuming the model is the only cause.",
       "runbook": "Check Pipeline Overview, Streaming Delivery, and Dependency Reliability dashboards together."
     },
     {
@@ -419,7 +299,7 @@
       "title": "Slow First Assistant Delta",
       "severity": "warning",
       "signal": "metrics",
-      "metric": "pathfinder.pipeline.time_to_first_assistant_delta",
+      "metric": "assistant.turn.time_to_first_delta",
       "metricType": "Histogram",
       "aggregateOperator": "p95",
       "comparison": "above",
@@ -437,77 +317,11 @@
       "runbook": "Compare time-to-first-delta against time-to-first-tool-call and dependency latency."
     },
     {
-      "slug": "pipeline-errors-critical",
-      "title": "Pipeline Error Spike",
-      "severity": "critical",
-      "signal": "metrics",
-      "metric": "pathfinder.pipeline.errors",
-      "metricType": "Sum",
-      "aggregateOperator": "rate",
-      "comparison": "above",
-      "threshold": 0.05,
-      "thresholdUnit": "errors/s",
-      "for": "5m",
-      "evaluateEvery": "1m",
-      "labels": {
-        "team": "pathfinder",
-        "surface": "pipeline",
-        "class": "availability"
-      },
-      "summary": "Pipeline errors are occurring at a critical rate.",
-      "description": "A sustained error rate usually means broken orchestration, dependency failures, or state-machine regressions that are directly user-visible.",
-      "runbook": "Check Pipeline Error traces, phase failure context, and the Dependency Reliability dashboard."
-    },
-    {
-      "slug": "recovery-spike-warning",
-      "title": "Recovery Spike",
-      "severity": "warning",
-      "signal": "metrics",
-      "metric": "pathfinder.pipeline.recoveries",
-      "metricType": "Sum",
-      "aggregateOperator": "rate",
-      "comparison": "above",
-      "threshold": 0.03,
-      "thresholdUnit": "recoveries/s",
-      "for": "15m",
-      "evaluateEvery": "1m",
-      "labels": {
-        "team": "pathfinder",
-        "surface": "pipeline",
-        "class": "degradation"
-      },
-      "summary": "Recovery paths are activating unusually often.",
-      "description": "Not every recovery is user-visible, but a spike often signals prompt drift, contract drift, or dependency instability before outright failures.",
-      "runbook": "Inspect recovery kinds by phase and compare against recent deploys or prompt changes."
-    },
-    {
-      "slug": "approval-wait-warning",
-      "title": "Approval Wait Elevated",
-      "severity": "warning",
-      "signal": "metrics",
-      "metric": "pathfinder.pipeline.approval_wait",
-      "metricType": "Histogram",
-      "aggregateOperator": "p95",
-      "comparison": "above",
-      "threshold": 120,
-      "thresholdUnit": "s",
-      "for": "30m",
-      "evaluateEvery": "5m",
-      "labels": {
-        "team": "pathfinder",
-        "surface": "approval",
-        "class": "ux"
-      },
-      "summary": "Users are taking unusually long to approve plans.",
-      "description": "This can indicate confusing plans, overloaded plan cards, or an approval UX that is not inspiring confidence.",
-      "runbook": "Check plan presentation quality in Langfuse and compare with approval funnel metrics."
-    },
-    {
       "slug": "sse-disconnect-spike-warning",
       "title": "SSE Disconnect Spike",
       "severity": "warning",
       "signal": "metrics",
-      "metric": "pathfinder.sse.disconnects",
+      "metric": "assistant.sse.disconnects",
       "metricType": "Sum",
       "aggregateOperator": "rate",
       "comparison": "above",
@@ -523,28 +337,6 @@
       "summary": "SSE disconnects are elevated.",
       "description": "High disconnect rates can degrade the user experience even when the backend eventually completes the turn.",
       "runbook": "Check disconnect reasons, active subscription levels, and Redis stream emit latency."
-    },
-    {
-      "slug": "redis-stream-latency-warning",
-      "title": "Redis Stream Emit Latency Elevated",
-      "severity": "warning",
-      "signal": "metrics",
-      "metric": "pathfinder.redis.stream_emit_duration",
-      "metricType": "Histogram",
-      "aggregateOperator": "p95",
-      "comparison": "above",
-      "threshold": 0.25,
-      "thresholdUnit": "s",
-      "for": "10m",
-      "evaluateEvery": "1m",
-      "labels": {
-        "team": "pathfinder",
-        "surface": "redis",
-        "class": "backplane"
-      },
-      "summary": "Redis Stream appends are slower than expected.",
-      "description": "Backplane slowness can surface as delayed streaming, stuck UIs, and poor transcript pacing.",
-      "runbook": "Inspect Redis latency, stream emit attempts, and SSE event send rate."
     },
     {
       "slug": "wdk-latency-warning",

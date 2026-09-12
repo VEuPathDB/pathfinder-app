@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   AlertTriangle,
   Archive,
+  ChevronDown,
   RefreshCw,
   RotateCcw,
   SquarePen,
@@ -20,8 +21,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { ASSISTANT_CHOICES } from "@/lib/assistants";
 import { useConversationSidebarData } from "@/features/sidebar/hooks/useConversationSidebarData";
 import { useConversationSidebarActions } from "@/features/sidebar/hooks/useConversationSidebarActions";
 import { ConversationList } from "@/features/sidebar/components/ConversationList";
@@ -73,6 +82,34 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
         >
           <SquarePen className="h-4 w-4" />
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              data-testid="conversations-new-assistant-button"
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Choose an assistant"
+              title="Choose an assistant"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[220px]">
+            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              New chat with
+            </DropdownMenuLabel>
+            {ASSISTANT_CHOICES.map((choice) => (
+              <DropdownMenuItem
+                key={choice.id}
+                data-testid={`new-chat-assistant-${choice.id}`}
+                onSelect={() => void actions.handleNewConversation(choice.id)}
+              >
+                {choice.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Input

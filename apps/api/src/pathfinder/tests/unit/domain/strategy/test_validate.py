@@ -8,9 +8,8 @@ gene IDs from different species, which never match.
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.values import MultiPickValue, StringValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.parameters import MultiPickValue, StringValue
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 
 from pathfinder.domain.strategy.validate import (
     StrategyValidator,

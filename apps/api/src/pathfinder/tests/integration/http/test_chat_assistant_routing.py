@@ -11,13 +11,13 @@ from uuid import UUID, uuid4
 
 import httpx
 import pytest
+from assistant_core import registry
 from assistant_core.persistence.models import Conversation
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from pathfinder.ai.conversation import assistant_routing
 from pathfinder.tests.integration.http.conftest import (
     chat_body,
     chat_jobs,
@@ -189,7 +189,7 @@ async def test_a_thread_created_under_another_assistant_mid_dispatch_is_refused(
         return None
 
     with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(assistant_routing, "conversation_assistant_id", _resolve_none)
+        patch.setattr(registry, "conversation_assistant_id", _resolve_none)
         async with client_for(ends_at_first_frame(app), owner.id) as client:
             status = await _post_chat(client, body)
 

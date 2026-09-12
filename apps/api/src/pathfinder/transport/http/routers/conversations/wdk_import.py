@@ -1,8 +1,8 @@
 """WDK-backed strategy open endpoint."""
 
+from assistant_core.registry import resolve_turn_assistant
 from fastapi import APIRouter
 
-from pathfinder.ai.conversation.assistant_routing import resolve_turn_assistant
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.services.conversations import wdk_import
 from pathfinder.transport.http.deps import CurrentUser, DBSession

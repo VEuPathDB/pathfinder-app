@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
-from veupathdb.eda.models import EdaAnalysisDetail
+from veupathdb.eda import EdaAnalysisDetail
 
 from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

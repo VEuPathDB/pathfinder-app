@@ -1,6 +1,6 @@
 import pytest
 from pydantic import TypeAdapter, ValidationError
-from veupathdb.domain.parameters.values import StringValue
+from veupathdb.domain.parameters import StringValue
 
 from pathfinder.domain.strategy.operations import (
     AddCombineOp,

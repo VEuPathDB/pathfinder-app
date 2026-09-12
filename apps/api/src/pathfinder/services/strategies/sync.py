@@ -3,23 +3,25 @@
 from dataclasses import dataclass
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import (
+from veupathdb.domain.strategy import (
+    StepValidation,
+    StrategyStepNode,
     pushable_root_id,
     rebuild_tree,
     record_class_of,
+    walk,
 )
-from veupathdb.domain.strategy.tree import walk
-from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.errors import VEuPathDBError
-from veupathdb.wdk.factory import get_site, get_strategy_api
-from veupathdb.wdk.strategy_api import StrategyAPI
-from veupathdb.wdk.wdk_models import (
+from veupathdb.wdk import (
+    MissingWDKStepIdError,
+    StrategyAPI,
     WDKStepTree,
     WDKStrategyDetails,
+    build_wdk_step_tree,
+    get_site,
+    get_strategy_api,
 )
 from veupathdb_mcp.catalog import assign_step_record_classes, make_record_type_resolver
-from veupathdb_mcp.wdk import MissingWDKStepIdError, build_wdk_step_tree
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.validate import validate_strategy

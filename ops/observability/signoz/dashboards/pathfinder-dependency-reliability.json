@@ -1,13 +1,12 @@
 {
   "collapsable_rows_migrated": true,
-  "description": "Backplane and external dependency health across Redis Streams, WDK, and site-search.",
+  "description": "External dependency health across WDK and site-search.",
   "name": "pathfinder-dependency-reliability",
   "title": "PathFinder Dependency Reliability",
   "version": "v4",
   "uploaded_grafana": false,
   "tags": [
     "pathfinder",
-    "redis",
     "wdk",
     "site-search",
     "dependencies"
@@ -57,186 +56,12 @@
       "w": 12,
       "x": 0,
       "y": 16
-    },
-    {
-      "h": 8,
-      "i": "widget-6",
-      "moved": false,
-      "static": false,
-      "w": 12,
-      "x": 12,
-      "y": 16
-    },
-    {
-      "h": 8,
-      "i": "widget-7",
-      "moved": false,
-      "static": false,
-      "w": 12,
-      "x": 0,
-      "y": 24
-    },
-    {
-      "h": 8,
-      "i": "widget-8",
-      "moved": false,
-      "static": false,
-      "w": 12,
-      "x": 12,
-      "y": 24
     }
   ],
   "variables": {},
   "widgets": [
     {
       "id": "widget-1",
-      "title": "Redis Stream Emit Duration p95",
-      "description": "p95 latency for Redis Stream append operations.",
-      "panelTypes": "graph",
-      "yAxisUnit": "s",
-      "query": {
-        "queryType": "builder",
-        "builder": {
-          "queryData": [
-            {
-              "queryName": "A",
-              "expression": "A",
-              "dataSource": "metrics",
-              "aggregateAttribute": {
-                "dataType": "float64",
-                "id": "pathfinder.redis.stream_emit_duration.bucket--float64--Histogram--true",
-                "isColumn": true,
-                "isJSON": false,
-                "key": "pathfinder.redis.stream_emit_duration.bucket",
-                "type": "Histogram"
-              },
-              "aggregateOperator": "count",
-              "spaceAggregation": "p95",
-              "timeAggregation": "",
-              "reduceTo": "avg",
-              "legend": "Redis Stream Emit Duration p95",
-              "stepInterval": 60,
-              "disabled": false,
-              "filters": {
-                "items": [],
-                "op": "AND"
-              },
-              "functions": [],
-              "groupBy": [],
-              "having": [],
-              "limit": null,
-              "orderBy": []
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "widget-2",
-      "title": "Redis Event Rate by Type",
-      "description": "Rate of successfully emitted Redis Stream events split by event type.",
-      "panelTypes": "graph",
-      "yAxisUnit": "",
-      "query": {
-        "queryType": "builder",
-        "builder": {
-          "queryData": [
-            {
-              "queryName": "A",
-              "expression": "A",
-              "dataSource": "metrics",
-              "aggregateAttribute": {
-                "dataType": "float64",
-                "id": "pathfinder.redis.stream_events_emitted--float64--Sum--true",
-                "isColumn": true,
-                "isJSON": false,
-                "key": "pathfinder.redis.stream_events_emitted",
-                "type": "Sum"
-              },
-              "aggregateOperator": "rate",
-              "spaceAggregation": "sum",
-              "timeAggregation": "rate",
-              "reduceTo": "avg",
-              "legend": "{{event_type}}",
-              "stepInterval": 60,
-              "disabled": false,
-              "filters": {
-                "items": [],
-                "op": "AND"
-              },
-              "functions": [],
-              "groupBy": [
-                {
-                  "dataType": "string",
-                  "id": "event_type--string--tag--false",
-                  "isColumn": false,
-                  "isJSON": false,
-                  "key": "event_type",
-                  "type": "tag"
-                }
-              ],
-              "having": [],
-              "limit": null,
-              "orderBy": []
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "widget-3",
-      "title": "Redis Emit Attempts by Stream Kind",
-      "description": "Rate of Redis Stream append attempts split by stream kind.",
-      "panelTypes": "graph",
-      "yAxisUnit": "",
-      "query": {
-        "queryType": "builder",
-        "builder": {
-          "queryData": [
-            {
-              "queryName": "A",
-              "expression": "A",
-              "dataSource": "metrics",
-              "aggregateAttribute": {
-                "dataType": "float64",
-                "id": "pathfinder.redis.stream_emit_attempts--float64--Sum--true",
-                "isColumn": true,
-                "isJSON": false,
-                "key": "pathfinder.redis.stream_emit_attempts",
-                "type": "Sum"
-              },
-              "aggregateOperator": "rate",
-              "spaceAggregation": "sum",
-              "timeAggregation": "rate",
-              "reduceTo": "avg",
-              "legend": "{{stream_kind}}",
-              "stepInterval": 60,
-              "disabled": false,
-              "filters": {
-                "items": [],
-                "op": "AND"
-              },
-              "functions": [],
-              "groupBy": [
-                {
-                  "dataType": "string",
-                  "id": "stream_kind--string--tag--false",
-                  "isColumn": false,
-                  "isJSON": false,
-                  "key": "stream_kind",
-                  "type": "tag"
-                }
-              ],
-              "having": [],
-              "limit": null,
-              "orderBy": []
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "widget-4",
       "title": "WDK Request Duration p95 by Site Host",
       "description": "p95 end-to-end duration of WDK requests including retries, split by target site host.",
       "panelTypes": "graph",
@@ -288,7 +113,7 @@
       }
     },
     {
-      "id": "widget-5",
+      "id": "widget-2",
       "title": "WDK Request Rate by Endpoint Group",
       "description": "Rate of logical WDK requests split by endpoint family.",
       "panelTypes": "graph",
@@ -340,7 +165,7 @@
       }
     },
     {
-      "id": "widget-6",
+      "id": "widget-3",
       "title": "WDK Retry Rate by Endpoint Group",
       "description": "Rate of transient WDK retry attempts split by endpoint family.",
       "panelTypes": "graph",
@@ -392,7 +217,7 @@
       }
     },
     {
-      "id": "widget-7",
+      "id": "widget-4",
       "title": "Site Search Duration p95 by Site Host",
       "description": "p95 end-to-end duration of site-search requests including retries, split by target site host.",
       "panelTypes": "graph",
@@ -444,7 +269,7 @@
       }
     },
     {
-      "id": "widget-8",
+      "id": "widget-5",
       "title": "Site Search Request Rate by Site Host",
       "description": "Rate of logical site-search requests split by target site host.",
       "panelTypes": "graph",

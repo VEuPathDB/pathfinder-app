@@ -52,7 +52,7 @@ function renderSignedInThread(conversationId: string) {
 
   render(
     <StubRuntimeProvider>
-      <ChatThread conversationId={conversationId} />
+      <ChatThread conversationId={conversationId} assistantId="pathfinder" />
     </StubRuntimeProvider>,
     { wrapper: Wrapper },
   );

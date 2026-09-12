@@ -30,13 +30,13 @@ from pydantic_ai.models.function import FunctionModel
 
 from pathfinder.assistants.site_help.agent import SiteHelpDeps
 from pathfinder.assistants.site_help.spec import (
-    SITE_HELP_ASSISTANT_ID,
     SiteHelpTurnContext,
     build_deps,
     build_initial_state,
     build_turn_context,
     charge_usage,
 )
+from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 
 CONFIRM_TOOL = "delete_saved_gene_set"
 CONFIRM_CALL_ID = "call_delete_set"

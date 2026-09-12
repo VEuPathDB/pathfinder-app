@@ -55,14 +55,12 @@ PINNED_CORE_KINDS = frozenset(
         "data-task-progress",
         "data-task-completed",
         "data-turn-usage",
-        "data-lead-usage",
         "data-turn-status",
         "data-turn-stopped",
         "data-turn-failed",
-        "data-sub-agent-call",
-        "data-sub-agent-step",
         "data-conversation-title",
         "data-tool-summary",
+        "data-scratchpad-updated",
     }
 )
 
@@ -80,7 +78,9 @@ PINNED_STRATEGY_KINDS = frozenset(
         "data-scored-comparison",
         "data-ledger-update",
         "data-memory-retrieved",
-        "data-scratchpad-updated",
+        "data-lead-usage",
+        "data-sub-agent-call",
+        "data-sub-agent-step",
     }
 )
 

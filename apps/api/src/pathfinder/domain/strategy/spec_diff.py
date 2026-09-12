@@ -10,7 +10,7 @@ from typing import Literal
 
 from assistant_core.platform.pydantic_base import computed
 from pydantic import Field
-from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.parameters import to_wire
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec

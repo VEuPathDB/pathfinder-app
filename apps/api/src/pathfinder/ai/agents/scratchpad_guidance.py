@@ -8,6 +8,11 @@ from __future__ import annotations
 
 from assistant_core.scratchpad.rendering import ScratchpadGuidance
 
+from pathfinder.domain.memory import MemoryKind
+
+# The memory kind a promoted note is written under.
+PROMOTED_NOTE_KIND: MemoryKind = "knowledge"
+
 PATHFINDER_SCRATCHPAD_GUIDANCE = ScratchpadGuidance(
     empty=(
         "As you work, call note(...) to save:\n"

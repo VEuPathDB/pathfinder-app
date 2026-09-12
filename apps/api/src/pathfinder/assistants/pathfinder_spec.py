@@ -10,9 +10,10 @@ from assistant_core.mcp.declaration import ToolSourceDeclaration
 from assistant_core.platform.db import async_session_factory
 from assistant_core.spec import AssistantSpec, TurnContextRequest, TurnStart
 from pydantic_ai.models import Model
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents.state import SearchOverview
+from pathfinder.ai.conversation.turn_stop import restore_pre_turn_strategy
 from pathfinder.ai.eda_stream_parts import register_eda_stream_parts
 from pathfinder.ai.graph.builder import build_pathfinder_graph
 from pathfinder.ai.graph.runtime import Context
@@ -24,9 +25,9 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.graph.stream_events import strategy_revision_event
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.ai.lead.memory_candidates import PRODUCT_MEMORY_KINDS
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.strategy_stream_parts import register_strategy_stream_parts
+from pathfinder.domain.memory import MEMORY_KINDS
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
     NodeResult,
@@ -39,6 +40,7 @@ from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.tool_sources import RESEARCH_MCP_SOURCE_ID
 from pathfinder.services.conversations.responses import conversation_strategy_revision
+from pathfinder.services.conversations.turns import turn_start_revision_id
 from pathfinder.services.strategies.session_factory import (
     build_strategy_session,
     persisted_graph,
@@ -137,6 +139,15 @@ def _mock_model() -> Model:
     return get_mock_model()
 
 
+async def _discard_turn_strategy_writes(
+    conversation_id: UUID, pre_turn_revision_id: Any
+) -> None:
+    """Undo the strategy a stopped turn half wrote, back to the prologue's revision."""
+    await restore_pre_turn_strategy(
+        conversation_id, pre_turn_revision_id=pre_turn_revision_id
+    )
+
+
 def build_pathfinder_spec() -> AssistantSpec:
     return AssistantSpec(
         assistant_id=PATHFINDER_ASSISTANT_ID,
@@ -146,9 +157,11 @@ def build_pathfinder_spec() -> AssistantSpec:
         build_mock_model=_mock_model,
         checkpoint_types=PATHFINDER_CHECKPOINT_TYPES,
         register_stream_parts=_register_product_stream_parts,
-        memory_kinds=frozenset(PRODUCT_MEMORY_KINDS),
+        memory_kinds=frozenset(MEMORY_KINDS),
         identity_gate=require_registered_wdk_login,
         turn_epilogue=strategy_revision_chunks,
+        turn_prologue=turn_start_revision_id,
+        turn_cancel=_discard_turn_strategy_writes,
         tool_sources=(RESEARCH_TOOL_SOURCE,),
     )
 

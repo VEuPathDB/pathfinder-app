@@ -10,12 +10,9 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.domain.parameters.values import MultiPickValue, StringValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import walk
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.domain.parameters import MultiPickValue, StringValue
+from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode, walk
+from veupathdb.wdk import get_strategy_api
 
 from pathfinder.domain.strategy.operations import (
     DeleteEdgeOp,

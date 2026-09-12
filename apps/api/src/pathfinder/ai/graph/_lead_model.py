@@ -14,8 +14,9 @@ from assistant_core.platform.types import ReasoningEffort
 
 from pathfinder.ai.lead.lead_agent import LeadAgent
 from pathfinder.ai.models.mock import get_mock_model
-from pathfinder.ai.models.tiers import resolve_phase_tier_config
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.platform.tiers import resolve_phase_tier_config
 
 _LEAD_ROLE = "lead"
 
@@ -32,7 +33,10 @@ def resolve_lead_model_context(
 
     settings = get_settings()
     tier_cfg = resolve_phase_tier_config(
-        settings.default_provider, settings.default_tier, _LEAD_ROLE
+        PATHFINDER_ASSISTANT_ID,
+        settings.default_provider,
+        settings.default_tier,
+        _LEAD_ROLE,
     )
     tier_model = tier_cfg.model_id if tier_cfg is not None else None
     effective_model = model_override or tier_model or baked_model_id(agent)

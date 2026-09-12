@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.domain.strategy import StepValidation
 
 
 class SyncStateProtocol(Protocol):

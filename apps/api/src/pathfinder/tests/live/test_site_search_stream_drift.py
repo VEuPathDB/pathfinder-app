@@ -13,13 +13,13 @@ from pathlib import Path
 
 import httpx
 import pytest
-from veupathdb.testing.summary import DriftLog
+from veupathdb.testing import DriftLog
 from veupathdb.testing.wdk_fixtures import (
     FIXTURE_DIR,
     FixtureProvenance,
     RecordedWDKResponse,
 )
-from veupathdb.wdk.site_search_client import STREAM_MEDIA_TYPE
+from veupathdb.wdk import STREAM_MEDIA_TYPE
 from veupathdb_mcp.gene_lookup import (
     SITE_SEARCH_PAGE_LIMIT,
     fetch_site_search_genes,

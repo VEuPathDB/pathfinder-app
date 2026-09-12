@@ -5,8 +5,7 @@ The rest of a mid-edit canvas travels in ``detached_roots``.
 
 from __future__ import annotations
 
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
 
 from pathfinder.ai.tools.standalone._graph_helpers import build_context_strategy_ast
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession

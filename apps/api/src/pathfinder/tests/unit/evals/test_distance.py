@@ -7,10 +7,13 @@ way. These are the numbers that separate them.
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    CombineOp,
+    StrategyAst,
+    StrategyStepNode,
+)
 
 from pathfinder.evals.distance import (
     COMBINE_LABEL,

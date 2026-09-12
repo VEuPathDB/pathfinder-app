@@ -10,16 +10,19 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.domain.parameters.values import (
+from veupathdb.domain.parameters import (
     MultiPickValue,
     SinglePickValue,
     StringValue,
 )
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.wdk.factory import (
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
+from veupathdb.wdk import (
     get_results_api,
     get_strategy_api,
+)
+from veupathdb_mcp.wdk import (
+    build_snapshot_from_wdk,
+    canonicalize_synced_parameters,
 )
 
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -28,10 +31,6 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
-from pathfinder.services.strategies.wdk_conversion import (
-    build_snapshot_from_wdk,
-    canonicalize_synced_parameters,
-)
 
 
 @dataclass

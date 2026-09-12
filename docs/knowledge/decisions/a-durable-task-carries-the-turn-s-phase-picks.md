@@ -11,8 +11,8 @@ status: stable
 # What was decided
 
 `POST /api/v1/chat` carries `phaseModels` and `phaseReasoning`, and
-`ChatRequestBody` validates the roles against `PhaseRole` and the model ids
-against the catalog. `run_turn` publishes the validated pair on
+`ChatRequestBody` refuses a role no installed assistant runs a model for and
+validates the model ids against the catalog. `run_turn` publishes the validated pair on
 `assistant_core.platform.context.phase_overrides_ctx` for the length of the
 turn. `create_background_task` reads it and stores it on the
 `background_tasks.phase_overrides` column (migration `2026_08_30_0002`).
@@ -26,9 +26,9 @@ deferring caller is `@durable_tool`, which the runtime owns and which reads no
 host table; the WDK token takes the other seam, a `DurableJobState` the host
 subclasses.
 
-The value is stored as a plain JSON object. `PhaseRole` lives under
-`pathfinder.ai`, and persistence may not import it, so the roles are typed on
-the way in and on the way out and the column holds what both ends agree on.
+The value is stored as a plain JSON object. A role is a plain string that the
+tier presets name, so the roles are checked on the way in and the column holds
+what both ends agree on.
 
 # What was rejected
 

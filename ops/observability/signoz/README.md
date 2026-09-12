@@ -41,9 +41,8 @@ the first SigNoz admin user via `/api/v1/register` using values from `.env.dev`:
 Recommended import order:
 
 1. `pathfinder-pipeline-overview.json`
-2. `pathfinder-approval-and-execution.json`
-3. `pathfinder-streaming-delivery.json`
-4. `pathfinder-dependency-reliability.json`
+2. `pathfinder-streaming-delivery.json`
+3. `pathfinder-dependency-reliability.json`
 
 ## Recommended Dashboard Filters
 
@@ -51,9 +50,9 @@ If you add SigNoz dashboard variables in the UI, start with the dimensions descr
 
 The most useful ones today are:
 
-- `intent`: classified turn goal such as `new_strategy` or `follow_up`
-- `model`: configured model for the turn or phase
-- `surface`: user-facing workflow family such as `chat`, `plan_action`, or `workbench`
+- `finish_reason`: how a turn ended, as its finish chunk reported it
+- `reason`: why an event-stream subscription closed
+- `kind`: the chunk kind of a frame served to a subscriber
 - `site_host`: target VEuPathDB host for dependency traffic
 
 Those same dimensions are also reflected directly in several generated panels, so the dashboards stay useful even before anyone hand-configures UI variables.

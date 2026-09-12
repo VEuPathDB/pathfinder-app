@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.wdk_vocab import vocab_keys
-from veupathdb.domain.search import SearchContext
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import vocab_keys
 from veupathdb.errors import WDKError
-from veupathdb.wdk.wdk_parameters import WDKEnumParam
+from veupathdb.wdk import WDKEnumParam
 from veupathdb_mcp.catalog import get_discovery_service
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]

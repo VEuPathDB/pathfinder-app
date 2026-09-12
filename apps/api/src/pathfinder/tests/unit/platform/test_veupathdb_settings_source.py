@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-from veupathdb.settings import VEuPathDBSettings, get_veupathdb_settings
+from veupathdb import VEuPathDBSettings, get_veupathdb_settings
 
 from pathfinder.platform.config import Settings, get_settings
 

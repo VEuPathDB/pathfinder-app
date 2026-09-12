@@ -16,10 +16,8 @@ from __future__ import annotations
 import hashlib
 import json
 
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.json_types import JSONObject
-from veupathdb.logging import get_logger
+from veupathdb import JSONObject, get_logger
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 __all__ = [
     "parse_strategy_ast",

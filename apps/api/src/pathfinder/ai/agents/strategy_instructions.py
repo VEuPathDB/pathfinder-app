@@ -5,8 +5,8 @@ FRAME inspected."""
 from __future__ import annotations
 
 from pydantic_ai.tools import RunContext
-from veupathdb.domain.parameters.value_codec import to_wire
-from veupathdb.domain.strategy.graph_model import StrategyStep
+from veupathdb.domain.parameters import to_wire
+from veupathdb.domain.strategy import StrategyStep
 
 from pathfinder.ai.agents.param_vocab_render import render_param_vocab
 from pathfinder.ai.agents.state import SearchOverview

@@ -1,10 +1,13 @@
 import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
 
+import { resolveAssistantId } from "@/lib/assistants";
+
 export interface ConversationItem {
   id: string;
   title: string;
   updatedAt: string;
   siteId: string;
+  assistantId: string;
   isDismissed: boolean;
   isSaved: boolean;
   stepCount: number;
@@ -21,6 +24,7 @@ export function chatToConversationItem(chat: ConversationResponse): Conversation
     title: chat.name.trim() === "" ? "New conversation" : chat.name,
     updatedAt: chat.updatedAt,
     siteId: chat.siteId,
+    assistantId: resolveAssistantId({ existing: chat.assistantId }),
     isDismissed: chat.dismissedAt != null,
     isSaved: chat.isSaved ?? false,
     stepCount: chat.stepCount ?? 0,

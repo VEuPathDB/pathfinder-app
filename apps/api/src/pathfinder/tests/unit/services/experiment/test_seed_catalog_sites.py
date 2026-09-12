@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.errors import VEuPathDBError
-from veupathdb.wdk.site_router import load_sites_config
+from veupathdb.wdk import load_sites_config
 
 from pathfinder.services.experiment.seed.catalog import (
     SEED_DATABASES,

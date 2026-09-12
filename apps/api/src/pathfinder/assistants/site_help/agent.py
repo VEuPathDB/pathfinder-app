@@ -6,16 +6,21 @@ from typing import Any
 
 from assistant_core.graph.runtime import AssistantDeps
 from assistant_core.graph.tool_summary import with_summary
+from assistant_core.models.settings import build_model_settings
+from assistant_core.platform.context import phase_overrides_ctx
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai import Agent, ModelRetry, Tool
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.models import Model
+from pydantic_ai.settings import ModelSettings
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets import AbstractToolset
 from veupathdb_mcp.catalog import get_raw_searches, get_record_types, list_sites
 
 from pathfinder.assistants.site_help.mock import build_site_help_mock
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
+from pathfinder.platform.tiers import resolve_phase_tier_config
 
 SITE_HELP_MODEL = "openai:gpt-5.6-luna"
 
@@ -127,17 +132,38 @@ async def describe_site(
     )
 
 
-def _model() -> Model | str:
-    """The mock provider swaps the whole model, so the turn makes no request."""
-    if get_settings().pathfinder_chat_provider.strip().lower() == "mock":
-        return build_site_help_mock()
-    return SITE_HELP_MODEL
+def turn_model() -> tuple[Model | str, ModelSettings | None]:
+    """The model this turn runs under, and the settings that go with it.
+
+    The mock provider swaps the whole model, so the turn makes no request.
+    Otherwise the user's pick for this role wins over the configured tier,
+    which wins over the model this module names.
+    """
+    settings = get_settings()
+    if settings.pathfinder_chat_provider.strip().lower() == "mock":
+        return build_site_help_mock(), None
+    tier = resolve_phase_tier_config(
+        SITE_HELP_ASSISTANT_ID,
+        settings.default_provider,
+        settings.default_tier,
+        SITE_HELP_ASSISTANT_ID,
+    )
+    overrides = phase_overrides_ctx.get()
+    model_id = overrides.models.get(SITE_HELP_ASSISTANT_ID) or (
+        SITE_HELP_MODEL if tier is None else tier.model_id
+    )
+    effort = overrides.reasoning.get(SITE_HELP_ASSISTANT_ID) or (
+        None if tier is None else tier.reasoning_effort
+    )
+    return model_id, build_model_settings(model_id, thinking=effort)
 
 
 def build_site_help_agent() -> SiteHelpAgent:
     """A site-help agent for one turn."""
+    model, model_settings = turn_model()
     return Agent(
-        _model(),
+        model,
+        model_settings=model_settings,
         output_type=str,
         deps_type=SiteHelpDeps,
         instructions=SITE_HELP_INSTRUCTIONS,
@@ -161,5 +187,6 @@ __all__ = [
     "build_site_help_agent",
     "describe_site",
     "list_veupathdb_sites",
+    "turn_model",
     "turn_tool_sources",
 ]

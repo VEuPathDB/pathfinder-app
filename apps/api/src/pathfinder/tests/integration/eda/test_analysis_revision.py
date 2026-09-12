@@ -10,7 +10,7 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from pydantic_ai import RunContext
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.eda.models import EdaStringSetFilter
+from veupathdb.eda import EdaStringSetFilter
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis

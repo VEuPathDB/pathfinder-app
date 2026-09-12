@@ -3,13 +3,11 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.wdk.strategy_api.steps import StepsMixin
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
+from veupathdb.wdk import (
     NewStepSpec,
     PatchStepSpec,
+    StepsMixin,
     WDKIdentifier,
     WDKSearchConfig,
     WDKStep,

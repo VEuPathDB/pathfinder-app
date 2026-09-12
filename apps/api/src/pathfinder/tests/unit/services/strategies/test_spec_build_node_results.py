@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
+from veupathdb.domain.strategy import StepKind, StrategyStep
 
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.services.strategies.spec_build import node_results

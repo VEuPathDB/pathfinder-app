@@ -12,7 +12,7 @@ IS already in WDK must not silently regress into a draft: rewriting it with
 missing params is a real error the user has to see.
 """
 
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
+from veupathdb.domain.strategy import StepKind, StrategyStep
 
 from pathfinder.services.strategies.step_push_planner import (
     CreateAction,

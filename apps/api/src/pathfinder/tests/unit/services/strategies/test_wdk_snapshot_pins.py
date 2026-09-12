@@ -1,4 +1,4 @@
-"""The AST a WDK strategy converts into, and the ids a live tree reports.
+"""The step ids a live WDK strategy tree reports.
 
 The fixture is the shape WDK returns for a saved strategy: a combine over a
 transform, plus a combine WDK marks as an expanded saved sub-strategy.
@@ -7,8 +7,7 @@ transform, plus a combine WDK marks as an expanded saved sub-strategy.
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.wdk.wdk_models import (
+from veupathdb.wdk import (
     WDKSearchConfig,
     WDKStep,
     WDKStepTree,
@@ -17,7 +16,6 @@ from veupathdb.wdk.wdk_models import (
 
 from pathfinder.services.strategies import reconcile
 from pathfinder.services.strategies.reconcile import fetch_wdk_strategy_step_ids
-from pathfinder.services.strategies.wdk_conversion import build_snapshot_from_wdk
 
 _BOOLEAN = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass"
 
@@ -81,51 +79,6 @@ def _details() -> WDKStrategyDetails:
             ),
         },
     )
-
-
-class TestTheAstBuiltFromWdk:
-    def test_the_root_is_a_combine_over_the_transform_and_the_leaf(self) -> None:
-        ast, _ = build_snapshot_from_wdk(_details())
-
-        assert ast.root.id == "40"
-        assert ast.root.search_name == _BOOLEAN
-        assert ast.root.operator is CombineOp.INTERSECT
-        assert ast.root.primary_input is not None
-        assert ast.root.primary_input.id == "30"
-        assert ast.root.secondary_input is not None
-        assert ast.root.secondary_input.id == "20"
-
-    def test_the_transform_keeps_its_own_input(self) -> None:
-        ast, _ = build_snapshot_from_wdk(_details())
-
-        transform = ast.root.primary_input
-        assert transform is not None
-        assert transform.search_name == "GenesByOrthologs"
-        assert transform.primary_input is not None
-        assert transform.primary_input.id == "10"
-
-    def test_an_expanded_combine_names_the_saved_strategy_on_its_secondary(
-        self,
-    ) -> None:
-        ast, _ = build_snapshot_from_wdk(_details())
-
-        assert ast.root.expanded_strategy_id == 99
-        assert ast.root.expanded_name == "saved-1"
-
-    def test_only_leaf_and_transform_wire_parameters_go_to_the_sidecar(self) -> None:
-        _, wire = build_snapshot_from_wdk(_details())
-
-        assert wire == {
-            "10": {"text_expression": "kinase"},
-            "20": {},
-            "30": {},
-        }
-
-    def test_counts_and_wdk_ids_come_back_keyed_by_step_id(self) -> None:
-        ast, _ = build_snapshot_from_wdk(_details())
-
-        assert ast.wdk_step_ids == {"10": 10, "20": 20, "30": 30, "40": 40}
-        assert ast.step_counts == {"10": 5, "20": 7, "30": 3, "40": 2}
 
 
 class TestTheLiveStepIds:

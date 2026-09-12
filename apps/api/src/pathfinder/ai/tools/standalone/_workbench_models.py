@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, Field
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.wdk.enrichment import EnrichmentResult
 
 from pathfinder.services.experiment.types.core import ExperimentStatus

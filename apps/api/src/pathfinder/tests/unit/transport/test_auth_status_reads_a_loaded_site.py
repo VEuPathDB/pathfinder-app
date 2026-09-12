@@ -13,7 +13,7 @@ import httpx
 import pytest
 from assistant_core.platform.db import get_db_session
 from fastapi import FastAPI
-from veupathdb.wdk.wdk_models import WDKUserInfo
+from veupathdb.wdk import WDKUserInfo
 
 from pathfinder.platform.readiness import get_readiness, reset_readiness
 from pathfinder.platform.security import limiter

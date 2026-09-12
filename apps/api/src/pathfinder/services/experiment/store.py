@@ -5,9 +5,9 @@ from datetime import UTC, datetime
 from functools import cache
 
 from assistant_core.platform.context import calling_application
+from assistant_core.platform.store import WriteThruStore
 
 from pathfinder.persistence.models import ExperimentRow
-from pathfinder.platform.store import WriteThruStore
 from pathfinder.services.experiment._deserialize import experiment_from_json
 from pathfinder.services.experiment.types import (
     Experiment,

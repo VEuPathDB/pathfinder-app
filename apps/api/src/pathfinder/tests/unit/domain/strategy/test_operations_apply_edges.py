@@ -12,9 +12,7 @@ from typing import Literal
 import pytest
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import TypeAdapter, ValidationError
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import rebuild_tree
-from veupathdb.domain.strategy.tree import walk
+from veupathdb.domain.strategy import StrategyStepNode, rebuild_tree, walk
 
 from pathfinder.domain.strategy.operations import (
     DeleteEdgeOp,

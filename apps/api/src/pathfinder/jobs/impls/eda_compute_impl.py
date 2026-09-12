@@ -14,8 +14,8 @@ from uuid import UUID
 from assistant_core.conversation.event_writer import append_chunk
 from assistant_core.memory.store import MemoryStore
 from assistant_core.tasks.progress import TaskProgressEmitter
-from veupathdb.domain.eda_compute_validation import validate_compute_config
-from veupathdb.eda.models import (
+from veupathdb.domain import validate_compute_config
+from veupathdb.eda import (
     EdaAnalysisDetail,
     EdaComputation,
     EdaComputationDescriptor,

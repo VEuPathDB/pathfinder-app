@@ -10,7 +10,7 @@ import json
 
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.eda.factory import get_eda_client
+from veupathdb.eda import get_eda_client
 
 from pathfinder.tests._support.eda_fixtures import (
     FIXTURES,

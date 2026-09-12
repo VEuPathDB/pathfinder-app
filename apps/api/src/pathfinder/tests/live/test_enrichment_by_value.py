@@ -12,8 +12,8 @@ import time
 from collections.abc import Awaitable, Callable
 
 import pytest
-from veupathdb.testing.summary import DriftLog
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.testing import DriftLog
+from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.wdk import fetch_gene_ids_from_step
 from veupathdb_mcp.wdk.enrichment import (
     MAX_ENRICHMENT_GENE_IDS,

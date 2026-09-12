@@ -29,9 +29,9 @@ from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.assistants import registry
 from pathfinder.assistants.registry import get_assistant_registry
-from pathfinder.assistants.site_help.spec import SITE_HELP_ASSISTANT_ID
 from pathfinder.jobs.impls import control_tests_impl, register_all_tools
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,

@@ -114,7 +114,7 @@ async def get_sample_records(
 
     session = ctx.deps.strategy_session
     graph = session.get_graph(None)
-    record_type = graph.record_type if graph is not None else None
+    record_type = (graph.record_type if graph is not None else None) or "transcript"
     try:
         sample = await step_sample_records(
             session.site_id,

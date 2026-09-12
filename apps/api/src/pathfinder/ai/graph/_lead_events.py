@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from assistant_core.graph.emit import emit_chunk
-from assistant_core.graph.stream_events import (
+from assistant_core.conversation.stream_parts.agent_topology import (
     SubAgentCallPayload,
     sub_agent_call_event,
 )
+from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.tool_summary import count_noun
 from pydantic import BaseModel
 from pydantic_ai.messages import (

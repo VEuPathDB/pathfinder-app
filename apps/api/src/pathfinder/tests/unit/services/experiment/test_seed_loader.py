@@ -2,7 +2,7 @@
 
 import pytest
 from pydantic import ValidationError
-from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy import StrategyStepNode
 
 from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.experiment.seed.catalog import (

@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from typing import Any, cast
 from uuid import uuid4
 
+from assistant_core import registry
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.embeddings.embedder import (
     EmbeddingUnavailableError,
@@ -21,13 +22,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException
+from veupathdb import set_observer
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.eda.factory import close_all_eda_clients
+from veupathdb.eda import close_all_eda_clients
 from veupathdb.errors import VEuPathDBError
 from veupathdb.observability.otel import OpenTelemetryObserver
-from veupathdb.observer import set_observer
-from veupathdb.wdk.factory import close_all_clients
-from veupathdb.wdk.site_router import get_site_router
+from veupathdb.wdk import close_all_clients, get_site_router
 from veupathdb_mcp.catalog import get_discovery_service
 from veupathdb_mcp.embeddings import use_embedding_session_factory
 
@@ -42,9 +42,11 @@ from pathfinder.platform.error_handlers import (
     RUNTIME_REFUSALS,
     apply_error_handler,
     assistant_core_error_handler,
+    assistant_mismatch_handler,
     http_exception_handler,
     rate_limit_handler,
     request_validation_handler,
+    unknown_assistant_handler,
     veupathdb_error_handler,
 )
 from pathfinder.platform.migrations import init_db
@@ -188,8 +190,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     seed_prompts()
 
+    from assistant_core.platform.spawn import spawn  # noqa: PLC0415
+
     from pathfinder.jobs.app import procrastinate_app  # noqa: PLC0415
-    from pathfinder.platform.tasks import spawn  # noqa: PLC0415
 
     # A durable call captures the caller's WDK token wherever it is made.
     install_durable_job_context(WdkJobContext())
@@ -346,6 +349,8 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
     for exc_type, handler in (
         (VEuPathDBError, veupathdb_error_handler),
         *((refusal, assistant_core_error_handler) for refusal in RUNTIME_REFUSALS),
+        (registry.UnknownAssistantError, unknown_assistant_handler),
+        (registry.AssistantMismatchError, assistant_mismatch_handler),
         (ApplyError, apply_error_handler),
         (HTTPException, http_exception_handler),
         (RateLimitExceeded, rate_limit_handler),

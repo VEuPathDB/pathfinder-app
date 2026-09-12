@@ -8,8 +8,8 @@ from uuid import uuid4
 
 import pytest
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb.domain.eda_validation import GeneEntityResult
-from veupathdb.wdk.ai_expression import AiExpressionStatus
+from veupathdb.domain import GeneEntityResult
+from veupathdb.wdk import AiExpressionStatus
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import ParameterInfo
 from veupathdb_mcp.gene_lookup import GeneSearchResult

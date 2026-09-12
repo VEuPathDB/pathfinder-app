@@ -6,7 +6,7 @@ from assistant_core.conversation.authz import owned_by_caller
 from assistant_core.platform.logging import get_logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.errors import ValidationError, VEuPathDBError, WDKError
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk import get_strategy_api
 
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.errors import ErrorCode, NotFoundError

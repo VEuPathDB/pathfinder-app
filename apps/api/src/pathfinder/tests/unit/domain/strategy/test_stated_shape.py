@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.graph_model import StepKind
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    CombineOp,
+    StepKind,
+    StrategyStepNode,
+)
 
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,

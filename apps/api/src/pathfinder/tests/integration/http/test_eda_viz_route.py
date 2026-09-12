@@ -11,10 +11,10 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb.eda.client import EdaClient
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
+    EdaClient,
     EdaComparator,
     EdaComputation,
     EdaComputationDescriptor,

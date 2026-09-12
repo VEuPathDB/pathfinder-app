@@ -4,14 +4,14 @@ Steps are keyed by id and refer to each other by id, so one operation changes
 one step.
 """
 
-from veupathdb.domain.strategy.graph_model import (
+from veupathdb.domain.strategy import (
+    CombineOp,
     DuplicateStepIdError,
     StepKind,
     StrategyStep,
     flatten_tree,
+    subtree_ids,
 )
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.tree import subtree_ids
 
 from pathfinder.domain.strategy.operations._delete import (
     _apply_delete_edge,

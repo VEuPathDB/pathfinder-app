@@ -3,8 +3,8 @@
 from assistant_core.platform.context import calling_application
 from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat2
 from pydantic import Field
-from veupathdb.domain.parameters.values import ParamValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.strategy import StrategyStepNode
 from veupathdb_mcp.controls import ControlValueFormat
 from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType, EnrichmentResult
 

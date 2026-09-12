@@ -117,21 +117,22 @@ describe("global query error handler", () => {
 
   it("forwards a WDK_LOGIN_REQUIRED 401 with the error so the app can open the prompt", async () => {
     const { client, notices } = setup();
-    const error = new APIError("Sign in to VEuPathDB to use searches.", {
+    const error = new APIError("VEuPathDB login required.", {
       status: 401,
       statusText: "Unauthorized",
       url: "/api/v1/gene-sets",
       data: {
         title: "VEuPathDB login required",
         status: 401,
-        detail: "Sign in to VEuPathDB to use searches, strategies and gene sets.",
+        detail:
+          "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.",
         code: "WDK_LOGIN_REQUIRED",
       },
     });
     await runFailingQuery(client, error);
     expect(notices).toHaveLength(1);
     expect(notices[0]!.error).toBe(error);
-    expect(notices[0]!.message).toBe("Sign in to VEuPathDB to use searches.");
+    expect(notices[0]!.message).toBe("VEuPathDB login required.");
   });
 
   it("does not call handler when none is registered", async () => {

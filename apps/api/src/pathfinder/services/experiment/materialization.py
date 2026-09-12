@@ -6,22 +6,22 @@ including step tree materialization for multi-step and import modes.
 
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.ops import (
+from veupathdb.domain.strategy import (
     DEFAULT_COMBINE_OPERATOR,
     ColocationParams,
     CombineOp,
+    StrategyStepNode,
+    walk,
 )
-from veupathdb.domain.strategy.tree import walk
 from veupathdb.errors import ValidationError
-from veupathdb.wdk.factory import get_strategy_api
-from veupathdb.wdk.strategy_api import StrategyAPI
-from veupathdb.wdk.value_decoding import encode_params
-from veupathdb.wdk.wdk_models import (
+from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
+    StrategyAPI,
     WDKSearchConfig,
     WDKStepTree,
+    encode_params,
+    get_strategy_api,
 )
 
 from pathfinder.services.experiment.types import (

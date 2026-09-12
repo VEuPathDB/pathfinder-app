@@ -28,8 +28,12 @@ from pathfinder.ai.agents.roles import PHASE_ROLES
 from pathfinder.ai.conversation import _turn_helpers
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.graph import runtime
-from pathfinder.ai.models import tiers
-from pathfinder.ai.models.tiers import (
+from pathfinder.platform import tiers
+from pathfinder.platform.identity import (
+    PATHFINDER_ASSISTANT_ID,
+    SITE_HELP_ASSISTANT_ID,
+)
+from pathfinder.platform.tiers import (
     TIER_PRESETS,
     TierPreset,
     resolve_phase_tier_config,
@@ -71,20 +75,49 @@ def test_tier_resolution_takes_a_plain_string_role() -> None:
 
 
 def test_tier_preset_owns_the_mapping_from_role_to_config() -> None:
-    preset = TIER_PRESETS["openai"]["quality"]
-    assert preset.for_role("lead") == preset.lead
-    assert preset.for_role("execution") == preset.execution
+    preset = TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["openai"]["quality"]
+    assert preset.for_role("lead") == preset.roles["lead"]
+    assert preset.for_role("execution") == preset.roles["execution"]
     assert preset.for_role("planner") is None
+
+
+def test_a_preset_names_the_roles_of_the_assistant_it_belongs_to() -> None:
+    pathfinder = TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["openai"]["quality"]
+    site_help = TIER_PRESETS[SITE_HELP_ASSISTANT_ID]["openai"]["quality"]
+
+    assert set(pathfinder.roles) == ROLE_NAMES
+    assert set(site_help.roles) == {SITE_HELP_ASSISTANT_ID}
 
 
 def test_every_declared_role_still_resolves_a_tier_config() -> None:
     models = [
         cfg.model_id
         for role in PHASE_ROLES
-        if (cfg := resolve_phase_tier_config("openai", "quality", role)) is not None
+        if (
+            cfg := resolve_phase_tier_config(
+                PATHFINDER_ASSISTANT_ID, "openai", "quality", role
+            )
+        )
+        is not None
     ]
     assert len(models) == len(PHASE_ROLES)
     assert "" not in models
+
+
+def test_a_role_of_one_assistant_resolves_nothing_for_another() -> None:
+    resolved = {
+        assistant_id: resolve_phase_tier_config(
+            assistant_id, "openai", "quality", "execution"
+        )
+        for assistant_id in (PATHFINDER_ASSISTANT_ID, SITE_HELP_ASSISTANT_ID)
+    }
+
+    assert resolved == {
+        PATHFINDER_ASSISTANT_ID: TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["openai"][
+            "quality"
+        ].roles["execution"],
+        SITE_HELP_ASSISTANT_ID: None,
+    }
 
 
 def test_registry_still_reports_a_default_model_for_every_declared_role() -> None:
@@ -93,7 +126,7 @@ def test_registry_still_reports_a_default_model_for_every_declared_role() -> Non
     assert all(model_id for model_id in defaults.values())
 
 
-def test_request_boundary_still_refuses_an_undeclared_role_the_same_way() -> None:
+def test_request_boundary_still_refuses_a_role_no_assistant_runs() -> None:
     with pytest.raises(ValidationError) as exc:
         ChatRequestBody.model_validate(
             {
@@ -103,17 +136,18 @@ def test_request_boundary_still_refuses_an_undeclared_role_the_same_way() -> Non
         )
     errors = exc.value.errors()
     assert len(errors) == 1
-    assert errors[0]["type"] == "literal_error"
-    assert errors[0]["loc"] == ("phaseModels", "planner", "[key]")
+    assert errors[0]["loc"] == ("phaseModels",)
+    assert "planner" in errors[0]["msg"]
 
 
 def test_request_boundary_accepts_every_declared_role() -> None:
+    roles = (*PHASE_ROLES, SITE_HELP_ASSISTANT_ID)
     body = ChatRequestBody.model_validate(
         {
             "conversationId": str(uuid4()),
-            "phaseModels": dict.fromkeys(PHASE_ROLES, "openai:gpt-5.6-luna"),
-            "phaseReasoning": dict.fromkeys(PHASE_ROLES, "medium"),
+            "phaseModels": dict.fromkeys(roles, "openai:gpt-5.6-luna"),
+            "phaseReasoning": dict.fromkeys(roles, "medium"),
         },
     )
-    assert set(body.phase_models) == ROLE_NAMES
-    assert set(body.phase_reasoning) == ROLE_NAMES
+    assert set(body.phase_models) == set(roles)
+    assert set(body.phase_reasoning) == set(roles)

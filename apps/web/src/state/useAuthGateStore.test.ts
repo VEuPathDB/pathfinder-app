@@ -21,7 +21,8 @@ const LOGIN_REQUIRED_BODY = {
   type: "about:blank",
   title: "VEuPathDB login required",
   status: 401,
-  detail: "Sign in to VEuPathDB to use searches, strategies and gene sets.",
+  detail:
+    "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.",
   code: "WDK_LOGIN_REQUIRED",
 };
 
@@ -92,7 +93,7 @@ describe("handleWdkAuthRefusal", () => {
     });
     expect(handleWdkAuthRefusal(err)).toBe(true);
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
-      "Sign in to VEuPathDB to use searches, strategies and gene sets.",
+      "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.",
       { id: WDK_LOGIN_REQUIRED_TOAST_ID },
     );
     expect(useAuthGateStore.getState().signInRequired).toBe(true);
@@ -147,7 +148,7 @@ describe("handleWdkAuthRefusal", () => {
 
     expect(handleWdkAuthRefusal(thrown)).toBe(true);
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
-      "Sign in to VEuPathDB to use searches, strategies and gene sets.",
+      "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.",
       { id: WDK_LOGIN_REQUIRED_TOAST_ID },
     );
     expect(useAuthGateStore.getState().signInRequired).toBe(true);

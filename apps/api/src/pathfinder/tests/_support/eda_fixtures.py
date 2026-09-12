@@ -26,12 +26,12 @@ import structlog
 from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, RootModel
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.eda.factory import get_eda_client
-from veupathdb.testing.eda_fixtures import FIXTURE_DIR
-from veupathdb.testing.wdk_credentials import (
+from veupathdb.eda import get_eda_client
+from veupathdb.testing import (
     NO_CREDENTIALS_REASON,
     registered_wdk_token,
 )
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.tests._support.eda_wire import (
     DE_STUDY,

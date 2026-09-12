@@ -6,13 +6,13 @@ from typing import Any, override
 
 import pytest
 from assistant_core.platform.types import JSONObject
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.wdk_values import WDKRecordIdPart
-from veupathdb.wdk.client import VEuPathDBClient
-from veupathdb.wdk.strategy_api import StrategyAPI
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain import WDKRecordIdPart
+from veupathdb.domain.strategy import StrategyStepNode
+from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
+    StrategyAPI,
+    VEuPathDBClient,
     WDKAnswer,
     WDKAnswerMeta,
     WDKIdentifier,

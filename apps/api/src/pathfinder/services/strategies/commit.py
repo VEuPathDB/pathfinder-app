@@ -2,11 +2,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.strategy.graph_model import pushable_root_id
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import subtree_ids
+from veupathdb.domain.strategy import StrategyAst, pushable_root_id, subtree_ids
 from veupathdb.errors import ValidationError, VEuPathDBError
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk import get_strategy_api
 
 from pathfinder.domain.strategy.operations import (
     GraphOperation,

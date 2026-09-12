@@ -9,7 +9,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb.eda.client import EdaClient
+from veupathdb.eda import EdaClient
 
 from pathfinder.tests.integration.http._eda_routes import (
     DATASET,

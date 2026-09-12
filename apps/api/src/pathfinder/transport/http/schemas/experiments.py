@@ -5,7 +5,7 @@ from typing import Literal
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import Field, JsonValue
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.controls import ControlValueFormat
 from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType
 

@@ -18,7 +18,7 @@ from assistant_core.models.scripted import scripted_call
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic_ai.messages import ToolCallPart, ToolReturnPart
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.domain.strategy.operational_spec import StructureNode
 

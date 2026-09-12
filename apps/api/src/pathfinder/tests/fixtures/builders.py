@@ -1,6 +1,6 @@
 """Shared builder helpers for test data construction."""
 
-from veupathdb.domain.strategy.graph_model import StrategyStep
+from veupathdb.domain.strategy import StrategyStep
 
 from pathfinder.domain.strategy.session import StrategyGraph
 

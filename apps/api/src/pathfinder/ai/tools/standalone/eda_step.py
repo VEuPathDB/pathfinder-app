@@ -10,8 +10,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.tree import subtree_ids
+from veupathdb.domain.strategy import StrategyStepNode, subtree_ids
 from veupathdb.errors import ValidationError
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps

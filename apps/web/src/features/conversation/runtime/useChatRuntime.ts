@@ -40,12 +40,15 @@ interface UseChatRuntimeArgs {
   conversationId: string;
   initialMessages?: UIMessage[];
   resume?: boolean;
+  /** The assistant this thread runs under. */
+  assistantId?: string;
 }
 
 export function useChatRuntime({
   conversationId,
   initialMessages,
   resume = false,
+  assistantId,
 }: UseChatRuntimeArgs): {
   runtime: ReturnType<typeof useAISDKRuntime<UIMessage>>;
   chat: ChatHelpers;
@@ -70,7 +73,10 @@ export function useChatRuntime({
       prepareSendMessagesRequest: async ({ id, messages, trigger, body }) => {
         const siteId = useSessionStore.getState().selectedSite;
         const { phaseModels, phaseReasoning } = useSettingsStore.getState();
-        await beginStrategy(conversationId, { siteId });
+        const begun = await beginStrategy(conversationId, {
+          siteId,
+          ...(assistantId !== undefined && { assistantId }),
+        });
         return {
           body: buildChatRequestBody({
             conversationId,
@@ -81,6 +87,9 @@ export function useChatRuntime({
             baseBody: body as Record<string, unknown> | undefined,
             phaseModels,
             phaseReasoning,
+            // A thread keeps the assistant it was created with, so only the
+            // message that created it names one.
+            ...(begun.isNew && assistantId !== undefined && { assistantId }),
           }),
         };
       },

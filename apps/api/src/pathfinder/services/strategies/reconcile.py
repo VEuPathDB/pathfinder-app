@@ -9,8 +9,7 @@ worse, CREATE duplicates of steps it forgot were already pushed).
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.errors import VEuPathDBError
-from veupathdb.wdk.factory import get_strategy_api
-from veupathdb.wdk.step_tree import walk_wdk_step_tree
+from veupathdb.wdk import get_strategy_api, walk_wdk_step_tree
 
 from pathfinder.services.strategies.sync_state import WDKSyncState
 

@@ -13,7 +13,6 @@ from assistant_core.tasks.scope import (
     attach_user_id,
 )
 
-from pathfinder.ai.conversation.assistant_routing import resolve_assistant
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.auth_context import attach_wdk_auth
@@ -35,7 +34,7 @@ async def run_chat_turn(payload: dict[str, Any]) -> None:
     body = parsed.body
 
     registry = get_assistant_registry()
-    spec = resolve_assistant(registry, parsed.assistant_id)
+    spec = registry.resolve(parsed.assistant_id)
 
     writer = ChatEventWriter(
         conversation_id=body.conversation_id,

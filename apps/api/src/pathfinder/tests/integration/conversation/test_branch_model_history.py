@@ -49,7 +49,6 @@ from pathfinder.ai.conversation import turn_runner
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.site_help.agent import SiteHelpDeps
 from pathfinder.assistants.site_help.spec import (
-    SITE_HELP_ASSISTANT_ID,
     SiteHelpTurnContext,
     build_deps,
     build_initial_state,
@@ -58,6 +57,7 @@ from pathfinder.assistants.site_help.spec import (
 )
 from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 from pathfinder.services.conversations.fork import fork_conversation
 from pathfinder.services.conversations.revert import revert_conversation_to_message
 

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from pydantic import TypeAdapter, ValidationError
-from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import StrategyStepNode
 
 
 def string_param(node: StrategyStepNode, name: str) -> str:

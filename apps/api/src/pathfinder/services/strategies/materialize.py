@@ -12,8 +12,7 @@ from uuid import UUID
 
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import walk
+from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.domain.strategy.revision import (

@@ -12,7 +12,7 @@ from uuid import UUID
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import WDKLoginRequiredError
-from veupathdb.wdk.auth_login import VEuPathDBClaims
+from veupathdb.wdk import VEuPathDBClaims
 
 from pathfinder.platform.errors import ErrorCode, WDKIdentityMismatchError
 from pathfinder.platform.principal import CredentialKind, Principal

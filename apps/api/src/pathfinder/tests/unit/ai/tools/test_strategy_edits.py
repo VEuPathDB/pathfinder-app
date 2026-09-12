@@ -7,8 +7,8 @@ from typing import Any
 import pytest
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.parameters.values import MultiPickValue, SinglePickValue
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
+from veupathdb.domain.strategy import CombineOp
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload
 

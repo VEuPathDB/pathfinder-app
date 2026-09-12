@@ -9,7 +9,7 @@ from __future__ import annotations
 from pydantic_ai.ui.vercel_ai.response_types import (
     DataChunk,
 )
-from veupathdb.domain.strategy.graph_model import wdk_search_name
+from veupathdb.domain.strategy import wdk_search_name
 
 from pathfinder.ai.stream_part_payloads import (
     GeneSet,

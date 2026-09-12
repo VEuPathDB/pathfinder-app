@@ -1,7 +1,7 @@
 """Parameter-related endpoints: dependent params, validation, param specs."""
 
 from fastapi import APIRouter
-from veupathdb.domain.search import SearchContext
+from veupathdb.domain import SearchContext
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import (
     ParamSpecResponse,

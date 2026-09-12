@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.parameters.values import ParamValue
-from veupathdb.domain.search import SearchContext
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import (
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.strategy import (
     StrategyStep,
+    StrategyStepNode,
     flatten_tree,
     runs_a_wdk_search,
+    subtree_ids,
     wdk_search_name,
 )
-from veupathdb.domain.strategy.tree import subtree_ids
 from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb_mcp.catalog import make_validation_callbacks, validate_parameters
 

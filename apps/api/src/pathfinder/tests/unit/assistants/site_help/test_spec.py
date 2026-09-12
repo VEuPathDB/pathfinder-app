@@ -15,12 +15,12 @@ from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
 
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.assistants.site_help.spec import (
-    SITE_HELP_ASSISTANT_ID,
     SiteHelpTurnContext,
     build_deps,
     build_site_help_spec,
     build_turn_context,
 )
+from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 from pathfinder.platform.tool_sources import WDK_MCP_SOURCE_ID
 
 

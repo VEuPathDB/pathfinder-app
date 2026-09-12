@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 import httpx
 import pytest
-from veupathdb.eda.client import EdaClient
+from veupathdb.eda import EdaClient
 
 from pathfinder.tests.integration.http._eda_routes import (
     DATASET,

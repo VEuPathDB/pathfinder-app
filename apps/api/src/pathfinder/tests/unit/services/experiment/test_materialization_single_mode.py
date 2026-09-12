@@ -8,13 +8,13 @@ goes through the same encoder the tree branch uses.
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import (
+from veupathdb.domain.parameters import (
     MultiPickValue,
     ParamValue,
     SinglePickValue,
     StringValue,
 )
-from veupathdb.wdk.wdk_models import (
+from veupathdb.wdk import (
     NewStepSpec,
     WDKIdentifier,
     WDKStepTree,

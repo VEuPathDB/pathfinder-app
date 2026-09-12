@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.values import NumberValue, ParamValue
+from veupathdb.domain.parameters import NumberValue, ParamValue
 
 from pathfinder.ai.graph.state import (
     PhaseDisposition,

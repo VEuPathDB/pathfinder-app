@@ -12,9 +12,9 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from veupathdb.wdk.vdi.client import VdiDatasetGoneError
-from veupathdb.wdk.vdi.models import (
+from veupathdb.wdk import (
     VdiDatasetDetails,
+    VdiDatasetGoneError,
     VdiDatasetPostMeta,
     VdiDatasetPostResponse,
     VdiImportStatus,

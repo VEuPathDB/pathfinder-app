@@ -7,8 +7,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from veupathdb.domain.strategy.graph_model import StrategyStep, is_computable
-from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.domain.strategy import StepValidation, StrategyStep, is_computable
 
 
 class StepStatus(StrEnum):

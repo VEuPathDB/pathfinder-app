@@ -12,7 +12,7 @@ import re
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from typing import NamedTuple
 
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.domain.strategy.constraints import (
     CombinationOperator,

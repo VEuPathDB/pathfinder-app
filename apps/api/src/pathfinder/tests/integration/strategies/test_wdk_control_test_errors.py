@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import MultiPickValue, StringValue
+from veupathdb.domain.parameters import MultiPickValue, StringValue
 from veupathdb.errors import WDKError
 from veupathdb_mcp.controls import IntersectionConfig, run_positive_negative_controls
 

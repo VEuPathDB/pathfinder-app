@@ -41,15 +41,11 @@ from pathfinder.ai.conversation._turn_helpers import (
 )
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.conversation.title_generator import generate_conversation_title
-from pathfinder.ai.conversation.turn_stop import (
-    restore_pre_turn_strategy,
-    watch_for_cancel,
-)
+from pathfinder.ai.conversation.turn_stop import watch_for_cancel
 from pathfinder.platform.tool_sources import source_credential
 from pathfinder.services.conversations.turns import (
     load_conversation,
     name_conversation_if_unnamed,
-    turn_start_revision_id,
 )
 
 logger = get_logger(__name__)
@@ -176,7 +172,7 @@ async def _run_turn_with_context(
 ) -> None:
     body = request.body
     turn_message_id = writer.turn_id
-    pre_turn_revision_id = await turn_start_revision_id(body.conversation_id)
+    turn_token = await spec.turn_prologue(body.conversation_id)
     start_event_id = await writer.write(
         StartChunk(message_id=str(turn_message_id)).model_dump(
             by_alias=True,
@@ -226,10 +222,7 @@ async def _run_turn_with_context(
         else "stop"
     )
     if result.cancelled:
-        await restore_pre_turn_strategy(
-            body.conversation_id,
-            pre_turn_revision_id=pre_turn_revision_id,
-        )
+        await spec.turn_cancel(body.conversation_id, turn_token)
         await writer.write(
             turn_stopped_event().model_dump(
                 by_alias=True,

@@ -15,7 +15,7 @@ from assistant_core.platform.logging import get_logger
 from sqlalchemy import CursorResult, Row, Select, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.errors import VEuPathDBError
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk import get_strategy_api
 
 from pathfinder.persistence.models import (
     ControlSet,

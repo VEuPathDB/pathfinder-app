@@ -15,12 +15,13 @@ from pydantic_settings import (
     PydanticBaseSettingsSource,
     SettingsConfigDict,
 )
-from veupathdb.settings import (
+from veupathdb import (
     VEuPathDBSettings,
     use_veupathdb_settings_source,
 )
-from veupathdb_mcp import McpSettings, ServiceTokenRegistry, use_mcp_settings_source
+from veupathdb_mcp import ServiceTokenRegistry
 from veupathdb_mcp.embeddings import EmbeddingSettings, use_embedding_settings_source
+from veupathdb_mcp.settings import McpSettings, use_mcp_settings_source
 
 from pathfinder.platform.identity import INTERNAL_STRATEGY_NAME_PREFIX
 

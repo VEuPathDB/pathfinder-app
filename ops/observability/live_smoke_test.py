@@ -210,7 +210,8 @@ def _verify_signoz(trace_id: str, start_ms: int) -> dict[str, Any]:
             "SELECT metric_name, count() AS samples "
             "FROM signoz_metrics.distributed_samples_v4 "
             f"WHERE unix_milli >= {start_ms} "
-            "AND metric_name LIKE 'pathfinder.%' "
+            "AND (metric_name LIKE 'assistant.%' "
+            "OR metric_name LIKE 'veupathdb.%') "
             "GROUP BY metric_name ORDER BY metric_name"
         ),
     )

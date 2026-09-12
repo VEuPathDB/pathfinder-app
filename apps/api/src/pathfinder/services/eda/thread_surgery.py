@@ -17,8 +17,7 @@ from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict, TypeAdapter
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.eda.errors import EdaNotFoundError
-from veupathdb.eda.models import EdaFilter
+from veupathdb.eda import EdaFilter, EdaNotFoundError
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.domain.eda_parts import EdaAnalysisState

@@ -1,7 +1,7 @@
 """Strategy plan validation helpers."""
 
 from assistant_core.platform.types import JSONObject
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy import StrategyAst
 from veupathdb.errors import ValidationError
 
 from pathfinder.domain.strategy.validate import validate_strategy

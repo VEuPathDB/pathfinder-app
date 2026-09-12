@@ -9,6 +9,7 @@ from assistant_core.errors import (
     TurnStillRunningError,
 )
 from assistant_core.platform.types import JSONObject
+from assistant_core.registry import AssistantMismatchError, UnknownAssistantError
 from fastapi.responses import JSONResponse
 from pydantic import TypeAdapter
 from starlette.requests import Request
@@ -16,6 +17,8 @@ from starlette.requests import Request
 from pathfinder.platform.error_handlers import (
     RUNTIME_REFUSALS,
     assistant_core_error_handler,
+    assistant_mismatch_handler,
+    unknown_assistant_handler,
 )
 
 _PROBLEM_JSON = "application/problem+json"
@@ -69,3 +72,22 @@ async def test_a_turn_still_in_flight_is_a_conflict() -> None:
 def test_every_refusal_the_runtime_raises_has_a_status_here() -> None:
     """A release that adds a refusal fails here rather than at a route."""
     assert set(RUNTIME_REFUSALS) == set(AssistantCoreError.__subclasses__())
+
+
+async def test_an_assistant_this_deployment_does_not_serve_reads_as_not_found() -> None:
+    resp = await unknown_assistant_handler(
+        _request(), UnknownAssistantError("no_such_assistant", ("pathfinder",))
+    )
+    assert resp.status_code == 404
+    assert resp.media_type == _PROBLEM_JSON
+    assert _body(resp)["code"] == "ASSISTANT_NOT_FOUND"
+    assert "no_such_assistant" in str(_body(resp)["detail"])
+
+
+async def test_naming_another_assistant_than_the_threads_is_a_conflict() -> None:
+    resp = await assistant_mismatch_handler(
+        _request(), AssistantMismatchError("site_help", "pathfinder")
+    )
+    assert resp.status_code == 409
+    assert _body(resp)["code"] == "ASSISTANT_MISMATCH"
+    assert "site_help" in str(_body(resp)["detail"])

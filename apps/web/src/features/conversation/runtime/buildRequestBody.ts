@@ -15,6 +15,9 @@ export interface BuildChatRequestBodyArgs {
   baseBody: Record<string, unknown> | undefined;
   phaseModels?: PhaseModelMap;
   phaseReasoning?: PhaseReasoningMap;
+  /** Set only on the message that creates the thread: an existing thread
+   *  keeps the assistant it was created with, and another id is refused. */
+  assistantId?: string;
 }
 
 export type ChatRequestBodyShape = TurnRequestBody<UIMessage>;
@@ -37,6 +40,7 @@ export function buildChatRequestBody(
     baseBody: args.baseBody,
     extra: {
       siteId: args.siteId,
+      assistantId: args.assistantId,
       phaseModels: args.phaseModels,
       phaseReasoning: args.phaseReasoning,
     },

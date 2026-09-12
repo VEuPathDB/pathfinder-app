@@ -8,20 +8,19 @@ from typing import assert_never
 
 from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict
-from veupathdb.domain.parameters.values import ParamValue
-from veupathdb.domain.search import SearchContext
-from veupathdb.domain.strategy.graph_model import (
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.strategy import (
+    CombineOp,
     StepKind,
+    StepValidation,
     StrategyStep,
     record_class_of,
     runs_a_wdk_search,
     wdk_search_name,
 )
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.validation import StepValidation
 from veupathdb.errors import ValidationError, VEuPathDBError
-from veupathdb.wdk.factory import get_strategy_api
-from veupathdb.wdk.value_decoding import encode_params
+from veupathdb.wdk import encode_params, get_strategy_api
 from veupathdb_mcp.catalog import (
     ValidationCallbacks,
     assign_step_record_classes,

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaComparator,
     EdaComputation,
     EdaComputationDescriptor,

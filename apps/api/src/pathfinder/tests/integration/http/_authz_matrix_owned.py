@@ -12,9 +12,8 @@ from assistant_core.persistence.models import Conversation, Message
 from assistant_core.persistence.repositories.scratchpad import ScratchpadRepository
 from assistant_core.scratchpad.models import NoteCreate
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.parameters.values import SinglePickValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.parameters import SinglePickValue
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 from pathfinder.persistence.models import ControlSet, ConversationStrategy
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

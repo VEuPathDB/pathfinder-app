@@ -9,8 +9,8 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb.domain.eda_study import walk_entities
-from veupathdb.eda.models import (
+from veupathdb.domain import walk_entities
+from veupathdb.eda import (
     EdaDistributionResponse,
     EdaFilter,
     EdaStudyDetail,

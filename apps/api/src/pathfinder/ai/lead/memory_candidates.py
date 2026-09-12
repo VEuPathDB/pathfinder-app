@@ -24,18 +24,9 @@ from pathfinder.ai.lead.case_memory import collect_case_candidates
 from pathfinder.ai.lead.intent import BUILDING_INTENTS
 
 __all__ = [
-    "PRODUCT_MEMORY_KINDS",
     "collect_memory_candidates",
     "collect_turn_memory_candidates",
 ]
-
-PRODUCT_MEMORY_KINDS: tuple[str, ...] = (
-    "gene_set",
-    "strategy",
-    "preference",
-    "knowledge",
-    "case",
-)
 
 PREFERENCE_MIN_SUCCESSES = 3
 

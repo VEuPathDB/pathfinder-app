@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
-from assistant_core.memory.schemas import MemoryKind
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 
@@ -16,6 +15,7 @@ from pathfinder.ai.lead.live_state import LiveStrategyState, read_live_state
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import conversation, memory_tools
 from pathfinder.ai.tools.standalone._conversation_models import ClearStrategyResult
+from pathfinder.domain.memory import MemoryKind
 
 LedgerSectionName = Literal["frame", "build", "verification"]
 

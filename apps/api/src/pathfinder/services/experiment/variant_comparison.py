@@ -17,11 +17,9 @@ from itertools import combinations
 import httpx
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
-from veupathdb.domain.parameters.value_codec import wire_map
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue, wire_map
 from veupathdb.errors import WDKError
-from veupathdb.wdk.factory import get_wdk_client
-from veupathdb.wdk.wdk_models import WDKAnswer, WDKSearchConfig
+from veupathdb.wdk import WDKAnswer, WDKSearchConfig, get_wdk_client
 from veupathdb_mcp.wdk import extract_record_ids
 
 _CONCURRENCY = 4

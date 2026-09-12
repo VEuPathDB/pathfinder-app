@@ -2,8 +2,7 @@ from collections.abc import Collection
 from dataclasses import dataclass, field
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
-from veupathdb.domain.parameters.values import ParamValue
-from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.domain.parameters import ParamValue, VocabOption
 
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import (

@@ -1,9 +1,9 @@
 AI & Models
 ===========
 
-Model catalog, per-provider settings, tier presets, pricing, and prompt
-loading. This is what decides which LLM each phase runs on and what a run
-costs.
+Model catalog, per-provider settings, pricing, and prompt loading. This is
+what decides which LLM each phase runs on and what a run costs; the tier
+presets that back it are in :doc:`platform`.
 
 Overview
 --------
@@ -13,7 +13,6 @@ Overview
 - **Model Resolution** — Pick the catalog entry a run uses from the request
   override, the persisted conversation state, or the role default.
 - **Model Settings** — Per-provider ``ModelSettings`` for pydantic-ai.
-- **Tier Presets** — Map a provider and a tier to a model per phase.
 - **Pricing** — Cost per run from token usage.
 - **Prompts** — The prompt files and the loader that reads them.
 
@@ -44,17 +43,6 @@ Model Resolution
 override, the persisted conversation state, or the role default.
 
 .. automodule:: pathfinder.ai.agents._model_resolution
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Tier Presets
-------------
-
-**Purpose:** Map a ``(provider, tier)`` pair to a model and reasoning effort
-for each pipeline phase. The frontend fetches these to populate the picker.
-
-.. automodule:: pathfinder.ai.models.tiers
    :members:
    :undoc-members:
    :show-inheritance:

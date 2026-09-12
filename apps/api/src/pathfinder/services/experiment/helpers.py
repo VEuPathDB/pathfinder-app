@@ -4,7 +4,7 @@ from collections.abc import Awaitable, Callable
 
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.errors import VEuPathDBError
 from veupathdb_mcp.controls import (
     ControlsContext,

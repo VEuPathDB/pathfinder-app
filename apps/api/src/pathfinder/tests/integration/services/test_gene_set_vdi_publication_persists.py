@@ -12,7 +12,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb.wdk.vdi.models import (
+from veupathdb.wdk import (
     VdiDatasetPostMeta,
     VdiDatasetPostResponse,
     VdiVisibility,

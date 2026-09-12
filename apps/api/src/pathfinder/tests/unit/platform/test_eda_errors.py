@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.eda.errors import (
+from veupathdb.eda import (
     EdaBadRequestError,
     EdaComputeNotReadyError,
     EdaForbiddenError,

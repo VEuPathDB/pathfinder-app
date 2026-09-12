@@ -4,11 +4,10 @@ from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import ModelProvider, TierName
 from assistant_core.pricing import lookup_per_mtok_prices
 from fastapi import APIRouter
-from pydantic import ConfigDict, TypeAdapter
+from pydantic import ConfigDict
 
-from pathfinder.ai.agents.registry import phase_defaults
-from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.models.catalog import ModelEntry, get_model_catalog
+from pathfinder.assistants.registry import installed_phase_defaults
 from pathfinder.platform.config import get_settings
 
 
@@ -26,14 +25,10 @@ class ModelListResponse(CamelModel):
     models: list[ModelCatalogEntryResponse]
     default_provider: ModelProvider
     default_tier: TierName
-    phase_defaults: dict[PhaseRole, str]
+    phase_defaults: dict[str, str]
 
 
 router = APIRouter(prefix="/api/v1", tags=["models"])
-
-# The registry keys its defaults by whatever role names the product declared;
-# the wire contract only carries the ones this product supports.
-_PHASE_DEFAULTS: TypeAdapter[dict[PhaseRole, str]] = TypeAdapter(dict[PhaseRole, str])
 
 
 def _provider_enabled(provider: ModelProvider) -> bool:
@@ -89,5 +84,5 @@ async def list_models() -> ModelListResponse:
         models=models,
         default_provider=settings.default_provider,
         default_tier=settings.default_tier,
-        phase_defaults=_PHASE_DEFAULTS.validate_python(phase_defaults()),
+        phase_defaults=installed_phase_defaults(),
     )

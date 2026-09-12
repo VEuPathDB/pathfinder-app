@@ -7,7 +7,7 @@ from collections.abc import Generator
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import ExternalServiceError, WDKLoginRequiredError
-from veupathdb.wdk.auth_login import VEuPathDBClaims
+from veupathdb.wdk import VEuPathDBClaims
 
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services import wdk_identity
@@ -16,7 +16,10 @@ REGISTERED_TOKEN = "registered.veupathdb.token"
 GUEST_TOKEN = "guest.veupathdb.token"
 
 _LOGIN_TITLE = "VEuPathDB login required"
-_LOGIN_DETAIL = "Sign in to VEuPathDB to use searches, strategies and gene sets."
+_LOGIN_DETAIL = (
+    "VEuPathDB serves registered users only, and this request "
+    "carried no registered VEuPathDB token."
+)
 
 
 @pytest.fixture(autouse=True)

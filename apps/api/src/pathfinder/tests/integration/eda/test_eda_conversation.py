@@ -40,11 +40,10 @@ from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models.function import FunctionModel
 from sqlalchemy import select
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.eda import factory
-from veupathdb.eda.client import EdaClient
+from veupathdb.domain.strategy import StrategyAst
+from veupathdb.eda import EdaClient
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
-from veupathdb.wdk.factory import get_site
+from veupathdb.wdk import get_site
 from veupathdb_mcp.embeddings import sync_study_index
 
 from pathfinder.ai.graph.runtime import Context
@@ -60,16 +59,17 @@ from pathfinder.assistants.pathfinder_spec import (
 )
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.assistants.site_help.spec import (
-    SITE_HELP_ASSISTANT_ID,
     build_initial_state,
     charge_usage,
 )
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
+from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 from pathfinder.services.eda import authoring, binding, catalog
 from pathfinder.services.eda.binding import bound_conversation_analysis
 from pathfinder.services.strategies import commit
 from pathfinder.services.strategies.commit import _WDKCommitOutcome
+from pathfinder.tests._support.eda_wire import wire_eda_client
 from pathfinder.tests._support.step_params import string_param
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
@@ -316,7 +316,7 @@ async def seam(
     del patch_app_db_engine, db_cleaner
     store = _AnalysesStore()
     client = EdaClient(base_url="https://plasmodb.org/eda", transport=_wire(store))
-    monkeypatch.setitem(factory._clients, "plasmodb", client)
+    wire_eda_client(monkeypatch, client)
     monkeypatch.setattr(registry, "build_site_help_spec", _build_spec)
     get_assistant_registry.cache_clear()
     # The api syncs the study index at warm-up; the turn only searches it.

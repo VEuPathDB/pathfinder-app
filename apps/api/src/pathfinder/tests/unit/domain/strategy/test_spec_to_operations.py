@@ -7,8 +7,8 @@ survives the turn.
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import MultiPickValue, NumberValue
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.parameters import MultiPickValue, NumberValue
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,

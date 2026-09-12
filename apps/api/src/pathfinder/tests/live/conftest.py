@@ -11,15 +11,16 @@ from collections.abc import AsyncGenerator, Awaitable, Callable, Generator
 
 import pytest
 from _pytest.reports import TestReport
+from veupathdb import JSONObject
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.json_types import JSONObject
-from veupathdb.testing.summary import DriftLog, summary_path
-from veupathdb.wdk.factory import get_strategy_api, get_wdk_client
-from veupathdb.wdk.probe import WDKProbe
-from veupathdb.wdk.wdk_models import (
+from veupathdb.testing import DriftLog, summary_path
+from veupathdb.wdk import (
     NewStepSpec,
+    WDKProbe,
     WDKSearchConfig,
     WDKStepTree,
+    get_strategy_api,
+    get_wdk_client,
 )
 
 VERIFICATION_SITES = ("plasmodb", "toxodb")

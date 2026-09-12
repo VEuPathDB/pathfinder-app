@@ -14,13 +14,13 @@ from uuid import UUID
 # ---------------------------------------------------------------------------
 from assistant_core.platform.context import calling_application
 from assistant_core.platform.db import async_session_factory
+from assistant_core.platform.store import WriteThruStore
 from pydantic import TypeAdapter
 from sqlalchemy import select
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.wdk.enrichment import EnrichmentResult
 
 from pathfinder.persistence.models import GeneSetRow
-from pathfinder.platform.store import WriteThruStore
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
 
 _PARAMS_ADAPTER: TypeAdapter[dict[str, ParamValue]] = TypeAdapter(dict[str, ParamValue])

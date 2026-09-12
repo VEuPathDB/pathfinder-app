@@ -25,9 +25,8 @@ from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 
 from pathfinder.assistants.site_help.agent import SiteHelpDeps, build_site_help_agent
 from pathfinder.assistants.site_help.mock import build_site_help_mock
+from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 from pathfinder.platform.tool_sources import WDK_MCP_SOURCE_ID
-
-SITE_HELP_ASSISTANT_ID = "site_help"
 
 # The catalog reads a service credential may make, and the one measurement the
 # user is asked about. A deployment that admits no such server serves neither.
@@ -120,7 +119,6 @@ def build_site_help_spec() -> AssistantSpec:
 
 
 __all__ = [
-    "SITE_HELP_ASSISTANT_ID",
     "WDK_TOOL_SOURCE",
     "SiteHelpTurnContext",
     "build_deps",

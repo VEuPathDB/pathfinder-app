@@ -5,9 +5,9 @@ from typing import Annotated
 from uuid import UUID
 
 from assistant_core.platform.types import JSONObject
+from assistant_core.registry import resolve_turn_assistant
 from fastapi import APIRouter, Depends, Query, Response
 
-from pathfinder.ai.conversation.assistant_routing import resolve_turn_assistant
 from pathfinder.ai.conversation.title_generator import generate_conversation_title
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.services.conversations.begin import start_title_generation

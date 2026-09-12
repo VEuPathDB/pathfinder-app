@@ -37,8 +37,8 @@ PathFinder API
       :link: api/ai
       :link-type: doc
 
-      Model catalog, per-provider settings, tier presets, pricing, and the
-      deterministic scripted model used by tests.
+      Model catalog, per-provider settings, pricing, and the deterministic
+      scripted model used by tests.
 
 ----
 

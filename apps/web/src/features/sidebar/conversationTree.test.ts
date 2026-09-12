@@ -32,6 +32,7 @@ function makeItem(
     title: partial.title ?? partial.id,
     updatedAt: partial.updatedAt,
     siteId: "plasmodb",
+    assistantId: "pathfinder",
     isDismissed: false,
     isSaved: false,
     stepCount: 0,

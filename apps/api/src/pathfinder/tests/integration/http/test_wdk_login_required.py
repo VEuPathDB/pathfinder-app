@@ -16,7 +16,7 @@ from assistant_core.memory.store import MemoryStore
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.wdk.factory import get_site
+from veupathdb.wdk import get_site
 
 from pathfinder.platform.config import get_settings
 from pathfinder.services.users import get_or_create_user_id
@@ -39,7 +39,10 @@ _UNAUTHORIZED = 401
 _NOT_FOUND = 404
 
 LOGIN_TITLE = "VEuPathDB login required"
-LOGIN_DETAIL = "Sign in to VEuPathDB to use searches, strategies and gene sets."
+LOGIN_DETAIL = (
+    "VEuPathDB serves registered users only, and this request "
+    "carried no registered VEuPathDB token."
+)
 LOGIN_CODE = "WDK_LOGIN_REQUIRED"
 
 TOKEN_ACCOUNT_EMAIL = "registered.account@example.org"

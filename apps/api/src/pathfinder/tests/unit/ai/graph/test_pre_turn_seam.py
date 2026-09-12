@@ -13,7 +13,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-from veupathdb.wdk.wdk_models import WDKStrategyDetails
+from veupathdb.wdk import WDKStrategyDetails
 
 from pathfinder.ai.graph import lead_node
 from pathfinder.ai.graph.lead_node import make_lead_node

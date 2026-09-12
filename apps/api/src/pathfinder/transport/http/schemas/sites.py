@@ -3,7 +3,7 @@
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONArray, JSONObject
 from pydantic import ConfigDict, Field
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue
 
 
 class SiteResponse(CamelModel):

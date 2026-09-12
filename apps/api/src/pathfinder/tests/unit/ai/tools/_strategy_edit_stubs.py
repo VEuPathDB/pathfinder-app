@@ -10,14 +10,12 @@ import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.wdk.strategy_api.steps import StepsMixin
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
+from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
     PatchStepSpec,
+    StepsMixin,
     WDKIdentifier,
     WDKSearchConfig,
     WDKStep,

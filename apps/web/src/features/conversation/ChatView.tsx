@@ -7,6 +7,7 @@ import { redirect, useParams } from "next/navigation";
 import { ErrorBoundary } from "react-error-boundary";
 
 import type { Strategy } from "@pathfinder/shared";
+import { resolveAssistantId } from "@/lib/assistants";
 import { strategyQueryOptions } from "@/lib/api/strategy";
 import { conversationSnapshotOptions } from "@/features/conversation/api/conversationSnapshot";
 import { chatRoot } from "@/lib/routes";
@@ -23,10 +24,13 @@ export function ChatView({
   conversationId,
   allowMissing = false,
   resumable = false,
+  requestedAssistantId = null,
 }: {
   conversationId: string;
   allowMissing?: boolean;
   resumable?: boolean;
+  /** The assistant the URL names, honoured only by a thread that is new. */
+  requestedAssistantId?: string | null;
 }) {
   const params = useParams<{ siteId?: string }>();
   const siteSegment = params.siteId ?? "";
@@ -53,6 +57,10 @@ export function ChatView({
 
   const strategy = detailQuery.data ?? null;
   const siteId = strategy?.siteId ?? "";
+  const assistantId = resolveAssistantId({
+    existing: strategy?.assistantId,
+    requested: requestedAssistantId,
+  });
 
   return (
     // A thread that cannot render leaves the rest of the app reachable.
@@ -69,6 +77,7 @@ export function ChatView({
         resumable={resumable}
         strategy={strategy}
         siteId={siteId}
+        assistantId={assistantId}
       />
     </ErrorBoundary>
   );
@@ -80,24 +89,27 @@ function ChatViewBody({
   resumable,
   strategy,
   siteId,
+  assistantId,
 }: {
   conversationId: string;
   initialMessages: UIMessage[];
   resumable: boolean;
   strategy: Strategy | null;
   siteId: string;
+  assistantId: string;
 }) {
   const { runtime, chat } = useChatRuntime({
     conversationId,
     resume: resumable,
     initialMessages,
+    assistantId,
   });
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <ChatHelpersProvider value={chat}>
         <div className="relative flex min-h-0 min-w-0 flex-1">
           <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-card">
-            <ChatThread conversationId={conversationId} />
+            <ChatThread conversationId={conversationId} assistantId={assistantId} />
           </div>
           <RightRail
             conversationId={conversationId}

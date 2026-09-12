@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
     EdaComparator,

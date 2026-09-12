@@ -15,7 +15,8 @@ const LOGIN_REQUIRED_BODY = {
   type: "about:blank",
   title: "VEuPathDB login required",
   status: 401,
-  detail: "Sign in to VEuPathDB to use searches, strategies and gene sets.",
+  detail:
+    "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.",
   code: "WDK_LOGIN_REQUIRED",
 };
 

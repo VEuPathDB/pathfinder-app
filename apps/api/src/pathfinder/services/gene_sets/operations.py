@@ -4,9 +4,9 @@ from uuid import UUID, uuid4
 
 from assistant_core.platform.context import calling_application
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.errors import ValidationError
-from veupathdb.wdk.factory import (
+from veupathdb.wdk import (
     get_strategy_api,
 )
 from veupathdb_mcp.wdk import (

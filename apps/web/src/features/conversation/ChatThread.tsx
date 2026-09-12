@@ -33,7 +33,13 @@ function ChatUrlSync({ conversationId }: { conversationId: string }) {
   return null;
 }
 
-export function ChatThread({ conversationId }: { conversationId: string }) {
+export function ChatThread({
+  conversationId,
+  assistantId,
+}: {
+  conversationId: string;
+  assistantId: string;
+}) {
   const aui = useAui();
   const pendingSubmission = useSessionStore((s) => s.pendingUserSubmission);
   const [firedContent, setFiredContent] = useState<string | null>(null);
@@ -53,20 +59,26 @@ export function ChatThread({ conversationId }: { conversationId: string }) {
     <>
       <ChatUrlSync conversationId={conversationId} />
       <ThreadPrimitive.Root className="flex h-full min-h-0 flex-col">
-        <SessionAwareBody conversationId={conversationId} />
+        <SessionAwareBody conversationId={conversationId} assistantId={assistantId} />
         <Composer conversationId={conversationId} />
       </ThreadPrimitive.Root>
     </>
   );
 }
 
-function SessionAwareBody({ conversationId }: { conversationId: string }) {
+function SessionAwareBody({
+  conversationId,
+  assistantId,
+}: {
+  conversationId: string;
+  assistantId: string;
+}) {
   useQuery(strategyQueryOptions(conversationId));
   return (
     <>
       <Conversation>
         <ConversationContent>
-          <ChatEmptyState />
+          <ChatEmptyState assistantId={assistantId} />
           <ThreadPrimitive.Messages
             components={{
               UserMessage,

@@ -4,7 +4,7 @@ from importlib.resources import files
 from importlib.resources.abc import Traversable
 
 from pydantic import TypeAdapter
-from veupathdb.wdk.site_router import load_sites_config
+from veupathdb.wdk import load_sites_config
 
 from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.experiment.seed.types import SeedDef

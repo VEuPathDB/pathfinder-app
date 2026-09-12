@@ -4,13 +4,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
-from veupathdb.domain.parameters.values import MultiPickValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import walk
+from veupathdb.domain.parameters import MultiPickValue
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree, walk
 from veupathdb.errors import WDKError
-from veupathdb.wdk.wdk_models import (
+from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
     PatchStepSpec,

@@ -33,6 +33,7 @@ function makeItem(): ConversationItem {
     title: chat.name,
     updatedAt: chat.updatedAt,
     siteId: chat.siteId,
+    assistantId: "pathfinder",
     isDismissed: false,
     isSaved: false,
     stepCount: 0,

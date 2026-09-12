@@ -32,10 +32,10 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone.experiment import run_control_tests_on_step
 from pathfinder.assistants.pathfinder_spec import build_turn_context
 from pathfinder.assistants.site_help.spec import (
-    SITE_HELP_ASSISTANT_ID,
     build_initial_state,
     charge_usage,
 )
+from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 
 TOOL = "run_control_tests_on_step"
 STEP_A = 440230693

@@ -17,12 +17,13 @@ from assistant_core.platform import db
 from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
-from veupathdb.domain.strategy.tree import walk
-from veupathdb.eda.errors import EdaNotFoundError, EdaServerError
-from veupathdb.eda.models import (
+from veupathdb.domain.strategy import walk
+from veupathdb.eda import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
     EdaFilter,
+    EdaNotFoundError,
+    EdaServerError,
     EdaStringSetFilter,
     EdaSubsetDescriptor,
 )
@@ -169,9 +170,7 @@ async def _add_message(
 ) -> UUID:
     message_id = uuid4()
     async with db.async_session_factory() as session:
-        session.add(
-            Message(id=message_id, conversation_id=conversation_id, role=role),
-        )
+        session.add(Message(id=message_id, conversation_id=conversation_id, role=role))
         await session.flush()
         for chunk in chunks:
             session.add(

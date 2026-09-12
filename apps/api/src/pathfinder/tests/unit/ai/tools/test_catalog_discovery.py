@@ -10,11 +10,10 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import TypeAdapter
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.parameters.wdk_vocab import VocabOption
-from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.domain.parameters import VocabOption
+from veupathdb.domain.strategy import StepValidation
 from veupathdb.errors import WDKError
-from veupathdb.wdk.wdk_models import WDKSearch, WDKSearchResponse
-from veupathdb.wdk.wdk_parameters import WDKParameter, WDKStringParam
+from veupathdb.wdk import WDKParameter, WDKSearch, WDKSearchResponse, WDKStringParam
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParameterNotOnSearch,

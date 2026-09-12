@@ -9,12 +9,17 @@ from __future__ import annotations
 
 from assistant_core.platform.types import JSONObject
 from hypothesis import given
-from veupathdb.domain.parameters.values import MultiPickValue, StringValue
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.graph_model import flatten_tree, rebuild_tree
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import clone_with_fresh_ids, walk
+from veupathdb.domain.parameters import MultiPickValue, StringValue
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    CombineOp,
+    StrategyAst,
+    StrategyStepNode,
+    clone_with_fresh_ids,
+    flatten_tree,
+    rebuild_tree,
+    walk,
+)
 
 from ._builders import ANY_TREE, PROFILE
 

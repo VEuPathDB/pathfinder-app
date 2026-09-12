@@ -11,12 +11,12 @@ from assistant_core.platform.types import JSONObject
 from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.strategy.ast import (
+from veupathdb.domain.strategy import (
     StepAnalysis,
     StepFilter,
     StepReport,
+    StrategyStep,
 )
-from veupathdb.domain.strategy.graph_model import StrategyStep
 from veupathdb_mcp import ToolErrorPayload
 
 from pathfinder.ai.graph.runtime import AgentDeps

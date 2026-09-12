@@ -2,10 +2,10 @@
 
 from dataclasses import dataclass, field
 
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import (
+from veupathdb.domain.strategy import (
     StepKind,
     StrategyStep,
+    StrategyStepNode,
     own_search_name,
 )
 

@@ -46,12 +46,12 @@ from pathfinder.assistants import registry
 from pathfinder.assistants.pathfinder_spec import build_turn_context
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.assistants.site_help.spec import (
-    SITE_HELP_ASSISTANT_ID,
     build_initial_state,
     charge_usage,
 )
 from pathfinder.jobs.impls import register_all_tools
 from pathfinder.persistence.models import User
+from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 from pathfinder.services.eda.binding import (
     bind_conversation_analysis,
     bound_conversation_analysis,

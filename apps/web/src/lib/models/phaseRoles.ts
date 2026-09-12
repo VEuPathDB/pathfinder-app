@@ -1,11 +1,7 @@
-// Mirrors the backend SSOT - pathfinder.ai.agents.roles.PhaseRole.
-export const PHASE_ROLES = ["lead", "frame", "execution", "verification"] as const;
+// Role names are data: a tier preset names the roles of the assistant it
+// belongs to, and the tables below are how those names read to a user. A role
+// with no entry falls back to the name itself.
 
-export type PhaseRole = (typeof PHASE_ROLES)[number];
-
-// Keyed by the phase strings the wire carries, so a trace group and the
-// settings row read the same label. `execution` is the name older logs use for
-// the build phase.
 export const PHASE_LABELS: Record<string, string> = {
   lead: "Assistant",
   frame: "Planning",
@@ -13,15 +9,21 @@ export const PHASE_LABELS: Record<string, string> = {
   execution: "Building",
   verification: "Checking",
   recover_failed_steps: "Repairing",
+  site_help: "Site help",
 };
 
 export function phaseLabel(phase: string): string {
   return PHASE_LABELS[phase] ?? phase;
 }
 
-export const PHASE_DESCRIPTIONS: Record<PhaseRole, string> = {
+export const PHASE_DESCRIPTIONS: Record<string, string> = {
   lead: "Talks with you and decides what happens next.",
   frame: "Turns your question into a plan of searches and fills in their settings.",
   execution: "Builds the strategy and repairs any step the site refuses.",
   verification: "Checks the built strategy and reports what it found.",
+  site_help: "Answers questions about the VEuPathDB sites and what they hold.",
 };
+
+export function phaseDescription(phase: string): string {
+  return PHASE_DESCRIPTIONS[phase] ?? "";
+}

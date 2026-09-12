@@ -10,16 +10,17 @@ from uuid import UUID
 
 from pydantic import Field
 from veupathdb.model import CamelModel
-from veupathdb.wdk.factory import get_site, get_vdi_client
-from veupathdb.wdk.vdi.client import VdiDatasetGoneError
-from veupathdb.wdk.vdi.models import (
+from veupathdb.wdk import (
     GENELIST_PLUGIN_NAME,
     GENELIST_PLUGIN_VERSION,
+    VdiDatasetGoneError,
     VdiDatasetPostMeta,
     VdiDatasetType,
     VdiImportStatus,
     VdiUploadStatus,
     VdiVisibility,
+    get_site,
+    get_vdi_client,
 )
 
 from pathfinder.platform.errors import NotFoundError

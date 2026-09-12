@@ -7,9 +7,12 @@ behind it survive.
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StepKind,
+    StrategyStep,
+    StrategyStepNode,
+)
 
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,

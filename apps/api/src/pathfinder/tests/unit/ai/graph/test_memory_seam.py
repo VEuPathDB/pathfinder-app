@@ -26,10 +26,8 @@ from pathfinder.ai.graph.state import (
     StrategyDomainState,
     VerificationDigest,
 )
-from pathfinder.ai.lead.memory_candidates import (
-    PRODUCT_MEMORY_KINDS,
-    collect_memory_candidates,
-)
+from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
+from pathfinder.domain.memory import MEMORY_KINDS
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 
 FOREIGN_PACKAGES = (
@@ -82,7 +80,7 @@ def test_the_namespace_accepts_a_kind_the_core_never_declared() -> None:
 
 
 def test_the_product_declares_the_five_pathfinder_kinds() -> None:
-    assert PRODUCT_MEMORY_KINDS == (
+    assert MEMORY_KINDS == (
         "gene_set",
         "strategy",
         "preference",

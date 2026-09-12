@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from assistant_core.persistence.models import Conversation
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.persistence.models import ConversationStrategyView

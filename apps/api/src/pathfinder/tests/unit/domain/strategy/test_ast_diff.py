@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.values import MultiPickValue, NumberValue
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.parameters import MultiPickValue, NumberValue
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    CombineOp,
+    StrategyAst,
+    StrategyStepNode,
+)
 
 from pathfinder.domain.strategy.ast_diff import diff_strategy_asts
 

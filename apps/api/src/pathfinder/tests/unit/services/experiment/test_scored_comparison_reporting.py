@@ -12,8 +12,8 @@ from typing import Any
 
 import pytest
 from pydantic import ValidationError as PydanticValidationError
-from veupathdb.domain.wdk_values import WDKRecordIdPart
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain import WDKRecordIdPart
+from veupathdb.wdk import (
     WDKAnswer,
     WDKAnswerMeta,
     WDKRecordInstance,

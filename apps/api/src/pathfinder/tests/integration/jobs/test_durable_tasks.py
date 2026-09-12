@@ -4,10 +4,9 @@ from collections.abc import Iterator
 
 import pytest
 from assistant_core.tasks.declaration import declared_durable_tools
-from assistant_core.tasks.names import DURABLE_TASK_QUEUE
 from assistant_core.tasks.runner import register_durable_jobs
 
-from pathfinder.jobs.app import procrastinate_app
+from pathfinder.jobs.app import DURABLE_TASK_QUEUE, procrastinate_app
 from pathfinder.jobs.impls import register_all_tools
 
 _TASK_ID = "00000000-0000-0000-0000-000000000001"

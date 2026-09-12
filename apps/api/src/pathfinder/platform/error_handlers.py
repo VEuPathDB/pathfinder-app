@@ -4,6 +4,7 @@ from enum import StrEnum
 from http import HTTPStatus
 
 import structlog
+from assistant_core import registry
 from assistant_core.errors import (
     AssistantCoreError,
     ConversationForbiddenError,
@@ -20,7 +21,12 @@ from starlette.exceptions import HTTPException
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.domain.strategy.operations.apply import ApplyError
-from pathfinder.platform.errors import ErrorCode, ProblemDetail
+from pathfinder.platform.errors import (
+    AssistantMismatchError,
+    AssistantNotFoundError,
+    ErrorCode,
+    ProblemDetail,
+)
 
 _logger = structlog.get_logger(__name__)
 
@@ -135,6 +141,22 @@ async def assistant_core_error_handler(
         title=title,
         detail=str(exc),
     )
+
+
+async def unknown_assistant_handler(
+    request: Request, exc: registry.UnknownAssistantError
+) -> JSONResponse:
+    """Render an assistant id this deployment does not serve."""
+    refusal = AssistantNotFoundError(exc.assistant_id, exc.known)
+    return _failed(request, refusal, ErrorCode(refusal.code.value))
+
+
+async def assistant_mismatch_handler(
+    request: Request, exc: registry.AssistantMismatchError
+) -> JSONResponse:
+    """Render a request that names an assistant other than its thread's."""
+    refusal = AssistantMismatchError(requested=exc.requested, existing=exc.existing)
+    return _failed(request, refusal, ErrorCode(refusal.code.value))
 
 
 async def apply_error_handler(request: Request, exc: ApplyError) -> JSONResponse:

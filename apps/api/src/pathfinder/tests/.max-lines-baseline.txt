@@ -4,9 +4,9 @@
 src/pathfinder/tests/conftest.py::485
 src/pathfinder/tests/integration/eda/test_authoring.py::626
 src/pathfinder/tests/integration/eda/test_eda_conversation.py::498
-src/pathfinder/tests/integration/persistence/_thread_surgery.py::541
+src/pathfinder/tests/integration/persistence/_thread_surgery.py::540
 src/pathfinder/tests/integration/persistence/test_conversation_fork_and_delete.py::1685
 src/pathfinder/tests/integration/persistence/test_conversation_revert.py::453
 src/pathfinder/tests/integration/persistence/test_fork_case_matrix.py::651
 src/pathfinder/tests/integration/persistence/test_revert_case_matrix.py::571
-src/pathfinder/tests/integration/services/strategies/test_commit_integration.py::605
+src/pathfinder/tests/integration/services/strategies/test_commit_integration.py::602

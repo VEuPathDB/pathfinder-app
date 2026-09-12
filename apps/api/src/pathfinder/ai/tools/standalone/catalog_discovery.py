@@ -13,7 +13,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.parameters.value_codec import coerce_context_values
+from veupathdb.domain.parameters import coerce_context_values
 from veupathdb_mcp.catalog import (
     GetParameterOptionsResult,
     ParameterInfo,

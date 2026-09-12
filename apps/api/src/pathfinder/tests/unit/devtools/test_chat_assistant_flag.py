@@ -6,9 +6,9 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
+from assistant_core.registry import AssistantMismatchError, UnknownAssistantError
 
 from pathfinder.devtools import chat
-from pathfinder.platform.errors import AssistantMismatchError, AssistantNotFoundError
 
 _RUN_ARGV = ["hi", "--site", "plasmodb", "--mock"]
 
@@ -21,7 +21,7 @@ def _install_existing(
         return assistant_id
 
     monkeypatch.setattr(
-        "pathfinder.ai.conversation.assistant_routing.conversation_assistant_id",
+        "assistant_core.registry.conversation_assistant_id",
         _read,
     )
 
@@ -75,7 +75,7 @@ async def test_an_unknown_assistant_is_refused(
 ) -> None:
     _install_existing(monkeypatch, None)
 
-    with pytest.raises(AssistantNotFoundError):
+    with pytest.raises(UnknownAssistantError):
         await chat.resolve_run_assistant(uuid4(), "no_such_assistant")
 
 

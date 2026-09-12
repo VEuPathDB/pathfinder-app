@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.eda.models import EdaPermissionEntry, EdaStudyDetail
+from veupathdb.eda import EdaPermissionEntry, EdaStudyDetail
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_catalog

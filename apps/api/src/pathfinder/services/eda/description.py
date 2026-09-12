@@ -7,15 +7,15 @@ from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from veupathdb.domain.eda_study import (
+from veupathdb.domain import (
     VEUPATHDB_GENE_ID,
     EntityFacts,
     entity_by_id,
+    find_gene_entity,
     variable_by_id,
     walk_entities,
 )
-from veupathdb.domain.eda_validation import find_gene_entity
-from veupathdb.eda.models import EdaPermissionEntry, EdaStudyDetail
+from veupathdb.eda import EdaPermissionEntry, EdaStudyDetail
 
 from pathfinder.platform.errors import NotFoundError
 

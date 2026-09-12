@@ -21,6 +21,7 @@ function makeItem(id: string, siteId: string): ConversationItem {
     title: chat.name,
     updatedAt: chat.updatedAt,
     siteId,
+    assistantId: "pathfinder",
     isDismissed: false,
     isSaved: false,
     stepCount: 0,

@@ -49,6 +49,7 @@ function item(over: Partial<ConversationResponse>): ConversationItem {
     title: c.name,
     updatedAt: c.updatedAt,
     siteId: c.siteId,
+    assistantId: "pathfinder",
     isDismissed: false,
     isSaved: false,
     stepCount: 0,

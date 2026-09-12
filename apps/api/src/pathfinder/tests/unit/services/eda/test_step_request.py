@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
-from veupathdb.eda.models import EdaStringSetFilter
+from veupathdb.eda import EdaStringSetFilter
 from veupathdb_mcp.catalog import (
     EDA_ANALYSIS_SPEC_PARAM,
     EDA_DATASET_ID_PARAM,

@@ -9,10 +9,17 @@ that consumes it.
 from __future__ import annotations
 
 from hypothesis import given
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.graph_model import StepKind, flatten_tree
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.tree import fold, leaves, parent_of, walk
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    CombineOp,
+    StepKind,
+    StrategyStepNode,
+    flatten_tree,
+    fold,
+    leaves,
+    parent_of,
+    walk,
+)
 
 from ._builders import FAST_PROFILE, strategy_trees
 

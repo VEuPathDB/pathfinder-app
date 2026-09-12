@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.values import MultiPickValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.parameters import MultiPickValue
+from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
 
 from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome
 from pathfinder.evals.distance import tree_from_ast, tree_from_signature

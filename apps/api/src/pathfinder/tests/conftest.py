@@ -58,6 +58,7 @@ from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.memory.store import MemoryStore
 from assistant_core.persistence.models import Base
 from assistant_core.platform import db
+from assistant_core.registry import resolve_turn_assistant
 from assistant_core.spec import AssistantSpec
 from fastapi import Depends, FastAPI
 from procrastinate.testing import InMemoryConnector
@@ -70,13 +71,12 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 from testcontainers.community.postgres import PostgresContainer
-from veupathdb.eda.factory import close_all_eda_clients
-from veupathdb.testing.wdk_credentials import (
+from veupathdb.eda import close_all_eda_clients
+from veupathdb.testing import (
     NO_CREDENTIALS_REASON,
     registered_wdk_token,
 )
-from veupathdb.wdk import auth_login
-from veupathdb.wdk.site_router import get_site_router
+from veupathdb.wdk import forget_signing_keys, get_site_router
 from veupathdb_mcp.embeddings import (
     EmbeddingBase,
     FakeEmbedder,
@@ -85,7 +85,6 @@ from veupathdb_mcp.embeddings import (
 )
 
 from pathfinder.ai.capabilities.security import warm_up_scanner
-from pathfinder.ai.conversation.assistant_routing import resolve_turn_assistant
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.app import procrastinate_app
@@ -477,7 +476,7 @@ async def _close_wdk_clients_after_test() -> AsyncGenerator[None]:
 
 
 def _drop_identity_caches() -> None:
-    auth_login._signing_keys.clear()
+    forget_signing_keys()
     wdk_identity._identities.clear()
 
 
@@ -578,8 +577,8 @@ async def _eager_spawn(
         return task
 
     # Several modules import spawn by name, so patch every binding site.
-    monkeypatch.setattr("pathfinder.platform.tasks.spawn", _tracked_spawn)
-    monkeypatch.setattr("pathfinder.platform.store.spawn", _tracked_spawn)
+    monkeypatch.setattr("assistant_core.platform.spawn.spawn", _tracked_spawn)
+    monkeypatch.setattr("assistant_core.platform.store.spawn", _tracked_spawn)
 
     yield spawned
 

@@ -6,11 +6,10 @@ from typing import Literal
 
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat
-from veupathdb.domain.parameters.value_codec import from_wire
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.tree import walk
+from veupathdb.domain.parameters import from_wire
+from veupathdb.domain.strategy import StrategyStepNode, walk
 from veupathdb.errors import ValidationError, VEuPathDBError
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.controls import (
     ControlTestResult,
     IntersectionConfig,

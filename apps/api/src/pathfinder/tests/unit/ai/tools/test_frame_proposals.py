@@ -8,9 +8,9 @@ import pytest
 from pydantic import TypeAdapter
 from pydantic import ValidationError as PydanticValidationError
 from pydantic_ai import ModelRetry
-from veupathdb.domain.parameters.wdk_vocab import VocabOption, WDKVocabTerm
-from veupathdb.domain.search import SearchContext
-from veupathdb.wdk.wdk_parameters import (
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import VocabOption, WDKVocabTerm
+from veupathdb.wdk import (
     WDKEnumParam,
     WDKParameter,
     WDKStringParam,

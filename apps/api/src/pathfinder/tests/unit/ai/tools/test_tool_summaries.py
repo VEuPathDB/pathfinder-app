@@ -126,17 +126,18 @@ def _defs_for(
 ) -> dict[str, ast.FunctionDef | ast.AsyncFunctionDef]:
     """The definitions on the return path of one tool.
 
-    A tool's own module answers first. A helper it imports is on that path too,
-    so the module holding the helper contributes the names the tool's module
-    does not define.
+    A tool's own module answers first. A helper it imports from the same
+    distribution is on that path too, so the module holding the helper
+    contributes the names the tool's module does not define.
     """
     defs = _defs(_module_tree(fn))
+    root = f"/{fn.__module__.split('.')[0]}/"
     parsed: dict[str, ast.Module] = {}
     for value in list(fn.__globals__.values()):
         if not inspect.isfunction(value):
             continue
         path = inspect.getsourcefile(value)
-        if path is None or "/pathfinder/" not in path:
+        if path is None or root not in path:
             continue
         if path not in parsed:
             parsed[path] = ast.parse(Path(path).read_text())
@@ -158,9 +159,10 @@ def _called_names(node: ast.AST) -> set[str]:
 
 
 def _defs(tree: ast.Module) -> dict[str, ast.FunctionDef | ast.AsyncFunctionDef]:
+    """Every function a module defines, including one built inside a factory."""
     return {
         node.name: node
-        for node in tree.body
+        for node in ast.walk(tree)
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
 

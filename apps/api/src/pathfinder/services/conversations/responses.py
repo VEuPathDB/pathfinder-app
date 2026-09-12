@@ -13,9 +13,8 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import walk
-from veupathdb.wdk.factory import get_site
+from veupathdb.domain.strategy import StrategyAst, walk
+from veupathdb.wdk import get_site
 
 from pathfinder.domain.strategy.revision import (
     parse_strategy_ast,

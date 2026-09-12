@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 from assistant_core.platform.types import JSONObject
-from veupathdb.wdk.wdk_models import WDKStrategySummary
+from veupathdb.wdk import WDKStrategySummary
 from veupathdb_mcp import tool_payloads
 from veupathdb_mcp.embeddings import EmbeddingUnavailableError
 from veupathdb_mcp.tools import catalog_tools

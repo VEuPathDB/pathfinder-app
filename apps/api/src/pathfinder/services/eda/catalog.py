@@ -9,14 +9,14 @@ from dataclasses import dataclass
 import httpx
 from assistant_core.platform.logging import get_logger
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.eda.factory import get_eda_client
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaPermissionEntry,
     EdaStudyDetail,
     EdaStudyOverview,
+    get_eda_client,
 )
 from veupathdb.errors import WDKLoginRequiredError
-from veupathdb.wdk.site_router import get_site_router
+from veupathdb.wdk import get_site_router
 from veupathdb_mcp.embeddings import (
     SemanticIndexUnavailableError,
     SyncReport,

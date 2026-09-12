@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 from assistant_core.tasks.progress import TaskProgressEmitter
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
-from veupathdb.wdk.wdk_models import WDKSearchConfig, WDKStep
+from veupathdb.wdk import WDKSearchConfig, WDKStep
 from veupathdb_mcp.controls import (
     ControlSetData,
     ControlTargetData,

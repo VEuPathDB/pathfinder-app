@@ -1,5 +1,4 @@
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.tree import subtree_ids
+from veupathdb.domain.strategy import StepKind, StrategyStep, subtree_ids
 
 from pathfinder.domain.strategy.operations.types import (
     DeleteResolution,

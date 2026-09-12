@@ -78,6 +78,31 @@ describe("buildChatRequestBody", () => {
     expect(out["phaseReasoning"]).toEqual({ lead: "high" });
   });
 
+  it("names the assistant when the caller gives one", () => {
+    const out = buildChatRequestBody({
+      conversationId: "c1",
+      siteId: "plasmodb",
+      id: "x",
+      trigger: "submit-message",
+      messages: [],
+      baseBody: undefined,
+      assistantId: "site_help",
+    });
+    expect(out["assistantId"]).toBe("site_help");
+  });
+
+  it("omits the assistant when the caller names none", () => {
+    const out = buildChatRequestBody({
+      conversationId: "c1",
+      siteId: "plasmodb",
+      id: "x",
+      trigger: "submit-message",
+      messages: [],
+      baseBody: undefined,
+    });
+    expect("assistantId" in out).toBe(false);
+  });
+
   it("omits phaseModels and phaseReasoning when empty or missing", () => {
     const out = buildChatRequestBody({
       conversationId: "c1",

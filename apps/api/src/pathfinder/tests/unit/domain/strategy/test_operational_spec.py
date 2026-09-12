@@ -7,10 +7,13 @@ the spec adopts that id, the next turn's edit has nothing to address.
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import MultiPickValue
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.parameters import MultiPickValue
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    CombineOp,
+    StrategyStepNode,
+    flatten_tree,
+)
 
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,

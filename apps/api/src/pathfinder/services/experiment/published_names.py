@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-from veupathdb.domain.search import SearchContext
+from veupathdb import get_logger
+from veupathdb.domain import SearchContext
 from veupathdb.errors import VEuPathDBError
-from veupathdb.logging import get_logger
 from veupathdb_mcp.catalog import get_search_parameters
 
 logger = get_logger(__name__)

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from assistant_core.registry import resolve_turn_assistant
 from assistant_core.spec import AssistantSpec
 from fastapi import APIRouter, Depends, Response
 
-from pathfinder.ai.conversation.assistant_routing import resolve_turn_assistant
 from pathfinder.ai.conversation.dispatcher import dispatch
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.registry import get_assistant_registry

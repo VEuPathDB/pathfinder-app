@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.lead.ledger import (
     InvestigationLedger,

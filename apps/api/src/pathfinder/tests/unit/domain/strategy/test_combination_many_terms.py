@@ -7,7 +7,7 @@ criteria with the other operator.
 from __future__ import annotations
 
 from hypothesis import given, strategies
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.domain.strategy.combination_check import (
     combination_violation,

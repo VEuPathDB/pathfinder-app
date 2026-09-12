@@ -11,7 +11,7 @@ from assistant_core.mcp.resolution import ToolSourceUnavailableError
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext, ToolDefinition
 from pydantic_ai.usage import RunUsage
-from veupathdb_mcp import RESOURCE_NAME
+from veupathdb_mcp.metadata import RESOURCE_NAME
 from veupathdb_mcp.research import TOOLS
 from veupathdb_mcp.server import CONTROL_TESTS_MAX_CALL_SECONDS
 

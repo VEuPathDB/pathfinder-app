@@ -24,13 +24,13 @@ describe("LoginModal", () => {
         open
         selectedSite="plasmodb"
         onSiteChange={vi.fn()}
-        reason="Sign in to VEuPathDB to use searches, strategies and gene sets."
+        reason="VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token."
         onDismiss={onDismiss}
       />,
     );
     expect(
       screen.getByText(
-        "Sign in to VEuPathDB to use searches, strategies and gene sets.",
+        "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.",
       ),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Close" }));

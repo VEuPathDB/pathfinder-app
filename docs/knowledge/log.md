@@ -2,6 +2,90 @@
 
 ## 2026-09-11
 
+* **A tier preset names the roles of the assistant it belongs to.** A preset is
+  a mapping from a role name to a model and an effort, and the registry is keyed
+  by assistant first, so `site_help` has one role and PathFinder keeps four, and
+  a new assistant adds a table rather than a field on a model every client must
+  match. The tier registry is `pathfinder.platform.tiers`, because it serves
+  every assistant and a one-agent assistant may not import PathFinder's agents.
+  The site-help agent resolves its model the way the Lead does: the user's pick
+  for that role, then the configured tier, then the model its own module names.
+  The chat boundary refuses a role no installed assistant runs a model for,
+  which is the same refusal a role outside the four used to get.
+
+* **Both assistants are reachable from the product.** The conversations header
+  names the assistants, the draft chat route carries the one the reader picked
+  as `?assistant=`, and the message that creates the thread is the only one that
+  names an assistant on the wire, because a thread keeps the assistant it was
+  created with and another id on it is refused. A thread says which assistant
+  answers it: the empty state before the first message, the sidebar row after
+  it, and the model settings show the roles of the assistant in use.
+
+* **Three library releases, taken together.** `veupathdb-py` is `v0.1.0a10`,
+  `veupathdb-mcp` is `v0.2.0a7` and `assistant-core` and
+  `veupathdb-mcp-conformance` are `v0.3.0a7`. The two Python pins move as one
+  pair: a release of the tool server names the client release it was built
+  against, so taking one tag while the other is behind fails the resolution on
+  conflicting URLs rather than installing either.
+
+* **Every client import names a published surface.** `veupathdb-py` declares
+  sixteen surfaces and re-exports nothing from the module paths this backend
+  used to read, so 1201 import statements now name a package or one of the
+  eight published modules. Two test seams that reached a module for its globals
+  reach a service of this application instead: the EDA doubles point
+  `catalog`, `authoring`, `compute` and `binding` at one client, and the
+  identity test records the site its own service names. The last private reach,
+  the reset of the OAuth signing keys a test must not inherit, reads the name
+  `veupathdb-py` publishes on `veupathdb.wdk` from `v0.1.0a10`.
+
+* **The WDK to AST conversion belongs to the distribution that owns both
+  shapes.** `build_snapshot_from_wdk` and `canonicalize_synced_parameters` are
+  `veupathdb_mcp.wdk`, so a second consumer of a saved WDK strategy reads one
+  conversion instead of copying 263 lines out of an application.
+
+* **The record type a sample read asks for is this application's to name.** The
+  tool server takes the record type a caller names and supplies no default, so
+  the tool reads the type its own strategy session carries and falls back to
+  `transcript` where the session has none.
+
+* **A memory kind is a name the host declares.** The runtime holds a kind to a
+  snake_case shape and nothing else, so the five kinds this product writes are
+  one `Literal` in `pathfinder.domain.memory`, read by the routes, the tools and
+  the spec. The wire keeps its enum: the memories routes publish this
+  application's own value model, and a field the runtime adds to its own is
+  published here or the release fails.
+
+* **The turn driver names no product table.** An assistant declares a turn
+  prologue that answers a token and a cancel hook that receives it, so a
+  `site_help` turn makes no query against `strategy_revisions` and a stopped one
+  restores nothing, while a PathFinder turn behaves as it did.
+
+* **Three modules of mechanism left this repository.** The eleven turn and SSE
+  instruments record from the runtime that observes each event, so the
+  dashboards read `assistant.turn.*` and `assistant.sse.*` rather than nineteen
+  empty `pathfinder.pipeline.*` and `pathfinder.sse.*` series; the write-through
+  store and the task spawner are the runtime's, and the two stores subclass it.
+
+* **Which assistant answers a turn is the runtime's rule.** This application
+  keeps only how the refusal reads on the wire: an unserved id is 404
+  `ASSISTANT_NOT_FOUND` and a request naming another assistant than its thread's
+  is 409 `ASSISTANT_MISMATCH`, both rendered by a handler over the runtime's own
+  exception.
+
+* **The durable queue is a name this deployment declares.** `jobs/app.py` names
+  `verification` and the worker subscribes to what `worker_queues()` lists, so
+  the jobs stay on the queue they are already on and a worker written against
+  the runtime's old constant fails at import rather than subscribing to a queue
+  nothing defers onto. The three callers that defer a turn - the chat route, the
+  debugger and the stalled-job fixture - call the runtime's own `defer_chat_turn`,
+  which refuses a payload the stalled-job sweep could not read.
+
+* **The prose the client bundle removed lives here.** The authority ranking, the
+  two verification sites and the live enrichment test that is not evidence are
+  `wdk/pathfinder/sources-and-authority.md`; the step-status derivation and the
+  local-edit reading sit beside the divergences they explain; the procedure for
+  listing every WDK call this backend makes is in `wdk/pathfinder/layer-ownership.md`.
+
 * **A green unit run exits 0, because the suite loads no ONNX model.**
   `PIGUARD_ENABLED` is false among the root conftest's environment defaults and
   `warm_up_scanner` returns without building the session when it is false,

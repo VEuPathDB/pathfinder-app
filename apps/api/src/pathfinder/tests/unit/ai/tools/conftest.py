@@ -14,9 +14,8 @@ from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, DataChunk
-from veupathdb.domain.strategy.validation import StepValidation
-from veupathdb.wdk.wdk_models import WDKSearch, WDKSearchResponse
-from veupathdb.wdk.wdk_parameters import WDKParameter, WDKStringParam
+from veupathdb.domain.strategy import StepValidation
+from veupathdb.wdk import WDKParameter, WDKSearch, WDKSearchResponse, WDKStringParam
 from veupathdb_mcp.catalog import search_inspection
 
 from pathfinder.ai.agents.state import AgentToolState

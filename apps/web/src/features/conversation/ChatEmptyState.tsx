@@ -7,6 +7,11 @@ import { Settings2, X } from "lucide-react";
 import { siteDisplayName } from "@pathfinder/shared";
 
 import suggestedQuestions from "@/features/conversation/data/suggestedQuestions.json";
+import {
+  DEFAULT_ASSISTANT_ID,
+  assistantChoice,
+  assistantLabel,
+} from "@/lib/assistants";
 import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 import { useSessionStore } from "@/state/useSessionStore";
@@ -28,12 +33,16 @@ function greetingForHour(hour: number): string {
 
 const suggestionEase = [0.22, 1, 0.36, 1] as const;
 
-export function ChatEmptyState() {
+export function ChatEmptyState({ assistantId }: { assistantId: string }) {
   const siteId = useSessionStore((s) => s.selectedSite);
   const displayName = siteDisplayName(siteId);
   const hintDismissed = useSettingsStore((s) => s.firstRunHintDismissed);
   const dismissHint = useSettingsStore((s) => s.dismissFirstRunHint);
-  const suggestions = suggestionsForSite(siteId);
+  const choice = assistantChoice(assistantId);
+  // The suggestion bank asks for strategies, which only the default assistant
+  // builds.
+  const suggestions =
+    assistantId === DEFAULT_ASSISTANT_ID ? suggestionsForSite(siteId) : [];
   const greeting = greetingForHour(new Date().getHours());
   const headingEntrance = useEntrance({
     initial: { opacity: 0, y: 8 },
@@ -51,6 +60,14 @@ export function ChatEmptyState() {
   return (
     <AuiIf condition={(s) => s.thread.isEmpty}>
       <div className="flex min-h-[60vh] flex-1 flex-col items-center justify-center px-6 py-10 text-center">
+        {assistantId !== DEFAULT_ASSISTANT_ID && (
+          <div
+            data-testid="chat-assistant-label"
+            className="mb-3 rounded-full border border-border/60 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+          >
+            {assistantLabel(assistantId)}
+          </div>
+        )}
         <motion.h1
           {...headingEntrance}
           animate={{ opacity: 1, y: 0 }}
@@ -58,14 +75,16 @@ export function ChatEmptyState() {
         >
           {greeting}
         </motion.h1>
-        <motion.p
-          {...blurbEntrance}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground"
-        >
-          Build and refine multi-step {displayName} search strategies with guided
-          parameter selection and validation.
-        </motion.p>
+        {choice !== null && (
+          <motion.p
+            {...blurbEntrance}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground"
+            data-testid="chat-empty-blurb"
+          >
+            {choice.blurb(displayName)}
+          </motion.p>
+        )}
 
         {!hintDismissed && (
           <motion.div

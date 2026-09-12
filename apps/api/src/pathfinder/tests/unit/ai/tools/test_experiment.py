@@ -9,7 +9,7 @@ from uuid import UUID
 
 import pytest
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, DataChunk
-from veupathdb.domain.parameters.values import StringValue
+from veupathdb.domain.parameters import StringValue
 from veupathdb_mcp.controls import ControlSetData, ControlTargetData, ControlTestResult
 from veupathdb_mcp.tool_payloads import ControlOutcome
 

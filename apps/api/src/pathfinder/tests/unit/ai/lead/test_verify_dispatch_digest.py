@@ -9,8 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
 
 from pathfinder.ai.graph.state import FailureCause, PhaseDisposition
 from pathfinder.ai.lead import sub_agent_tools

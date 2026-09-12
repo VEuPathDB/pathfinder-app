@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.value_codec import to_wire
-from veupathdb.domain.parameters.wdk_vocab import match_exact_option
-from veupathdb.wdk.wdk_models import WDKSearch
+from veupathdb.domain.parameters import match_exact_option, to_wire
+from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,

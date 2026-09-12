@@ -9,9 +9,9 @@ from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.tasks.progress import TaskProgressEmitter
 from pydantic import Field
+from veupathdb import get_logger
 from veupathdb.errors import VEuPathDBError
-from veupathdb.logging import get_logger
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.controls import run_step_control_tests
 from veupathdb_mcp.tool_payloads import ControlOutcome
 

@@ -8,16 +8,21 @@ from typing import TypeGuard
 
 from hypothesis import HealthCheck, settings
 from hypothesis import strategies as st
-from veupathdb.domain.parameters.values import (
+from veupathdb.domain.parameters import (
     MultiPickValue,
     NumberValue,
     ParamValue,
     StringValue,
 )
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.graph_model import StepKind, flatten_tree
-from veupathdb.domain.strategy.ops import ColocationParams, CombineOp
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    ColocationParams,
+    CombineOp,
+    StepKind,
+    StrategyAst,
+    StrategyStepNode,
+    flatten_tree,
+)
 
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,

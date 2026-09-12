@@ -14,9 +14,9 @@ from typing import Any
 from uuid import UUID
 
 from assistant_core import quota
+from assistant_core.conversation.stream_parts.agent_topology import lead_usage_event
 from assistant_core.cost import cost_for_run
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
-from assistant_core.graph.stream_events import lead_usage_event
 from assistant_core.graph.turn_state import PendingApproval, PendingDurableCall
 from assistant_core.platform.logging import get_logger
 from pydantic_ai.messages import ModelMessage

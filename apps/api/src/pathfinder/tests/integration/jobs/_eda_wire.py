@@ -15,11 +15,10 @@ from uuid import UUID
 
 import httpx
 import pytest
-from veupathdb.eda import factory
-from veupathdb.eda.client import EdaClient
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
+    EdaClient,
     EdaComputation,
     EdaFilter,
     EdaStringSetFilter,
@@ -29,8 +28,8 @@ from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.jobs.impls import eda_compute_impl
 from pathfinder.persistence.models import ConversationAnalysisView
-from pathfinder.services.eda import authoring, binding, catalog, compute
-from pathfinder.tests._support.eda_wire import AnalysisStore
+from pathfinder.services.eda import authoring, binding
+from pathfinder.tests._support.eda_wire import AnalysisStore, wire_eda_client
 
 FIXTURES = FIXTURE_DIR
 
@@ -191,8 +190,7 @@ def install(
     async def user_id(_site: str) -> str:
         return "9001"
 
-    for module in (compute, catalog, authoring, factory):
-        monkeypatch.setattr(module, "get_eda_client", lambda _s: client)
+    wire_eda_client(monkeypatch, client)
     monkeypatch.setattr(authoring, "resolve_eda_user_id", user_id)
     monkeypatch.setattr(binding, "resolve_eda_user_id", user_id)
     chunks: list[dict[str, Any]] = []

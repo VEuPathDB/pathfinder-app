@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from veupathdb.wdk.client import VEuPathDBClient
-from veupathdb.wdk.strategy_api import (
+from veupathdb.wdk import (
     StrategyAPI,
+    VEuPathDBClient,
+    WDKStrategySummary,
     is_internal_wdk_strategy_name,
     tag_internal_wdk_strategy_name,
 )
-from veupathdb.wdk.wdk_models import WDKStrategySummary
 from veupathdb_mcp.controls import (
     IntersectionConfig,
     cleanup_internal_control_test_strategies,

@@ -9,12 +9,10 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.validation import StepValidation
-from veupathdb.wdk.site_router import SiteInfo
-from veupathdb.wdk.strategy_api import StrategyAPI
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain.strategy import StepValidation, StrategyStepNode, flatten_tree
+from veupathdb.wdk import (
+    SiteInfo,
+    StrategyAPI,
     WDKIdentifier,
     WDKStep,
     WDKStrategyDetails,

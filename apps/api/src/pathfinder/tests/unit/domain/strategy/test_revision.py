@@ -4,9 +4,7 @@ The fingerprint must change on parameter and topology edits, and stay the same
 on count refreshes.
 """
 
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.domain.strategy import StepValidation, StrategyAst, StrategyStepNode
 
 from pathfinder.domain.strategy.revision import strategy_revision
 

@@ -5,8 +5,7 @@ responses and context payloads for AI tool results.
 """
 
 from assistant_core.platform.types import JSONObject
-from veupathdb.domain.strategy.graph_model import StrategyStep
-from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.domain.strategy import StepValidation, StrategyStep
 
 from pathfinder.ai.tools.standalone._validation_helpers import (
     ContextStrategyAstPayload,

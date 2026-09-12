@@ -12,8 +12,8 @@ from pydantic_ai.ui.vercel_ai.request_types import (
     UIMessage,
 )
 
-from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.models.catalog import get_model_entry
+from pathfinder.platform.tiers import KNOWN_ROLES
 
 _TURN_FACTS = frozenset({"errors", "aborted", "finishReason"})
 _PART_STREAM_FACTS = frozenset(
@@ -59,10 +59,10 @@ class ChatRequestBody(CamelModel):
     site_id: str = Field(default="", max_length=50)
     mode: str = "strategy"
     experiment_id: str | None = None
-    # ``PhaseRole`` is the product's declared role set; a key outside it is
-    # refused here, so the runtime downstream only ever sees plain strings.
-    phase_models: dict[PhaseRole, str] = Field(default_factory=dict)
-    phase_reasoning: dict[PhaseRole, ReasoningEffort] = Field(default_factory=dict)
+    # A role no installed assistant runs a model for is refused here, so the
+    # runtime downstream only ever sees a role some preset names.
+    phase_models: dict[str, str] = Field(default_factory=dict)
+    phase_reasoning: dict[str, ReasoningEffort] = Field(default_factory=dict)
 
     @field_validator("messages", mode="before")
     @classmethod
@@ -78,11 +78,19 @@ class ChatRequestBody(CamelModel):
             for entry in value
         ]
 
+    @field_validator("phase_models", "phase_reasoning")
+    @classmethod
+    def _roles_are_declared[ValueT](cls, value: dict[str, ValueT]) -> dict[str, ValueT]:
+        """Reject a role no installed assistant runs a model for."""
+        unknown = sorted(set(value) - KNOWN_ROLES)
+        if unknown:
+            msg = f"unknown phase roles: {unknown}"
+            raise ValueError(msg)
+        return value
+
     @field_validator("phase_models")
     @classmethod
-    def _models_are_in_the_catalog(
-        cls, value: dict[PhaseRole, str]
-    ) -> dict[PhaseRole, str]:
+    def _models_are_in_the_catalog(cls, value: dict[str, str]) -> dict[str, str]:
         """Reject a model id the catalog does not define."""
         for role, model_id in value.items():
             if get_model_entry(model_id) is None:
@@ -93,12 +101,12 @@ class ChatRequestBody(CamelModel):
     @property
     def runtime_phase_models(self) -> dict[str, str]:
         """The validated per-role model picks, as the runtime keys them."""
-        return dict(self.phase_models.items())
+        return dict(self.phase_models)
 
     @property
     def runtime_phase_reasoning(self) -> dict[str, ReasoningEffort]:
         """The validated per-role reasoning picks, as the runtime keys them."""
-        return dict(self.phase_reasoning.items())
+        return dict(self.phase_reasoning)
 
     @property
     def last_user_text(self) -> str:

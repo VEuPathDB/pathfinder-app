@@ -6,9 +6,8 @@ from typing import Any
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.parameters.values import MultiPickValue, StringValue
-from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.parameters import MultiPickValue, StringValue
+from veupathdb.domain.strategy import CombineOp, flatten_tree
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState

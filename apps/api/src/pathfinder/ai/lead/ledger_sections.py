@@ -6,11 +6,11 @@ from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import Field
-from veupathdb.domain.parameters.value_codec import to_wire
-from veupathdb.domain.parameters.values import (
+from veupathdb.domain.parameters import (
     MultiPickValue,
     ParamValue,
     SinglePickValue,
+    to_wire,
 )
 from veupathdb_mcp.catalog import contrast_role_of, is_direction_param
 

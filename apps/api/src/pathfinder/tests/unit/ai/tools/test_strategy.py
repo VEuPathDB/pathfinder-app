@@ -12,9 +12,8 @@ import pytest
 from pydantic_ai import RunContext, Tool
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import flatten_tree
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.strategy import apply_operations, build_strategy

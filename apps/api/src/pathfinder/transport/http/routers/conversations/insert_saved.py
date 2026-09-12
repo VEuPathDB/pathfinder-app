@@ -6,7 +6,7 @@ from uuid import UUID
 from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import APIRouter
 from pydantic import Field
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.services.conversations.service import ConversationService
 from pathfinder.transport.http.deps import AvailableSite, CurrentUser, DBSession

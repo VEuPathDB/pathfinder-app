@@ -6,13 +6,13 @@ from datetime import UTC, datetime
 
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.memory.retrieval import rerank_by_hybrid_score
-from assistant_core.memory.schemas import MemoryKind, MemoryValue
+from assistant_core.memory.schemas import MemoryValue
 from assistant_core.memory.store import MemoryStore, StoredMemory
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.tools import RunContext
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.lead.memory_candidates import PRODUCT_MEMORY_KINDS
+from pathfinder.domain.memory import MEMORY_KINDS, MemoryKind
 
 
 async def search_memory(
@@ -41,7 +41,7 @@ async def search_memory(
             status="empty",
         )
     mem_store = MemoryStore(store=store_raw)
-    kinds: tuple[str, ...] = (kind,) if kind is not None else PRODUCT_MEMORY_KINDS
+    kinds: tuple[str, ...] = (kind,) if kind is not None else MEMORY_KINDS
     per_kind = max(1, top_k) if len(kinds) == 1 else max(1, top_k // len(kinds))
 
     all_hits: list[StoredMemory] = []
@@ -75,6 +75,16 @@ async def remember(
 
     Use for biological facts the user has taught you or preferences they've
     stated. Returns the storage key or an error string.
+
+    Args:
+        kind: Which memory kind the entry belongs to.
+        name: Short, recall-friendly title, such as "P. falciparum kinome size".
+        summary: One line shown in retrieval previews. Retrieval matches on it
+            and on the content payload.
+        content: The durable knowledge itself, as counts, identifiers or
+            criteria a later turn can act on.
+        tags: Retrieval tags, such as an organism, a technique or a dataset.
+            The site id is added automatically, so do not repeat it here.
     """
     store_raw = ctx.deps.memory_store
     user_id = ctx.deps.user_id

@@ -29,11 +29,10 @@ def _should_export_span(span: ReadableSpan) -> bool:
     """Langfuse export filter that also accepts pathfinder app spans.
 
     Langfuse's default filter (``is_default_export_span``) only keeps spans
-    from known LLM instrumentors or spans with ``gen_ai.*`` attributes. Our
-    turn-level span (``chat.turn``) is created by the ``pathfinder.pipeline``
-    tracer and carries only ``langfuse.*`` / ``app.*`` attributes, so the
-    default filter drops it and its root-trace metadata never reaches
-    Langfuse. Accept any span that explicitly sets ``langfuse.*`` attributes.
+    from known LLM instrumentors or spans with ``gen_ai.*`` attributes. A span
+    this deployment opens itself carries only ``langfuse.*`` / ``app.*``
+    attributes, so the default filter drops it and its root-trace metadata
+    never reaches Langfuse. Accept any span that sets ``langfuse.*``.
     """
     if is_default_export_span(span):
         return True

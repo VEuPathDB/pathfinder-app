@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
-from veupathdb.domain.parameters.wdk_vocab import VocabOption
-from veupathdb.domain.search import SearchContext
-from veupathdb.domain.strategy.validation import StepValidation
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import VocabOption
+from veupathdb.domain.strategy import StepValidation
+from veupathdb.wdk import (
     WDKSearch,
     WDKSearchConfig,
     WDKSearchResponse,

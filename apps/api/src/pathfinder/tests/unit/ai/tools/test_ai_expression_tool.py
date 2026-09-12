@@ -12,11 +12,11 @@ import pytest
 from pydantic import JsonValue
 from veupathdb.errors import WDKError
 from veupathdb.testing.wdk_fixtures import load_recorded
-from veupathdb.wdk.ai_expression import (
+from veupathdb.wdk import (
     AI_EXPRESSION_REPORT_PATH,
     AiExpressionStatus,
+    VEuPathDBClient,
 )
-from veupathdb.wdk.client import VEuPathDBClient
 from veupathdb_mcp import ToolErrorPayload
 from veupathdb_mcp.wdk import (
     NO_SUMMARY_ON_THE_SITE,

@@ -1,18 +1,14 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
+
+import { ASSISTANT_PARAM, conversationIdFromPath } from "@/lib/routes";
 
 import { ChatView } from "./ChatView";
 
-const CHAT_ID_FROM_PATH = /\/conversation\/([^/]+)/;
 const STRATEGY_PATH = /\/conversation\/[^/]+\/strategy(\/|$)/;
 const EDA_PATH = /\/conversation\/[^/]+\/eda(\/|$)/;
-
-function extractChatId(pathname: string): string | null {
-  const match = pathname.match(CHAT_ID_FROM_PATH);
-  return match?.[1] ?? null;
-}
 
 export function isStrategyRoute(pathname: string): boolean {
   return STRATEGY_PATH.test(pathname);
@@ -35,7 +31,7 @@ export function computeChatResolution({
   pathname: string;
   generatedChatId: string;
 }): ChatResolution {
-  const chatIdFromUrl = extractChatId(pathname);
+  const chatIdFromUrl = conversationIdFromPath(pathname);
   const conversationId = chatIdFromUrl ?? generatedChatId;
   const allowMissing = conversationId === generatedChatId;
   // A conversation named in the URL can have a turn running in it. Whether
@@ -43,17 +39,33 @@ export function computeChatResolution({
   return { conversationId, allowMissing, resumable: chatIdFromUrl !== null };
 }
 
+/**
+ * The draft a generated conversation id belongs to. The assistant is part of
+ * it: two assistants on one path are two drafts, so the thread a first message
+ * creates runs under the assistant the reader picked.
+ */
+export function draftRoute(
+  pathname: string,
+  requestedAssistantId: string | null,
+): string {
+  if (requestedAssistantId === null) return pathname;
+  return `${pathname}?${ASSISTANT_PARAM}=${requestedAssistantId}`;
+}
+
 export function ChatShell() {
   const pathname = usePathname();
-  const chatIdFromUrl = extractChatId(pathname);
+  const searchParams = useSearchParams();
+  const chatIdFromUrl = conversationIdFromPath(pathname);
+  const requestedAssistantId = searchParams.get(ASSISTANT_PARAM);
+  const currentDraft = draftRoute(pathname, requestedAssistantId);
 
   const [generatedChatId, setGeneratedChatId] = useState<string>(() =>
     crypto.randomUUID(),
   );
-  const [lastSeenPath, setLastSeenPath] = useState<string>(pathname);
+  const [lastSeenDraft, setLastSeenDraft] = useState<string>(currentDraft);
 
-  if (chatIdFromUrl === null && lastSeenPath !== pathname) {
-    setLastSeenPath(pathname);
+  if (chatIdFromUrl === null && lastSeenDraft !== currentDraft) {
+    setLastSeenDraft(currentDraft);
     setGeneratedChatId(crypto.randomUUID());
   }
 
@@ -71,6 +83,7 @@ export function ChatShell() {
       conversationId={conversationId}
       allowMissing={allowMissing}
       resumable={resumable}
+      requestedAssistantId={requestedAssistantId}
     />
   );
 }

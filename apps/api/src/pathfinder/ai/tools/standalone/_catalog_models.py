@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from veupathdb.wdk.wdk_models import WDKSearch
+from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import read_search_definition
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview

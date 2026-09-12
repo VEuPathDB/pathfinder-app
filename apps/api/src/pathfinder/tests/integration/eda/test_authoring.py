@@ -9,9 +9,8 @@ from typing import Any
 import httpx
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.eda import factory
-from veupathdb.eda.client import EdaClient
-from veupathdb.eda.models import (
+from veupathdb.eda import (
+    EdaClient,
     EdaComparator,
     EdaComputation,
     EdaComputationDescriptor,
@@ -23,6 +22,7 @@ from veupathdb.eda.models import (
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.services.eda import authoring, catalog
+from pathfinder.tests._support.eda_wire import wire_eda_client
 
 FIXTURES = FIXTURE_DIR
 
@@ -475,7 +475,7 @@ def _wire(
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)
-    monkeypatch.setattr(factory, "get_eda_client", lambda _s: client)
+    wire_eda_client(monkeypatch, client)
     monkeypatch.setattr(authoring, "resolve_eda_user_id", _fake_user_id)
     return client
 

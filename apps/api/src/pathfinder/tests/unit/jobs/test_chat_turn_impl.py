@@ -15,6 +15,7 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
+from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.impls import chat_turn_impl
 from pathfinder.jobs.impls.chat_turn_impl import run_chat_turn
 from pathfinder.jobs.payloads import ChatTurnPayload
@@ -62,12 +63,16 @@ def _fake_build_graph(*args: object, **kwargs: object) -> _FakeGraph:
     return _FakeGraph()
 
 
-def _fake_resolve_assistant(registry: object, assistant_id: str) -> AssistantSpec:
-    """The resolved spec, with only its graph factory replaced."""
-    del registry
-    real = build_pathfinder_spec()
-    assert real.assistant_id == assistant_id
-    return real.model_copy(update={"build_graph": _fake_build_graph})
+class _FakeRegistry:
+    """Answers the real spec, with only its graph factory replaced."""
+
+    def resolve(self, assistant_id: str) -> AssistantSpec:
+        real = build_pathfinder_spec()
+        assert real.assistant_id == assistant_id
+        return real.model_copy(update={"build_graph": _fake_build_graph})
+
+    def checkpoint_types(self) -> tuple[type, ...]:
+        return get_assistant_registry().checkpoint_types()
 
 
 class _ObservingRunTurn:
@@ -115,7 +120,7 @@ async def test_run_chat_turn_sets_ctxvar_from_payload(
         "lifespan_memory_store",
         _fake_memory_ctx,
     )
-    monkeypatch.setattr(chat_turn_impl, "resolve_assistant", _fake_resolve_assistant)
+    monkeypatch.setattr(chat_turn_impl, "get_assistant_registry", _FakeRegistry)
 
     payload = ChatTurnPayload(
         body=_body(),
@@ -149,7 +154,7 @@ async def test_run_chat_turn_resets_ctxvar_after_run(
         "lifespan_memory_store",
         _fake_memory_ctx,
     )
-    monkeypatch.setattr(chat_turn_impl, "resolve_assistant", _fake_resolve_assistant)
+    monkeypatch.setattr(chat_turn_impl, "get_assistant_registry", _FakeRegistry)
 
     assert veupathdb_auth_token_ctx.get() is None
     payload = ChatTurnPayload(
@@ -181,7 +186,7 @@ async def test_run_chat_turn_tolerates_missing_token(
         "lifespan_memory_store",
         _fake_memory_ctx,
     )
-    monkeypatch.setattr(chat_turn_impl, "resolve_assistant", _fake_resolve_assistant)
+    monkeypatch.setattr(chat_turn_impl, "get_assistant_registry", _FakeRegistry)
 
     payload = ChatTurnPayload(
         body=_body(),

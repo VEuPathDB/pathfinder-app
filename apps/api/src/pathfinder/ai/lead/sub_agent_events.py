@@ -10,11 +10,11 @@ import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from assistant_core.graph.emit import emit_chunk
-from assistant_core.graph.stream_events import (
+from assistant_core.conversation.stream_parts.agent_topology import (
     SubAgentStepPayload,
     sub_agent_step_event,
 )
+from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.turn_state import SubAgentApprovalCall
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict

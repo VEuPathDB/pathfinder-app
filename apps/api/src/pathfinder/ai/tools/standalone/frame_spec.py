@@ -5,12 +5,11 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.parameters.value_codec import to_wire
-from veupathdb.domain.search import SearchContext
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import PHYLETIC_LIST_PARAMS, to_wire
 from veupathdb.errors import ValidationError
-from veupathdb.wdk.wdk_models import WDKSearch
+from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
-    PHYLETIC_LIST_PARAMS,
     ParameterInfo,
     ParamFetcher,
     ParamIntent,

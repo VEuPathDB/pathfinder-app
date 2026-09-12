@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import type { ConversationItem } from "@/features/sidebar/components/conversationSidebarTypes";
 import { useFlushBeforeNav } from "@/features/strategy/hooks/useFlushBeforeNav";
 import { formatSidebarTime } from "@/features/sidebar/formatTime";
+import { DEFAULT_ASSISTANT_ID, assistantLabel } from "@/lib/assistants";
 import { chatUrl } from "@/lib/routes";
 import { cn } from "@/lib/utils/cn";
 
@@ -45,6 +46,9 @@ export function ConversationListItem({
 }: ConversationListItemProps) {
   const { navigate } = useFlushBeforeNav();
   const metaParts: string[] = [];
+  if (item.assistantId !== DEFAULT_ASSISTANT_ID) {
+    metaParts.push(assistantLabel(item.assistantId));
+  }
   if (item.stepCount > 0) {
     metaParts.push(`${item.stepCount} step${item.stepCount === 1 ? "" : "s"}`);
   }

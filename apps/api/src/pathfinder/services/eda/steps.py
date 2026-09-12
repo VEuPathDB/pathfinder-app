@@ -7,9 +7,9 @@ from uuid import UUID
 
 from assistant_core.platform.types import JSONObject
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.eda.models import EdaAnalysisDetail
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import StrategyStepNode
+from veupathdb.eda import EdaAnalysisDetail
 from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.domain.strategy.operations import AddLeafOp

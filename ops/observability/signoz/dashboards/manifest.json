@@ -3,29 +3,9 @@
     "slug": "pathfinder-pipeline-overview",
     "title": "PathFinder Pipeline Overview",
     "file": "dashboards/pathfinder-pipeline-overview.json",
-    "description": "End-to-end AI turn latency and throughput for chat and plan-action runs.",
+    "description": "Assistant turn latency, throughput and token use, end to end.",
     "recommendedFilters": [
-      "intent",
-      "model",
-      "run_kind",
-      "surface",
-      "phase",
-      "type"
-    ]
-  },
-  {
-    "slug": "pathfinder-approval-and-execution",
-    "title": "PathFinder Approval And Execution",
-    "file": "dashboards/pathfinder-approval-and-execution.json",
-    "description": "Operational view of approval latency, execution time, phase transitions, and recoveries.",
-    "recommendedFilters": [
-      "phase",
-      "status",
-      "kind",
-      "model",
-      "intent",
-      "run_kind",
-      "surface"
+      "finish_reason"
     ]
   },
   {
@@ -34,11 +14,8 @@
     "file": "dashboards/pathfinder-streaming-delivery.json",
     "description": "Live delivery health for SSE subscriptions and user-visible streaming behavior.",
     "recommendedFilters": [
-      "surface",
-      "operation_type",
-      "stream_kind",
       "reason",
-      "event_type",
+      "kind",
       "resumed"
     ]
   },
@@ -46,16 +23,14 @@
     "slug": "pathfinder-dependency-reliability",
     "title": "PathFinder Dependency Reliability",
     "file": "dashboards/pathfinder-dependency-reliability.json",
-    "description": "Backplane and external dependency health across Redis Streams, WDK, and site-search.",
+    "description": "External dependency health across WDK and site-search.",
     "recommendedFilters": [
       "site_host",
       "endpoint_group",
       "method",
       "status_family",
       "outcome",
-      "error_kind",
-      "stream_kind",
-      "event_type"
+      "error_kind"
     ]
   }
 ]

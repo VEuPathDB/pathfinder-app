@@ -99,6 +99,12 @@ class VerificationDigest(CamelModel):
     remember: list[MemoryEntryDraft] = Field(
         default_factory=list,
         max_length=5,
+        description=(
+            "Durable findings worth a later turn, each with a recall-friendly "
+            'name such as "P. falciparum kinome size", counts or identifiers '
+            "in its content, and tags naming an organism, a technique or a "
+            "dataset. The site id is added automatically."
+        ),
     )
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaStringSetFilter,
     EdaStudyDetail,
     EdaStudyDetailResponse,

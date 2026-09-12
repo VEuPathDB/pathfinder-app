@@ -8,9 +8,13 @@ is not.
 
 from __future__ import annotations
 
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.validation import StepValidation, StepValidationErrors
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StepKind,
+    StepValidation,
+    StepValidationErrors,
+    StrategyStep,
+)
 
 from pathfinder.domain.strategy.step_status import StepStatus, step_status
 

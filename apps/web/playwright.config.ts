@@ -18,6 +18,7 @@ const turnDrivingFeatureSpecs = [
   "**/e2e/feature/experiment-flows.spec.ts",
   "**/e2e/feature/fork-branch.spec.ts",
   "**/e2e/feature/insert-saved.spec.ts",
+  "**/e2e/feature/site-help-assistant.spec.ts",
   "**/e2e/feature/strategy-complex-edit.spec.ts",
   "**/e2e/feature/strategy-duplicate-rename.spec.ts",
   "**/e2e/feature/strategy-graph.spec.ts",

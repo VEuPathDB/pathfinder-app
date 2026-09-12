@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from veupathdb.domain.eda_study import walk_entities
-from veupathdb.eda.models import (
+from veupathdb.domain import walk_entities
+from veupathdb.eda import (
     EdaAnalysisDetail,
     EdaFilter,
     EdaPermissionEntry,

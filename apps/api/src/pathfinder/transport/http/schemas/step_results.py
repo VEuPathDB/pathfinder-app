@@ -6,7 +6,7 @@ from typing import Annotated
 from assistant_core.platform.pydantic_base import CamelModel
 from fastapi import Query
 from pydantic import JsonValue
-from veupathdb.domain.wdk_values import (
+from veupathdb.domain import (
     WDKHistogramBin,
     WDKHistogramStatistics,
     WDKRecordIdPart,

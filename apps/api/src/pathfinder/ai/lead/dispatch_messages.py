@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Sequence
 
-from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.parameters import to_wire
 
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.phase_stop import PhaseStop

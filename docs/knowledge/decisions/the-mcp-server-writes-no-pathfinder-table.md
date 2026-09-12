@@ -47,7 +47,7 @@ the stored-set half keeps the export, and the by-value half a tool calls is
 
 `veupathdb_mcp/tools/user_tools.py` imported `enrichment` from the `services.gene_sets`
 package, and `gene_sets/__init__.py` imported `GeneSetService`, which imports
-`store.py`, which imports `platform/store.py` and the `gene_sets` table. The
+`store.py`, which imports the write-through store and the `gene_sets` table. The
 module the tool needed touches no store. `gene_sets/__init__.py` is now empty
 and every consumer names the module it wants.
 

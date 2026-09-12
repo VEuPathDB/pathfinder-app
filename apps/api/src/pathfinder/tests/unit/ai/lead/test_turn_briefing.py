@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.values import (
+from veupathdb.domain.parameters import (
     MultiPickValue,
     NumberValue,
     ParamValue,
     StringValue,
 )
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 from pathfinder.ai.lead.turn_briefing import MAX_BRIEFING_LINES, compose_turn_briefing
 from pathfinder.domain.strategy.constraints import (

@@ -5,7 +5,7 @@ from __future__ import annotations
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from pydantic import BaseModel, ConfigDict, Field
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.services.export import get_export_service

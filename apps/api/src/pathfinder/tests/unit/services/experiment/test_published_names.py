@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.search import SearchContext
+from veupathdb.domain import SearchContext
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
 from veupathdb_mcp.catalog import ParameterInfo, SearchParametersResult
 

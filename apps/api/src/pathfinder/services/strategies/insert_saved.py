@@ -13,17 +13,22 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.strategy.ast import StrategyStepNode, generate_step_id
-from veupathdb.domain.strategy.graph_model import (
+from veupathdb.domain.strategy import (
+    CombineOp,
     StepKind,
     StrategyStep,
+    StrategyStepNode,
+    clone_with_fresh_ids,
     flatten_tree,
+    generate_step_id,
     rebuild_tree,
 )
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.tree import clone_with_fresh_ids
 from veupathdb.errors import ValidationError, VEuPathDBError
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk import get_strategy_api
+from veupathdb_mcp.wdk import (
+    build_snapshot_from_wdk,
+    canonicalize_synced_parameters,
+)
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.repositories.conversation import ConversationRepository
@@ -34,10 +39,6 @@ from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.spec_build import (
     build_strategy_from_spec,
-)
-from pathfinder.services.strategies.wdk_conversion import (
-    build_snapshot_from_wdk,
-    canonicalize_synced_parameters,
 )
 from pathfinder.services.strategies.write_lock import strategy_write_scope
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from veupathdb.eda.models import VolcanoStatsResponse
+from veupathdb.eda import VolcanoStatsResponse
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.services.eda.compute import (

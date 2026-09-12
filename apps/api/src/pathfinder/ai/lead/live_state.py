@@ -9,7 +9,7 @@ than a memory.
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-from veupathdb.domain.parameters.value_codec import wire_map
+from veupathdb.domain.parameters import wire_map
 
 from pathfinder.ai.tools.standalone._graph_helpers import build_step_response
 from pathfinder.domain.strategy.session import StrategySession

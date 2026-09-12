@@ -8,8 +8,7 @@ import pytest
 from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategyStepNode
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps

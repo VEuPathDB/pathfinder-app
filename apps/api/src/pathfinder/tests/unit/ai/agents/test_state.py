@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.values import (
+from veupathdb.domain.parameters import (
     MultiPickValue,
     ParamValue,
     SinglePickValue,
 )
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.domain.strategy.operational_spec import (

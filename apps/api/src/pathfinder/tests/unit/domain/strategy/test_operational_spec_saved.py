@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import MultiPickValue
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.parameters import MultiPickValue
+from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategyStepNode
 
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,

@@ -10,7 +10,10 @@ from pathfinder.ai.agents._instructions import (
     pinned_scratchpad,
     pinned_user_memories,
 )
-from pathfinder.ai.agents.scratchpad_guidance import PATHFINDER_SCRATCHPAD_GUIDANCE
+from pathfinder.ai.agents.scratchpad_guidance import (
+    PATHFINDER_SCRATCHPAD_GUIDANCE,
+    PROMOTED_NOTE_KIND,
+)
 from pathfinder.ai.agents.strategy_instructions import (
     base_system_prompt,
     pinned_discovered_searches,
@@ -201,7 +204,10 @@ def build_verification_agent() -> VerificationAgent:
         instructions=_VERIFICATION_INSTRUCTIONS,
         toolsets=[
             build_toolset(),
-            build_scratchpad_toolset(guidance=PATHFINDER_SCRATCHPAD_GUIDANCE),
+            build_scratchpad_toolset(
+                guidance=PATHFINDER_SCRATCHPAD_GUIDANCE,
+                promoted_kind=PROMOTED_NOTE_KIND,
+            ),
             turn_tool_sources,
         ],
         capabilities=[

@@ -9,10 +9,9 @@ from assistant_core.platform.types import JSONArray, JSONObject
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.parameters.values import ParamValue
-from veupathdb.domain.search import SearchContext
-from veupathdb.domain.strategy.graph_model import StepKind
-from veupathdb.domain.strategy.ops import ColocationParams, CombineOp
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.strategy import ColocationParams, CombineOp, StepKind
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload, tool_error
 from veupathdb_mcp.catalog import (

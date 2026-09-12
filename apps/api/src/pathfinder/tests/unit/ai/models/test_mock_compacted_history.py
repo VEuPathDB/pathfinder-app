@@ -26,7 +26,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models import ModelRequestParameters
 from pydantic_ai.models.function import AgentInfo
 from pydantic_ai.tools import ToolDefinition
-from veupathdb.domain.parameters.values import MultiPickValue
+from veupathdb.domain.parameters import MultiPickValue
 
 from pathfinder.ai.lead.edit_messages import edit_work_order
 from pathfinder.ai.models.mock import PATHFINDER_SCRIPT

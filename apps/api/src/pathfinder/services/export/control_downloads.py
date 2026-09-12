@@ -1,7 +1,7 @@
 """Where a control outcome downloads from, once it is exported."""
 
+from veupathdb import get_logger
 from veupathdb.errors import VEuPathDBError
-from veupathdb.logging import get_logger
 from veupathdb_mcp.tool_payloads import ControlOutcome, DownloadLinks
 
 from pathfinder.services.export import get_export_service

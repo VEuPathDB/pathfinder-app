@@ -11,7 +11,7 @@ import json
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn, ToolReturnPart
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaPermissionEntry,
     EdaStudyDetail,
     EdaStudyDetailResponse,

@@ -16,7 +16,7 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import Field
-from veupathdb.domain.parameters.values import SinglePickValue
+from veupathdb.domain.parameters import SinglePickValue
 
 from pathfinder.platform.errors import sanitize_error_for_client
 from pathfinder.services.experiment.service import run_experiment

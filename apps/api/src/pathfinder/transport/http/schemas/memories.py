@@ -1,7 +1,31 @@
 from __future__ import annotations
 
-from assistant_core.memory.schemas import MemoryValue
+from datetime import datetime
+from uuid import UUID
+
 from assistant_core.platform.pydantic_base import CamelModel
+from pydantic import Field
+
+from pathfinder.domain.memory import MemoryKind
+
+
+class MemoryValue(CamelModel):
+    """One stored memory on the wire.
+
+    The runtime holds a kind to a name's shape; which names exist is this
+    application's, so the wire names them.
+    """
+
+    kind: MemoryKind
+    name: str
+    summary: str
+    tags: list[str] = Field(default_factory=list)
+    site_id: str | None = None
+    content: dict[str, object]
+    auto_retrieve: bool = True
+    source_conversation_id: UUID | None = None
+    created_at: datetime
+    last_used_at: datetime | None = None
 
 
 class MemoryItem(CamelModel):

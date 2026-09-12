@@ -22,8 +22,8 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
-from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import StepKind, StrategyStep
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState

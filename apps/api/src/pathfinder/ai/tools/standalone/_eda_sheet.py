@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from assistant_core.platform.types import JSONObject
 from pydantic import JsonValue
-from veupathdb.domain.eda_study import walk_entities
+from veupathdb.domain import walk_entities
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.tools.standalone._eda_models import EdaFilterSheetEntry

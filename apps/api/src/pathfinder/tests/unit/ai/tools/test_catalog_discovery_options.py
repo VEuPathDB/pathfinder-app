@@ -8,9 +8,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 from pydantic_ai import RunContext
-from veupathdb.domain.parameters.values import SinglePickValue
-from veupathdb.domain.parameters.wdk_vocab import WDKVocabTerm
-from veupathdb.wdk.wdk_parameters import (
+from veupathdb.domain.parameters import SinglePickValue, WDKVocabTerm
+from veupathdb.wdk import (
     WDKEnumParam,
     WDKParameter,
     WDKStringParam,

@@ -15,7 +15,6 @@ import assistant_core.embeddings.fake
 import pytest
 import veupathdb_mcp
 import veupathdb_mcp.embeddings
-import veupathdb_mcp.embeddings.embedder
 from assistant_core.platform.config import RuntimeSettings
 from veupathdb_mcp.embeddings import EmbeddingSettings
 
@@ -41,7 +40,7 @@ SUBSTITUTIONS = {
 STORED_WIDTH = re.compile(r"^_EMBEDDING_DIMENSIONS = (\d+)$", re.MULTILINE)
 
 RUNTIME_ROOT = Path(assistant_core.embeddings.embedder.__file__).resolve().parent
-TOOL_SERVER_ROOT = Path(veupathdb_mcp.embeddings.embedder.__file__).resolve().parent
+TOOL_SERVER_ROOT = Path(veupathdb_mcp.embeddings.__file__).resolve().parent
 REVISION = "alembic/versions/2026_08_29_0001_add_embedding_record_manager.py"
 APPLICATION_REVISION = Path(__file__).resolve().parents[5] / REVISION
 TOOL_SERVER_REVISION = Path(veupathdb_mcp.__file__).resolve().parent / REVISION
@@ -82,7 +81,7 @@ def test_both_copies_embed_at_the_same_width() -> None:
     """The width every vector this system stores is one number."""
     assert assistant_core.embeddings.embedder.EMBEDDING_DIMENSIONS == 1024
     assert (
-        veupathdb_mcp.embeddings.embedder.EMBEDDING_DIMENSIONS
+        veupathdb_mcp.embeddings.EMBEDDING_DIMENSIONS
         == assistant_core.embeddings.embedder.EMBEDDING_DIMENSIONS
     )
 

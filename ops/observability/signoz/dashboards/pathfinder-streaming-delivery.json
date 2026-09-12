@@ -65,24 +65,6 @@
       "w": 12,
       "x": 12,
       "y": 16
-    },
-    {
-      "h": 8,
-      "i": "widget-7",
-      "moved": false,
-      "static": false,
-      "w": 12,
-      "x": 0,
-      "y": 24
-    },
-    {
-      "h": 8,
-      "i": "widget-8",
-      "moved": false,
-      "static": false,
-      "w": 12,
-      "x": 12,
-      "y": 24
     }
   ],
   "variables": {},
@@ -90,7 +72,7 @@
     {
       "id": "widget-1",
       "title": "Active SSE Subscriptions",
-      "description": "Current number of active SSE subscriptions.",
+      "description": "Event-stream subscriptions open now.",
       "panelTypes": "graph",
       "yAxisUnit": "",
       "query": {
@@ -103,10 +85,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.sse.active_subscriptions--float64--Sum--true",
+                "id": "assistant.sse.active_subscriptions--float64--Sum--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.sse.active_subscriptions",
+                "key": "assistant.sse.active_subscriptions",
                 "type": "Sum"
               },
               "aggregateOperator": "avg",
@@ -133,7 +115,7 @@
     {
       "id": "widget-2",
       "title": "Subscription Duration p95",
-      "description": "p95 lifetime of SSE subscriptions.",
+      "description": "p95 lifetime of one event-stream subscription.",
       "panelTypes": "graph",
       "yAxisUnit": "s",
       "query": {
@@ -146,10 +128,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.sse.subscription_duration.bucket--float64--Histogram--true",
+                "id": "assistant.sse.subscription_duration.bucket--float64--Histogram--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.sse.subscription_duration.bucket",
+                "key": "assistant.sse.subscription_duration.bucket",
                 "type": "Histogram"
               },
               "aggregateOperator": "count",
@@ -176,7 +158,7 @@
     {
       "id": "widget-3",
       "title": "Disconnect Rate by Reason",
-      "description": "Rate of SSE subscription disconnects split by disconnect reason.",
+      "description": "Rate of subscriptions closed, split by reason.",
       "panelTypes": "graph",
       "yAxisUnit": "",
       "query": {
@@ -189,10 +171,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.sse.disconnects--float64--Sum--true",
+                "id": "assistant.sse.disconnects--float64--Sum--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.sse.disconnects",
+                "key": "assistant.sse.disconnects",
                 "type": "Sum"
               },
               "aggregateOperator": "rate",
@@ -227,8 +209,8 @@
     },
     {
       "id": "widget-4",
-      "title": "Disconnect Rate by Surface",
-      "description": "Rate of SSE subscription disconnects split by user-facing workflow surface.",
+      "title": "Event Send Rate by Chunk Kind",
+      "description": "Rate of frames served to a subscriber, split by chunk kind.",
       "panelTypes": "graph",
       "yAxisUnit": "",
       "query": {
@@ -241,17 +223,17 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.sse.disconnects--float64--Sum--true",
+                "id": "assistant.sse.events_sent--float64--Sum--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.sse.disconnects",
+                "key": "assistant.sse.events_sent",
                 "type": "Sum"
               },
               "aggregateOperator": "rate",
               "spaceAggregation": "sum",
               "timeAggregation": "rate",
               "reduceTo": "avg",
-              "legend": "{{surface}}",
+              "legend": "{{kind}}",
               "stepInterval": 60,
               "disabled": false,
               "filters": {
@@ -262,10 +244,10 @@
               "groupBy": [
                 {
                   "dataType": "string",
-                  "id": "surface--string--tag--false",
+                  "id": "kind--string--tag--false",
                   "isColumn": false,
                   "isJSON": false,
-                  "key": "surface",
+                  "key": "kind",
                   "type": "tag"
                 }
               ],
@@ -279,60 +261,8 @@
     },
     {
       "id": "widget-5",
-      "title": "Event Send Rate by Type",
-      "description": "Rate of SSE events sent to clients split by event type.",
-      "panelTypes": "graph",
-      "yAxisUnit": "",
-      "query": {
-        "queryType": "builder",
-        "builder": {
-          "queryData": [
-            {
-              "queryName": "A",
-              "expression": "A",
-              "dataSource": "metrics",
-              "aggregateAttribute": {
-                "dataType": "float64",
-                "id": "pathfinder.sse.events_sent--float64--Sum--true",
-                "isColumn": true,
-                "isJSON": false,
-                "key": "pathfinder.sse.events_sent",
-                "type": "Sum"
-              },
-              "aggregateOperator": "rate",
-              "spaceAggregation": "sum",
-              "timeAggregation": "rate",
-              "reduceTo": "avg",
-              "legend": "{{event_type}}",
-              "stepInterval": 60,
-              "disabled": false,
-              "filters": {
-                "items": [],
-                "op": "AND"
-              },
-              "functions": [],
-              "groupBy": [
-                {
-                  "dataType": "string",
-                  "id": "event_type--string--tag--false",
-                  "isColumn": false,
-                  "isJSON": false,
-                  "key": "event_type",
-                  "type": "tag"
-                }
-              ],
-              "having": [],
-              "limit": null,
-              "orderBy": []
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "widget-6",
       "title": "Keepalive Rate",
-      "description": "Rate of SSE keepalive comments sent while streams wait for data.",
+      "description": "Rate of keepalive comments served to a subscriber.",
       "panelTypes": "graph",
       "yAxisUnit": "",
       "query": {
@@ -345,10 +275,10 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.sse.keepalives_sent--float64--Sum--true",
+                "id": "assistant.sse.keepalives_sent--float64--Sum--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.sse.keepalives_sent",
+                "key": "assistant.sse.keepalives_sent",
                 "type": "Sum"
               },
               "aggregateOperator": "rate",
@@ -373,9 +303,9 @@
       }
     },
     {
-      "id": "widget-7",
-      "title": "Subscription Open Rate by Operation Type",
-      "description": "Rate of new SSE subscriptions split by operation type.",
+      "id": "widget-6",
+      "title": "Subscription Open Rate by Whether It Resumed",
+      "description": "Rate of subscriptions opened, split by whether the reader resumed.",
       "panelTypes": "graph",
       "yAxisUnit": "",
       "query": {
@@ -388,17 +318,17 @@
               "dataSource": "metrics",
               "aggregateAttribute": {
                 "dataType": "float64",
-                "id": "pathfinder.sse.subscriptions--float64--Sum--true",
+                "id": "assistant.sse.subscriptions--float64--Sum--true",
                 "isColumn": true,
                 "isJSON": false,
-                "key": "pathfinder.sse.subscriptions",
+                "key": "assistant.sse.subscriptions",
                 "type": "Sum"
               },
               "aggregateOperator": "rate",
               "spaceAggregation": "sum",
               "timeAggregation": "rate",
               "reduceTo": "avg",
-              "legend": "{{operation_type}}",
+              "legend": "{{resumed}}",
               "stepInterval": 60,
               "disabled": false,
               "filters": {
@@ -409,62 +339,10 @@
               "groupBy": [
                 {
                   "dataType": "string",
-                  "id": "operation_type--string--tag--false",
+                  "id": "resumed--string--tag--false",
                   "isColumn": false,
                   "isJSON": false,
-                  "key": "operation_type",
-                  "type": "tag"
-                }
-              ],
-              "having": [],
-              "limit": null,
-              "orderBy": []
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "widget-8",
-      "title": "Subscription Open Rate by Stream Kind",
-      "description": "Rate of new SSE subscriptions split by stream kind.",
-      "panelTypes": "graph",
-      "yAxisUnit": "",
-      "query": {
-        "queryType": "builder",
-        "builder": {
-          "queryData": [
-            {
-              "queryName": "A",
-              "expression": "A",
-              "dataSource": "metrics",
-              "aggregateAttribute": {
-                "dataType": "float64",
-                "id": "pathfinder.sse.subscriptions--float64--Sum--true",
-                "isColumn": true,
-                "isJSON": false,
-                "key": "pathfinder.sse.subscriptions",
-                "type": "Sum"
-              },
-              "aggregateOperator": "rate",
-              "spaceAggregation": "sum",
-              "timeAggregation": "rate",
-              "reduceTo": "avg",
-              "legend": "{{stream_kind}}",
-              "stepInterval": 60,
-              "disabled": false,
-              "filters": {
-                "items": [],
-                "op": "AND"
-              },
-              "functions": [],
-              "groupBy": [
-                {
-                  "dataType": "string",
-                  "id": "stream_kind--string--tag--false",
-                  "isColumn": false,
-                  "isJSON": false,
-                  "key": "stream_kind",
+                  "key": "resumed",
                   "type": "tag"
                 }
               ],

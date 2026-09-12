@@ -5,8 +5,22 @@
  * path format stays in one place.
  */
 
-export function chatRoot(siteId: string): string {
-  return `/${siteId}/conversation`;
+import { DEFAULT_ASSISTANT_ID } from "@/lib/assistants";
+
+/** The search param a draft chat route carries to name its assistant. */
+export const ASSISTANT_PARAM = "assistant";
+
+const CONVERSATION_ID_IN_PATH = /\/conversation\/([^/?#]+)/;
+
+export function chatRoot(siteId: string, assistantId?: string): string {
+  const base = `/${siteId}/conversation`;
+  if (assistantId === undefined || assistantId === DEFAULT_ASSISTANT_ID) return base;
+  return `${base}?${ASSISTANT_PARAM}=${encodeURIComponent(assistantId)}`;
+}
+
+/** The conversation the path names, or null on the draft route. */
+export function conversationIdFromPath(pathname: string): string | null {
+  return pathname.match(CONVERSATION_ID_IN_PATH)?.[1] ?? null;
 }
 
 export function chatUrl(siteId: string, conversationId: string): string {

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from veupathdb.eda.models import EdaStudyOverview
+from veupathdb.eda import EdaStudyOverview
 
 from pathfinder.services.eda.catalog import study_cache_key
 

@@ -6,6 +6,10 @@ from assistant_core.tasks.app import install_task_app
 
 from pathfinder.platform.config import get_settings
 
+# The queue this deployment runs its durable work on. Every process of one
+# deployment names it, so a deferred job reaches a worker that consumes it.
+DURABLE_TASK_QUEUE = "verification"
+
 
 def _build_connector() -> procrastinate.PsycopgConnector:
     """Build a PsycopgConnector pointing at the app's Postgres database."""
@@ -19,4 +23,4 @@ procrastinate_app: procrastinate.App = procrastinate.App(
 )
 
 # The runtime defers durable jobs onto this application's queue.
-install_task_app(procrastinate_app)
+install_task_app(procrastinate_app, durable_queue=DURABLE_TASK_QUEUE)

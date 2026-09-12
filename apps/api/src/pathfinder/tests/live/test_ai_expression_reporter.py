@@ -8,13 +8,13 @@ from __future__ import annotations
 
 import pytest
 from pydantic import BaseModel, ConfigDict
-from veupathdb.testing.summary import DriftLog
-from veupathdb.wdk.ai_expression import (
+from veupathdb.testing import DriftLog
+from veupathdb.wdk import (
     AI_EXPRESSION_REPORT_PATH,
     AiExpressionStatus,
+    WDKSearchConfig,
+    get_wdk_client,
 )
-from veupathdb.wdk.factory import get_wdk_client
-from veupathdb.wdk.wdk_models import WDKSearchConfig
 from veupathdb_mcp.wdk import (
     NO_SUMMARY_ON_THE_SITE,
     GeneExpressionSummary,

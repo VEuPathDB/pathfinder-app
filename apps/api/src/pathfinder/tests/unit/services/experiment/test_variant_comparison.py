@@ -9,9 +9,9 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from veupathdb.domain.parameters.values import NumberValue
+from veupathdb.domain.parameters import NumberValue
 from veupathdb.errors import WDKError
-from veupathdb.wdk.wdk_models import WDKAnswerMeta
+from veupathdb.wdk import WDKAnswerMeta
 
 from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.experiment.variant_comparison import (

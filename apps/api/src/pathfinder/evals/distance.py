@@ -19,9 +19,7 @@ from dataclasses import dataclass
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import fold
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, fold
 
 COMBINE_LABEL = "COMBINE"
 _ANY_LABEL = "*"

@@ -9,10 +9,8 @@ them.
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
-from veupathdb.domain.parameters.value_codec import to_wire
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import walk
+from veupathdb.domain.parameters import to_wire
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, walk
 
 from pathfinder.domain.strategy.ast_diff import (
     StepChange,

@@ -5,7 +5,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from veupathdb.wdk.wdk_models import WDKStrategySummary
+from veupathdb.wdk import WDKStrategySummary
 from veupathdb_mcp.controls import IntersectionConfig
 from veupathdb_mcp.wdk.enrichment import EnrichmentResult
 

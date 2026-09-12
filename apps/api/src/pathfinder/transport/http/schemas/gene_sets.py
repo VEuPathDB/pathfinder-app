@@ -2,7 +2,7 @@
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.wdk import SetOperation
 from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType, EnrichmentResult
 

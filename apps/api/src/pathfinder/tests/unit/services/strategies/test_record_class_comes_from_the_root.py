@@ -18,13 +18,13 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
-from veupathdb.domain.strategy.graph_model import (
+from veupathdb.domain.strategy import (
+    CombineOp,
     StepKind,
     StrategyStep,
     record_class_of,
 )
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.wdk.wdk_models import (
+from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
     WDKIdentifier,

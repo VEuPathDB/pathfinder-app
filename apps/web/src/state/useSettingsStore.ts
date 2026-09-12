@@ -1,9 +1,10 @@
 import type { ReasoningEffort } from "@pathfinder/shared";
-import type { PhaseRole } from "@/lib/models/phaseRoles";
 import { createPersistedStore } from "./middleware";
 
-export type PhaseModelMap = Partial<Record<PhaseRole, string>>;
-export type PhaseReasoningMap = Partial<Record<PhaseRole, ReasoningEffort>>;
+// Roles are data the tier presets name, so the picks are keyed by plain role
+// names rather than by a role set this store declares.
+export type PhaseModelMap = Record<string, string>;
+export type PhaseReasoningMap = Record<string, ReasoningEffort>;
 
 interface SettingsState {
   showRawToolCalls: boolean;
@@ -17,8 +18,8 @@ interface SettingsState {
   setShowTokenUsage: (show: boolean) => void;
   setDeleteFromWdk: (v: boolean) => void;
   dismissFirstRunHint: () => void;
-  setPhaseModel: (role: PhaseRole, id: string | null) => void;
-  setPhaseReasoning: (role: PhaseRole, effort: ReasoningEffort | null) => void;
+  setPhaseModel: (role: string, id: string | null) => void;
+  setPhaseReasoning: (role: string, effort: ReasoningEffort | null) => void;
   applyPhasePreset: (models: PhaseModelMap, reasoning: PhaseReasoningMap) => void;
   resetToDefaults: () => void;
 }
@@ -32,10 +33,7 @@ const DEFAULTS = {
   phaseReasoning: {} as PhaseReasoningMap,
 };
 
-function withoutKey<K extends string, V>(
-  map: Partial<Record<K, V>>,
-  key: K,
-): Partial<Record<K, V>> {
+function withoutKey<V>(map: Record<string, V>, key: string): Record<string, V> {
   const next = { ...map };
   delete next[key];
   return next;
@@ -64,10 +62,14 @@ export const useSettingsStore = createPersistedStore<SettingsState>(
             ? withoutKey(state.phaseReasoning, role)
             : { ...state.phaseReasoning, [role]: effort },
       })),
-    // Replace both maps in one commit: a preset is all-or-nothing, and setting
-    // phases one at a time would render intermediate half-applied states.
+    // Both maps move in one commit: a preset is all-or-nothing, and setting
+    // roles one at a time would render intermediate half-applied states. A
+    // preset covers one assistant, so the roles of the others are kept.
     applyPhasePreset: (models, reasoning) =>
-      set({ phaseModels: { ...models }, phaseReasoning: { ...reasoning } }),
+      set((state) => ({
+        phaseModels: { ...state.phaseModels, ...models },
+        phaseReasoning: { ...state.phaseReasoning, ...reasoning },
+      })),
     resetToDefaults: () => set({ ...DEFAULTS, phaseModels: {}, phaseReasoning: {} }),
   }),
   {

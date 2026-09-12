@@ -13,6 +13,7 @@ from pydantic_ai.toolsets.wrapper import WrapperToolset
 
 from pathfinder.ai.agents.execution import build_execution_agent
 from pathfinder.ai.agents.frame import build_frame_agent
+from pathfinder.ai.agents.scratchpad_guidance import PROMOTED_NOTE_KIND
 from pathfinder.ai.agents.verification import build_verification_agent
 
 _SCRATCHPAD_TOOL_NAMES = (
@@ -35,7 +36,7 @@ def _unwrap(ts: AbstractToolset[Any]) -> AbstractToolset[Any]:
 
 
 def test_scratchpad_toolset_lists_all_tools() -> None:
-    ts = build_scratchpad_toolset()
+    ts = build_scratchpad_toolset(promoted_kind=PROMOTED_NOTE_KIND)
     inner = _unwrap(ts)
     assert isinstance(inner, FunctionToolset)
     names = set(inner.tools.keys())
@@ -44,7 +45,7 @@ def test_scratchpad_toolset_lists_all_tools() -> None:
 
 
 def test_scratchpad_toolset_is_prepared_for_dynamic_filtering() -> None:
-    ts = build_scratchpad_toolset()
+    ts = build_scratchpad_toolset(promoted_kind=PROMOTED_NOTE_KIND)
     assert isinstance(ts, PreparedToolset)
 
 

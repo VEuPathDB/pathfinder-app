@@ -32,13 +32,14 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.models.mock import get_mock_model
-from pathfinder.ai.models.tiers import PhaseTierConfig, resolve_phase_tier_config
 from pathfinder.domain.strategy.constraints import (
     CombinationRequest,
     Constraint,
     ConstraintKind,
 )
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.platform.tiers import PhaseTierConfig, resolve_phase_tier_config
 
 # Binding one criterion costs up to ten calls: find a search, read it, read its
 # vocabularies (several reads on a vocabulary-heavy site), set the criterion.
@@ -160,7 +161,10 @@ def phase_default_model_id(role: PhaseRole) -> str:
 def _configured_tier_config(role: PhaseRole) -> PhaseTierConfig | None:
     settings = get_settings()
     return resolve_phase_tier_config(
-        settings.default_provider, settings.default_tier, role
+        PATHFINDER_ASSISTANT_ID,
+        settings.default_provider,
+        settings.default_tier,
+        role,
     )
 
 

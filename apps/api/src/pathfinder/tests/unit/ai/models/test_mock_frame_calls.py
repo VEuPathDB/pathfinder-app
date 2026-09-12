@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 from pydantic import TypeAdapter
 from pydantic_ai.messages import ToolCallPart, ToolReturnPart
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.models.mock.specs import (
     CriterionReply,

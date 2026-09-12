@@ -11,9 +11,14 @@ from __future__ import annotations
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.tree import subtree_ids, walk
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    StepKind,
+    StrategyStep,
+    StrategyStepNode,
+    subtree_ids,
+    walk,
+)
 
 from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.operations.apply import apply_operation

@@ -13,8 +13,7 @@ from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import WDKLoginRequiredError
-from veupathdb.wdk.auth_login import validate_oauth_token
-from veupathdb.wdk.current_user import resolve_registered_email
+from veupathdb.wdk import resolve_registered_email, validate_oauth_token
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import WDKIdentityMismatchError

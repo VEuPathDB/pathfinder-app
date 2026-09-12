@@ -8,7 +8,7 @@ import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb.eda.models import EdaDistributionResponse
+from veupathdb.eda import EdaDistributionResponse
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis

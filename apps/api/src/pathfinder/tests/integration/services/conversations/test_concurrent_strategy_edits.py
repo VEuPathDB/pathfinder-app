@@ -11,12 +11,9 @@ from uuid import UUID, uuid4
 import pytest
 from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb.domain.parameters.values import MultiPickValue, ParamValue, StringValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
-from veupathdb.domain.strategy.tree import walk
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
+from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode, walk
+from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
     PatchStepSpec,

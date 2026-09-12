@@ -82,6 +82,10 @@ researcher is still composing. Note that the derivation must not run backwards -
 a step already live in WDK is never demoted to draft, because that would drop it
 from the built strategy.
 
+PathFinder derives its own four-state step status rather than storing one, for the same
+reason WDK recomputes a bundle on every read
+([step-status-is-derived](../../decisions/step-status-is-derived.md)).
+
 # 3. The local edit is the truth; a WDK rejection is that step's problem
 
 **WDK.** A rejected write is a status code. `PUT .../search-config` answers 4xx
@@ -99,6 +103,11 @@ rejected alternative - raising a 502 - was actively wrong rather than merely
 worse: the edit had already been written to Postgres, so the client rolled its
 cache back and the server handed the change straight back on the next read.
 Memory, Postgres, WDK and the canvas told four different stories.
+
+WDK recomputes a step's validation against the model in force, so a bundle is a reading
+of that step now, not a record of what the write did. That is why invalid steps show up
+on old saved strategies and almost never on new ones, and it is why PathFinder treats a
+WDK rejection as that step's problem rather than as a failure of the operation.
 
 # 4. `COLOCATE` is a PathFinder operator that WDK's boolean search will not take
 

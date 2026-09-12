@@ -4,7 +4,7 @@
     "title": "High Turn Latency",
     "severity": "warning",
     "signal": "metrics",
-    "metric": "pathfinder.pipeline.turn_duration",
+    "metric": "assistant.turn.duration",
     "metricType": "Histogram",
     "aggregateOperator": "p95",
     "comparison": "above",
@@ -18,7 +18,7 @@
       "class": "latency"
     },
     "summary": "PathFinder p95 turn latency is elevated.",
-    "description": "Investigate model/provider slowness, WDK latency, site-search latency, and Redis stream health. Correlate with SSE and dependency dashboards before assuming the model is the only cause.",
+    "description": "Investigate model or provider slowness, WDK latency and site-search latency. Correlate with the streaming and dependency dashboards before assuming the model is the only cause.",
     "runbook": "Check Pipeline Overview, Streaming Delivery, and Dependency Reliability dashboards together."
   },
   {
@@ -26,7 +26,7 @@
     "title": "Slow First Assistant Delta",
     "severity": "warning",
     "signal": "metrics",
-    "metric": "pathfinder.pipeline.time_to_first_assistant_delta",
+    "metric": "assistant.turn.time_to_first_delta",
     "metricType": "Histogram",
     "aggregateOperator": "p95",
     "comparison": "above",
@@ -44,77 +44,11 @@
     "runbook": "Compare time-to-first-delta against time-to-first-tool-call and dependency latency."
   },
   {
-    "slug": "pipeline-errors-critical",
-    "title": "Pipeline Error Spike",
-    "severity": "critical",
-    "signal": "metrics",
-    "metric": "pathfinder.pipeline.errors",
-    "metricType": "Sum",
-    "aggregateOperator": "rate",
-    "comparison": "above",
-    "threshold": 0.05,
-    "thresholdUnit": "errors/s",
-    "for": "5m",
-    "evaluateEvery": "1m",
-    "labels": {
-      "team": "pathfinder",
-      "surface": "pipeline",
-      "class": "availability"
-    },
-    "summary": "Pipeline errors are occurring at a critical rate.",
-    "description": "A sustained error rate usually means broken orchestration, dependency failures, or state-machine regressions that are directly user-visible.",
-    "runbook": "Check Pipeline Error traces, phase failure context, and the Dependency Reliability dashboard."
-  },
-  {
-    "slug": "recovery-spike-warning",
-    "title": "Recovery Spike",
-    "severity": "warning",
-    "signal": "metrics",
-    "metric": "pathfinder.pipeline.recoveries",
-    "metricType": "Sum",
-    "aggregateOperator": "rate",
-    "comparison": "above",
-    "threshold": 0.03,
-    "thresholdUnit": "recoveries/s",
-    "for": "15m",
-    "evaluateEvery": "1m",
-    "labels": {
-      "team": "pathfinder",
-      "surface": "pipeline",
-      "class": "degradation"
-    },
-    "summary": "Recovery paths are activating unusually often.",
-    "description": "Not every recovery is user-visible, but a spike often signals prompt drift, contract drift, or dependency instability before outright failures.",
-    "runbook": "Inspect recovery kinds by phase and compare against recent deploys or prompt changes."
-  },
-  {
-    "slug": "approval-wait-warning",
-    "title": "Approval Wait Elevated",
-    "severity": "warning",
-    "signal": "metrics",
-    "metric": "pathfinder.pipeline.approval_wait",
-    "metricType": "Histogram",
-    "aggregateOperator": "p95",
-    "comparison": "above",
-    "threshold": 120,
-    "thresholdUnit": "s",
-    "for": "30m",
-    "evaluateEvery": "5m",
-    "labels": {
-      "team": "pathfinder",
-      "surface": "approval",
-      "class": "ux"
-    },
-    "summary": "Users are taking unusually long to approve plans.",
-    "description": "This can indicate confusing plans, overloaded plan cards, or an approval UX that is not inspiring confidence.",
-    "runbook": "Check plan presentation quality in Langfuse and compare with approval funnel metrics."
-  },
-  {
     "slug": "sse-disconnect-spike-warning",
     "title": "SSE Disconnect Spike",
     "severity": "warning",
     "signal": "metrics",
-    "metric": "pathfinder.sse.disconnects",
+    "metric": "assistant.sse.disconnects",
     "metricType": "Sum",
     "aggregateOperator": "rate",
     "comparison": "above",
@@ -130,28 +64,6 @@
     "summary": "SSE disconnects are elevated.",
     "description": "High disconnect rates can degrade the user experience even when the backend eventually completes the turn.",
     "runbook": "Check disconnect reasons, active subscription levels, and Redis stream emit latency."
-  },
-  {
-    "slug": "redis-stream-latency-warning",
-    "title": "Redis Stream Emit Latency Elevated",
-    "severity": "warning",
-    "signal": "metrics",
-    "metric": "pathfinder.redis.stream_emit_duration",
-    "metricType": "Histogram",
-    "aggregateOperator": "p95",
-    "comparison": "above",
-    "threshold": 0.25,
-    "thresholdUnit": "s",
-    "for": "10m",
-    "evaluateEvery": "1m",
-    "labels": {
-      "team": "pathfinder",
-      "surface": "redis",
-      "class": "backplane"
-    },
-    "summary": "Redis Stream appends are slower than expected.",
-    "description": "Backplane slowness can surface as delayed streaming, stuck UIs, and poor transcript pacing.",
-    "runbook": "Inspect Redis latency, stream emit attempts, and SSE event send rate."
   },
   {
     "slug": "wdk-latency-warning",

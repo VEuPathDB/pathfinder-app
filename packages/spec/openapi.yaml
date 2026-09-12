@@ -548,7 +548,7 @@ paths:
       tags:
       - tiers
       summary: List Tiers
-      description: Return tier presets grouped by provider.
+      description: Return tier presets grouped by assistant, then by provider.
       operationId: list_tiers_api_v1_tiers_get
       responses:
         '200':
@@ -4635,23 +4635,11 @@ components:
         phaseModels:
           additionalProperties:
             type: string
-          propertyNames:
-            enum:
-            - lead
-            - frame
-            - execution
-            - verification
           type: object
           title: Phasemodels
         phaseReasoning:
           additionalProperties:
             $ref: '#/components/schemas/ReasoningEffort'
-          propertyNames:
-            enum:
-            - lead
-            - frame
-            - execution
-            - verification
           type: object
           title: Phasereasoning
       type: object
@@ -7982,6 +7970,12 @@ components:
       - content
       - createdAt
       title: MemoryValue
+      description: 'One stored memory on the wire.
+
+
+        The runtime holds a kind to a name''s shape; which names exist is this
+
+        application''s, so the wire names them.'
     ModelCatalogEntryResponse:
       properties:
         id:
@@ -8056,12 +8050,6 @@ components:
         phaseDefaults:
           additionalProperties:
             type: string
-          propertyNames:
-            enum:
-            - lead
-            - frame
-            - execution
-            - verification
           type: object
           title: Phasedefaults
       type: object
@@ -8426,7 +8414,7 @@ components:
       - modelId
       - reasoningEffort
       title: PhaseTierConfig
-      description: Model + reasoning effort for a single pipeline phase.
+      description: Model + reasoning effort for a single role.
     PrimaryKeyPart:
       properties:
         name:
@@ -9924,17 +9912,19 @@ components:
         presets:
           additionalProperties:
             additionalProperties:
-              $ref: '#/components/schemas/TierPreset'
+              additionalProperties:
+                $ref: '#/components/schemas/TierPreset'
+              propertyNames:
+                enum:
+                - default
+                - quality
+                - balanced
+                - fast
+                - custom
+              type: object
             propertyNames:
-              enum:
-              - default
-              - quality
-              - balanced
-              - fast
-              - custom
+              $ref: '#/components/schemas/ModelProvider'
             type: object
-          propertyNames:
-            $ref: '#/components/schemas/ModelProvider'
           type: object
           title: Presets
       type: object
@@ -9944,22 +9934,16 @@ components:
       description: Response for GET /api/v1/tiers.
     TierPreset:
       properties:
-        lead:
-          $ref: '#/components/schemas/PhaseTierConfig'
-        frame:
-          $ref: '#/components/schemas/PhaseTierConfig'
-        execution:
-          $ref: '#/components/schemas/PhaseTierConfig'
-        verification:
-          $ref: '#/components/schemas/PhaseTierConfig'
+        roles:
+          additionalProperties:
+            $ref: '#/components/schemas/PhaseTierConfig'
+          type: object
+          title: Roles
       type: object
       required:
-      - lead
-      - frame
-      - execution
-      - verification
+      - roles
       title: TierPreset
-      description: Per-phase configuration for every pipeline phase.
+      description: One assistant's roles, each with the model and effort this tier runs it on.
     TimestampValue:
       properties:
         type:
@@ -12030,7 +12014,7 @@ components:
       title: InvestigationLedger
       type: object
     LeadUsagePayload:
-      description: 'Payload for the lead-usage chunk. The counts cover the Lead agent only
+      description: 'Payload for the lead-usage chunk. The counts cover the lead agent only
 
         and exclude sub-agents. ``context_tokens`` is the input size of the latest
 
@@ -12061,7 +12045,7 @@ components:
     MemoryEntryDraft:
       properties:
         name:
-          description: Short, recall-friendly title (e.g. "P. falciparum kinome size").
+          description: Short, recall-friendly title.
           maxLength: 200
           minLength: 1
           title: Name
@@ -12074,13 +12058,11 @@ components:
           type: string
         content:
           additionalProperties: true
-          description: Structured payload — the durable knowledge itself (counts, identifiers, criteria, etc.) so future runs
-            can act on it.
+          description: 'Structured payload: the durable knowledge itself, so future runs can act on it.'
           title: Content
           type: object
         tags:
-          description: Optional retrieval tags (organism, technique, dataset). Site id is added automatically — don't repeat
-            it here.
+          description: Optional retrieval tags.
           items:
             type: string
           maxItems: 8
@@ -13016,6 +12998,9 @@ components:
           title: Constraintreport
           type: array
         remember:
+          description: Durable findings worth a later turn, each with a recall-friendly name such as "P. falciparum kinome
+            size", counts or identifiers in its content, and tags naming an organism, a technique or a dataset. The site id
+            is added automatically.
           items:
             $ref: '#/components/schemas/MemoryEntryDraft'
           maxItems: 5

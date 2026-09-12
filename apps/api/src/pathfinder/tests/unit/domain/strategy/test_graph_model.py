@@ -9,20 +9,22 @@ trees rather than a handful of examples.
 from __future__ import annotations
 
 from hypothesis import given
-from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.graph_model import (
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    CombineOp,
     StepKind,
     StrategyStep,
+    StrategyStepNode,
     flatten_tree,
     is_computable,
     pushable_root_id,
     rebuild_tree,
+    root_ids,
     runs_a_wdk_search,
+    subtree_ids,
     wdk_search_name,
 )
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.domain.strategy.tree import root_ids, subtree_ids
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.tests.fixtures.builders import add_step_to_graph

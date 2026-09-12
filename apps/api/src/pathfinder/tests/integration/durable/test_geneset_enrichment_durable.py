@@ -23,16 +23,14 @@ from assistant_core.tasks.progress import TaskProgressEmitter
 from assistant_core.tasks.runner import run_durable_task
 from assistant_core.tasks.scope import attach_user_id
 from sqlalchemy import select
-from veupathdb.domain.strategy.validation import StepValidation
-from veupathdb.json_types import JSONArray, JSONObject
-from veupathdb.wdk.wdk_models import (
-    WDKStepAnalysisType,
-    WDKStepAnalysisTypeResponse,
-)
-from veupathdb.wdk.wdk_parameters import (
+from veupathdb import JSONArray, JSONObject
+from veupathdb.domain.strategy import StepValidation
+from veupathdb.wdk import (
     WDKEnumParam,
     WDKNumberParam,
     WDKParameter,
+    WDKStepAnalysisType,
+    WDKStepAnalysisTypeResponse,
 )
 from veupathdb_mcp.wdk.enrichment import service
 
@@ -225,12 +223,12 @@ async def test_geneset_enrichment_impl_runs_the_analyses_and_emits_progress(
 
     assert dict(recorded_wdk.analyses) == {
         "go-enrichment": {
-            "organism": f'["{_ORGANISM}"]',
+            "organism": _ORGANISM,
             "pValueCutoff": "0.05",
-            "goAssociationsOntologies": '["Molecular Function"]',
+            "goAssociationsOntologies": "Molecular Function",
         },
         "pathway-enrichment": {
-            "organism": f'["{_ORGANISM}"]',
+            "organism": _ORGANISM,
             "pValueCutoff": "0.05",
         },
     }

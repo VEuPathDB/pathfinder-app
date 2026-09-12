@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.wdk_vocab import VocabOption
+from veupathdb.domain.parameters import VocabOption
 from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.agents.state import ParamVocabSnapshot

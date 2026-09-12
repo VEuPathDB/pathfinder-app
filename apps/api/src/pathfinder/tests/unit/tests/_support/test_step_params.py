@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import NumberValue, StringValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.parameters import NumberValue, StringValue
+from veupathdb.domain.strategy import StrategyStepNode
 
 from pathfinder.tests._support.step_params import string_param
 

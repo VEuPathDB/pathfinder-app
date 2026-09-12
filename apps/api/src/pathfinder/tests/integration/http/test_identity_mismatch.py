@@ -18,7 +18,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.wdk.factory import get_site
+from veupathdb.wdk import get_site
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

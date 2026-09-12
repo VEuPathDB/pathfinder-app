@@ -10,8 +10,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from veupathdb.wdk.strategy_api import StrategyAPI
-from veupathdb.wdk.wdk_models import WDKStrategyDetails
+from veupathdb.wdk import StrategyAPI, WDKStrategyDetails
 
 from pathfinder.services.strategies import live_counts
 from pathfinder.services.strategies.live_counts import read_wdk_step_counts

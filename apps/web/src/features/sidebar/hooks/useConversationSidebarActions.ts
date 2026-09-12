@@ -17,7 +17,7 @@ import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/u
 import { updateStrategy } from "@pathfinder/shared/generated/hooks/useUpdateStrategy";
 import { duplicateConversation } from "@/lib/api/conversations";
 import { toUserMessage } from "@/lib/api/errors";
-import { chatRoot, chatUrl } from "@/lib/routes";
+import { chatRoot, chatUrl, conversationIdFromPath } from "@/lib/routes";
 
 interface UseConversationSidebarActionsArgs {
   siteId: string;
@@ -26,7 +26,7 @@ interface UseConversationSidebarActionsArgs {
 
 interface ConversationSidebarActions extends RenameWorkflow, DeleteWorkflow {
   activeId: string | null;
-  handleNewConversation: () => Promise<void>;
+  handleNewConversation: (assistantId?: string) => Promise<void>;
   handleToggleSaved: (item: ConversationItem) => Promise<void>;
   handleDuplicate: (item: ConversationItem) => Promise<void>;
 }
@@ -38,7 +38,7 @@ export function useConversationSidebarActions({
   const queryClient = useQueryClient();
   const router = useRouter();
   const pathname = usePathname();
-  const activeId = pathname.match(/\/conversation\/([^/?#]+)/)?.[1] ?? null;
+  const activeId = conversationIdFromPath(pathname);
 
   const rename = useRenameWorkflow({ siteId, reportError });
   const deleteWorkflow = useDeleteWorkflow({
@@ -49,8 +49,8 @@ export function useConversationSidebarActions({
 
   const listKey = listStrategiesQueryOptions({ siteId }).queryKey;
 
-  const handleNewConversation = async (): Promise<void> => {
-    router.push(chatRoot(siteId));
+  const handleNewConversation = async (assistantId?: string): Promise<void> => {
+    router.push(chatRoot(siteId, assistantId));
   };
 
   const handleToggleSaved = async (item: ConversationItem): Promise<void> => {

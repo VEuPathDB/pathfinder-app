@@ -7,9 +7,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, JsonValue
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import StrategyStep
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy import StrategyAst, StrategyStep, StrategyStepNode
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload, tool_error
 

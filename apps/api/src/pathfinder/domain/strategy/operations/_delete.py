@@ -1,7 +1,6 @@
 """Delete a step or an edge, and re-wire what the deletion leaves behind."""
 
-from veupathdb.domain.strategy.graph_model import StepKind, StrategyStep
-from veupathdb.domain.strategy.tree import subtree_ids
+from veupathdb.domain.strategy import StepKind, StrategyStep, subtree_ids
 
 from pathfinder.domain.strategy.operations._graph_edit import (
     ApplyError,

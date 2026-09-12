@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.parameters import to_wire
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.intent import UserIntent

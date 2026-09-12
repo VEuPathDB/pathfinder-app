@@ -7,10 +7,9 @@ the combined-step call, and an imported tree reaches WDK unchanged.
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import StringValue
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategyStepNode
+from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
     WDKIdentifier,

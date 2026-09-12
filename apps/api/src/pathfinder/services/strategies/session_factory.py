@@ -7,8 +7,7 @@ from assistant_core.persistence.repositories.conversation import (
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from pydantic import ValidationError
-from veupathdb.domain.strategy.graph_model import flatten_tree
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy import StrategyAst, flatten_tree
 
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.persistence.models import (

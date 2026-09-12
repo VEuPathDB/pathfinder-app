@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import ParamValue, StringValue
-from veupathdb.domain.search import SearchContext
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.graph_model import StrategyStep, flatten_tree
-from veupathdb.domain.strategy.validation import StepValidation
-from veupathdb.eda.models import EdaStringSetFilter
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import ParamValue, StringValue
+from veupathdb.domain.strategy import (
+    StepValidation,
+    StrategyStep,
+    StrategyStepNode,
+    flatten_tree,
+)
+from veupathdb.eda import EdaStringSetFilter
+from veupathdb.wdk import (
+    WDKParameter,
     WDKSearch,
     WDKSearchResponse,
-)
-from veupathdb.wdk.wdk_parameters import (
-    WDKParameter,
     WDKStringParam,
 )
 from veupathdb_mcp.catalog import (

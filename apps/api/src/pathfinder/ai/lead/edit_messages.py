@@ -6,7 +6,7 @@ pass that cannot see them re-derives them from a sentence.
 
 from __future__ import annotations
 
-from veupathdb.domain.parameters.value_codec import to_wire
+from veupathdb.domain.parameters import to_wire
 
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,

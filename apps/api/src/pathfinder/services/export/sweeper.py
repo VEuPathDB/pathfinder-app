@@ -31,7 +31,7 @@ async def sweep_expired_exports() -> int:
 
 
 async def run_sweeper_loop() -> None:
-    """Long-running coroutine — call via ``platform.tasks.spawn``."""
+    """Long-running coroutine. The caller spawns it."""
     while True:
         try:
             n = await sweep_expired_exports()

@@ -7,8 +7,7 @@ and the bound parameter values, so the spec is derived rather than re-asked.
 
 from __future__ import annotations
 
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,

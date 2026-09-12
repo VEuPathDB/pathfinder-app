@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import pytest
 from pydantic import BaseModel, TypeAdapter
-from veupathdb.domain.parameters.values import MultiPickValue, StringValue
-from veupathdb.domain.search import SearchContext
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import MultiPickValue, StringValue
 from veupathdb.errors import ValidationError
-from veupathdb.wdk.factory import get_wdk_client
-from veupathdb.wdk.wdk_models import WDKSearchResponse
+from veupathdb.wdk import WDKSearchResponse, get_wdk_client
 from veupathdb_mcp.catalog import (
     adapt_param_specs_from_search,
     make_validation_callbacks,

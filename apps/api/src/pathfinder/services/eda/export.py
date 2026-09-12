@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaAnalysisDetail,
     EdaComputation,
     EdaNewAnalysis,

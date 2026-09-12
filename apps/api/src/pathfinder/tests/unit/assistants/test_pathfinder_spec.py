@@ -20,11 +20,11 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.assistants import pathfinder_spec
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
 from pathfinder.assistants.registry import get_assistant_registry
+from pathfinder.domain.memory import MEMORY_KINDS
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.tool_sources import RESEARCH_MCP_SOURCE_ID
 from pathfinder.services.wdk_identity import require_registered_wdk_login
-from pathfinder.transport.http.routers.memories import MEMORY_ROUTE_KINDS
 
 
 def test_the_registry_serves_pathfinder_by_default() -> None:
@@ -150,9 +150,9 @@ def test_it_declares_the_product_memory_kinds() -> None:
     )
 
 
-def test_the_memories_route_publishes_exactly_the_declared_kinds() -> None:
-    """A kind the spec declares but the route hides would be unreachable."""
-    assert set(MEMORY_ROUTE_KINDS) == build_pathfinder_spec().memory_kinds
+def test_it_declares_this_products_memory_kinds() -> None:
+    """The runtime validates a kind's shape; which kinds exist is declared here."""
+    assert build_pathfinder_spec().memory_kinds == set(MEMORY_KINDS)
 
 
 def test_it_declares_the_registered_wdk_login_requirement() -> None:

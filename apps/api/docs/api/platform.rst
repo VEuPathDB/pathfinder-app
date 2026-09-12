@@ -68,6 +68,18 @@ URL, and feature flags. Loaded via pydantic-settings.
    :undoc-members:
    :show-inheritance:
 
+Tier Presets
+------------
+
+**Purpose:** Map an ``(assistant, provider, tier)`` triple to a model and
+reasoning effort for each of that assistant's roles. The frontend fetches
+these to populate the picker.
+
+.. automodule:: pathfinder.platform.tiers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Types
 -----
 
@@ -156,23 +168,4 @@ the per-site catalog preload and retry the warm-up drives.
    :undoc-members:
    :show-inheritance:
 
-Store
------
-
-**Purpose:** Generic store abstractions for in-memory + persistence patterns.
-
-.. automodule:: pathfinder.platform.store
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Tasks
------
-
-**Purpose:** Background task infrastructure and management.
-
-.. automodule:: pathfinder.platform.tasks
-   :members:
-   :undoc-members:
-   :show-inheritance:
 

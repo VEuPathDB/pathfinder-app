@@ -1,34 +1,18 @@
-"""The debugger defers a chat turn under the same per-conversation lock."""
+"""The debugger defers a chat turn the way the chat route does."""
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic import JsonValue
 from pydantic_ai.ui.vercel_ai.request_types import TextUIPart, UIMessage
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.devtools import chat
 from pathfinder.jobs.payloads import ChatTurnPayload
-
-
-class _FakeDeferrer:
-    def __init__(self, recorder: dict[str, Any]) -> None:
-        self._recorder = recorder
-
-    async def defer_async(self, **kwargs: Any) -> int:
-        self._recorder["deferred"] = kwargs
-        return 1
-
-
-class _FakeJob:
-    def __init__(self) -> None:
-        self.recorder: dict[str, Any] = {}
-
-    def configure(self, **options: Any) -> _FakeDeferrer:
-        self.recorder["options"] = options
-        return _FakeDeferrer(self.recorder)
 
 
 class _FakeAppCtx:
@@ -61,16 +45,22 @@ def _payload(conversation_id: UUID) -> ChatTurnPayload:
     )
 
 
-async def test_the_defer_carries_the_conversation_lock(
+async def test_the_defer_names_the_thread_the_turn_belongs_to(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    job = _FakeJob()
+    """The runtime locks on the thread, so the id it is handed is the turn's."""
+    recorded: dict[str, Any] = {}
+
+    async def defer(*, conversation_id: UUID, payload: Mapping[str, JsonValue]) -> int:
+        recorded["conversation_id"] = conversation_id
+        recorded["payload"] = payload
+        return 1
+
     monkeypatch.setattr(chat, "procrastinate_app", _FakeApp())
-    monkeypatch.setattr(chat, "run_chat_turn_job", job)
+    monkeypatch.setattr(chat, "defer_chat_turn", defer)
     conversation_id = uuid4()
 
     await chat._defer_chat_turn(_payload(conversation_id))
 
-    assert job.recorder["options"] == {"lock": str(conversation_id)}
-    deferred = job.recorder["deferred"]
-    assert deferred["payload"]["body"]["conversationId"] == str(conversation_id)
+    assert recorded["conversation_id"] == conversation_id
+    assert recorded["payload"]["body"]["conversationId"] == str(conversation_id)

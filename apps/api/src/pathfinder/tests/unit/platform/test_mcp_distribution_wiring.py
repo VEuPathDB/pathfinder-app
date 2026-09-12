@@ -7,14 +7,15 @@ and it shares one database with them without sharing a declarative base.
 
 from __future__ import annotations
 
-from assistant_core.mcp.untrusted import STREAM_PART_META_KEY
+from assistant_core.mcp.untrusted import stream_part_meta_key
 from assistant_core.persistence.models import Base
-from veupathdb_mcp import McpSettings, get_mcp_settings, tool_meta
+from veupathdb_mcp import tool_meta
 from veupathdb_mcp.embeddings import (
     EmbeddingBase,
     EmbeddingSettings,
     get_embedding_settings,
 )
+from veupathdb_mcp.settings import McpSettings, get_mcp_settings
 
 from pathfinder.platform.config import Settings, get_settings
 
@@ -38,4 +39,4 @@ def test_the_runtime_base_maps_neither_index_table() -> None:
 
 def test_the_stream_part_key_is_the_vocabulary_the_runtime_reads() -> None:
     """Two distributions state the same wire key; neither imports the other."""
-    assert tool_meta.STREAM_PART_META_KEY == STREAM_PART_META_KEY
+    assert stream_part_meta_key() == tool_meta.STREAM_PART_META_KEY

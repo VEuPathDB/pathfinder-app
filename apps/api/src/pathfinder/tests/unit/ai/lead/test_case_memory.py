@@ -4,7 +4,7 @@ any zero-result step the turn recovered."""
 from __future__ import annotations
 
 from assistant_core.memory.tombstones import compute_content_hash
-from veupathdb.domain.parameters.values import StringValue
+from veupathdb.domain.parameters import StringValue
 
 from pathfinder.ai.graph.state import (
     PhaseDisposition,

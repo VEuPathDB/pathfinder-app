@@ -2,32 +2,23 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from assistant_core.memory.schemas import MemoryKind
 from assistant_core.memory.store import MemoryStore, StoredMemory
 from assistant_core.memory.tombstones import TombstoneRepository
 from assistant_core.platform.db import async_session_factory
 from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 from langgraph.store.postgres.aio import AsyncPostgresStore
 
+from pathfinder.domain.memory import MEMORY_KINDS, MemoryKind
 from pathfinder.transport.http.deps import CurrentUser
 from pathfinder.transport.http.schemas.memories import (
     MemoryEditRequest,
     MemoryItem,
     MemoryListResponse,
     MemorySearchResponse,
+    MemoryValue,
 )
 
 router = APIRouter(prefix="/api/v1/memories", tags=["memories"])
-
-# The order the response fields are filled in; the set is pinned against the
-# assistant's declared kinds.
-MEMORY_ROUTE_KINDS: tuple[MemoryKind, ...] = (
-    "gene_set",
-    "strategy",
-    "preference",
-    "knowledge",
-    "case",
-)
 
 _MAX_PAGE_LIMIT: int = 200
 _DEFAULT_PAGE_LIMIT: int = 50
@@ -43,7 +34,10 @@ def _tombstones() -> TombstoneRepository:
 
 
 def _to_item(stored: StoredMemory) -> MemoryItem:
-    return MemoryItem(key=stored.key, value=stored.value)
+    return MemoryItem(
+        key=stored.key,
+        value=MemoryValue.model_validate(stored.value, from_attributes=True),
+    )
 
 
 @router.get("", response_model=MemoryListResponse)
@@ -59,7 +53,7 @@ async def list_memories(
     store = _store(request)
     buckets: dict[MemoryKind, list[MemoryItem]] = {}
     any_full_page = False
-    for kind in MEMORY_ROUTE_KINDS:
+    for kind in MEMORY_KINDS:
         stored = await store.list_all(
             user_id=user_id,
             kind=kind,
@@ -91,7 +85,7 @@ async def search_memories(
 ) -> MemorySearchResponse:
     store = _store(request)
     hits: list[MemoryItem] = []
-    for kind in MEMORY_ROUTE_KINDS:
+    for kind in MEMORY_KINDS:
         stored = await store.semantic_search(
             user_id=user_id,
             kind=kind,
@@ -119,7 +113,9 @@ async def edit_memory(
     }
     updated = current.value.model_copy(update=updates)
     await store.put(user_id=user_id, value=updated, key=key)
-    return MemoryItem(key=key, value=updated)
+    return MemoryItem(
+        key=key, value=MemoryValue.model_validate(updated, from_attributes=True)
+    )
 
 
 @router.delete("/{key}", status_code=status.HTTP_204_NO_CONTENT)

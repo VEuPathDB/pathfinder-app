@@ -1,7 +1,7 @@
 """Evaluation phases: control-test evaluation and strategy persistence."""
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.strategy import StrategyStepNode
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.services.experiment.helpers import controls_context_from_config

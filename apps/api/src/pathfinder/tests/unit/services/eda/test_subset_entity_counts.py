@@ -9,10 +9,10 @@ from typing import Any
 import httpx
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.eda.client import EdaClient
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
+    EdaClient,
     EdaFilter,
     EdaStringSetFilter,
     EdaStudyDetail,

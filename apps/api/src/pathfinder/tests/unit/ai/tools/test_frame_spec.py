@@ -10,13 +10,16 @@ from unittest.mock import MagicMock
 
 import pytest
 from pydantic_ai import ModelRetry, RunContext
-from veupathdb.domain.parameters.values import MultiPickValue, ParamValue, StringValue
-from veupathdb.domain.parameters.wdk_vocab import VocabOption
-from veupathdb.domain.search import SearchContext
-from veupathdb.domain.strategy.validation import StepValidation
+from veupathdb.domain import SearchContext
+from veupathdb.domain.parameters import (
+    MultiPickValue,
+    ParamValue,
+    StringValue,
+    VocabOption,
+)
+from veupathdb.domain.strategy import StepValidation
 from veupathdb.errors import ValidationError
-from veupathdb.wdk.wdk_models import WDKSearch, WDKSearchResponse
-from veupathdb.wdk.wdk_parameters import WDKParameter, WDKStringParam
+from veupathdb.wdk import WDKParameter, WDKSearch, WDKSearchResponse, WDKStringParam
 from veupathdb_mcp.catalog import (
     COMPUTE_QUERY,
     EDA_ANALYSIS_SPEC_PARAM,

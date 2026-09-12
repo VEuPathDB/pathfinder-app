@@ -7,7 +7,7 @@ from pydantic_ai import ModelRetry
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tools import RunContext
 from pydantic_ai.usage import RunUsage
-from veupathdb.wdk.wdk_models import WDKSearch
+from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import RecordTypeInfo
 
 from pathfinder.assistants.site_help import agent

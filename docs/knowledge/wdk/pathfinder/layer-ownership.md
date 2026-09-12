@@ -88,6 +88,43 @@ contract cannot see which symbol an edge carries. `WDKSearch` is now a
 third-party name from this application's point of view, so there is no contract
 to except and no facade to police.
 
+# How to list every WDK call this backend makes
+
+The endpoint surface itself, method by method, is `veupathdb-py:
+docs/knowledge/wdk/rest/endpoint-surface.md`, and its client column names the method
+under `src/veupathdb/wdk/` that issues each call. Which of this backend's functions
+reaches which endpoint is a second mapping, and it is derived rather than inspected.
+
+Every WDK path literal under `apps/api/src/pathfinder`, excluding `tests/`, is extracted
+and mapped to its enclosing function. Anything absent from the extraction is a claim
+about the whole backend rather than about one package. Redo it by grepping the backend
+for string literals beginning `/users`, `/record-types`, `/strategy-lists`,
+`/temporary-results`, `/ontologies`, `/login`, `/logout`, and then handling three things
+that will otherwise give a wrong answer. Each of these has already caused a wrong row or a
+false alarm once.
+
+- **Discard PathFinder's own FastAPI route decorators.** `dev.py` and
+  `veupathdb_auth.py` declare `/login` and `/logout` routes of their own, which look
+  identical to the WDK paths in a grep and are not calls to WDK at all.
+- **Discard non-service literals when the extraction spans the client.** The calls
+  themselves are issued by `veupathdb-py`, so a mapping that walks the client too meets
+  the `/service` to `/app` rewrite in `veupathdb-py: src/veupathdb/wdk/_http.py` and the
+  `removesuffix("/service")` in `veupathdb-py: src/veupathdb/wdk/site_router.py`; both
+  match a naive pattern and neither is an endpoint.
+- **Join implicit string concatenation before matching.** Python adjacent-literal
+  concatenation splits a path across lines, and a line-oriented grep sees only fragments.
+  `veupathdb-py: src/veupathdb/wdk/strategy_api/records.py:95-96` is the live case:
+  `f"/users/{...}/steps/{step_id}"` on one line and
+  `f"/columns/{column_name}/reports/byValue"` on the next are one path. Matched
+  separately, the first looks like a plain step fetch and the second does not start with
+  any WDK prefix, so the column-reporter row appears uncalled. Join consecutive lines from
+  the same file before deciding.
+- **Grep the whole backend, not one package.** The first version of this mapping was
+  derived from the WDK client's strategy API alone and got two rows wrong, both
+  of them outside it: the callers live in `catalog_metadata.py` and
+  `transport/http/routers/`. A narrowed extraction does not just miss rows, it makes the
+  reverse check pass vacuously, so nothing reports the gap.
+
 # The two things the contracts cannot see
 
 ## A raw HTTP call to a WDK host

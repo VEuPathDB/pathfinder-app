@@ -14,7 +14,7 @@ from assistant_core.memory.retrieval import retrieve_relevant_memories
 from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.db import async_session_factory
 from langgraph.runtime import Runtime
-from veupathdb.domain.parameters.values import StringValue
+from veupathdb.domain.parameters import StringValue
 
 from pathfinder.ai.graph import nodes
 from pathfinder.ai.graph.runtime import Context
@@ -25,8 +25,8 @@ from pathfinder.ai.graph.state import (
     VerificationDigest,
     ZeroResultStep,
 )
-from pathfinder.ai.lead.memory_candidates import PRODUCT_MEMORY_KINDS
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
+from pathfinder.domain.memory import MEMORY_KINDS
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -284,8 +284,8 @@ async def test_a_later_turn_retrieves_the_case_for_a_similar_goal(
             store=MemoryStore(store=raw),
             user_id=user_id,
             query="which kinases does P. falciparum have",
-            site_id="plasmodb",
-            kinds=PRODUCT_MEMORY_KINDS,
+            keep=lambda memory: memory.site_id in (None, "plasmodb"),
+            kinds=MEMORY_KINDS,
         )
 
     assert "case" in [stored.value.kind for stored in found]

@@ -6,10 +6,10 @@ reliability and add biological context.
 """
 
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.parameters.values import ParamValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
+from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.strategy import StrategyStepNode
 from veupathdb.errors import VEuPathDBError
-from veupathdb.wdk.factory import get_strategy_api
+from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.wdk import build_enrichment_params_from_gene_ids, extract_record_ids
 from veupathdb_mcp.wdk.enrichment import EnrichmentService, upsert_enrichment_result
 

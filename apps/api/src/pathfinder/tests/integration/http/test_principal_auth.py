@@ -22,7 +22,7 @@ from jwt.algorithms import ECAlgorithm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.errors import VEuPathDBError
-from veupathdb.wdk.factory import get_site
+from veupathdb.wdk import get_site
 
 from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings

@@ -17,10 +17,10 @@ from assistant_core.mcp.admission import install_admitted_sources
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import setup_logging
 from assistant_core.registry import install_assistant_registry
+from assistant_core.tasks.app import worker_queues
 from assistant_core.tasks.completion_turn import install_completion_turn
 from assistant_core.tasks.heartbeat import HeartbeatThread, postgres_beat_writer
 from assistant_core.tasks.job_context import install_durable_job_context
-from assistant_core.tasks.names import WORKER_QUEUES
 from assistant_core.tasks.runner import install_worker_context, register_durable_jobs
 from procrastinate.worker import Worker
 from veupathdb_mcp.embeddings import use_embedding_session_factory
@@ -64,7 +64,7 @@ async def amain() -> None:
     # heartbeat thread can read the worker id procrastinate registers.
     worker: _RunningWorker = Worker(
         app=procrastinate_app,
-        queues=list(WORKER_QUEUES),
+        queues=list(worker_queues()),
         concurrency=settings.worker_concurrency,
         install_signal_handlers=True,
         update_heartbeat_interval=settings.worker_heartbeat_interval_seconds,

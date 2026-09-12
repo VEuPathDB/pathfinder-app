@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry
-from veupathdb.domain.parameters.wdk_vocab import VocabOption, WDKVocabTerm
-from veupathdb.wdk.wdk_parameters import (
+from veupathdb.domain.parameters import VocabOption, WDKVocabTerm
+from veupathdb.wdk import (
     WDKEnumParam,
     WDKParameter,
     WDKStringParam,

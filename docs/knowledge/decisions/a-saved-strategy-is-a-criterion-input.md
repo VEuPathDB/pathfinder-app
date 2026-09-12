@@ -38,7 +38,8 @@ the saved strategy's steps, read from WDK and cloned with fresh ids by
 
 **The saved subtree lands on the secondary input.** WDK marks the SECONDARY
 input of a combine as the collapsed saved strategy
-(`wdk_conversion._resolve_expanded_reference` reads it back the same way), so
+(`veupathdb-mcp: src/veupathdb_mcp/wdk/strategy_snapshot.py` reads it back the same
+way), so
 the conversion moves a saved operand there and mirrors the operator that is not
 symmetric: MINUS becomes RMINUS, LONLY becomes RONLY. The combine carries
 `expanded_strategy_id` and `expanded_name`, which is what renders it collapsed.

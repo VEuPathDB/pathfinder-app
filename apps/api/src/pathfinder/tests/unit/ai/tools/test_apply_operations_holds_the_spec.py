@@ -7,8 +7,7 @@ from uuid import uuid4
 import pytest
 from pydantic import JsonValue, ValidationError
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy.ast import COMBINE_SEARCH_NAME, StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategyStepNode
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps

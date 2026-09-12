@@ -11,9 +11,13 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.errors import ValidationError
-from veupathdb.wdk.auth_login import password_login, password_logout
-from veupathdb.wdk.current_user import fetch_current_user, resolve_registered_email
-from veupathdb.wdk.wdk_models import WDKUserInfo
+from veupathdb.wdk import (
+    WDKUserInfo,
+    fetch_current_user,
+    password_login,
+    password_logout,
+    resolve_registered_email,
+)
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import SiteUnavailableError, UnauthorizedError

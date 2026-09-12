@@ -4,7 +4,7 @@ Small utility functions that don't belong to any single phase but are
 called from several.
 """
 
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.controls import ControlTestResult, run_positive_negative_controls
 
 from pathfinder.services.experiment.helpers import (

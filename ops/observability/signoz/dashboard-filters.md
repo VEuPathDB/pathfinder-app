@@ -10,47 +10,41 @@ The VEuPathDB host serving a dependency request, such as plasmodb.org. Use this 
 
 - Applies to: dependency-reliability
 
-### `intent`
+### `finish_reason`
 
-The classified turn intent, such as new_strategy, edit_strategy, or follow_up. Use this to separate behavior by user goal rather than by raw prompt text.
+How a turn ended, as the finish chunk reported it. Use this to separate turns that answered from turns that stopped or failed.
 
-- Applies to: pipeline-overview, approval-and-execution
+- Applies to: pipeline-overview
 
-### `model`
+### `reason`
 
-The configured model handling the turn or phase. Use this to compare latency, errors, and token usage across model choices.
+Why an event-stream subscription closed. Use this to tell a reader that left from a stream that reached its terminator.
 
-- Applies to: pipeline-overview, approval-and-execution
+- Applies to: streaming-delivery
 
-### `surface`
+### `kind`
 
-The user-facing workflow family. Today this distinguishes chat vs plan_action on pipeline metrics, and chat vs workbench-style streams on SSE metrics.
+The chunk kind of a frame served to a subscriber. Use this to see which part types dominate a stream.
 
-- Applies to: pipeline-overview, approval-and-execution, streaming-delivery
+- Applies to: streaming-delivery
 
 ## Dashboard Recommendations
 
 ### PathFinder Pipeline Overview
 
-End-to-end AI turn latency and throughput for chat and plan-action runs.
+Assistant turn latency, throughput and token use, end to end.
 
-- Recommended filters: `intent`, `model`, `run_kind`, `surface`, `phase`, `type`
-
-### PathFinder Approval And Execution
-
-Operational view of approval latency, execution time, phase transitions, and recoveries.
-
-- Recommended filters: `phase`, `status`, `kind`, `model`, `intent`, `run_kind`, `surface`
+- Recommended filters: `finish_reason`
 
 ### PathFinder Streaming Delivery
 
 Live delivery health for SSE subscriptions and user-visible streaming behavior.
 
-- Recommended filters: `surface`, `operation_type`, `stream_kind`, `reason`, `event_type`, `resumed`
+- Recommended filters: `reason`, `kind`, `resumed`
 
 ### PathFinder Dependency Reliability
 
-Backplane and external dependency health across Redis Streams, WDK, and site-search.
+External dependency health across WDK and site-search.
 
-- Recommended filters: `site_host`, `endpoint_group`, `method`, `status_family`, `outcome`, `error_kind`, `stream_kind`, `event_type`
+- Recommended filters: `site_host`, `endpoint_group`, `method`, `status_family`, `outcome`, `error_kind`
 

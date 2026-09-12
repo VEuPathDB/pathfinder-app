@@ -22,7 +22,10 @@ from pydantic_ai.toolsets.wrapper import WrapperToolset
 
 from pathfinder.ai.agents.execution import build_execution_agent
 from pathfinder.ai.agents.frame import build_frame_agent
-from pathfinder.ai.agents.scratchpad_guidance import PATHFINDER_SCRATCHPAD_GUIDANCE
+from pathfinder.ai.agents.scratchpad_guidance import (
+    PATHFINDER_SCRATCHPAD_GUIDANCE,
+    PROMOTED_NOTE_KIND,
+)
 from pathfinder.ai.agents.verification import build_verification_agent
 
 _PROMOTE_SENTENCE = (
@@ -70,7 +73,9 @@ def _describe_promote(toolset: AbstractToolset[Any]) -> str | None:
 
 def _promote_with_guidance() -> str:
     return _promote_description(
-        build_scratchpad_toolset(guidance=PATHFINDER_SCRATCHPAD_GUIDANCE),
+        build_scratchpad_toolset(
+            guidance=PATHFINDER_SCRATCHPAD_GUIDANCE, promoted_kind=PROMOTED_NOTE_KIND
+        ),
     )
 
 
@@ -122,8 +127,10 @@ def test_a_populated_index_ends_with_the_rule_this_product_states() -> None:
 
 def test_the_promote_tool_reads_this_products_sentence() -> None:
     """Without it the model reads the runtime's generic description."""
-    with_guidance = build_scratchpad_toolset(guidance=PATHFINDER_SCRATCHPAD_GUIDANCE)
-    without = build_scratchpad_toolset()
+    with_guidance = build_scratchpad_toolset(
+        guidance=PATHFINDER_SCRATCHPAD_GUIDANCE, promoted_kind=PROMOTED_NOTE_KIND
+    )
+    without = build_scratchpad_toolset(promoted_kind=PROMOTED_NOTE_KIND)
 
     assert _promote_description(with_guidance).endswith(_PROMOTE_SENTENCE)
     assert _PROMOTE_SENTENCE not in _promote_description(without)

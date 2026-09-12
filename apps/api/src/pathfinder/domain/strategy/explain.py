@@ -1,6 +1,6 @@
 """Generate human-readable explanations of strategies."""
 
-from veupathdb.domain.strategy.ops import CombineOp
+from veupathdb.domain.strategy import CombineOp
 
 
 def explain_operation(op: CombineOp) -> str:

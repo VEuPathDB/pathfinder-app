@@ -8,13 +8,10 @@ the check reads a loaded site instead of waiting out the dead one's timeout.
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import Any
 from uuid import UUID
 
 import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.errors import WDKError
-from veupathdb.wdk import current_user
 
 from pathfinder.platform.errors import ErrorCode, SiteUnavailableError
 from pathfinder.platform.principal import Principal
@@ -35,38 +32,18 @@ def _clean_state() -> Generator[None]:
     reset_readiness()
 
 
-class _FakeSite:
-    def __init__(self, site_id: str) -> None:
-        self.id = site_id
-
-
-class _FakeClient:
-    def __init__(
-        self, site_id: str, seen: list[str], failure: Exception | None
-    ) -> None:
-        self._site_id = site_id
-        self._seen = seen
-        self._failure = failure
-
-    async def get(self, path: str) -> dict[str, Any]:
-        del path
-        self._seen.append(self._site_id)
-        if self._failure is not None:
-            raise self._failure
-        return {"id": 7, "isGuest": False, "email": "researcher@upenn.edu"}
-
-
 def _fake_wdk(
-    monkeypatch: pytest.MonkeyPatch, *, failure: Exception | None = None
+    monkeypatch: pytest.MonkeyPatch, *, email: str | None = "researcher@upenn.edu"
 ) -> list[str]:
-    """Record the site every ``/users/current`` read names."""
+    """Record the site every registered-email read names."""
     seen: list[str] = []
-    monkeypatch.setattr(current_user, "get_site", _FakeSite)
-    monkeypatch.setattr(
-        current_user,
-        "get_wdk_client",
-        lambda site_id: _FakeClient(site_id, seen, failure),
-    )
+
+    async def registered_email(token: str, site_id: str) -> str | None:
+        del token
+        seen.append(site_id)
+        return email
+
+    monkeypatch.setattr(wdk_identity, "resolve_registered_email", registered_email)
     return seen
 
 
@@ -160,10 +137,7 @@ class TestAWdkOutageNamesNobody:
     async def test_the_session_keeps_its_own_identity(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        seen = _fake_wdk(
-            monkeypatch,
-            failure=WDKError(detail="Request failed after retries", status=502),
-        )
+        seen = _fake_wdk(monkeypatch, email=None)
         _fake_user_row(monkeypatch)
         veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
         session = Principal(user_id=SESSION_USER, credential="pathfinder-cookie")

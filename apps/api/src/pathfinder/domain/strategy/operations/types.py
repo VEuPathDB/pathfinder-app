@@ -4,9 +4,8 @@ from enum import StrEnum
 from typing import Annotated, Literal
 
 from pydantic import Discriminator, Field
-from veupathdb.domain.parameters.values import ParamValue
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.ops import ColocationParams, CombineOp
+from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.strategy import ColocationParams, CombineOp, StrategyStepNode
 from veupathdb.model import CamelModel
 
 

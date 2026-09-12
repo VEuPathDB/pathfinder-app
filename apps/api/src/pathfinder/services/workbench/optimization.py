@@ -1,6 +1,6 @@
 """The parameter-sweep half of the workbench facade: the grid and one trial."""
 
-from veupathdb.domain.parameters.values import ParamValue
+from veupathdb.domain.parameters import ParamValue
 
 from pathfinder.services.parameter_optimization import sweep
 from pathfinder.services.parameter_optimization.config import (

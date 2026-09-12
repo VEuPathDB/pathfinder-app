@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import NumberValue, ParamValue, SinglePickValue
+from veupathdb.domain.parameters import NumberValue, ParamValue, SinglePickValue
 
 from pathfinder.services.parameter_optimization import sweep
 from pathfinder.services.parameter_optimization.config import (

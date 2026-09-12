@@ -12,7 +12,7 @@ from assistant_core.persistence.models import BackgroundTask, ConversationEvent,
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy.strategy_ast import StrategyAst
+from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.domain.strategy.revision import parse_strategy_ast
 from pathfinder.persistence.repositories.conversation_analysis import read_analysis_row

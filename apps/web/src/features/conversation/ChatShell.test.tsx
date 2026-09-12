@@ -4,7 +4,12 @@
 import type * as ReactQueryModule from "@tanstack/react-query";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { computeChatResolution, isEdaRoute, isStrategyRoute } from "./ChatShell";
+import {
+  computeChatResolution,
+  draftRoute,
+  isEdaRoute,
+  isStrategyRoute,
+} from "./ChatShell";
 
 type ReactQueryExports = typeof ReactQueryModule;
 
@@ -330,5 +335,84 @@ describe("ChatShell integration: no redirect during first-send URL rewrite", () 
     // useParams mock omits siteId, so the redirect interpolates an empty
     // segment. The production code prefixes the route with `/${siteId}/`.
     expect(redirectSpy).toHaveBeenCalledWith("//conversation");
+  });
+});
+
+describe("ChatShell.draftRoute", () => {
+  it("names the path alone when the URL asks for no assistant", () => {
+    expect(draftRoute("/plasmodb/conversation", null)).toBe("/plasmodb/conversation");
+  });
+
+  it("tells two assistants on one path apart", () => {
+    expect(draftRoute("/plasmodb/conversation", "site_help")).not.toBe(
+      draftRoute("/plasmodb/conversation", null),
+    );
+  });
+});
+
+describe("ChatShell drafts", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it("opens a new draft thread when the reader picks another assistant", async () => {
+    let search = new URLSearchParams();
+    vi.doMock("next/navigation", () => ({
+      usePathname: () => "/plasmodb/conversation",
+      useSearchParams: () => search,
+    }));
+    const seen: { conversationId: string; requestedAssistantId: string | null }[] = [];
+    vi.doMock("./ChatView", () => ({
+      ChatView: (props: {
+        conversationId: string;
+        requestedAssistantId: string | null;
+      }) => {
+        seen.push({
+          conversationId: props.conversationId,
+          requestedAssistantId: props.requestedAssistantId,
+        });
+        return null;
+      },
+    }));
+
+    const { ChatShell } = await import("./ChatShell");
+    const { render } = await import("@testing-library/react");
+
+    const view = render(<ChatShell />);
+    const draft = seen.at(-1);
+    if (draft === undefined) throw new Error("ChatView never rendered");
+    expect(draft.requestedAssistantId).toBe(null);
+
+    search = new URLSearchParams("assistant=site_help");
+    view.rerender(<ChatShell />);
+
+    const picked = seen.at(-1);
+    if (picked === undefined) throw new Error("ChatView never rendered");
+    expect(picked.requestedAssistantId).toBe("site_help");
+    expect(picked.conversationId).not.toBe(draft.conversationId);
+  });
+
+  it("keeps the draft thread while the assistant stays the same", async () => {
+    const search = new URLSearchParams("assistant=site_help");
+    vi.doMock("next/navigation", () => ({
+      usePathname: () => "/plasmodb/conversation",
+      useSearchParams: () => search,
+    }));
+    const seen: string[] = [];
+    vi.doMock("./ChatView", () => ({
+      ChatView: (props: { conversationId: string }) => {
+        seen.push(props.conversationId);
+        return null;
+      },
+    }));
+
+    const { ChatShell } = await import("./ChatShell");
+    const { render } = await import("@testing-library/react");
+
+    const view = render(<ChatShell />);
+    view.rerender(<ChatShell />);
+
+    expect(seen.length).toBeGreaterThan(1);
+    expect(new Set(seen).size).toBe(1);
   });
 });

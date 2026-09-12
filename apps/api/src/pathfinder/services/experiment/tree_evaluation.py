@@ -2,17 +2,16 @@
 
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONArray, JSONObject
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.domain.strategy.ops import CombineOp
-from veupathdb.wdk.factory import get_strategy_api
-from veupathdb.wdk.strategy_api import StrategyAPI
-from veupathdb.wdk.wdk_models import (
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode
+from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
+    StrategyAPI,
     WDKDatasetConfigIdList,
     WDKDatasetIdListContent,
     WDKSearchConfig,
     WDKStepTree,
+    get_strategy_api,
 )
 from veupathdb_mcp.controls import (
     ControlsContext,

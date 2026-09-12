@@ -7,18 +7,18 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 
 from assistant_core.platform.pydantic_base import CamelModel
-from veupathdb.eda.errors import EdaError
-from veupathdb.eda.factory import get_eda_client
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaAnalysisDetail,
     EdaComputation,
     EdaComputationDescriptor,
     EdaComputeJob,
     EdaDifferentialExpressionConfig,
+    EdaError,
     EdaFilter,
     EdaJobStatus,
     VolcanoStatsResponse,
     VolcanoStatsRow,
+    get_eda_client,
 )
 
 from pathfinder.domain.eda_parts import EdaEffectDirection

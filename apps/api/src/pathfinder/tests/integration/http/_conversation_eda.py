@@ -11,7 +11,7 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform.types import JSONObject
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb.eda.models import (
+from veupathdb.eda import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
     EdaStringSetFilter,

@@ -35,30 +35,6 @@ search names, step structure. Returns structured validation errors with field pa
    :undoc-members:
    :show-inheritance:
 
-WDK Conversion
---------------
-
-**Purpose:** Pure WDK → AST conversion. Parses WDK strategy payloads into
-internal ``StrategyAST``, extracts field values, and normalizes parameters.
-
-.. admonition:: WDK Wire Format and Parameter Coercion
-   :class: note
-
-   WDK stores multi-pick parameter values as **JSON-encoded strings** (e.g.
-   ``'["Plasmodium falciparum 3D7"]'`` rather than a native array). The wire
-   format is preserved in the stored plan when a strategy is synced from WDK.
-
-   The frontend step editor automatically coerces these JSON strings into
-   native arrays when parameter specs load, so widgets (TreeBox, Select,
-   etc.) can match values against their vocabulary options. This coercion
-   runs once per editor mount via ``coerceParametersForSpecs`` in the
-   ``useStepParameters`` hook.
-
-.. automodule:: pathfinder.services.strategies.wdk_conversion
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 WDK Sync
 --------
 

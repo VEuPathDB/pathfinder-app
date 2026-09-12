@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters.values import (
+from veupathdb.domain.parameters import (
     MultiPickValue,
     SinglePickValue,
     StringValue,
 )
-from veupathdb.domain.strategy.ast import StrategyStepNode
-from veupathdb.wdk.factory import get_results_api
+from veupathdb.domain.strategy import StrategyStepNode
+from veupathdb.wdk import get_results_api
 from veupathdb_mcp.controls import run_step_control_tests
 from veupathdb_mcp.wdk.enrichment import EnrichmentService
 

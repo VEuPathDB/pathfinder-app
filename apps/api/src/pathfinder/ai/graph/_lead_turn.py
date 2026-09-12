@@ -47,13 +47,13 @@ from pathfinder.ai.graph._lead_answers import (
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.dispatch_resume import SubAgentOutcome, resume_sub_agent
-from pathfinder.ai.lead.memory_candidates import PRODUCT_MEMORY_KINDS
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import (
     WIRE_PHASE_BY_ROLE,
     LeadDeps,
     SubAgentDurablePark,
 )
+from pathfinder.domain.memory import MEMORY_KINDS
 
 logger = get_logger(__name__)
 
@@ -82,8 +82,8 @@ async def retrieve_memories(
                 store=mem_store,
                 user_id=state.user_id,
                 query=state.user_prompt,
-                site_id=state.site_id,
-                kinds=PRODUCT_MEMORY_KINDS,
+                keep=lambda memory: memory.site_id in (None, state.site_id),
+                kinds=MEMORY_KINDS,
                 top_k=8,
             )
     except MemoryStoreTimeoutError as exc:

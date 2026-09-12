@@ -222,7 +222,8 @@ describe("revert truncates the client thread", { timeout: 30_000 }, () => {
         type: "/errors/WDK_LOGIN_REQUIRED",
         title: "VEuPathDB login required",
         status: 401,
-        detail: "Sign in to VEuPathDB to use searches, strategies and gene sets.",
+        detail:
+          "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.",
         code: "WDK_LOGIN_REQUIRED",
       },
     };
@@ -233,7 +234,7 @@ describe("revert truncates the client thread", { timeout: 30_000 }, () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("edit-dialog-error")).toHaveTextContent(
-        "Sign in to VEuPathDB to use searches, strategies and gene sets.",
+        "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.",
       );
     }, ROUND_TRIP);
     expect(screen.getByTestId("edit-revert-button")).toBeEnabled();

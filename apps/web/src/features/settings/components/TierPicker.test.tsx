@@ -8,10 +8,12 @@ import { TierPicker } from "./TierPicker";
 afterEach(cleanup);
 
 const uniform = (modelId: string, effort: "low" | "medium" | "high"): TierPreset => ({
-  lead: { modelId, reasoningEffort: effort },
-  frame: { modelId, reasoningEffort: effort },
-  execution: { modelId, reasoningEffort: effort },
-  verification: { modelId, reasoningEffort: effort },
+  roles: {
+    lead: { modelId, reasoningEffort: effort },
+    frame: { modelId, reasoningEffort: effort },
+    execution: { modelId, reasoningEffort: effort },
+    verification: { modelId, reasoningEffort: effort },
+  },
 });
 
 const PRESETS: Record<string, TierPreset> = {
