@@ -64,6 +64,11 @@ async def db_session(
         yield session
 
 
+PERCENTILE_SEARCH = (
+    "GenesByRNASeqpfal3D7_Josling_Schizont_Transcriptomes_ebi_rnaSeq_RSRCPercentile"
+)
+
+
 def _ast() -> StrategyAst:
     root = StrategyStepNode(
         id="step_join",
@@ -77,7 +82,7 @@ def _ast() -> StrategyAst:
         ),
         secondary_input=StrategyStepNode(
             id="step_expr",
-            search_name="GenesByRNASeqEvidence",
+            search_name=PERCENTILE_SEARCH,
             parameters={"min_expression_percentile": NumberValue(value=90)},
             display_name="top decile expression",
         ),

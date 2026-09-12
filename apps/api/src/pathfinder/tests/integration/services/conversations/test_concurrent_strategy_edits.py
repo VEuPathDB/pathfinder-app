@@ -72,6 +72,10 @@ class _SlowAPI:
     async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
         del step_id, user_id
 
+    async def delete_orphaned_steps(self, step_ids: list[int]) -> list[int]:
+        del step_ids
+        return []
+
     async def create_step(
         self,
         spec: NewStepSpec,
