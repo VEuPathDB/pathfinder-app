@@ -20,6 +20,7 @@ from pathfinder.ai.agents._instructions import (
     pinned_run_budget,
     pinned_user_memories,
 )
+from pathfinder.ai.capabilities.refusals import ServiceRefusalRetry
 from pathfinder.ai.graph.runtime import one_toolset
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.derive import derive_ledger
@@ -42,7 +43,9 @@ from pathfinder.ai.lead.lead_pins import (
 from pathfinder.ai.lead.lead_tools import (
     classify_user_intent,
     clear_strategy,
+    create_workbench_gene_set,
     get_live_strategy_state,
+    list_workbench_gene_sets,
     read_ledger_section,
     remember,
 )
@@ -154,6 +157,8 @@ def build_lead_agent() -> LeadAgent:
         tools=[
             Tool(classify_user_intent),
             Tool(remember),
+            Tool(create_workbench_gene_set),
+            Tool(list_workbench_gene_sets),
             Tool(read_ledger_section),
             Tool(get_live_strategy_state),
             Tool(frame_problem),
@@ -172,6 +177,7 @@ def build_lead_agent() -> LeadAgent:
         ],
         toolsets=[eda.build_toolset(), turn_tool_sources],
         capabilities=[
+            ServiceRefusalRetry[LeadDeps](),
             Thinking(effort="medium"),
             PrepareTools[LeadDeps](apply_tool_preconditions),
             *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),

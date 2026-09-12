@@ -43,7 +43,7 @@ class MemoryListResponse(CamelModel):
     count query.
     """
 
-    gene_sets: list[MemoryItem]
+    gene_set_notes: list[MemoryItem]
     strategies: list[MemoryItem]
     preferences: list[MemoryItem]
     knowledge: list[MemoryItem]

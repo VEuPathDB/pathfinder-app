@@ -4037,7 +4037,7 @@ paths:
         required: true
         schema:
           enum:
-          - gene_set
+          - gene_set_note
           - strategy
           - preference
           - knowledge
@@ -4093,7 +4093,7 @@ paths:
         required: true
         schema:
           enum:
-          - gene_set
+          - gene_set_note
           - strategy
           - preference
           - knowledge
@@ -7843,11 +7843,11 @@ components:
       title: MemoryItem
     MemoryListResponse:
       properties:
-        geneSets:
+        geneSetNotes:
           items:
             $ref: '#/components/schemas/MemoryItem'
           type: array
-          title: Genesets
+          title: Genesetnotes
         strategies:
           items:
             $ref: '#/components/schemas/MemoryItem'
@@ -7879,7 +7879,7 @@ components:
           title: Hasmore
       type: object
       required:
-      - geneSets
+      - geneSetNotes
       - strategies
       - preferences
       - knowledge
@@ -7916,7 +7916,7 @@ components:
         kind:
           type: string
           enum:
-          - gene_set
+          - gene_set_note
           - strategy
           - preference
           - knowledge

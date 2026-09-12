@@ -30,7 +30,7 @@ function item(name: string, kind: MemoryItem["value"]["kind"]): MemoryItem {
 
 function response(over: Partial<MemoryListResponse>): MemoryListResponse {
   return {
-    geneSets: [],
+    geneSetNotes: [],
     strategies: [],
     preferences: [],
     knowledge: [],

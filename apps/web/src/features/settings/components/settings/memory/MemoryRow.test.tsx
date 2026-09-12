@@ -12,7 +12,7 @@ afterEach(() => {
 const memItem: MemoryItem = {
   key: "k",
   value: {
-    kind: "gene_set",
+    kind: "gene_set_note",
     name: "drug_targets",
     summary: "Validated targets",
     tags: ["plasmodb", "phase2"],

@@ -57,7 +57,7 @@ def collect_memory_candidates(state: PipelineState) -> list[MemoryCandidate]:
             )
         )
     candidates.extend(
-        (_build_gene_set_value(state, gs_id), f"gene_set:{gs_id}")
+        (_build_gene_set_value(state, gs_id), f"gene_set_note:{gs_id}")
         for gs_id in domain.created_gene_set_ids
     )
     if domain.verification_digest is not None:
@@ -116,7 +116,7 @@ def _build_strategy_value(state: PipelineState) -> MemoryValue:
 
 def _build_gene_set_value(state: PipelineState, gs_id: str) -> MemoryValue:
     return MemoryValue(
-        kind="gene_set",
+        kind="gene_set_note",
         name=gs_id,
         summary=f"Gene set {gs_id} created in chat-{state.conversation_id.hex[:8]}",
         tags=[state.site_id] if state.site_id else [],

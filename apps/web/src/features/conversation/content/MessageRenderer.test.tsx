@@ -104,7 +104,7 @@ function renderPart(shortName: string, data: unknown) {
 describe("dataPartRenderers dispatch", () => {
   it("dispatches data-memory-retrieved to the correct component", () => {
     renderPart("memory-retrieved", {
-      memories: [{ key: "k1", kind: "gene_set", name: "Kinases", score: 1 }],
+      memories: [{ key: "k1", kind: "gene_set_note", name: "Kinases", score: 1 }],
     });
     expect(screen.getByTestId("data-memory-retrieved")).toBeInTheDocument();
   });

@@ -40,7 +40,7 @@ function item(name: string, kind: MemoryItem["value"]["kind"]): MemoryItem {
 
 function emptyList(): MemoryListResponse {
   return {
-    geneSets: [],
+    geneSetNotes: [],
     strategies: [],
     preferences: [],
     knowledge: [],
@@ -78,7 +78,7 @@ function renderWith(list: MemoryListResponse): void {
 describe("MemorySettings", () => {
   it("renders five MemorySection accordions", () => {
     renderWith(emptyList());
-    expect(screen.getByRole("button", { name: /Gene Sets/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Gene set notes/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Strategies/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Preferences/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Knowledge/i })).toBeInTheDocument();
@@ -107,19 +107,25 @@ describe("MemorySettings", () => {
   it("deletes memory on confirmed delete", async () => {
     mockedDelete.mockResolvedValue(undefined);
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-    renderWith({ ...emptyList(), geneSets: [item("drug_targets", "gene_set")] });
-    fireEvent.click(screen.getByRole("button", { name: /Gene Sets/i }));
+    renderWith({
+      ...emptyList(),
+      geneSetNotes: [item("drug_targets", "gene_set_note")],
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Gene set notes/i }));
     fireEvent.click(screen.getByLabelText(/delete drug_targets/i));
     expect(confirmSpy).toHaveBeenCalled();
     await waitFor(() => {
-      expect(mockedDelete).toHaveBeenCalledWith("k-drug_targets", "gene_set");
+      expect(mockedDelete).toHaveBeenCalledWith("k-drug_targets", "gene_set_note");
     });
   });
 
   it("skips delete when user cancels confirm", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
-    renderWith({ ...emptyList(), geneSets: [item("drug_targets", "gene_set")] });
-    fireEvent.click(screen.getByRole("button", { name: /Gene Sets/i }));
+    renderWith({
+      ...emptyList(),
+      geneSetNotes: [item("drug_targets", "gene_set_note")],
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Gene set notes/i }));
     fireEvent.click(screen.getByLabelText(/delete drug_targets/i));
     expect(mockedDelete).not.toHaveBeenCalled();
   });
@@ -159,7 +165,7 @@ describe("MemorySettings", () => {
   it("requests next page when Load more clicked", async () => {
     renderWith({
       ...emptyList(),
-      geneSets: [item("first_page", "gene_set")],
+      geneSetNotes: [item("first_page", "gene_set_note")],
       hasMore: true,
     });
     fireEvent.click(screen.getByRole("button", { name: /load more/i }));

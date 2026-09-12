@@ -10,7 +10,7 @@ const MEMORIES = {
   memories: [
     {
       key: "m1",
-      kind: "gene_set",
+      kind: "gene_set_note",
       name: "Erythrocytic genes",
       summary: "150 genes from PlasmoDB",
       score: 0.92,
@@ -31,7 +31,7 @@ describe("DataMemoryRetrieved", () => {
     const card = screen.getByTestId("data-memory-retrieved");
     const rows = within(card).getAllByRole("listitem");
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveTextContent("gene_set");
+    expect(rows[0]).toHaveTextContent("gene_set_note");
     expect(rows[0]).toHaveTextContent("Erythrocytic genes");
     expect(rows[1]).toHaveTextContent("strategy");
     expect(rows[1]).toHaveTextContent("Kinome sweep");

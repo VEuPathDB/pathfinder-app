@@ -92,5 +92,5 @@ async def test_gene_set_autowrite_is_idempotent(
                 user_id=state.user_id,
                 candidates=await collect_turn_memory_candidates(state),
             )
-        sets = await store.list_all(user_id=user_id, kind="gene_set")
+        sets = await store.list_all(user_id=user_id, kind="gene_set_note")
         assert len(sets) == 1

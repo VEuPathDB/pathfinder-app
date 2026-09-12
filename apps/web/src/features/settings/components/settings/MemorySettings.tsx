@@ -97,8 +97,8 @@ export function MemorySettings() {
       {data != null && (
         <div className="space-y-2">
           <MemorySection
-            title="Gene Sets"
-            items={data.geneSets}
+            title="Gene set notes"
+            items={data.geneSetNotes}
             onEdit={(m) => setEditing(m)}
             onDelete={handleDelete}
             onToggleAutoRetrieve={handleToggleAutoRetrieve}

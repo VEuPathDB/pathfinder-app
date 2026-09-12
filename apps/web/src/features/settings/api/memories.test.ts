@@ -12,7 +12,7 @@ describe("memories API client", () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          geneSets: [],
+          geneSetNotes: [],
           strategies: [],
           preferences: [],
           knowledge: [],
@@ -21,7 +21,7 @@ describe("memories API client", () => {
       ),
     );
     const result = await listMemories();
-    expect(result.geneSets).toEqual([]);
+    expect(result.geneSetNotes).toEqual([]);
     expect(result.strategies).toEqual([]);
     expect(result.preferences).toEqual([]);
     expect(result.knowledge).toEqual([]);
@@ -31,7 +31,7 @@ describe("memories API client", () => {
     const spy = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          geneSets: [],
+          geneSetNotes: [],
           strategies: [],
           preferences: [],
           knowledge: [],

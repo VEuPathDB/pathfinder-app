@@ -9,7 +9,7 @@ import { listMemories } from "@/features/settings/api/memories";
 import { RailEmptyState, RailPanelShell } from "./RailPanelShell";
 
 const SECTION_LABELS = {
-  gene_set: "Gene sets",
+  gene_set_note: "Gene set notes",
   strategy: "Strategies",
   preference: "Preferences",
   knowledge: "Knowledge",
@@ -28,7 +28,7 @@ export function MemoriesPanel() {
     kind: keyof typeof SECTION_LABELS;
     items: MemoryItem[];
   }> = [
-    { kind: "gene_set", items: data?.geneSets ?? [] },
+    { kind: "gene_set_note", items: data?.geneSetNotes ?? [] },
     { kind: "strategy", items: data?.strategies ?? [] },
     { kind: "preference", items: data?.preferences ?? [] },
     { kind: "knowledge", items: data?.knowledge ?? [] },

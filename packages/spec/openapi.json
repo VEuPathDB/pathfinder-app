@@ -6686,7 +6686,7 @@
             "required": true,
             "schema": {
               "enum": [
-                "gene_set",
+                "gene_set_note",
                 "strategy",
                 "preference",
                 "knowledge",
@@ -6778,7 +6778,7 @@
             "required": true,
             "schema": {
               "enum": [
-                "gene_set",
+                "gene_set_note",
                 "strategy",
                 "preference",
                 "knowledge",
@@ -12337,12 +12337,12 @@
       },
       "MemoryListResponse": {
         "properties": {
-          "geneSets": {
+          "geneSetNotes": {
             "items": {
               "$ref": "#/components/schemas/MemoryItem"
             },
             "type": "array",
-            "title": "Genesets"
+            "title": "Genesetnotes"
           },
           "strategies": {
             "items": {
@@ -12387,7 +12387,7 @@
         },
         "type": "object",
         "required": [
-          "geneSets",
+          "geneSetNotes",
           "strategies",
           "preferences",
           "knowledge",
@@ -12420,7 +12420,7 @@
           "kind": {
             "type": "string",
             "enum": [
-              "gene_set",
+              "gene_set_note",
               "strategy",
               "preference",
               "knowledge",

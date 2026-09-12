@@ -66,7 +66,7 @@ async def list_memories(
         if len(stored) >= limit:
             any_full_page = True
     return MemoryListResponse(
-        gene_sets=buckets["gene_set"],
+        gene_set_notes=buckets["gene_set_note"],
         strategies=buckets["strategy"],
         preferences=buckets["preference"],
         knowledge=buckets["knowledge"],

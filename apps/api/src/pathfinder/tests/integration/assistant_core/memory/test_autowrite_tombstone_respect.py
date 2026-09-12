@@ -60,15 +60,15 @@ async def test_deleted_gene_set_memory_does_not_resurrect(
             candidates=await collect_turn_memory_candidates(state),
         )
         assert written_first == 1
-        stored = await store.list_all(user_id=user_id, kind="gene_set")
+        stored = await store.list_all(user_id=user_id, kind="gene_set_note")
         assert len(stored) == 1
         deleted = stored[0]
 
         # User deletes it — the DELETE route tombstones the stored value
         # (hashed from the round-tripped content) then removes it.
         await tombstones.tombstone(user_id=user_id, value=deleted.value)
-        await store.delete(user_id=user_id, kind="gene_set", key=deleted.key)
-        assert await store.list_all(user_id=user_id, kind="gene_set") == []
+        await store.delete(user_id=user_id, kind="gene_set_note", key=deleted.key)
+        assert await store.list_all(user_id=user_id, kind="gene_set_note") == []
 
         # Turn 2: the same successful artifact is offered again — and refused.
         written_second = await auto_write_memories(
@@ -78,7 +78,7 @@ async def test_deleted_gene_set_memory_does_not_resurrect(
             candidates=await collect_turn_memory_candidates(state),
         )
         assert written_second == 0, "tombstoned memory was re-added"
-        assert await store.list_all(user_id=user_id, kind="gene_set") == []
+        assert await store.list_all(user_id=user_id, kind="gene_set_note") == []
 
 
 @pytest.mark.asyncio
@@ -117,9 +117,9 @@ async def test_tombstone_is_kind_scoped_not_global(
             user_id=gs_state.user_id,
             candidates=await collect_turn_memory_candidates(gs_state),
         )
-        stored = (await store.list_all(user_id=user_id, kind="gene_set"))[0]
+        stored = (await store.list_all(user_id=user_id, kind="gene_set_note"))[0]
         await tombstones.tombstone(user_id=user_id, value=stored.value)
-        await store.delete(user_id=user_id, kind="gene_set", key=stored.key)
+        await store.delete(user_id=user_id, kind="gene_set_note", key=stored.key)
 
         # A preference memory (different kind) for the same site must still
         # write — it shares neither kind nor content with the tombstone.

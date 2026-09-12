@@ -55,7 +55,7 @@ test.describe("Recalled memories", () => {
             },
             {
               key: "k2",
-              kind: "gene_set",
+              kind: "gene_set_note",
               name: "PF3D7 kinases",
               summary: "142 kinase genes",
               score: 0.61,
@@ -93,7 +93,7 @@ test.describe("Recalled memories", () => {
     await expect(page.getByTestId("figure-caption")).toContainText("2 memories");
     await expect(card).toContainText("strategy");
     await expect(card).toContainText("P. falciparum kinome sweep");
-    await expect(card).toContainText("gene_set");
+    await expect(card).toContainText("gene_set_note");
     await expect(card).toContainText("PF3D7 kinases");
   });
 });

@@ -95,6 +95,18 @@ def test_an_unclassified_turn_is_offered_no_building_tool() -> None:
     assert "classify_user_intent" in seen.steps[0]
 
 
+def test_an_unclassified_turn_is_offered_the_workbench_save_beside_remember() -> None:
+    """The first step shows both ways to keep a set, so neither stands in for
+    the other."""
+    seen = _run("Save the 155 genes as a gene set called gametocyte candidates", None)
+
+    assert {
+        "create_workbench_gene_set",
+        "list_workbench_gene_sets",
+        "remember",
+    } <= seen.steps[0]
+
+
 def test_a_context_statement_is_offered_no_building_tool() -> None:
     seen = _run(
         "I'm investigating virulence factors in Leishmania major",

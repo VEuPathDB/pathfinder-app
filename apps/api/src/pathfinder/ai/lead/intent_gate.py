@@ -34,8 +34,9 @@ BUILDING_TOOLS: frozenset[str] = frozenset(
 )
 
 # What a turn reaches before it says what the message asks: the classification
-# itself, the two reads of what the thread holds, the two research reads and
-# the memory write. Every other tool waits for the classification.
+# itself, the two reads of what the thread holds, the two research reads, and
+# both ways to keep something the user names. Every other tool waits for the
+# classification.
 UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
     {
         "classify_user_intent",
@@ -44,6 +45,8 @@ UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
         "research_web_search",
         "research_literature_search",
         "remember",
+        "create_workbench_gene_set",
+        "list_workbench_gene_sets",
     }
 )
 

@@ -7,7 +7,11 @@ from datetime import UTC, datetime
 from assistant_core.memory import schemas
 
 from pathfinder.domain.memory import MEMORY_KINDS
-from pathfinder.transport.http.schemas.memories import MemoryValue
+from pathfinder.transport.http.schemas.memories import (
+    MemoryItem,
+    MemoryListResponse,
+    MemoryValue,
+)
 
 
 def test_the_wire_carries_every_field_the_runtime_stores() -> None:
@@ -20,6 +24,29 @@ def test_the_wire_publishes_this_products_kinds() -> None:
     schema = MemoryValue.model_json_schema()
 
     assert schema["properties"]["kind"]["enum"] == list(MEMORY_KINDS)
+
+
+def test_the_gene_set_kind_names_a_note_and_not_a_workbench_gene_set() -> None:
+    """A kind the model can read as the workbench save is a kind it will misuse."""
+    assert "gene_set_note" in MEMORY_KINDS
+    assert "gene_set" not in MEMORY_KINDS
+
+
+def test_the_listing_carries_one_bucket_per_kind() -> None:
+    buckets = {
+        name
+        for name, field in MemoryListResponse.model_fields.items()
+        if field.annotation == list[MemoryItem]
+    }
+
+    assert buckets == {
+        "gene_set_notes",
+        "strategies",
+        "preferences",
+        "knowledge",
+        "cases",
+    }
+    assert len(buckets) == len(MEMORY_KINDS)
 
 
 def test_a_stored_memory_reads_onto_the_wire_model() -> None:

@@ -81,7 +81,7 @@ def test_the_namespace_accepts_a_kind_the_core_never_declared() -> None:
 
 def test_the_product_declares_the_five_pathfinder_kinds() -> None:
     assert MEMORY_KINDS == (
-        "gene_set",
+        "gene_set_note",
         "strategy",
         "preference",
         "knowledge",
@@ -119,6 +119,6 @@ def test_the_product_turns_a_verified_turn_into_its_candidates() -> None:
     candidates = collect_memory_candidates(state)
 
     assert [(value.kind, key) for value, key in candidates] == [
-        ("gene_set", "gene_set:gs-1"),
+        ("gene_set_note", "gene_set_note:gs-1"),
         ("knowledge", f"knowledge:{conversation_id.hex}:0"),
     ]

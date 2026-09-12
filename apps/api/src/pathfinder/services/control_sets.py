@@ -98,7 +98,10 @@ class ControlSetService:
     async def get(self, control_set_id: UUID, user_id: UUID) -> ControlSetResponse:
         cs = await self._repo.get_by_id(control_set_id)
         if cs is None or not _visible_to(cs, user_id):
-            raise NotFoundError(title="Control set not found")
+            raise NotFoundError(
+                title="Control set not found",
+                detail=f"Control set not found: {control_set_id}",
+            )
         return _serialize(cs)
 
     async def create(

@@ -9,12 +9,15 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
-from pathfinder.ai.lead.lead_agent import build_lead_agent
+from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
 from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.models.mock import get_mock_model
+from pathfinder.ai.tools.standalone import workbench
 from pathfinder.ai.tools.standalone._conversation_models import ClearStrategyResult
 from pathfinder.ai.tools.toolsets import execution
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.sub_agents import toolset_tool_names
@@ -137,3 +140,27 @@ async def test_clearing_without_confirmation_is_a_retry() -> None:
     graph = ctx.deps.runtime.strategy_session.get_graph(None)
     assert graph is not None
     assert sorted(graph.steps) == ["step_a"]
+
+
+_SAVE_REQUEST = "Save the 155 genes as a gene set called gametocyte candidates."
+
+
+async def test_a_save_request_reaches_the_workbench_through_the_leads_toolset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The scripted turn runs on the real Lead and its real registrations."""
+    saved: list[GeneSet] = []
+    monkeypatch.setattr(workbench, "save_gene_set", saved.append)
+    deps = lead_deps(pipeline_state(user_prompt=_SAVE_REQUEST))
+
+    result = await build_lead_agent().run(
+        _SAVE_REQUEST,
+        deps=deps,
+        model=get_mock_model(),
+    )
+
+    assert isinstance(result.output, LeadResponse)
+    assert [(gs.name, gs.gene_ids) for gs in saved] == [
+        ("mock gene set", ["PF3D7_0709000", "PF3D7_1133400"]),
+    ]
+    assert saved[0].user_id == deps.runtime.user_id

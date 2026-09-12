@@ -1,4 +1,4 @@
-"""The Lead's own tools: intent, memory, live state and the ledger."""
+"""The Lead's own tools: intent, memory, gene sets, live state and the ledger."""
 
 from __future__ import annotations
 
@@ -13,8 +13,13 @@ from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.live_state import LiveStrategyState, read_live_state
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone import conversation, memory_tools
+from pathfinder.ai.tools.standalone import conversation, memory_tools, workbench
 from pathfinder.ai.tools.standalone._conversation_models import ClearStrategyResult
+from pathfinder.ai.tools.standalone._workbench_models import (
+    GeneSetCreatedResponse,
+    GeneSetListResponse,
+    WdkSourceSpec,
+)
 from pathfinder.domain.memory import MemoryKind
 
 LedgerSectionName = Literal["frame", "build", "verification"]
@@ -114,6 +119,10 @@ async def remember(
     and for a fact they taught you. One call per thing remembered. Storing a
     preference is the whole answer to that request: do not build a strategy to
     "validate" it.
+
+    It stores a note. A gene set the user asks you to save is created with
+    ``create_workbench_gene_set``, and ``gene_set_note`` is a note about a set
+    that already exists.
     """
     inner = inner_context(ctx)
     return await memory_tools.remember(
@@ -124,6 +133,47 @@ async def remember(
         content=content,
         tags=tags,
     )
+
+
+async def create_workbench_gene_set(
+    ctx: RunContext[LeadDeps],
+    name: str,
+    gene_ids: list[str],
+    record_type: str = "transcript",
+    wdk_source: WdkSourceSpec | None = None,
+) -> ToolReturn[GeneSetCreatedResponse]:
+    """Save gene IDs as a gene set in the user's Workbench.
+
+    This is the save the user asks for when they say "save these genes as a
+    gene set". The set appears in the Workbench sidebar, and its id is what
+    enrichment, export, EDA and the control tools take. ``remember`` stores a
+    note about a set; it creates none.
+
+    Args:
+        name: The name the user gave the set.
+        gene_ids: The gene IDs to include.
+        record_type: Record type (default 'transcript').
+        wdk_source: Optional WDK provenance (search name, parameters,
+            strategy ID, step ID).
+    """
+    return await workbench.create_workbench_gene_set(
+        inner_context(ctx),
+        name=name,
+        gene_ids=gene_ids,
+        record_type=record_type,
+        wdk_source=wdk_source,
+    )
+
+
+async def list_workbench_gene_sets(
+    ctx: RunContext[LeadDeps],
+) -> ToolReturn[GeneSetListResponse]:
+    """List the gene sets in the user's Workbench, each with its id.
+
+    Call it before you use a gene-set id you did not just create, and when a
+    tool answers that an id names nothing.
+    """
+    return await workbench.list_workbench_gene_sets(inner_context(ctx))
 
 
 async def get_live_strategy_state(

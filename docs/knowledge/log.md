@@ -27,6 +27,27 @@
   mapping it found, so the old id is neither deleted nor forgotten, and a put
   that does not land deletes nothing: WDK's tree still holds that step.
 
+* **A refusal the model can correct reaches the model, not the user.** One
+  capability on the Lead turns an `AppError` below 500 that is not an identity
+  refusal into a `ModelRetry` carrying the code and the message, and a
+  not-found also names the tool that lists the ids that exist, for the id the
+  refusal itself names. An invariant failure, an outage, a sign-in and every
+  non-`AppError` propagate, so what no other call can pass still ends the run.
+  A lookup the seam can blame states the id it looked up in the refusal's
+  detail, because a refusal that names no id names no listing tool either.
+  The Lead was the only agent without such a seam: the three sub-agents already
+  route a refusal through `ToolResilience`.
+
+* **The memory kind that names a gene set says it is a note.** `gene_set_note`
+  replaces `gene_set` across the vocabulary, the listing bucket, the wire and
+  the settings labels, so `remember` can no longer be read as the save the
+  researcher asked for. The save itself is `create_workbench_gene_set`, which
+  the Lead can now call along with `list_workbench_gene_sets`; before this the
+  Lead had neither, which is why a save reached the memory tool. Both join
+  `remember` in the tools an unclassified turn is offered, so the first step of
+  a save request shows every way to keep a set and not only the memory one.
+  Nothing migrates a stored row: a memory of the old kind is simply not listed.
+
 * **A step runs the search it was created with.** A node whose search name
   changes is pushed to WDK as a new step and the tree is rewired to it, because
   the search-config endpoint validates the values against the step's own search

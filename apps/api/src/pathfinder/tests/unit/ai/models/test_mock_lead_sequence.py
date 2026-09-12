@@ -94,6 +94,22 @@ def test_an_attachment_classifies_before_it_seeds_a_control_set() -> None:
     ]
 
 
+def test_a_save_request_creates_a_workbench_gene_set() -> None:
+    """The save the user asks for is the workbench tool, never a memory note."""
+    msgs: list[ModelMessage] = [
+        _user("Save the 155 genes as a gene set called gametocyte candidates.")
+    ]
+
+    names = _names(arcs._lead_sequence(msgs))
+
+    assert names == [
+        "classify_user_intent",
+        "create_workbench_gene_set",
+        "final_result",
+    ]
+    assert "remember" not in names
+
+
 def test_plain_prompt_echoes_only() -> None:
     msgs: list[ModelMessage] = [_user("hello there")]
     assert _names(arcs._lead_sequence(msgs)) == ["final_result"]

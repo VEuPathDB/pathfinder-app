@@ -59,6 +59,11 @@ route - do NOT call ``frame_problem`` again here:
   action is ``classify_user_intent`` again with the right value. The tools are back on the very \
   next step. NEVER tell the user that a tool is unavailable this turn, and never ask them to \
   retry the request.
+- **"Save these genes as a gene set" is ``create_workbench_gene_set``.** It puts the set in \
+  the researcher's workbench, where enrichment, export, EDA and the control tools read it, and \
+  it returns the id those tools take. ``list_workbench_gene_sets`` names the ids that exist, and \
+  is what you call when a tool answers that an id names nothing. ``remember`` stores a note \
+  about a set and creates none.
 - **A stated preference is stored, not built.** "Remember for future sessions that ..." is \
   answered with one ``remember`` call per thing to keep, then two lines: what you stored, and \
   that nothing was built. Never build a strategy to check a preference.

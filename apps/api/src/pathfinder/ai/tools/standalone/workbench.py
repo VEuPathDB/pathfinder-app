@@ -49,11 +49,10 @@ async def create_workbench_gene_set(
 ) -> ToolReturn[GeneSetCreatedResponse]:
     """Create a gene set in the user's Workbench for further analysis.
 
-    Use this tool after building a strategy or collecting gene IDs to send them
-    to the Workbench where the user can run enrichment analysis, evaluate
-    strategies, compare gene sets, and more.
-
-    The created gene set will appear in the user's Workbench sidebar.
+    This is the save the user asks for when they say "save these genes as a
+    gene set": it puts the set in the Workbench sidebar, where enrichment,
+    export, EDA and the control tools read it, and it returns the id those
+    tools take. ``remember`` stores a note and creates nothing.
 
     Args:
         name: Human-readable name for the gene set (e.g. 'Upregulated in gametocytes').

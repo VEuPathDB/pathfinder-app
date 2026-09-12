@@ -18,7 +18,7 @@ async def test_list_memories_grouped_by_namespace(
     await app_memory_store.put(
         user_id=authed_user_id,
         value=MemoryValue(
-            kind="gene_set",
+            kind="gene_set_note",
             name="a",
             summary="b",
             tags=[],
@@ -29,7 +29,7 @@ async def test_list_memories_grouped_by_namespace(
     resp = await authed_client.get("/api/v1/memories")
     assert resp.status_code == 200
     body = resp.json()
-    assert len(body["geneSets"]) == 1
+    assert len(body["geneSetNotes"]) == 1
     assert body["strategies"] == []
 
 

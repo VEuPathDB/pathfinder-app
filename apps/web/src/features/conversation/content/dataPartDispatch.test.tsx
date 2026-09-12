@@ -114,7 +114,9 @@ describe("message dispatch", () => {
           {
             type: "data-memory-retrieved",
             data: {
-              memories: [{ key: "k1", kind: "gene_set", name: "Kinases", score: 1 }],
+              memories: [
+                { key: "k1", kind: "gene_set_note", name: "Kinases", score: 1 },
+              ],
             },
           },
         ]}

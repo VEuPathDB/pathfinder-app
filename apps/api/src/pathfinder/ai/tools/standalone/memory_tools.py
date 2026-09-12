@@ -74,10 +74,13 @@ async def remember(
     """Store an explicit memory for this user.
 
     Use for biological facts the user has taught you or preferences they've
-    stated. Returns the storage key or an error string.
+    stated. It stores a note and nothing else: a gene set the user wants in
+    their workbench is created with ``create_workbench_gene_set``. Returns the
+    storage key or an error string.
 
     Args:
-        kind: Which memory kind the entry belongs to.
+        kind: Which memory kind the entry belongs to. ``gene_set_note`` is a
+            note about a gene set that already exists, never the gene set.
         name: Short, recall-friendly title, such as "P. falciparum kinome size".
         summary: One line shown in retrieval previews. Retrieval matches on it
             and on the content payload.

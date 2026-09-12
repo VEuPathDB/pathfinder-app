@@ -66,6 +66,10 @@ _VARIANT_PROSE = (
     "I ran both search variants and compared their result sets above. Tell me "
     "which direction you'd like to carry into the strategy."
 )
+_SAVE_GENE_SET_PROSE = (
+    "Saved to your workbench as a gene set. Enrichment, export and the "
+    "control tools can read it from there."
+)
 _CONTROLS_PROSE = (
     "I've saved your uploaded gene IDs as a control set. We can now score "
     "search variants against them whenever you're ready."
@@ -123,6 +127,9 @@ _CONTEXT_MARKERS = ("i'm investigating", "i am investigating")
 # A request to read the thread's own record back. The Lead answers from the
 # Ledger, so a branch's inherited state is visible in the reply.
 _RECALL_MARKERS = ("recap what i have asked",)
+# A save of a gene list: the workbench tool, never the memory note.
+_SAVE_GENE_SET_MARKERS = ("as a gene set",)
+_SAVE_GENE_SET_IDS = ("PF3D7_0709000", "PF3D7_1133400")
 _RECALL_SECTION = "frame"
 LOOP_CALL_ARGS = {"record_type": "transcript"}
 
@@ -343,16 +350,19 @@ def _prose_only_sequence(lowered: str) -> list[ToolCallPart] | None:
     return None
 
 
-def _one_tool_sequence(lowered: str) -> list[ToolCallPart] | None:
-    """The arcs that answer after a dispatch of their own, not the journey."""
-    if has_any(lowered, _EDIT_MARKERS):
+def _kept_sequence(lowered: str) -> list[ToolCallPart] | None:
+    """The arcs that keep what the user asks to keep: a set, or a preference."""
+    if has_any(lowered, _SAVE_GENE_SET_MARKERS):
         return [
-            _classify("edit_strategy"),
-            scripted_call("edit_strategy", {"reason": "mock edit: swap the organism"}),
+            _classify("follow_up_question"),
             scripted_call(
-                "verify_strategy", {"reason": "mock verification of an edit"}
+                "create_workbench_gene_set",
+                {
+                    "name": "mock gene set",
+                    "gene_ids": list(_SAVE_GENE_SET_IDS),
+                },
             ),
-            _lead_final(_EDIT_PROSE, "await_user"),
+            _lead_final(_SAVE_GENE_SET_PROSE, "await_user"),
         ]
     if has_any(lowered, _REMEMBER_MARKERS):
         return [
@@ -367,6 +377,23 @@ def _one_tool_sequence(lowered: str) -> list[ToolCallPart] | None:
                 },
             ),
             _lead_final(_REMEMBER_PROSE, "await_user"),
+        ]
+    return None
+
+
+def _one_tool_sequence(lowered: str) -> list[ToolCallPart] | None:
+    """The arcs that answer after a dispatch of their own, not the journey."""
+    kept = _kept_sequence(lowered)
+    if kept is not None:
+        return kept
+    if has_any(lowered, _EDIT_MARKERS):
+        return [
+            _classify("edit_strategy"),
+            scripted_call("edit_strategy", {"reason": "mock edit: swap the organism"}),
+            scripted_call(
+                "verify_strategy", {"reason": "mock verification of an edit"}
+            ),
+            _lead_final(_EDIT_PROSE, "await_user"),
         ]
     if has_any(lowered, LOOP_MARKERS):
         return [

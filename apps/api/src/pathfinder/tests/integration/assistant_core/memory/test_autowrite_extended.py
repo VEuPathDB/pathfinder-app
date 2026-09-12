@@ -46,6 +46,6 @@ async def test_auto_write_gene_sets(
             candidates=await collect_turn_memory_candidates(state),
         )
         assert written >= 1
-        sets = await mem_store.list_all(user_id=user_id, kind="gene_set")
+        sets = await mem_store.list_all(user_id=user_id, kind="gene_set_note")
         assert len(sets) == 1
         assert sets[0].value.content["gene_set_id"] == "gs-abc-123"
