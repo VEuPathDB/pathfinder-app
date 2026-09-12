@@ -343,6 +343,7 @@ async def _commit_to_wdk(
 
     succeeded: list[str] = []
     failures: list[StepPushFailure] = []
+    recreated: dict[str, int] = {}
     if new_ast is not None:
         plan = plan_step_pushes(
             old_ast=old_ast,
@@ -352,6 +353,7 @@ async def _commit_to_wdk(
         push_outcome = await push_steps_with_plan(graph, sync_state, deps.site_id, plan)
         succeeded = push_outcome.succeeded
         failures = push_outcome.failures
+        recreated = push_outcome.recreated_wdk_ids
         # A pushed step's parameters just changed, so its stored count now
         # describes the OLD step. A refused step is in the same position: WDK
         # kept the previous search. Mark both unknown rather than let a stale
@@ -381,8 +383,12 @@ async def _commit_to_wdk(
     if sync_result is not None:
         failures.extend(_detached_failures(graph, sync_state, sync_result))
 
-    if orphaned:
-        leftover = set(await api.delete_orphaned_steps(list(orphaned.values())))
+    # A step the put replaced belongs to no strategy either. Its local id now
+    # names the new WDK step, so there is no mapping to forget for it, and a
+    # put that did not land leaves it on the tree.
+    replaced = list(recreated.values()) if sync_result is not None else []
+    if orphaned or replaced:
+        leftover = set(await api.delete_orphaned_steps([*orphaned.values(), *replaced]))
         for sid, wdk_id in orphaned.items():
             if wdk_id not in leftover:
                 sync_state.wdk_step_ids.pop(sid, None)

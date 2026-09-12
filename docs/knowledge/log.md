@@ -2,6 +2,31 @@
 
 ## 2026-09-12
 
+* **An open parameter sheet is pinned until its criterion is decided.** The
+  sheet always carried every parameter's vocabulary; what lost it was the
+  runtime's history elision, which keeps the three most recent tool returns
+  whole and cuts every older one to its first 220 characters. A sheet is copied
+  from many calls later, so it now lives in FRAME's state and is rendered in
+  FRAME's instructions until the criterion binds or is dropped, and the
+  sheet-opening call answers with the parameter template alone. A second sheet
+  for the same criterion replaces the pin. A dependent vocabulary re-read under
+  the bound parents replaces the entries it re-reads, and when the criterion
+  never opened a sheet it is pinned as itself, under its own heading and with no
+  template: a template built from a few dependents would omit the parameters
+  nobody re-read. The pins are bounded at 100,000 characters; over that, the
+  older sheets hold their parameter names and point at `get_parameter_options`,
+  and the newest is never cut, because a search whose own sheet is over the
+  budget has its vocabulary in no other place. The FRAME tool ceiling is
+  unchanged: the per-parameter option reads the elision forced are what it was
+  spent on.
+
+* **A recreated step leaves the account with the strategy that dropped it.** The
+  push carries out the WDK id every recreate replaces, and the commit deletes it
+  in the same pass as the ids of dropped steps, after the step tree is put,
+  because the put is what orphans them. A recreate whose push fails keeps the
+  mapping it found, so the old id is neither deleted nor forgotten, and a put
+  that does not land deletes nothing: WDK's tree still holds that step.
+
 * **A step runs the search it was created with.** A node whose search name
   changes is pushed to WDK as a new step and the tree is rewired to it, because
   the search-config endpoint validates the values against the step's own search

@@ -7,7 +7,7 @@ reconcile later.
 from typing import assert_never
 
 from assistant_core.platform.logging import get_logger
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import (
@@ -54,6 +54,9 @@ class PushOutcome(BaseModel):
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     succeeded: list[str]
     failures: list[StepPushFailure]
+    # Step id -> the WDK id a recreate replaced. The strategy put orphans
+    # those steps, so they are deleted after it and never before it.
+    recreated_wdk_ids: dict[str, int] = Field(default_factory=dict)
 
     @property
     def failed(self) -> list[str]:
@@ -189,9 +192,35 @@ async def _execute_recreate(
     site_id: str,
     step: StrategyStep,
     record_type: str,
-) -> StepPushFailure | None:
-    sync_state.wdk_step_ids.pop(step.id, None)
-    return await _execute_create(sync_state, site_id, step, record_type)
+) -> tuple[StepPushFailure | None, int | None]:
+    """Create the step again, and name the WDK id the new one replaces.
+
+    A create that lands writes its own id over the mapping. One that fails
+    leaves the mapping it found: the WDK tree still holds that step, so the id
+    is neither deleted nor forgotten.
+    """
+    replaced = sync_state.wdk_step_ids.get(step.id)
+    failure = await _execute_create(sync_state, site_id, step, record_type)
+    return failure, (None if failure is not None else replaced)
+
+
+async def _execute_action(
+    action: CreateAction | PatchAction | RecreateAction,
+    sync_state: WDKSyncState,
+    site_id: str,
+    step: StrategyStep,
+    record_type: str,
+) -> tuple[StepPushFailure | None, int | None]:
+    """Run one planned action, and name the WDK id a recreate replaces."""
+    match action:
+        case PatchAction():
+            return await _execute_patch(sync_state, site_id, step, record_type), None
+        case CreateAction():
+            return await _execute_create(sync_state, site_id, step, record_type), None
+        case RecreateAction():
+            return await _execute_recreate(sync_state, site_id, step, record_type)
+        case _:
+            assert_never(action)
 
 
 def defer_draft_steps(
@@ -317,23 +346,18 @@ async def push_steps_with_plan(
 
     succeeded: list[str] = []
     failures: list[StepPushFailure] = []
+    recreated: dict[str, int] = {}
 
     for entry in plan:
         step = steps_by_id.get(entry.step_id)
-        if step is None:
-            continue
-        action = entry.action
-        if isinstance(action, SkipAction):
+        if step is None or isinstance(entry.action, SkipAction):
             continue
         record_type = record_class_of(step.id, steps_by_id, fallback=strategy_class)
-        if isinstance(action, PatchAction):
-            failure = await _execute_patch(sync_state, site_id, step, record_type)
-        elif isinstance(action, CreateAction):
-            failure = await _execute_create(sync_state, site_id, step, record_type)
-        elif isinstance(action, RecreateAction):
-            failure = await _execute_recreate(sync_state, site_id, step, record_type)
-        else:
-            assert_never(action)
+        failure, replaced = await _execute_action(
+            entry.action, sync_state, site_id, step, record_type
+        )
+        if replaced is not None:
+            recreated[step.id] = replaced
         if failure is None:
             # The record names the last push. A push that lands ends it.
             sync_state.wdk_push_errors.pop(step.id, None)
@@ -341,4 +365,6 @@ async def push_steps_with_plan(
         else:
             failures.append(failure)
 
-    return PushOutcome(succeeded=succeeded, failures=failures)
+    return PushOutcome(
+        succeeded=succeeded, failures=failures, recreated_wdk_ids=recreated
+    )

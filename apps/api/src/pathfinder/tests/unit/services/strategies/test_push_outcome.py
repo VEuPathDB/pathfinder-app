@@ -321,6 +321,34 @@ async def test_a_replaced_search_is_created_and_never_patched(
         "GenesByMicroarrayBirkholtz"
     ]
     assert sync_state.wdk_step_ids["A"] != 440432473
+    assert outcome.recreated_wdk_ids == {"A": 440432473}, "the replaced id is carried"
+
+
+async def test_a_recreate_that_fails_reports_no_replaced_id(
+    counting_api: CountingStrategyAPI,
+) -> None:
+    """The old step still runs under the strategy tree, so it stays."""
+    counting_api.fail_on_search_names = {"GenesByMicroarrayBirkholtz"}
+    old = _leaf("A", "GenesByRNASeqSu")
+    new = _leaf("A", "GenesByMicroarrayBirkholtz")
+    graph = StrategyGraph("g1", "test", "plasmodb")
+    _populate_graph(graph, StrategyAst(record_type="transcript", root=new))
+    sync_state = WDKSyncState(wdk_step_ids={"A": 440432473})
+
+    outcome = await push_steps_with_plan(
+        graph,
+        sync_state,
+        "plasmodb",
+        plan_step_pushes(
+            old_ast=StrategyAst(record_type="transcript", root=old),
+            new_ast=StrategyAst(record_type="transcript", root=new),
+            existing_wdk_ids=sync_state.wdk_step_ids,
+        ),
+    )
+
+    assert outcome.failed == ["A"]
+    assert outcome.recreated_wdk_ids == {}
+    assert sync_state.wdk_step_ids == {"A": 440432473}, "the id it had is kept"
 
 
 async def test_a_step_that_reaches_wdk_clears_its_earlier_refusal(

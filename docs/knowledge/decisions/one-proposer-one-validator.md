@@ -12,30 +12,37 @@ status: stable
 
 Parameter values have exactly one author and exactly one judge.
 
-**The proposer is FRAME.** `set_criterion` called with no `params` returns the
-parameter sheet: every visible parameter with its name, display name, type,
-help, default, bounds, dependency and vocabulary. It records nothing, and it
-registers the search in the discovery gate. The same tool called again with
+**The proposer is FRAME.** `set_criterion` called with no `params` **opens** the
+parameter sheet - every visible parameter with its name, display name, type,
+help, default, bounds, dependency and vocabulary - which is **pinned in FRAME's
+instructions** until the criterion binds or is dropped. It records nothing, and
+it registers the search in the discovery gate. The same tool called again with
 `params` takes one entry per visible parameter, and the model writes a value or
 a `null` for each of them in a single call.
 
-The sheet is returned by the binding tool rather than by `get_search_overview`
-because it has to be the tool result immediately before the proposal. A sheet
-read many calls earlier is out of the model's working set by the time it
-proposes, which is what let invented parameter names through.
-
-The sheet call also returns `params_template`, every visible parameter name in
-sheet order mapped to `null`, serialized before the sheet itself. It is the exact
-`params` object to send back. Three live runs invented the same seven parameter
+The sheet is pinned rather than returned because the values have to stay
+readable however many calls come between the open and the proposal, and a tool
+return does not: the runtime keeps only the three most recent returns whole and
+cuts every older one to its first 220 characters. A sheet the model copies from
+later is exactly the return that rule was not written for. The opening call
+therefore answers with `params_template` alone: every visible parameter name in
+sheet order mapped to `null`, the exact `params` object to send back, which the
+pinned sheet carries too. Three live runs invented the same seven parameter
 names in the first proposal after reading the sheet, so the contract stopped
 asking the model to compose the object and hands it one to copy.
 
 One WDK read serves both the sheet and the registry entry, so the two can never
-name different parameters. A **second** sheet for the same criterion and search
-comes back with every parameter but no vocabulary, and a note pointing at
-`get_parameter_options`: the model already holds the values, and re-sending nine
-vocabularies twice cost 838K tokens in one turn. Every refusal now says the valid
-names are listed above and not to request the sheet again, for the same reason.
+name different parameters. A **second** sheet for the same criterion replaces
+the pin rather than adding to it, so the vocabularies exist in one place and are
+never sent twice. A dependent vocabulary re-read under the bound parents
+replaces the entries it re-reads; when the criterion never opened a sheet, those
+vocabularies are pinned as themselves, under their own heading and with no
+template, because they are not the sheet. The pins are bounded at 100,000
+characters, about a quarter of the history budget the runtime compacts at: over
+that, the older sheets hold their parameter names and point at
+`get_parameter_options`. The newest sheet is never cut, because a search whose
+own sheet is over the budget has its vocabulary in no other place. Every refusal
+says the valid names are listed above and not to request the sheet again.
 
 **The judge is the DAG walk.** It owns names, types, vocabulary membership,
 dependency order, contrast structure, degenerate pairs, hidden parameters and
@@ -140,11 +147,13 @@ in the whole 70-step run.
 
 `veupathdb_mcp/catalog/param_sheet.py:build_sheet` for the sheet;
 `ai/tools/standalone/frame_spec.py:set_criterion` for the contract, guarded by
-`TestAProposedValueMustBeOnTheSheet`, `TestEveryVisibleRequiredParamIsDecided`,
-`TestADependentVocabularyIsRedecided`, `TestAStatedQuantityLeftNullIsARetry`,
-`TestTheSheetComesBackFromSetCriterion` and
-`TestASecondSheetDropsTheVocabularies`
-in `tests/unit/ai/tools/test_frame_spec.py`;
+`TestTheSheetComesBackFromSetCriterion`, `TestASecondSheetIsTheSamePin` and
+`TestEveryVisibleRequiredParamIsDecided` in
+`tests/unit/ai/tools/test_frame_spec_sheet.py` and by
+`TestADependentVocabularyIsRedecided` in
+`tests/unit/ai/tools/test_frame_spec_params.py`;
+`ai/agents/strategy_instructions.py:pinned_frame_sheets` for the pin, guarded by
+`tests/unit/ai/agents/test_pinned_frame_sheets.py`;
 `ai/tools/standalone/_catalog_models.py:register_search` is the only write to the
 discovery gate from a WDK search definition;
 `veupathdb_mcp/catalog/param_dag.py` for the walk. The figures above were measured

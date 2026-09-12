@@ -203,7 +203,7 @@ def _frame_that_swaps_the_organism(monkeypatch: pytest.MonkeyPatch) -> list[str]
             ),
             SetCriterionResult,
         )
-        rounds.extend(entry.name for entry in first.redecide)
+        rounds.extend(first.redecide)
         await set_criterion(
             ctx,
             criterion_id="step_expr",

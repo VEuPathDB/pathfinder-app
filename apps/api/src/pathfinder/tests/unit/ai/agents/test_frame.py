@@ -19,7 +19,7 @@ def test_frame_instructions_describe_the_contract() -> None:
 def test_frame_instructions_name_the_sheet_and_the_redecide_round_trip() -> None:
     # The flow is search -> sheet -> params. `search_for_searches` already
     # returns the description, so nothing sends the model to the overview tool.
-    assert "the parameter sheet in `decide`" in _FRAME_INSTRUCTIONS
+    assert "OPENS the parameter sheet" in _FRAME_INSTRUCTIONS
     assert "get_search_overview" not in _FRAME_INSTRUCTIONS
     assert "redecide" in _FRAME_INSTRUCTIONS
 
@@ -28,15 +28,15 @@ def test_frame_instructions_name_the_params_template() -> None:
     # The instruction hands the model the object to copy, so no parameter name
     # has to be composed.
     assert (
-        "The result's `params_template` is the exact `params` object to send back: "
+        "Its `params_template` is the exact `params` object to send back: "
         "copy it and replace each null with a value or leave null; do not rename keys."
     ) in _normalized(_FRAME_INSTRUCTIONS)
 
 
 def test_frame_instructions_ask_for_the_sheet_once() -> None:
-    # A repeat sheet costs its vocabularies again and states nothing new.
+    # The sheet is pinned until the criterion binds, so a repeat states nothing new.
     assert "ONCE per criterion" in _normalized(_FRAME_INSTRUCTIONS)
-    assert "vocabularies stripped" in _FRAME_INSTRUCTIONS
+    assert "it stays pinned" in _normalized(_FRAME_INSTRUCTIONS)
 
 
 def test_frame_instructions_drop_the_rules_that_no_longer_exist() -> None:
@@ -101,10 +101,10 @@ def test_frame_instructions_are_ascii() -> None:
 
 
 def test_frame_instructions_get_the_sheet_from_set_criterion() -> None:
-    # The sheet has to be the tool result immediately before the proposal, so
-    # the procedure asks for it with a params-less `set_criterion` call.
+    # The sheet is pinned by a params-less `set_criterion` call and read from
+    # the instructions, so the procedure names both halves.
     assert "no `params`" in _FRAME_INSTRUCTIONS
-    assert "returns the parameter sheet" in _FRAME_INSTRUCTIONS
+    assert "Open parameter sheets" in _FRAME_INSTRUCTIONS
 
 
 def test_get_parameter_options_is_only_the_shortlist_escape_hatch() -> None:

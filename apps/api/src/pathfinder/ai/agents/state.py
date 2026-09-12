@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from veupathdb.domain.parameters import ParamValue, VocabOption
+from veupathdb_mcp.catalog import SheetEntry
 
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import (
@@ -44,6 +45,25 @@ class SearchOverview(BaseModel):
     param_vocab: dict[str, ParamVocabSnapshot] = Field(default_factory=dict)
 
 
+class PinnedSheet(BaseModel):
+    """What FRAME holds open for one criterion until the criterion is decided.
+
+    The model copies values out of it several calls after it opened, so it is
+    rendered in the instructions rather than left in the tool return. It is the
+    whole parameter sheet only when ``opened`` is true; otherwise it carries the
+    vocabularies a dependent re-read produced, which name no template.
+    """
+
+    search_name: str
+    opened: bool
+    entries: list[SheetEntry] = Field(default_factory=list)
+    # Params whose vocabulary changed once the parents were bound, in sheet order.
+    redecide: list[str] = Field(default_factory=list)
+
+    def params_template(self) -> dict[str, None]:
+        return {entry.name: None for entry in self.entries}
+
+
 @dataclass
 class AgentToolState:
     discovered_searches: dict[str, SearchOverview] = field(default_factory=dict)
@@ -59,18 +79,42 @@ class AgentToolState:
     # Params already handed back for a fresh decision, by criterion and search.
     # Searches share parameter names, so the search is part of the key.
     redecided_params: set[tuple[str, str, str]] = field(default_factory=set)
-    # Criterion and search pairs already sent a full parameter sheet.
-    sheeted_criteria: set[tuple[str, str]] = field(default_factory=set)
+    # The sheets open right now, by criterion, oldest first.
+    open_sheets: dict[str, PinnedSheet] = field(default_factory=dict)
 
-    def mark_sheet_shown(self, criterion_id: str, search_name: str) -> None:
-        self.sheeted_criteria.add((criterion_id, search_name))
+    def pin_sheet(
+        self, criterion_id: str, search_name: str, entries: list[SheetEntry]
+    ) -> PinnedSheet:
+        """Open a sheet for the criterion, replacing anything it holds."""
+        self.open_sheets.pop(criterion_id, None)
+        sheet = PinnedSheet(search_name=search_name, opened=True, entries=entries)
+        self.open_sheets[criterion_id] = sheet
+        return sheet
 
-    def was_sheet_shown(self, criterion_id: str, search_name: str) -> bool:
-        """Whether the vocabularies for this pair were already sent this turn.
+    def pin_fresh_vocabularies(
+        self, criterion_id: str, search_name: str, entries: list[SheetEntry]
+    ) -> None:
+        """Hold the vocabularies the bound parents produce, to decide again.
 
-        A second sheet repeats them at full size, so it is sent without them.
+        They replace the entries the sheet was read under. A criterion that
+        never opened a sheet holds these alone, and they are not one.
         """
-        return (criterion_id, search_name) in self.sheeted_criteria
+        sheet = self.open_sheets.get(criterion_id)
+        if sheet is None or sheet.search_name != search_name:
+            sheet = PinnedSheet(search_name=search_name, opened=False)
+            self.open_sheets.pop(criterion_id, None)
+            self.open_sheets[criterion_id] = sheet
+        fresh = {entry.name: entry for entry in entries}
+        kept = [fresh.get(entry.name, entry) for entry in sheet.entries]
+        added = [entry for entry in entries if entry.name not in {e.name for e in kept}]
+        sheet.entries = [*kept, *added]
+        sheet.redecide = [e.name for e in sheet.entries if e.name in fresh]
+
+    def clear_redecide(self, criterion_id: str) -> None:
+        """Stop asking for a fresh decision the criterion no longer owes."""
+        sheet = self.open_sheets.get(criterion_id)
+        if sheet is not None:
+            sheet.redecide = []
 
     def mark_redecided(
         self, criterion_id: str, search_name: str, param_name: str
@@ -91,6 +135,7 @@ class AgentToolState:
         spec = self.operational_spec_draft
         spec.criteria = [c for c in spec.criteria if c.id != criterion.id]
         spec.criteria.append(criterion)
+        self.open_sheets.pop(criterion.id, None)
 
     def frame_set_structure(self, structure: SpecStructure) -> None:
         self.operational_spec_draft.structure = structure
@@ -106,6 +151,7 @@ class AgentToolState:
             return False
         spec.criteria = [c for c in spec.criteria if c.id != criterion_id]
         spec.dropped.append(DroppedCriterion(text=match.text, reason=reason))
+        self.open_sheets.pop(criterion_id, None)
         return True
 
     def drop_criteria_for_steps(self, step_ids: Collection[str]) -> None:

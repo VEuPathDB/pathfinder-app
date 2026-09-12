@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
+from veupathdb.errors import WDKError
 from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
@@ -24,6 +25,7 @@ from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import commit, step_wdk_push, sync
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 STRATEGY_ID = 330643473
@@ -261,6 +263,60 @@ async def test_a_replaced_search_re_roots_the_wdk_strategy(api: _RecordingAPI) -
         sync_state.wdk_step_ids["step_join"]
     ]
     assert sync_state.wdk_step_ids["step_join"] != 300
+
+
+@pytest.mark.asyncio
+async def test_the_steps_a_recreate_replaced_are_deleted_after_the_put(
+    api: _RecordingAPI,
+) -> None:
+    """The put is what orphans them, so the delete follows it."""
+    step_a = _leaf("step_a", "GenesByRNASeqSu")
+    step_b = _leaf("step_b", "GenesByTaxon")
+    root = _join("step_join", step_a, step_b, CombineOp.INTERSECT)
+    deps = _seed(root, {"step_a": 100, "step_b": 200, "step_join": 300}, api)
+
+    result = await apply_and_commit(
+        deps=deps,
+        op=ReplaceSubtreeOp(
+            step_id="step_a", subtree=_leaf("step_a", "GenesByMicroarrayBirkholtz")
+        ),
+    )
+
+    sync_state = deps.strategy_session.sync_state
+    assert sync_state is not None
+    assert result.failures == []
+    deleted = [call.kwargs["step_id"] for call in api.named("delete_step")]
+    assert sorted(deleted) == [100, 300], "the replaced leaf and combine"
+    assert sync_state.wdk_step_ids["step_a"] not in deleted
+    assert sync_state.wdk_step_ids["step_join"] not in deleted
+    names = [call.name for call in api.calls]
+    assert names.index("update_strategy") < names.index("delete_step")
+
+
+@pytest.mark.asyncio
+async def test_a_recreate_whose_put_fails_deletes_nothing(
+    api: _RecordingAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """WDK still holds the old step in its tree, so deleting it is refused."""
+
+    async def _refuse(**_kwargs: Any) -> SyncResult:
+        message = "500: the site is down"
+        raise WDKError(message)
+
+    monkeypatch.setattr(commit, "sync_strategy_for_site", _refuse)
+    step_a = _leaf("step_a", "GenesByRNASeqSu")
+    step_b = _leaf("step_b", "GenesByTaxon")
+    root = _join("step_join", step_a, step_b, CombineOp.INTERSECT)
+    deps = _seed(root, {"step_a": 100, "step_b": 200, "step_join": 300}, api)
+
+    await apply_and_commit(
+        deps=deps,
+        op=ReplaceSubtreeOp(
+            step_id="step_a", subtree=_leaf("step_a", "GenesByMicroarrayBirkholtz")
+        ),
+    )
+
+    assert api.named("delete_step") == []
 
 
 @pytest.mark.asyncio

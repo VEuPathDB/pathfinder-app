@@ -1,5 +1,5 @@
-"""The parameter sheet a params-less ``set_criterion`` returns, and what a
-bound criterion records: the search registry and the values FRAME assumed."""
+"""The parameter sheet a params-less ``set_criterion`` pins, and what a bound
+criterion records: the search registry and the values FRAME assumed."""
 
 from __future__ import annotations
 
@@ -82,14 +82,14 @@ async def sheet_call(
 
 
 class TestTheSheetComesBackFromSetCriterion:
-    """A call with no ``params`` answers with the sheet and records nothing.
+    """A call with no ``params`` pins the sheet and records nothing.
 
     The sheet and the registry entry come from ONE read of the search, so they
     can never disagree about which parameters exist.
     """
 
     @pytest.mark.asyncio
-    async def test_no_params_returns_one_entry_per_visible_param(
+    async def test_no_params_pins_one_entry_per_visible_param(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         reads = serve_genes_by_text_definition(monkeypatch)
@@ -103,13 +103,14 @@ class TestTheSheetComesBackFromSetCriterion:
 
         result = await sheet_call(st)
 
-        assert [entry.name for entry in result.decide] == [
+        sheet = st.open_sheets["c1"]
+        assert [entry.name for entry in sheet.entries] == [
             "text_expression",
             "text_search_organism",
             "document_type",
             "text_fields",
         ]
-        organism = next(e for e in result.decide if e.name == "text_search_organism")
+        organism = next(e for e in sheet.entries if e.name == "text_search_organism")
         assert [o.value for o in organism.vocabulary] == [
             "Plasmodium",
             "Plasmodium falciparum 3D7",
@@ -132,7 +133,7 @@ class TestTheSheetComesBackFromSetCriterion:
         overview = st.get_overview("GenesByText")
         assert overview is not None
         assert overview.record_type == "transcript"
-        assert overview.parameter_names == [e.name for e in result.decide]
+        assert overview.parameter_names == list(result.params_template)
         assert overview.required_params == ["text_expression", "text_search_organism"]
 
     @pytest.mark.asyncio
@@ -141,17 +142,14 @@ class TestTheSheetComesBackFromSetCriterion:
     ) -> None:
         # A template the model copies leaves it no parameter name to invent.
         serve_genes_by_text_definition(monkeypatch)
+        st = AgentToolState()
 
-        result = await sheet_call(AgentToolState())
+        result = await sheet_call(st)
 
-        assert list(result.params_template) == [e.name for e in result.decide]
+        assert list(result.params_template) == [
+            e.name for e in st.open_sheets["c1"].entries
+        ]
         assert set(result.params_template.values()) == {None}
-
-    def test_the_template_is_serialized_before_the_sheet(self) -> None:
-        # The model reads the result top to bottom; the object it copies has to
-        # come before the vocabularies it reads values out of.
-        keys = list(SetCriterionResult(criterion_id="c1", search_name="S").model_dump())
-        assert keys.index("params_template") < keys.index("decide")
 
     @pytest.mark.asyncio
     async def test_an_already_registered_search_keeps_its_entry_and_gets_a_sheet(
@@ -173,19 +171,18 @@ class TestTheSheetComesBackFromSetCriterion:
 
         result = await sheet_call(st)
 
-        assert result.decide, "the sheet still comes back"
+        assert result.sheet_pinned, "the sheet is still pinned"
         assert reads == ["GenesByText"], "still exactly one read"
         overview = st.get_overview("GenesByText")
         assert overview is not None
         assert overview.display_name == "Read by the overview tool"
 
 
-class TestASecondSheetDropsTheVocabularies:
-    """A repeat sheet for the same criterion carries the parameters without the
-    values, and says where to look for an entry it no longer shows."""
+class TestASecondSheetIsTheSamePin:
+    """The pin holds one sheet per criterion, so a re-open replaces it."""
 
     @pytest.mark.asyncio
-    async def test_the_second_sheet_keeps_the_params_and_drops_the_values(
+    async def test_the_second_sheet_keeps_the_params_and_the_values(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         serve_genes_by_text_definition(monkeypatch)
@@ -194,22 +191,21 @@ class TestASecondSheetDropsTheVocabularies:
         first = await sheet_call(st)
         second = await sheet_call(st)
 
-        assert [e.name for e in second.decide] == [e.name for e in first.decide]
-        assert all(e.vocabulary == [] for e in second.decide)
-        organism = next(e for e in second.decide if e.name == "text_search_organism")
-        assert organism.vocabulary_total == 2, "the size is still stated"
+        assert list(second.params_template) == list(first.params_template)
+        assert list(st.open_sheets) == ["c1"]
+        entries = st.open_sheets["c1"].entries
+        organism = next(e for e in entries if e.name == "text_search_organism")
+        assert [o.value for o in organism.vocabulary] == [
+            "Plasmodium",
+            "Plasmodium falciparum 3D7",
+        ]
         assert organism.required is True
         assert organism.is_tree is False
-        assert organism.vocabulary_note == (
-            "vocabulary shown in the first sheet; use get_parameter_options("
-            "search_name, parameter_id, query=...) for an entry you no longer see"
-        )
-        text_fields = next(e for e in second.decide if e.name == "text_fields")
+        text_fields = next(e for e in entries if e.name == "text_fields")
         assert text_fields.default == '["product", "Notes"]'
-        assert list(second.params_template) == [e.name for e in second.decide]
 
     @pytest.mark.asyncio
-    async def test_another_criterion_on_the_same_search_gets_the_vocabularies(
+    async def test_another_criterion_on_the_same_search_pins_its_own_sheet(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         # Two criteria over one search are two separate questions.
@@ -217,9 +213,10 @@ class TestASecondSheetDropsTheVocabularies:
         st = AgentToolState()
 
         await sheet_call(st, criterion_id="c1")
-        other = await sheet_call(st, criterion_id="c2")
+        await sheet_call(st, criterion_id="c2")
 
-        organism = next(e for e in other.decide if e.name == "text_search_organism")
+        entries = st.open_sheets["c2"].entries
+        organism = next(e for e in entries if e.name == "text_search_organism")
         assert [o.value for o in organism.vocabulary] == [
             "Plasmodium",
             "Plasmodium falciparum 3D7",

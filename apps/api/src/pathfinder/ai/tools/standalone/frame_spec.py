@@ -13,7 +13,6 @@ from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,
     ParamIntent,
-    SheetEntry,
     UnknownParameterError,
     fetch_search_details,
     has_contrast_sibling,
@@ -45,8 +44,8 @@ from pathfinder.ai.tools.standalone._frame_saved import (
     holds_open_saved_slot,
 )
 from pathfinder.ai.tools.standalone._frame_sheet import (
+    _open_sheet,
     _reconcile_dependents,
-    _sheet_for,
 )
 from pathfinder.ai.tools.standalone._validation_helpers import validation_model_retry
 from pathfinder.domain.strategy.operational_spec import (
@@ -65,12 +64,11 @@ class SetCriterionResult(CamelModel):
     search_name: str
     # The saved strategy this criterion reuses as its input, when it names one.
     saved_strategy: SavedStrategyListing | None = None
-    # Every visible parameter name mapped to null, in sheet order. Declared
-    # before `decide` so the object to copy is read before the vocabularies.
+    # Every visible parameter name mapped to null, in sheet order.
     params_template: dict[str, None] = Field(default_factory=dict)
-    # The parameter sheet, returned when the call proposes no params. Nothing is
-    # recorded then: it is the input the next call proposes values from.
-    decide: list[SheetEntry] = Field(default_factory=list)
+    # True when this call opened the parameter sheet. Nothing is recorded then:
+    # the sheet is pinned in the instructions and the next call decides it.
+    sheet_pinned: bool = False
     # Name -> bound value, not just the names. A binding can be syntactically
     # "resolved" and semantically wrong (WDK ships `*reductase` as GenesByText's
     # example default), and reporting only names makes that invisible to the
@@ -81,7 +79,8 @@ class SetCriterionResult(CamelModel):
     open_slots: list[OpenSlot] = Field(default_factory=list)
     # Dependent params whose vocabulary changed once the parents were bound.
     # A non-empty list means nothing was recorded; decide these and re-call.
-    redecide: list[SheetEntry] = Field(default_factory=list)
+    # The fresh vocabulary is on the pinned sheet.
+    redecide: list[str] = Field(default_factory=list)
 
 
 class DropCriterionResult(CamelModel):
@@ -189,13 +188,14 @@ async def set_criterion(
     decide then, and a reference the listing does not hold comes back as a retry
     naming the ones it does; ask the user which one rather than dropping it.
 
-    Call this ONCE with no ``params`` to receive ``decide``, the PARAMETER
-    SHEET: every visible parameter of the search with its type, help, default,
-    dependency, and its vocabulary -- whole, or the 200 entries most relevant to
-    the request. Nothing is recorded by that call. The result's
-    ``params_template`` is the exact ``params`` object to send back: copy it and
-    replace each null with a value or leave null; do not rename keys. Then call
-    it AGAIN with that ``params`` object.
+    Call this ONCE with no ``params`` to open the PARAMETER SHEET: every
+    visible parameter of the search with its type, help, default, dependency,
+    and its vocabulary -- whole, or the 200 entries most relevant to the
+    request. The sheet is pinned under "Open parameter sheets" in your
+    instructions and stays there until the criterion binds; nothing is recorded
+    by that call. The result's ``params_template`` is the exact ``params``
+    object to send back: copy it and replace each null with a value or leave
+    null; do not rename keys. Then call it AGAIN with that ``params`` object.
 
     A value must be copied from the sheet's vocabulary when the parameter has
     one (a tree parent term selects its children); a number or free text is the
@@ -214,11 +214,11 @@ async def set_criterion(
     value and the reason. Each becomes a constraint the user reads and can
     override. A half of a reference and comparison pair is never assumed.
 
-    ``redecide`` lists dependent parameters whose vocabulary changed once the
-    parents were bound, each with that fresh vocabulary; nothing is recorded
-    then. Re-call with the same ``params`` and either a value from the fresh
-    vocabulary or the same null for each listed parameter, and it closes. Re-call
-    the same way once the user answers an open slot."""
+    ``redecide`` names the dependent parameters whose vocabulary changed once
+    the parents were bound; the pin carries that fresh vocabulary and nothing is
+    recorded then. Re-call with the same ``params`` and either a
+    value from the fresh vocabulary or the same null for each listed parameter,
+    and it closes. Re-call the same way once the user answers an open slot."""
     state = ctx.deps.agent_state
     if saved_strategy:
         match = await bind_saved_criterion(
@@ -248,14 +248,15 @@ async def set_criterion(
             ctx.deps.site_id, record_type, search_name
         )
         register_search(state, definition, record_type)
-        entries = _sheet_for(state, criterion_id, search_name, definition)
         return _criterion_return(
             ctx,
             SetCriterionResult(
                 criterion_id=criterion_id,
                 search_name=search_name,
-                params_template={entry.name: None for entry in entries},
-                decide=entries,
+                params_template=_open_sheet(
+                    state, criterion_id, search_name, definition
+                ),
+                sheet_pinned=True,
             ),
         )
     await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
@@ -371,7 +372,15 @@ def _criterion_return(
     result: SetCriterionResult,
 ) -> ToolReturn[SetCriterionResult]:
     """The bound criterion, or the parameters the call still leaves open."""
-    pending = len(result.decide) + len(result.redecide) + len(result.open_slots)
+    if result.sheet_pinned:
+        return with_summary(
+            result,
+            f"{result.criterion_id}: sheet pinned, "
+            f"{count_noun(len(result.params_template), 'parameter')} to decide",
+            ctx=ctx,
+            status="warn",
+        )
+    pending = len(result.redecide) + len(result.open_slots)
     if pending:
         return with_summary(
             result,

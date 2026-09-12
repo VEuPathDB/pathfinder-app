@@ -16,6 +16,7 @@ from pathfinder.ai.agents.scratchpad_guidance import (
 )
 from pathfinder.ai.agents.strategy_instructions import (
     base_system_prompt,
+    pinned_frame_sheets,
     pinned_frame_workspace,
 )
 from pathfinder.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
@@ -53,11 +54,13 @@ Procedure:
 2. For EACH other property, in this order:
    a. `search_for_searches(query)` to find the real WDK search.
    b. `set_criterion(criterion_id, text, search_name, role)` with no `params`. That call
-      returns the parameter sheet in `decide`: every visible parameter of that search
-      with its type, help, default, dependency and vocabulary (whole, or the entries most
-      relevant to the request). Nothing is recorded by it.
-   c. READ the sheet. Its `name` fields are the ONLY parameter names that exist for this
-      search. The result's `params_template` is the exact `params` object to send back:
+      OPENS the parameter sheet: every visible parameter of that search with its type,
+      help, default, dependency and vocabulary (whole, or the entries most relevant to
+      the request). The sheet is pinned under "Open parameter sheets" below and stays
+      there until the criterion binds, however many other calls you make. Nothing is
+      recorded by it.
+   c. READ the pinned sheet. Its `name` fields are the ONLY parameter names that exist
+      for this search. Its `params_template` is the exact `params` object to send back:
       copy it and replace each null with a value or leave null; do not rename keys.
    d. `set_criterion(criterion_id, text, search_name, role, params)` again, with that
       object -- a value or null for EVERY parameter on that sheet:
@@ -89,8 +92,7 @@ Procedure:
       - a `transform` role's `organism` is the TARGET organism the genes are mapped into,
         named in the request; a seed/filter search's organism is the genome being searched.
    Those three calls are the whole procedure for a property. Ask for the sheet ONCE per
-   criterion: a second request costs the same tokens and tells you nothing new, and a
-   re-request comes back with the vocabularies stripped. Use
+   criterion: it stays pinned, so a second request tells you nothing new. Use
    `get_parameter_options(search_name, parameter_id, query="<keyword>")` ONLY for a
    vocabulary the sheet marks as shortlisted, when the entry you need is not among the
    shown ones -- never to discover parameter names, which come from the sheet alone. If
@@ -98,9 +100,9 @@ Procedure:
    search or `drop_criterion`.
    A wrong name or value comes back as a retry with the real names or nearest values; that
    retry already lists them, so answer it rather than asking for the sheet again.
-   `redecide` comes back when a dependent parameter's vocabulary changed once its parents
-   were bound: nothing was recorded, so re-call with the same `params` plus a value from
-   each listed fresh vocabulary.
+   `redecide` names the dependent parameters whose vocabulary changed once their parents
+   were bound: nothing was recorded, and the pin below now carries the fresh
+   vocabulary, so re-call with the same `params` plus a value from each of them.
 3. `set_structure(root)` to combine. The tree names every criterion that stands for a search
    of its own. A criterion naming only a choice inside another criterion's search must not
    exist: step 1 puts that choice in the other criterion's `params`. `root` is a TREE, and its
@@ -217,6 +219,7 @@ def build_frame_agent() -> FrameAgent:
         pinned_user_memories,
         pinned_scratchpad,
         pinned_frame_workspace,
+        pinned_frame_sheets,
         pinned_run_budget,
     ):
         agent.instructions(fn)

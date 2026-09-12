@@ -8,7 +8,6 @@ from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,
     ResolvedParams,
-    SheetEntry,
     build_sheet,
     format_param_info_typed,
 )
@@ -19,11 +18,6 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     _CriterionCall,
     _refuse_unmatched_value,
     _values_of,
-)
-
-_RE_SHEET_NOTE = (
-    "vocabulary shown in the first sheet; use get_parameter_options(search_name, "
-    "parameter_id, query=...) for an entry you no longer see"
 )
 
 
@@ -44,14 +38,16 @@ async def _reconcile_dependents(
     resolved: ResolvedParams,
     call: _CriterionCall,
     state: AgentToolState,
-) -> list[SheetEntry]:
-    """Visible dependent params to hand back with the vocabulary the parents produce.
+) -> list[str]:
+    """Visible dependent params to decide again under the parents' vocabulary.
 
     The sheet was read under the search defaults, so a proposal made from it does
     not decide the vocabulary the bound parents produce. A param already handed
     back for this criterion is decided by whatever the re-call says, so it is
-    validated against the fresh vocabulary instead of asked again.
+    validated against the fresh vocabulary instead of asked again. Every call
+    recomputes the list, so a param this one does not name is no longer asked.
     """
+    state.clear_redecide(call.criterion_id)
     on_the_sheet = {
         info.name: {option.value for option in info.vocabulary()}
         for info in infos
@@ -73,25 +69,20 @@ async def _reconcile_dependents(
             _refuse_unmatched_value(call, info, options)
     for info in stale:
         state.mark_redecided(call.criterion_id, call.search_name, info.name)
-    return build_sheet(stale, query=call.text)
+    if not stale:
+        return []
+    state.pin_fresh_vocabularies(
+        call.criterion_id, call.search_name, build_sheet(stale, query=call.text)
+    )
+    return [info.name for info in stale]
 
 
-def _sheet_for(
+def _open_sheet(
     state: AgentToolState, criterion_id: str, search_name: str, definition: WDKSearch
-) -> list[SheetEntry]:
-    """The parameter sheet for one criterion, without repeating a vocabulary.
-
-    The second sheet for the same criterion and search carries every parameter
-    but no vocabulary, which the model already holds.
-    """
+) -> dict[str, None]:
+    """Pin the parameter sheet for one criterion and answer with its template."""
     entries = build_sheet(
         format_param_info_typed(definition.parameters or []),
         query=state.operational_spec_draft.goal,
     )
-    if not state.was_sheet_shown(criterion_id, search_name):
-        state.mark_sheet_shown(criterion_id, search_name)
-        return entries
-    return [
-        entry.model_copy(update={"vocabulary": [], "vocabulary_note": _RE_SHEET_NOTE})
-        for entry in entries
-    ]
+    return state.pin_sheet(criterion_id, search_name, entries).params_template()

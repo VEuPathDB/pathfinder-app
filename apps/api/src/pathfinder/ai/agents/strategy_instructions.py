@@ -1,15 +1,17 @@
 """Pinned instructions that describe PathFinder's strategy work: the system
-prompt, the in-progress spec, the live graph, the ledger and the searches
-FRAME inspected."""
+prompt, the in-progress spec, the open parameter sheets, the live graph, the
+ledger and the searches FRAME inspected."""
 
 from __future__ import annotations
+
+import json
 
 from pydantic_ai.tools import RunContext
 from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyStep
 
 from pathfinder.ai.agents.param_vocab_render import render_param_vocab
-from pathfinder.ai.agents.state import SearchOverview
+from pathfinder.ai.agents.state import PinnedSheet, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.prompts.loader import load_system_prompt
 from pathfinder.domain.strategy.build_outcome import citable_count
@@ -18,6 +20,94 @@ from pathfinder.domain.strategy.types import SyncStateProtocol
 
 def base_system_prompt(ctx: RunContext[AgentDeps]) -> str:
     return load_system_prompt(include_site_hints=True)
+
+
+# The open sheets are re-sent on every request and no processor shortens them.
+# 100,000 characters is about 25,000 tokens at four characters per token.
+PINNED_SHEETS_MAX_CHARS = 100_000
+
+_SHEETS_HEADER = (
+    "# Open parameter sheets\n"
+    "Each block below stays here until its criterion is decided."
+)
+_SHEET_GUIDANCE = (
+    "Copy params_template into `set_criterion(params)`. These are the only "
+    "parameter names this search has, and a value must be copied from the "
+    "vocabulary shown here."
+)
+_FRESH_GUIDANCE = (
+    "Only the parameters whose vocabulary changed once their parents were "
+    "bound, NOT the whole sheet. Re-call `set_criterion` with the params you "
+    "sent plus a value from each of these."
+)
+_CUT_NOTE = (
+    "the pinned sheets are over budget, so this one holds names only; use "
+    "get_parameter_options(search_name, parameter_id, query=...) to reach an entry"
+)
+
+
+def _sheet_block(criterion_id: str, sheet: PinnedSheet) -> str:
+    if sheet.opened:
+        lines = [
+            f"### sheet for {criterion_id} -> {sheet.search_name}",
+            _SHEET_GUIDANCE,
+            f"params_template: {json.dumps(sheet.params_template())}",
+        ]
+    else:
+        lines = [
+            f"### fresh vocabularies for {criterion_id} -> {sheet.search_name}",
+            _FRESH_GUIDANCE,
+        ]
+    if sheet.redecide:
+        lines.append(
+            f"decide again under the bound parents: {json.dumps(sheet.redecide)}"
+        )
+    lines.append(
+        json.dumps(
+            [
+                entry.model_dump(by_alias=True, mode="json", exclude_none=True)
+                for entry in sheet.entries
+            ]
+        )
+    )
+    return "\n".join(lines)
+
+
+def _without_vocabulary(sheet: PinnedSheet) -> PinnedSheet:
+    return sheet.model_copy(
+        update={
+            "entries": [
+                entry.model_copy(
+                    update={"vocabulary": [], "vocabulary_note": _CUT_NOTE}
+                )
+                for entry in sheet.entries
+            ]
+        }
+    )
+
+
+def _within_budget(sheets: dict[str, PinnedSheet]) -> list[str]:
+    """The rendered blocks, the older ones cut to their names to fit the budget.
+
+    The newest block is never cut. A search whose own sheet is over the budget
+    has its vocabulary in no other place.
+    """
+    blocks = [_sheet_block(cid, sheet) for cid, sheet in sheets.items()]
+    for index, criterion_id in enumerate(list(sheets)[:-1]):
+        if sum(map(len, blocks)) <= PINNED_SHEETS_MAX_CHARS:
+            break
+        blocks[index] = _sheet_block(
+            criterion_id, _without_vocabulary(sheets[criterion_id])
+        )
+    return blocks
+
+
+def pinned_frame_sheets(ctx: RunContext[AgentDeps]) -> str | None:
+    """The parameter sheets FRAME has open, with the values it copies from."""
+    sheets = ctx.deps.agent_state.open_sheets
+    if not sheets:
+        return None
+    return "\n\n".join([_SHEETS_HEADER, *_within_budget(sheets)])
 
 
 def pinned_frame_workspace(ctx: RunContext[AgentDeps]) -> str | None:

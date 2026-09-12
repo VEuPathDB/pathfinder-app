@@ -12,6 +12,7 @@ from veupathdb_mcp.catalog import (
 )
 
 from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.agents.strategy_instructions import pinned_frame_sheets
 from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
 from pathfinder.tests.unit.ai.tools.test_frame_proposals import (
     PHYLETIC_ORGANISM,
@@ -22,6 +23,7 @@ from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     KINASE_PARAMS,
     Proposals,
     bind,
+    frame_ctx,
     genes_by_text,
     param_info,
     serve_search,
@@ -36,7 +38,7 @@ _EVERY_AGGREGATION = [
 _AGGREGATION_TEXT = "aggregate expression over the sampled patients"
 
 
-def _aggregation_under_samples(context: dict[str, str]) -> list[ParameterInfo]:
+def aggregation_under_samples(context: dict[str, str]) -> list[ParameterInfo]:
     """The child's vocabulary opens up only once the samples are bound."""
     bound = "samples_generic" in context
     return [
@@ -55,7 +57,7 @@ def _aggregation_under_samples(context: dict[str, str]) -> list[ParameterInfo]:
     ]
 
 
-async def _aggregate(
+async def aggregate(
     state: AgentToolState,
     aggregation: str | None,
     *,
@@ -76,24 +78,26 @@ class TestADependentVocabularyIsRedecided:
     async def test_a_changed_vocabulary_comes_back_to_be_decided(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        serve_search(monkeypatch, _aggregation_under_samples)
+        serve_search(monkeypatch, aggregation_under_samples)
         st = AgentToolState()
 
-        result = await _aggregate(st, None)
+        result = await aggregate(st, None)
 
-        assert [entry.name for entry in result.redecide] == ["min_max_avg_ref"]
-        fresh = [option.value for option in result.redecide[0].vocabulary]
-        assert fresh == ["average1", "minimum2", "maximum2"]
+        assert result.redecide == ["min_max_avg_ref"]
+        pinned = pinned_frame_sheets(frame_ctx(st))
+        assert pinned is not None
+        assert "minimum2" in pinned
+        assert "maximum2" in pinned
         assert st.operational_spec_draft.criteria == [], "nothing is recorded yet"
 
     @pytest.mark.asyncio
     async def test_a_value_from_the_fresh_vocabulary_binds_as_stated(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        serve_search(monkeypatch, _aggregation_under_samples)
+        serve_search(monkeypatch, aggregation_under_samples)
         st = AgentToolState()
 
-        result = await _aggregate(st, "minimum2")
+        result = await aggregate(st, "minimum2")
 
         assert result.redecide == []
         assert result.resolved_params["min_max_avg_ref"] == "minimum2"
@@ -122,13 +126,13 @@ class TestARedecidedParamIsDecidedOnce:
     async def test_the_same_null_binds_the_default_under_the_bound_parents(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        serve_search(monkeypatch, _aggregation_under_samples)
+        serve_search(monkeypatch, aggregation_under_samples)
         st = AgentToolState()
 
-        first = await _aggregate(st, None)
-        second = await _aggregate(st, None)
+        first = await aggregate(st, None)
+        second = await aggregate(st, None)
 
-        assert [entry.name for entry in first.redecide] == ["min_max_avg_ref"]
+        assert first.redecide == ["min_max_avg_ref"]
         assert second.redecide == []
         assert second.resolved_params["min_max_avg_ref"] == "average1"
         assert "min_max_avg_ref" in second.defaulted_params
@@ -138,11 +142,11 @@ class TestARedecidedParamIsDecidedOnce:
     async def test_a_fresh_value_on_the_re_call_binds_as_stated(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        serve_search(monkeypatch, _aggregation_under_samples)
+        serve_search(monkeypatch, aggregation_under_samples)
         st = AgentToolState()
 
-        await _aggregate(st, None)
-        second = await _aggregate(st, "minimum2")
+        await aggregate(st, None)
+        second = await aggregate(st, "minimum2")
 
         assert second.redecide == []
         assert second.resolved_params["min_max_avg_ref"] == "minimum2"
@@ -152,12 +156,12 @@ class TestARedecidedParamIsDecidedOnce:
     async def test_a_value_outside_the_fresh_vocabulary_is_refused(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        serve_search(monkeypatch, _aggregation_under_samples)
+        serve_search(monkeypatch, aggregation_under_samples)
         st = AgentToolState()
 
-        await _aggregate(st, None)
+        await aggregate(st, None)
         with pytest.raises(ModelRetry) as info:
-            await _aggregate(st, "median9")
+            await aggregate(st, "median9")
 
         message = str(info.value)
         assert "min_max_avg_ref" in message
@@ -169,13 +173,13 @@ class TestARedecidedParamIsDecidedOnce:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         # Two criteria over the same search are two separate questions.
-        serve_search(monkeypatch, _aggregation_under_samples)
+        serve_search(monkeypatch, aggregation_under_samples)
         st = AgentToolState()
 
-        await _aggregate(st, None)
-        other = await _aggregate(st, None, criterion_id="c2")
+        await aggregate(st, None)
+        other = await aggregate(st, None, criterion_id="c2")
 
-        assert [entry.name for entry in other.redecide] == ["min_max_avg_ref"]
+        assert other.redecide == ["min_max_avg_ref"]
 
     @pytest.mark.asyncio
     async def test_the_ledger_is_kept_per_search(
@@ -183,13 +187,13 @@ class TestARedecidedParamIsDecidedOnce:
     ) -> None:
         # Searches share parameter names. Re-pointing a criterion at another
         # search asks the question again, over that search's own vocabulary.
-        serve_search(monkeypatch, _aggregation_under_samples)
+        serve_search(monkeypatch, aggregation_under_samples)
         st = AgentToolState()
 
-        await _aggregate(st, None)
-        elsewhere = await _aggregate(st, None, search_name="GenesByRNASeqAlternative")
+        await aggregate(st, None)
+        elsewhere = await aggregate(st, None, search_name="GenesByRNASeqAlternative")
 
-        assert [entry.name for entry in elsewhere.redecide] == ["min_max_avg_ref"]
+        assert elsewhere.redecide == ["min_max_avg_ref"]
 
 
 @pytest.mark.asyncio
@@ -202,11 +206,11 @@ async def test_the_default_context_is_fetched_once(
 
     def _counted(context: dict[str, str]) -> list[ParameterInfo]:
         seen.append(dict(context))
-        return _aggregation_under_samples(context)
+        return aggregation_under_samples(context)
 
     serve_search(monkeypatch, _counted)
 
-    await _aggregate(AgentToolState(), None)
+    await aggregate(AgentToolState(), None)
 
     assert [c for c in seen if not c] == [{}]
 
@@ -274,8 +278,10 @@ class TestAnOrganismSwapRedecidesItsDependents:
 
         result = await _profile(state, {"organism": [_PV], "profileset": _DERISI_SET})
 
-        assert [entry.name for entry in result.redecide] == ["profileset"]
-        assert [o.value for o in result.redecide[0].vocabulary] == [_ZHU]
+        assert result.redecide == ["profileset"]
+        pinned = pinned_frame_sheets(frame_ctx(state))
+        assert pinned is not None
+        assert _ZHU in pinned
         assert state.operational_spec_draft.criteria == [], "nothing is recorded yet"
 
     @pytest.mark.asyncio
