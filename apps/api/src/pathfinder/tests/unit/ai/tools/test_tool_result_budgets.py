@@ -33,10 +33,11 @@ FIXTURES = FIXTURE_DIR
 
 # These results were the largest on the wire. Each ceiling is well under what
 # the same call sent before it disclosed instead of dumping: 4,323 for
-# search_eda_studies and 9,595 for the filter sheet. Every ceiling is at the
-# tool's default limit.
+# search_eda_studies and 9,595 for the filter sheet. The sheet itself is pinned
+# in the instructions now, so its ceiling is the elision floor: a return at or
+# under it is never cut from the history.
 EDA_STUDY_SEARCH_CEILING = 3_000
-EDA_FILTER_SHEET_CEILING = 7_000
+EDA_FILTER_SHEET_CEILING = 400
 
 _DATASET = "DS_53f554ec6a"
 _STUDY = "STUDY_53f554ec6a"
@@ -151,8 +152,13 @@ async def test_the_eda_filter_sheet_keeps_every_filterable_variable(
         await eda_analysis.set_eda_filters(studies_ctx, dataset_id=_DATASET),
         EdaFiltersResult,
     )
-    assert len(result.decide) == 13
-    assert all(entry.example for entry in result.decide)
-    truncated = [e for e in result.decide if e.vocabulary_total > len(e.vocabulary)]
+    assert result.sheet_pinned is True
+    sheet = studies_ctx.deps.state.domain.open_eda_sheet
+    assert sheet is not None
+    assert sheet.dataset_id == _DATASET
+    pinned = sheet.entries
+    assert len(pinned) == 13
+    assert all(entry.example for entry in pinned)
+    truncated = [e for e in pinned if e.vocabulary_total > len(e.vocabulary)]
     assert truncated
     assert all("preview_eda_subset" in (e.vocabulary_note or "") for e in truncated)

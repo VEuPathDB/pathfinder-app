@@ -22,6 +22,38 @@
   whatever chunk the worker wrote last, and the worker is what separates a dead turn from a
   live one.
 
+* **An open EDA filter sheet is pinned until its subset is applied, and it is
+  bounded.** The sheet carried every filterable variable of a study with its
+  vocabulary, and the runtime's history elision took it: the three most recent
+  tool returns stay whole and every older one is cut to its first 220
+  characters, so a sheet the model copies from later was gone. Stripping the
+  vocabulary from a second sheet for the same study assumed the first one was
+  still readable, so the second sheet sent the values nowhere. The sheet is now
+  one optional value on the thread's domain state, rendered in the Lead's
+  instructions until the subset is applied or another study is opened; the Lead
+  is the only agent that carries the EDA tools, so the pin is the Lead's, and
+  the opening call answers with the pin's name alone, under the elision floor,
+  so it is never cut. A pinned sheet is re-sent on every request, so both pins
+  share one budget of 100,000 characters and one walk, and the two callers state
+  different cut rules: FRAME never cuts its only sheet, because a search whose
+  own sheet is over the budget has its vocabulary in no other place, while the
+  EDA sheet is cut however few blocks there are, down to its variable names,
+  types and examples, because `preview_eda_subset` reaches a variable's values
+  one at a time.
+
+* **A turn records every gene set it created, whichever agent created it, with
+  what the researcher called it.** The created-set list had no production
+  writer, so the `gene_set_note` auto-write never fired, and a note keyed by the
+  set's id alone would embed nothing a researcher would ask for. The record is
+  one list of `CreatedGeneSet` the turn owns: the Lead holds it, every
+  `AgentDeps` the turn builds carries the same list, the tool body appends the
+  id, the name and the size of the set it just saved, and the Lead's node folds
+  it into the domain at turn end. Both registrations of
+  `create_workbench_gene_set`, the Lead's and verification's, therefore leave the
+  same record; the note is named and summarized from the set's own name and
+  size; and the list is emptied once its notes reach the store, so the per-turn
+  write does not grow with the thread.
+
 * **A thread reopened while its turn runs follows that turn.** The snapshot
   says whether a turn is in flight: `AssistantClient.snapshot` answers
   `turnInFlight` when the last chunk it read is a prompt envelope, which is the

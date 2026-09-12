@@ -19,7 +19,7 @@ from veupathdb.eda import (
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis
 from pathfinder.ai.tools.standalone._eda_models import EdaFiltersResult
-from pathfinder.domain.eda_parts import EdaAnalysisState
+from pathfinder.domain.eda_parts import EdaAnalysisState, EdaFilterSheetEntry
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.authoring import SubsetRejectedError
 from pathfinder.services.eda.binding import ConversationAnalysisView
@@ -37,6 +37,14 @@ from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_STUDY,
 )
 from pathfinder.tests._support.tool_returns import returned
+
+
+def _pinned(ctx: RunContext[LeadDeps]) -> list[EdaFilterSheetEntry]:
+    """The sheet the call pinned for the open study."""
+    sheet = ctx.deps.state.domain.open_eda_sheet
+    assert sheet is not None
+    assert sheet.dataset_id == PHENOTYPE_DATASET
+    return sheet.entries
 
 
 @pytest.fixture(autouse=True)
@@ -185,8 +193,9 @@ async def test_a_first_call_with_no_filters_returns_the_sheet(
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
     answer = await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
     result = returned(answer, EdaFiltersResult)
-    assert result.decide
+    assert result.sheet_pinned is True
     assert result.applied is False
+    assert _pinned(lead_ctx)
 
 
 async def test_the_sheet_names_the_exact_filter_type_per_variable(
@@ -194,9 +203,8 @@ async def test_the_sheet_names_the_exact_filter_type_per_variable(
 ) -> None:
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
-    answer = await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
-    result = returned(answer, EdaFiltersResult)
-    species = next(e for e in result.decide if e.variable_id == SPECIES_VARIABLE)
+    await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
+    species = next(e for e in _pinned(lead_ctx) if e.variable_id == SPECIES_VARIABLE)
     assert species.filter_type == "stringSet"
     assert species.example == {
         "entityId": PHENOTYPE_ENTITY,
@@ -215,13 +223,12 @@ async def test_a_date_example_carries_the_time_part_the_service_requires(
         eda_analysis, "get_study_detail_for_dataset", _date_and_number_study
     )
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
-    answer = await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
-    result = returned(answer, EdaFiltersResult)
-    collected = next(e for e in result.decide if e.variable_id == "VAR_collected")
+    await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
+    collected = next(e for e in _pinned(lead_ctx) if e.variable_id == "VAR_collected")
     assert collected.filter_type == "dateRange"
     assert collected.date_min == "2017-05-05T00:00:00"
     assert collected.example["min"] == "2017-05-05T00:00:00"
-    age = next(e for e in result.decide if e.variable_id == "VAR_age")
+    age = next(e for e in _pinned(lead_ctx) if e.variable_id == "VAR_age")
     assert age.filter_type == "numberRange"
     assert age.example == {
         "entityId": PHENOTYPE_ENTITY,
@@ -238,9 +245,8 @@ async def test_a_longitude_variable_is_not_a_number_variable(
     """A longitude takes left and right, so a numberRange on it selects wrongly."""
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", _longitude_study)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
-    answer = await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
-    result = returned(answer, EdaFiltersResult)
-    longitude = next(e for e in result.decide if e.variable_id == "VAR_lon")
+    await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET)
+    longitude = next(e for e in _pinned(lead_ctx) if e.variable_id == "VAR_lon")
     assert longitude.filter_type == "longitudeRange"
     assert longitude.example == {
         "entityId": PHENOTYPE_ENTITY,
@@ -249,7 +255,7 @@ async def test_a_longitude_variable_is_not_a_number_variable(
         "left": -180.0,
         "right": 180.0,
     }
-    latitude = next(e for e in result.decide if e.variable_id == "VAR_lat")
+    latitude = next(e for e in _pinned(lead_ctx) if e.variable_id == "VAR_lat")
     assert latitude.filter_type == "numberRange"
     assert latitude.example["min"] == -8.0
     assert latitude.example["max"] == 15.0
@@ -320,30 +326,6 @@ async def test_a_dataset_other_than_the_open_one_raises_a_model_retry(
             filters=[_species_filter("P. berghei")],
         )
     assert PHENOTYPE_DATASET in str(excinfo.value)
-
-
-async def test_the_second_sheet_for_the_same_study_omits_the_vocabularies(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    """The model already holds them; resending costs the whole prompt cache."""
-    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
-    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
-    first = returned(
-        await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET),
-        EdaFiltersResult,
-    )
-    second = returned(
-        await eda_analysis.set_eda_filters(lead_ctx, dataset_id=PHENOTYPE_DATASET),
-        EdaFiltersResult,
-    )
-    assert max(len(e.vocabulary) for e in first.decide) > 0
-    assert [len(e.vocabulary) for e in second.decide] == [0] * len(second.decide)
-    unnoted = [
-        e.variable_id
-        for e in second.decide
-        if e.vocabulary_total and not e.vocabulary_note
-    ]
-    assert unnoted == []
 
 
 async def test_an_empty_filter_list_clears_the_subset(

@@ -20,6 +20,7 @@ from assistant_core.memory.retrieval import retrieve_relevant_memories
 from assistant_core.memory.schemas import MemoryEntryDraft
 from assistant_core.memory.store import memory_namespace
 
+from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import (
     PhaseDisposition,
     PipelineState,
@@ -103,7 +104,9 @@ def test_the_product_turns_a_verified_turn_into_its_candidates() -> None:
                 criteria=[],
                 interpreted_goal="find kinases",
             ),
-            created_gene_set_ids=["gs-1"],
+            created_gene_sets=[
+                CreatedGeneSet(id="gs-1", name="kinase hits", gene_count=2)
+            ],
             verification_digest=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
                 prose="done",

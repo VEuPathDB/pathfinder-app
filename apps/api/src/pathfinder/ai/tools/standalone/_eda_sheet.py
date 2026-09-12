@@ -7,7 +7,7 @@ from pydantic import JsonValue
 from veupathdb.domain import walk_entities
 
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.tools.standalone._eda_models import EdaFilterSheetEntry
+from pathfinder.domain.eda_parts import EdaFilterSheetEntry
 from pathfinder.services.eda import EdaStudyDetail
 from pathfinder.services.eda.description import (
     EdaVariableOut,
@@ -23,12 +23,6 @@ from pathfinder.services.eda.description import (
 # model reads the distribution to learn which values the subset holds, so a
 # shorter sample says the same thing.
 _SAMPLE_OF_A_CUT_VOCABULARY = 8
-
-_RE_SHEET_NOTE = (
-    "vocabulary shown in the first sheet for this study; ask "
-    "preview_eda_subset for this variable's distribution to see the values "
-    "the current subset holds"
-)
 
 _LONGITUDE_EXAMPLE = (-180.0, 180.0)
 
@@ -129,19 +123,12 @@ def _entry(
     )
 
 
-def sheet_for(
+def open_sheet(
     domain: StrategyDomainState,
     study: EdaStudyDetail,
     dataset_id: str,
-) -> list[EdaFilterSheetEntry]:
-    """The sheet for one study, without repeating a vocabulary."""
+) -> int:
+    """Pin the filter sheet for one study and answer with how many variables."""
     entries = _sheet_entries(study)
-    if not domain.was_eda_sheet_shown(dataset_id):
-        domain.mark_eda_sheet_shown(dataset_id)
-        return entries
-    return [
-        entry.model_copy(update={"vocabulary": [], "vocabulary_note": _RE_SHEET_NOTE})
-        if entry.vocabulary_total
-        else entry
-        for entry in entries
-    ]
+    domain.pin_eda_sheet(dataset_id, entries)
+    return len(entries)

@@ -66,6 +66,7 @@ async def finalize_turn_node(
                 message_id=turn_message_id,
             )
 
+    notes_written = False
     if (
         runtime.context is not None
         and state.domain.verification_digest is not None
@@ -85,6 +86,7 @@ async def finalize_turn_node(
                     user_id=state.user_id,
                     candidates=candidates,
                 )
+            notes_written = True
         except MemoryStoreTimeoutError as exc:
             logger.exception(
                 "the memory auto-write timed out; the turn fails",
@@ -111,4 +113,9 @@ async def finalize_turn_node(
         if compaction_run is not None:
             emit_chunk(get_stream_writer(), scratchpad_updated_event())
 
+    if notes_written and state.domain.created_gene_sets:
+        # A note in the store is not offered again, so the per-turn write does
+        # not grow with the thread.
+        kept = state.domain.model_copy(update={"created_gene_sets": []})
+        return Command(goto=_END, update={"domain": kept})
     return Command(goto=_END)

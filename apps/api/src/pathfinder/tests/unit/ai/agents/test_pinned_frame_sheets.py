@@ -15,11 +15,9 @@ from pydantic_ai.messages import (
 from veupathdb.domain.parameters import WDKVocabTerm
 from veupathdb.wdk import WDKEnumParam, WDKParameter
 
+from pathfinder.ai.agents.pinned_sheets import PINNED_SHEETS_MAX_CHARS
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.agents.strategy_instructions import (
-    PINNED_SHEETS_MAX_CHARS,
-    pinned_frame_sheets,
-)
+from pathfinder.ai.agents.strategy_instructions import pinned_frame_sheets
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     KINASE_PARAMS,
     bind,

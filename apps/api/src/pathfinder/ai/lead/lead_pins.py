@@ -1,24 +1,76 @@
 """What the Lead reads before it acts.
 
 One render per pinned instruction: the message it answers, the intent it
-classified, the spec it frames against, the ledger it decides from, and what
-moved on the thread since it last answered.
+classified, the spec it frames against, the EDA filter sheet it holds open, the ledger it
+decides from, and what moved on the thread since it last answered.
 """
 
 from __future__ import annotations
 
+import json
+
 from pydantic_ai import RunContext
 
+from pathfinder.ai.agents.pinned_sheets import blocks_within_budget
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 
 __all__ = [
+    "pinned_eda_sheet",
     "pinned_ledger_summary",
     "pinned_operational_spec",
     "pinned_turn_briefing",
     "pinned_user_intent",
     "pinned_user_prompt",
 ]
+
+_EDA_SHEET_HEADER = (
+    "# Open EDA filter sheet\n"
+    "The block below stays here until its subset is applied. Copy entityId, "
+    "variableId and filterType from one entry into the filters array of "
+    "`set_eda_filters`. A string value must be copied from the vocabulary "
+    "shown here."
+)
+_EDA_CUT_NOTE = (
+    "the pinned sheet is over budget, so this variable holds no values; ask "
+    "preview_eda_subset for its distribution to see the values the current "
+    "subset holds"
+)
+
+
+def _eda_block(sheet: OpenEdaSheet) -> str:
+    entries = [entry.model_dump(by_alias=True, mode="json") for entry in sheet.entries]
+    return f"### filter sheet for {sheet.dataset_id}\n{json.dumps(entries)}"
+
+
+def _eda_block_without_values(sheet: OpenEdaSheet) -> str:
+    """The same block with the vocabularies dropped, names and examples kept."""
+    return _eda_block(
+        sheet.model_copy(update={"entries": _without_values(sheet.entries)})
+    )
+
+
+def _without_values(
+    entries: list[EdaFilterSheetEntry],
+) -> list[EdaFilterSheetEntry]:
+    return [
+        entry.model_copy(update={"vocabulary": [], "vocabulary_note": _EDA_CUT_NOTE})
+        if entry.vocabulary_total
+        else entry
+        for entry in entries
+    ]
+
+
+def pinned_eda_sheet(ctx: RunContext[LeadDeps]) -> str | None:
+    """The EDA filter sheet the thread has open, with the values it copies from."""
+    sheet = ctx.deps.state.domain.open_eda_sheet
+    if sheet is None:
+        return None
+    blocks = blocks_within_budget(
+        [sheet], _eda_block, _eda_block_without_values, cut_last=True
+    )
+    return "\n\n".join([_EDA_SHEET_HEADER, *blocks])
 
 
 def pinned_ledger_summary(ctx: RunContext[LeadDeps]) -> str:

@@ -175,3 +175,4 @@ async def test_a_save_request_reaches_the_workbench_through_the_leads_toolset(
         ("mock gene set", ["PF3D7_0709000", "PF3D7_1133400"]),
     ]
     assert saved[0].user_id == deps.runtime.user_id
+    assert [gs.id for gs in deps.created_gene_sets] == [saved[0].id]

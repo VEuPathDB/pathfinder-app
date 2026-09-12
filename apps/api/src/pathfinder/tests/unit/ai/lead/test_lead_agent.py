@@ -77,6 +77,7 @@ PINNED_INSTRUCTIONS = [
     "pinned_user_prompt",
     "pinned_user_intent",
     "pinned_operational_spec",
+    "pinned_eda_sheet",
     "pinned_ledger_summary",
     "pinned_run_budget",
     "pinned_machine_guarantees",

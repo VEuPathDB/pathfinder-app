@@ -4,8 +4,64 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field, JsonValue, model_validator
+from pydantic import Field, JsonValue, model_serializer, model_validator
+from pydantic_core.core_schema import SerializerFunctionWrapHandler
 from veupathdb.model import CamelModel
+
+EdaFilterType = Literal[
+    "stringSet",
+    "numberSet",
+    "dateSet",
+    "numberRange",
+    "dateRange",
+    "longitudeRange",
+    "multiFilter",
+]
+
+
+class EdaFilterSheetEntry(CamelModel):
+    """One variable, with everything needed to write a filter for it.
+
+    The sheet is read by a model, so a field a variable does not declare is
+    not sent: the entity tree and the variable type it was derived from are
+    read from ``describe_eda_study``.
+    """
+
+    entity_id: str
+    entity_display_name: str = ""
+    variable_id: str
+    display_name: str
+    filter_type: EdaFilterType
+    is_multi_valued: bool = False
+    vocabulary: list[str] = Field(default_factory=list)
+    vocabulary_total: int = 0
+    vocabulary_note: str | None = None
+    range_min: float | None = None
+    range_max: float | None = None
+    date_min: str | None = None
+    date_max: str | None = None
+    sub_filter_variable_ids: list[str] = Field(default_factory=list)
+    example: dict[str, JsonValue] = Field(default_factory=dict)
+
+    @model_serializer(mode="wrap")
+    def _what_the_variable_declares(
+        self,
+        handler: SerializerFunctionWrapHandler,
+    ) -> dict[str, JsonValue]:
+        """A field with no value says nothing, so it is not serialized."""
+        dumped: dict[str, JsonValue] = handler(self)
+        return {
+            name: value
+            for name, value in dumped.items()
+            if value is not None and value not in ([], "", {})
+        }
+
+
+class OpenEdaSheet(CamelModel):
+    """The filter sheet a thread holds open, and the study it describes."""
+
+    dataset_id: str
+    entries: list[EdaFilterSheetEntry] = Field(default_factory=list)
 
 
 class EdaEntityCount(CamelModel):

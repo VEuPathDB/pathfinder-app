@@ -10,6 +10,7 @@ from typing import Any
 
 from assistant_core.memory.schemas import MemoryValue
 
+from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.lead_agent import LeadResponse
@@ -43,6 +44,17 @@ def _open_questions(
     return asked
 
 
+def _created_gene_sets(deps: LeadDeps) -> list[CreatedGeneSet]:
+    """The gene sets whose note is still owed, with this turn's additions.
+
+    A set is recorded once by id. The list is emptied when its notes reach the
+    store, so the write does not grow with the thread.
+    """
+    recorded = {created.id: created for created in deps.state.domain.created_gene_sets}
+    recorded.update({created.id: created for created in deps.created_gene_sets})
+    return list(recorded.values())
+
+
 def _domain_delta(
     *,
     deps: LeadDeps,
@@ -58,6 +70,7 @@ def _domain_delta(
                 response.next_state if response is not None else domain.lead_next_state
             ),
             "open_questions": _open_questions(domain, response),
+            "created_gene_sets": _created_gene_sets(deps),
             # Staleness is measured against the live strategy every turn.
             "stale_build": None,
         },

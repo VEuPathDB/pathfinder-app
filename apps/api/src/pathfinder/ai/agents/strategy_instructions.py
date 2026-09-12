@@ -11,6 +11,7 @@ from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyStep
 
 from pathfinder.ai.agents.param_vocab_render import render_param_vocab
+from pathfinder.ai.agents.pinned_sheets import blocks_within_budget
 from pathfinder.ai.agents.state import PinnedSheet, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.prompts.loader import load_system_prompt
@@ -21,10 +22,6 @@ from pathfinder.domain.strategy.types import SyncStateProtocol
 def base_system_prompt(ctx: RunContext[AgentDeps]) -> str:
     return load_system_prompt(include_site_hints=True)
 
-
-# The open sheets are re-sent on every request and no processor shortens them.
-# 100,000 characters is about 25,000 tokens at four characters per token.
-PINNED_SHEETS_MAX_CHARS = 100_000
 
 _SHEETS_HEADER = (
     "# Open parameter sheets\n"
@@ -86,28 +83,17 @@ def _without_vocabulary(sheet: PinnedSheet) -> PinnedSheet:
     )
 
 
-def _within_budget(sheets: dict[str, PinnedSheet]) -> list[str]:
-    """The rendered blocks, the older ones cut to their names to fit the budget.
-
-    The newest block is never cut. A search whose own sheet is over the budget
-    has its vocabulary in no other place.
-    """
-    blocks = [_sheet_block(cid, sheet) for cid, sheet in sheets.items()]
-    for index, criterion_id in enumerate(list(sheets)[:-1]):
-        if sum(map(len, blocks)) <= PINNED_SHEETS_MAX_CHARS:
-            break
-        blocks[index] = _sheet_block(
-            criterion_id, _without_vocabulary(sheets[criterion_id])
-        )
-    return blocks
-
-
 def pinned_frame_sheets(ctx: RunContext[AgentDeps]) -> str | None:
     """The parameter sheets FRAME has open, with the values it copies from."""
     sheets = ctx.deps.agent_state.open_sheets
     if not sheets:
         return None
-    return "\n\n".join([_SHEETS_HEADER, *_within_budget(sheets)])
+    blocks = blocks_within_budget(
+        list(sheets),
+        lambda cid: _sheet_block(cid, sheets[cid]),
+        lambda cid: _sheet_block(cid, _without_vocabulary(sheets[cid])),
+    )
+    return "\n\n".join([_SHEETS_HEADER, *blocks])
 
 
 def pinned_frame_workspace(ctx: RunContext[AgentDeps]) -> str | None:

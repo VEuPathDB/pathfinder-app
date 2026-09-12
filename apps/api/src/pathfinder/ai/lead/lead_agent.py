@@ -35,6 +35,7 @@ from pathfinder.ai.lead.guarantees import machine_guarantees_pin
 from pathfinder.ai.lead.intent_gate import apply_tool_preconditions
 from pathfinder.ai.lead.lead_consult import consult_user
 from pathfinder.ai.lead.lead_pins import (
+    pinned_eda_sheet,
     pinned_ledger_summary,
     pinned_operational_spec,
     pinned_turn_briefing,
@@ -226,6 +227,7 @@ def build_lead_agent() -> LeadAgent:
         pinned_user_prompt,
         pinned_user_intent,
         pinned_operational_spec,
+        pinned_eda_sheet,
         pinned_ledger_summary,
         pinned_run_budget,
     ):

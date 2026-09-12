@@ -205,19 +205,47 @@ class TestCheckpointsFromBeforeTheFbvFlip:
         assert state.domain.operational_spec is None
 
 
-def test_a_dataset_is_not_sheeted_until_it_is_marked(
-    base_state: PipelineState,
-) -> None:
-    assert base_state.domain.was_eda_sheet_shown("DS_53f554ec6a") is False
+def _sheeted_studies(domain: StrategyDomainState) -> list[str]:
+    """The study the thread holds a sheet for, as none or one dataset id."""
+    sheet = domain.open_eda_sheet
+    return [] if sheet is None else [sheet.dataset_id]
 
 
-def test_marking_a_dataset_records_only_that_dataset(
+def test_no_eda_sheet_is_open_until_one_is_pinned(
     base_state: PipelineState,
 ) -> None:
-    """A second sheet for the same study omits the vocabularies."""
-    base_state.domain.mark_eda_sheet_shown("DS_53f554ec6a")
-    assert base_state.domain.was_eda_sheet_shown("DS_53f554ec6a") is True
-    assert base_state.domain.was_eda_sheet_shown("DS_eeca6a5476") is False
+    assert _sheeted_studies(base_state.domain) == []
+
+
+def test_a_second_sheet_replaces_the_one_the_thread_holds(
+    base_state: PipelineState,
+) -> None:
+    base_state.domain.pin_eda_sheet("DS_53f554ec6a", [])
+    base_state.domain.pin_eda_sheet("DS_eeca6a5476", [])
+
+    assert _sheeted_studies(base_state.domain) == ["DS_eeca6a5476"]
+
+
+def test_an_applied_subset_closes_the_sheet(base_state: PipelineState) -> None:
+    base_state.domain.pin_eda_sheet("DS_53f554ec6a", [])
+    base_state.domain.close_eda_sheet()
+
+    assert _sheeted_studies(base_state.domain) == []
+
+
+def test_opening_another_study_closes_the_sheet(base_state: PipelineState) -> None:
+    base_state.domain.pin_eda_sheet("DS_53f554ec6a", [])
+    base_state.domain.close_eda_sheet_of_another_study("DS_eeca6a5476")
+
+    assert _sheeted_studies(base_state.domain) == []
+
+
+def test_reopening_the_same_study_keeps_its_sheet(base_state: PipelineState) -> None:
+    """The sheet describes the study, which a fresh analysis does not change."""
+    base_state.domain.pin_eda_sheet("DS_53f554ec6a", [])
+    base_state.domain.close_eda_sheet_of_another_study("DS_53f554ec6a")
+
+    assert _sheeted_studies(base_state.domain) == ["DS_53f554ec6a"]
 
 
 def _requirement(kind: ConstraintKind, label: str, value: str) -> Constraint:

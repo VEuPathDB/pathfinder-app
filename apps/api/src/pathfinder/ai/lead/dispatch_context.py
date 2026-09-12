@@ -60,6 +60,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
             ),
             organism_hints=organism_hints_from(requirements),
             combination_requirements=combination_requirements_from(requirements),
+            created_gene_sets=deps.created_gene_sets,
         ),
         ledger_summary=ledger.render_summary(),
         experiment_id=runtime.experiment_id,

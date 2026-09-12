@@ -19,6 +19,7 @@ from assistant_core.platform.db import async_session_factory
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.case_memory import collect_case_candidates
 from pathfinder.ai.lead.intent import BUILDING_INTENTS
@@ -57,8 +58,8 @@ def collect_memory_candidates(state: PipelineState) -> list[MemoryCandidate]:
             )
         )
     candidates.extend(
-        (_build_gene_set_value(state, gs_id), f"gene_set_note:{gs_id}")
-        for gs_id in domain.created_gene_set_ids
+        (_build_gene_set_value(state, created), f"gene_set_note:{created.id}")
+        for created in domain.created_gene_sets
     )
     if domain.verification_digest is not None:
         for idx, entry in enumerate(domain.verification_digest.remember):
@@ -114,14 +115,23 @@ def _build_strategy_value(state: PipelineState) -> MemoryValue:
     )
 
 
-def _build_gene_set_value(state: PipelineState, gs_id: str) -> MemoryValue:
+def _build_gene_set_value(state: PipelineState, created: CreatedGeneSet) -> MemoryValue:
+    """One note about a saved set, named the way the researcher named it.
+
+    The store embeds the name and the summary, so a note keyed by the id alone
+    matches nothing the researcher would ask for.
+    """
     return MemoryValue(
         kind="gene_set_note",
-        name=gs_id,
-        summary=f"Gene set {gs_id} created in chat-{state.conversation_id.hex[:8]}",
+        name=created.name,
+        summary=(f"{created.name}: a workbench gene set of {created.gene_count} genes"),
         tags=[state.site_id] if state.site_id else [],
         site_id=state.site_id,
-        content={"gene_set_id": gs_id},
+        content={
+            "gene_set_id": created.id,
+            "name": created.name,
+            "gene_count": created.gene_count,
+        },
         source_conversation_id=state.conversation_id,
         created_at=datetime.now(UTC),
     )

@@ -34,6 +34,20 @@ class ParamVocabSnapshot(BaseModel):
     allowed_values_tree: str | None = None
 
 
+class CreatedGeneSet(BaseModel):
+    """A workbench gene set one turn saved, as its memory note reads it.
+
+    The note is retrieved by what the researcher called the set, so the record
+    carries the name and the size and not the id alone.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    name: str
+    gene_count: int
+
+
 class SearchOverview(BaseModel):
     search_name: str
     display_name: str
@@ -81,6 +95,9 @@ class AgentToolState:
     redecided_params: set[tuple[str, str, str]] = field(default_factory=set)
     # The sheets open right now, by criterion, oldest first.
     open_sheets: dict[str, PinnedSheet] = field(default_factory=dict)
+    # The workbench gene sets this turn created, in creation order. The list is
+    # the Lead's, so a save by any agent of the turn lands in one place.
+    created_gene_sets: list[CreatedGeneSet] = field(default_factory=list)
 
     def pin_sheet(
         self, criterion_id: str, search_name: str, entries: list[SheetEntry]

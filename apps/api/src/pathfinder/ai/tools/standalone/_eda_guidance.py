@@ -5,9 +5,8 @@ from __future__ import annotations
 from pathfinder.services.eda.authoring import SubsetPreview
 
 SHEET_GUIDANCE = (
-    "Copy the entityId, the variableId and the type from one entry, and send "
-    "the whole array back in filters. The array replaces the subset, so "
-    "include every filter that should apply. Then call preview_eda_subset."
+    "The sheet is pinned under 'Open EDA filter sheet' in your instructions. "
+    "Send the whole filters array back, then call preview_eda_subset."
 )
 
 APPLIED_GUIDANCE = (

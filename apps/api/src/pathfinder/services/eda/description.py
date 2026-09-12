@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -17,22 +16,13 @@ from veupathdb.domain import (
 )
 from veupathdb.eda import EdaPermissionEntry, EdaStudyDetail
 
+from pathfinder.domain.eda_parts import EdaFilterType
 from pathfinder.platform.errors import NotFoundError
 
 _VOCABULARY_SHOWN = 40
 _CONTINUOUS = "continuous"
 _MULTIFILTER_DISPLAY = "multifilter"
 _DATE_TIME_MARKER = "T"
-
-EdaFilterType = Literal[
-    "stringSet",
-    "numberSet",
-    "dateSet",
-    "numberRange",
-    "dateRange",
-    "longitudeRange",
-    "multiFilter",
-]
 
 
 class UnknownEdaEntityError(NotFoundError):

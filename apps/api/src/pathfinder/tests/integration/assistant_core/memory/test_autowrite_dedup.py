@@ -12,6 +12,7 @@ from assistant_core.memory.store import MemoryStore
 from assistant_core.memory.tombstones import TombstoneRepository
 from assistant_core.platform.db import async_session_factory
 
+from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
@@ -79,7 +80,11 @@ async def test_gene_set_autowrite_is_idempotent(
         site_id="toxodb",
         mode="strategy",
         user_prompt="q",
-        domain=StrategyDomainState(created_gene_set_ids=["gs-same-id"]),
+        domain=StrategyDomainState(
+            created_gene_sets=[
+                CreatedGeneSet(id="gs-same-id", name="kinase hits", gene_count=2)
+            ]
+        ),
     )
 
     async with lifespan_memory_store(database_url) as raw:

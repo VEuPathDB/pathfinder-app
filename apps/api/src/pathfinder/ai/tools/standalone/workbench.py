@@ -23,6 +23,7 @@ from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType, EnrichmentResult
 
+from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.stream_events import enrichment_results_event
 from pathfinder.ai.stream_part_payloads import EnrichmentResultsChunk
@@ -83,6 +84,9 @@ async def create_workbench_gene_set(
         parameters=src.parameters,
     )
     save_gene_set(gs)
+    deps.agent_state.created_gene_sets.append(
+        CreatedGeneSet(id=gs.id, name=gs.name, gene_count=len(gs.gene_ids))
+    )
     logger.info(
         "AI created workbench gene set",
         gene_set_id=gs.id,

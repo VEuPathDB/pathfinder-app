@@ -22,6 +22,7 @@ from pydantic_ai.usage import RunUsage, UsageLimits
 from pathfinder.ai.agents.execution import EXECUTION_MODEL, build_execution_agent
 from pathfinder.ai.agents.frame import FRAME_MODEL, build_frame_agent
 from pathfinder.ai.agents.roles import PhaseRole
+from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from pathfinder.ai.agents.verification import (
     VERIFICATION_MODEL,
@@ -291,6 +292,9 @@ class LeadDeps:
     site_blame_refused: bool = False
     # A reply that asked the user something and recorded nothing is refused once.
     unrecorded_question_refused: bool = False
+    # The workbench gene sets this turn created. Every agent of the turn writes
+    # into this one list, and the Lead's node folds it into the domain.
+    created_gene_sets: list[CreatedGeneSet] = field(default_factory=list)
 
     @property
     def conversation_id(self) -> UUID | None:

@@ -21,7 +21,7 @@ from pathfinder.ai.tools.standalone._eda_models import (
     EdaFiltersResult,
     EdaSubsetPreviewResult,
 )
-from pathfinder.ai.tools.standalone._eda_sheet import sheet_for
+from pathfinder.ai.tools.standalone._eda_sheet import open_sheet
 from pathfinder.ai.tools.standalone._eda_stream_parts import (
     analysis_state_chunks_if_changed,
     eda_subset_preview_chunk,
@@ -97,6 +97,7 @@ async def open_eda_analysis(
         conversation_id=ctx.deps.state.conversation_id,
         display_name=purpose,
     )
+    ctx.deps.state.domain.close_eda_sheet_of_another_study(dataset_id)
     # Nothing is counted on an analysis this call has just created.
     ctx.deps.state.turn_markers.eda_previewed = False
     opened = EdaAnalysisOpened(
@@ -136,10 +137,12 @@ async def set_eda_filters(
 ) -> ToolReturn[EdaFiltersResult]:
     """Set the whole subset of the open EDA analysis, in two calls.
 
-    Call this ONCE with no ``filters`` to receive ``decide``, the FILTER SHEET:
-    every filterable variable of the study with its entity, its exact filter
-    type, its vocabulary or its range, and one complete example filter object
-    you can copy. Nothing is recorded by that call.
+    Call this ONCE with no ``filters`` to open the FILTER SHEET: every
+    filterable variable of the study with its entity, its exact filter type,
+    its vocabulary or its range, and one complete example filter object you can
+    copy. The sheet is pinned under "Open EDA filter sheet" in your
+    instructions and stays there until the subset is applied or the study is
+    closed; nothing is recorded by that call.
 
     Then call it AGAIN with ``filters`` set to the whole array you want. The
     array REPLACES the analysis's subset; it is not a patch, so send every
@@ -185,16 +188,17 @@ async def set_eda_filters(
     bound = await _bound_or_retry(ctx, dataset_id)
     if filters is None:
         _entry, study = await _study(site_id, dataset_id)
-        sheet = sheet_for(ctx.deps.state.domain, study, dataset_id)
+        variables = open_sheet(ctx.deps.state.domain, study, dataset_id)
         return with_summary(
             EdaFiltersResult(
                 analysis_id=bound.analysis_id,
                 dataset_id=dataset_id,
-                decide=sheet,
+                sheet_pinned=True,
                 guidance=SHEET_GUIDANCE,
             ),
-            f"{len(sheet)} filters to choose from",
+            f"sheet pinned, {variables} filters to choose from",
             ctx=ctx,
+            status="warn",
         )
     try:
         state = await apply_filters(
@@ -210,6 +214,7 @@ async def set_eda_filters(
             f"request the sheet again."
         )
         raise ModelRetry(msg) from exc
+    ctx.deps.state.domain.close_eda_sheet()
     return with_summary(
         EdaFiltersResult(
             applied=True,

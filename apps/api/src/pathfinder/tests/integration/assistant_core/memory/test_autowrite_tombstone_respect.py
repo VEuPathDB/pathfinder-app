@@ -22,6 +22,7 @@ from assistant_core.memory.store import MemoryStore
 from assistant_core.memory.tombstones import TombstoneRepository
 from assistant_core.platform.db import async_session_factory
 
+from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
 from pathfinder.persistence.models import User
@@ -45,7 +46,11 @@ async def test_deleted_gene_set_memory_does_not_resurrect(
         site_id="plasmodb",
         mode="strategy",
         user_prompt="q",
-        domain=StrategyDomainState(created_gene_set_ids=["gs-delete-me"]),
+        domain=StrategyDomainState(
+            created_gene_sets=[
+                CreatedGeneSet(id="gs-delete-me", name="kinase hits", gene_count=2)
+            ]
+        ),
     )
 
     async with lifespan_memory_store(database_url) as raw:
@@ -109,7 +114,11 @@ async def test_tombstone_is_kind_scoped_not_global(
             site_id="plasmodb",
             mode="strategy",
             user_prompt="q",
-            domain=StrategyDomainState(created_gene_set_ids=["shared-id"]),
+            domain=StrategyDomainState(
+                created_gene_sets=[
+                    CreatedGeneSet(id="shared-id", name="kinase hits", gene_count=2)
+                ]
+            ),
         )
         await auto_write_memories(
             store=store,

@@ -10,12 +10,13 @@ from assistant_core.memory.schemas import MemoryEntryDraft
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field
 
-from pathfinder.ai.agents.state import SearchOverview
+from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
 from pathfinder.ai.lead.intent import (
     REQUEST_INTENTS,
     IntentClassification,
     UserIntent,
 )
+from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
@@ -161,9 +162,9 @@ class StrategyDomainState(BaseModel):
     # strategy against ``last_build_outcome``. Never persisted: an edit that
     # was stale last turn is not stale after the next build.
     stale_build: StaleBuild | None = None
-    created_gene_set_ids: list[str] = Field(default_factory=list)
-    # Studies already sent a full EDA filter sheet, with their vocabularies.
-    sheeted_eda_datasets: set[str] = Field(default_factory=set)
+    created_gene_sets: list[CreatedGeneSet] = Field(default_factory=list)
+    # The EDA filter sheet the thread holds open, and the study it describes.
+    open_eda_sheet: OpenEdaSheet | None = None
     # The analysis-state card the thread last showed. A tool emits the card
     # again only when the state differs from this.
     eda_analysis: EdaAnalysisFacts | None = None
@@ -320,15 +321,25 @@ class StrategyDomainState(BaseModel):
         spec.criteria = [c for c in spec.criteria if c.id != criterion.id]
         spec.criteria.append(criterion)
 
-    def mark_eda_sheet_shown(self, dataset_id: str) -> None:
-        self.sheeted_eda_datasets.add(dataset_id)
+    def pin_eda_sheet(
+        self, dataset_id: str, entries: list[EdaFilterSheetEntry]
+    ) -> None:
+        """Open the filter sheet for a study, replacing anything it holds."""
+        self.open_eda_sheet = OpenEdaSheet(dataset_id=dataset_id, entries=entries)
 
-    def was_eda_sheet_shown(self, dataset_id: str) -> bool:
-        """Whether this study's vocabularies were already sent this turn.
+    def close_eda_sheet(self) -> None:
+        """Drop the sheet whose subset is now applied."""
+        self.open_eda_sheet = None
 
-        A second sheet repeats them at full size, so it is sent without them.
+    def close_eda_sheet_of_another_study(self, dataset_id: str) -> None:
+        """Drop the sheet when the conversation opens a different study.
+
+        A study the conversation no longer has open cannot be filtered, so its
+        sheet describes nothing the model can act on.
         """
-        return dataset_id in self.sheeted_eda_datasets
+        sheet = self.open_eda_sheet
+        if sheet is not None and sheet.dataset_id != dataset_id:
+            self.open_eda_sheet = None
 
 
 class PipelineState(TurnState):

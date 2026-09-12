@@ -27,7 +27,7 @@ from pydantic_ai.ui.vercel_ai.request_types import TextUIPart, ToolApprovalRespo
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.ai.agents.state import SearchOverview
+from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
 from pathfinder.ai.graph.state import (
     ConstraintCheck,
     FailureCause,
@@ -232,7 +232,7 @@ def _domain() -> StrategyDomainState:
         verification_digest=_digest(),
         last_build_outcome=_outcome(),
         stale_build=StaleBuild(added_nodes=["s3"], removed_nodes=["s0"]),
-        created_gene_set_ids=["gs-1"],
+        created_gene_sets=[CreatedGeneSet(id="gs-1", name="kinase hits", gene_count=2)],
         open_questions=[
             OpenQuestion(
                 question="Which gametocyte RNA-seq study?",
