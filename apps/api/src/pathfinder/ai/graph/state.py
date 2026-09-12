@@ -147,7 +147,9 @@ class StrategyDomainState(BaseModel):
     """What the investigation knows: the framed spec, the searches it saw,
     the last build and its verification."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+    # A conversation saved by an earlier build may carry a field this build
+    # dropped; the value is discarded and the rest of the state is rebuilt.
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="ignore")
 
     user_intent: UserIntent | None = None
     turn_markers: TurnMarkers = Field(default_factory=TurnMarkers)
@@ -374,6 +376,8 @@ class StrategyDomainState(BaseModel):
 
 
 class PipelineState(TurnState):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="ignore")
+
     domain: StrategyDomainState = Field(default_factory=StrategyDomainState)
 
     @property

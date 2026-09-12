@@ -48,7 +48,8 @@ Choices with a real alternative, where the reasoning is not recoverable from the
 - [A retry must be something the model can act on](build-retry-must-be-actionable.md) - "call frame_problem first" looped when only the user could unblock
 - [Eliding a tool result makes the agent fetch it again](elision-caused-refetching.md) - the context saver cost 12 duplicate calls in one turn
 - [Prompts are checked against the architecture](prompts-match-the-architecture.md) - the base prompt named three schemas that do not exist
-- [Strict state, and the checkpoints flushed to allow it](no-checkpoint-truncation.md) - a permissive `extra` was a shim for a shape nothing writes
+- [A saved conversation outlives the build that saved it](a-saved-conversation-outlives-the-build-that-saved-it.md) - the turn state drops fields the resuming build no longer declares, rebuilds the rest, and refuses plainly what it cannot read
+- [Strict state, and the checkpoints flushed to allow it](no-checkpoint-truncation.md) - superseded: its loud refusal never reached the researcher
 - The checkpoint allowlist binds at construction (`assistant-platform: docs/knowledge/decisions/the-checkpoint-allowlist-binds-at-construction.md`) - `with_msgpack_allowlist` discarded every declaration, so a state read warned on types that were on the list
 - [A capability is not shipped until the model can find it](capability-must-be-reachable.md) - built, registered, and undiscoverable is not shipped
 - [A sub-agent's approval is answered inside that sub-agent](sub-agent-approvals-re-enter-the-sub-agent.md) - the inner tool call is forwarded as its own approval card and the answer re-enters the suspended run

@@ -5,8 +5,13 @@ description: PipelineState now forbids unknown keys, and pre-FBV checkpoints are
 tags: [migrations, agents, drift]
 generated: { by: claude-code/opus-5, at: 2026-08-09T00:00:00Z }
 verified: { by: human:ahmedOmuharram, at: 2026-08-09T00:00:00Z }
-status: stable
+status: superseded
+superseded_by: a-saved-conversation-outlives-the-build-that-saved-it.md
 ---
+
+# Superseded
+
+Superseded on 2026-09-12 by [a saved conversation outlives the build that saved it](a-saved-conversation-outlives-the-build-that-saved-it.md): the loud refusal this page relies on never reaches the researcher, because the checkpoint serializer swallows it and hands the turn a half-built state.
 
 # The reversal
 

@@ -114,17 +114,18 @@ def test_pipeline_state_domain_is_the_strategy_domain_model() -> None:
     assert set(StrategyDomainState.model_fields) == DOMAIN_FIELDS
 
 
-def test_pipeline_state_rejects_a_strategy_field_at_the_top_level() -> None:
-    with pytest.raises(ValidationError, match="verification_digest"):
-        PipelineState.model_validate(
-            {
-                "conversation_id": str(uuid4()),
-                "user_id": str(uuid4()),
-                "site_id": "plasmodb",
-                "mode": "strategy",
-                "verification_digest": None,
-            },
-        )
+def test_pipeline_state_drops_a_strategy_field_at_the_top_level() -> None:
+    state = PipelineState.model_validate(
+        {
+            "conversation_id": str(uuid4()),
+            "user_id": str(uuid4()),
+            "site_id": "plasmodb",
+            "mode": "strategy",
+            "verification_digest": None,
+        },
+    )
+    assert state.domain.verification_digest is None
+    assert "verification_digest" not in state.model_dump()
 
 
 def test_turn_context_carries_no_strategy_resource() -> None:

@@ -69,6 +69,7 @@ from pathfinder.ai.graph._lead_turn import (
     resolve_turn_resumption,
     retrieve_memories,
 )
+from pathfinder.ai.graph.rebuild import rebuilt_state
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.stream_events import ledger_update_event
@@ -312,6 +313,7 @@ async def _run_lead_turn(
     build_agent: TurnAgentFactory[LeadAgent],
 ) -> Command[Literal["finalize_turn"]]:
     writer = get_stream_writer()
+    state = rebuilt_state(state)
     if state.resumes_parked_call:
         memories = list(state.retrieved_memories)
     else:

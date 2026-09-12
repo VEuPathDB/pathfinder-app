@@ -149,60 +149,49 @@ def test_state_rejects_negative_total_tokens() -> None:
         )
 
 
-class TestCheckpointsFromBeforeTheFbvFlip:
-    """A checkpoint written by the five-phase pipeline must be REJECTED.
+class TestCheckpointsFromEarlierBuilds:
+    """A checkpoint written by an earlier build still resumes.
 
-    ``PipelineState`` used to leave Pydantic's ``extra`` at its default, so a
-    stale key was silently dropped. That is a compatibility shim for a shape
-    that no longer exists, and it hides drift exactly the way an ``as Step``
-    cast did: a field renamed in code goes quiet instead of loud.
-
-    The state is strict now, and the old-shape checkpoints are truncated by
-    the migration that accompanies it. PathFinder has not shipped, so there
-    is nothing to stay compatible with.
+    A field this build no longer declares is dropped; every record it still
+    declares is rebuilt as its model, so the next turn reads models and not
+    the mappings the checkpoint serializer falls back to.
     """
 
-    def _old_shape(self) -> dict[str, object]:
+    def _earlier_shape(self) -> dict[str, object]:
         return {
             "conversation_id": str(uuid4()),
             "user_id": str(uuid4()),
             "site_id": "plasmodb",
             "mode": "strategy",
             "user_prompt": "gametocyte upregulated genes",
-            # Fields the five-phase pipeline wrote and FRAME/BUILD/VERIFY removed.
             "active_plan": {"steps": [{"searchName": "GenesByTaxon"}]},
+            "domain": {
+                "created_gene_set_ids": ["a1b2c3d4"],
+                "last_build_outcome": {
+                    "pushed_step_ids": ["step_a"],
+                    "failed_steps": [],
+                    "skipped_step_ids": [],
+                    "wdk_strategy_id": 330642473,
+                    "wdk_url": None,
+                    "counts": {"step_a": 87},
+                    "root_count": 87,
+                    "zero_step_ids": [],
+                    "node_results": [],
+                },
+            },
         }
 
-    def test_a_pre_flip_checkpoint_is_rejected_loudly(self) -> None:
-        with pytest.raises(ValidationError, match="active_plan"):
-            PipelineState.model_validate(self._old_shape())
+    def test_a_dropped_field_is_discarded_and_the_records_rebuilt(self) -> None:
+        state = PipelineState.model_validate(self._earlier_shape())
+        assert isinstance(state.domain.last_build_outcome, BuildOutcome)
+        assert state.domain.last_build_outcome.root_count == 87
+        assert state.user_prompt == "gametocyte upregulated genes"
 
-    def test_a_typo_in_a_field_name_is_rejected(self) -> None:
-        # The real payoff: renaming a field can no longer half-land, with
-        # writers setting a key readers silently ignore.
-        payload = {
-            "conversation_id": str(uuid4()),
-            "user_id": str(uuid4()),
-            "site_id": "plasmodb",
-            "mode": "strategy",
-            "operationl_spec": None,
-        }
-
-        with pytest.raises(ValidationError, match="operationl_spec"):
-            PipelineState.model_validate(payload)
-
-    def test_the_current_shape_still_validates(self) -> None:
-        state = PipelineState.model_validate(
-            {
-                "conversation_id": str(uuid4()),
-                "user_id": str(uuid4()),
-                "site_id": "plasmodb",
-                "mode": "strategy",
-                "user_prompt": "gametocyte upregulated genes",
-            }
-        )
-
-        assert state.domain.operational_spec is None
+    def test_a_value_this_build_cannot_read_is_refused(self) -> None:
+        stored = self._earlier_shape()
+        stored["domain"] = {"last_build_outcome": 5}
+        with pytest.raises(ValidationError, match="last_build_outcome"):
+            PipelineState.model_validate(stored)
 
 
 def _sheeted_studies(domain: StrategyDomainState) -> list[str]:

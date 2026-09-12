@@ -42,6 +42,7 @@ class ErrorCode(StrEnum):
 
     # Conversation
     CONVERSATION_NOT_FOUND = "CONVERSATION_NOT_FOUND"
+    CONVERSATION_FROM_EARLIER_BUILD = "CONVERSATION_FROM_EARLIER_BUILD"
     FORK_REFUSED = "FORK_REFUSED"
     ASSISTANT_NOT_FOUND = "ASSISTANT_NOT_FOUND"
     ASSISTANT_MISMATCH = "ASSISTANT_MISMATCH"
@@ -138,6 +139,28 @@ class StrategyAstCorruptError(AppError):
             detail=(
                 f"conversation {conversation_id} holds a strategy_ast that "
                 f"does not parse: {reasons}"
+            ),
+        )
+
+
+class ConversationFromEarlierBuildError(AppError):
+    """A saved conversation this build cannot rebuild.
+
+    The state a conversation keeps between turns is rebuilt by the build that
+    resumes it; a value whose shape this build no longer reads ends the turn
+    with a sentence the researcher can act on.
+    """
+
+    def __init__(self, conversation_id: str, reasons: str) -> None:
+        super().__init__(
+            code=ErrorCode.CONVERSATION_FROM_EARLIER_BUILD,
+            title="This conversation cannot be continued",
+            status=409,
+            detail=(
+                "This conversation was saved by an earlier version of "
+                "PathFinder and cannot be continued. Start a new conversation; "
+                f"the strategy and gene sets it built are still yours. "
+                f"(conversation {conversation_id}: {reasons})"
             ),
         )
 

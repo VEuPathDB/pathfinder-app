@@ -2,6 +2,13 @@
 
 ## 2026-09-12
 
+* **A saved conversation outlives the build that saved it.** The turn state drops a
+  field the resuming build no longer declares and is rebuilt as this build's models
+  at the turn's entry; a value the build cannot read ends the turn with one sentence
+  the researcher can act on. Supersedes the strict-state decision: its refusal was
+  swallowed by the checkpoint serializer and reached the researcher as an attribute
+  error mid-turn.
+
 * **A tail streams only while a live worker holds the thread.** The events route no
   longer reads "in flight" off the log's tip: `services/conversations/turn_liveness.py`
   answers it, and an open log counts as a running turn only when a procrastinate job locks
