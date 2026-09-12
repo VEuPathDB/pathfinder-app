@@ -13,7 +13,7 @@ from veupathdb.domain.parameters import wire_map
 
 from pathfinder.ai.tools.standalone._graph_helpers import build_step_response
 from pathfinder.domain.strategy.build_outcome import citable_count
-from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
 from pathfinder.services.strategies.live_counts import read_wdk_step_counts
 
 __all__ = ["LiveStepState", "LiveStrategyState", "read_live_state"]
@@ -69,11 +69,10 @@ async def read_live_state(
         for step in graph.steps.values()
         if (response := build_step_response(graph, step, sync_state)) is not None
     ]
-    # A complete strategy has exactly one root; ambiguity means no single
-    # headline count to report.
+    root_id = strategy_root_id(graph, sync_state)
     root_count = (
-        citable_count(next(iter(graph.roots)), counts=counts, refused=refused)
-        if len(graph.roots) == 1
+        citable_count(root_id, counts=counts, refused=refused)
+        if root_id is not None
         else None
     )
 

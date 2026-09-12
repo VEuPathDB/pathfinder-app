@@ -17,6 +17,7 @@ def test_graph_snapshot_validates_required_fields() -> None:
     snapshot = GraphSnapshot(
         strategy_id="s_abc123",
         gene_count=87,
+        detached_step_count=0,
         nodes=[
             GraphNode(
                 id="n1",
@@ -38,7 +39,13 @@ def test_graph_snapshot_rejects_missing_strategy_id() -> None:
 
 def test_graph_snapshot_rejects_negative_gene_count() -> None:
     with pytest.raises(ValidationError):
-        GraphSnapshot(strategy_id="s_x", gene_count=-1, nodes=[], edges=[])
+        GraphSnapshot(
+            strategy_id="s_x",
+            gene_count=-1,
+            detached_step_count=0,
+            nodes=[],
+            edges=[],
+        )
 
 
 def test_strategy_meta_validates() -> None:
@@ -83,6 +90,7 @@ def test_camel_model_accepts_camel_case_input() -> None:
         {
             "strategyId": "s_abc",
             "geneCount": 42,
+            "detachedStepCount": 0,
             "nodes": [{"id": "n1", "searchName": "ByText", "estimatedSize": 10}],
             "edges": [{"source": "n1", "target": "n2", "operator": "INTERSECT"}],
         }
@@ -97,6 +105,7 @@ def test_camel_model_accepts_snake_case_input_via_populate_by_name() -> None:
         {
             "strategy_id": "s_abc",
             "gene_count": 42,
+            "detached_step_count": 0,
             "nodes": [],
             "edges": [],
         }
@@ -108,6 +117,7 @@ def test_camel_model_emits_camel_case_on_by_alias_dump() -> None:
     snapshot = GraphSnapshot(
         strategy_id="s_abc",
         gene_count=42,
+        detached_step_count=0,
         nodes=[GraphNode(id="n1", search_name="ByText", estimated_size=10)],
         edges=[GraphEdge(source="n1", target="n2", operator="INTERSECT")],
     )
@@ -125,6 +135,7 @@ def test_camel_model_ignores_extra_fields() -> None:
         {
             "strategyId": "s_abc",
             "geneCount": 0,
+            "detachedStepCount": 0,
             "nodes": [],
             "edges": [],
             "futureField": "should be dropped",

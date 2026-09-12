@@ -32,6 +32,11 @@ class GraphEdge(CamelModel):
 class GraphSnapshot(CamelModel):
     strategy_id: str
     gene_count: int | None = Field(ge=0)
+    """What the strategy's root returns. Nothing when no root is citable."""
+
+    detached_step_count: int = Field(ge=0)
+    """The steps the strategy's tree does not hold."""
+
     nodes: list[GraphNode]
     edges: list[GraphEdge]
 

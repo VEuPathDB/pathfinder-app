@@ -21,6 +21,7 @@ def _snapshot(count: int | None) -> dict[str, object]:
     return {
         "strategyId": "g1",
         "geneCount": count,
+        "detachedStepCount": 0,
         "nodes": [{"id": _STEP, "searchName": _SEARCH, "estimatedSize": count}],
         "edges": [],
     }
@@ -86,6 +87,20 @@ def test_a_measured_zero_stays_zero() -> None:
 
     assert snapshot == _snapshot(0)
     assert meta == _meta(0)
+
+
+def test_a_graph_with_no_steps_reports_no_count() -> None:
+    """An empty strategy measured nothing, so it cites nothing."""
+    session = StrategySession(site_id="plasmodb")
+    graph = StrategyGraph(graph_id="g1", name="Kinases", site_id="plasmodb")
+    session.graph = graph
+    session.sync_state = WDKSyncState()
+
+    data = graph_snapshot_chunk(session, graph).data
+
+    assert data["geneCount"] is None
+    assert data["detachedStepCount"] == 0
+    assert data["nodes"] == []
 
 
 def test_a_measured_count_is_sent_as_it_stands() -> None:

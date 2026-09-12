@@ -14,6 +14,7 @@ from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
 from pathfinder.services.strategies.context import StrategyMutationContext
 
 # A search is abandoned once it has failed this many times in a turn. The
@@ -115,4 +116,5 @@ class AgentDeps(AssistantDeps):
                 c.id for c in self.agent_state.operational_spec_draft.criteria
             ),
             stated_structure=self.agent_state.operational_spec_draft.structure,
+            stated_values=spec_stated_values(self.agent_state.operational_spec_draft),
         )

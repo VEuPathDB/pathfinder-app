@@ -38,6 +38,7 @@ from pathfinder.domain.strategy.operational_spec import (
     fold_option_criteria,
     renumber_criteria,
 )
+from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
@@ -82,11 +83,15 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
         )
         raise ModelRetry(msg) from exc
     agent_deps = agent_deps_for(deps)
-    outcome: BuildOutcome = await build_strategy_from_spec(
-        deps=agent_deps.to_strategy_context(),
-        root=built.root,
-        name=spec.title or None,
-    )
+    try:
+        outcome: BuildOutcome = await build_strategy_from_spec(
+            deps=agent_deps.to_strategy_context(),
+            root=built.root,
+            name=spec.title or None,
+        )
+    except ApplyError as exc:
+        msg = f"REJECTED: {exc}. Nothing was built and the strategy is unchanged."
+        raise ModelRetry(msg) from exc
     # A criterion and the step it built become one address, so the next turn's
     # edit changes that step instead of rebuilding the strategy around it.
     deps.state.domain.operational_spec = renumber_criteria(

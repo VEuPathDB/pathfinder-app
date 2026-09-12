@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+import pytest
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree, walk
 
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.services.strategies.insert_saved import _build_new_root
+from pathfinder.domain.strategy.operations.apply import ApplyError
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.strategies import insert_saved
+from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.insert_saved import (
+    _build_new_root,
+    insert_saved_into_conversation,
+)
 
 
 def _leaf(step_id: str, term: str) -> StrategyStepNode:
@@ -90,3 +99,51 @@ def test_splicing_below_the_root_rewires_only_the_parent_slot() -> None:
         combine_id,
         "step_root",
     ]
+
+
+_REFUSAL = "the criterion 'binding' states go_term = 'GO:0005515'"
+
+
+class _Cloned:
+    def __init__(self, root: StrategyStepNode) -> None:
+        self.root = root
+        self.name = "Binding genes"
+        self.record_type = "transcript"
+
+
+async def test_a_build_the_spec_refuses_leaves_the_graph_as_it_was(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The splice wires a combine before the build runs, so a refusal undoes it."""
+    graph = _graph(
+        StrategyStepNode(
+            id="step_combine",
+            search_name="__combine__",
+            operator=CombineOp.UNION,
+            primary_input=_leaf("step_a", "GO:0004672"),
+            secondary_input=_leaf("step_b", "GO:0016301"),
+        ),
+    )
+    before = sorted(graph.steps)
+    session = StrategySession(site_id="plasmodb")
+    session.graph = graph
+
+    async def _clone(*_args: Any, **_kwargs: Any) -> _Cloned:
+        return _Cloned(_saved())
+
+    async def _refuse(**_kwargs: Any) -> None:
+        raise ApplyError(_REFUSAL)
+
+    monkeypatch.setattr(insert_saved, "clone_saved_strategy", _clone)
+    monkeypatch.setattr(insert_saved, "build_strategy_from_spec", _refuse)
+
+    with pytest.raises(ApplyError):
+        await insert_saved_into_conversation(
+            deps=StrategyMutationContext(site_id="plasmodb", strategy_session=session),
+            target_step_id="step_combine",
+            saved_wdk_strategy_id=7777,
+            operator=CombineOp.INTERSECT,
+        )
+
+    assert sorted(graph.steps) == before
+    assert sorted(graph.roots) == ["step_combine"]

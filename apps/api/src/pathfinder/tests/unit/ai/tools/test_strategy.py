@@ -300,6 +300,28 @@ class TestBuildStrategyNoLongerClobbersSilently:
         ]
         assert summaries == [("0 steps, 0 genes", "empty")]
 
+    async def test_a_build_nobody_measured_says_the_count_is_not_available(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A root whose push failed carries no number, so the build reports none."""
+        graph = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
+        ctx, _commit = _ctx(graph, [])
+
+        async def _build(**kwargs: object) -> BuildOutcome:
+            del kwargs
+            return BuildOutcome(wdk_strategy_id=1, root_count=None)
+
+        _pin_build(monkeypatch, _build)
+
+        returned = await build_strategy(ctx, root=_leaf("step_a"))
+
+        summaries = [
+            (chunk.data["summary"], chunk.data["status"])
+            for chunk in returned.metadata
+            if isinstance(chunk, DataChunk) and chunk.type == "data-tool-summary"
+        ]
+        assert summaries == [("0 steps, count not available", "warn")]
+
     async def test_the_matching_revision_allows_a_deliberate_replacement(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:

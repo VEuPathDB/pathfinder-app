@@ -30,6 +30,7 @@ from pathfinder.domain.strategy.operations.types import (
     AttachPoint,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
 from pathfinder.services.eda.binding import (
     ConversationAnalysisView,
     bound_conversation_analysis,
@@ -90,6 +91,7 @@ def _strategy_context(ctx: RunContext[LeadDeps]) -> StrategyMutationContext:
             frozenset() if spec is None else frozenset(c.id for c in spec.criteria)
         ),
         stated_structure=None if spec is None else spec.structure,
+        stated_values={} if spec is None else spec_stated_values(spec),
     )
 
 

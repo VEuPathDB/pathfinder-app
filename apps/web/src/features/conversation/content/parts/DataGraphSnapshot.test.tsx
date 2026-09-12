@@ -23,6 +23,7 @@ const GO_STEP: GraphNode = {
 const SNAPSHOT: GraphSnapshot = {
   strategyId: "s1",
   geneCount: 1342,
+  detachedStepCount: 0,
   nodes: [TEXT_STEP, GO_STEP],
   edges: [],
 };
@@ -60,6 +61,31 @@ describe("DataGraphSnapshot", () => {
   it("keeps a measured zero, which says the search matched nothing", () => {
     render(<DataGraphSnapshot data={{ ...SNAPSHOT, geneCount: 0 }} />);
     expect(screen.getByTestId("figure-caption").textContent).toBe("2 steps, 0 genes");
+  });
+
+  it("names the steps the strategy does not hold", () => {
+    render(<DataGraphSnapshot data={{ ...SNAPSHOT, detachedStepCount: 1 }} />);
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "2 steps, 1,342 genes, 1 step not in the strategy",
+    );
+  });
+
+  it("counts more than one detached step in the plural", () => {
+    render(<DataGraphSnapshot data={{ ...SNAPSHOT, detachedStepCount: 2 }} />);
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "2 steps, 1,342 genes, 2 steps not in the strategy",
+    );
+  });
+
+  it("names the split even when no root carries a count", () => {
+    render(
+      <DataGraphSnapshot
+        data={{ ...SNAPSHOT, geneCount: null, detachedStepCount: 1 }}
+      />,
+    );
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "2 steps, count not available, 1 step not in the strategy",
+    );
   });
 
   it("carries its own testid inside a figure that draws no chrome", () => {

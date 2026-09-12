@@ -30,12 +30,14 @@ from veupathdb_mcp.wdk import (
     canonicalize_synced_parameters,
 )
 
+from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,
 )
 from pathfinder.platform.errors import ErrorCode, NotFoundError
+from pathfinder.services.strategies.commit import restore_graph
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.spec_build import (
     build_strategy_from_spec,
@@ -174,6 +176,7 @@ async def insert_saved_into_conversation(
             ),
         )
 
+    entry_ast = graph.to_strategy_ast()
     cloned = await clone_saved_strategy(deps.site_id, saved_wdk_strategy_id)
     if target_step_id:
         new_full_root, combine_step_id = _build_new_root(
@@ -191,12 +194,18 @@ async def insert_saved_into_conversation(
         new_full_root, combine_step_id = cloned.root, cloned.root.id
 
     saved_label = cloned.name
-    outcome = await build_strategy_from_spec(
-        deps=deps,
-        root=new_full_root,
-        name=graph.name,
-        description=graph.description,
-    )
+    try:
+        outcome = await build_strategy_from_spec(
+            deps=deps,
+            root=new_full_root,
+            name=graph.name,
+            description=graph.description,
+        )
+    except ApplyError:
+        # The splice wires its combine into the graph before the build reads
+        # the tree, so a refused build puts the graph back.
+        restore_graph(graph, entry_ast)
+        raise
     if outcome.failed_steps:
         first = outcome.failed_steps[0]
         raise ValidationError(

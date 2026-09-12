@@ -137,6 +137,28 @@ class StrategyGraph:
             )
 
 
+def strategy_root_id(
+    graph: StrategyGraph, sync_state: SyncStateProtocol | None
+) -> str | None:
+    """The step whose count the strategy is cited with.
+
+    A split graph is cited with the root the last push made the WDK
+    strategy's root step. Nothing when the graph is split and no push names
+    one. Structural root identity stays with ``primary_root_id``.
+    """
+    if len(graph.roots) == 1:
+        return next(iter(graph.roots))
+    if sync_state is None:
+        return None
+    wdk_root = sync_state.wdk_root_step_id
+    if wdk_root is None:
+        return None
+    return next(
+        (sid for sid in graph.roots if sync_state.wdk_step_ids.get(sid) == wdk_root),
+        None,
+    )
+
+
 class StrategySession:
     """Session context for the active strategy (graph + chat)."""
 

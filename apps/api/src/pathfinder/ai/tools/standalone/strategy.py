@@ -16,6 +16,7 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone._graph_helpers import count_summary
 from pathfinder.ai.tools.standalone._strategy_refusals import (
     _no_graph,
     _refused,
@@ -34,7 +35,6 @@ from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.spec_edit_guard import edit_contradiction
 from pathfinder.services.strategies.commit import apply_operations_and_commit
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
 
@@ -137,12 +137,16 @@ async def build_strategy(
         )
         raise ModelRetry(msg)
 
-    outcome = await build_strategy_from_spec(
-        deps=deps.to_strategy_context(),
-        root=root,
-        name=name,
-        description=description,
-    )
+    try:
+        outcome = await build_strategy_from_spec(
+            deps=deps.to_strategy_context(),
+            root=root,
+            name=name,
+            description=description,
+        )
+    except ApplyError as exc:
+        msg = f"REJECTED: {exc}. Nothing was built and the strategy is unchanged."
+        raise ModelRetry(msg) from exc
     payload = _build_outcome_payload(outcome, graph)
     metadata = [graph_snapshot_chunk(session, graph)]
     if outcome.wdk_url is not None:
@@ -153,14 +157,8 @@ async def build_strategy(
                 title=graph.name,
             ),
         )
-    genes = outcome.root_count or 0
-    return with_summary(
-        payload,
-        f"{len(graph.steps)} steps, {genes:,} genes",
-        ctx=ctx,
-        status="ok" if genes else "empty",
-        extra=metadata,
-    )
+    summary, status = count_summary(len(graph.steps), outcome.root_count)
+    return with_summary(payload, summary, ctx=ctx, status=status, extra=metadata)
 
 
 def _current_revision(graph: StrategyGraph) -> str:
@@ -215,12 +213,6 @@ async def apply_operations(
             f"the researcher may have already made this change themselves."
         )
         raise ModelRetry(msg)
-
-    spec = deps.agent_state.operational_spec_draft
-    for op in operations:
-        contradiction = edit_contradiction(spec, op)
-        if contradiction is not None:
-            raise ModelRetry(contradiction)
 
     try:
         result = await apply_operations_and_commit(

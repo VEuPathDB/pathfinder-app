@@ -23,7 +23,14 @@ from pathfinder.domain.strategy.build_outcome import (
     citable_count,
     node_status,
 )
+from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.spec_edit_guard import (
+    contradicted_joins,
+    contradicted_values,
+    new_join_contradiction,
+    new_value_contradiction,
+)
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
@@ -86,6 +93,33 @@ def _replace_graph_contents(
         graph.description = description
 
 
+def _a_build_the_spec_refuses(
+    deps: StrategyMutationContext, graph: StrategyGraph, root: StrategyStepNode
+) -> str | None:
+    """Why the tree this build would leave behind departs from the spec.
+
+    A build writes a whole tree, so its leaves carry values and its combines
+    carry operators. Both are measured here, the way the commit layer measures
+    the tree a batch leaves behind.
+    """
+    candidate = StrategyGraph(graph.id, graph.name, graph.site_id)
+    candidate.steps = flatten_tree(root)
+    candidate.recompute_roots()
+    join = new_join_contradiction(
+        structure=deps.stated_structure,
+        graph=candidate,
+        criteria=deps.stated_criteria,
+        before=contradicted_joins(deps.stated_structure, graph, deps.stated_criteria),
+    )
+    if join is not None:
+        return join
+    return new_value_contradiction(
+        stated=deps.stated_values,
+        graph=candidate,
+        before=contradicted_values(deps.stated_values, graph),
+    )
+
+
 async def build_strategy_from_spec(
     *,
     deps: StrategyMutationContext,
@@ -102,6 +136,10 @@ async def build_strategy_from_spec(
     if graph is None:
         msg = "no active strategy graph for the current conversation"
         raise RuntimeError(msg)
+
+    refusal = _a_build_the_spec_refuses(deps, graph, root)
+    if refusal is not None:
+        raise ApplyError(refusal)
 
     steps_by_id = flatten_tree(root)
     nodes = [steps_by_id[sid] for sid in subtree_ids(root.id, steps_by_id)]

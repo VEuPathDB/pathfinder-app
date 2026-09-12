@@ -35,6 +35,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -155,6 +156,29 @@ async def test_build_strategy_still_materializes_an_empty_thread(
     result = await build_strategy(_ctx(with_strategy=False))
 
     assert result.outcome.pushed_step_ids == produced
+
+
+_BUILD_REFUSAL = "the criterion 'protease text' states organism = 'Pf3D7'"
+
+
+async def test_a_build_the_spec_refuses_reaches_the_agent_as_a_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The spec guard answers the BUILD seam, not an unhandled domain error."""
+
+    async def _fake_build(**kwargs: Any) -> BuildOutcome:
+        del kwargs
+        raise ApplyError(_BUILD_REFUSAL)
+
+    monkeypatch.setattr(sub_agent_dispatch, "build_strategy_from_spec", _fake_build)
+
+    with pytest.raises(ModelRetry) as excinfo:
+        await build_strategy(_ctx(with_strategy=False))
+
+    message = str(excinfo.value)
+    assert message.startswith("REJECTED: ")
+    assert "protease text" in message
+    assert "Nothing was built and the strategy is unchanged." in message
 
 
 async def test_the_built_spec_is_re_keyed_on_the_step_ids(

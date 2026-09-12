@@ -21,16 +21,18 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
 )
-from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.session import StrategyGraph
 
 __all__ = [
     "JoinContradiction",
+    "StatedCriterion",
+    "ValueContradiction",
     "contradicted_joins",
-    "edit_contradiction",
+    "contradicted_values",
     "new_join_contradiction",
+    "new_value_contradiction",
+    "spec_stated_values",
     "stated_values",
-    "value_contradiction",
 ]
 
 _THROUGH_THE_SPEC = (
@@ -157,38 +159,85 @@ def stated_values(spec: OperationalSpec, criterion: Criterion) -> dict[str, str]
     return found
 
 
-def value_contradiction(
-    spec: OperationalSpec,
-    *,
-    step_id: str,
-    parameters: Mapping[str, ParamValue],
-) -> str | None:
-    """Why the spec's criterion refuses these values on this step, or None."""
-    criterion = next((c for c in spec.criteria if c.id == step_id), None)
-    if criterion is None:
-        return None
-    stated = stated_values(spec, criterion)
-    contradicted = [
-        f"{name} states {stated[name]!r} and this edit sends {to_wire(value)!r}"
-        for name, value in parameters.items()
-        if name in stated and to_wire(value) != stated[name]
-    ]
-    if not contradicted:
-        return None
-    return (
-        f"VALIDATION_ERROR: nothing was applied and the strategy is unchanged. "
-        f"The criterion {criterion.text!r} states the values this edit changes: "
-        f"{'; '.join(contradicted)}. A value the spec states changes in the spec "
-        f"first (set_criterion, in the framing pass). {_THROUGH_THE_SPEC}"
-    )
+class StatedCriterion(NamedTuple):
+    """The words a criterion carries, and the values those words state.
 
-
-def edit_contradiction(spec: OperationalSpec, op: GraphOperation) -> str | None:
-    """Why the spec refuses this operation, or None.
-
-    Only the values one operation restates are read here. What a written tree
-    joins is measured on the tree the batch leaves behind.
+    The values are typed, so a caller that canonicalizes a write can
+    canonicalize these the same way before the two are compared.
     """
-    if op.kind == "updateStepParams":
-        return value_contradiction(spec, step_id=op.step_id, parameters=op.parameters)
+
+    text: str
+    values: Mapping[str, ParamValue]
+
+
+def spec_stated_values(spec: OperationalSpec) -> dict[str, StatedCriterion]:
+    """Every value the spec states, keyed by the criterion that states it."""
+    found: dict[str, StatedCriterion] = {}
+    for criterion in spec.criteria:
+        names = stated_values(spec, criterion)
+        if names:
+            found[criterion.id] = StatedCriterion(
+                text=criterion.text,
+                values={name: criterion.resolved_params[name] for name in names},
+            )
+    return found
+
+
+class ValueContradiction(NamedTuple):
+    """The value a step carries where the criterion's words state another."""
+
+    criterion_text: str
+    parameter: str
+    stated: str
+    written: str
+
+
+def contradicted_values(
+    stated: Mapping[str, StatedCriterion], graph: StrategyGraph
+) -> dict[tuple[str, str], ValueContradiction]:
+    """Every parameter of this graph that departs from the value the spec states.
+
+    Keyed by criterion id and parameter name, so a rewritten leaf that keeps
+    the step id answers for the same value. A parameter the step does not
+    carry states nothing.
+    """
+    found: dict[tuple[str, str], ValueContradiction] = {}
+    for criterion_id, criterion in stated.items():
+        step = graph.get_step(criterion_id)
+        if step is None:
+            continue
+        for name, value in criterion.values.items():
+            written = step.parameters.get(name)
+            if written is None or to_wire(written) == to_wire(value):
+                continue
+            found[(criterion_id, name)] = ValueContradiction(
+                criterion_text=criterion.text,
+                parameter=name,
+                stated=to_wire(value),
+                written=to_wire(written),
+            )
+    return found
+
+
+def new_value_contradiction(
+    *,
+    stated: Mapping[str, StatedCriterion],
+    graph: StrategyGraph,
+    before: Mapping[tuple[str, str], ValueContradiction],
+) -> str | None:
+    """Why this write restates a value the spec states, or None.
+
+    Only a value the write introduces is refused. A value that already
+    departed keeps its answer until something restates the criterion.
+    """
+    for pair, found in contradicted_values(stated, graph).items():
+        if before.get(pair) == found:
+            continue
+        return (
+            f"the criterion {found.criterion_text!r} states "
+            f"{found.parameter} = {found.stated!r}, and this write sends "
+            f"{found.written!r}, so the strategy would answer a different "
+            f"question. A value the spec states changes in the spec first "
+            f"(set_criterion, in the framing pass). {_THROUGH_THE_SPEC}"
+        )
     return None

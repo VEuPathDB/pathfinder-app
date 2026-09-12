@@ -54,6 +54,43 @@
   size; and the list is emptied once its notes reach the store, so the per-turn
   write does not grow with the thread.
 
+* **A value the spec states is refused wherever the write carries it.** The
+  stated values ride the mutation context, criterion by criterion, and they are
+  measured on the entry graph and on the tree the write leaves behind, the way
+  the joins already were. A parameter patch, a replaced subtree, a replaced
+  strategy, an added leaf and a whole-tree build answer to the one guard, so a
+  rewritten leaf that restates a user-stated gene id is refused with the value
+  the criterion's words carry and the framing route (`set_criterion`). The
+  build measures its tree before it replaces the graph, so a refusal costs
+  nothing, and every seam that builds answers it: the build tool, the BUILD
+  sub-agent and the saved-strategy insert each turn it into the retry the
+  design promises, and the insert puts back the combine its splice had
+  already wired. A value that already departed keeps its answer, except in the
+  one shape the backlog carries, and a defaulted or FRAME-derived value stays
+  editable. A patch reaches the graph canonicalized, so the stated value it is
+  compared with passes through the same canonicalizer, and a catalog that
+  rewrites a parameter the write never sent cannot read as a departure; that
+  second look is asked for only when the patch names a stated value or the
+  step does not already hold it, so a catalog that turns an untouched value
+  down cannot turn a good patch into a parameter error. The per-operation
+  check is gone: one guard, one place. A refused batch also restores every
+  root, detached fragments included, so a rejected edit is a no-op on the
+  whole graph and not only on the strategy's own tree.
+
+* **A split graph reports one root's count, never a sum.** The graph snapshot,
+  the strategy metadata, `get_strategy`, the Lead's live read and the build
+  outcome all cite the same step: the single root when the graph has one, and
+  otherwise the root the last push made the WDK strategy's root step. Root
+  identity for the tree, the push and reachability stays with the structural
+  root. The snapshot carries `detachedStepCount`, the steps the cited tree
+  leaves out, which the thread draws as "N steps not in the strategy" instead
+  of adding them in; a split graph names its fragments even when no root is
+  citable. A root whose last push VEuPathDB refused reports no count, a split
+  graph no push identifies reports none, and a graph with no steps reports
+  none rather than a zero nothing measured. One sentence carries the count on
+  every surface, so a build whose root has no number says "count not
+  available" where it used to spend the missing count as a zero.
+
 * **A thread reopened while its turn runs follows that turn.** The snapshot
   says whether a turn is in flight: `AssistantClient.snapshot` answers
   `turnInFlight` when the last chunk it read is a prompt envelope, which is the

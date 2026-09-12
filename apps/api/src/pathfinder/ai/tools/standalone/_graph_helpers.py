@@ -4,6 +4,7 @@ Functions that operate on ``StrategyGraph`` to produce serialized
 responses and context payloads for AI tool results.
 """
 
+from assistant_core.graph.stream_events import ToolSummaryStatus
 from assistant_core.platform.types import JSONObject
 from veupathdb.domain.strategy import StepValidation, StrategyStep
 
@@ -127,6 +128,16 @@ def build_step_response(
         analyses=step.analyses or None,
         reports=step.reports or None,
     )
+
+
+def count_summary(step_count: int, genes: int | None) -> tuple[str, ToolSummaryStatus]:
+    """The one line every strategy surface reports its size with.
+
+    A count nobody measured is reported as missing, never spent as a zero.
+    """
+    if genes is None:
+        return f"{step_count} steps, count not available", "warn"
+    return f"{step_count} steps, {genes:,} genes", "ok" if genes else "empty"
 
 
 def serialize_step(

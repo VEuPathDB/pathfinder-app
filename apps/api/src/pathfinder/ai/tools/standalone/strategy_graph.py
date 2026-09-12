@@ -19,7 +19,10 @@ from veupathdb_mcp.catalog import EdaStepRequest
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import ConstraintCheck
-from pathfinder.ai.tools.standalone._graph_helpers import serialize_step
+from pathfinder.ai.tools.standalone._graph_helpers import (
+    count_summary,
+    serialize_step,
+)
 from pathfinder.ai.tools.standalone._validation_helpers import (
     get_graph,
     graph_not_found,
@@ -27,7 +30,7 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
 )
 from pathfinder.domain.strategy.build_outcome import citable_count
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.session import StrategyGraph, strategy_root_id
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.eda.compute import VolcanoThresholds
@@ -40,11 +43,12 @@ logger = get_logger(__name__)
 def _root_count(
     graph: StrategyGraph, sync_state: SyncStateProtocol | None
 ) -> int | None:
-    """The root step's WDK count. Nothing when no single root carries one."""
-    if sync_state is None or len(graph.roots) != 1:
+    """The strategy root's WDK count, or nothing when it carries none."""
+    root_id = strategy_root_id(graph, sync_state)
+    if sync_state is None or root_id is None:
         return None
     return citable_count(
-        next(iter(graph.roots)),
+        root_id,
         counts=sync_state.step_counts,
         refused=sync_state.wdk_push_errors,
     )
@@ -115,20 +119,8 @@ async def get_strategy(
     )
     if not graph.steps:
         return with_summary(summary, "No strategy yet", ctx=ctx, status="empty")
-    genes = _root_count(graph, sync_state)
-    if genes is None:
-        return with_summary(
-            summary,
-            f"{len(graph.steps)} steps, count not available",
-            ctx=ctx,
-            status="warn",
-        )
-    return with_summary(
-        summary,
-        f"{len(graph.steps)} steps, {genes:,} genes",
-        ctx=ctx,
-        status="ok" if genes else "empty",
-    )
+    line, status = count_summary(len(graph.steps), _root_count(graph, sync_state))
+    return with_summary(summary, line, ctx=ctx, status=status)
 
 
 def _fold_change(effect_size_threshold: float) -> float:

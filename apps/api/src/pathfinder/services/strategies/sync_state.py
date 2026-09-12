@@ -28,6 +28,12 @@ class WDKSyncState:
     # of always treating every step as new.
     last_pushed_ast: StrategyAst | None = None
 
+    @property
+    def wdk_root_step_id(self) -> int | None:
+        """The WDK step the pushed strategy is rooted on."""
+        tree = self.wdk_step_tree
+        return None if tree is None else tree.step_id
+
 
 def ensure_sync_state(session: StrategySession) -> WDKSyncState:
     """Get or create the concrete WDKSyncState on a session.

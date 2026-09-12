@@ -11,7 +11,7 @@ from pathfinder.domain.strategy.build_outcome import (
     StepPushFailure,
     citable_count,
 )
-from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.session import StrategyGraph, strategy_root_id
 from pathfinder.services.strategies.spec_build import node_results
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -32,7 +32,7 @@ def outcome_for_graph(
     number rather than one from an earlier build.
     """
     steps = list(graph.steps.values()) if graph is not None else []
-    root_id = graph.primary_root_id() if graph is not None else None
+    root_id = strategy_root_id(graph, sync_state) if graph is not None else None
     outcome = BuildOutcome(
         pushed_step_ids=[s.id for s in steps if s.id in sync_state.wdk_step_ids],
         failed_steps=[

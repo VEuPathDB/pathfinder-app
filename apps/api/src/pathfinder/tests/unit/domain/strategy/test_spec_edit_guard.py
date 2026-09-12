@@ -19,9 +19,11 @@ from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_edit_guard import (
     JoinContradiction,
     contradicted_joins,
+    contradicted_values,
     new_join_contradiction,
+    new_value_contradiction,
+    spec_stated_values,
     stated_values,
-    value_contradiction,
 )
 
 from ._builders import combine, graph_of, leaf, spec_joined, spec_leaf
@@ -35,6 +37,7 @@ _SIMILARITY_JOIN = "step_7eca55ff"
 _TM_JOIN = "step_79b8b72b"
 _PROFILE_JOIN = "step_811d87da"
 _ROOT = "step_95c8dca2"
+_EXPR = "step_expr"
 
 # The wire value FRAME built for the phyletic profile. No part of it is words
 # the user said.
@@ -184,59 +187,27 @@ def test_a_join_that_already_contradicted_the_spec_is_not_refused_again() -> Non
     )
 
 
-def test_a_value_the_criterion_states_is_refused() -> None:
-    refusal = value_contradiction(
-        _spec(),
-        step_id=_MIC2,
-        parameters={"ProfileGeneId": StringValue(value="TGME49_300100")},
-    )
-
-    assert refusal is not None
-    assert "ProfileGeneId" in refusal
-    assert "TGME49_201780" in refusal
-    assert "set_criterion" in refusal
+def _with_value(
+    graph: StrategyGraph, step_id: str, name: str, value: ParamValue
+) -> StrategyGraph:
+    graph.steps[step_id].parameters = {name: value}
+    return graph
 
 
-def test_a_value_the_spec_left_to_the_search_default_is_applied() -> None:
-    spec = _spec()
-    criterion = next(c for c in spec.criteria if c.id == _MIC2)
-
-    assert "ProfileNumToReturn" not in stated_values(spec, criterion)
-    assert (
-        value_contradiction(
-            spec,
-            step_id=_MIC2,
-            parameters={"ProfileNumToReturn": StringValue(value="100")},
-        )
-        is None
+def _values_refusal(graph: StrategyGraph, spec: OperationalSpec) -> str | None:
+    return new_value_contradiction(
+        stated=spec_stated_values(spec), graph=graph, before={}
     )
 
 
-def test_a_value_frame_derived_is_applied() -> None:
-    """The phyletic profile pattern is FRAME's own work, so recovery may fix it."""
-    spec = _spec()
-    criterion = next(c for c in spec.criteria if c.id == _PROFILE)
-
-    assert sorted(stated_values(spec, criterion)) == []
-    assert (
-        value_contradiction(
-            spec,
-            step_id=_PROFILE,
-            parameters={"profile_pattern": StringValue(value="%hsap:N%tgme:Y%")},
-        )
-        is None
-    )
-
-
-def test_a_value_a_stated_requirement_grounds_onto_is_refused() -> None:
+def _with_percentile_criterion(spec: OperationalSpec, **params: ParamValue) -> None:
     """The user asked for a share of a ranked population; the bound realizes it."""
-    spec = _spec()
     spec.criteria.append(
         Criterion(
-            id="step_expr",
+            id=_EXPR,
             text="Expressed in the schizont stage",
             search_name="GenesByRNASeqEvidence",
-            resolved_params={"min_expression_percentile": NumberValue(value=90)},
+            resolved_params=dict(params),
         ),
     )
     spec.constraints = [
@@ -247,14 +218,72 @@ def test_a_value_a_stated_requirement_grounds_onto_is_refused() -> None:
             source=ConstraintSource.USER_EXPLICIT,
         ),
     ]
-    criterion = spec.criteria[-1]
 
-    assert stated_values(spec, criterion) == {"min_expression_percentile": "90"}
-    refusal = value_contradiction(
-        spec,
-        step_id="step_expr",
-        parameters={"min_expression_percentile": NumberValue(value=80)},
+
+def _graph_with_expr() -> StrategyGraph:
+    return graph_of(combine("step_expr_join", leaf(_EXPR), leaf(_TM)))
+
+
+def test_a_value_the_criterion_states_is_refused() -> None:
+    graph = _with_value(
+        _graph(), _MIC2, "ProfileGeneId", StringValue(value="TGME49_300100")
     )
+
+    refusal = _values_refusal(graph, _spec())
+
+    assert refusal is not None
+    assert "ProfileGeneId" in refusal
+    assert "TGME49_201780" in refusal
+    assert "set_criterion" in refusal
+
+
+def test_a_value_that_already_departed_is_not_refused_again() -> None:
+    """The write answers for what it changes, not for what it found."""
+    spec = _spec()
+    graph = _with_value(
+        _graph(), _MIC2, "ProfileGeneId", StringValue(value="TGME49_300100")
+    )
+    before = contradicted_values(spec_stated_values(spec), graph)
+
+    assert [found.parameter for found in before.values()] == ["ProfileGeneId"]
+    assert (
+        new_value_contradiction(
+            stated=spec_stated_values(spec), graph=graph, before=before
+        )
+        is None
+    )
+
+
+def test_a_value_the_spec_left_to_the_search_default_is_applied() -> None:
+    spec = _spec()
+    criterion = next(c for c in spec.criteria if c.id == _MIC2)
+    graph = _with_value(_graph(), _MIC2, "ProfileNumToReturn", StringValue(value="100"))
+
+    assert "ProfileNumToReturn" not in stated_values(spec, criterion)
+    assert _values_refusal(graph, spec) is None
+
+
+def test_a_value_frame_derived_is_applied() -> None:
+    """The phyletic profile pattern is FRAME's own work, so recovery may fix it."""
+    spec = _spec()
+    criterion = next(c for c in spec.criteria if c.id == _PROFILE)
+    graph = _with_value(
+        _graph(), _PROFILE, "profile_pattern", StringValue(value="%hsap:N%tgme:Y%")
+    )
+
+    assert sorted(stated_values(spec, criterion)) == []
+    assert _values_refusal(graph, spec) is None
+
+
+def test_a_value_a_stated_requirement_grounds_onto_is_refused() -> None:
+    spec = _spec()
+    _with_percentile_criterion(spec, min_expression_percentile=NumberValue(value=90))
+    graph = _with_value(
+        _graph_with_expr(), _EXPR, "min_expression_percentile", NumberValue(value=80)
+    )
+
+    assert stated_values(spec, spec.criteria[-1]) == {"min_expression_percentile": "90"}
+    refusal = _values_refusal(graph, spec)
 
     assert refusal is not None
     assert "min_expression_percentile" in refusal
@@ -264,61 +293,35 @@ def test_a_value_a_stated_requirement_grounds_onto_is_refused() -> None:
 def test_a_stated_value_freezes_its_own_parameter_only() -> None:
     """Two parameters hold "90"; the requirement grounds onto one of them."""
     spec = _spec()
-    spec.criteria.append(
-        Criterion(
-            id="step_expr",
-            text="Expressed in the schizont stage",
-            search_name="GenesByRNASeqEvidence",
-            resolved_params={
-                "min_expression_percentile": NumberValue(value=90),
-                "min_percent_identity": NumberValue(value=90),
-            },
-        ),
+    _with_percentile_criterion(
+        spec,
+        min_expression_percentile=NumberValue(value=90),
+        min_percent_identity=NumberValue(value=90),
     )
-    spec.constraints = [
-        Constraint(
-            kind=ConstraintKind.PERCENTILE,
-            requested_value="top 10%",
-            label="expression percentile",
-            source=ConstraintSource.USER_EXPLICIT,
-        ),
-    ]
+    graph = _with_value(
+        _graph_with_expr(), _EXPR, "min_percent_identity", NumberValue(value=80)
+    )
 
     assert stated_values(spec, spec.criteria[-1]) == {"min_expression_percentile": "90"}
-    assert (
-        value_contradiction(
-            spec,
-            step_id="step_expr",
-            parameters={"min_percent_identity": NumberValue(value=80)},
-        )
-        is None
-    )
+    assert _values_refusal(graph, spec) is None
 
 
 def test_a_value_the_spec_states_and_the_edit_repeats_is_applied() -> None:
     spec = _spec()
     criterion = next(c for c in spec.criteria if c.id == _MIC2)
+    graph = _with_value(
+        _graph(), _MIC2, "ProfileGeneId", StringValue(value="TGME49_201780")
+    )
 
     assert stated_values(spec, criterion)["ProfileGeneId"] == "TGME49_201780"
-    assert (
-        value_contradiction(
-            spec,
-            step_id=_MIC2,
-            parameters={"ProfileGeneId": StringValue(value="TGME49_201780")},
-        )
-        is None
-    )
+    assert _values_refusal(graph, spec) is None
 
 
 def test_a_step_no_criterion_names_is_left_alone() -> None:
     spec = _spec()
-
-    assert [c.id for c in spec.criteria] == [_TM, _SIGNAL, _PROFILE, _MIC2, _RON2]
-    assert (
-        value_contradiction(
-            spec,
-            step_id="step_elsewhere",
-            parameters={"ProfileGeneId": StringValue(value="TGME49_300100")},
-        )
-        is None
+    graph = _with_value(
+        _graph(), _TM, "ProfileGeneId", StringValue(value="TGME49_300100")
     )
+
+    assert stated_values(spec, spec.criteria[0]) == {}
+    assert _values_refusal(graph, spec) is None

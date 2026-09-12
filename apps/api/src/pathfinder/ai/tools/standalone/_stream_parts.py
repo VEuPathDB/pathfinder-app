@@ -9,7 +9,7 @@ from __future__ import annotations
 from pydantic_ai.ui.vercel_ai.response_types import (
     DataChunk,
 )
-from veupathdb.domain.strategy import wdk_search_name
+from veupathdb.domain.strategy import subtree_ids, wdk_search_name
 
 from pathfinder.ai.stream_part_payloads import (
     GeneSet,
@@ -22,7 +22,11 @@ from pathfinder.ai.stream_part_payloads import (
     StrategyMeta,
 )
 from pathfinder.domain.strategy.build_outcome import citable_count
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.session import (
+    StrategyGraph,
+    StrategySession,
+    strategy_root_id,
+)
 from pathfinder.domain.strategy.types import SyncStateProtocol
 
 # --- Operator coercion -----------------------------------------------------
@@ -89,18 +93,29 @@ def _snapshot_edges(graph: StrategyGraph) -> list[GraphEdge]:
     return edges
 
 
-def _root_total(
+def _strategy_root_count(
     graph: StrategyGraph, sync_state: SyncStateProtocol | None
 ) -> int | None:
-    """The genes the roots hold together, or nothing when a root has no
+    """The genes the strategy returns, or nothing when its root has no
     citable count."""
-    total = 0
-    for root_id in graph.roots:
-        count = _count_for_step(root_id, sync_state)
-        if count is None:
-            return None
-        total += count
-    return total
+    root_id = strategy_root_id(graph, sync_state)
+    if root_id is None:
+        return None
+    return _count_for_step(root_id, sync_state)
+
+
+def _detached_step_count(
+    graph: StrategyGraph, sync_state: SyncStateProtocol | None
+) -> int:
+    """The steps the strategy's tree leaves out.
+
+    A split graph names its fragments even when no root carries a count, so
+    the structural root stands in when no push names one.
+    """
+    root_id = strategy_root_id(graph, sync_state) or graph.primary_root_id()
+    if root_id is None:
+        return 0
+    return len(graph.steps) - len(subtree_ids(root_id, graph.steps))
 
 
 def build_graph_snapshot_payload(
@@ -120,7 +135,8 @@ def build_graph_snapshot_payload(
     edges = _snapshot_edges(graph)
     return GraphSnapshot(
         strategy_id=graph.id,
-        gene_count=_root_total(graph, sync_state),
+        gene_count=_strategy_root_count(graph, sync_state),
+        detached_step_count=_detached_step_count(graph, sync_state),
         nodes=nodes,
         edges=edges,
     )
@@ -153,7 +169,7 @@ def strategy_meta_chunk(session: StrategySession, graph: StrategyGraph) -> DataC
         strategy_id=graph.id,
         name=graph.name,
         is_saved=False,
-        estimated_size=_root_total(graph, session.sync_state),
+        estimated_size=_strategy_root_count(graph, session.sync_state),
         record_class_name=graph.record_type or "transcript",
     )
     return DataChunk(

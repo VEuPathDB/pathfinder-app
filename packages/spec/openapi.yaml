@@ -11937,6 +11937,10 @@ components:
             type: integer
           - type: 'null'
           title: Genecount
+        detachedStepCount:
+          minimum: 0
+          title: Detachedstepcount
+          type: integer
         nodes:
           items:
             $ref: '#/components/schemas/GraphNode'
@@ -11950,6 +11954,7 @@ components:
       required:
       - strategyId
       - geneCount
+      - detachedStepCount
       - nodes
       - edges
       title: GraphSnapshot

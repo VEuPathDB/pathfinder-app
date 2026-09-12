@@ -1,9 +1,10 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.domain.strategy import (
     StrategyAst,
+    flatten_tree,
     pushable_root_id,
     subtree_ids,
     wdk_search_name,
@@ -23,8 +24,12 @@ from pathfinder.domain.strategy.operations.apply import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_edit_guard import (
+    JoinContradiction,
+    ValueContradiction,
     contradicted_joins,
+    contradicted_values,
     new_join_contradiction,
+    new_value_contradiction,
 )
 from pathfinder.domain.strategy.stated_shape import (
     SlotWrite,
@@ -91,7 +96,7 @@ async def apply_and_commit(
     return await apply_operations_and_commit(deps=deps, ops=[op])
 
 
-def _restore_graph(graph: StrategyGraph, old_ast: StrategyAst | None) -> None:
+def restore_graph(graph: StrategyGraph, old_ast: StrategyAst | None) -> None:
     """Put the graph back the way it was before a failed batch.
 
     ``apply_operation`` edits the live nodes, so a batch that fails partway
@@ -104,6 +109,9 @@ def _restore_graph(graph: StrategyGraph, old_ast: StrategyAst | None) -> None:
     if old_ast is None:
         return
     apply_operation(graph, ReplaceStrategyOp(root=old_ast.root))
+    for detached in old_ast.detached_roots:
+        graph.steps.update(flatten_tree(detached))
+    graph.recompute_roots()
 
 
 def _replaces_a_subtree(op: GraphOperation) -> bool:
@@ -132,6 +140,63 @@ def _departure_from_the_spec(
     return (
         f"a replaced subtree would leave the strategy holding "
         f"{list(shape.searches)} where the spec states {list(shape.stated)}"
+    )
+
+
+@dataclass(frozen=True)
+class _EntryState:
+    """What the graph held before the batch applied."""
+
+    step_ids: set[str]
+    reachable: set[str]
+    joins: Mapping[frozenset[str], JoinContradiction]
+    values: Mapping[tuple[str, str], ValueContradiction]
+
+
+def _entry_state(deps: StrategyMutationContext, graph: StrategyGraph) -> _EntryState:
+    return _EntryState(
+        step_ids=set(graph.steps),
+        reachable=set(subtree_ids(graph.primary_root_id() or "", graph.steps)),
+        joins=contradicted_joins(deps.stated_structure, graph, deps.stated_criteria),
+        values=contradicted_values(deps.stated_values, graph),
+    )
+
+
+def _refusal_after_the_batch(
+    *,
+    deps: StrategyMutationContext,
+    graph: StrategyGraph,
+    entry: _EntryState,
+    slot_writes: Sequence[SlotWrite],
+    replaces_a_subtree: bool,
+) -> str | None:
+    """Why the tree the batch leaves behind is refused, or nothing."""
+    # The spec addresses this graph by step id, so a criterion answers to a
+    # step the graph held before the batch or to one the batch mints.
+    stated = criteria_with_steps(
+        deps.stated_criteria,
+        entry.step_ids,
+        minted=set(graph.steps) - entry.step_ids,
+    )
+    eviction = evicted_by(graph, slot_writes, was_reachable=entry.reachable)
+    if eviction is not None:
+        return _eviction_message(eviction, stated=stated)
+    if replaces_a_subtree and stated:
+        departure = _departure_from_the_spec(
+            graph=graph, stated=stated, outside=entry.step_ids - entry.reachable
+        )
+        if departure is not None:
+            return departure
+    join = new_join_contradiction(
+        structure=deps.stated_structure,
+        graph=graph,
+        criteria=deps.stated_criteria,
+        before=entry.joins,
+    )
+    if join is not None:
+        return join
+    return new_value_contradiction(
+        stated=deps.stated_values, graph=graph, before=entry.values
     )
 
 
@@ -166,9 +231,7 @@ async def apply_operations_and_commit(
         raise ValidationError(title="No operations", detail=msg)
 
     graph = _require_graph(deps)
-    entry_joins = contradicted_joins(deps.stated_structure, graph, deps.stated_criteria)
-    entry_step_ids = set(graph.steps)
-    entry_reachable = set(subtree_ids(graph.primary_root_id() or "", graph.steps))
+    entry = _entry_state(deps, graph)
     replaces_a_subtree = any(_replaces_a_subtree(op) for op in ops)
     sync_state = ensure_sync_state(deps.strategy_session)
     snapshot = graph.to_strategy_ast(sync_state=sync_state)
@@ -189,38 +252,19 @@ async def apply_operations_and_commit(
             descriptions.append(step_result.description)
             dropped_step_ids.extend(step_result.dropped_step_ids)
     except ApplyError, ValueError:
-        _restore_graph(graph, old_ast)
+        restore_graph(graph, old_ast)
         raise
 
-    # The spec addresses this graph by step id, so a criterion answers to a
-    # step the graph held before the batch or to one the batch mints.
-    stated = criteria_with_steps(
-        deps.stated_criteria,
-        entry_step_ids,
-        minted=set(graph.steps) - entry_step_ids,
-    )
-    eviction = evicted_by(graph, slot_writes, was_reachable=entry_reachable)
-    if eviction is not None:
-        _restore_graph(graph, old_ast)
-        raise ApplyError(_eviction_message(eviction, stated=stated))
-
-    if replaces_a_subtree and stated:
-        departure = _departure_from_the_spec(
-            graph=graph, stated=stated, outside=entry_step_ids - entry_reachable
-        )
-        if departure is not None:
-            _restore_graph(graph, old_ast)
-            raise ApplyError(departure)
-
-    join = new_join_contradiction(
-        structure=deps.stated_structure,
+    refusal = _refusal_after_the_batch(
+        deps=deps,
         graph=graph,
-        criteria=deps.stated_criteria,
-        before=entry_joins,
+        entry=entry,
+        slot_writes=slot_writes,
+        replaces_a_subtree=replaces_a_subtree,
     )
-    if join is not None:
-        _restore_graph(graph, old_ast)
-        raise ApplyError(join)
+    if refusal is not None:
+        restore_graph(graph, old_ast)
+        raise ApplyError(refusal)
 
     result = ApplyResult(
         description="; ".join(descriptions),

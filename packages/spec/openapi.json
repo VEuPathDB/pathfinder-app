@@ -18640,6 +18640,11 @@
             ],
             "title": "Genecount"
           },
+          "detachedStepCount": {
+            "minimum": 0,
+            "title": "Detachedstepcount",
+            "type": "integer"
+          },
           "nodes": {
             "items": {
               "$ref": "#/components/schemas/GraphNode"
@@ -18658,6 +18663,7 @@
         "required": [
           "strategyId",
           "geneCount",
+          "detachedStepCount",
           "nodes",
           "edges"
         ],

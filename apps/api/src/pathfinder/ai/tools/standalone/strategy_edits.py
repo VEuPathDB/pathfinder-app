@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from dataclasses import replace
 from typing import cast
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
@@ -25,6 +27,10 @@ from pathfinder.ai.tools.standalone._graph_helpers import (
     step_ok_response,
     with_full_graph,
 )
+from pathfinder.ai.tools.standalone._spec_edit_checks import (
+    canonical_stated_values,
+    refuse_a_write_the_spec_did_not_state,
+)
 from pathfinder.ai.tools.standalone._strategy_refusals import (
     _no_graph,
     _refused,
@@ -44,7 +50,6 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     validation_error_payload,
     validation_model_retry,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.operations import (
     DeleteResolution,
     DeleteStepOp,
@@ -55,12 +60,7 @@ from pathfinder.domain.strategy.operations import (
     UpdateStepParamsOp,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
-from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.spec_edit_guard import value_contradiction
-from pathfinder.domain.strategy.stated_shape import (
-    StatedShape,
-    shape_after,
-)
+from pathfinder.domain.strategy.spec_edit_guard import StatedCriterion
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.commit import CommitResult, apply_and_commit
 from pathfinder.services.strategies.insert_saved import (
@@ -72,10 +72,18 @@ def _make_callbacks(site_id: str) -> ValidationCallbacks:
     return make_validation_callbacks(site_id, error_payload=validation_error_payload)
 
 
-async def _commit_or_retry(deps: AgentDeps, op: GraphOperation) -> CommitResult:
+async def _commit_or_retry(
+    deps: AgentDeps,
+    op: GraphOperation,
+    *,
+    stated_values: Mapping[str, StatedCriterion] | None = None,
+) -> CommitResult:
     """Apply one operation, or answer with why the strategy refused it."""
+    context = deps.to_strategy_context()
+    if stated_values is not None:
+        context = replace(context, stated_values=stated_values)
     try:
-        return await apply_and_commit(deps=deps.to_strategy_context(), op=op)
+        return await apply_and_commit(deps=context, op=op)
     except ApplyError as exc:
         msg = f"REJECTED: {exc}. Nothing was applied and the strategy is unchanged."
         raise ModelRetry(msg) from exc
@@ -112,21 +120,22 @@ async def update_leaf_params(
         )
         raise ModelRetry(msg)
 
-    contradiction = value_contradiction(
-        deps.agent_state.operational_spec_draft,
-        step_id=step_id,
-        parameters=parameters,
-    )
-    if contradiction is not None:
-        raise ModelRetry(contradiction)
-
     record_type = graph.record_type or "transcript"
-    merged = {**step.parameters, **parameters}
+    search = SearchContext(deps.site_id, record_type, step.search_name or "")
+    callbacks = _make_callbacks(deps.site_id)
     try:
         canonical = await validate_parameters(
-            SearchContext(deps.site_id, record_type, step.search_name or ""),
-            parameters=merged,
-            callbacks=_make_callbacks(deps.site_id),
+            search,
+            parameters={**step.parameters, **parameters},
+            callbacks=callbacks,
+        )
+        stated = await canonical_stated_values(
+            deps,
+            step=step,
+            patch=parameters,
+            written=canonical.params,
+            search=search,
+            callbacks=callbacks,
         )
     except ValidationError as exc:
         raise validation_model_retry(
@@ -136,7 +145,9 @@ async def update_leaf_params(
         ) from exc
 
     result = await _commit_or_retry(
-        deps, UpdateStepParamsOp(step_id=step_id, parameters=dict(canonical.params))
+        deps,
+        UpdateStepParamsOp(step_id=step_id, parameters=dict(canonical.params)),
+        stated_values=stated,
     )
     refusal = _wdk_refused_the_edit(result)
     if refusal is not None:
@@ -273,43 +284,6 @@ async def delete_step(
     )
 
 
-def _refuse_a_write_the_spec_did_not_state(
-    deps: AgentDeps, graph: StrategyGraph, op: ReplaceSubtreeOp
-) -> None:
-    """The write leaves the strategy holding the criteria the spec states.
-
-    The spec addresses this graph by step id, so a criterion that answers to no
-    step of it, before or after the write, states nothing about it.
-    """
-    spec = deps.agent_state.operational_spec_draft
-    shape = shape_after(op, graph=graph, criteria=[c.id for c in spec.criteria])
-    if not shape.stated or shape.holds:
-        return
-    criteria = {c.id: c for c in spec.criteria if c.id in shape.stated}
-    raise ModelRetry(_write_refusal(shape, criteria))
-
-
-def _write_refusal(shape: StatedShape, criteria: dict[str, Criterion]) -> str:
-    parts = ["VALIDATION_ERROR: nothing was applied and the strategy is unchanged."]
-    if shape.lost:
-        named = ", ".join(f"{cid} ({criteria[cid].text})" for cid in shape.lost)
-        parts.append(
-            f"This subtree would drop {len(shape.lost)} of the criteria the "
-            f"strategy states: {named}."
-        )
-    if shape.unstated:
-        parts.append(f"It would add {list(shape.unstated)}, which no criterion states.")
-    if shape.adopted:
-        parts.append(f"It would adopt {list(shape.adopted)} from outside the strategy.")
-    if shape.stranded:
-        parts.append(f"It would strand {list(shape.stranded)}.")
-    parts.append(
-        "Send a subtree that keeps every step id the spec names, or change the "
-        "criteria first."
-    )
-    return " ".join(parts)
-
-
 async def replace_subtree(
     ctx: RunContext[AgentDeps],
     step_id: str,
@@ -331,7 +305,7 @@ async def replace_subtree(
         raise ModelRetry(msg)
 
     op = ReplaceSubtreeOp(step_id=step_id, subtree=new_subtree)
-    _refuse_a_write_the_spec_did_not_state(deps, graph, op)
+    refuse_a_write_the_spec_did_not_state(deps, graph, op)
     result = await _commit_or_retry(deps, op)
     refusal = _wdk_refused_the_edit(result)
     if refusal is not None:
@@ -395,12 +369,16 @@ async def insert_saved_strategy(
             status="warn",
         )
 
-    result = await insert_saved_into_conversation(
-        deps=deps.to_strategy_context(),
-        target_step_id=target_step_id,
-        saved_wdk_strategy_id=saved_wdk_strategy_id,
-        operator=operator,
-    )
+    try:
+        result = await insert_saved_into_conversation(
+            deps=deps.to_strategy_context(),
+            target_step_id=target_step_id,
+            saved_wdk_strategy_id=saved_wdk_strategy_id,
+            operator=operator,
+        )
+    except ApplyError as exc:
+        msg = f"REJECTED: {exc}. Nothing was inserted and the strategy is unchanged."
+        raise ModelRetry(msg) from exc
 
     payload: JSONObject = {
         "ok": True,
