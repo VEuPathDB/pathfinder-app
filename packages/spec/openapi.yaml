@@ -11938,6 +11938,7 @@ components:
           - type: 'null'
           title: Genecount
         detachedStepCount:
+          default: 0
           minimum: 0
           title: Detachedstepcount
           type: integer
@@ -11954,7 +11955,6 @@ components:
       required:
       - strategyId
       - geneCount
-      - detachedStepCount
       - nodes
       - edges
       title: GraphSnapshot

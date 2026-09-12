@@ -18641,6 +18641,7 @@
             "title": "Genecount"
           },
           "detachedStepCount": {
+            "default": 0,
             "minimum": 0,
             "title": "Detachedstepcount",
             "type": "integer"
@@ -18663,7 +18664,6 @@
         "required": [
           "strategyId",
           "geneCount",
-          "detachedStepCount",
           "nodes",
           "edges"
         ],

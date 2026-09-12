@@ -34,8 +34,8 @@ class GraphSnapshot(CamelModel):
     gene_count: int | None = Field(ge=0)
     """What the strategy's root returns. Nothing when no root is citable."""
 
-    detached_step_count: int = Field(ge=0)
-    """The steps the strategy's tree does not hold."""
+    detached_step_count: int = Field(default=0, ge=0)
+    """The steps the strategy's tree does not hold; a chunk that names none holds none."""
 
     nodes: list[GraphNode]
     edges: list[GraphEdge]

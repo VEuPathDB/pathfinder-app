@@ -5,8 +5,8 @@ import { Figure } from "@/features/conversation/thread/Figure";
 import { geneCountClause } from "./geneCount";
 
 /** The steps the strategy's tree leaves out, named rather than counted in. */
-function detachedClause(count: number): string {
-  if (count === 0) return "";
+function detachedClause(count: number | undefined): string {
+  if (count === undefined || count === 0) return "";
   const label = count === 1 ? "step" : "steps";
   return `, ${count.toLocaleString()} ${label} not in the strategy`;
 }

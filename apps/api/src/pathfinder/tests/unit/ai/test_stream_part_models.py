@@ -32,6 +32,13 @@ def test_graph_snapshot_validates_required_fields() -> None:
     assert len(snapshot.nodes) == 1
 
 
+def test_graph_snapshot_logged_without_a_detached_count_holds_none() -> None:
+    snapshot = GraphSnapshot.model_validate(
+        {"strategyId": "s_abc123", "geneCount": 87, "nodes": [], "edges": []}
+    )
+    assert snapshot.detached_step_count == 0
+
+
 def test_graph_snapshot_rejects_missing_strategy_id() -> None:
     with pytest.raises(ValidationError):
         GraphSnapshot.model_validate({"gene_count": 0, "nodes": [], "edges": []})

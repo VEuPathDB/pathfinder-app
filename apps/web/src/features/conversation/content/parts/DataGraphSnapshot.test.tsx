@@ -63,6 +63,15 @@ describe("DataGraphSnapshot", () => {
     expect(screen.getByTestId("figure-caption").textContent).toBe("2 steps, 0 genes");
   });
 
+  it("draws a snapshot logged before the detached count existed", () => {
+    const { detachedStepCount, ...logged } = SNAPSHOT;
+    void detachedStepCount;
+    render(<DataGraphSnapshot data={logged} />);
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "2 steps, 1,342 genes",
+    );
+  });
+
   it("names the steps the strategy does not hold", () => {
     render(<DataGraphSnapshot data={{ ...SNAPSHOT, detachedStepCount: 1 }} />);
     expect(screen.getByTestId("figure-caption").textContent).toBe(
