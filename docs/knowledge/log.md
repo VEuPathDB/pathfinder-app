@@ -9,6 +9,22 @@
   swallowed by the checkpoint serializer and reached the researcher as an attribute
   error mid-turn.
 
+* **The Lead reads only what the tool package declares.** A name of
+  `ai/tools/standalone` that a module outside the package reads is now a name of a
+  non-private module: `conversation_models`, `workbench_models`, `stream_parts`,
+  `graph_helpers` and `strategy_refusals` lost their leading underscore, and
+  `wdk_refused_the_edit` lost its own, because a name another package reads cannot be
+  private twice. Nothing was re-exported and nothing moved between packages: each name
+  stayed with the module that owns it, since every one of them is the tool package's own
+  concept that the Lead also reads. What stays private is what only the tool package
+  reads, at both levels - a module such as `_validation_helpers`, and a function such as
+  `strategy_refusals._refused`, which its sibling tool modules call. The rule is held by
+  construction: `tests/unit/ai/test_the_tool_package_declares_what_the_lead_reads.py`
+  parses every module under `ai/lead` and `ai/graph` and fails on any import of a private
+  module or a private name of that package, which covers the two modules the EDA sheet
+  test pinned and the forty-three it did not. `jobs/impls` still holds two such reads, so
+  the guard names `ai/lead` and `ai/graph` only and the worker's half is a backlog card.
+
 * **A tail streams only while a live worker holds the thread.** The events route no
   longer reads "in flight" off the log's tip: `services/conversations/turn_liveness.py`
   answers it, and an open log counts as a running turn only when a procrastinate job locks

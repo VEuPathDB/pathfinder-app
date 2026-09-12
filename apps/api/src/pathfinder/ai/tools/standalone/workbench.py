@@ -27,8 +27,8 @@ from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.stream_events import enrichment_results_event
 from pathfinder.ai.stream_part_payloads import EnrichmentResultsChunk
-from pathfinder.ai.tools.standalone._stream_parts import gene_set_chunk
-from pathfinder.ai.tools.standalone._workbench_models import (
+from pathfinder.ai.tools.standalone.stream_parts import gene_set_chunk
+from pathfinder.ai.tools.standalone.workbench_models import (
     GeneSetCreatedResponse,
     GeneSetCreatedSummary,
     GeneSetListItem,

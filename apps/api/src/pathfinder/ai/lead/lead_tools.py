@@ -14,8 +14,8 @@ from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.live_state import LiveStrategyState, read_live_state
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import conversation, memory_tools, workbench
-from pathfinder.ai.tools.standalone._conversation_models import ClearStrategyResult
-from pathfinder.ai.tools.standalone._workbench_models import (
+from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResult
+from pathfinder.ai.tools.standalone.workbench_models import (
     GeneSetCreatedResponse,
     GeneSetListResponse,
     WdkSourceSpec,

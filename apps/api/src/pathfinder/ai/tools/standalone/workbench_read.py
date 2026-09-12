@@ -9,7 +9,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone._workbench_models import (
+from pathfinder.ai.tools.standalone.workbench_models import (
     ClassificationCounts,
     ConfidenceScoresResult,
     EnrichmentResultsResponse,

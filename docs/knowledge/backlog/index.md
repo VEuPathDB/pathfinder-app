@@ -13,8 +13,8 @@ what left.
 4. [An enrichment request on a saved gene set has no tool that runs it](an-enrichment-request-on-a-saved-gene-set-has-no-tool.md) - the enrichment durable tool is VERIFY-only and gated on a build delta, so a workbench request for GO enrichment on a named set is honestly refused.
 5. [A study that is not in the catalog is searched for thirty-seven times](a-study-that-is-not-in-the-catalog-is-searched-for-thirty-seven-times.md) - the study search reports a semantic top-k as a match and nothing caps one discovery tool per turn, so an absent study costs a dollar and twelve minutes before the honest answer.
 6. [A killed durable worker leaves its task running for good](a-killed-durable-worker-leaves-its-task-running-for-good.md) - the stalled-job sweep closes a chat turn's stream and never a durable call's, so the task row stays `running`, the thread keeps streaming, and the rail shows work that ended.
-7. [The Lead reaches into private tool modules](the-lead-reaches-into-private-tool-modules.md) - six imports across four Lead modules name a leading-underscore module under the standalone tools, a surface nothing declares.
-8. [A departed value and a canonicalizer read as a new departure](a-departed-value-and-a-canonicalizer-read-as-a-new-departure.md) - a stated value that already departed in the graph, rewritten by the catalog's canonicalizer, refuses a patch that touched nothing stated.
+7. [A departed value and a canonicalizer read as a new departure](a-departed-value-and-a-canonicalizer-read-as-a-new-departure.md) - a stated value that already departed in the graph, rewritten by the catalog's canonicalizer, refuses a patch that touched nothing stated.
+8. [The worker reaches into private tool modules](the-worker-reaches-into-private-tool-modules.md) - two job bodies import private modules of the tool package, the same shape the Lead guard now forbids under ai/lead and ai/graph.
 
 ## Known and accepted
 

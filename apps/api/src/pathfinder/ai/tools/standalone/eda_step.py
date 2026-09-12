@@ -14,12 +14,12 @@ from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone._strategy_refusals import _wdk_refused_the_edit
-from pathfinder.ai.tools.standalone._stream_parts import (
+from pathfinder.ai.tools.standalone._validation_helpers import get_graph
+from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
+from pathfinder.ai.tools.standalone.stream_parts import (
     graph_snapshot_chunk,
     strategy_link_chunk,
 )
-from pathfinder.ai.tools.standalone._validation_helpers import get_graph
 from pathfinder.domain.eda_parts import EdaEffectDirection
 from pathfinder.domain.eda_thread import EdaExport
 from pathfinder.domain.strategy.operational_spec import Criterion
@@ -351,7 +351,7 @@ async def create_eda_step(
     )
     ctx.deps.state.turn_markers.eda_export = created
     _record_the_build(ctx, result)
-    refusal = _wdk_refused_the_edit(result)
+    refusal = wdk_refused_the_edit(result)
     if refusal is not None:
         return with_summary(
             refusal,

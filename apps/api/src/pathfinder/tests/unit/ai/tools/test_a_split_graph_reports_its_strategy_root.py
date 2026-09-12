@@ -6,7 +6,7 @@ from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.wdk import WDKStepTree
 
 from pathfinder.ai.tools.standalone import strategy_graph
-from pathfinder.ai.tools.standalone._stream_parts import (
+from pathfinder.ai.tools.standalone.stream_parts import (
     graph_snapshot_chunk,
     strategy_meta_chunk,
 )

@@ -31,8 +31,8 @@ from pathfinder.ai.lead.edit_messages import (
 from pathfinder.ai.lead.frame_dispatch import run_frame
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone._strategy_refusals import _wdk_refused_the_edit
-from pathfinder.ai.tools.standalone._stream_parts import graph_snapshot_chunk
+from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
+from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
@@ -151,7 +151,7 @@ async def _push_the_edit(
     _emit_graph_snapshot(agent_deps)
     # A push VEuPathDB did not take is the answer. The applied-operation line
     # would read as a success the strategy does not hold.
-    refusal = _wdk_refused_the_edit(commit)
+    refusal = wdk_refused_the_edit(commit)
     return EditDelta(
         diff=diff,
         description=commit.description if refusal is None else refusal.message,

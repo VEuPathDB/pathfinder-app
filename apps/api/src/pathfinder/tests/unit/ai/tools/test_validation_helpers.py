@@ -14,11 +14,11 @@ from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import conversation
-from pathfinder.ai.tools.standalone._conversation_models import (
+from pathfinder.ai.tools.standalone._validation_helpers import get_graph
+from pathfinder.ai.tools.standalone.conversation_models import (
     ClearStrategyResult,
     RenameStrategyResult,
 )
-from pathfinder.ai.tools.standalone._validation_helpers import get_graph
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.tool_returns import returned

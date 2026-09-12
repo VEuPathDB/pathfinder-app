@@ -74,7 +74,7 @@ def _step_edit_refused(
     )
 
 
-def _wdk_refused_the_edit(result: CommitResult) -> ToolErrorPayload | None:
+def wdk_refused_the_edit(result: CommitResult) -> ToolErrorPayload | None:
     """WDK's answer for every step of the edit that did not reach it.
 
     A refusal of the values is a retry, because other values can pass. Any

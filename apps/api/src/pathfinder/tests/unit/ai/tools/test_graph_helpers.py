@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
 
-from pathfinder.ai.tools.standalone._graph_helpers import (
+from pathfinder.ai.tools.standalone.graph_helpers import (
     build_context_strategy_ast,
     build_step_response,
 )

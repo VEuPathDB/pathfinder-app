@@ -23,24 +23,9 @@ from veupathdb_mcp.catalog import (
 )
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone._graph_helpers import (
-    step_ok_response,
-    with_full_graph,
-)
 from pathfinder.ai.tools.standalone._spec_edit_checks import (
     canonical_stated_values,
     refuse_a_write_the_spec_did_not_state,
-)
-from pathfinder.ai.tools.standalone._strategy_refusals import (
-    _no_graph,
-    _refused,
-    _step_edit_refused,
-    _step_not_found,
-    _wdk_refused_the_edit,
-)
-from pathfinder.ai.tools.standalone._stream_parts import (
-    graph_snapshot_chunk,
-    strategy_link_chunk,
 )
 from pathfinder.ai.tools.standalone._validation_helpers import (
     StepOkResponse,
@@ -49,6 +34,21 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     get_graph_and_step,
     validation_error_payload,
     validation_model_retry,
+)
+from pathfinder.ai.tools.standalone.graph_helpers import (
+    step_ok_response,
+    with_full_graph,
+)
+from pathfinder.ai.tools.standalone.strategy_refusals import (
+    _no_graph,
+    _refused,
+    _step_edit_refused,
+    _step_not_found,
+    wdk_refused_the_edit,
+)
+from pathfinder.ai.tools.standalone.stream_parts import (
+    graph_snapshot_chunk,
+    strategy_link_chunk,
 )
 from pathfinder.domain.strategy.operations import (
     DeleteResolution,
@@ -149,7 +149,7 @@ async def update_leaf_params(
         UpdateStepParamsOp(step_id=step_id, parameters=dict(canonical.params)),
         stated_values=stated,
     )
-    refusal = _wdk_refused_the_edit(result)
+    refusal = wdk_refused_the_edit(result)
     if refusal is not None:
         return _step_edit_refused(ctx, refusal, step_id)
     return with_summary(
@@ -197,7 +197,7 @@ async def update_combine_operator(
             colocation_params=colocation_params,
         ),
     )
-    refusal = _wdk_refused_the_edit(result)
+    refusal = wdk_refused_the_edit(result)
     if refusal is not None:
         return _step_edit_refused(ctx, refusal, step_id)
     return with_summary(
@@ -226,7 +226,7 @@ async def update_step_metadata(
     result = await _commit_or_retry(
         deps, UpdateStepMetaOp(step_id=step_id, display_name=display_name)
     )
-    refusal = _wdk_refused_the_edit(result)
+    refusal = wdk_refused_the_edit(result)
     if refusal is not None:
         return _step_edit_refused(ctx, refusal, step_id)
     return with_summary(
@@ -268,7 +268,7 @@ async def delete_step(
     # The graph keeps the delete whatever WDK answers, so the spec drops the
     # criteria of the removed steps before the answer is decided.
     deps.agent_state.drop_criteria_for_steps(result.dropped_step_ids)
-    refusal = _wdk_refused_the_edit(result)
+    refusal = wdk_refused_the_edit(result)
     if refusal is not None:
         return _refused(ctx, refusal, f"VEuPathDB refused the delete of {step_id}")
     response: JSONObject = {
@@ -307,7 +307,7 @@ async def replace_subtree(
     op = ReplaceSubtreeOp(step_id=step_id, subtree=new_subtree)
     refuse_a_write_the_spec_did_not_state(deps, graph, op)
     result = await _commit_or_retry(deps, op)
-    refusal = _wdk_refused_the_edit(result)
+    refusal = wdk_refused_the_edit(result)
     if refusal is not None:
         return _refused(ctx, refusal, f"VEuPathDB refused the subtree at {step_id}")
     payload: JSONObject = {

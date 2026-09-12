@@ -31,7 +31,7 @@ from pathfinder.ai.lead.sub_agent_stream import (
     stream_sub_agent,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
-from pathfinder.ai.tools.standalone._stream_parts import graph_snapshot_chunk
+from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import (
     build_step_tree,

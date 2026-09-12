@@ -16,20 +16,20 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone._graph_helpers import count_summary
-from pathfinder.ai.tools.standalone._strategy_refusals import (
-    _no_graph,
-    _refused,
-    _wdk_refused_the_edit,
-)
-from pathfinder.ai.tools.standalone._stream_parts import (
-    graph_snapshot_chunk,
-    strategy_link_chunk,
-)
 from pathfinder.ai.tools.standalone._validation_helpers import (
     OperationPayload,
     StepTreePayload,
     get_graph,
+)
+from pathfinder.ai.tools.standalone.graph_helpers import count_summary
+from pathfinder.ai.tools.standalone.strategy_refusals import (
+    _no_graph,
+    _refused,
+    wdk_refused_the_edit,
+)
+from pathfinder.ai.tools.standalone.stream_parts import (
+    graph_snapshot_chunk,
+    strategy_link_chunk,
 )
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operations.apply import ApplyError
@@ -227,7 +227,7 @@ async def apply_operations(
             f"offending operation and send the batch again."
         )
         raise ModelRetry(msg) from exc
-    refusal = _wdk_refused_the_edit(result)
+    refusal = wdk_refused_the_edit(result)
     if refusal is not None:
         return _refused(ctx, refusal, "VEuPathDB refused this batch")
     payload: JSONObject = {

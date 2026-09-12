@@ -16,7 +16,7 @@ from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.tools.standalone import workbench
-from pathfinder.ai.tools.standalone._conversation_models import ClearStrategyResult
+from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResult
 from pathfinder.ai.tools.toolsets import execution
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.gene_sets.types import GeneSet

@@ -11,7 +11,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from veupathdb.domain.parameters import wire_map
 
-from pathfinder.ai.tools.standalone._graph_helpers import build_step_response
+from pathfinder.ai.tools.standalone.graph_helpers import build_step_response
 from pathfinder.domain.strategy.build_outcome import citable_count
 from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
 from pathfinder.services.strategies.live_counts import read_wdk_step_counts
