@@ -12,7 +12,35 @@ from assistant_core.memory.schemas import MemoryValue
 
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
+from pathfinder.ai.lead.lead_agent import LeadResponse
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.constraints import OpenQuestion
+
+
+def _open_questions(
+    domain: StrategyDomainState, response: LeadResponse | None
+) -> list[OpenQuestion]:
+    """What this turn asked the user: the sub-agents' questions and the reply's.
+
+    One question asked twice keeps the record that names the dimension it
+    decides. A turn that ends parked asks nothing new, and a turn that resolves
+    the investigation asks nothing at all.
+    """
+    if response is None:
+        return list(domain.open_questions)
+    if response.next_state == "complete":
+        return []
+    asked: list[OpenQuestion] = []
+    index_of: dict[str, int] = {}
+    for question in (*domain.open_questions, *response.asked_questions):
+        if question.question not in index_of:
+            index_of[question.question] = len(asked)
+            asked.append(question)
+            continue
+        held = index_of[question.question]
+        if question.decides_a_dimension and not asked[held].decides_a_dimension:
+            asked[held] = question
+    return asked
 
 
 def _domain_delta(
@@ -21,16 +49,15 @@ def _domain_delta(
     capture: _LeadRunCapture,
 ) -> StrategyDomainState:
     domain = deps.state.domain
-    next_state = (
-        capture.response.next_state
-        if capture.response is not None
-        else domain.lead_next_state
-    )
+    response = capture.response
     return domain.model_copy(
         update={
             "user_intent": deps.intent,
             "discovered_searches": dict(domain.discovered_searches),
-            "lead_next_state": next_state,
+            "lead_next_state": (
+                response.next_state if response is not None else domain.lead_next_state
+            ),
+            "open_questions": _open_questions(domain, response),
             # Staleness is measured against the live strategy every turn.
             "stale_build": None,
         },

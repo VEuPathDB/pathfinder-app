@@ -33,11 +33,13 @@ from pathfinder.ai.lead.lead_agent import (
     LEAD_MODEL,
     LeadResponse,
     build_lead_agent,
+    refuse_an_unrecorded_question,
     refuse_blaming_the_site,
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
+from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
 from pathfinder.tests._support.instructions import pinned_instructions
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -224,6 +226,74 @@ def test_a_deferred_request_is_not_prose() -> None:
     output = DeferredToolRequests()
 
     assert refuse_blaming_the_site(run_context_for(_blame_deps()), output) is output
+
+
+_ASKING_REPLY = (
+    "The spec needs one value: which gametocyte RNA-seq study should the "
+    "expression filter read? I recommend the 3D7 one."
+)
+
+
+def _framing_deps() -> LeadDeps:
+    deps = lead_deps(pipeline_state(user_prompt="Now build.", user_message_id=uuid4()))
+    deps.state.turn_markers.framed = True
+    return deps
+
+
+def test_a_reply_from_a_turn_that_framed_nothing_stands() -> None:
+    output = LeadResponse(prose=_ASKING_REPLY, next_state="await_user")
+
+    assert refuse_an_unrecorded_question(run_context_for(_blame_deps()), output) is (
+        output
+    )
+
+
+def test_a_question_the_reply_does_not_record_is_refused() -> None:
+    deps = _framing_deps()
+
+    with pytest.raises(ModelRetry) as raised:
+        refuse_an_unrecorded_question(
+            run_context_for(deps),
+            LeadResponse(prose=_ASKING_REPLY, next_state="await_user"),
+        )
+
+    assert "asked_questions" in str(raised.value)
+
+
+def test_a_recorded_question_stands() -> None:
+    output = LeadResponse(
+        prose=_ASKING_REPLY,
+        next_state="await_user",
+        asked_questions=[
+            OpenQuestion(
+                question="Which gametocyte RNA-seq study?",
+                dimension=ConstraintKind.DATA_TYPE,
+                recommended_value="the 3D7 one",
+            ),
+        ],
+    )
+
+    assert refuse_an_unrecorded_question(run_context_for(_framing_deps()), output) is (
+        output
+    )
+
+
+def test_a_reply_that_asks_nothing_stands() -> None:
+    output = LeadResponse(prose=_CLEAN_REPLY, next_state="await_user")
+
+    assert refuse_an_unrecorded_question(run_context_for(_framing_deps()), output) is (
+        output
+    )
+
+
+def test_the_unrecorded_question_refusal_is_asked_once_per_turn() -> None:
+    deps = _framing_deps()
+    output = LeadResponse(prose=_ASKING_REPLY, next_state="await_user")
+
+    with pytest.raises(ModelRetry):
+        refuse_an_unrecorded_question(run_context_for(deps), output)
+
+    assert refuse_an_unrecorded_question(run_context_for(deps), output) is output
 
 
 def _nudge_deps(

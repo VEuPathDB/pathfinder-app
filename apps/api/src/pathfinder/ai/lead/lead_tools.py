@@ -69,16 +69,23 @@ def classify_user_intent(
     fallback ok", "ideally X but Y is fine"). A soft constraint is surfaced
     but never blocks the turn if substituted.
 
-    An imperative asks for a build. "Run it", "rerun the compute", "build
-    the strategy", "add those genes as a step", "create the step" - and a
-    bare "yes, do it" that accepts an offer you made - are
+    A message that answers a question you asked is
+    ``clarification_response``, whatever else it carries: two answers
+    followed by "go ahead and build it" is still the answer to them, and
+    the request it answers is the one the thread is on. ``new_strategy``
+    is for a message that ABANDONS that request and states a different
+    one; the requirements the thread has stated are dropped when you say
+    so, and are kept otherwise.
+
+    Any other imperative asks for a build. "Run it", "rerun the compute",
+    "build the strategy", "add those genes as a step", "create the step" -
+    and a bare "yes, do it" that accepts an offer you made - are
     ``extend_strategy`` when the thread already has a strategy or an open
-    analysis, ``new_strategy`` when it has neither, and
-    ``clarification_response`` when they answer a question you asked. A
-    retry after a failed task is the same request again, so it keeps the
-    classification that request had. None of them is a
-    ``follow_up_question``: that value is for a message that asks you to
-    EXPLAIN something and asks for no change to the data.
+    analysis, and ``new_strategy`` when it has neither and answers no
+    question of yours. A retry after a failed task is the same request
+    again, so it keeps the classification that request had. None of them
+    is a ``follow_up_question``: that value is for a message that asks you
+    to EXPLAIN something and asks for no change to the data.
 
     Two classifications ask for no strategy at all:
 

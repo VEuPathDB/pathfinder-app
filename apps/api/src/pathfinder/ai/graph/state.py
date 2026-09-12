@@ -21,7 +21,13 @@ from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
 )
 from pathfinder.domain.strategy.combination_check import combination_terms_overlap
-from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+    OpenQuestion,
+    standing_recommendations,
+)
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.staleness import StaleBuild
 
@@ -162,8 +168,14 @@ class StrategyDomainState(BaseModel):
     # again only when the state differs from this.
     eda_analysis: EdaAnalysisFacts | None = None
     # Every requirement the thread has stated, oldest first. A clarification
-    # adds to this list; nothing but a fresh request on an empty thread clears it.
+    # adds to this list; only a message that abandons the request clears it.
     requirements: list[Constraint] = Field(default_factory=list)
+    # What the thread asked the user and has not heard back on, with the value
+    # each question recommended.
+    open_questions: list[OpenQuestion] = Field(default_factory=list)
+    # The recommended values the thread's requirements leave standing. A
+    # requirement on the same dimension replaces one.
+    recommendations: list[Constraint] = Field(default_factory=list)
     # The request the thread is answering, as the user wrote it.
     original_request: str = ""
     # What moved on the thread since its last answer, as the pre-turn hook
@@ -179,17 +191,70 @@ class StrategyDomainState(BaseModel):
         spec = self.operational_spec
         return bool(spec and spec.criteria) or self.last_build_outcome is not None
 
+    def continues_the_request(self, intent: UserIntent) -> bool:
+        """Whether this message carries the thread's request on.
+
+        Only a question that names the dimension it decides narrows the match:
+        a message answering one of those, or stating nothing of its own,
+        continues the request. A question that names none could be the one this
+        message answers, and where no question was recorded a thread that ended
+        waiting on the user keeps what it states.
+        """
+        asked = [q for q in self.open_questions if q.decides_a_dimension]
+        if len(asked) != len(self.open_questions):
+            return True
+        if not asked:
+            return self.lead_next_state == "await_user" and bool(self.requirements)
+        dimensions = {question.dimension for question in asked}
+        return not intent.explicit_constraints or any(
+            c.kind in dimensions for c in intent.explicit_constraints
+        )
+
     def record_intent(self, intent: UserIntent, *, request_text: str) -> None:
-        """Take this turn's requirements and the request they belong to."""
+        """Take this turn's requirements and the request they belong to.
+
+        The questions the thread asked are answered by this message, whatever
+        it answers, so nothing waits on them after it.
+        """
         if (
             intent.classification is IntentClassification.NEW_STRATEGY
             and not self.has_strategy
+            and not self.continues_the_request(intent)
         ):
             self.requirements = []
+            self.recommendations = []
             self.original_request = ""
         self.record_requirements(intent.explicit_constraints)
+        self.record_recommendations()
+        self.open_questions = []
         if not self.original_request and intent.classification in REQUEST_INTENTS:
             self.original_request = request_text
+
+    def record_questions(self, questions: Iterable[str]) -> None:
+        """Add each question the thread has not asked already."""
+        asked = {question.question for question in self.open_questions}
+        for text in questions:
+            if not text or text in asked:
+                continue
+            asked.add(text)
+            self.open_questions.append(OpenQuestion(question=text))
+
+    def record_recommendations(self) -> None:
+        """Keep the recommendations the thread's requirements leave standing.
+
+        An accepted recommendation is recorded once, so a later reply that asks
+        something else does not drop it.
+        """
+        replaced = {c.kind for c in self.requirements}
+        held = [c for c in self.recommendations if c.kind not in replaced]
+        seen = {(c.kind, c.requested_value) for c in held}
+        for offered in standing_recommendations(self.open_questions, self.requirements):
+            key = (offered.kind, offered.requested_value)
+            if key in seen:
+                continue
+            seen.add(key)
+            held.append(offered)
+        self.recommendations = held
 
     def record_requirements(self, constraints: Iterable[Constraint]) -> None:
         """Add each requirement the thread has not stated already.
@@ -214,7 +279,11 @@ class StrategyDomainState(BaseModel):
                     )
                 ]
             seen.add(key)
-            self.requirements.append(constraint)
+            self.requirements.append(
+                constraint.model_copy(
+                    update={"source": ConstraintSource.USER_EXPLICIT}
+                ),
+            )
 
     def markers_for(self, message_id: UUID | None) -> TurnMarkers:
         """This turn's markers. The record rotates on a new user message."""

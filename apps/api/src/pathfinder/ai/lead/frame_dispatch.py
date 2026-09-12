@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from pydantic_ai import RunContext
 
+from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
     defer_dispatch,
     dispatch_call_id,
+    framing_goal,
     refuse_and_restore,
 )
 from pathfinder.ai.lead.dispatch_messages import (
@@ -35,10 +37,11 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.spec_diff import diff_specs
 
 
-def frame_work_order(reason: str, prompt: str) -> str:
+def frame_work_order(reason: str, state: PipelineState) -> str:
+    """The order FRAME runs, naming the whole request the turn answers."""
     return (
         f"FRAME work order: {reason}\n"
-        f"User's goal: {prompt}\n"
+        f"User's goal: {framing_goal(state)}\n"
         "Operationalize into criteria, bind each to a real WDK search, resolve "
         "params, set the structure. Return a FrameResult."
     )
@@ -81,6 +84,27 @@ def _continuation_work_order(deps: LeadDeps) -> str:
 
 
 async def run_frame(
+    *,
+    deps: LeadDeps,
+    parent_tool_call_id: str,
+    work_order: str,
+    expected_criteria: int = 3,
+    resume: SubAgentResume | None = None,
+) -> FrameResult | SubAgentApprovalWait:
+    """Run FRAME and record the questions its result leaves for the user."""
+    result = await _run_frame(
+        deps=deps,
+        parent_tool_call_id=parent_tool_call_id,
+        work_order=work_order,
+        expected_criteria=expected_criteria,
+        resume=resume,
+    )
+    if isinstance(result, FrameResult):
+        deps.state.domain.record_questions(result.open_questions)
+    return result
+
+
+async def _run_frame(
     *,
     deps: LeadDeps,
     parent_tool_call_id: str,
@@ -159,7 +183,7 @@ async def frame_problem(
     result = await run_frame(
         deps=ctx.deps,
         parent_tool_call_id=tool_call_id,
-        work_order=frame_work_order(reason, ctx.deps.state.user_prompt),
+        work_order=frame_work_order(reason, ctx.deps.state),
         expected_criteria=expected_criteria,
     )
     if isinstance(result, SubAgentApprovalWait):

@@ -58,17 +58,61 @@ async def test_spec_ready_over_an_empty_draft_is_a_retry(
 ) -> None:
     _stub_stream(monkeypatch, FrameResult(disposition="spec_ready", summary="done"))
 
+    deps = _deps()
+
     with pytest.raises(ModelRetry) as excinfo:
         await run_frame(
-            deps=_deps(),
+            deps=deps,
             parent_tool_call_id="t1",
-            work_order=frame_work_order("frame it", ""),
+            work_order=frame_work_order("frame it", deps.state),
         )
 
     message = str(excinfo.value)
     assert "set_criterion" in message
     assert "set_structure" in message
     assert "drop_criterion" in message
+
+
+async def test_the_questions_frame_cannot_answer_are_recorded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A pass that stops on the user leaves the thread waiting on its answers."""
+    _stub_stream(
+        monkeypatch,
+        FrameResult(
+            disposition="needs_user",
+            summary="which dataset?",
+            open_questions=["Which gametocyte RNA-seq study?", "What counts as a SNP?"],
+        ),
+    )
+    deps = _deps()
+
+    await run_frame(
+        deps=deps,
+        parent_tool_call_id="t1",
+        work_order=frame_work_order("frame it", deps.state),
+    )
+
+    assert [q.question for q in deps.state.domain.open_questions] == [
+        "Which gametocyte RNA-seq study?",
+        "What counts as a SNP?",
+    ]
+
+
+async def test_a_pass_that_asks_nothing_records_no_question(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    delta = FrameResult(disposition="spec_ready", summary="bound one")
+    _stub_stream(monkeypatch, delta, binds=True)
+    deps = _deps()
+
+    await run_frame(
+        deps=deps,
+        parent_tool_call_id="t1",
+        work_order=frame_work_order("frame it", deps.state),
+    )
+
+    assert deps.state.domain.open_questions == []
 
 
 async def test_spec_ready_with_one_bound_criterion_passes(
@@ -79,7 +123,9 @@ async def test_spec_ready_with_one_bound_criterion_passes(
     deps = _deps()
 
     result = await run_frame(
-        deps=deps, parent_tool_call_id="t1", work_order=frame_work_order("frame it", "")
+        deps=deps,
+        parent_tool_call_id="t1",
+        work_order=frame_work_order("frame it", deps.state),
     )
 
     assert result == delta
@@ -96,10 +142,12 @@ async def test_second_empty_result_becomes_needs_user(
         await run_frame(
             deps=deps,
             parent_tool_call_id="t1",
-            work_order=frame_work_order("frame it", ""),
+            work_order=frame_work_order("frame it", deps.state),
         )
     result = await run_frame(
-        deps=deps, parent_tool_call_id="t2", work_order=frame_work_order("again", "")
+        deps=deps,
+        parent_tool_call_id="t2",
+        work_order=frame_work_order("again", deps.state),
     )
 
     assert isinstance(result, FrameResult)
@@ -113,10 +161,12 @@ async def test_a_needs_user_result_over_an_empty_draft_is_not_a_retry(
     delta = FrameResult(disposition="needs_user", summary="which dataset?")
     _stub_stream(monkeypatch, delta)
 
+    deps = _deps()
+
     result = await run_frame(
-        deps=_deps(),
+        deps=deps,
         parent_tool_call_id="t1",
-        work_order=frame_work_order("frame it", ""),
+        work_order=frame_work_order("frame it", deps.state),
     )
 
     assert result == delta
@@ -130,10 +180,12 @@ async def test_an_exhausted_budget_still_reports_the_draft(
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
 
+    deps = _deps()
+
     result = await run_frame(
-        deps=_deps(),
+        deps=deps,
         parent_tool_call_id="t1",
-        work_order=frame_work_order("frame it", ""),
+        work_order=frame_work_order("frame it", deps.state),
     )
 
     assert isinstance(result, FrameResult)
@@ -166,7 +218,7 @@ async def test_a_declaration_below_the_thread_is_raised_to_it(
     result = await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("re-frame after the clarification", "kinases"),
+        work_order=frame_work_order("re-frame after the clarification", deps.state),
         expected_criteria=3,
     )
 
@@ -183,7 +235,7 @@ async def test_the_requirements_the_thread_states_are_the_floor(
     await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("re-frame after the clarification", "kinases"),
+        work_order=frame_work_order("re-frame after the clarification", deps.state),
         expected_criteria=3,
     )
 
@@ -201,7 +253,7 @@ async def test_a_declaration_above_the_thread_stands(
     await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("operationalize the goal", "kinases"),
+        work_order=frame_work_order("operationalize the goal", deps.state),
         expected_criteria=9,
     )
 
@@ -269,7 +321,7 @@ async def test_a_budget_stop_with_progress_is_dispatched_again(
     result = await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("operationalize the goal", "kinases"),
+        work_order=frame_work_order("operationalize the goal", deps.state),
         expected_criteria=3,
     )
 
@@ -292,7 +344,7 @@ async def test_an_edit_continues_as_an_edit(
     await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("change the organism", "kinases"),
+        work_order=frame_work_order("change the organism", deps.state),
         expected_criteria=3,
     )
 
@@ -308,7 +360,7 @@ async def test_the_automatic_retry_runs_once_per_turn(
     await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("operationalize the goal", "kinases"),
+        work_order=frame_work_order("operationalize the goal", deps.state),
         expected_criteria=3,
     )
 
@@ -324,7 +376,7 @@ async def test_a_stop_that_bound_nothing_is_not_dispatched_again(
     result = await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("operationalize the goal", "kinases"),
+        work_order=frame_work_order("operationalize the goal", deps.state),
         expected_criteria=3,
     )
 

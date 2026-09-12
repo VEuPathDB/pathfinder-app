@@ -18,6 +18,7 @@ from pathfinder.domain.strategy.constraints import (
     CombinationOperator,
     CombinationRequest,
     Constraint,
+    ConstraintSource,
     combination_requirements_from,
 )
 from pathfinder.domain.strategy.operational_spec import (
@@ -260,12 +261,16 @@ def first_combination_violation(
     criteria: Sequence[Criterion],
     structure: SpecStructure,
 ) -> CombinationBreach | None:
-    """The first stated combination this tree contradicts, or None.
+    """The first combination the user stated that this tree contradicts, or None.
 
-    The check abstains on a requirement it cannot read: one that states no
-    single operator, or whose terms name no distinct criteria of this spec.
+    Only a user statement gates a tree: a value the assistant recommended is a
+    hint until the user states it. The check abstains on a requirement it
+    cannot read: one that states no single operator, or whose terms name no
+    distinct criteria of this spec.
     """
     for requirement in combination_requirements_from(list(requirements)):
+        if requirement.source is not ConstraintSource.USER_EXPLICIT:
+            continue
         request = CombinationRequest.parse(requirement.requested_value)
         if request is None:
             continue

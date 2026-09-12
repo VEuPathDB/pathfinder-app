@@ -26,6 +26,7 @@ from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_messages import (
     blamed_the_site_message,
+    unrecorded_question_message,
     unverified_build_message,
 )
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
@@ -65,6 +66,7 @@ from pathfinder.ai.tools.standalone.control_sets import (
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
 from pathfinder.ai.tools.toolsets import eda
+from pathfinder.domain.strategy.constraints import OpenQuestion
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -91,6 +93,16 @@ class LeadResponse(CamelModel):
         ),
     )
     next_state: LeadTurnState = "await_user"
+    asked_questions: list[OpenQuestion] = Field(
+        default_factory=list,
+        max_length=8,
+        description=(
+            "One entry per question this reply asks the user, carrying the "
+            "value you recommend for it and the dimension it decides. A "
+            "question you ask in prose and leave out of here is one the next "
+            "turn has to ask again."
+        ),
+    )
 
 
 LeadAgent = Agent[LeadDeps, LeadResponse | DeferredToolRequests]
@@ -138,6 +150,28 @@ def refuse_blaming_the_site(
         return output
     ctx.deps.site_blame_refused = True
     raise ModelRetry(blamed_the_site_message(blame, ctx.deps.last_phase_stop))
+
+
+def refuse_an_unrecorded_question(
+    ctx: RunContext[LeadDeps],
+    output: LeadResponse | DeferredToolRequests,
+) -> LeadResponse | DeferredToolRequests:
+    """Refuse a reply that asks the user something and records no question.
+
+    The next turn binds what the reply recorded, so a question only the prose
+    carries is asked again. A turn that framed nothing asks for no value, so
+    the refusal is asked of a framing turn, once.
+    """
+    if not isinstance(output, LeadResponse) or ctx.deps.unrecorded_question_refused:
+        return output
+    if not ctx.deps.state.turn_markers.framed:
+        return output
+    if output.next_state != "await_user" or output.asked_questions:
+        return output
+    if "?" not in output.prose:
+        return output
+    ctx.deps.unrecorded_question_refused = True
+    raise ModelRetry(unrecorded_question_message())
 
 
 LEAD_MODEL = "openai:gpt-5.6-luna"
@@ -200,4 +234,5 @@ def build_lead_agent() -> LeadAgent:
     agent.instructions(pinned_turn_briefing)
     agent.output_validator(verify_what_this_turn_built)
     agent.output_validator(refuse_blaming_the_site)
+    agent.output_validator(refuse_an_unrecorded_question)
     return agent

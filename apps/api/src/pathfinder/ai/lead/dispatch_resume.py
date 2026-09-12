@@ -84,7 +84,7 @@ async def resume_sub_agent(
             return await run_frame(
                 deps=deps,
                 parent_tool_call_id=call_id,
-                work_order=frame_work_order(frame_args.reason, deps.state.user_prompt),
+                work_order=frame_work_order(frame_args.reason, deps.state),
                 expected_criteria=frame_args.expected_criteria,
                 resume=resume,
             )

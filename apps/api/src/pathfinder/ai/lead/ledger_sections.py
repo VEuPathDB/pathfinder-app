@@ -278,22 +278,41 @@ _STATED_WINDOW = 20
 
 class ConstraintSection(CamelModel):
     grounded: list[GroundedConstraint] = Field(default_factory=list)
+    # Values the assistant recommended that the latest message leaves standing.
+    # They stay off the wire: the reply that offered them is what a reader has.
+    recommended: list[Constraint] = Field(default_factory=list, exclude=True)
+    # The requirements an earlier message stated. Off the wire: the render is
+    # what marks them, and the constraint itself is already carried above.
+    carried: list[Constraint] = Field(default_factory=list, exclude=True)
+
+    def render_recommended(self) -> list[str]:
+        """One line per recommendation the user has not replaced."""
+        return [
+            f"- {c.label} ({c.kind}): {c.requested_value!r}" for c in self.recommended
+        ]
 
     def render_stated(self) -> list[str]:
         """One line per requirement the user stated, newest last.
 
-        The pinned summary is bounded, so a long thread shows the most recent
-        window and counts the rest.
+        A requirement an earlier message stated says so. The pinned summary is
+        bounded, so a long thread shows the most recent window and counts the
+        rest.
         """
         stated = [
             g
             for g in self.grounded
             if g.constraint.source is ConstraintSource.USER_EXPLICIT
         ]
+        carried = {(c.kind, c.requested_value) for c in self.carried}
         elided = max(0, len(stated) - _STATED_WINDOW)
         lines = [
             f"- {g.constraint.label} ({g.constraint.kind}): "
             f"{g.constraint.requested_value!r} -> {g.status}"
+            + (
+                " (from an earlier message)"
+                if (g.constraint.kind, g.constraint.requested_value) in carried
+                else ""
+            )
             for g in stated[elided:]
         ]
         if elided:

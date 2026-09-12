@@ -17,6 +17,7 @@ from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_agent import LeadResponse
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.tests._support.database import no_database
@@ -123,6 +124,100 @@ def test_a_lead_response_sets_the_next_state() -> None:
 
     assert isinstance(domain, StrategyDomainState)
     assert domain.lead_next_state == "await_user"
+
+
+def test_a_lead_response_records_the_questions_it_asks() -> None:
+    state = _state()
+    deps = _deps(state)
+    capture = _LeadRunCapture()
+    capture.response = LeadResponse(
+        prose="Which RNA-seq study?",
+        asked_questions=[
+            OpenQuestion(
+                question="Which gametocyte RNA-seq study?",
+                dimension=ConstraintKind.DATA_TYPE,
+                recommended_value="P. falciparum 3D7 gametocyte RNA-seq",
+            ),
+        ],
+    )
+    domain = _delta(state, deps, capture)["domain"]
+
+    assert isinstance(domain, StrategyDomainState)
+    assert [q.recommended_value for q in domain.open_questions] == [
+        "P. falciparum 3D7 gametocyte RNA-seq"
+    ]
+
+
+def test_the_record_that_names_a_dimension_wins_the_same_question() -> None:
+    """A sub-agent asks in bare text; the reply's own record names the dimension."""
+    state = _state()
+    state.domain.record_questions(["Which gametocyte RNA-seq study?"])
+    deps = _deps(state)
+    capture = _LeadRunCapture()
+    capture.response = LeadResponse(
+        prose="Which gametocyte RNA-seq study?",
+        asked_questions=[
+            OpenQuestion(
+                question="Which gametocyte RNA-seq study?",
+                dimension=ConstraintKind.DATA_TYPE,
+                recommended_value="the 3D7 one",
+            ),
+        ],
+    )
+    domain = _delta(state, deps, capture)["domain"]
+
+    assert isinstance(domain, StrategyDomainState)
+    assert [(q.dimension, q.recommended_value) for q in domain.open_questions] == [
+        (ConstraintKind.DATA_TYPE, "the 3D7 one"),
+    ]
+
+
+def test_a_bare_record_does_not_replace_the_dimension_already_asked() -> None:
+    state = _state(
+        StrategyDomainState(
+            open_questions=[
+                OpenQuestion(
+                    question="Which study?",
+                    dimension=ConstraintKind.DATA_TYPE,
+                    recommended_value="the 3D7 one",
+                ),
+            ],
+        ),
+    )
+    deps = _deps(state)
+    capture = _LeadRunCapture()
+    capture.response = LeadResponse(
+        prose="Which study?",
+        asked_questions=[OpenQuestion(question="Which study?")],
+    )
+    domain = _delta(state, deps, capture)["domain"]
+
+    assert isinstance(domain, StrategyDomainState)
+    assert [(q.dimension, q.recommended_value) for q in domain.open_questions] == [
+        (ConstraintKind.DATA_TYPE, "the 3D7 one"),
+    ]
+
+
+def test_a_turn_without_a_lead_response_keeps_the_open_questions() -> None:
+    asked = OpenQuestion(question="Which study?", recommended_value="the 3D7 one")
+    state = _state(StrategyDomainState(open_questions=[asked]))
+    deps = _deps(state)
+    domain = _delta(state, deps, _LeadRunCapture())["domain"]
+
+    assert isinstance(domain, StrategyDomainState)
+    assert domain.open_questions == [asked]
+
+
+def test_a_lead_response_that_asks_nothing_clears_the_open_questions() -> None:
+    asked = OpenQuestion(question="Which study?", recommended_value="the 3D7 one")
+    state = _state(StrategyDomainState(open_questions=[asked]))
+    deps = _deps(state)
+    capture = _LeadRunCapture()
+    capture.response = LeadResponse(prose="Built it.", next_state="complete")
+    domain = _delta(state, deps, capture)["domain"]
+
+    assert isinstance(domain, StrategyDomainState)
+    assert domain.open_questions == []
 
 
 def test_the_discovered_searches_map_is_copied_out_of_the_working_state() -> None:

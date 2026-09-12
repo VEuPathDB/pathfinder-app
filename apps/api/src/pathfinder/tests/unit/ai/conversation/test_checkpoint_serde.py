@@ -47,6 +47,7 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    OpenQuestion,
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -232,6 +233,22 @@ def _domain() -> StrategyDomainState:
         last_build_outcome=_outcome(),
         stale_build=StaleBuild(added_nodes=["s3"], removed_nodes=["s0"]),
         created_gene_set_ids=["gs-1"],
+        open_questions=[
+            OpenQuestion(
+                question="Which gametocyte RNA-seq study?",
+                dimension=ConstraintKind.DATA_TYPE,
+                recommended_value="P. falciparum 3D7 gametocyte RNA-seq",
+            ),
+        ],
+        recommendations=[
+            Constraint(
+                kind=ConstraintKind.DATA_TYPE,
+                requested_value="P. falciparum 3D7 gametocyte RNA-seq",
+                label="Which gametocyte RNA-seq study?",
+                source=ConstraintSource.ASSUMED,
+                hard=False,
+            ),
+        ],
     )
 
 

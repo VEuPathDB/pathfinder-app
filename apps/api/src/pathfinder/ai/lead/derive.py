@@ -102,6 +102,21 @@ def _thread_requirements(
     return stated
 
 
+def _carried_requirements(
+    state: PipelineState, intent: UserIntent | None
+) -> list[Constraint]:
+    """The thread's requirements that the latest message did not restate."""
+    restated = {
+        (c.kind, c.requested_value)
+        for c in (intent.explicit_constraints if intent else [])
+    }
+    return [
+        c
+        for c in state.domain.requirements
+        if (c.kind, c.requested_value) not in restated
+    ]
+
+
 def _derive_constraint_section(
     state: PipelineState, intent: UserIntent | None
 ) -> ConstraintSection:
@@ -115,11 +130,19 @@ def _derive_constraint_section(
         for c in requirements
         if (c.kind, c.requested_value) not in kept
     )
+    recommended = list(state.domain.recommendations)
+    carried = _carried_requirements(state, intent)
     assumed = assumption_constraints(spec)
     if not merged:
-        return ConstraintSection(grounded=assumed)
+        return ConstraintSection(
+            grounded=assumed, recommended=recommended, carried=carried
+        )
     if spec is None:
-        return ConstraintSection(grounded=provisional_constraints(merged))
+        return ConstraintSection(
+            grounded=provisional_constraints(merged),
+            recommended=recommended,
+            carried=carried,
+        )
     search_names = [c.search_name for c in spec.criteria if c.search_name]
     param_names: set[str] = {p for c in spec.criteria for p in c.resolved_params}
     param_names |= {s.param_name for c in spec.criteria for s in c.open_params}
@@ -140,7 +163,9 @@ def _derive_constraint_section(
                 criteria=spec.criteria,
             ),
             *assumed,
-        ]
+        ],
+        recommended=recommended,
+        carried=carried,
     )
 
 

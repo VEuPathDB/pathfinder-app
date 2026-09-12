@@ -42,6 +42,8 @@ def framing_goal(state: PipelineState) -> str:
 def agent_deps_for(deps: LeadDeps) -> AgentDeps:
     state = deps.state
     runtime = deps.runtime
+    ledger = derive_ledger(state, deps.intent, phase_stop=deps.last_phase_stop)
+    requirements = [*state.domain.requirements, *ledger.constraints.recommended]
     return AgentDeps(
         site_id=runtime.site_id,
         user_id=runtime.user_id,
@@ -56,14 +58,10 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
                 if state.domain.operational_spec is not None
                 else OperationalSpec(goal=framing_goal(state))
             ),
-            organism_hints=organism_hints_from(state.domain.requirements),
-            combination_requirements=combination_requirements_from(
-                state.domain.requirements
-            ),
+            organism_hints=organism_hints_from(requirements),
+            combination_requirements=combination_requirements_from(requirements),
         ),
-        ledger_summary=derive_ledger(
-            state, deps.intent, phase_stop=deps.last_phase_stop
-        ).render_summary(),
+        ledger_summary=ledger.render_summary(),
         experiment_id=runtime.experiment_id,
         cancel_event=runtime.cancel_event,
         memory_store=runtime.memory_store,

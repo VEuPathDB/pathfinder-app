@@ -59,6 +59,8 @@ DOMAIN_FIELDS = {
     "sheeted_eda_datasets",
     "eda_analysis",
     "requirements",
+    "open_questions",
+    "recommendations",
     "original_request",
     "turn_briefing",
     "zero_result_history",

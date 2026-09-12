@@ -69,10 +69,21 @@ def test_research_is_reachable_before_the_turn_is_classified() -> None:
     assert not UNCLASSIFIED_TOOLS & BUILDING_TOOLS
 
 
+def test_the_classifier_reads_an_answer_as_a_clarification() -> None:
+    """A message that answers an open question does not start the thread over."""
+    guidance = _flat(classify_user_intent.__doc__ or "")
+
+    assert (
+        "A message that answers a question you asked is "
+        "``clarification_response``, whatever else it carries"
+    ) in guidance
+    assert "``new_strategy`` is for a message that ABANDONS that request" in guidance
+
+
 def test_the_classifier_calls_an_imperative_a_building_intent() -> None:
     guidance = _flat(classify_user_intent.__doc__ or "")
 
-    assert "An imperative asks for a build" in guidance
+    assert "Any other imperative asks for a build" in guidance
     assert "rerun" in guidance
     assert "yes, do it" in guidance
     assert "None of them is a ``follow_up_question``" in guidance

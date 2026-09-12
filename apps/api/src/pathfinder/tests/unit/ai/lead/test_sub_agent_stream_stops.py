@@ -126,7 +126,9 @@ async def _dispatch(
     if guard is not None:
         agent_deps.tool_repetition_guard = guard
     return await stream_sub_agent(
-        run=PhaseRun("frame", frame_work_order("bind the criteria", ""), declared),
+        run=PhaseRun(
+            "frame", frame_work_order("bind the criteria", deps.state), declared
+        ),
         agent_deps=agent_deps,
         parent_tool_call_id="call_frame_1",
         expected_output_type=FrameResult,
@@ -205,7 +207,7 @@ async def test_budget_stopped_dispatch_records_its_usage(
     await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("operationalize the goal", ""),
+        work_order=frame_work_order("operationalize the goal", deps.state),
     )
 
     assert usage_log, "a budget-stopped dispatch must record its usage"

@@ -196,6 +196,11 @@ class InvestigationLedger(CamelModel):
                 *(self.constraints.render_stated() or ["- (none)"]),
             ]
         )
+        recommended = self.constraints.render_recommended()
+        if recommended:
+            lines.extend(
+                ["### Recommended by you, not replaced by the user", *recommended]
+            )
         return "\n".join(lines)
 
     def render_section(self, section: str) -> str:

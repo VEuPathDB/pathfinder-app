@@ -269,6 +269,19 @@ class TestFirstCombinationViolation:
         assert breach.required is CombineOp.UNION
         assert "INTERSECT" in breach.message
 
+    def test_a_recommendation_is_not_a_stated_combination(self) -> None:
+        """Only what the user stated gates the tree."""
+        structure = SpecStructure(
+            root=_combine(CombineOp.INTERSECT, _leaf("c_ms"), _leaf("c_derisi"))
+        )
+        stated = _requirement("mass spectrometry evidence OR DeRisi expression")
+        recommended = stated.model_copy(
+            update={"source": ConstraintSource.ASSUMED},
+        )
+
+        assert _breach_message([recommended], _CRITERIA, structure) == ""
+        assert "INTERSECT" in _breach_message([stated], _CRITERIA, structure)
+
     def test_a_honored_requirement_is_no_breach(self) -> None:
         structure = SpecStructure(
             root=_combine(CombineOp.UNION, _leaf("c_ms"), _leaf("c_derisi"))

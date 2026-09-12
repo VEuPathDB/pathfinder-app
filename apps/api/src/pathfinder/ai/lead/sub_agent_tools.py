@@ -289,6 +289,8 @@ class LeadDeps:
     frame_retried_after_stop: bool = False
     # A reply that blamed VEuPathDB for an internal stop is refused once.
     site_blame_refused: bool = False
+    # A reply that asked the user something and recorded nothing is refused once.
+    unrecorded_question_refused: bool = False
 
     @property
     def conversation_id(self) -> UUID | None:

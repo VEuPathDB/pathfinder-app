@@ -48,6 +48,28 @@
   a save request shows every way to keep a set and not only the memory one.
   Nothing migrates a stored row: a memory of the old kind is simply not listed.
 
+* **Only a message that abandons the request replaces what the thread
+  states.** The requirements a thread has stated are cleared by a `new_strategy`
+  message that answers none of the questions the thread asked and states a value
+  of its own; every other message adds to them. A thread that recorded no
+  question and ended waiting on the user keeps them whatever the message is
+  classified as, because nothing there tells an answer from a restart. The card
+  blamed the derivation for having nothing to merge with; the accumulator was
+  already there, and the real cause was `record_intent` emptying it on any
+  `new_strategy` message reaching a thread that had built nothing, which is
+  every answer to a question asked before the frame closed.
+
+* **A question the thread asks carries its recommended value in a typed
+  record.** FRAME's own open questions and the Lead's `asked_questions` write
+  the same record, and a reply that asks a question a framing turn recorded
+  nowhere is refused. A recommendation no requirement replaces is accepted once
+  and kept until a requirement on its dimension arrives, so it survives the next
+  reply. It reaches the ledger and the sub-agents as a value the assistant
+  offered, never as one the user stated: a combination only gates a tree when
+  the user stated it. A requirement an earlier message stated says so in the
+  pinned summary, and the FRAME work order names the request the answer belongs
+  to, not the answer alone.
+
 * **A step runs the search it was created with.** A node whose search name
   changes is pushed to WDK as a new step and the tree is rewired to it, because
   the search-config endpoint validates the values against the step's own search

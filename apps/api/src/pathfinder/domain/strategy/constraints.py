@@ -50,6 +50,58 @@ class GroundedConstraint(CamelModel):
     note: str = ""
 
 
+_QUESTION_LIMIT = 300
+_LABEL_LIMIT = 120
+
+
+class OpenQuestion(CamelModel):
+    """A question the assistant asked the user, and the value it recommended.
+
+    The recommendation is typed here so the next turn reads it instead of the
+    reply text that offered it.
+    """
+
+    question: str = Field(min_length=1, max_length=_QUESTION_LIMIT)
+    dimension: ConstraintKind = ConstraintKind.OTHER
+    recommended_value: str = ""
+
+    @property
+    def decides_a_dimension(self) -> bool:
+        """Whether the question names the dimension its answer states.
+
+        A question recorded as bare text carries the default dimension, which
+        names nothing.
+        """
+        return (
+            bool(self.recommended_value) or self.dimension is not ConstraintKind.OTHER
+        )
+
+    def recommendation(self) -> Constraint | None:
+        """The recommended value as a constraint, or None when none was offered."""
+        if not self.recommended_value:
+            return None
+        return Constraint(
+            kind=self.dimension,
+            requested_value=self.recommended_value,
+            label=self.question[:_LABEL_LIMIT],
+            source=ConstraintSource.ASSUMED,
+            hard=False,
+        )
+
+
+def standing_recommendations(
+    questions: Sequence[OpenQuestion], stated: Sequence[Constraint]
+) -> list[Constraint]:
+    """The recommended values the latest message leaves standing.
+
+    A message that states a value on a dimension replaces every recommendation
+    on it, so the ledger never carries two answers to one question.
+    """
+    replaced = {c.kind for c in stated}
+    offered = (q.recommendation() for q in questions)
+    return [c for c in offered if c is not None and c.kind not in replaced]
+
+
 _UNMET = {ConstraintStatus.UNGROUNDABLE, ConstraintStatus.SUBSTITUTED}
 
 

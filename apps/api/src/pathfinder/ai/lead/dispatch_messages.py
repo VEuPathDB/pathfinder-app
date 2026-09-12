@@ -283,6 +283,18 @@ def build_not_ready_message(spec: OperationalSpec | None) -> str:
     )
 
 
+def unrecorded_question_message() -> str:
+    """Why a reply that asks the user something and records nothing is refused."""
+    return (
+        "Your reply asks the user a question and records none. The next turn "
+        "reads ``asked_questions``, not your prose, so a question that is not "
+        "there is asked again and a value you recommend is lost. Return the "
+        "same reply with one ``asked_questions`` entry per question: the "
+        "question, the value you recommend for it, and the dimension it "
+        "decides."
+    )
+
+
 def blamed_the_site_message(blame: str, stop: PhaseStop | None) -> str:
     """Why a reply that asks the user to wait for VEuPathDB is refused.
 

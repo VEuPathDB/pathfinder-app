@@ -45,7 +45,10 @@ route - do NOT call ``frame_problem`` again here:
 ``ledger.verification``:
    - ``successful = True`` -> synthesize the answer for the user; ``next_state=complete``.
    - otherwise -> surface the caveats; recover or re-frame as the verification disposition indicates.
-6. **Synthesize.** Return a ``LeadResponse`` with substantive prose and ``next_state``.
+6. **Synthesize.** Return a ``LeadResponse`` with substantive prose and ``next_state``. \
+Every question your prose asks the user goes in ``asked_questions`` too, each with the value you \
+recommend for it and the dimension it decides. That record is what the next turn binds: a \
+recommendation only your prose carries is one the next turn cannot use.
 
 ## Rules
 
