@@ -91,6 +91,45 @@
   every surface, so a build whose root has no number says "count not
   available" where it used to spend the missing count as a zero.
 
+* **Every agent answers a refusal, and a defect ends the run wherever it
+  happens.** One assembly attaches the refusal seam to each agent's capability
+  list, and a test walks this application's packages for every `build_*_agent`
+  it declares and holds the rule over each one that carries tools, so an agent
+  added later is held by the same test rather than by a list someone remembered
+  to extend. A correctable refusal then reaches the model as a retry naming the
+  tool that lists the ids, on every assistant. The seam lives beside the errors
+  it reads, which is the one layer the site-help pilot may reach: the pilot
+  still imports nothing of the science. `ToolResilience` keeps the transient,
+  WDK-refusal and permanently-unavailable branches and answers no other
+  category: a refusal this application names belongs to the seam, and an error
+  of no known category is a defect that propagates to the error path and the
+  alert instead of becoming a tool result the model works around.
+
+* **A question a sub-agent leaves open names the dimension it decides.**
+  `FrameResult.open_questions` and `EditDelta.open_questions` carry typed
+  `OpenQuestion` values, and a `FrameResult` that stops on the user is refused
+  while any of its questions decides neither a dimension nor a recommended
+  value, so the pass is asked again rather than recording a question the next
+  turn can bind nothing to. `record_questions` stores what it is given rather
+  than bare text at the default dimension. A message that abandons the request
+  is then read as an abandonment: its requirements replace the thread's, the
+  abandoned combination arms no structure gate, and only the organism the new
+  goal states reaches FRAME.
+
+* **A requirement is the user's word only where the user wrote it.**
+  `UserIntent` carries no message text and `classify_user_intent` takes none:
+  the tool records the prompt the turn was opened with, so a classification
+  names the turn's own message. The requirements a classification states are
+  attributed against that message: a value whose every word the message carries
+  is the user's, and so is an organism the message names with the genus
+  abbreviated, a combination whose terms the message carries, and a value the
+  thread already holds from the user. Each of those is recorded
+  `user_explicit`; every other value is recorded `assumed` and not hard, so it
+  is surfaced in the ledger under its own heading and gates nothing. A turn
+  whose build was never checked is offered `verify_strategy` and no other tool
+  that writes once its first answer is refused, so the refusal has one way
+  out.
+
 * **A thread reopened while its turn runs follows that turn.** The snapshot
   says whether a turn is in flight: `AssistantClient.snapshot` answers
   `turnInFlight` when the last chunk it read is a prompt envelope, which is the

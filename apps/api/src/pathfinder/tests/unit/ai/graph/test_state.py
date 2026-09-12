@@ -258,12 +258,10 @@ def _requirement(kind: ConstraintKind, label: str, value: str) -> Constraint:
 
 
 def _intent(
-    raw_text: str,
     classification: IntentClassification,
     *constraints: Constraint,
 ) -> UserIntent:
     return UserIntent(
-        raw_text=raw_text,
         classification=classification,
         inferred_goal="what the user asked for",
         explicit_constraints=list(constraints),
@@ -272,6 +270,7 @@ def _intent(
 
 _ASKED = "Find A. gambiae midgut protease genes near a regulatory motif."
 _ANSWERED = "Near = within 1 kb upstream of the motif. Go ahead."
+_ABANDONED = "Forget that. Find P. falciparum kinases."
 
 _ORGANISM = _requirement(ConstraintKind.ORGANISM, "organism", "Anopheles gambiae")
 _PROXIMITY = _requirement(
@@ -280,22 +279,22 @@ _PROXIMITY = _requirement(
 
 
 def _asked_intent() -> UserIntent:
-    return _intent(_ASKED, IntentClassification.NEW_STRATEGY, _ORGANISM)
+    return _intent(IntentClassification.NEW_STRATEGY, _ORGANISM)
 
 
 def _answered_intent() -> UserIntent:
-    return _intent(_ANSWERED, IntentClassification.CLARIFICATION_RESPONSE, _PROXIMITY)
+    return _intent(IntentClassification.CLARIFICATION_RESPONSE, _PROXIMITY)
 
 
-def _threaded(*intents: UserIntent) -> StrategyDomainState:
+def _threaded(*messages: tuple[str, UserIntent]) -> StrategyDomainState:
     domain = StrategyDomainState()
-    for intent in intents:
-        domain.record_intent(intent, request_text=intent.raw_text)
+    for text, intent in messages:
+        domain.record_intent(intent, request_text=text)
     return domain
 
 
 def test_the_thread_accumulates_every_stated_requirement() -> None:
-    domain = _threaded(_asked_intent(), _answered_intent())
+    domain = _threaded((_ASKED, _asked_intent()), (_ANSWERED, _answered_intent()))
 
     assert [c.requested_value for c in domain.requirements] == [
         "Anopheles gambiae",
@@ -304,7 +303,11 @@ def test_the_thread_accumulates_every_stated_requirement() -> None:
 
 
 def test_a_repeated_requirement_is_recorded_once() -> None:
-    domain = _threaded(_asked_intent(), _answered_intent(), _answered_intent())
+    domain = _threaded(
+        (_ASKED, _asked_intent()),
+        (_ANSWERED, _answered_intent()),
+        (_ANSWERED, _answered_intent()),
+    )
 
     assert [c.requested_value for c in domain.requirements].count(
         "within 1 kb upstream"
@@ -312,31 +315,30 @@ def test_a_repeated_requirement_is_recorded_once() -> None:
 
 
 def test_a_clarification_never_becomes_the_original_request() -> None:
-    domain = _threaded(_answered_intent(), _asked_intent())
+    domain = _threaded((_ANSWERED, _answered_intent()), (_ASKED, _asked_intent()))
 
     assert domain.original_request == _ASKED
 
 
 def test_a_new_strategy_on_an_empty_thread_starts_the_requirements_over() -> None:
-    domain = _threaded(_asked_intent(), _answered_intent())
+    domain = _threaded((_ASKED, _asked_intent()), (_ANSWERED, _answered_intent()))
     third = _intent(
-        "Forget that. Find P. falciparum kinases.",
         IntentClassification.NEW_STRATEGY,
         _requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"),
     )
 
-    domain.record_intent(third, request_text=third.raw_text)
+    domain.record_intent(third, request_text=_ABANDONED)
 
     assert [c.requested_value for c in domain.requirements] == ["Plasmodium falciparum"]
-    assert domain.original_request == third.raw_text
+    assert domain.original_request == _ABANDONED
 
 
 def test_a_new_strategy_on_a_built_thread_keeps_the_requirements() -> None:
-    domain = _threaded(_asked_intent(), _answered_intent())
+    domain = _threaded((_ASKED, _asked_intent()), (_ANSWERED, _answered_intent()))
     domain.last_build_outcome = BuildOutcome(pushed_step_ids=["s1"])
-    third = _intent("Also add the RNA-Seq filter.", IntentClassification.NEW_STRATEGY)
+    third = _intent(IntentClassification.NEW_STRATEGY)
 
-    domain.record_intent(third, request_text=third.raw_text)
+    domain.record_intent(third, request_text="Also add the RNA-Seq filter.")
 
     assert [c.requested_value for c in domain.requirements] == [
         "Anopheles gambiae",
@@ -379,3 +381,87 @@ def test_a_combination_over_different_terms_accrues() -> None:
     )
 
     assert len(combos) == 2
+
+
+_RETRY = "Fix the errors and try again."
+_INVENTED = "Return the top 100 genes for each profile"
+
+
+def _classified(*constraints: Constraint) -> UserIntent:
+    return _intent(IntentClassification.CLARIFICATION_RESPONSE, *constraints)
+
+
+def test_a_requirement_the_message_does_not_state_is_not_the_users() -> None:
+    """A value the classifier composed is surfaced, and it gates nothing."""
+    domain = StrategyDomainState()
+
+    domain.record_intent(
+        _classified(_requirement(ConstraintKind.OTHER, "profile breadth", _INVENTED)),
+        request_text=_RETRY,
+    )
+
+    assert [(c.source, c.hard) for c in domain.requirements] == [
+        (ConstraintSource.ASSUMED, False),
+    ]
+
+
+def test_a_requirement_the_message_states_is_the_users() -> None:
+    domain = StrategyDomainState()
+
+    domain.record_intent(
+        _classified(_requirement(ConstraintKind.ORGANISM, "organism", "P. falciparum")),
+        request_text="Find P. falciparum kinases, RNA-Seq only.",
+    )
+
+    assert [(c.source, c.hard) for c in domain.requirements] == [
+        (ConstraintSource.USER_EXPLICIT, True),
+    ]
+
+
+def test_a_requirement_the_user_already_stated_stays_theirs() -> None:
+    """A consult answer is the user's word, so restating it is not an invention."""
+    domain = StrategyDomainState()
+    domain.record_requirements(
+        [_requirement(ConstraintKind.OTHER, "breadth", _INVENTED)]
+    )
+
+    domain.record_intent(
+        _classified(_requirement(ConstraintKind.PERCENTILE, "breadth", _INVENTED)),
+        request_text=_RETRY,
+    )
+
+    assert [(c.kind, c.source) for c in domain.requirements] == [
+        (ConstraintKind.OTHER, ConstraintSource.USER_EXPLICIT),
+        (ConstraintKind.PERCENTILE, ConstraintSource.USER_EXPLICIT),
+    ]
+
+
+def test_an_organism_the_user_abbreviated_is_still_theirs() -> None:
+    """The classifier writes the binomial the user abbreviated."""
+    domain = StrategyDomainState()
+
+    domain.record_intent(
+        _classified(
+            _requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"),
+        ),
+        request_text="Find P. falciparum kinases.",
+    )
+
+    assert [(c.source, c.hard) for c in domain.requirements] == [
+        (ConstraintSource.USER_EXPLICIT, True),
+    ]
+
+
+def test_an_organism_the_message_never_names_is_not_theirs() -> None:
+    domain = StrategyDomainState()
+
+    domain.record_intent(
+        _classified(
+            _requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium vivax"),
+        ),
+        request_text="Find P. falciparum kinases.",
+    )
+
+    assert [(c.source, c.hard) for c in domain.requirements] == [
+        (ConstraintSource.ASSUMED, False),
+    ]

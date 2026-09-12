@@ -22,6 +22,7 @@ PILOT = site_help.__name__
 REACHED = {
     "pathfinder.platform.config",
     "pathfinder.platform.identity",
+    "pathfinder.platform.refusals",
     "pathfinder.platform.tiers",
     "pathfinder.platform.tool_sources",
     "veupathdb_mcp.catalog",

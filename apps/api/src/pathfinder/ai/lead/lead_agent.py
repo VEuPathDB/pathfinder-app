@@ -20,7 +20,6 @@ from pathfinder.ai.agents._instructions import (
     pinned_run_budget,
     pinned_user_memories,
 )
-from pathfinder.ai.capabilities.refusals import ServiceRefusalRetry
 from pathfinder.ai.graph.runtime import one_toolset
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.derive import derive_ledger
@@ -68,6 +67,7 @@ from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_sc
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
 from pathfinder.ai.tools.toolsets import eda
 from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.platform.refusals import agent_capabilities
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -211,12 +211,13 @@ def build_lead_agent() -> LeadAgent:
             Tool(consult_user, requires_approval=True),
         ],
         toolsets=[eda.build_toolset(), turn_tool_sources],
-        capabilities=[
-            ServiceRefusalRetry[LeadDeps](),
-            Thinking(effort="medium"),
-            PrepareTools[LeadDeps](apply_tool_preconditions),
-            *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
-        ],
+        capabilities=agent_capabilities(
+            [
+                Thinking(effort="medium"),
+                PrepareTools[LeadDeps](apply_tool_preconditions),
+                *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
+            ],
+        ),
         retries=3,
         description="The user's voice - orchestrates sub-agents via the Ledger",
         name="lead",

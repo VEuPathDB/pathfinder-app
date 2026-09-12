@@ -5,7 +5,7 @@ from enum import StrEnum
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 
-from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
+from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS, Constraint
 
 
 class IntentClassification(StrEnum):
@@ -46,13 +46,11 @@ REQUEST_INTENTS: frozenset[IntentClassification] = frozenset(
 )
 
 
-# The classifier reads the kinds from the enum, so a new one needs no edit here.
-_CONSTRAINT_KINDS = ", ".join(kind.value for kind in ConstraintKind)
-
-
 class UserIntent(CamelModel):
     """The Lead's typed parsing of the latest user message.
 
+    The message is the turn's own and is read from the state, so this model
+    carries what the classification decides and no text of the message.
     Distinct from ``ProblemFrame``: ``UserIntent`` is per-message and
     re-derived each turn; ``ProblemFrame`` is the durable scoping artifact.
     The Lead writes this via the ``classify_user_intent`` tool as its
@@ -60,7 +58,6 @@ class UserIntent(CamelModel):
     booleans (e.g. ``intent_satisfied``) from typed fields here.
     """
 
-    raw_text: str
     classification: IntentClassification
     inferred_goal: str = Field(max_length=500)
     is_differential: bool = False
@@ -79,7 +76,7 @@ class UserIntent(CamelModel):
         default_factory=list,
         description=(
             "Typed constraints the user STATED in this message. One of "
-            f"{_CONSTRAINT_KINDS}. Captured fresh each turn from the literal "
+            f"{CONSTRAINT_KINDS}. Captured fresh each turn from the literal "
             "message - these are user-explicit by construction and override "
             "scoping's provisional assumptions for the same dimension."
         ),

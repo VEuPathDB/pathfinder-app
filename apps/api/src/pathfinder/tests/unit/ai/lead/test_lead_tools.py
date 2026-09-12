@@ -7,7 +7,9 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.messages import ToolCallPart
 
+from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
 from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
 from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
@@ -27,6 +29,8 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     pipeline_state,
     session_with_one_step,
 )
+
+_REAL_MESSAGE = "Find the gametocyte proteases."
 
 
 def _flat(text: str) -> str:
@@ -67,6 +71,35 @@ def test_research_is_reachable_before_the_turn_is_classified() -> None:
     assert "research_web_search" in UNCLASSIFIED_TOOLS
     assert "research_literature_search" in UNCLASSIFIED_TOOLS
     assert not UNCLASSIFIED_TOOLS & BUILDING_TOOLS
+
+
+def test_the_classifier_takes_no_message_text_from_the_model() -> None:
+    """The classified message is the turn's own, so no text is passed in."""
+    assert sorted(UserIntent.model_fields) == [
+        "classification",
+        "differential_sides",
+        "explicit_constraints",
+        "inferred_goal",
+        "is_differential",
+        "referenced_step_ids",
+        "referenced_strategy_ids",
+    ]
+
+
+def test_the_classifier_records_the_message_the_turn_answers() -> None:
+    """The recorded request is the state's prompt, whatever the model states."""
+    state = pipeline_state(user_prompt=_REAL_MESSAGE)
+    ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
+
+    classify_user_intent(
+        ctx,
+        UserIntent(
+            classification=IntentClassification.NEW_STRATEGY,
+            inferred_goal="find the proteases",
+        ),
+    )
+
+    assert state.domain.original_request == _REAL_MESSAGE
 
 
 def test_the_classifier_reads_an_answer_as_a_clarification() -> None:
@@ -176,3 +209,28 @@ async def test_a_save_request_reaches_the_workbench_through_the_leads_toolset(
     ]
     assert saved[0].user_id == deps.runtime.user_id
     assert [gs.id for gs in deps.created_gene_sets] == [saved[0].id]
+
+
+_CONTEXT_STATEMENT = "I'm investigating virulence factors in Leishmania major."
+
+
+async def test_a_scripted_turn_classifies_the_message_once_and_replies() -> None:
+    """The mock script classifies without a message text and answers once."""
+    deps = lead_deps(pipeline_state(user_prompt=_CONTEXT_STATEMENT))
+
+    result = await build_lead_agent().run(
+        _CONTEXT_STATEMENT,
+        deps=deps,
+        model=get_mock_model(),
+    )
+
+    calls = [
+        part.tool_name
+        for message in result.all_messages()
+        for part in message.parts
+        if isinstance(part, ToolCallPart)
+    ]
+    assert calls.count("classify_user_intent") == 1
+    assert isinstance(result.output, LeadResponse)
+    assert deps.intent is not None
+    assert deps.intent.classification is IntentClassification.CONTEXT_STATEMENT

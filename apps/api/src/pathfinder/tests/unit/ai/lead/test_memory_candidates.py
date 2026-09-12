@@ -28,7 +28,6 @@ def _intent_state(classification: IntentClassification | None) -> PipelineState:
         None
         if classification is None
         else UserIntent(
-            raw_text=_PREFERENCE,
             classification=classification,
             inferred_goal="store a default organism",
         )

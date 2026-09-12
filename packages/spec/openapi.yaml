@@ -12823,6 +12823,10 @@ components:
       description: 'The Lead''s typed parsing of the latest user message.
 
 
+        The message is the turn''s own and is read from the state, so this model
+
+        carries what the classification decides and no text of the message.
+
         Distinct from ``ProblemFrame``: ``UserIntent`` is per-message and
 
         re-derived each turn; ``ProblemFrame`` is the durable scoping artifact.
@@ -12833,9 +12837,6 @@ components:
 
         booleans (e.g. ``intent_satisfied``) from typed fields here.'
       properties:
-        rawText:
-          title: Rawtext
-          type: string
         classification:
           $ref: '#/components/schemas/IntentClassification'
         inferredGoal:
@@ -12873,7 +12874,6 @@ components:
           title: Explicitconstraints
           type: array
       required:
-      - rawText
       - classification
       - inferredGoal
       title: UserIntent

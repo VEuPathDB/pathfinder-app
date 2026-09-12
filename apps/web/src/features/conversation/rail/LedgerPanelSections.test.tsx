@@ -18,7 +18,6 @@ describe("IntentSection", () => {
     render(
       <IntentSection
         intent={{
-          rawText: "find kinase drug targets",
           classification: "new_strategy",
           inferredGoal: "Find kinase drug targets",
           isDifferential: true,
@@ -189,7 +188,6 @@ describe("sections tolerate the optional lists exclude_none drops", () => {
     render(
       <IntentSection
         intent={{
-          rawText: "any kinase",
           classification: "new_strategy",
           inferredGoal: "Find kinases",
         }}

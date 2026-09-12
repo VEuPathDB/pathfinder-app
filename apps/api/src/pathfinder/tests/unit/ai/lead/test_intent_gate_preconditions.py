@@ -57,7 +57,7 @@ def _deps(
         user_message_id=uuid4(),
         domain=domain,
     )
-    intent = None if classification is None else user_intent(_PROMPT, classification)
+    intent = None if classification is None else user_intent(classification)
     if intent is not None and classified_this_turn:
         state.turn_markers.intent_classified = True
     return lead_deps(
@@ -291,7 +291,6 @@ def test_the_markers_belong_to_the_message_they_were_written_for() -> None:
 def _classify_args(classification: IntentClassification) -> dict[str, Any]:
     return {
         "intent": {
-            "rawText": _PROMPT,
             "classification": classification.value,
             "inferredGoal": "what the user asked for",
         },
@@ -340,3 +339,45 @@ def test_classifying_this_turn_marks_the_turn_and_unlocks_the_tools() -> None:
     assert seen.steps[0] == UNCLASSIFIED_TOOLS - _SERVED_TOOLS
     assert {"frame_problem", "build_strategy"} <= seen.steps[1]
     assert deps.state.turn_markers.intent_classified
+
+
+def _replies_twice(seen: OfferedTools) -> FunctionModel:
+    """A model that answers, is refused, and answers again."""
+
+    def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages
+        seen.record(info)
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    tool_name="final_result",
+                    args={"prose": _PROSE, "nextState": "await_user"},
+                    tool_call_id=f"call_final_{len(seen.steps)}",
+                ),
+            ],
+        )
+
+    return FunctionModel(_fn, model_name="scripted")
+
+
+def _unverified_build_deps() -> LeadDeps:
+    deps = _deps(
+        classification=IntentClassification.NEW_STRATEGY,
+        domain=StrategyDomainState(last_build_outcome=_zero_build()),
+        with_steps=True,
+    )
+    deps.state.turn_markers.built = True
+    return deps
+
+
+def test_a_refused_reply_leaves_verification_as_the_only_building_tool() -> None:
+    """The turn built and never verified, so the retry offers one way on."""
+    seen = OfferedTools()
+    deps = _unverified_build_deps()
+
+    result = asyncio.run(
+        build_lead_agent().run(_PROMPT, deps=deps, model=_replies_twice(seen)),
+    )
+
+    assert isinstance(result.output, LeadResponse)
+    assert seen.steps[1] & BUILDING_TOOLS == {"verify_strategy"}

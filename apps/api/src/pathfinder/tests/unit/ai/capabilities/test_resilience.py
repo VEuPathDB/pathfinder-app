@@ -94,22 +94,6 @@ class TestOnToolExecuteError:
             )
 
     @pytest.mark.asyncio
-    async def test_unknown_error_returns_generic_directive(self) -> None:
-        capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
-        ctx = _make_ctx()
-        error = KeyError("missing key")
-        result: Any = await capability.on_tool_execute_error(
-            ctx,
-            call=_make_call(),
-            tool_def=_make_tool_def(),
-            args={},
-            error=error,
-        )
-        assert isinstance(result, str)
-        assert "ERROR:" in result
-        assert "INTERNAL_TOOL_ERROR" in result
-
-    @pytest.mark.asyncio
     async def test_persistent_5xx_on_same_search_gives_up_after_threshold(self) -> None:
         capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
         ctx = _make_ctx()

@@ -100,8 +100,18 @@ def _frame_precondition_fails(
     return bool(ledger.build.zero_result_steps) and markers.built
 
 
+def verification_pending(deps: LeadDeps) -> bool:
+    """Whether this turn's answer was refused until its build is checked."""
+    markers = deps.state.turn_markers
+    return markers.verification_nudged and not markers.verified
+
+
 def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
-    """The tools whose precondition this turn does not meet."""
+    """The tools whose precondition this turn does not meet.
+
+    A turn whose answer was refused for want of a check reaches the check and
+    no other tool that writes, so the refusal has one way out.
+    """
     markers = deps.state.turn_markers
     ledger = derive_ledger(deps.state, deps.intent)
     steps = _step_count(deps)
@@ -116,6 +126,8 @@ def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
         unmet.add("verify_strategy")
     if not markers.eda_previewed:
         unmet.add("create_eda_step")
+    if verification_pending(deps):
+        unmet |= BUILDING_TOOLS - {"verify_strategy"}
     return frozenset(unmet)
 
 
@@ -140,4 +152,5 @@ __all__ = [
     "turn_builds",
     "turn_is_classified",
     "unmet_preconditions",
+    "verification_pending",
 ]

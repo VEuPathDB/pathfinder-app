@@ -217,7 +217,6 @@ def _spec() -> OperationalSpec:
 
 def _intent() -> UserIntent:
     return UserIntent(
-        raw_text="find drug targets",
         classification=IntentClassification.NEW_STRATEGY,
         inferred_goal="protein kinases",
     )

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { normalizeLedgerPayload } from "./normalizeLedger";
 
 const INTENT = {
-  rawText: "find gametocyte genes",
   classification: "new_strategy",
   inferredGoal: "find gametocyte genes",
   isDifferential: true,

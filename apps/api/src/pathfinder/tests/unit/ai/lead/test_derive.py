@@ -191,7 +191,6 @@ def test_verification_section_present() -> None:
 
 def test_differential_intent_surfaces_in_summary() -> None:
     intent = UserIntent(
-        raw_text="X vs Y",
         classification=IntentClassification.NEW_STRATEGY,
         inferred_goal="diff",
         is_differential=True,

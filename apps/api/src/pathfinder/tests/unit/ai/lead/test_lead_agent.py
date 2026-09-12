@@ -312,7 +312,6 @@ def _nudge_deps(
     return lead_deps(
         state,
         intent=user_intent(
-            _NUDGE_PROMPT,
             IntentClassification.EXTEND_STRATEGY,
             inferred_goal="export the subset",
         ),

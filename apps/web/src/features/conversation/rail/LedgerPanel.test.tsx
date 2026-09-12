@@ -27,7 +27,6 @@ const EMPTY_BUILD = {
 function makeLedger(overrides: Partial<InvestigationLedger> = {}): InvestigationLedger {
   return {
     userIntent: {
-      rawText: "find genes",
       classification: "new_strategy",
       inferredGoal: "find genes",
       isDifferential: false,

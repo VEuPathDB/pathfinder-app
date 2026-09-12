@@ -26,6 +26,7 @@ from pathfinder.ai.capabilities.resilience import ToolResilience
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import RecoveryDelta
 from pathfinder.ai.tools.toolsets.execution import build_toolset
+from pathfinder.platform.refusals import agent_capabilities
 
 _EXECUTION_INSTRUCTIONS = with_vocabulary(
     """\
@@ -204,11 +205,13 @@ def build_execution_agent() -> ExecutionAgent:
                 promoted_kind=PROMOTED_NOTE_KIND,
             ),
         ],
-        capabilities=[
-            ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
-            Thinking(effort="medium"),
-            *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
-        ],
+        capabilities=agent_capabilities(
+            [
+                ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
+                Thinking(effort="medium"),
+                *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
+            ],
+        ),
         retries=3,
         description=(
             "LLM recovery agent for execution. Most executions are now "

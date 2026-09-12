@@ -32,11 +32,12 @@ _STUDY = "Which gametocyte RNA-seq study?"
 _STUDY_DEFAULT = "P. falciparum 3D7 gametocyte RNA-seq"
 _SNP = "What counts as a SNP?"
 _SNP_DEFAULT = "non-synonymous SNPs in P. vivax P01"
+_ABANDONED = "Forget that. Find P. falciparum kinases."
+_ACCEPTED = "Use the recommended defaults."
 
 
 def _turn_one_intent() -> UserIntent:
     return user_intent(
-        _TURN_ONE,
         IntentClassification.NEW_STRATEGY,
         inferred_goal="P. vivax orthologs of gametocyte proteases",
         explicit_constraints=[
@@ -58,9 +59,9 @@ def _asked_state(*questions: OpenQuestion) -> PipelineState:
     return state
 
 
-def _answered(state: PipelineState, intent: UserIntent) -> PipelineState:
-    state.user_prompt = intent.raw_text
-    state.domain.record_intent(intent, request_text=intent.raw_text)
+def _answered(state: PipelineState, text: str, intent: UserIntent) -> PipelineState:
+    state.user_prompt = text
+    state.domain.record_intent(intent, request_text=text)
     return state
 
 
@@ -81,7 +82,6 @@ def _questions() -> tuple[OpenQuestion, OpenQuestion]:
 
 def _answering_intent() -> UserIntent:
     return user_intent(
-        _TURN_TWO,
         IntentClassification.NEW_STRATEGY,
         inferred_goal="build the P. vivax protease strategy",
         explicit_constraints=[
@@ -92,7 +92,7 @@ def _answering_intent() -> UserIntent:
 
 
 def test_an_answer_to_an_open_question_keeps_the_request_it_answers_for() -> None:
-    state = _answered(_asked_state(*_questions()), _answering_intent())
+    state = _answered(_asked_state(*_questions()), _TURN_TWO, _answering_intent())
 
     ledger = derive_ledger(state, _answering_intent())
 
@@ -103,7 +103,6 @@ def test_an_answer_to_an_open_question_keeps_the_request_it_answers_for() -> Non
 
 def test_a_new_goal_with_no_question_open_replaces_the_requirements() -> None:
     fresh = user_intent(
-        "Forget that. Find P. falciparum kinases.",
         IntentClassification.NEW_STRATEGY,
         inferred_goal="P. falciparum kinases",
         explicit_constraints=[
@@ -111,7 +110,7 @@ def test_a_new_goal_with_no_question_open_replaces_the_requirements() -> None:
         ],
     )
 
-    state = _answered(_asked_state(), fresh)
+    state = _answered(_asked_state(), _ABANDONED, fresh)
 
     ledger = derive_ledger(state, fresh)
     values = {g.constraint.requested_value for g in ledger.constraints.grounded}
@@ -121,14 +120,13 @@ def test_a_new_goal_with_no_question_open_replaces_the_requirements() -> None:
 
 def _accepting_intent() -> UserIntent:
     return user_intent(
-        "Use the recommended defaults.",
         IntentClassification.CLARIFICATION_RESPONSE,
         inferred_goal="take the recommended defaults",
     )
 
 
 def test_a_recommendation_the_message_leaves_alone_is_carried() -> None:
-    state = _answered(_asked_state(*_questions()), _accepting_intent())
+    state = _answered(_asked_state(*_questions()), _ACCEPTED, _accepting_intent())
 
     ledger = derive_ledger(state, _accepting_intent())
 
@@ -139,7 +137,7 @@ def test_a_recommendation_the_message_leaves_alone_is_carried() -> None:
 
 
 def test_the_pinned_summary_shows_the_carried_recommendations() -> None:
-    state = _answered(_asked_state(*_questions()), _accepting_intent())
+    state = _answered(_asked_state(*_questions()), _ACCEPTED, _accepting_intent())
 
     summary = derive_ledger(state, _accepting_intent()).render_summary()
 
@@ -151,7 +149,7 @@ def test_the_pinned_summary_shows_the_carried_recommendations() -> None:
 
 
 def test_a_recommendation_the_message_overrides_is_dropped() -> None:
-    state = _answered(_asked_state(*_questions()), _answering_intent())
+    state = _answered(_asked_state(*_questions()), _TURN_TWO, _answering_intent())
 
     ledger = derive_ledger(state, _answering_intent())
 
@@ -161,6 +159,7 @@ def test_a_recommendation_the_message_overrides_is_dropped() -> None:
 def test_a_question_with_no_recommendation_carries_nothing() -> None:
     state = _answered(
         _asked_state(OpenQuestion(question=_SNP)),
+        _ACCEPTED,
         _accepting_intent(),
     )
 
@@ -170,7 +169,7 @@ def test_a_question_with_no_recommendation_carries_nothing() -> None:
 
 
 def test_the_frame_dispatch_carries_the_first_turn_combination() -> None:
-    state = _answered(_asked_state(*_questions()), _answering_intent())
+    state = _answered(_asked_state(*_questions()), _TURN_TWO, _answering_intent())
 
     deps = agent_deps_for(lead_deps(state, intent=_answering_intent()))
 
@@ -188,7 +187,7 @@ def test_the_frame_dispatch_carries_a_recommended_organism() -> None:
     )
     state = pipeline_state("plasmodb", user_prompt="Find the gametocyte proteases.")
     state.domain.open_questions = [question]
-    state = _answered(state, _accepting_intent())
+    state = _answered(state, _ACCEPTED, _accepting_intent())
 
     deps = agent_deps_for(lead_deps(state, intent=_accepting_intent()))
 
@@ -196,7 +195,7 @@ def test_the_frame_dispatch_carries_a_recommended_organism() -> None:
 
 
 def test_the_frame_work_order_names_the_request_the_answer_belongs_to() -> None:
-    state = _answered(_asked_state(*_questions()), _answering_intent())
+    state = _answered(_asked_state(*_questions()), _TURN_TWO, _answering_intent())
 
     order = frame_work_order("re-frame with the answers", state)
 
@@ -216,7 +215,7 @@ def _waiting_state(*questions: OpenQuestion) -> PipelineState:
 
 
 def test_a_question_asked_in_prose_alone_still_keeps_the_request() -> None:
-    state = _answered(_waiting_state(), _answering_intent())
+    state = _answered(_waiting_state(), _TURN_TWO, _answering_intent())
 
     ledger = derive_ledger(state, _answering_intent())
 
@@ -227,7 +226,6 @@ def test_a_question_asked_in_prose_alone_still_keeps_the_request() -> None:
 
 def _abandoning_intent() -> UserIntent:
     return user_intent(
-        "Forget that. Find P. falciparum kinases.",
         IntentClassification.NEW_STRATEGY,
         inferred_goal="P. falciparum kinases",
         explicit_constraints=[
@@ -237,7 +235,7 @@ def _abandoning_intent() -> UserIntent:
 
 
 def test_a_new_goal_while_a_question_is_open_replaces_the_requirements() -> None:
-    state = _answered(_waiting_state(*_questions()), _abandoning_intent())
+    state = _answered(_waiting_state(*_questions()), _ABANDONED, _abandoning_intent())
 
     ledger = derive_ledger(state, _abandoning_intent())
 
@@ -247,7 +245,7 @@ def test_a_new_goal_while_a_question_is_open_replaces_the_requirements() -> None
 
 
 def test_an_abandoned_combination_reaches_no_sub_agent() -> None:
-    state = _answered(_waiting_state(*_questions()), _abandoning_intent())
+    state = _answered(_waiting_state(*_questions()), _ABANDONED, _abandoning_intent())
 
     deps = agent_deps_for(lead_deps(state, intent=_abandoning_intent()))
 
@@ -257,7 +255,6 @@ def test_an_abandoned_combination_reaches_no_sub_agent() -> None:
 
 def _next_question() -> UserIntent:
     return user_intent(
-        "And which SNP set?",
         IntentClassification.CLARIFICATION_RESPONSE,
         inferred_goal="pick the SNP set",
     )
@@ -269,7 +266,7 @@ def test_an_accepted_recommendation_outlives_the_next_question() -> None:
         dimension=ConstraintKind.DATA_TYPE,
         recommended_value=_STUDY_DEFAULT,
     )
-    state = _answered(_waiting_state(study), _accepting_intent())
+    state = _answered(_waiting_state(study), _ACCEPTED, _accepting_intent())
 
     state.domain.open_questions = [OpenQuestion(question="Which SNP set?")]
     state.domain.record_intent(_next_question(), request_text="And which SNP set?")
@@ -286,7 +283,7 @@ def test_a_requirement_stated_earlier_replaces_a_recommendation() -> None:
         dimension=ConstraintKind.ORGANISM,
         recommended_value="Plasmodium falciparum",
     )
-    state = _answered(_waiting_state(strain), _accepting_intent())
+    state = _answered(_waiting_state(strain), _ACCEPTED, _accepting_intent())
 
     ledger = derive_ledger(state, _accepting_intent())
 
@@ -294,7 +291,7 @@ def test_a_requirement_stated_earlier_replaces_a_recommendation() -> None:
 
 
 def test_the_summary_marks_a_requirement_carried_from_an_earlier_message() -> None:
-    state = _answered(_waiting_state(), _answering_intent())
+    state = _answered(_waiting_state(), _TURN_TWO, _answering_intent())
 
     summary = derive_ledger(state, _answering_intent()).render_summary()
 
@@ -308,7 +305,6 @@ def test_the_summary_marks_a_requirement_carried_from_an_earlier_message() -> No
 def _study_only_intent() -> UserIntent:
     """An answer that states a value on one dimension of the two asked about."""
     return user_intent(
-        _TURN_TWO,
         IntentClassification.NEW_STRATEGY,
         inferred_goal="build the P. vivax protease strategy",
         explicit_constraints=[
@@ -317,27 +313,12 @@ def _study_only_intent() -> UserIntent:
     )
 
 
-def test_a_question_recorded_as_bare_text_narrows_nothing() -> None:
-    """A sub-agent's question names no dimension, so no answer can miss it."""
-    state = _waiting_state()
-    state.domain.record_questions([_STUDY, _SNP])
-
-    state = _answered(state, _study_only_intent())
-
-    values = {
-        g.constraint.requested_value
-        for g in derive_ledger(state, _study_only_intent()).constraints.grounded
-    }
-    assert _COMBINATION in values
-    assert "Plasmodium vivax" in values
-
-
 def test_a_question_that_names_no_dimension_narrows_nothing() -> None:
     state = _waiting_state(
         OpenQuestion(question=_SNP, dimension=ConstraintKind.OTHER),
     )
 
-    state = _answered(state, _study_only_intent())
+    state = _answered(state, _TURN_TWO, _study_only_intent())
 
     values = {
         g.constraint.requested_value
@@ -355,9 +336,9 @@ def test_one_question_named_beside_one_unnamed_narrows_nothing() -> None:
             recommended_value=_STUDY_DEFAULT,
         ),
     )
-    state.domain.record_questions([_SNP])
+    state.domain.record_questions([OpenQuestion(question=_SNP)])
 
-    state = _answered(state, _abandoning_intent())
+    state = _answered(state, _ABANDONED, _abandoning_intent())
 
     values = {
         g.constraint.requested_value
@@ -368,3 +349,48 @@ def test_one_question_named_beside_one_unnamed_narrows_nothing() -> None:
         "Plasmodium vivax",
         "Plasmodium falciparum",
     }
+
+
+def _frame_questions() -> list[OpenQuestion]:
+    """What a FRAME pass leaves open, each naming the dimension it decides."""
+    return [
+        OpenQuestion(
+            question=_STUDY,
+            dimension=ConstraintKind.DATA_TYPE,
+            recommended_value=_STUDY_DEFAULT,
+        ),
+        OpenQuestion(
+            question=_SNP,
+            dimension=ConstraintKind.OTHER,
+            recommended_value=_SNP_DEFAULT,
+        ),
+    ]
+
+
+def test_a_recorded_frame_question_keeps_the_dimension_it_decides() -> None:
+    """A sub-agent's question is recorded typed, not as bare text."""
+    state = _waiting_state()
+
+    state.domain.record_questions(_frame_questions())
+
+    assert [
+        (q.dimension, q.recommended_value) for q in state.domain.open_questions
+    ] == [
+        (ConstraintKind.DATA_TYPE, _STUDY_DEFAULT),
+        (ConstraintKind.OTHER, _SNP_DEFAULT),
+    ]
+
+
+def test_a_new_goal_replaces_the_requirements_a_frame_question_left_open() -> None:
+    """The user abandoned the request, so its criteria reach no sub-agent."""
+    state = _waiting_state()
+    state.domain.record_questions(_frame_questions())
+
+    state = _answered(state, _ABANDONED, _abandoning_intent())
+
+    ledger = derive_ledger(state, _abandoning_intent())
+    values = {g.constraint.requested_value for g in ledger.constraints.grounded}
+    assert values == {"Plasmodium falciparum"}
+    deps = agent_deps_for(lead_deps(state, intent=_abandoning_intent()))
+    assert deps.agent_state.combination_requirements == []
+    assert deps.agent_state.organism_hints == ["Plasmodium falciparum"]

@@ -25,7 +25,10 @@ from pathfinder.ai.capabilities.resilience import ToolResilience
 from pathfinder.ai.graph.runtime import AgentDeps, turn_tool_sources
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.tools.toolsets.frame import build_toolset
+from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS
+from pathfinder.platform.refusals import agent_capabilities
 
+# The kinds are the enum's own values, so a kind added there needs no edit here.
 _FRAME_INSTRUCTIONS = with_vocabulary(
     """\
 You are FRAME for a VEuPathDB gene-strategy builder. Turn the user's goal into a CONCRETE,
@@ -132,6 +135,9 @@ Procedure:
    afterward so the tree no longer references it.
 5. Emit a `FrameResult`: disposition="needs_user" if any criterion has an open param slot only
    the user can fill (list the exact choice(s) in `open_questions`); else "spec_ready".
+   Each open question states the `dimension` its open parameter decides, one of
+   <CONSTRAINT_KINDS>, and the `recommended_value` you would use if the user does not
+   answer.
 
 Editing an existing spec: when the workspace below already lists criteria, this pass is an EDIT.
 State a disposition in `changes` for EVERY criterion the workspace lists: "kept", "changed" (name
@@ -164,7 +170,8 @@ Open slots: `open_slots` are parameters you passed null for that have no default
 from the request first (re-call with the value); only when the request genuinely does not
 determine it and the choice changes the science -- e.g. which of several mass-spec experiments
 to use when none was named -- set disposition="needs_user" and list the exact choice in
-`open_questions`. Never ask the user to confirm a value they already wrote. Never claim a param
+`open_questions`, with the dimension that parameter decides and your recommended value.
+Never ask the user to confirm a value they already wrote. Never claim a param
 needs a web UI / wizard / interactive confirmation; every param is set through the API.
 
 Rules: use ONLY search_name values returned by `search_for_searches` - never invent names. Be
@@ -173,7 +180,7 @@ several comparable searches, choose the one whose required parameters resolve wi
 (prefer it over one that leaves an open slot), and whose vocabulary matches the user's stated
 comparison. Do NOT build WDK steps - that is BUILD's job. The workspace below shows the spec you
 have assembled so far.
-"""
+""".replace("<CONSTRAINT_KINDS>", CONSTRAINT_KINDS)
 )
 
 FRAME_MODEL = "openai:gpt-5.6-luna"
@@ -200,11 +207,13 @@ def build_frame_agent() -> FrameAgent:
             ),
             turn_tool_sources,
         ],
-        capabilities=[
-            ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
-            Thinking(effort="medium"),
-            *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
-        ],
+        capabilities=agent_capabilities(
+            [
+                ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
+                Thinking(effort="medium"),
+                *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
+            ],
+        ),
         retries=3,
         description=(
             "FRAME agent: operationalize the goal into a realizable "

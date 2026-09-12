@@ -39,10 +39,9 @@ def _deps(prompt: str) -> LeadDeps:
     return lead_deps(pipeline_state("tritrypdb", user_prompt=prompt))
 
 
-def _classify_args(prompt: str, classification: IntentClassification) -> dict[str, Any]:
+def _classify_args(classification: IntentClassification) -> dict[str, Any]:
     return {
         "intent": {
-            "rawText": prompt,
             "classification": classification.value,
             "inferredGoal": "what the user is working on",
         },
@@ -70,7 +69,7 @@ def _model(
                 parts=[
                     ToolCallPart(
                         tool_name="classify_user_intent",
-                        args=_classify_args(prompt, classification),
+                        args=_classify_args(classification),
                         tool_call_id="call_classify",
                     ),
                 ],
@@ -204,7 +203,7 @@ def _reclassifying_model(prompt: str, seen: OfferedTools) -> FunctionModel:
             parts=[
                 ToolCallPart(
                     tool_name="classify_user_intent",
-                    args=_classify_args(prompt, classification),
+                    args=_classify_args(classification),
                     tool_call_id=f"call_{step}",
                 ),
             ],

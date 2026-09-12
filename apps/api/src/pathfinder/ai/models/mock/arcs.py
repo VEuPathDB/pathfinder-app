@@ -14,7 +14,6 @@ from typing import Any, Literal
 from assistant_core.models.scripted import (
     called_tool_parts,
     current_turn,
-    current_user_text,
     deferred_tool_resolved,
     has_any,
     joined_user_text,
@@ -244,7 +243,6 @@ def _classify(classification: str) -> ToolCallPart:
         CLASSIFY,
         {
             "intent": {
-                "rawText": current_user_text.get(),
                 "classification": classification,
                 "inferredGoal": f"[mock] {classification}",
             },

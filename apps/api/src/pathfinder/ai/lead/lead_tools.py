@@ -32,8 +32,9 @@ def classify_user_intent(
     """Classify the user's intent for this turn. Call this exactly once,
     before any other sub-agent call.
 
-    Construct a ``UserIntent`` with: ``raw_text`` (the user's literal
-    message), ``classification`` (one of the IntentClassification enum
+    The message classified is this turn's own, which is pinned in your
+    instructions; it is never passed here. Construct a ``UserIntent``
+    with: ``classification`` (one of the IntentClassification enum
     values), ``inferred_goal`` (your one-sentence paraphrase),
     ``is_differential`` and ``differential_sides`` when the user is
     asking a comparison question, and any referenced step/strategy IDs.

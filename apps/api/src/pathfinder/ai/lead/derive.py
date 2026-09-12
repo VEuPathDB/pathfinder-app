@@ -123,23 +123,26 @@ def _derive_constraint_section(
     requirements = _thread_requirements(state, intent)
     merged = merge_constraints(provisional, requirements)
     kept = {(c.kind, c.requested_value) for c in merged}
-    merged.extend(
-        c.model_copy(update={"source": ConstraintSource.USER_EXPLICIT})
-        for c in requirements
-        if (c.kind, c.requested_value) not in kept
-    )
+    merged.extend(c for c in requirements if (c.kind, c.requested_value) not in kept)
     recommended = list(state.domain.recommendations)
+    composed = [
+        c for c in requirements if c.source is not ConstraintSource.USER_EXPLICIT
+    ]
     carried = _carried_requirements(state, intent)
     assumed = assumption_constraints(spec)
     if not merged:
         return ConstraintSection(
-            grounded=assumed, recommended=recommended, carried=carried
+            grounded=assumed,
+            recommended=recommended,
+            carried=carried,
+            composed=composed,
         )
     if spec is None:
         return ConstraintSection(
             grounded=provisional_constraints(merged),
             recommended=recommended,
             carried=carried,
+            composed=composed,
         )
     return ConstraintSection(
         grounded=[
@@ -148,6 +151,7 @@ def _derive_constraint_section(
         ],
         recommended=recommended,
         carried=carried,
+        composed=composed,
     )
 
 

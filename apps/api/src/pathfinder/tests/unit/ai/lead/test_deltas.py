@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import pytest
+from pydantic import ValidationError
+
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.deltas import (
     ExecuteDelta,
@@ -10,6 +13,7 @@ from pathfinder.ai.lead.deltas import (
     VerificationDelta,
 )
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
 
 
 def test_frame_result_disposition_default_spec_ready() -> None:
@@ -19,13 +23,21 @@ def test_frame_result_disposition_default_spec_ready() -> None:
 
 
 def test_frame_result_needs_user_carries_questions() -> None:
+    """An open slot names the dimension its answer states."""
     result = FrameResult(
         summary="one open slot",
         disposition="needs_user",
-        open_questions=["Which RNA-seq dataset?"],
+        open_questions=[
+            OpenQuestion(
+                question="Which RNA-seq dataset?",
+                dimension=ConstraintKind.DATA_TYPE,
+            )
+        ],
     )
     assert result.disposition == "needs_user"
-    assert result.open_questions == ["Which RNA-seq dataset?"]
+    assert [(q.question, q.dimension) for q in result.open_questions] == [
+        ("Which RNA-seq dataset?", ConstraintKind.DATA_TYPE)
+    ]
 
 
 def test_execute_delta_carries_outcome() -> None:
@@ -49,3 +61,25 @@ def test_verification_delta_carries_digest() -> None:
     )
     delta = VerificationDelta(digest=digest)
     assert delta.digest.success is True
+
+
+def test_a_pass_that_stops_on_the_user_refuses_a_dimensionless_question() -> None:
+    """A question that decides nothing leaves the next turn nothing to bind."""
+    with pytest.raises(ValidationError) as refused:
+        FrameResult(
+            summary="one open slot",
+            disposition="needs_user",
+            open_questions=[OpenQuestion(question="Which RNA-seq dataset?")],
+        )
+
+    assert "dimension" in str(refused.value)
+
+
+def test_a_pass_that_asks_nothing_takes_any_question_list() -> None:
+    """The refusal is about a pass that stops on the user, and only that."""
+    result = FrameResult(
+        summary="bound them all",
+        open_questions=[OpenQuestion(question="Which RNA-seq dataset?")],
+    )
+
+    assert result.disposition == "spec_ready"

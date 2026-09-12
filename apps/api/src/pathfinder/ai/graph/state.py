@@ -27,6 +27,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
     OpenQuestion,
+    message_states_constraint,
     standing_recommendations,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
@@ -211,6 +212,38 @@ class StrategyDomainState(BaseModel):
             c.kind in dimensions for c in intent.explicit_constraints
         )
 
+    def _attributed(
+        self, constraints: Iterable[Constraint], message: str
+    ) -> list[Constraint]:
+        """Each stated requirement, marked by who the message says stated it.
+
+        A value the message carries is the user's word. A value only the
+        classifier composed is an assumption: it is surfaced, and it gates
+        nothing. A value the user already stated on this thread stays theirs.
+        """
+        theirs = {
+            c.requested_value.casefold()
+            for c in self.requirements
+            if c.source is ConstraintSource.USER_EXPLICIT
+        }
+        attributed: list[Constraint] = []
+        for constraint in constraints:
+            stated = (
+                message_states_constraint(message, constraint)
+                or constraint.requested_value.casefold() in theirs
+            )
+            attributed.append(
+                constraint.model_copy(
+                    update={
+                        "source": ConstraintSource.USER_EXPLICIT
+                        if stated
+                        else ConstraintSource.ASSUMED,
+                        "hard": constraint.hard and stated,
+                    },
+                ),
+            )
+        return attributed
+
     def record_intent(self, intent: UserIntent, *, request_text: str) -> None:
         """Take this turn's requirements and the request they belong to.
 
@@ -225,20 +258,22 @@ class StrategyDomainState(BaseModel):
             self.requirements = []
             self.recommendations = []
             self.original_request = ""
-        self.record_requirements(intent.explicit_constraints)
+        self.record_requirements(
+            self._attributed(intent.explicit_constraints, request_text),
+        )
         self.record_recommendations()
         self.open_questions = []
         if not self.original_request and intent.classification in REQUEST_INTENTS:
             self.original_request = request_text
 
-    def record_questions(self, questions: Iterable[str]) -> None:
+    def record_questions(self, questions: Iterable[OpenQuestion]) -> None:
         """Add each question the thread has not asked already."""
         asked = {question.question for question in self.open_questions}
-        for text in questions:
-            if not text or text in asked:
+        for question in questions:
+            if question.question in asked:
                 continue
-            asked.add(text)
-            self.open_questions.append(OpenQuestion(question=text))
+            asked.add(question.question)
+            self.open_questions.append(question)
 
     def record_recommendations(self) -> None:
         """Keep the recommendations the thread's requirements leave standing.
@@ -280,11 +315,7 @@ class StrategyDomainState(BaseModel):
                     )
                 ]
             seen.add(key)
-            self.requirements.append(
-                constraint.model_copy(
-                    update={"source": ConstraintSource.USER_EXPLICIT}
-                ),
-            )
+            self.requirements.append(constraint)
 
     def markers_for(self, message_id: UUID | None) -> TurnMarkers:
         """This turn's markers. The record rotates on a new user message."""

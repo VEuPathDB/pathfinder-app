@@ -196,6 +196,9 @@ class InvestigationLedger(CamelModel):
                 *(self.constraints.render_stated() or ["- (none)"]),
             ]
         )
+        composed = self.constraints.render_composed()
+        if composed:
+            lines.extend(["### Captured for the user, not stated by them", *composed])
         recommended = self.constraints.render_recommended()
         if recommended:
             lines.extend(

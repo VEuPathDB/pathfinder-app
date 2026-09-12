@@ -1,12 +1,13 @@
-"""The capability that answers a service refusal to the model, not to the user."""
+"""The refusal seam every agent of this deployment carries, and its assembly."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
+from pydantic_ai.capabilities import AgentCapability
 from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart
@@ -85,3 +86,24 @@ class ServiceRefusalRetry(AbstractCapability[AgentDepsT]):
         if not isinstance(error, AppError) or not the_model_can_correct(error):
             raise error
         raise ModelRetry(refusal_retry_message(args, error)) from error
+
+
+def agent_capabilities(
+    carried: Sequence[AgentCapability[AgentDepsT]],
+) -> list[AgentCapability[AgentDepsT]]:
+    """What one agent runs with, plus the seam every agent here carries.
+
+    A refusal this application names answers the model on every assistant, so
+    an agent that declares nothing else still answers one.
+    """
+    return [ServiceRefusalRetry[AgentDepsT](), *carried]
+
+
+__all__ = [
+    "LISTS_THE_IDS",
+    "CallerSuppliedIds",
+    "ServiceRefusalRetry",
+    "agent_capabilities",
+    "refusal_retry_message",
+    "the_model_can_correct",
+]

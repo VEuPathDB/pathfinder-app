@@ -9,18 +9,12 @@ from uuid import UUID, uuid4
 
 import pytest
 from pydantic_ai import Agent
-from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import ToolDefinition
 from pydantic_ai.toolsets.function import FunctionToolset
 
-from pathfinder.ai.capabilities.refusals import (
-    LISTS_THE_IDS,
-    CallerSuppliedIds,
-    ServiceRefusalRetry,
-)
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import control_sets
@@ -32,6 +26,11 @@ from pathfinder.platform.errors import (
     NotFoundError,
     SiteUnavailableError,
     UnauthorizedError,
+)
+from pathfinder.platform.refusals import (
+    LISTS_THE_IDS,
+    CallerSuppliedIds,
+    ServiceRefusalRetry,
 )
 from pathfinder.services.control_sets import ControlSetService
 from pathfinder.services.gene_sets.operations import GeneSetService
@@ -260,14 +259,6 @@ async def test_the_gene_set_service_refusal_names_its_listing_tool(
     message = await _seam_message(refused.value, {"gene_set_id": _MISSING_GENE_SET})
     assert _MISSING_GENE_SET in message
     assert "list_workbench_gene_sets" in message
-
-
-def test_the_lead_carries_the_refusal_seam() -> None:
-    """The Lead's own tools reach a service, so its refusals reach the model."""
-    leaves: list[AbstractCapability[Any]] = []
-    build_lead_agent()._root_capability.apply(leaves.append)
-    carried = [leaf for leaf in leaves if isinstance(leaf, ServiceRefusalRetry)]
-    assert len(carried) == 1
 
 
 def test_every_read_id_has_a_listing_tool() -> None:

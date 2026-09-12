@@ -21,6 +21,10 @@ class ConstraintKind(StrEnum):
     OTHER = "other"
 
 
+# Every dimension a constraint can state, as an agent must spell it.
+CONSTRAINT_KINDS = ", ".join(kind.value for kind in ConstraintKind)
+
+
 class ConstraintSource(StrEnum):
     USER_EXPLICIT = "user_explicit"
     ASSUMED = "assumed"
@@ -92,6 +96,63 @@ class OpenQuestion(CamelModel):
         )
 
 
+_WORD_RE = re.compile(r"[a-z0-9]+")
+# A binomial is a genus and a species epithet, and only a genus abbreviates.
+_BINOMIAL_WORDS = 2
+
+
+def _words(text: str) -> list[str]:
+    return _WORD_RE.findall(text.casefold())
+
+
+def message_states(message: str, value: str) -> bool:
+    """Whether the message carries every word of this value.
+
+    A classifier rewrites what it captures into a canonical value, so the words
+    are the test and the phrasing is not. This reads words and not meaning: a
+    short value whose words all appear somewhere in the message counts as
+    stated.
+    """
+    carried = set(_words(message))
+    stated = _words(value)
+    return bool(stated) and all(word in carried for word in stated)
+
+
+def _genus_abbreviated(value: str) -> str:
+    """The binomial with its genus as an initial, as a researcher writes it.
+
+    A one-word name abbreviates to a single letter, which names nothing, so it
+    is returned whole.
+    """
+    words = _words(value)
+    if len(words) < _BINOMIAL_WORDS:
+        return value
+    return " ".join([words[0][0], *words[1:]])
+
+
+def message_states_constraint(message: str, constraint: Constraint) -> bool:
+    """Whether the message states the value this constraint carries.
+
+    A combination is written in a canonical form: the operator is the
+    classifier's and the terms are the user's, so the terms are what the
+    message must carry. An organism is written as the binomial, which the
+    message may carry with the genus abbreviated.
+    """
+    value = constraint.requested_value
+    if constraint.kind is ConstraintKind.ORGANISM:
+        return message_states(message, value) or message_states(
+            message, _genus_abbreviated(value)
+        )
+    request = (
+        CombinationRequest.parse(value)
+        if constraint.kind is ConstraintKind.COMBINATION
+        else None
+    )
+    if request is None:
+        return message_states(message, value)
+    return all(message_states(message, term) for term in request.terms)
+
+
 def standing_recommendations(
     questions: Sequence[OpenQuestion], stated: Sequence[Constraint]
 ) -> list[Constraint]:
@@ -160,17 +221,15 @@ def _dimension(c: Constraint) -> _Dimension:
 def merge_constraints(
     provisional: list[Constraint], explicit: list[Constraint]
 ) -> list[Constraint]:
-    """Merge the provisional constraints with the ones the user states.
+    """Merge the provisional constraints with the ones the thread has stated.
 
-    The explicit set wins per dimension and takes ``user_explicit``: a value
-    the user states is explicit whatever the caller tagged it.
+    A stated constraint wins its dimension and keeps the source it was recorded
+    with: who stated a value is decided when the thread records it, not here.
     """
 
     by_dimension: dict[_Dimension, Constraint] = {_dimension(c): c for c in provisional}
     for c in explicit:
-        by_dimension[_dimension(c)] = c.model_copy(
-            update={"source": ConstraintSource.USER_EXPLICIT}
-        )
+        by_dimension[_dimension(c)] = c
     return list(by_dimension.values())
 
 

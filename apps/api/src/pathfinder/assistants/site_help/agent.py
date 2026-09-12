@@ -20,6 +20,7 @@ from veupathdb_mcp.catalog import get_raw_searches, get_record_types, list_sites
 from pathfinder.assistants.site_help.mock import build_site_help_mock
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
+from pathfinder.platform.refusals import agent_capabilities
 from pathfinder.platform.tiers import resolve_phase_tier_config
 
 SITE_HELP_MODEL = "openai:gpt-5.6-luna"
@@ -169,6 +170,7 @@ def build_site_help_agent() -> SiteHelpAgent:
         instructions=SITE_HELP_INSTRUCTIONS,
         tools=[Tool(list_veupathdb_sites), Tool(describe_site)],
         toolsets=[turn_tool_sources],
+        capabilities=agent_capabilities([]),
         retries=2,
         description="Points users around the VEuPathDB sites",
         name="site_help",

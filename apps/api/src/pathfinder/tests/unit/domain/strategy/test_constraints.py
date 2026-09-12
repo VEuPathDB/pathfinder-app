@@ -109,9 +109,10 @@ def test_provisional_constraints_are_pending_and_non_blocking() -> None:
 
 
 class TestMergingRequirements:
-    def test_merge_explicit_overrides_assumed_per_kind_and_forces_user_explicit(
+    def test_merge_explicit_overrides_assumed_per_kind_and_keeps_its_source(
         self,
     ) -> None:
+        """Who stated a value is decided when the thread records it."""
         provisional = [
             _data_type("RNA-Seq or microarray"),
             Constraint(
@@ -122,7 +123,11 @@ class TestMergingRequirements:
             ),
         ]
 
-        merged = merge_constraints(provisional, [_data_type("RNA-Seq only")])
+        stated = _data_type("RNA-Seq only").model_copy(
+            update={"source": ConstraintSource.USER_EXPLICIT},
+        )
+
+        merged = merge_constraints(provisional, [stated])
 
         by_kind = {c.kind: c for c in merged}
         assert by_kind[ConstraintKind.DATA_TYPE].requested_value == "RNA-Seq only"
@@ -154,7 +159,7 @@ class TestMergingRequirements:
         )
 
         assert len(merged) == 1
-        assert merged[0].source is ConstraintSource.USER_EXPLICIT
+        assert merged[0].requested_value == "mass spec OR DeRisi expression"
 
     def test_another_kind_still_collapses_per_dimension(self) -> None:
         merged = merge_constraints(

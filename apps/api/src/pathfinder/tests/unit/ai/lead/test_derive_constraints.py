@@ -111,7 +111,6 @@ def test_explicit_turn_constraint_overrides_assumed_spec_and_blocks() -> None:
         ],
     )
     intent = UserIntent(
-        raw_text="RNA-Seq only - hard requirement, do not use microarray",
         classification=IntentClassification.CLARIFICATION_RESPONSE,
         inferred_goal="female-enriched OBPs via RNA-Seq",
         explicit_constraints=[
@@ -138,7 +137,6 @@ def test_explicit_turn_constraint_overrides_assumed_spec_and_blocks() -> None:
 
 def test_constraints_surface_as_provisional_when_no_spec_yet() -> None:
     intent = UserIntent(
-        raw_text="RNA-Seq only",
         classification=IntentClassification.NEW_STRATEGY,
         inferred_goal="x",
         explicit_constraints=[

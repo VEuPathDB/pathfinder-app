@@ -11,7 +11,6 @@ from pathfinder.domain.strategy.constraints import ConstraintKind
 
 def test_user_intent_default_non_differential() -> None:
     intent = UserIntent(
-        raw_text="hello",
         classification=IntentClassification.OFF_TOPIC,
         inferred_goal="say hi",
     )
@@ -22,7 +21,6 @@ def test_user_intent_default_non_differential() -> None:
 
 def test_user_intent_differential_sides_two_items() -> None:
     intent = UserIntent(
-        raw_text="X vs Y",
         classification=IntentClassification.NEW_STRATEGY,
         inferred_goal="diff",
         is_differential=True,
@@ -34,7 +32,6 @@ def test_user_intent_differential_sides_two_items() -> None:
 def test_user_intent_differential_sides_rejects_three() -> None:
     with pytest.raises(ValidationError):
         UserIntent(
-            raw_text="X vs Y vs Z",
             classification=IntentClassification.NEW_STRATEGY,
             inferred_goal="diff",
             is_differential=True,

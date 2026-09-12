@@ -106,14 +106,12 @@ def session_with_one_step(
 
 
 def user_intent(
-    raw_text: str,
     classification: IntentClassification,
     *,
     inferred_goal: str = "what the user asked for",
     explicit_constraints: list[Constraint] | None = None,
 ) -> UserIntent:
     return UserIntent(
-        raw_text=raw_text,
         classification=classification,
         inferred_goal=inferred_goal,
         explicit_constraints=list(explicit_constraints or []),

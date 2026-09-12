@@ -270,9 +270,16 @@ def assumption_constraints(spec: OperationalSpec | None) -> list[GroundedConstra
     ]
 
 
-# How many stated requirements the pinned summary prints before it counts
-# the rest.
+# How many requirements the pinned summary prints before it counts the rest.
 _STATED_WINDOW = 20
+
+
+def _windowed(lines: list[str]) -> list[str]:
+    """The most recent lines, with a count of the ones left out."""
+    elided = max(0, len(lines) - _STATED_WINDOW)
+    if not elided:
+        return lines
+    return [f"- ({elided} more stated earlier)", *lines[elided:]]
 
 
 class ConstraintSection(CamelModel):
@@ -283,12 +290,21 @@ class ConstraintSection(CamelModel):
     # The requirements an earlier message stated. Off the wire: the render is
     # what marks them, and the constraint itself is already carried above.
     carried: list[Constraint] = Field(default_factory=list, exclude=True)
+    # The requirements the thread captured that the user did not state. Off the
+    # wire for the same reason: they are already in ``grounded``.
+    composed: list[Constraint] = Field(default_factory=list, exclude=True)
 
     def render_recommended(self) -> list[str]:
         """One line per recommendation the user has not replaced."""
         return [
             f"- {c.label} ({c.kind}): {c.requested_value!r}" for c in self.recommended
         ]
+
+    def render_composed(self) -> list[str]:
+        """One line per requirement the thread captured for the user."""
+        return _windowed(
+            [f"- {c.label} ({c.kind}): {c.requested_value!r}" for c in self.composed],
+        )
 
     def render_stated(self) -> list[str]:
         """One line per requirement the user stated, newest last.
@@ -303,20 +319,18 @@ class ConstraintSection(CamelModel):
             if g.constraint.source is ConstraintSource.USER_EXPLICIT
         ]
         carried = {(c.kind, c.requested_value) for c in self.carried}
-        elided = max(0, len(stated) - _STATED_WINDOW)
-        lines = [
-            f"- {g.constraint.label} ({g.constraint.kind}): "
-            f"{g.constraint.requested_value!r} -> {g.status}"
-            + (
-                " (from an earlier message)"
-                if (g.constraint.kind, g.constraint.requested_value) in carried
-                else ""
-            )
-            for g in stated[elided:]
-        ]
-        if elided:
-            lines.insert(0, f"- ({elided} more stated earlier)")
-        return lines
+        return _windowed(
+            [
+                f"- {g.constraint.label} ({g.constraint.kind}): "
+                f"{g.constraint.requested_value!r} -> {g.status}"
+                + (
+                    " (from an earlier message)"
+                    if (g.constraint.kind, g.constraint.requested_value) in carried
+                    else ""
+                )
+                for g in stated
+            ],
+        )
 
     @computed
     def unmet_count(self) -> int:

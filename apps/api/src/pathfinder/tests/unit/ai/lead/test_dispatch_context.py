@@ -32,9 +32,11 @@ _TURN_TWO = (
 )
 
 
-def _threaded_state(intent: UserIntent, site_id: str = "plasmodb") -> PipelineState:
-    state = pipeline_state(site_id, user_prompt=intent.raw_text)
-    state.domain.record_intent(intent, request_text=intent.raw_text)
+def _threaded_state(
+    prompt: str, intent: UserIntent, site_id: str = "plasmodb"
+) -> PipelineState:
+    state = pipeline_state(site_id, user_prompt=prompt)
+    state.domain.record_intent(intent, request_text=prompt)
     return state
 
 
@@ -76,7 +78,6 @@ def test_no_requirement_is_no_hint() -> None:
 
 def test_the_dispatch_deps_carry_the_organism_hints() -> None:
     intent = user_intent(
-        _HINT_PROMPT,
         IntentClassification.NEW_STRATEGY,
         inferred_goal="mass-spec samples",
         explicit_constraints=[
@@ -84,14 +85,15 @@ def test_the_dispatch_deps_carry_the_organism_hints() -> None:
         ],
     )
 
-    deps = agent_deps_for(lead_deps(_threaded_state(intent), intent=intent))
+    deps = agent_deps_for(
+        lead_deps(_threaded_state(_HINT_PROMPT, intent), intent=intent)
+    )
 
     assert deps.agent_state.organism_hints == ["Plasmodium falciparum"]
 
 
 def test_the_dispatch_deps_carry_the_combination_requirements() -> None:
     intent = user_intent(
-        _COMBINATION_PROMPT,
         IntentClassification.NEW_STRATEGY,
         inferred_goal="kinase drug targets",
         explicit_constraints=[
@@ -104,7 +106,9 @@ def test_the_dispatch_deps_carry_the_combination_requirements() -> None:
         ],
     )
 
-    deps = agent_deps_for(lead_deps(_threaded_state(intent), intent=intent))
+    deps = agent_deps_for(
+        lead_deps(_threaded_state(_COMBINATION_PROMPT, intent), intent=intent)
+    )
 
     assert [c.requested_value for c in deps.agent_state.combination_requirements] == [
         _COMBINATION
@@ -113,7 +117,6 @@ def test_the_dispatch_deps_carry_the_combination_requirements() -> None:
 
 def _turn_one_intent() -> UserIntent:
     return user_intent(
-        _TURN_ONE,
         IntentClassification.NEW_STRATEGY,
         inferred_goal="midgut proteases near a motif",
         explicit_constraints=[
@@ -125,7 +128,6 @@ def _turn_one_intent() -> UserIntent:
 
 def _turn_two_intent() -> UserIntent:
     return user_intent(
-        _TURN_TWO,
         IntentClassification.CLARIFICATION_RESPONSE,
         inferred_goal="confirm the definitions and proceed",
         explicit_constraints=[
@@ -169,9 +171,30 @@ def test_the_pinned_summary_lists_every_stated_requirement() -> None:
     assert "within 1 kb upstream" in summary
 
 
+def test_the_summary_marks_a_requirement_the_message_did_not_state() -> None:
+    """A value the classifier composed is captured, and it is not the user's."""
+    composed = "Return the top 100 genes for each profile"
+    intent = user_intent(
+        IntentClassification.NEW_STRATEGY,
+        inferred_goal="mass-spec samples",
+        explicit_constraints=[
+            requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"),
+            requirement(ConstraintKind.OTHER, "profile breadth", composed),
+        ],
+    )
+    state = _threaded_state(_HINT_PROMPT, intent)
+
+    summary = derive_ledger(state, intent).render_summary()
+
+    assert (
+        f"### Captured for the user, not stated by them\n- profile breadth (other): {composed!r}"
+        in summary
+    )
+    assert "- organism (organism): 'Plasmodium falciparum' -> provisional" in summary
+
+
 def test_the_summary_caps_the_requirement_list() -> None:
     intent = user_intent(
-        "many requirements",
         IntentClassification.NEW_STRATEGY,
         inferred_goal="many",
         explicit_constraints=[
@@ -179,8 +202,9 @@ def test_the_summary_caps_the_requirement_list() -> None:
             for i in range(30)
         ],
     )
-    state = pipeline_state("vectorbase", user_prompt="many requirements")
-    state.domain.record_intent(intent, request_text="many requirements")
+    prompt = "I need " + ", ".join(f"requirement {i}" for i in range(30))
+    state = pipeline_state("vectorbase", user_prompt=prompt)
+    state.domain.record_intent(intent, request_text=prompt)
 
     summary = derive_ledger(state, intent).render_summary()
 

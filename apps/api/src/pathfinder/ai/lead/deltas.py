@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS, OpenQuestion
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 
 
@@ -16,7 +17,13 @@ class FrameResult(CamelModel):
 
     summary: str = ""
     disposition: Literal["spec_ready", "needs_user", "needs_research"] = "spec_ready"
-    open_questions: list[str] = Field(default_factory=list)
+    open_questions: list[OpenQuestion] = Field(
+        default_factory=list,
+        description=(
+            "One entry per open slot only the user can decide, each naming "
+            "the dimension its answer states and the value you recommend."
+        ),
+    )
     changes: list[CriterionChange] = Field(
         default_factory=list,
         description=(
@@ -25,6 +32,29 @@ class FrameResult(CamelModel):
             "workspace was empty."
         ),
     )
+
+    @model_validator(mode="after")
+    def _every_asked_question_decides_something(self) -> FrameResult:
+        """A pass that stops on the user asks for a value on a named dimension.
+
+        A question that names neither a dimension nor a recommended value
+        leaves the next turn nothing to bind and nothing to read an answer
+        against.
+        """
+        if self.disposition != "needs_user":
+            return self
+        undecided = [
+            q.question for q in self.open_questions if not q.decides_a_dimension
+        ]
+        if undecided:
+            msg = (
+                f"These open questions decide nothing: {undecided}. Give each "
+                f"one the `dimension` its open parameter states, one of "
+                f"{CONSTRAINT_KINDS}, and the `recommended_value` you would "
+                f"use if the user does not answer."
+            )
+            raise ValueError(msg)
+        return self
 
 
 class ExecuteDelta(CamelModel):
@@ -43,7 +73,7 @@ class EditDelta(CamelModel):
     diff: SpecDiff
     disposition: Literal["applied", "needs_user"] = "applied"
     summary: str = ""
-    open_questions: list[str] = Field(default_factory=list)
+    open_questions: list[OpenQuestion] = Field(default_factory=list)
     description: str = ""
     operations_applied: int = 0
     preserved_step_ids: list[str] = Field(default_factory=list)

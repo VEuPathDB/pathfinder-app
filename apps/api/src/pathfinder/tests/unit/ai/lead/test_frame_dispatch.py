@@ -14,7 +14,7 @@ from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_stream import PhaseRun
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -82,7 +82,16 @@ async def test_the_questions_frame_cannot_answer_are_recorded(
         FrameResult(
             disposition="needs_user",
             summary="which dataset?",
-            open_questions=["Which gametocyte RNA-seq study?", "What counts as a SNP?"],
+            open_questions=[
+                OpenQuestion(
+                    question="Which gametocyte RNA-seq study?",
+                    dimension=ConstraintKind.DATA_TYPE,
+                ),
+                OpenQuestion(
+                    question="What counts as a SNP?",
+                    recommended_value="non-synonymous only",
+                ),
+            ],
         ),
     )
     deps = _deps()
@@ -93,9 +102,9 @@ async def test_the_questions_frame_cannot_answer_are_recorded(
         work_order=frame_work_order("frame it", deps.state),
     )
 
-    assert [q.question for q in deps.state.domain.open_questions] == [
-        "Which gametocyte RNA-seq study?",
-        "What counts as a SNP?",
+    assert [(q.question, q.dimension) for q in deps.state.domain.open_questions] == [
+        ("Which gametocyte RNA-seq study?", ConstraintKind.DATA_TYPE),
+        ("What counts as a SNP?", ConstraintKind.OTHER),
     ]
 
 

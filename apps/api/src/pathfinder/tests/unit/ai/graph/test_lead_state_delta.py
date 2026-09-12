@@ -83,7 +83,6 @@ def test_the_strategy_fields_travel_on_one_domain_channel() -> None:
 
 def test_the_intent_the_lead_classified_is_written_to_the_domain() -> None:
     intent = UserIntent(
-        raw_text="find drug targets",
         classification=IntentClassification.NEW_STRATEGY,
         inferred_goal="protein kinases",
     )
@@ -149,9 +148,11 @@ def test_a_lead_response_records_the_questions_it_asks() -> None:
 
 
 def test_the_record_that_names_a_dimension_wins_the_same_question() -> None:
-    """A sub-agent asks in bare text; the reply's own record names the dimension."""
+    """A question recorded with no dimension; the reply's own record names one."""
     state = _state()
-    state.domain.record_questions(["Which gametocyte RNA-seq study?"])
+    state.domain.record_questions(
+        [OpenQuestion(question="Which gametocyte RNA-seq study?")],
+    )
     deps = _deps(state)
     capture = _LeadRunCapture()
     capture.response = LeadResponse(

@@ -22,6 +22,7 @@ from pathfinder.ai.capabilities.error_classification import (
     classify_error,
 )
 from pathfinder.ai.graph.runtime import OUTAGE_GIVE_UP_THRESHOLD, AgentDeps
+from pathfinder.platform.errors import AppError
 
 _WDK_STATUS_NOT_FOUND = 404
 _WDK_STATUS_UNPROCESSABLE = 422
@@ -197,11 +198,6 @@ _NEXT_ACTIONS_PERMANENT = [
     "Ask the user if they can provide the information you were searching for",
 ]
 
-_NEXT_ACTIONS_UNKNOWN = [
-    "Try a different approach using other available tools",
-    "If the task requires this tool, inform the user about the limitation",
-]
-
 
 # ---------------------------------------------------------------------------
 # Semantic directive builders
@@ -294,8 +290,10 @@ class ToolResilience(AbstractCapability[AgentDeps]):
     """Route each tool execution error to a recovery strategy by its category.
 
     A transient error raises ModelRetry until the tool reaches its retry
-    ceiling, and answers with the outage directive after that. Every other
-    category returns a directive string as the tool result.
+    ceiling, and answers with the outage directive after that. A WDK refusal
+    and a permanently unavailable service return a directive string as the
+    tool result. A refusal this application names belongs to the refusal seam,
+    and an error of no known category is a defect: both propagate.
     """
 
     search_lookup_tools: frozenset[str] = frozenset()
@@ -329,6 +327,9 @@ class ToolResilience(AbstractCapability[AgentDeps]):
         """Intercept tool execution errors and route by category."""
         # GraphInterrupt is a LangGraph control-flow signal, not an error.
         if isinstance(error, GraphInterrupt):
+            raise error
+        # The refusal seam owns a refusal this application names, on every agent.
+        if isinstance(error, AppError):
             raise error
         tool_name = tool_def.name
         category = classify_error(error)
@@ -371,11 +372,4 @@ class ToolResilience(AbstractCapability[AgentDeps]):
             error_type=type(error).__name__,
             traceback=traceback.format_exc(),
         )
-        return build_error_directive(
-            error_type="INTERNAL_TOOL_ERROR",
-            tool_name=tool_name,
-            tool_args=args,
-            detail=f"{type(error).__name__}: {error}",
-            next_actions=_NEXT_ACTIONS_UNKNOWN,
-            do_not="Do not retry this exact call — an unexpected internal error occurred",
-        )
+        raise error

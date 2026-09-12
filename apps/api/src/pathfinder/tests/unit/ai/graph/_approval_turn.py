@@ -227,7 +227,6 @@ def lead_deps(state: PipelineState) -> LeadDeps:
     return LeadDeps(
         state=state,
         intent=UserIntent(
-            raw_text=state.user_prompt,
             classification=IntentClassification.EXTEND_STRATEGY,
             inferred_goal="tune the fold change",
         ),

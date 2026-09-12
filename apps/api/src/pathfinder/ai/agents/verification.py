@@ -26,6 +26,7 @@ from pathfinder.ai.capabilities.resilience import ToolResilience
 from pathfinder.ai.graph.runtime import AgentDeps, turn_tool_sources
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.tools.toolsets.verification import build_toolset
+from pathfinder.platform.refusals import agent_capabilities
 
 _VERIFICATION_INSTRUCTIONS = with_vocabulary(
     """\
@@ -210,11 +211,13 @@ def build_verification_agent() -> VerificationAgent:
             ),
             turn_tool_sources,
         ],
-        capabilities=[
-            ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
-            Thinking(effort="high"),
-            *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
-        ],
+        capabilities=agent_capabilities(
+            [
+                ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
+                Thinking(effort="high"),
+                *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
+            ],
+        ),
         retries=3,
         description="Inspects strategy results and validates correctness",
         name="verification",
