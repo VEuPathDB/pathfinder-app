@@ -5,7 +5,13 @@ from typing import Any
 
 import pytest
 from veupathdb.domain.parameters import MultiPickValue
-from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree, walk
+from veupathdb.domain.strategy import (
+    CombineOp,
+    StrategyAst,
+    StrategyStepNode,
+    flatten_tree,
+    walk,
+)
 from veupathdb.errors import WDKError
 from veupathdb.wdk import (
     CombinedStepSpec,
@@ -16,6 +22,7 @@ from veupathdb.wdk import (
     WDKStep,
 )
 
+from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies import step_wdk_push
 from pathfinder.services.strategies.step_push_planner import plan_step_pushes
@@ -41,6 +48,9 @@ class CountingStrategyAPI:
     def _alloc(self) -> int:
         self.next_id += 1
         return self.next_id
+
+    def named(self, name: str) -> list[_CallRecord]:
+        return [call for call in self.calls if call.name == name]
 
     async def create_step(
         self, spec: NewStepSpec, record_type: str, user_id: str | None = None
@@ -172,11 +182,17 @@ def _populate_graph(graph: StrategyGraph, ast: StrategyAst) -> None:
     graph.recompute_roots()
 
 
+def _rejected(step_id: str) -> StepPushFailure:
+    return StepPushFailure(
+        step_id=step_id, search_name="SearchB", error="refused", wdk_status=422
+    )
+
+
 def test_push_outcome_partial_property_true_only_when_failed_nonempty() -> None:
-    assert PushOutcome(succeeded=["a"], failed=[]).partial is False
-    assert PushOutcome(succeeded=[], failed=[]).partial is False
-    assert PushOutcome(succeeded=["a"], failed=["b"]).partial is True
-    assert PushOutcome(succeeded=[], failed=["b"]).partial is True
+    assert PushOutcome(succeeded=["a"], failures=[]).partial is False
+    assert PushOutcome(succeeded=[], failures=[]).partial is False
+    assert PushOutcome(succeeded=["a"], failures=[_rejected("b")]).partial is True
+    assert PushOutcome(succeeded=[], failures=[_rejected("b")]).partial is True
 
 
 async def test_push_outcome_all_succeeded(counting_api: CountingStrategyAPI) -> None:
@@ -279,3 +295,94 @@ async def test_push_outcome_all_failed(counting_api: CountingStrategyAPI) -> Non
 
     assert sync_state.wdk_step_ids == {}
     assert set(sync_state.wdk_push_errors.keys()) == {"A", "B", "C"}
+
+
+async def test_a_replaced_search_is_created_and_never_patched(
+    counting_api: CountingStrategyAPI,
+) -> None:
+    """The node keeps its id and runs a new search, so WDK gets a new step."""
+    old = _leaf("A", "GenesByRNASeqSu")
+    new = _leaf("A", "GenesByMicroarrayBirkholtz")
+    graph = StrategyGraph("g1", "test", "plasmodb")
+    _populate_graph(graph, StrategyAst(record_type="transcript", root=new))
+    sync_state = WDKSyncState(wdk_step_ids={"A": 440432473})
+
+    plan = plan_step_pushes(
+        old_ast=StrategyAst(record_type="transcript", root=old),
+        new_ast=StrategyAst(record_type="transcript", root=new),
+        existing_wdk_ids=sync_state.wdk_step_ids,
+    )
+    outcome = await push_steps_with_plan(graph, sync_state, "plasmodb", plan)
+
+    assert outcome.failed == []
+    assert counting_api.named("update_step_search_config") == []
+    created = counting_api.named("create_step")
+    assert [call.kwargs["search_name"] for call in created] == [
+        "GenesByMicroarrayBirkholtz"
+    ]
+    assert sync_state.wdk_step_ids["A"] != 440432473
+
+
+async def test_a_step_that_reaches_wdk_clears_its_earlier_refusal(
+    counting_api: CountingStrategyAPI,
+) -> None:
+    """The refusal describes the last push, so a push that lands ends it."""
+    node = _leaf("A", "SearchA")
+    graph = StrategyGraph("g1", "test", "plasmodb")
+    _populate_graph(graph, StrategyAst(record_type="transcript", root=node))
+    sync_state = WDKSyncState(wdk_push_errors={"A": "422 organism: Invalid value"})
+
+    plan = plan_step_pushes(
+        old_ast=None,
+        new_ast=StrategyAst(record_type="transcript", root=node),
+        existing_wdk_ids={},
+    )
+    outcome = await push_steps_with_plan(graph, sync_state, "plasmodb", plan)
+
+    assert outcome.succeeded == ["A"]
+    assert sync_state.wdk_push_errors == {}
+
+
+async def test_a_combine_above_a_replaced_search_is_created_with_the_new_input(
+    counting_api: CountingStrategyAPI,
+) -> None:
+    """The recreated parent takes the id of the step its child was recreated as."""
+    old_leaf = _leaf("A", "GenesByRNASeqSu")
+    new_leaf = _leaf("A", "GenesByMicroarrayBirkholtz")
+    other = _leaf("B", "GenesByTaxon")
+    old_root = StrategyStepNode(
+        id="J",
+        search_name="__combine__",
+        primary_input=old_leaf,
+        secondary_input=other,
+        operator=CombineOp.INTERSECT,
+    )
+    new_root = StrategyStepNode(
+        id="J",
+        search_name="__combine__",
+        primary_input=new_leaf,
+        secondary_input=other,
+        operator=CombineOp.INTERSECT,
+    )
+    graph = StrategyGraph("g1", "test", "plasmodb")
+    _populate_graph(graph, StrategyAst(record_type="transcript", root=new_root))
+    sync_state = WDKSyncState(wdk_step_ids={"A": 440432473, "B": 200, "J": 300})
+
+    outcome = await push_steps_with_plan(
+        graph,
+        sync_state,
+        "plasmodb",
+        plan_step_pushes(
+            old_ast=StrategyAst(record_type="transcript", root=old_root),
+            new_ast=StrategyAst(record_type="transcript", root=new_root),
+            existing_wdk_ids=sync_state.wdk_step_ids,
+        ),
+    )
+
+    assert outcome.failed == []
+    combines = counting_api.named("create_combined_step")
+    assert [call.kwargs["primary_step_id"] for call in combines] == [
+        sync_state.wdk_step_ids["A"]
+    ]
+    assert [call.kwargs["secondary_step_id"] for call in combines] == [200]
+    assert sync_state.wdk_step_ids["J"] != 300

@@ -30,6 +30,14 @@ async def get_estimated_size(
         wdk_step_id: WDK step ID. The step must be built in WDK first.
         wdk_strategy_id: WDK strategy ID (required for imported strategies).
     """
+    refusal = _refusal_recorded_for(ctx.deps, wdk_step_id)
+    if refusal is not None:
+        return with_summary(
+            tool_error(ErrorCode.WDK_ERROR, refusal, wdkStepId=wdk_step_id),
+            f"Step {wdk_step_id} holds no result of this edit",
+            ctx=ctx,
+            status="warn",
+        )
     try:
         result = await get_estimated_size_for_site(
             ctx.deps.strategy_session.site_id, wdk_step_id, wdk_strategy_id
@@ -50,3 +58,18 @@ async def get_estimated_size(
         ctx=ctx,
         status="ok" if result.count else "empty",
     )
+
+
+def _refusal_recorded_for(deps: AgentDeps, wdk_step_id: int) -> str | None:
+    """WDK's refusal of the last edit of this step, when one is on record.
+
+    A refused edit leaves the previous search on the WDK step, so its size is
+    the count of a search the strategy no longer states.
+    """
+    sync_state = deps.strategy_session.sync_state
+    if sync_state is None:
+        return None
+    for step_id, mapped in sync_state.wdk_step_ids.items():
+        if mapped == wdk_step_id:
+            return sync_state.wdk_push_errors.get(step_id)
+    return None

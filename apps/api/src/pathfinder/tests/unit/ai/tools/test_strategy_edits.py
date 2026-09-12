@@ -7,10 +7,16 @@ from typing import Any
 import pytest
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
+from veupathdb.domain.parameters import (
+    MultiPickValue,
+    NumberValue,
+    ParamValue,
+    SinglePickValue,
+)
 from veupathdb.domain.strategy import CombineOp
-from veupathdb.errors import ValidationError
+from veupathdb.errors import ValidationError, WDKError
 from veupathdb_mcp import ToolErrorPayload
+from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import strategy_edits
@@ -22,10 +28,12 @@ from pathfinder.ai.tools.standalone.strategy_edits import (
     update_leaf_params,
     update_step_metadata,
 )
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.operations import DeleteResolution
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools.conftest import summary_of
 
 from ._strategy_edit_stubs import (
     StubAPI,
@@ -136,10 +144,10 @@ class TestUpdateLeafParams:
         seen: dict[str, dict[str, Any]] = {}
 
         async def _capture_validate(
-            _search_ctx: Any, *, parameters: dict[str, Any], **_kw: Any
-        ) -> dict[str, Any]:
+            _search_ctx: Any, *, parameters: dict[str, ParamValue], **_kw: Any
+        ) -> ValidatedParams:
             seen["parameters"] = dict(parameters)
-            return dict(parameters)
+            return ValidatedParams(params=dict(parameters), record_class="transcript")
 
         monkeypatch.setattr(strategy_edits, "validate_parameters", _capture_validate)
 
@@ -152,6 +160,43 @@ class TestUpdateLeafParams:
             value="80%"
         )
         assert seen["parameters"]["organism"] == MultiPickValue(values=["Pf3D7"])
+
+    async def test_a_number_among_vocabulary_picks_reaches_wdk(
+        self, stub_api: StubAPI
+    ) -> None:
+        """An expression search binds a typed number beside its vocabulary picks."""
+        deps = seed(
+            leaf(
+                "step_7c2e770b",
+                params={"profileset_generic": SinglePickValue(value="Pfal3D7 Su")},
+            ),
+            wdk_step_ids={"step_7c2e770b": 440432473},
+        )
+
+        await update_leaf_params(
+            ctx(deps),
+            "step_7c2e770b",
+            {
+                "profileset_generic": SinglePickValue(
+                    value="Pfal3D7 Gametocyte time course"
+                ),
+                "regulated_dir": SinglePickValue(value="up-regulated"),
+                "fold_change": NumberValue(value=4),
+                "protein_coding_only": SinglePickValue(value="yes"),
+                "hard_floor": NumberValue(value=0),
+            },
+        )
+
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        assert graph.steps["step_7c2e770b"].parameters["fold_change"] == NumberValue(
+            value=4
+        )
+        assert graph.steps["step_7c2e770b"].parameters["hard_floor"] == NumberValue(
+            value=0
+        )
+        patched = stub_api.named("update_step_search_config")
+        assert [call.kwargs["parameters"]["fold_change"] for call in patched] == ["4"]
 
     @pytest.mark.usefixtures("stub_api")
     async def test_a_combine_step_has_no_leaf_params(self) -> None:
@@ -171,7 +216,7 @@ class TestUpdateLeafParams:
             wdk_step_ids={"a": 100},
         )
 
-        async def _raising_validate(*_args: Any, **_kwargs: Any) -> dict[str, object]:
+        async def _raising_validate(*_args: Any, **_kwargs: Any) -> ValidatedParams:
             raise ValidationError(
                 title="Invalid parameter value",
                 detail="Parameter 'organism' does not accept 'NotARealOrganism'.",
@@ -285,3 +330,82 @@ class TestInsertSavedStrategy:
 
         assert res.ok is False
         assert res.code == ErrorCode.INTERNAL_ERROR.value
+
+
+class TestAPushWDKRefusedIsTheAnswer:
+    """A WDK rejection ends the tool call; no summary may claim the edit landed."""
+
+    async def test_a_refused_parameter_edit_retries_with_wdks_message(
+        self, stub_api: StubAPI
+    ) -> None:
+        stub_api.refuse = WDKError(
+            "PUT /users/1216062453/steps/440432473/search-config -> HTTP 422 "
+            "(SEMANTIC): profileset_generic: Invalid value 'Pfal3D7 Gametocyte "
+            "time course'.; dataset_url: Cannot be empty.",
+            status=422,
+        )
+        deps = seed(
+            leaf("a", params={"organism": MultiPickValue(values=["Pf3D7"])}),
+            wdk_step_ids={"a": 440432473},
+        )
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await update_leaf_params(
+                ctx(deps), "a", {"organism": MultiPickValue(values=["PvP01"])}
+            )
+
+        assert "profileset_generic: Invalid value" in str(excinfo.value)
+
+    async def test_an_unreachable_site_answers_with_the_error(
+        self, stub_api: StubAPI
+    ) -> None:
+        stub_api.refuse = OSError("connection reset by peer")
+        deps = seed(
+            combine("c", leaf("a"), leaf("b")),
+            wdk_step_ids={"a": 100, "b": 200, "c": 300},
+        )
+
+        payload = returned(
+            await replace_subtree(ctx(deps), "a", leaf("new_a")), ToolErrorPayload
+        )
+
+        assert payload.ok is False
+        assert "connection reset by peer" in str(payload.model_dump())
+
+    async def test_the_summary_of_a_refused_parameter_edit_names_the_refusal(
+        self, stub_api: StubAPI
+    ) -> None:
+        stub_api.refuse = OSError("connection reset by peer")
+        deps = seed(
+            leaf("a", params={"organism": MultiPickValue(values=["Pf3D7"])}),
+            wdk_step_ids={"a": 100},
+        )
+
+        answer = await update_leaf_params(
+            ctx(deps, tool_call_id="call_1"),
+            "a",
+            {"organism": MultiPickValue(values=["PvP01"])},
+        )
+
+        assert returned(answer, ToolErrorPayload).ok is False
+        assert summary_of(answer).data["summary"] == "VEuPathDB refused the edit of a"
+
+    async def test_a_refused_delete_still_drops_the_criteria_of_the_gone_steps(
+        self, stub_api: StubAPI
+    ) -> None:
+        """The graph keeps the delete, so the spec cannot keep addressing it."""
+        stub_api.refuse = OSError("connection reset by peer")
+        deps = seed(
+            combine("d", combine("c", leaf("a"), leaf("b")), leaf("e")),
+            wdk_step_ids={"a": 100, "b": 200, "c": 300, "d": 400, "e": 500},
+        )
+        draft = deps.agent_state.operational_spec_draft
+        draft.criteria = [
+            Criterion(id="a", text="first", search_name="GenesByTaxon"),
+            Criterion(id="b", text="second", search_name="GenesByTaxon"),
+        ]
+
+        payload = returned(await delete_step(ctx(deps), "a"), ToolErrorPayload)
+
+        assert payload.ok is False
+        assert [c.id for c in draft.criteria] == ["b"]

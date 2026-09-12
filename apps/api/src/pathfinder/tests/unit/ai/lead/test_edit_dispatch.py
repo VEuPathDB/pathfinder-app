@@ -12,9 +12,10 @@ from veupathdb.domain.strategy import CombineOp, flatten_tree
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import edit_dispatch
-from pathfinder.ai.lead.deltas import FrameResult
+from pathfinder.ai.lead.deltas import EditDelta, FrameResult
 from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -175,6 +176,7 @@ def _edit_run(
     before: OperationalSpec,
     after: OperationalSpec,
     session: StrategySession,
+    commit_result: CommitResult | None = None,
 ) -> EditRun:
     """Drive ``run_edit`` with FRAME and the commit replaced by captures."""
     committed: list[GraphOperation] = []
@@ -190,6 +192,8 @@ def _edit_run(
 
     async def _fake_commit(**kwargs: Any) -> CommitResult:
         committed.extend(kwargs["ops"])
+        if commit_result is not None:
+            return commit_result
         return CommitResult(description="edited")
 
     monkeypatch.setattr(edit_dispatch, "run_frame", _fake_frame)
@@ -338,3 +342,63 @@ async def test_an_option_that_contradicts_another_refuses_the_edit(
     assert _SEXUAL_STAGE in message
     assert _TIMECOURSE in message
     assert run.operations == []
+
+
+def _refused_commit(*, status: int | None) -> CommitResult:
+    return CommitResult(
+        description="edited",
+        failures=[
+            StepPushFailure(
+                step_id="step_1",
+                search_name=_SEARCH,
+                error="dataset: Invalid value 'pfal3D7_Sexual_Stage_rnaSeq'",
+                wdk_status=status,
+            )
+        ],
+    )
+
+
+async def test_an_edit_wdk_refused_is_retried_with_wdks_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A refusal of the values is a retry, because other values can pass."""
+    before, session = _built()
+    after = before.model_copy(deep=True)
+    after.criteria.append(_option())
+    run = _edit_run(
+        monkeypatch,
+        before=before,
+        after=after,
+        session=session,
+        commit_result=_refused_commit(status=422),
+    )
+
+    with pytest.raises(ModelRetry) as excinfo:
+        await run_edit(deps=run.deps, parent_tool_call_id="t1", reason="new dataset")
+
+    assert "dataset: Invalid value" in str(excinfo.value)
+
+
+async def test_an_unreachable_site_leaves_no_success_description(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An answer a retry cannot mend is the delta's description."""
+    before, session = _built()
+    after = before.model_copy(deep=True)
+    after.criteria.append(_option())
+    run = _edit_run(
+        monkeypatch,
+        before=before,
+        after=after,
+        session=session,
+        commit_result=_refused_commit(status=None),
+    )
+
+    delta = await run_edit(
+        deps=run.deps, parent_tool_call_id="t1", reason="new dataset"
+    )
+
+    assert isinstance(delta, EditDelta)
+    assert delta.description != "edited"
+    assert "dataset: Invalid value" in delta.description
+    assert delta.failed_step_ids == ["step_1"]

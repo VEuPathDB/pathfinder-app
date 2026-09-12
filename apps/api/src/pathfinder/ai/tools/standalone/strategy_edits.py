@@ -25,7 +25,13 @@ from pathfinder.ai.tools.standalone._graph_helpers import (
     step_ok_response,
     with_full_graph,
 )
-from pathfinder.ai.tools.standalone._strategy_refusals import _no_graph, _step_not_found
+from pathfinder.ai.tools.standalone._strategy_refusals import (
+    _no_graph,
+    _refused,
+    _step_edit_refused,
+    _step_not_found,
+    _wdk_refused_the_edit,
+)
 from pathfinder.ai.tools.standalone._stream_parts import (
     graph_snapshot_chunk,
     strategy_link_chunk,
@@ -109,10 +115,13 @@ async def update_leaf_params(
             searchName=step.search_name,
         ) from exc
 
-    await apply_and_commit(
+    result = await apply_and_commit(
         deps=deps.to_strategy_context(),
-        op=UpdateStepParamsOp(step_id=step_id, parameters=dict(canonical)),
+        op=UpdateStepParamsOp(step_id=step_id, parameters=dict(canonical.params)),
     )
+    refusal = _wdk_refused_the_edit(result)
+    if refusal is not None:
+        return _step_edit_refused(ctx, refusal, step_id)
     return with_summary(
         step_ok_response(session, graph, step),
         f"{step_id}: {count_noun(len(parameters), 'parameter')} updated",
@@ -151,7 +160,7 @@ async def update_combine_operator(
         msg = "VALIDATION_ERROR: colocation_params is only valid for COLOCATE."
         raise ModelRetry(msg)
 
-    await apply_and_commit(
+    result = await apply_and_commit(
         deps=deps.to_strategy_context(),
         op=UpdateCombineOperatorOp(
             step_id=step_id,
@@ -159,6 +168,9 @@ async def update_combine_operator(
             colocation_params=colocation_params,
         ),
     )
+    refusal = _wdk_refused_the_edit(result)
+    if refusal is not None:
+        return _step_edit_refused(ctx, refusal, step_id)
     return with_summary(
         step_ok_response(session, graph, step),
         f"{step_id} now {operator.value}",
@@ -182,10 +194,13 @@ async def update_step_metadata(
         return _step_not_found(ctx, resolved, step_id)
     graph, step = resolved
 
-    await apply_and_commit(
+    result = await apply_and_commit(
         deps=deps.to_strategy_context(),
         op=UpdateStepMetaOp(step_id=step_id, display_name=display_name),
     )
+    refusal = _wdk_refused_the_edit(result)
+    if refusal is not None:
+        return _step_edit_refused(ctx, refusal, step_id)
     return with_summary(
         step_ok_response(session, graph, step),
         f"{step_id} renamed to {display_name}",
@@ -223,7 +238,12 @@ async def delete_step(
         deps=deps.to_strategy_context(),
         op=DeleteStepOp(step_id=step_id, resolution=resolution),
     )
+    # The graph keeps the delete whatever WDK answers, so the spec drops the
+    # criteria of the removed steps before the answer is decided.
     deps.agent_state.drop_criteria_for_steps(result.dropped_step_ids)
+    refusal = _wdk_refused_the_edit(result)
+    if refusal is not None:
+        return _refused(ctx, refusal, f"VEuPathDB refused the delete of {step_id}")
     response: JSONObject = {
         "ok": True,
         "deleted": cast("JSONArray", result.dropped_step_ids),
@@ -297,6 +317,9 @@ async def replace_subtree(
     op = ReplaceSubtreeOp(step_id=step_id, subtree=new_subtree)
     _refuse_a_write_the_spec_did_not_state(deps, graph, op)
     result = await apply_and_commit(deps=deps.to_strategy_context(), op=op)
+    refusal = _wdk_refused_the_edit(result)
+    if refusal is not None:
+        return _refused(ctx, refusal, f"VEuPathDB refused the subtree at {step_id}")
     payload: JSONObject = {
         "ok": True,
         "replacedStepId": step_id,

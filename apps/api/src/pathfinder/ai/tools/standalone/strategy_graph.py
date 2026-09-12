@@ -25,6 +25,7 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     graph_not_found,
     step_not_found,
 )
+from pathfinder.domain.strategy.build_outcome import citable_count
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.types import SyncStateProtocol
@@ -36,11 +37,17 @@ from pathfinder.services.strategies.schemas import StepResponse
 logger = get_logger(__name__)
 
 
-def _root_count(graph: StrategyGraph, sync_state: SyncStateProtocol | None) -> int:
-    """The root step's WDK count. Zero when no single root carries one."""
+def _root_count(
+    graph: StrategyGraph, sync_state: SyncStateProtocol | None
+) -> int | None:
+    """The root step's WDK count. Nothing when no single root carries one."""
     if sync_state is None or len(graph.roots) != 1:
-        return 0
-    return sync_state.step_counts.get(next(iter(graph.roots))) or 0
+        return None
+    return citable_count(
+        next(iter(graph.roots)),
+        counts=sync_state.step_counts,
+        refused=sync_state.wdk_push_errors,
+    )
 
 
 class StrategySummaryResponse(CamelModel):
@@ -109,6 +116,13 @@ async def get_strategy(
     if not graph.steps:
         return with_summary(summary, "No strategy yet", ctx=ctx, status="empty")
     genes = _root_count(graph, sync_state)
+    if genes is None:
+        return with_summary(
+            summary,
+            f"{len(graph.steps)} steps, count not available",
+            ctx=ctx,
+            status="warn",
+        )
     return with_summary(
         summary,
         f"{len(graph.steps)} steps, {genes:,} genes",

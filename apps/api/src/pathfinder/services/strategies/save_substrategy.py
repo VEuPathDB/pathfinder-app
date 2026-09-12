@@ -95,7 +95,7 @@ async def save_subtree_as_strategy(
     record_type = graph.record_type or "transcript"
 
     for node in (cloned_steps[sid] for sid in push_order):
-        wdk_id, _validation, push_error = await push_step_to_wdk(
+        wdk_id, _validation, failure = await push_step_to_wdk(
             sync_state=isolated_sync,
             step=node,
             site_id=site_id,
@@ -103,13 +103,11 @@ async def save_subtree_as_strategy(
             search_name=wdk_search_name(node),
             parameters=dict(node.parameters),
         )
-        if push_error or wdk_id is None:
+        if failure is not None or wdk_id is None:
+            reason = failure.error if failure is not None else "no WDK id returned"
             raise ValidationError(
                 title="failed to clone step into saved strategy",
-                detail=(
-                    f"step {node.id!r} ({node.search_name}): "
-                    f"{push_error or 'no WDK id returned'}"
-                ),
+                detail=f"step {node.id!r} ({node.search_name}): {reason}",
             )
 
     step_tree = build_step_tree_from_graph(cloned_root, isolated_sync.wdk_step_ids)

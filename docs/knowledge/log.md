@@ -1,5 +1,47 @@
 # Log
 
+## 2026-09-12
+
+* **A step runs the search it was created with.** A node whose search name
+  changes is pushed to WDK as a new step and the tree is rewired to it, because
+  the search-config endpoint validates the values against the step's own search
+  and refuses a vocabulary from another one. The planner is the single place
+  that decides this, so every combine above the replaced node is recreated with
+  the new input id.
+
+* **The strategy is re-rooted whenever the tree it maps to moves.** The commit
+  puts the step tree to WDK when the WDK tree the graph maps to differs from the
+  one the session recorded, not when the local shape changes, because a
+  recreated step keeps its local id under a new WDK id. A step the strategy does
+  not list after the put is a failed push, so an edit that leaves steps detached
+  is reported instead of counted.
+
+* **An edit WDK refused is the tool's answer.** A push failure inside the commit
+  path is carried on the result as the answer WDK gave, with the status. A
+  refusal of the values is a retry, because other values can pass; any other
+  answer is the tool's own return. Every edit path answers this way: the step
+  tools, `apply_operations`, the Lead's `edit_strategy` and the EDA export.
+  `wdk_push_errors` stays what it is, the visible and resumable record of the
+  last push of a step, and a push that lands clears it.
+
+* **No count is reported for a step WDK refused.** The WDK step a refused push
+  leaves behind still runs the previous search, so its size answers a question
+  the strategy no longer asks. One rule decides it, `citable_count`, and every
+  surface that renders or reasons about a count reads through it: the size tool,
+  the step response, the per-node build result, the graph the agent reads, the
+  live strategy read, the build outcome and the strategy summary. The commit
+  marks the stored count unknown.
+
+* **A criterion states only the parameters its sheet shows.** The spec derived
+  from a live strategy reads the visible parameter names from the catalog, the
+  same rule the parameter sheet applies, so a hidden or computed parameter the
+  stored step carries is not offered back to a tool that refuses it.
+
+* **The op takes the canonical values, not the envelope around them.** The
+  in-place parameter edit builds its operation from the validated mapping the
+  catalog answers with, so a parameter set holding a number is applied on the
+  existing step instead of failing the operation's own validation.
+
 ## 2026-09-11
 
 * **A tier preset names the roles of the assistant it belongs to.** A preset is

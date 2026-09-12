@@ -23,7 +23,10 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     build_step_tree,
 )
-from pathfinder.domain.strategy.spec_hydration import spec_from_ast
+from pathfinder.domain.strategy.spec_hydration import (
+    hidden_params_dropped,
+    spec_from_ast,
+)
 
 
 def _step_tree(spec: OperationalSpec) -> StrategyStepNode:
@@ -205,3 +208,51 @@ class TestTheReconstructionClaimsNothingItCannotKnow:
         assert [c.role for c in spec.criteria] == ["seed"]
         assert spec.structure is not None
         assert spec.structure.root.kind == "leaf"
+
+
+class TestTheSheetDecidesWhichParamsTheSpecStates:
+    def test_a_parameter_the_sheet_hides_is_not_stated(self) -> None:
+        root = StrategyStepNode(
+            id="step_7c2e770b",
+            search_name="GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC",
+            parameters={
+                "profileset_generic": StringValue(value="Pfal3D7 Su seven stages"),
+                "dataset_url": StringValue(
+                    value="https://PlasmoDB.org/a/app/record/dataset/DS_66f9e70b8a"
+                ),
+            },
+        )
+        ast = StrategyAst(record_type="transcript", root=root)
+
+        spec = hidden_params_dropped(
+            spec_from_ast(ast, goal="g"),
+            sheet_params={
+                "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC": frozenset(
+                    {"profileset_generic"}
+                )
+            },
+        )
+
+        criterion = spec.criteria[0]
+        assert "dataset_url" not in criterion.resolved_params
+        assert criterion.resolved_params["profileset_generic"] == StringValue(
+            value="Pfal3D7 Su seven stages"
+        )
+
+    def test_a_search_the_mapping_does_not_name_keeps_its_values(self) -> None:
+        spec = hidden_params_dropped(
+            spec_from_ast(_three_leaf_ast(), goal="g"), sheet_params={}
+        )
+
+        criterion = next(c for c in spec.criteria if c.id == "step_taxon")
+        assert criterion.resolved_params["organism"] == MultiPickValue(
+            values=["Plasmodium"]
+        )
+
+    def test_the_hydrated_spec_is_left_alone(self) -> None:
+        hydrated = spec_from_ast(_three_leaf_ast(), goal="g")
+
+        hidden_params_dropped(hydrated, sheet_params={"GenesByTaxon": frozenset()})
+
+        criterion = next(c for c in hydrated.criteria if c.id == "step_taxon")
+        assert "organism" in criterion.resolved_params

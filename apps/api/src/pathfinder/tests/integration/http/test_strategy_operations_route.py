@@ -34,9 +34,7 @@ def hermetic_wdk(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
 
     async def no_push(**kwargs: Any) -> _WDKCommitOutcome:
         pushed.append(kwargs["new_ast"])
-        return _WDKCommitOutcome(
-            succeeded_step_ids=[], failed_step_ids=[], sync_result=None
-        )
+        return _WDKCommitOutcome(succeeded_step_ids=[], failures=[], sync_result=None)
 
     monkeypatch.setattr(commit, "_commit_to_wdk", no_push)
     return pushed

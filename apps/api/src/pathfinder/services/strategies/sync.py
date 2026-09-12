@@ -1,6 +1,6 @@
 """Pushes local graph state to WDK: step tree, strategy, counts, decorations."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.domain.strategy import (
@@ -43,6 +43,8 @@ class SyncResult:
     root_count: int | None
     zero_step_ids: list[str]
     step_count: int
+    detached_step_ids: list[str] = field(default_factory=list)
+    """Steps the WDK strategy does not list after its step tree was put."""
 
 
 def build_step_tree_from_graph(
@@ -171,26 +173,51 @@ async def _create_or_update_wdk_strategy(
     return wdk_strategy_id
 
 
+@dataclass
+class _StrategyState:
+    """What WDK answers about the strategy that now holds the step tree."""
+
+    counts: dict[str, int | None]
+    validations: dict[str, StepValidation]
+    root_count: int | None
+    root_step_id: int
+    was_read: bool
+
+
 async def _fetch_strategy_state(
     api: StrategyAPI,
     wdk_strategy_id: int,
     wdk_step_ids: dict[str, int],
     step_tree: WDKStepTree,
-) -> tuple[dict[str, int | None], dict[str, StepValidation], int | None, int]:
-    """Fetch strategy details.
-
-    :returns: Tuple of (counts, validations, root_count, root_wdk_step_id).
-    """
+) -> _StrategyState:
+    """Fetch strategy details."""
     try:
         strategy_info = await api.get_strategy(wdk_strategy_id)
     except VEuPathDBError as e:
         logger.warning("Strategy count lookup failed", error=str(e))
-        return {}, {}, None, step_tree.step_id
+        return _StrategyState({}, {}, None, step_tree.step_id, was_read=False)
     else:
         counts, validations, root_count = _extract_counts_and_validations(
             strategy_info, wdk_step_ids
         )
-        return counts, validations, root_count, strategy_info.root_step_id
+        return _StrategyState(
+            counts, validations, root_count, strategy_info.root_step_id, was_read=True
+        )
+
+
+def step_tree_is_current(root_step: StrategyStepNode, sync_state: WDKSyncState) -> bool:
+    """True when the WDK strategy already holds the tree this graph maps to.
+
+    The tree is keyed by WDK step ids, so a step recreated under a new id
+    moves the tree even when every local id stays the same.
+    """
+    if sync_state.wdk_strategy_id is None:
+        return False
+    try:
+        step_tree = build_step_tree_from_graph(root_step, sync_state.wdk_step_ids)
+    except StrategyCompilationError:
+        return False
+    return step_tree == sync_state.wdk_step_tree
 
 
 async def sync_strategy_for_site(
@@ -234,30 +261,43 @@ async def sync_strategy_for_site(
         api, step_tree, name, sync_state
     )
 
-    counts, validations, root_count, root_wdk_step_id = await _fetch_strategy_state(
+    state = await _fetch_strategy_state(
         api, wdk_strategy_id, sync_state.wdk_step_ids, step_tree
     )
 
     await _maybe_apply_decorations(root_step, sync_state.wdk_step_ids, api)
 
-    sync_state.wdk_strategy_id = wdk_strategy_id
-    sync_state.wdk_step_tree = step_tree
-    sync_state.step_counts = counts
-    sync_state.step_validations = validations
-
     all_steps = walk(root_step)
-    wdk_url = get_site(site_id).strategy_url(wdk_strategy_id, root_wdk_step_id)
-    zeros = sorted([sid for sid, c in counts.items() if c == 0])
+    detached = _detached(all_steps, state)
+
+    sync_state.wdk_strategy_id = wdk_strategy_id
+    # The recorded tree is what the strategy holds. Recording a tree the
+    # strategy did not take would stop the next commit from putting it again.
+    if not detached:
+        sync_state.wdk_step_tree = step_tree
+    sync_state.step_counts = state.counts
+    sync_state.step_validations = state.validations
+
+    wdk_url = get_site(site_id).strategy_url(wdk_strategy_id, state.root_step_id)
+    zeros = sorted([sid for sid, c in state.counts.items() if c == 0])
 
     return SyncResult(
         wdk_strategy_id=wdk_strategy_id,
         wdk_url=wdk_url,
-        root_step_id=root_wdk_step_id,
-        counts=counts,
-        root_count=root_count,
+        root_step_id=state.root_step_id,
+        counts=state.counts,
+        root_count=state.root_count,
         zero_step_ids=zeros,
         step_count=len(all_steps),
+        detached_step_ids=detached,
     )
+
+
+def _detached(all_steps: list[StrategyStepNode], state: _StrategyState) -> list[str]:
+    """The pushed steps the strategy does not list, so they compute nothing."""
+    if not state.was_read:
+        return []
+    return sorted(step.id for step in all_steps if step.id not in state.counts)
 
 
 def _validate_graph(root_step: StrategyStepNode, record_type: str | None) -> None:

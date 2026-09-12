@@ -3,7 +3,9 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
+from veupathdb.errors import WDKError
 from veupathdb.wdk import (
     NewStepSpec,
     PatchStepSpec,
@@ -17,6 +19,7 @@ from pathfinder.domain.strategy.operations import (
     DeleteResolution,
     DeleteStepOp,
     UpdateStepMetaOp,
+    UpdateStepParamsOp,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import commit, step_wdk_push, sync
@@ -36,6 +39,7 @@ class _Call:
 class _StubAPI:
     calls: list[_Call] = field(default_factory=list)
     next_id: int = 9000
+    refuse: Exception | None = None
 
     def _alloc(self) -> int:
         self.next_id += 1
@@ -60,7 +64,8 @@ class _StubAPI:
         return WDKIdentifier(id=self._alloc())
 
     async def update_step_search_config(self, **_kwargs: Any) -> None:
-        return None
+        if self.refuse is not None:
+            raise self.refuse
 
     async def update_step_properties(
         self, step_id: int, spec: PatchStepSpec, *, user_id: str | None = None
@@ -199,3 +204,24 @@ async def test_update_step_meta_does_not_delete_wdk_steps(stub_api: _StubAPI) ->
     assert deps.strategy_session.graph.steps["a"].display_name == "renamed"
     deletes = [c for c in stub_api.calls if c.name == "delete_step"]
     assert deletes == []
+
+
+@pytest.mark.asyncio
+async def test_a_refused_push_leaves_no_count_on_its_step(stub_api: _StubAPI) -> None:
+    """The step still runs the old search, so its stored count is not this edit's."""
+    stub_api.refuse = WDKError("422 organism: Invalid value", status=422)
+    deps = _seed_session(_leaf("a"), wdk_step_ids={"a": 100})
+    session_sync = deps.strategy_session.sync_state
+    assert session_sync is not None
+    session_sync.step_counts["a"] = 1282
+
+    result = await apply_and_commit(
+        deps=deps,
+        op=UpdateStepParamsOp(
+            step_id="a", parameters={"organism": MultiPickValue(values=["PvP01"])}
+        ),
+    )
+
+    assert [failure.step_id for failure in result.failures] == ["a"]
+    assert result.failures[0].wdk_status == 422
+    assert session_sync.step_counts["a"] is None

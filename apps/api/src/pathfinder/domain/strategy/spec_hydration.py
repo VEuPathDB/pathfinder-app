@@ -7,6 +7,8 @@ and the bound parameter values, so the spec is derived rather than re-asked.
 
 from __future__ import annotations
 
+from collections.abc import Collection, Mapping
+
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 from pathfinder.domain.strategy.operational_spec import (
@@ -17,7 +19,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 
-__all__ = ["spec_from_ast"]
+__all__ = ["hidden_params_dropped", "spec_from_ast"]
 
 
 def spec_from_ast(ast: StrategyAst, *, goal: str) -> OperationalSpec:
@@ -75,3 +77,30 @@ def _role_of(node_id: str, kind: str, seed_id: str) -> CriterionRole:
     if node_id == seed_id:
         return "seed"
     return "filter"
+
+
+def hidden_params_dropped(
+    spec: OperationalSpec, *, sheet_params: Mapping[str, Collection[str]]
+) -> OperationalSpec:
+    """A copy of the spec where each criterion states only the sheet's parameters.
+
+    A hidden or computed parameter is WDK's, and a criterion that states one
+    offers the model a value the parameter sheet then refuses. A search the
+    mapping does not name keeps its values, because nothing says which of
+    them the sheet shows.
+    """
+    criteria = [
+        criterion
+        if criterion.search_name not in sheet_params
+        else criterion.model_copy(
+            update={
+                "resolved_params": {
+                    name: value
+                    for name, value in criterion.resolved_params.items()
+                    if name in sheet_params[criterion.search_name]
+                }
+            }
+        )
+        for criterion in spec.criteria
+    ]
+    return spec.model_copy(update={"criteria": criteria})

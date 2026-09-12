@@ -10,6 +10,7 @@ import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
 from veupathdb.wdk import (
     CombinedStepSpec,
@@ -20,6 +21,7 @@ from veupathdb.wdk import (
     WDKSearchConfig,
     WDKStep,
 )
+from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import strategy_edits
@@ -27,6 +29,16 @@ from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import commit, step_wdk_push, sync
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
+
+_STEP_PUSHES = frozenset(
+    {
+        "create_step",
+        "create_combined_step",
+        "create_transform_step",
+        "update_step_search_config",
+        "update_step_properties",
+    }
+)
 
 
 @dataclass
@@ -41,9 +53,13 @@ class StubAPI:
 
     calls: list[Call] = field(default_factory=list)
     next_id: int = 9000
+    refuse: Exception | None = None
+    """Raised by every step push, so a test can play WDK turning an edit down."""
 
     def _record(self, name: str, **kwargs: Any) -> None:
         self.calls.append(Call(name, kwargs))
+        if self.refuse is not None and name in _STEP_PUSHES:
+            raise self.refuse
 
     def _alloc(self) -> int:
         self.next_id += 1
@@ -137,8 +153,10 @@ async def _noop(*_args: Any, **_kwargs: Any) -> None:
     return None
 
 
-async def _echo_parameters(*_args: Any, **kwargs: Any) -> dict[str, object]:
-    return dict(kwargs.get("parameters") or {})
+async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
+    """Accept every value, in the shape the catalog answers with."""
+    params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
+    return ValidatedParams(params=params, record_class="transcript")
 
 
 async def _no_plan_params(*_args: Any, **_kwargs: Any) -> set[str]:
@@ -219,5 +237,11 @@ def seed(root: StrategyStepNode, wdk_step_ids: dict[str, int]) -> AgentDeps:
     )
 
 
-def ctx(deps: AgentDeps) -> RunContext[AgentDeps]:
-    return RunContext(deps=deps, model=TestModel(), usage=RunUsage(), messages=[])
+def ctx(deps: AgentDeps, *, tool_call_id: str | None = None) -> RunContext[AgentDeps]:
+    return RunContext(
+        deps=deps,
+        model=TestModel(),
+        usage=RunUsage(),
+        messages=[],
+        tool_call_id=tool_call_id,
+    )

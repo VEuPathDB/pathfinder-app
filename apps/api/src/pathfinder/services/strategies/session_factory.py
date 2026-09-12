@@ -14,7 +14,8 @@ from pathfinder.persistence.models import (
     ConversationStrategyView,
     PersistedStrategyGraph,
 )
-from pathfinder.platform.errors import StrategyAstCorruptError
+from pathfinder.platform.errors import StrategyAstCorruptError, StrategyCompilationError
+from pathfinder.services.strategies.sync import build_step_tree_from_graph
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -74,7 +75,23 @@ def _restore_wdk_state(
             if sid in graph.steps:
                 sync_state.step_counts[sid] = count
 
+    _restore_wdk_tree(payload, sync_state)
     return sync_state
+
+
+def _restore_wdk_tree(payload: StrategyAst, sync_state: WDKSyncState) -> None:
+    """A stored strategy whose last push failed nowhere is the tree WDK holds."""
+    if payload.wdk_push_errors:
+        sync_state.wdk_push_errors.update(payload.wdk_push_errors)
+        return
+    if sync_state.wdk_strategy_id is None:
+        return
+    try:
+        sync_state.wdk_step_tree = build_step_tree_from_graph(
+            payload.root, sync_state.wdk_step_ids
+        )
+    except StrategyCompilationError:
+        sync_state.wdk_step_tree = None
 
 
 def build_strategy_session(

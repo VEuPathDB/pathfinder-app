@@ -240,6 +240,21 @@ class TestTheRenderedGraph:
         assert rendered is not None
         assert "ERROR: 422 unprocessable" in rendered
 
+    def test_a_step_wdk_refused_carries_no_count(self) -> None:
+        """The stored count is the search WDK still runs, not the edited one."""
+        sync = WDKSyncState()
+        sync.step_counts["b"] = 1282
+        sync.wdk_step_ids["b"] = 440432473
+        sync.wdk_push_errors["b"] = "422 unprocessable"
+
+        rendered = pinned_graph_state(
+            _graph_ctx(_session(_graph_with_a_combine(), sync))
+        )
+
+        assert rendered is not None
+        assert "1,282 genes" not in rendered
+        assert "wdk=440432473" in rendered
+
 
 def test_the_context_package_is_gone() -> None:
     """The one live renderer moved here; nothing else in the package was used."""

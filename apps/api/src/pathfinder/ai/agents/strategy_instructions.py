@@ -12,6 +12,7 @@ from pathfinder.ai.agents.param_vocab_render import render_param_vocab
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.prompts.loader import load_system_prompt
+from pathfinder.domain.strategy.build_outcome import citable_count
 from pathfinder.domain.strategy.types import SyncStateProtocol
 
 
@@ -80,7 +81,15 @@ def _render_step_suffix(
     *,
     is_root: bool,
 ) -> str:
-    count = sync_state.step_counts.get(step_id) if sync_state else None
+    count = (
+        citable_count(
+            step_id,
+            counts=sync_state.step_counts,
+            refused=sync_state.wdk_push_errors,
+        )
+        if sync_state
+        else None
+    )
     wdk_id = sync_state.wdk_step_ids.get(step_id) if sync_state else None
     push_error = sync_state.wdk_push_errors.get(step_id) if sync_state else None
     validation = sync_state.step_validations.get(step_id) if sync_state else None

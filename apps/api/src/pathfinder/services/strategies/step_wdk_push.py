@@ -28,6 +28,7 @@ from veupathdb_mcp.catalog import (
     validate_parameters,
 )
 
+from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.step_status import StepStatus, step_status
 from pathfinder.services.strategies._wdk_step_calls import (
@@ -48,15 +49,19 @@ from pathfinder.services.strategies.sync_state import WDKSyncState
 
 
 class PushOutcome(BaseModel):
-    """Step ids of a push plan, split by result and kept in plan order."""
+    """The result of a push plan, kept in plan order."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     succeeded: list[str]
-    failed: list[str]
+    failures: list[StepPushFailure]
+
+    @property
+    def failed(self) -> list[str]:
+        return [failure.step_id for failure in self.failures]
 
     @property
     def partial(self) -> bool:
-        return len(self.failed) > 0
+        return len(self.failures) > 0
 
 
 logger = get_logger(__name__)
@@ -70,15 +75,15 @@ async def push_step_to_wdk(
     record_type: str,
     search_name: str,
     parameters: dict[str, ParamValue],
-) -> tuple[int | None, StepValidation | None, str | None]:
+) -> tuple[int | None, StepValidation | None, StepPushFailure | None]:
     """Push a newly created step to WDK and store its id on sync_state.
 
-    A rejected push returns the reason in ``push_error`` and does not raise.
+    A rejected push returns WDK's answer as a failure and does not raise.
     """
     parsed_op: CombineOp | None = step.operator
     wdk_step_id: int | None = None
     wdk_validation: StepValidation | None = None
-    push_error: str | None = None
+    failure: StepPushFailure | None = None
     str_params: dict[str, str] = encode_params(parameters)
     try:
         api = get_strategy_api(site_id)
@@ -106,16 +111,28 @@ async def push_step_to_wdk(
             except VEuPathDBError, OSError:
                 wdk_validation = None
 
-    except (VEuPathDBError, OSError) as exc:
-        push_error = str(exc)
+    except VEuPathDBError as exc:
+        failure = _failure(step.id, search_name, exc, exc.status)
+    except OSError as exc:
+        failure = _failure(step.id, search_name, exc, None)
+    if failure is not None:
         logger.warning(
             "WDK step push failed (non-fatal)",
             step_id=step.id,
             search_name=search_name,
-            error=push_error,
+            error=failure.error,
         )
 
-    return wdk_step_id, wdk_validation, push_error
+    return wdk_step_id, wdk_validation, failure
+
+
+def _failure(
+    step_id: str, search_name: str, exc: Exception, status: int | None
+) -> StepPushFailure:
+    """The answer the push got, with the status when the answer carries one."""
+    return StepPushFailure(
+        step_id=step_id, search_name=search_name, error=str(exc), wdk_status=status
+    )
 
 
 async def _execute_patch(
@@ -123,18 +140,21 @@ async def _execute_patch(
     site_id: str,
     step: StrategyStep,
     record_type: str,
-) -> str | None:
+) -> StepPushFailure | None:
     api = get_strategy_api(site_id)
     try:
         if step.kind.value == "combine":
             await _patch_combine_metadata(api, sync_state, step)
         else:
             await _update_existing_step(api, sync_state, step, record_type)
-    except (VEuPathDBError, OSError) as exc:
-        msg = str(exc)
-        sync_state.wdk_push_errors[step.id] = msg
-        return msg
-    return None
+    except VEuPathDBError as exc:
+        failure = _failure(step.id, wdk_search_name(step), exc, exc.status)
+    except OSError as exc:
+        failure = _failure(step.id, wdk_search_name(step), exc, None)
+    else:
+        return None
+    sync_state.wdk_push_errors[step.id] = failure.error
+    return failure
 
 
 async def _execute_create(
@@ -142,20 +162,26 @@ async def _execute_create(
     site_id: str,
     step: StrategyStep,
     record_type: str,
-) -> str | None:
-    wdk_step_id, _validation, push_error = await push_step_to_wdk(
+) -> StepPushFailure | None:
+    search_name = wdk_search_name(step)
+    wdk_step_id, _validation, failure = await push_step_to_wdk(
         sync_state=sync_state,
         step=step,
         site_id=site_id,
         record_type=record_type,
-        search_name=wdk_search_name(step),
+        search_name=search_name,
         parameters=step.parameters,
     )
-    if wdk_step_id is None:
-        if push_error:
-            sync_state.wdk_push_errors[step.id] = push_error
-        return push_error or "push returned no wdk step id"
-    return None
+    if wdk_step_id is not None:
+        return None
+    if failure is None:
+        failure = StepPushFailure(
+            step_id=step.id,
+            search_name=search_name,
+            error="push returned no wdk step id",
+        )
+    sync_state.wdk_push_errors[step.id] = failure.error
+    return failure
 
 
 async def _execute_recreate(
@@ -163,7 +189,7 @@ async def _execute_recreate(
     site_id: str,
     step: StrategyStep,
     record_type: str,
-) -> str | None:
+) -> StepPushFailure | None:
     sync_state.wdk_step_ids.pop(step.id, None)
     return await _execute_create(sync_state, site_id, step, record_type)
 
@@ -274,7 +300,7 @@ async def push_steps_with_plan(
     input id, so it also fails.
     """
     if graph.primary_root_id() is None:
-        return PushOutcome(succeeded=[], failed=[])
+        return PushOutcome(succeeded=[], failures=[])
 
     steps_by_id: dict[str, StrategyStep] = dict(graph.steps)
     strategy_class = graph.record_type or "transcript"
@@ -290,7 +316,7 @@ async def push_steps_with_plan(
     )
 
     succeeded: list[str] = []
-    failed: list[str] = []
+    failures: list[StepPushFailure] = []
 
     for entry in plan:
         step = steps_by_id.get(entry.step_id)
@@ -301,16 +327,18 @@ async def push_steps_with_plan(
             continue
         record_type = record_class_of(step.id, steps_by_id, fallback=strategy_class)
         if isinstance(action, PatchAction):
-            err = await _execute_patch(sync_state, site_id, step, record_type)
+            failure = await _execute_patch(sync_state, site_id, step, record_type)
         elif isinstance(action, CreateAction):
-            err = await _execute_create(sync_state, site_id, step, record_type)
+            failure = await _execute_create(sync_state, site_id, step, record_type)
         elif isinstance(action, RecreateAction):
-            err = await _execute_recreate(sync_state, site_id, step, record_type)
+            failure = await _execute_recreate(sync_state, site_id, step, record_type)
         else:
             assert_never(action)
-        if err is None:
+        if failure is None:
+            # The record names the last push. A push that lands ends it.
+            sync_state.wdk_push_errors.pop(step.id, None)
             succeeded.append(step.id)
         else:
-            failed.append(step.id)
+            failures.append(failure)
 
-    return PushOutcome(succeeded=succeeded, failed=failed)
+    return PushOutcome(succeeded=succeeded, failures=failures)

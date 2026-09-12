@@ -7,7 +7,10 @@ from __future__ import annotations
 
 from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
 
-from pathfinder.ai.tools.standalone._graph_helpers import build_context_strategy_ast
+from pathfinder.ai.tools.standalone._graph_helpers import (
+    build_context_strategy_ast,
+    build_step_response,
+)
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests.fixtures.builders import add_step_to_graph
@@ -95,3 +98,20 @@ class TestTheContextPayloadUsesThatRule:
         payload = build_context_strategy_ast(session, graph)
         assert payload is not None
         assert payload.strategy_ast.root.id == "a"
+
+
+def test_a_step_wdk_refused_reports_no_estimated_size() -> None:
+    """A refused push leaves the previous search on the WDK step and its size."""
+    graph = _graph()
+    step = _leaf("a")
+    add_step_to_graph(graph, step)
+    sync_state = WDKSyncState(
+        wdk_step_ids={"a": 440432473},
+        step_counts={"a": 1282},
+        wdk_push_errors={"a": "422 profileset_generic: Invalid value"},
+    )
+
+    response = build_step_response(graph, step, sync_state)
+
+    assert response.estimated_size is None
+    assert response.wdk_push_error == "422 profileset_generic: Invalid value"

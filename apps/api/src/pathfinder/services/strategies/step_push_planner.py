@@ -41,16 +41,6 @@ def _index_by_id(ast: StrategyAst) -> dict[str, StrategyStepNode]:
     return {s.id: s for s in walk(ast.root)}
 
 
-def _topology_tuples(ast: StrategyAst) -> set[tuple[str, str | None, str | None]]:
-    return {(s.id, s.primary_input_id, s.secondary_input_id) for s in walk(ast.root)}
-
-
-def topology_changed(old_ast: StrategyAst | None, new_ast: StrategyAst) -> bool:
-    if old_ast is None:
-        return True
-    return _topology_tuples(old_ast) != _topology_tuples(new_ast)
-
-
 def _decide_combine(
     new_step: StrategyStepNode, old_step: StrategyStepNode
 ) -> tuple[StepActionT, str]:
@@ -75,7 +65,9 @@ def _decide_leaf_or_transform(
     new_step: StrategyStepNode, old_step: StrategyStepNode
 ) -> tuple[StepActionT, str]:
     if new_step.search_name != old_step.search_name:
-        return PatchAction(), "search changed"
+        # A WDK step runs the search it was created with. The search-config
+        # endpoint validates against that search, so a new search is a new step.
+        return RecreateAction(), "search changed"
     if dict(new_step.parameters) != dict(old_step.parameters):
         return PatchAction(), "params changed"
     if new_step.display_name != old_step.display_name:

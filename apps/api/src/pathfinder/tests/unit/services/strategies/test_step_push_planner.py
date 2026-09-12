@@ -14,7 +14,6 @@ from pathfinder.services.strategies.step_push_planner import (
     SkipAction,
     StepPushPlan,
     plan_step_pushes,
-    topology_changed,
 )
 
 
@@ -266,7 +265,8 @@ def test_display_name_only_change_patches_leaf() -> None:
     ]
 
 
-def test_search_name_change_patches_leaf() -> None:
+def test_search_name_change_recreates_the_leaf() -> None:
+    """A WDK step runs the search it was created with, so a new search is a new step."""
     old = _ast(_leaf("step_a", "GenesByTaxon", organism=_multi(["Pf3D7"])))
     new = _ast(_leaf("step_a", "GenesByOrtholog", organism=_multi(["Pf3D7"])))
     wdk_ids = {"step_a": 1}
@@ -274,8 +274,37 @@ def test_search_name_change_patches_leaf() -> None:
     plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids)
 
     assert plan == [
-        StepPushPlan(step_id="step_a", action=PatchAction(), reason="search changed"),
+        StepPushPlan(
+            step_id="step_a", action=RecreateAction(), reason="search changed"
+        ),
     ]
+
+
+def test_a_replaced_search_recreates_every_combine_above_it() -> None:
+    """The parent combine names the old step id, so it is rewired to the new one."""
+    old = _ast(
+        _combine(
+            "step_join",
+            _leaf("step_a", "GenesByRNASeqSu", organism=_multi(["Pf3D7"])),
+            _leaf("step_b", "GenesByTaxon", organism=_multi(["Pf3D7"])),
+        )
+    )
+    new = _ast(
+        _combine(
+            "step_join",
+            _leaf("step_a", "GenesByMicroarrayBirkholtz", organism=_multi(["Pf3D7"])),
+            _leaf("step_b", "GenesByTaxon", organism=_multi(["Pf3D7"])),
+        )
+    )
+    wdk_ids = {"step_a": 440432473, "step_b": 2, "step_join": 3}
+
+    plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids)
+
+    by_id = {p.step_id: p for p in plan}
+    assert by_id["step_a"].action == RecreateAction()
+    assert by_id["step_join"].action == RecreateAction()
+    assert by_id["step_join"].reason == "descendant recreated"
+    assert by_id["step_b"].action == SkipAction()
 
 
 def test_combine_metadata_only_change_patches_combine() -> None:
@@ -292,62 +321,3 @@ def test_combine_metadata_only_change_patches_combine() -> None:
     assert by_id["step_c"].reason == "combine metadata changed"
     assert by_id["step_a"].action == SkipAction()
     assert by_id["step_b"].action == SkipAction()
-
-
-def test_topology_changed_returns_true_when_step_added() -> None:
-    a = _leaf("step_a")
-    b = _leaf("step_b")
-    old = _ast(_combine("step_c", a, b, op=CombineOp.UNION))
-    d = _leaf("step_d")
-    new = _ast(
-        _combine(
-            "step_outer",
-            _combine("step_c", a, b, op=CombineOp.UNION),
-            d,
-            op=CombineOp.INTERSECT,
-        )
-    )
-
-    assert topology_changed(old, new) is True
-
-
-def test_topology_changed_returns_true_when_step_removed() -> None:
-    a = _leaf("step_a")
-    b = _leaf("step_b")
-    c = _leaf("step_c")
-    old = _ast(
-        _combine(
-            "step_outer",
-            _combine("step_inner", a, b, op=CombineOp.UNION),
-            c,
-            op=CombineOp.INTERSECT,
-        )
-    )
-    new = _ast(_combine("step_inner", a, b, op=CombineOp.UNION))
-
-    assert topology_changed(old, new) is True
-
-
-def test_topology_changed_returns_true_when_input_swapped() -> None:
-    a = _leaf("step_a")
-    b = _leaf("step_b")
-    old = _ast(_combine("step_c", a, b, op=CombineOp.UNION))
-    new = _ast(_combine("step_c", b, a, op=CombineOp.UNION))
-
-    assert topology_changed(old, new) is True
-
-
-def test_topology_changed_returns_false_when_only_params_changed() -> None:
-    a = _leaf("step_a", organism=_multi(["Pf3D7"]))
-    b = _leaf("step_b", organism=_multi(["PvP01"]))
-    old = _ast(_combine("step_c", a, b, op=CombineOp.UNION))
-    a2 = _leaf("step_a", organism=_multi(["Pf3D7", "Pf7G8"]))
-    new = _ast(_combine("step_c", a2, b, op=CombineOp.INTERSECT))
-
-    assert topology_changed(old, new) is False
-
-
-def test_topology_changed_returns_true_when_old_ast_is_none() -> None:
-    new = _ast(_leaf("step_a"))
-
-    assert topology_changed(None, new) is True

@@ -347,9 +347,7 @@ def hermetic_wdk(monkeypatch: pytest.MonkeyPatch, analyses_user: None) -> list[A
 
     async def no_push(**kwargs: Any) -> _WDKCommitOutcome:
         pushed.append(kwargs["new_ast"])
-        return _WDKCommitOutcome(
-            succeeded_step_ids=[], failed_step_ids=[], sync_result=None
-        )
+        return _WDKCommitOutcome(succeeded_step_ids=[], failures=[], sync_result=None)
 
     monkeypatch.setattr(commit, "_commit_to_wdk", no_push)
     return pushed
@@ -576,7 +574,6 @@ async def test_the_step_lands_on_live_wdk(
     assert "error" not in [row["type"] for row in rows]
     created = _tool_output(rows, "create_eda_step")
     assert created["search_name"] == _SUBSET_SEARCH
-    assert created["failed_step_ids"] == []
     assert created["wdk_strategy_id"] is not None
     strategy = await _persisted_strategy(conversation_id)
     _assert_step_persisted(strategy)

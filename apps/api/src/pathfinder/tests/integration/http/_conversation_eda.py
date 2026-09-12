@@ -151,9 +151,7 @@ def hermetic_wdk(monkeypatch: pytest.MonkeyPatch) -> None:
     """WDK is not reached: the commit reports a push it never sent."""
 
     async def no_push(**_kwargs: object) -> _WDKCommitOutcome:
-        return _WDKCommitOutcome(
-            succeeded_step_ids=[], failed_step_ids=[], sync_result=None
-        )
+        return _WDKCommitOutcome(succeeded_step_ids=[], failures=[], sync_result=None)
 
     monkeypatch.setattr(commit, "_commit_to_wdk", no_push)
 

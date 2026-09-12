@@ -11,10 +11,14 @@ from __future__ import annotations
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.turn_briefing import compose_turn_briefing
-from pathfinder.domain.strategy.spec_hydration import spec_from_ast
+from pathfinder.domain.strategy.spec_hydration import (
+    hidden_params_dropped,
+    spec_from_ast,
+)
 from pathfinder.domain.strategy.staleness import detect_build_staleness
 from pathfinder.services.conversations.thread_activity import read_thread_activity
 from pathfinder.services.strategies.live_counts import read_wdk_step_counts
+from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 
 __all__ = [
     "attach_turn_briefing",
@@ -66,7 +70,7 @@ async def refresh_live_strategy_state(
         working_state.domain.last_build_outcome,
         live_counts,
     )
-    _hydrate_spec_from_the_strategy(working_state, context)
+    await _hydrate_spec_from_the_strategy(working_state, context)
     _record_the_spec_the_turn_started_from(working_state)
     return working_state
 
@@ -86,11 +90,15 @@ def _record_the_spec_the_turn_started_from(state: PipelineState) -> None:
     )
 
 
-def _hydrate_spec_from_the_strategy(state: PipelineState, context: Context) -> None:
+async def _hydrate_spec_from_the_strategy(
+    state: PipelineState, context: Context
+) -> None:
     """Describe the live strategy as a spec when no framed spec describes it.
 
     The graph editor, a saved-strategy import and a checkpoint flush all leave
-    a real strategy behind with nothing that says what it asks.
+    a real strategy behind with nothing that says what it asks. The stored step
+    also carries WDK's own parameters, and the criterion states only the ones
+    the search's sheet shows.
     """
     spec = state.domain.operational_spec
     if spec is not None and spec.criteria:
@@ -101,4 +109,10 @@ def _hydrate_spec_from_the_strategy(state: PipelineState, context: Context) -> N
     ast = graph.to_strategy_ast(sync_state=context.strategy_session.sync_state)
     if ast is None:
         return
-    state.domain.operational_spec = spec_from_ast(ast, goal=state.user_prompt)
+    hydrated = spec_from_ast(ast, goal=state.user_prompt)
+    sheets = await sheet_params_for_searches(
+        site_id=context.site_id,
+        record_type=ast.record_type,
+        search_names=[c.search_name for c in hydrated.criteria if c.search_name],
+    )
+    state.domain.operational_spec = hidden_params_dropped(hydrated, sheet_params=sheets)

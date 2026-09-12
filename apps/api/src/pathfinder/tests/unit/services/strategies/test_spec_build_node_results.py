@@ -44,3 +44,26 @@ def testnode_results_marks_failed_with_error() -> None:
     assert results[0].status == "failed"
     assert results[0].error == "bad param"
     assert results[0].count is None
+
+
+def test_a_failed_node_reports_no_count_even_when_one_was_measured() -> None:
+    """The measured count is the search WDK still runs, not the one the node states."""
+    leaf = _leaf("step_7c2e770b", "GenesByMicroarrayBirkholtz")
+    sync = WDKSyncState()
+    sync.wdk_step_ids = {leaf.id: 440432473}
+    outcome = BuildOutcome(
+        counts={leaf.id: 1282},
+        failed_steps=[
+            StepPushFailure(
+                step_id=leaf.id,
+                search_name="GenesByMicroarrayBirkholtz",
+                error="422 profileset_generic: Invalid value",
+                wdk_status=422,
+            )
+        ],
+    )
+
+    results = node_results([leaf], sync, outcome)
+
+    assert results[0].status == "failed"
+    assert results[0].count is None

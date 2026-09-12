@@ -12445,6 +12445,11 @@ components:
         error:
           title: Error
           type: string
+        wdkStatus:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Wdkstatus
       required:
       - stepId
       - searchName

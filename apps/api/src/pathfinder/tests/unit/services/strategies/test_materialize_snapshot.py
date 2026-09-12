@@ -38,7 +38,7 @@ class _RecordingPush:
         self.plans.append(plan)
         self.seen_existing_ids.append(dict(sync_state.wdk_step_ids))
         sync_state.wdk_step_ids.update(_FRESH_IDS)
-        return PushOutcome(succeeded=sorted(_FRESH_IDS), failed=[])
+        return PushOutcome(succeeded=sorted(_FRESH_IDS), failures=[])
 
 
 async def _fake_sync(**kwargs: Any) -> SyncResult:

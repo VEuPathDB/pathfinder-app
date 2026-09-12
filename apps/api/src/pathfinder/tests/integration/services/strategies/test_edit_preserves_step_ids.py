@@ -33,6 +33,7 @@ from veupathdb.wdk import (
     WDKStep,
     WDKStepTree,
     WDKStrategyDetails,
+    build_wdk_step_tree,
 )
 
 from pathfinder.ai.graph.runtime import AgentDeps, Context
@@ -289,7 +290,10 @@ def _deps(conv_id: UUID, session_maker: Any) -> LeadDeps:
     session = StrategySession(site_id="plasmodb")
     session.graph = _graph(conv_id)
     session.sync_state = WDKSyncState(
-        wdk_step_ids=dict(WDK_IDS), wdk_strategy_id=555, step_counts={}
+        wdk_step_ids=dict(WDK_IDS),
+        wdk_strategy_id=555,
+        step_counts={},
+        wdk_step_tree=build_wdk_step_tree(_root(), WDK_IDS),
     )
     before = _before()
     state = PipelineState(

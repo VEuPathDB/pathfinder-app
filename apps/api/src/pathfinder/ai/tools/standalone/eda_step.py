@@ -5,15 +5,16 @@ from __future__ import annotations
 from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
-from pydantic import Field
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.strategy import StrategyStepNode, subtree_ids
 from veupathdb.errors import ValidationError
+from veupathdb_mcp import ToolErrorPayload
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone._strategy_refusals import _wdk_refused_the_edit
 from pathfinder.ai.tools.standalone._stream_parts import (
     graph_snapshot_chunk,
     strategy_link_chunk,
@@ -50,7 +51,6 @@ class EdaStepCreated(EdaExport):
 
     wdk_strategy_id: int | None = None
     wdk_url: str | None = None
-    failed_step_ids: list[str] = Field(default_factory=list)
     guidance: str = ""
 
 
@@ -238,7 +238,7 @@ async def create_eda_step(
     effect_size_threshold: float | None = None,
     significance_threshold: float | None = None,
     effect_direction: EdaEffectDirection = "upAndDown",
-) -> ToolReturn[EdaStepCreated]:
+) -> ToolReturn[EdaStepCreated | ToolErrorPayload]:
     """Export the open EDA analysis into the researcher's strategy as a step.
 
     The step is an ordinary WDK step from then on: it combines, transforms,
@@ -344,15 +344,15 @@ async def create_eda_step(
         effect_direction=effect_direction if is_compute_backed else None,
         wdk_strategy_id=wdk_strategy_id,
         wdk_url=sync.wdk_url if sync is not None else None,
-        failed_step_ids=result.failed_step_ids,
         guidance=_guidance(wdk_strategy_id, is_compute_backed=is_compute_backed),
     )
     ctx.deps.state.turn_markers.eda_export = created
     _record_the_build(ctx, result)
-    if created.failed_step_ids:
+    refusal = _wdk_refused_the_edit(result)
+    if refusal is not None:
         return with_summary(
-            created,
-            f"Step {node.id} added, {len(created.failed_step_ids)} steps failed",
+            refusal,
+            f"VEuPathDB refused the step for {node.id}",
             ctx=ctx,
             status="warn",
             extra=metadata,

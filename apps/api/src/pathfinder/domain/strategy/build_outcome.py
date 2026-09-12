@@ -1,11 +1,29 @@
 from __future__ import annotations
 
+from collections.abc import Container, Mapping
 from dataclasses import dataclass, field
 from typing import Literal
 
 from veupathdb.model import CamelModel
 
 NodeStatus = Literal["ok", "zero", "failed"]
+
+
+def citable_count(
+    step_id: str,
+    *,
+    counts: Mapping[str, int | None],
+    refused: Container[str],
+) -> int | None:
+    """The count a step may be cited with, or nothing when there is none.
+
+    A step whose last push did not reach VEuPathDB still runs the search it
+    was created with, so the size measured on it answers a search the step no
+    longer states.
+    """
+    if step_id in refused:
+        return None
+    return counts.get(step_id)
 
 
 def node_status(*, count: int | None, failed: bool) -> NodeStatus:
@@ -27,11 +45,21 @@ class NodeResult(CamelModel):
     error: str | None = None
 
 
+# A WDK answer at or above this status is the service failing, not a refusal.
+_SERVER_ERROR = 500
+
+
 @dataclass
 class StepPushFailure:
     step_id: str
     search_name: str
     error: str
+    wdk_status: int | None = None
+
+    @property
+    def wdk_refused_the_values(self) -> bool:
+        """WDK read the request and refused it, so other values can pass."""
+        return self.wdk_status is not None and self.wdk_status < _SERVER_ERROR
 
 
 @dataclass

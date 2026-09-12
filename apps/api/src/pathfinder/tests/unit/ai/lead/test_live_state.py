@@ -169,3 +169,21 @@ async def test_a_strategy_the_site_never_saw_has_no_counts(
 
     assert live.root_count is None
     assert [step.estimated_size for step in live.steps] == [None, None, None]
+
+
+async def test_a_step_wdk_refused_reports_no_count_and_no_root_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The refused step's WDK id still runs the search the edit replaced."""
+    _install(monkeypatch, _site(_SITE_SIZES))
+    session = _session()
+    sync_state = session.sync_state
+    assert sync_state is not None
+    sync_state.wdk_push_errors[_SU] = "422 min_expression_percentile: Invalid value"
+    sync_state.wdk_push_errors[_ROOT] = "422 the join was not rebuilt"
+
+    live = await read_live_state(session, _SITE_ID)
+
+    sizes = {step.step_id: step.estimated_size for step in live.steps}
+    assert sizes == {_ROOT: None, _TEXT: 2122, _SU: None}
+    assert live.root_count is None

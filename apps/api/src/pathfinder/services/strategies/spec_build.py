@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
     NodeResult,
     StepPushFailure,
+    citable_count,
     node_status,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
@@ -40,13 +41,18 @@ def node_results(
     sync_state: WDKSyncState,
     outcome: BuildOutcome,
 ) -> list[NodeResult]:
+    """One result per node. A node WDK refused reports the refusal, not a count.
+
+    The WDK step a refused push leaves behind still runs the previous search,
+    so its measured size answers a search the node no longer states.
+    """
     failed = {f.step_id: f.error for f in outcome.failed_steps}
     return [
         NodeResult(
             node_id=node.id,
             search_name=wdk_search_name(node),
             wdk_step_id=sync_state.wdk_step_ids.get(node.id),
-            count=outcome.counts.get(node.id),
+            count=citable_count(node.id, counts=outcome.counts, refused=failed),
             status=node_status(
                 count=outcome.counts.get(node.id), failed=node.id in failed
             ),
@@ -218,10 +224,11 @@ async def _push_tree_to_wdk(
                         step_id=node.id,
                         search_name=search_name,
                         error=detail,
+                        wdk_status=exc.status,
                     ),
                 )
                 continue
-        wdk_id, _validation, push_error = await push_step_to_wdk(
+        wdk_id, _validation, failure = await push_step_to_wdk(
             sync_state=sync_state,
             step=node,
             site_id=site_id,
@@ -229,18 +236,13 @@ async def _push_tree_to_wdk(
             search_name=search_name,
             parameters=push_parameters,
         )
-        if push_error:
-            sync_state.wdk_push_errors[node.id] = push_error
+        if failure is not None:
+            sync_state.wdk_push_errors[node.id] = failure.error
             failed_node_ids.add(node.id)
-            outcome.failed_steps.append(
-                StepPushFailure(
-                    step_id=node.id,
-                    search_name=search_name,
-                    error=push_error,
-                ),
-            )
+            outcome.failed_steps.append(failure)
             continue
         if wdk_id is not None:
+            sync_state.wdk_push_errors.pop(node.id, None)
             outcome.pushed_step_ids.append(node.id)
 
 

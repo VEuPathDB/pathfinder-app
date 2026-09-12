@@ -6,12 +6,16 @@ from typing import Any
 
 import pytest
 from pydantic_ai import RunContext
+from pydantic_ai.exceptions import ModelRetry
+from veupathdb_mcp import ToolErrorPayload
 
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
+from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests._support.eda_doubles import ANALYSIS_ID
 from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
@@ -73,22 +77,47 @@ async def test_a_commit_with_a_wdk_url_also_emits_the_strategy_link(
     assert result.wdk_strategy_id == WDK_STRATEGY_ID
 
 
-async def test_a_step_wdk_rejected_is_reported_rather_than_hidden(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    """The commit reports a rejection on the step; the model must see it."""
-
+def _refusing_commit(status: int | None) -> Any:
     async def commit(*, deps: object, ops: list[Any]) -> CommitResult:
         del deps, ops
-        return CommitResult(description="added", failed_step_ids=["step_1"])
+        return CommitResult(
+            description="added",
+            failures=[
+                StepPushFailure(
+                    step_id="step_1",
+                    search_name="EdaSubsettingStep",
+                    error="WDK refused the analysis spec",
+                    wdk_status=status,
+                )
+            ],
+        )
 
-    _wire(monkeypatch, read=read_detail, commit=commit)
+    return commit
+
+
+async def test_a_step_wdk_refused_is_retried_with_wdks_message(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """A refusal of the values is a retry, not a step the answer calls added."""
+    _wire(monkeypatch, read=read_detail, commit=_refusing_commit(422))
+
+    with pytest.raises(ModelRetry) as excinfo:
+        await eda_step.create_eda_step(lead_ctx)
+
+    assert "WDK refused the analysis spec" in str(excinfo.value)
+
+
+async def test_a_step_the_site_never_took_answers_with_the_error(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """An answer a retry cannot mend is the tool's error, not a success model."""
+    _wire(monkeypatch, read=read_detail, commit=_refusing_commit(None))
 
     answer = await eda_step.create_eda_step(lead_ctx)
 
-    result = returned(answer, eda_step.EdaStepCreated)
-    assert result.failed_step_ids == ["step_1"]
-    assert result.wdk_strategy_id is None
+    error = returned(answer, ToolErrorPayload)
+    assert error.code == ErrorCode.WDK_ERROR.value
+    assert "WDK refused the analysis spec" in error.message
 
 
 async def test_the_export_records_the_build_the_turn_left(

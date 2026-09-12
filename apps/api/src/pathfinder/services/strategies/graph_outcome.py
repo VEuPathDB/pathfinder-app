@@ -6,7 +6,11 @@ from collections.abc import Collection, Mapping
 
 from veupathdb.domain.strategy import wdk_search_name
 
-from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
+from pathfinder.domain.strategy.build_outcome import (
+    BuildOutcome,
+    StepPushFailure,
+    citable_count,
+)
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies.spec_build import node_results
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -43,7 +47,11 @@ def outcome_for_graph(
         wdk_strategy_id=sync_state.wdk_strategy_id,
         wdk_url=wdk_url,
         counts=dict(counts),
-        root_count=counts.get(root_id) if root_id is not None else None,
+        root_count=(
+            citable_count(root_id, counts=counts, refused=sync_state.wdk_push_errors)
+            if root_id is not None
+            else None
+        ),
         zero_step_ids=[sid for sid, count in counts.items() if count == 0],
     )
     outcome.node_results = node_results(steps, sync_state, outcome)
