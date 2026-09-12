@@ -46,6 +46,24 @@
   `eda_step`) still compare one form against the other, measured and carried as a backlog
   card.
 
+* **A durable task whose worker was killed is settled by the sweep.** The runtime's
+  stalled-job sweep closed the stream of a released `chat_turn:run` job and returned at
+  once for every other job, so a killed `geneset_enrichment`, `run_eda_compute`,
+  `run_control_tests_on_step` or `optimize_search_parameters` left its `background_tasks`
+  row in an active status for good: the thread reported work in progress that nothing was
+  doing, and the rail spun. The sweep now reports a released `durable:<tool>` job through
+  the door the worker's own failure path uses, so the row leaves the active statuses, the
+  thread reads the failure and the parked turn answers. A task that already recorded a
+  result is delivered with it rather than failed, which also settles a worker killed inside
+  the completion turn. The reason is worded for the work the job was doing, so a durable
+  task reads "The worker running this task stopped". The change is the runtime's
+  (`assistant-core` 0.3.0a9, `assistant_core/tasks/maintenance.py` and
+  `assistant_core/tasks/runner.py`); this repository serves the row's failed state and its
+  reason already, in `GET /api/v1/conversations/{id}/tasks`, the tasks rail and the trace's
+  task row. The sweep settles work that no job lock protects, so the periodic job that runs
+  it (`jobs/tasks.py::release_stalled_jobs_job`) carries
+  `lock="maintenance:release-stalled-jobs"` and two runs of it never overlap.
+
 * **A tail streams only while a live worker holds the thread.** The events route no
   longer reads "in flight" off the log's tip: `services/conversations/turn_liveness.py`
   answers it, and an open log counts as a running turn only when a procrastinate job locks

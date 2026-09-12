@@ -50,8 +50,14 @@ async def run_chat_turn_job(payload: dict[str, Any]) -> None:
     await run_chat_turn(payload)
 
 
+# The sweep settles work no job lock protects, so the lock keeps two runs of
+# it apart.
 @procrastinate_app.periodic(cron="* * * * *")
-@procrastinate_app.task(queue=MAINTENANCE_QUEUE, name=RELEASE_STALLED_JOBS_TASK)
+@procrastinate_app.task(
+    queue=MAINTENANCE_QUEUE,
+    name=RELEASE_STALLED_JOBS_TASK,
+    lock="maintenance:release-stalled-jobs",
+)
 async def release_stalled_jobs_job(timestamp: int) -> None:
     del timestamp
     async with attach_application():

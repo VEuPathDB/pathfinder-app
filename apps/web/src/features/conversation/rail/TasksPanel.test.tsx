@@ -45,7 +45,7 @@ function renderPanel(messages: UIMessage[]) {
   );
 }
 
-function stubTasks(status: string) {
+function stubTasks(status: string, error: string | null = null) {
   server.use(
     http.get(`http://localhost:3000/api/v1/conversations/${CONVERSATION}/tasks`, () =>
       HttpResponse.json({
@@ -56,6 +56,7 @@ function stubTasks(status: string) {
             status,
             estimatedDurationSeconds: 120,
             createdAt: "2026-08-30T00:00:00Z",
+            error,
           },
         ],
       }),
@@ -104,5 +105,19 @@ describe("the Tasks panel row opens what the task produced", () => {
       expect(screen.getByText("Gene-set enrichment")).toBeInTheDocument();
     });
     expect(screen.queryByRole("link")).toBeNull();
+  });
+});
+
+describe("the Tasks panel reports a task the sweep failed", () => {
+  it("marks the row failed and prints the reason the row carries", async () => {
+    stubTasks(
+      "failed",
+      "The worker running this task stopped, which an out-of-memory kill can cause. Ask for it again to retry.",
+    );
+    renderPanel([]);
+    expect(await screen.findByText("failed")).toBeInTheDocument();
+    expect(
+      screen.getByText(/The worker running this task stopped/),
+    ).toBeInTheDocument();
   });
 });

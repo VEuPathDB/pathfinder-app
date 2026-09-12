@@ -36,3 +36,8 @@ async def test_a_maintenance_task_body_names_this_application(
     await job(timestamp=0)
 
     assert seen == [PATHFINDER_APPLICATION_ID]
+
+
+def test_the_stalled_job_sweep_runs_one_at_a_time() -> None:
+    """The sweep settles work no job lock protects, so two runs never overlap."""
+    assert tasks.release_stalled_jobs_job.lock == "maintenance:release-stalled-jobs"

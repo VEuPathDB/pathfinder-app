@@ -32,7 +32,7 @@ hour later.
 **Stop does not wait for the sweep, once the worker is that quiet.**
 `cancel_turn` and `cancel_active_turn` write the cancel request a live worker
 polls, then call `assistant_core.tasks.maintenance.release_dead_turn`, which releases the
-conversation's chat-turn job through the same `release_job` the sweep uses,
+conversation's chat-turn job through the same release the sweep uses,
 and only when that job's worker has been silent past the same 60 s. A cancel
 request is a row; a dead worker reads no rows, so without this the user's Stop
 changed nothing on screen. A worker that died more recently than the window
@@ -128,7 +128,7 @@ timeout answers the second, which is why both run.
 The API could watch heartbeats itself, but it would be a second implementation
 of a state procrastinate already publishes in `procrastinate_workers`, and it
 would have to duplicate the write of the turn's terminator. The cancel path
-calls into `assistant_core.tasks.maintenance` instead, so there is one `release_job`, one
+calls into `assistant_core.tasks.maintenance` instead, so there is one release, one
 terminator sequence and one error text.
 
 # Only the api writes the study index
