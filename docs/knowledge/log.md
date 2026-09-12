@@ -2,6 +2,21 @@
 
 ## 2026-09-12
 
+* **A standing preference reaches every turn, whatever the request is about.**
+  `ai/graph/_lead_turn.py::retrieve_memories` passes the runtime a `RetrievalScope`
+  naming `STANDING_MEMORY_KINDS` (`domain/memory.py`): a kind listed there is read in
+  full at turn entry and ranked ahead of the similarity search, so a default the
+  researcher stated once is pinned on a request whose words do not resemble it. The
+  similarity ranking keeps its own budget for the other kinds, and the answer holds at
+  most the two added together. The runtime half is `assistant-core` 0.3.0a10.
+
+* **A discovery tool has a budget for one run.**
+  `ai/agents/tool_vocabulary.py::DISCOVERY_CALL_CAPS` names the most calls one run may
+  make to each tool that answers from a fixed catalog, whatever the arguments; the
+  runtime's repetition guard refuses the call past the cap with a message that says to
+  report what the tool returned, and ends the run on the next one. The two EDA catalog
+  tools joined `READ_ONLY_TOOLS`, and the run diagnosis reads both refusal markers.
+
 * **A cross-organism refusal names the remedy its own tree admits.**
   `domain/strategy/validate.py::cross_organism_refusal` reads the combine and the tree
   root: when a transform the combine sits UNDER maps its input into one of the two
