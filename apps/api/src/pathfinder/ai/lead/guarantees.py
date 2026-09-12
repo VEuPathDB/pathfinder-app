@@ -2,8 +2,8 @@
 
 The classification is explicit and a unit test holds it complete against the
 registered tool set. The preamble text is generated from that map and from the
-registry's own markers: ``requires_approval``, ``BUILDING_TOOLS``, the durable
-registration and the phase role a dispatch tool carries.
+registry's own markers: ``requires_approval``, ``BUILDING_TOOLS``, the
+sequential registration and the phase role a dispatch tool carries.
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from enum import StrEnum
 
-from assistant_core.graph.durable import DURABLE_TOOLS
 from pydantic_ai.tools import Tool
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
@@ -43,6 +42,7 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "create_workbench_gene_set": Reversibility.UNREVISIONED_WRITE,
     "describe_eda_study": Reversibility.READ,
     "edit_strategy": Reversibility.REVISIONED_WRITE,
+    "export_gene_set": Reversibility.UNREVISIONED_WRITE,
     "frame_problem": Reversibility.IN_STATE,
     "get_live_strategy_state": Reversibility.READ,
     "import_control_ids_from_gene_set": Reversibility.READ,
@@ -55,6 +55,7 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "recover_failed_steps": Reversibility.REVISIONED_WRITE,
     "remember": Reversibility.UNREVISIONED_WRITE,
     "run_eda_compute": Reversibility.DURABLE,
+    "run_gene_set_enrichment": Reversibility.DURABLE,
     "search_eda_studies": Reversibility.READ,
     "set_eda_filters": Reversibility.UNREVISIONED_WRITE,
     "verify_strategy": Reversibility.IN_STATE,
@@ -126,7 +127,7 @@ def render_machine_guarantees(tools: Mapping[str, Tool[LeadDeps]]) -> str:
         ),
         (
             f"- Run on a worker, so the turn ends and reopens with the result:"
-            f" {_named(set(DURABLE_TOOLS) & known)}. Nothing before"
+            f" {_named(_in_class(Reversibility.DURABLE, known))}. Nothing before"
             f" the call runs a second time."
         ),
         (

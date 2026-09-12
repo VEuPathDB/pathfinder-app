@@ -4,12 +4,12 @@ The Lead routes on the latest user message (plus consult-resume state) and
 drives a scripted FRAME -> BUILD -> VERIFY flow; a build the thread refuses
 ends the turn instead of verifying. The role table that picks this script,
 and the sub-agent scripts, live in ``mock``; the canned FRAME specs live in
-``specs``.
+``specs`` and the arguments the calls carry in ``arc_args``.
 """
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from assistant_core.models.scripted import (
     called_tool_parts,
@@ -24,8 +24,14 @@ from assistant_core.models.scripted import (
     terminal_call,
     tool_return_parts,
 )
+from pydantic import BaseModel, ConfigDict
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
+from pathfinder.ai.models.mock.arc_args import (
+    attachment_gene_ids,
+    consult_args,
+    variant_args,
+)
 from pathfinder.ai.models.mock.specs import (
     SpecPlan,
     combined_spec,
@@ -69,6 +75,11 @@ _SAVE_GENE_SET_PROSE = (
     "Saved to your workbench as a gene set. Enrichment, export and the "
     "control tools can read it from there."
 )
+_ENRICHMENT_PROSE = (
+    "Enrichment is running on that gene set. I will summarize the ranked "
+    "terms when it reports."
+)
+_EXPORT_PROSE = "The file is ready. Download it here: "
 _CONTROLS_PROSE = (
     "I've saved your uploaded gene IDs as a control set. We can now score "
     "search variants against them whenever you're ready."
@@ -129,6 +140,13 @@ _RECALL_MARKERS = ("recap what i have asked",)
 # A save of a gene list: the workbench tool, never the memory note.
 _SAVE_GENE_SET_MARKERS = ("as a gene set",)
 _SAVE_GENE_SET_IDS = ("PF3D7_0709000", "PF3D7_1133400")
+# An export of a set that is already saved: the file tool, on its id.
+_EXPORT_MARKERS = ("export the gene set",)
+_EXPORT_GENE_SET_ID = "gs_mock_export"
+# An enrichment of a set that is already saved: the durable tool, on its id.
+_ENRICHMENT_MARKERS = ("enrichment on the gene set",)
+_ENRICHMENT_GENE_SET_ID = "gs_mock_enrichment"
+_ENRICHMENT_TYPES = ("go_function", "go_process", "go_component")
 _RECALL_SECTION = "frame"
 LOOP_CALL_ARGS = {"record_type": "transcript"}
 
@@ -140,73 +158,6 @@ _BUILD_REFUSED_MARKER = "build_strategy replaces it"
 # The precondition layer withholds the tool on a thread that has a strategy, so
 # the turn can meet the same refusal as an absence.
 _BUILD_ABSENT_MARKER = "Unknown tool name"
-
-
-def _variant_text_params(expression: str) -> dict[str, Any]:
-    return {
-        "text_expression": {"type": "string", "value": expression},
-        "text_fields": {"type": "multi-pick-vocabulary", "values": ["product"]},
-        "document_type": {"type": "string", "value": "gene"},
-        "text_search_organism": {
-            "type": "multi-pick-vocabulary",
-            "values": ["Plasmodium falciparum 3D7"],
-        },
-    }
-
-
-def _variant_args() -> dict[str, Any]:
-    return {
-        "variants": [
-            {
-                "label": "kinase",
-                "search_name": "GenesByText",
-                "record_type": "transcript",
-                "parameters": _variant_text_params("kinase"),
-            },
-            {
-                "label": "phosphatase",
-                "search_name": "GenesByText",
-                "record_type": "transcript",
-                "parameters": _variant_text_params("phosphatase"),
-            },
-        ],
-    }
-
-
-def _consult_args() -> dict[str, Any]:
-    return {
-        "questions": [
-            {
-                "id": "q1",
-                "prompt": "Fold-change threshold?",
-                "kind": "single_choice",
-                "options": [
-                    {"label": "2-fold", "recommended": True},
-                    {"label": "5-fold"},
-                ],
-            },
-            {
-                "id": "q2",
-                "prompt": "Include the microarray arm?",
-                "kind": "single_choice",
-                "options": [{"label": "Yes"}, {"label": "No"}],
-            },
-        ],
-    }
-
-
-def _attachment_gene_ids(text: str) -> list[str]:
-    """Pull the cleaned gene IDs the composer's attachment adapter inlined as
-    ``Attached gene-ID list from <name>: ID, ID, ...`` (plain framing so the
-    input injection scanner doesn't flag it)."""
-    marker = text.find("Attached gene-ID list from")
-    if marker == -1:
-        return []
-    colon = text.find(":", marker)
-    if colon == -1:
-        return []
-    line = text[colon + 1 :].splitlines()[0]
-    return [token.strip() for token in line.split(",") if token.strip()]
 
 
 def spec_for(text: str, site_id: str) -> SpecPlan:
@@ -306,7 +257,7 @@ def _lead_sequence(messages: list[ModelMessage]) -> list[ToolCallPart]:
         return _build_branch(messages, raw)
     if has_any(raw.lower(), _RECALL_MARKERS):
         return _recall_sequence(messages)
-    ids = _attachment_gene_ids(joined_user_text(messages))
+    ids = attachment_gene_ids(joined_user_text(messages))
     if ids:
         return [
             _classify("new_strategy"),
@@ -348,8 +299,56 @@ def _prose_only_sequence(lowered: str) -> list[ToolCallPart] | None:
     return None
 
 
-def _kept_sequence(lowered: str) -> list[ToolCallPart] | None:
-    """The arcs that keep what the user asks to keep: a set, or a preference."""
+class _ExportedFile(BaseModel):
+    """The link one export answered with."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    download_url: str = ""
+
+
+def _exported_link(messages: list[ModelMessage]) -> str:
+    """The link the export tool answered with, as the reply reports it."""
+    for part in tool_return_parts(messages):
+        if part.tool_name == "export_gene_set":
+            read = _ExportedFile.model_validate(part.content, from_attributes=True)
+            return read.download_url
+    return ""
+
+
+def _kept_sequence(
+    messages: list[ModelMessage],
+    lowered: str,
+) -> list[ToolCallPart] | None:
+    """The arcs that act on a set or a preference the user already keeps.
+
+    Enrichment and export of a saved set are two of them: they ask for no
+    strategy.
+    """
+    if has_any(lowered, _EXPORT_MARKERS):
+        return [
+            _classify("follow_up_question"),
+            scripted_call(
+                "export_gene_set",
+                {"gene_set_id": _EXPORT_GENE_SET_ID, "output_format": "csv"},
+            ),
+            _lead_final(
+                f"{_EXPORT_PROSE}{_exported_link(messages)}",
+                "await_user",
+            ),
+        ]
+    if has_any(lowered, _ENRICHMENT_MARKERS):
+        return [
+            _classify("follow_up_question"),
+            scripted_call(
+                "run_gene_set_enrichment",
+                {
+                    "gene_set_id": _ENRICHMENT_GENE_SET_ID,
+                    "enrichment_types": list(_ENRICHMENT_TYPES),
+                },
+            ),
+            _lead_final(_ENRICHMENT_PROSE, "await_user"),
+        ]
     if has_any(lowered, _SAVE_GENE_SET_MARKERS):
         return [
             _classify("follow_up_question"),
@@ -379,9 +378,12 @@ def _kept_sequence(lowered: str) -> list[ToolCallPart] | None:
     return None
 
 
-def _one_tool_sequence(lowered: str) -> list[ToolCallPart] | None:
+def _one_tool_sequence(
+    messages: list[ModelMessage],
+    lowered: str,
+) -> list[ToolCallPart] | None:
     """The arcs that answer after a dispatch of their own, not the journey."""
-    kept = _kept_sequence(lowered)
+    kept = _kept_sequence(messages, lowered)
     if kept is not None:
         return kept
     if has_any(lowered, _EDIT_MARKERS):
@@ -402,20 +404,20 @@ def _one_tool_sequence(lowered: str) -> list[ToolCallPart] | None:
     if has_any(lowered, _VARIANT_MARKERS):
         return [
             _classify("follow_up_question"),
-            scripted_call("compare_search_variants", _variant_args()),
+            scripted_call("compare_search_variants", variant_args()),
             _lead_final(_VARIANT_PROSE, "await_user"),
         ]
     if has_any(lowered, _CONSULT_MARKERS):
         return [
             _classify("new_strategy"),
-            scripted_call("consult_user", _consult_args()),
+            scripted_call("consult_user", consult_args()),
         ]
     return None
 
 
 def _routed_sequence(messages: list[ModelMessage], raw: str) -> list[ToolCallPart]:
     lowered = raw.lower()
-    dispatched = _one_tool_sequence(lowered)
+    dispatched = _one_tool_sequence(messages, lowered)
     if dispatched is not None:
         return dispatched
     prose = _prose_only_sequence(lowered)

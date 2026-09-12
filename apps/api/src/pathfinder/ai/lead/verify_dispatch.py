@@ -118,9 +118,10 @@ async def verify_strategy(
     """Run the verification sub-agent on the built strategy.
 
     This sub-agent owns every post-build check, so route a user's request for
-    one here through ``reason``: GO, pathway and word enrichment on a gene
-    set; control tests on a step or a search; parameter optimization; sample
-    records from a result; result export. None of these are Lead tools.
+    one here through ``reason``: GO, pathway and word enrichment on what this
+    turn built; control tests on a step or a search; parameter optimization;
+    sample records from a result; result export. Enrichment and export you can
+    also run yourself, on a gene set the user has already saved.
 
     Set ``enrichment_requested`` only when the user asked for GO, pathway or
     word enrichment in this message. It runs for minutes on a worker, so an

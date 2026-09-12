@@ -59,6 +59,7 @@ LEAD_TOOL_NAMES = frozenset(
         "consult_user",
         "create_workbench_gene_set",
         "edit_strategy",
+        "export_gene_set",
         "frame_problem",
         "get_live_strategy_state",
         "import_control_ids_from_gene_set",
@@ -68,6 +69,7 @@ LEAD_TOOL_NAMES = frozenset(
         "read_ledger_section",
         "recover_failed_steps",
         "remember",
+        "run_gene_set_enrichment",
         "verify_strategy",
     }
 )

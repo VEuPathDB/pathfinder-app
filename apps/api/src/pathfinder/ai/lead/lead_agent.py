@@ -45,10 +45,12 @@ from pathfinder.ai.lead.lead_tools import (
     classify_user_intent,
     clear_strategy,
     create_workbench_gene_set,
+    export_gene_set,
     get_live_strategy_state,
     list_workbench_gene_sets,
     read_ledger_section,
     remember,
+    run_gene_set_enrichment,
 )
 from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.sub_agent_dispatch import (
@@ -194,6 +196,8 @@ def build_lead_agent() -> LeadAgent:
             Tool(remember),
             Tool(create_workbench_gene_set),
             Tool(list_workbench_gene_sets),
+            Tool(run_gene_set_enrichment, sequential=True, max_retries=3),
+            Tool(export_gene_set),
             Tool(read_ledger_section),
             Tool(get_live_strategy_state),
             Tool(frame_problem),

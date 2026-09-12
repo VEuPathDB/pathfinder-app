@@ -22,7 +22,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone._optimization_models import (
+from pathfinder.ai.tools.standalone.optimization_models import (
     OptimizationControls,
     OptimizationSettings,
     OptimizationTarget,

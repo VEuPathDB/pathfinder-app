@@ -78,7 +78,8 @@ def _study_search(count: int) -> StudySearch:
                 can_export_rows=True,
             )
             for i in range(count)
-        ]
+        ],
+        catalog_size=count,
     )
 
 

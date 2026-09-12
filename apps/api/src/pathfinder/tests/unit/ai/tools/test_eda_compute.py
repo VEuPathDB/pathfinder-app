@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
-from uuid import UUID, uuid4
-
 import pytest
-from assistant_core.tasks import decorator
 from assistant_core.tasks.declaration import durable_impl
 from pydantic_ai.exceptions import CallDeferred
 from pydantic_ai.tools import RunContext
@@ -16,6 +12,10 @@ from pathfinder.ai.tools.standalone import eda_compute
 from pathfinder.ai.tools.standalone.eda_compute import EdaVariableSpecIn
 from pathfinder.jobs.impls import register_all_tools
 from pathfinder.jobs.impls.eda_compute_impl import run_eda_compute_impl
+from pathfinder.tests._support.durable_dispatch import (
+    DurableDispatch,
+    capture_durable_dispatch,
+)
 from pathfinder.tests._support.run_context import lead_run_context
 
 
@@ -26,49 +26,16 @@ def compute_ctx() -> RunContext[LeadDeps]:
     )
 
 
-class _Task:
-    def __init__(self, deferred: list[dict[str, Any]]) -> None:
-        self._deferred = deferred
-
-    async def defer_async(self, **payload: Any) -> None:
-        self._deferred.append(payload)
-
-
-class _App:
-    def __init__(self, deferred: list[dict[str, Any]]) -> None:
-        self._deferred = deferred
-
-    def configure_task(self, *, name: str, queue: str, lock: str) -> _Task:
-        del name, queue, lock
-        return _Task(self._deferred)
-
-
 @pytest.fixture
-def dispatch(
-    monkeypatch: pytest.MonkeyPatch,
-) -> tuple[
-    list[dict[str, Any]],
-    list[dict[str, Any]],
-]:
-    """Capture what the decorator creates and defers, without a graph or a db."""
-    created: list[dict[str, Any]] = []
-    deferred: list[dict[str, Any]] = []
-
-    async def create(**kwargs: Any) -> UUID:
-        created.append(dict(kwargs))
-        return uuid4()
-
-    monkeypatch.setattr(decorator, "create_background_task", create)
-    monkeypatch.setattr(decorator, "task_app", lambda: _App(deferred))
-    monkeypatch.setattr(decorator, "get_stream_writer", lambda: lambda _payload: None)
-    return created, deferred
+def dispatch(monkeypatch: pytest.MonkeyPatch) -> DurableDispatch:
+    return capture_durable_dispatch(monkeypatch)
 
 
 async def test_calling_the_tool_creates_a_task_and_defers_a_job(
     compute_ctx: RunContext[LeadDeps],
-    dispatch: tuple[list[dict[str, Any]], list[dict[str, Any]]],
+    dispatch: DurableDispatch,
 ) -> None:
-    created, deferred = dispatch
+    created, deferred = dispatch.created, dispatch.deferred
 
     with pytest.raises(CallDeferred):
         await eda_compute.run_eda_compute(
@@ -99,9 +66,9 @@ async def test_calling_the_tool_creates_a_task_and_defers_a_job(
 
 async def test_the_deferred_job_carries_the_arguments_the_impl_needs(
     compute_ctx: RunContext[LeadDeps],
-    dispatch: tuple[list[dict[str, Any]], list[dict[str, Any]]],
+    dispatch: DurableDispatch,
 ) -> None:
-    created, _deferred = dispatch
+    created = dispatch.created
 
     with pytest.raises(CallDeferred):
         await eda_compute.run_eda_compute(
@@ -133,10 +100,10 @@ async def test_the_deferred_job_carries_the_arguments_the_impl_needs(
 
 async def test_the_deferred_job_carries_the_caption_the_model_wrote(
     compute_ctx: RunContext[LeadDeps],
-    dispatch: tuple[list[dict[str, Any]], list[dict[str, Any]]],
+    dispatch: DurableDispatch,
 ) -> None:
     """The worker draws the volcano, so the caption travels with the args."""
-    created, _deferred = dispatch
+    created = dispatch.created
 
     with pytest.raises(CallDeferred):
         await eda_compute.run_eda_compute(
@@ -163,9 +130,9 @@ async def test_the_deferred_job_carries_the_caption_the_model_wrote(
 
 async def test_the_estimated_duration_is_declared(
     compute_ctx: RunContext[LeadDeps],
-    dispatch: tuple[list[dict[str, Any]], list[dict[str, Any]]],
+    dispatch: DurableDispatch,
 ) -> None:
-    created, _deferred = dispatch
+    created = dispatch.created
 
     with pytest.raises(CallDeferred):
         await eda_compute.run_eda_compute(

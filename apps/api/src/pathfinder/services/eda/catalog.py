@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Literal
 
 import httpx
 from assistant_core.platform.logging import get_logger
@@ -205,12 +206,25 @@ NAME_MATCH_GUIDANCE = (
 )
 
 
+StudyRanking = Literal["semantic", "name"]
+
+
 @dataclass(frozen=True, slots=True)
 class StudySearch:
-    """The ranked studies, and what to say when the ranking is not semantic."""
+    """The ranked studies, the catalog behind them, and how they were ranked.
+
+    ``catalog_size`` is how many studies this account can see on the site, so
+    a semantic ranking reports the closest few of a number the reader knows.
+    """
 
     cards: list[StudyCard]
-    guidance: str = ""
+    catalog_size: int
+    ranking: StudyRanking = "semantic"
+
+    @property
+    def guidance(self) -> str:
+        """What to say when the ranking is not semantic."""
+        return NAME_MATCH_GUIDANCE if self.ranking == "name" else ""
 
 
 async def search_studies(
@@ -221,10 +235,12 @@ async def search_studies(
     """Rank the studies this account can see against a natural-language query."""
     per_dataset = await _permissions(site_id)
     by_dataset = {s.dataset_id: s for s in await list_studies(site_id)}
+    catalog_size = sum(1 for dataset_id in by_dataset if dataset_id in per_dataset)
     if not await study_index_is_built():
         return StudySearch(
             cards=_by_name(query, per_dataset, by_dataset, limit),
-            guidance=NAME_MATCH_GUIDANCE,
+            catalog_size=catalog_size,
+            ranking="name",
         )
     try:
         hits = await search_study_index(query, top_k=len(by_dataset) or 1)
@@ -232,7 +248,8 @@ async def search_studies(
         logger.warning("EDA study search fell back to names", error=str(exc))
         return StudySearch(
             cards=_by_name(query, per_dataset, by_dataset, limit),
-            guidance=NAME_MATCH_GUIDANCE,
+            catalog_size=catalog_size,
+            ranking="name",
         )
     cards: list[StudyCard] = []
     # The full ranking is walked, so a study with no permission entry does not
@@ -245,7 +262,7 @@ async def search_studies(
         cards.append(_card(entry, overview, relevance=max(0.0, hit.similarity)))
         if len(cards) >= limit:
             break
-    return StudySearch(cards=cards)
+    return StudySearch(cards=cards, catalog_size=catalog_size)
 
 
 def _by_name(

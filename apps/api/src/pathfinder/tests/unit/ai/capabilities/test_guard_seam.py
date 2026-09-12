@@ -150,6 +150,11 @@ def test_every_watched_name_is_a_tool_some_agent_offers() -> None:
     assert READ_ONLY_TOOLS - _offered_tool_names() == set()
 
 
+def test_the_study_catalog_reads_are_watched() -> None:
+    """A study search repeated on the same query reads the same catalog."""
+    assert {"search_eda_studies", "describe_eda_study"} <= READ_ONLY_TOOLS
+
+
 def test_the_watched_research_names_carry_the_source_prefix() -> None:
     """The guard keys on the name the model calls, which the prefix decides."""
     assert _served_tool_names() <= READ_ONLY_TOOLS

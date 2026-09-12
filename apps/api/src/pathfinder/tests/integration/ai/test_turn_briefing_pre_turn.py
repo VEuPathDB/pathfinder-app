@@ -23,7 +23,7 @@ from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.pre_turn import pathfinder_pre_turn
-from pathfinder.ai.tools.standalone._eda_stream_parts import eda_analysis_state_chunk
+from pathfinder.ai.tools.standalone.eda_stream_parts import eda_analysis_state_chunk
 from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import ConversationAnalysis, User

@@ -65,7 +65,7 @@ class OptimizationSettings(BaseModel):
     so the user can see which model produced a given sweep."""
 
 
-def _parse_and_validate_inputs(
+def parse_and_validate_inputs(
     target: OptimizationTarget,
     controls: OptimizationControls,
 ) -> tuple[list[ParameterSpec], dict[str, ParamValue], dict[str, ParamValue]]:
@@ -79,7 +79,7 @@ def _parse_and_validate_inputs(
     return specs, fixed_parameters, controls_extra
 
 
-async def _attach_export(result_json: JSONObject, search_name: str) -> None:
+async def attach_export(result_json: JSONObject, search_name: str) -> None:
     """Attach export download links to an optimization result."""
     try:
         svc = get_export_service()

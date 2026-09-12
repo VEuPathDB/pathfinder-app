@@ -31,6 +31,9 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "lookup_phyletic_codes",
         "lookup_gene_records",
         "get_ai_expression_summary",
+        # EDA catalog reads
+        "search_eda_studies",
+        "describe_eda_study",
         # Strategy inspection
         "get_strategy",
         "get_estimated_size",
@@ -43,9 +46,6 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "get_confidence_scores",
         "get_experiment_config",
         "get_result_gene_lists",
-        # EDA catalog
-        "search_eda_studies",
-        "describe_eda_study",
         # Research, served by the research tool source
         "research_web_search",
         "research_literature_search",

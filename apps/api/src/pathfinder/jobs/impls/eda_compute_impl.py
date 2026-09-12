@@ -31,7 +31,7 @@ from veupathdb.eda import (
 )
 
 from pathfinder.ai.graph.runtime import Context
-from pathfinder.ai.tools.standalone._eda_stream_parts import (
+from pathfinder.ai.tools.standalone.eda_stream_parts import (
     eda_analysis_state_chunk,
     eda_viz_chunk,
 )

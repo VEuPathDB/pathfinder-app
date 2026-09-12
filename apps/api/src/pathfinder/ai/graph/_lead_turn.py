@@ -157,6 +157,18 @@ class ConcurrentDurableDispatchError(RuntimeError):
         )
 
 
+class UnparkedDurableCallError(RuntimeError):
+    """A Lead response parked a dispatch and a durable call of its own."""
+
+    def __init__(self, tool_call_ids: list[str]) -> None:
+        super().__init__(
+            "A sub-agent dispatch and the Lead's own durable call were "
+            f"deferred in one response ({', '.join(tool_call_ids)}). The "
+            "parked dispatch answers the sub-agent's calls only, so the "
+            "Lead's own call would run again on the completion turn.",
+        )
+
+
 def _durable_call(
     *,
     tool_call_id: str,
@@ -215,8 +227,8 @@ def pending_durable_call(
 
     They outrank an approval in the same response: their tasks are already
     running, and an unapproved Lead tool is re-collected by pydantic-ai on the
-    next run. A dispatch outranks the Lead's own calls, because only the
-    dispatch holds a suspended sub-agent run.
+    next run. One suspended run is checkpointed per turn, so a dispatch and a
+    call of the Lead's own cannot be parked together.
     """
     dispatches = [
         call
@@ -225,13 +237,15 @@ def pending_durable_call(
     ]
     if len(dispatches) > 1:
         raise ConcurrentDurableDispatchError([c.tool_call_id for c in dispatches])
+    own = [call for call in output.calls if call.tool_call_id in deps.durable_deferrals]
     if dispatches:
+        if own:
+            raise UnparkedDurableCallError([c.tool_call_id for c in own])
         return _parked_dispatch(
             call=dispatches[0],
             park=deps.pending_sub_agent_durables[dispatches[0].tool_call_id],
             messages=messages,
         )
-    own = [call for call in output.calls if call.tool_call_id in deps.durable_deferrals]
     if not own:
         return None
     return approvals.parked_durable_call(

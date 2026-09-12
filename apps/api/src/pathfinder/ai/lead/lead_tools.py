@@ -2,19 +2,28 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from assistant_core.graph.tool_summary import with_summary
+from assistant_core.tasks.decorator import durable_tool
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType
 
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.live_state import LiveStrategyState, read_live_state
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone import conversation, memory_tools, workbench
+from pathfinder.ai.tools.standalone import (
+    conversation,
+    export,
+    memory_tools,
+    workbench,
+)
 from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResult
+from pathfinder.ai.tools.standalone.export_models import ExportResultResponse
+from pathfinder.ai.tools.standalone.workbench import GENESET_ENRICHMENT
 from pathfinder.ai.tools.standalone.workbench_models import (
     GeneSetCreatedResponse,
     GeneSetListResponse,
@@ -182,6 +191,58 @@ async def list_workbench_gene_sets(
     tool answers that an id names nothing.
     """
     return await workbench.list_workbench_gene_sets(inner_context(ctx))
+
+
+@durable_tool(GENESET_ENRICHMENT)
+async def run_gene_set_enrichment(
+    ctx: RunContext[LeadDeps],
+    gene_set_id: str,
+    enrichment_types: list[EnrichmentAnalysisType] | None = None,
+) -> dict[str, Any]:
+    """Run enrichment analysis on a gene set in the Workbench.
+
+    This is the enrichment the user asks for when they name a saved set. Take
+    the id from ``list_workbench_gene_sets`` or from the save that created it.
+
+    Durable: the analysis runs on the worker, the turn ends while the GO,
+    pathway and word phases run, and you are called again with the summary
+    (the gene set's id, ``geneCount``, ``enrichmentResults``, ``downloads``).
+    Name the top terms from the ``enrichmentResults`` you are answered with.
+
+    The set needs a WDK step id or search parameters, so the service can
+    recover the background gene universe.
+
+    Args:
+        gene_set_id: ID of the gene set to run enrichment on.
+        enrichment_types: Types of enrichment to run. Options: ``go_function``,
+            ``go_process``, ``go_component``, ``pathway``, ``word``. Default:
+            all five types.
+    """
+    del ctx, gene_set_id, enrichment_types
+    msg = "run_gene_set_enrichment runs on the worker via @durable_tool"
+    raise NotImplementedError(msg)
+
+
+async def export_gene_set(
+    ctx: RunContext[LeadDeps],
+    gene_set_id: str,
+    output_format: str = "csv",
+) -> ToolReturn[ExportResultResponse]:
+    """Export a saved gene set as a downloadable CSV or TXT file.
+
+    This is the download the user asks for when they name a set in their
+    Workbench. Take the id from ``list_workbench_gene_sets``. The reply carries
+    the link, which expires after ten minutes, so give it to the user.
+
+    Args:
+        gene_set_id: The gene set to export.
+        output_format: Export format: csv or txt.
+    """
+    return await export.export_gene_set(
+        inner_context(ctx),
+        gene_set_id=gene_set_id,
+        output_format=output_format,
+    )
 
 
 async def get_live_strategy_state(

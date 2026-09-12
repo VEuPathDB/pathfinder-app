@@ -22,7 +22,7 @@ from pathfinder.ai.tools.standalone._eda_models import (
     EdaSubsetPreviewResult,
 )
 from pathfinder.ai.tools.standalone._eda_sheet import open_sheet
-from pathfinder.ai.tools.standalone._eda_stream_parts import (
+from pathfinder.ai.tools.standalone.eda_stream_parts import (
     analysis_state_chunks_if_changed,
     eda_subset_preview_chunk,
 )

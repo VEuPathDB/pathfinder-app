@@ -12,12 +12,12 @@ from pydantic import JsonValue
 from veupathdb_mcp.controls import ControlValueFormat
 
 from pathfinder.ai.graph.runtime import Context
-from pathfinder.ai.tools.standalone._optimization_models import (
+from pathfinder.ai.tools.standalone.optimization_models import (
     OptimizationControls,
     OptimizationSettings,
     OptimizationTarget,
-    _attach_export,
-    _parse_and_validate_inputs,
+    attach_export,
+    parse_and_validate_inputs,
 )
 from pathfinder.services.experiment.types import (
     OptimizationObjective,
@@ -113,7 +113,7 @@ async def optimize_search_parameters_impl(
         else OptimizationSettings.model_validate(settings or {})
     )
 
-    specs, fixed_parameters, controls_extra_parameters = _parse_and_validate_inputs(
+    specs, fixed_parameters, controls_extra_parameters = parse_and_validate_inputs(
         target_m, controls_m
     )
 
@@ -212,7 +212,7 @@ async def optimize_search_parameters_impl(
         message="Exporting sweep result",
         data=None,
     )
-    await _attach_export(cast("JSONObject", result_json), target_m.search_name)
+    await attach_export(cast("JSONObject", result_json), target_m.search_name)
     await progress.update(
         percent=1.0,
         message="Sweep complete",

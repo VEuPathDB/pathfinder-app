@@ -2,25 +2,29 @@
 
 from __future__ import annotations
 
+from inspect import signature
 from typing import Any
 
 import pytest
-from pydantic_ai import RunContext
+from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart
 
+from pathfinder.ai.lead import lead_tools
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
 from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
 from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.models.mock import get_mock_model
-from pathfinder.ai.tools.standalone import workbench
+from pathfinder.ai.tools.standalone import export, workbench
 from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResult
 from pathfinder.ai.tools.toolsets import execution
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.services.export.service import ExportResult
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.durable_dispatch import capture_durable_dispatch
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.sub_agents import toolset_tool_names
 from pathfinder.tests._support.tool_returns import returned
@@ -234,3 +238,138 @@ async def test_a_scripted_turn_classifies_the_message_once_and_replies() -> None
     assert isinstance(result.output, LeadResponse)
     assert deps.intent is not None
     assert deps.intent.classification is IntentClassification.CONTEXT_STATEMENT
+
+
+_ENRICHMENT_REQUEST = (
+    "Run a GO enrichment on the gene set 'gametocyte secreted candidates' "
+    "and summarize the top terms."
+)
+
+
+async def test_an_enrichment_request_parks_on_the_task_through_the_leads_toolset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The scripted turn runs on the real Lead and its real registrations."""
+    dispatch = capture_durable_dispatch(monkeypatch)
+    deps = lead_deps(pipeline_state(user_prompt=_ENRICHMENT_REQUEST))
+
+    result = await build_lead_agent().run(
+        _ENRICHMENT_REQUEST,
+        deps=deps,
+        model=get_mock_model(),
+    )
+
+    assert isinstance(result.output, DeferredToolRequests)
+    assert [entry["tool_name"] for entry in dispatch.created] == ["geneset_enrichment"]
+    assert dispatch.created[0]["args"]["kwargs"]["gene_set_id"] == "gs_mock_enrichment"
+    assert [d.tool_name for d in deps.durable_deferrals.values()] == [
+        "geneset_enrichment"
+    ]
+
+
+def test_the_leads_enrichment_tool_is_registered_sequential() -> None:
+    """One parked call is checkpointed per turn, so the batch cannot hold two."""
+    tools = build_lead_agent()._function_toolset.tools
+
+    assert tools["run_gene_set_enrichment"].sequential is True
+
+
+def test_the_two_enrichment_registrations_take_the_same_arguments() -> None:
+    """One declaration answers both, so the worker reads one set of kwargs.
+
+    The annotation decides what is serialised into the job, so it is part of
+    the argument and not of the context.
+    """
+    lead = signature(lead_tools.run_gene_set_enrichment).parameters
+    verify = signature(workbench.run_gene_set_enrichment).parameters
+
+    assert [str(p) for p in list(lead.values())[1:]] == [
+        str(p) for p in list(verify.values())[1:]
+    ]
+
+
+def test_the_enrichment_tool_is_offered_before_the_turn_is_classified() -> None:
+    """A request that names a saved set asks for no strategy."""
+    assert "run_gene_set_enrichment" in UNCLASSIFIED_TOOLS
+    assert "run_gene_set_enrichment" not in BUILDING_TOOLS
+
+
+def test_the_enrichment_docstring_names_what_answers_the_call() -> None:
+    """The completion call carries the terms, and the Lead reads them there."""
+    doc = _flat(lead_tools.run_gene_set_enrichment.__doc__ or "")
+
+    assert "get_enrichment_results" not in doc
+    assert "enrichmentResults" in doc
+
+
+_EXPORT_REQUEST = (
+    "Export the gene set 'gametocyte secreted candidates' as CSV and tell me "
+    "where to find the file."
+)
+_EXPORT_URL = "https://exports.test/gametocyte_secreted_candidates.csv"
+
+
+class _ExportService:
+    """The export service, without the database its files live in."""
+
+    async def export_gene_set(
+        self,
+        gene_set: GeneSet,
+        output_format: str,
+    ) -> ExportResult:
+        return ExportResult(
+            export_id="e1",
+            filename=f"{gene_set.name}.{output_format}",
+            content_type="text/csv",
+            url=_EXPORT_URL,
+            size_bytes=64,
+            expires_in_seconds=600,
+        )
+
+
+@pytest.fixture
+def _exportable_gene_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    saved = GeneSet(
+        id="gs_mock_export",
+        name="gametocyte secreted candidates",
+        site_id="plasmodb",
+        gene_ids=["PF3D7_0709000", "PF3D7_1133400"],
+        source="paste",
+    )
+
+    async def _one(gene_set_id: str) -> GeneSet | None:
+        return saved if gene_set_id == saved.id else None
+
+    monkeypatch.setattr(export, "get_gene_set", _one)
+    monkeypatch.setattr(export, "get_export_service", _ExportService)
+
+
+@pytest.mark.usefixtures("_exportable_gene_set")
+async def test_an_export_request_reaches_the_export_tool_and_answers_with_the_link() -> (
+    None
+):
+    """A saved set is exported without a strategy, so the Lead exports it."""
+    deps = lead_deps(pipeline_state(user_prompt=_EXPORT_REQUEST))
+
+    result = await build_lead_agent().run(
+        _EXPORT_REQUEST,
+        deps=deps,
+        model=get_mock_model(),
+    )
+
+    assert isinstance(result.output, LeadResponse)
+    assert result.output.prose == (
+        f"The file is ready. Download it here: {_EXPORT_URL}"
+    )
+
+
+def test_the_export_tool_is_offered_before_the_turn_is_classified() -> None:
+    """Exporting a saved set asks for no strategy, so it waits for no build."""
+    assert "export_gene_set" in UNCLASSIFIED_TOOLS
+    assert "export_gene_set" not in BUILDING_TOOLS
+
+
+def test_the_lead_offers_no_download_it_has_no_id_for() -> None:
+    """A WDK step id is not a name the Lead can read, so it takes none."""
+    assert "get_download_url" not in UNCLASSIFIED_TOOLS
+    assert "get_download_url" not in build_lead_agent()._function_toolset.tools

@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph._lead_turn import (
     ConcurrentDurableDispatchError,
+    UnparkedDurableCallError,
     pending_durable_call,
     resolve_turn_resumption,
 )
@@ -162,6 +163,43 @@ def test_two_sub_agent_dispatches_with_durable_calls_are_refused() -> None:
     output = DeferredToolRequests(calls=[_call("call_a"), _call("call_b")])
 
     with pytest.raises(ConcurrentDurableDispatchError, match="call_a, call_b"):
+        pending_durable_call(output=output, deps=deps, messages=[])
+
+
+def test_a_dispatch_and_a_lead_durable_call_in_one_response_are_refused() -> None:
+    """One suspended run is checkpointed, so the Lead's own call is unanswered."""
+    state = _state()
+    deps = _deps(state)
+    deps.pending_sub_agent_durables["call_verify"] = SubAgentDurablePark(
+        pending=SubAgentApprovalPending(
+            role="verification",
+            approvals=[
+                SubAgentApprovalCall(
+                    tool_call_id="inner_enrich",
+                    tool_name="run_gene_set_enrichment",
+                ),
+            ],
+            messages_json=_HISTORY,
+        ),
+        deferrals={
+            "inner_enrich": DurableDeferral(
+                task_id=_TASK_ID,
+                tool_name="geneset_enrichment",
+            ),
+        },
+    )
+    deps.durable_deferrals["call_enrich"] = DurableDeferral(
+        task_id=uuid4(),
+        tool_name="geneset_enrichment",
+    )
+    output = DeferredToolRequests(
+        calls=[
+            _call("call_verify", "verify_strategy"),
+            _call("call_enrich", "run_gene_set_enrichment"),
+        ],
+    )
+
+    with pytest.raises(UnparkedDurableCallError, match="call_enrich"):
         pending_durable_call(output=output, deps=deps, messages=[])
 
 

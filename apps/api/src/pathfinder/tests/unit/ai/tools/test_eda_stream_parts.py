@@ -17,7 +17,7 @@ from veupathdb.eda import (
 )
 
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.tools.standalone._eda_stream_parts import (
+from pathfinder.ai.tools.standalone.eda_stream_parts import (
     analysis_state_chunks_if_changed,
     eda_analysis_state_chunk,
     eda_subset_preview_chunk,

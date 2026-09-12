@@ -10,6 +10,14 @@
   similarity ranking keeps its own budget for the other kinds, and the answer holds at
   most the two added together. The runtime half is `assistant-core` 0.3.0a10.
 
+* **A study search says how many studies it looked at.**
+  `services/eda/catalog.py::search_studies` carries the catalog size and how the cards were
+  ranked; `ai/tools/standalone/eda_catalog.py` summarises a semantic ranking as the K closest
+  of M with the best match, and only a name match says "matched". Its guidance says a study
+  named by author, title or accession that is not among the closest is not on this site, so
+  the next step is to offer the closest or ask. With the run's call budget this replaces a
+  reformulation loop that read one catalog thirty-seven times.
+
 * **A discovery tool has a budget for one run.**
   `ai/agents/tool_vocabulary.py::DISCOVERY_CALL_CAPS` names the most calls one run may
   make to each tool that answers from a fixed catalog, whatever the arguments; the
@@ -67,6 +75,45 @@
   `tests/unit/ai/graph/test_recalled_memories_reach_the_thread.py` parses every module
   under `ai/graph` and `ai/lead` and fails on a call of the writer of any other shape.
 
+* **Enrichment and export of a saved gene set are calls the Lead makes itself.** The Lead
+  carries `run_gene_set_enrichment` and `export_gene_set`, each on an id it can read from
+  `list_workbench_gene_sets`, and the intent gate offers both before the turn is classified,
+  beside the workbench save and listing: a request that names a set the workbench already
+  holds asks for no strategy, so it waits on no build and no dispatch. VERIFY keeps its
+  copies, enrichment still gated on a delta that earns it, for what a build just produced.
+  The Lead carries neither `get_enrichment_results`, which reads an experiment's enrichment
+  and not a gene set's, nor `get_download_url`, whose WDK step id the Lead has no way to
+  read: a tool the Lead carries does what its docstring says, and the terms of a finished
+  enrichment travel back on the completion call itself. The durable half is declared once and
+  written twice, because the agent-side stub carries the deps of the agent that registers it
+  and a test holds the two signatures identical: the Lead's own stub is what parks the turn,
+  since a durable deferral is recorded on the deps of the run that made the call and
+  `inner_context` hands a tool a fresh container the Lead's node never reads. A dispatch and
+  a durable call of the Lead's own in one response are refused rather than parked, because
+  the parked dispatch answers the sub-agent's calls only. The reversibility map is now the
+  source of the durable line in the machine-guarantees pin, because a durable tool's declared
+  job name and its agent-side name need not agree, and a test calls every tool the map marks
+  durable to prove each one defers a declared job.
+
+* **A study search answers as the ranking it is.** `search_eda_studies` reports a semantic
+  top-k as "the K closest of M studies on this site (best match 0.72)" and says that a
+  study named by author, title or accession that is not among them is not on this site,
+  so the next move is to offer the closest or ask. Only a name match says "matched". M is
+  the number of studies this account can see, counted where the ranking already walks the
+  permission map and the listing, so the answer costs no second read. `StudySearch` carries
+  the count and the ranking it used, and its guidance follows from the ranking rather than
+  being passed beside it. `search_eda_studies` and `describe_eda_study` are in
+  `READ_ONLY_TOOLS`, so the repetition guard watches them.
+
+* **Every reader outside the tool package reads a declared name.** `_eda_stream_parts`,
+  `_optimization_models` and `_export_models` are now `eda_stream_parts`,
+  `optimization_models` and `export_models`, and
+  `attach_export` and `parse_and_validate_inputs` lost their leading underscore, because a
+  name a module outside the tool package reads cannot be private twice. The guard that held
+  this for `ai/lead` and `ai/graph` now walks `pathfinder.jobs` too
+  (`tests/unit/ai/test_the_tool_package_declares_the_names_others_read.py`), so a rename
+  inside `ai/tools/standalone` fails a test rather than a durable job.
+
 * **A saved conversation outlives the build that saved it.** The turn state drops a
   field the resuming build no longer declares and is rebuilt as this build's models
   at the turn's entry; a value the build cannot read ends the turn with one sentence
@@ -84,11 +131,10 @@
   concept that the Lead also reads. What stays private is what only the tool package
   reads, at both levels - a module such as `_validation_helpers`, and a function such as
   `strategy_refusals._refused`, which its sibling tool modules call. The rule is held by
-  construction: `tests/unit/ai/test_the_tool_package_declares_what_the_lead_reads.py`
+  construction: `tests/unit/ai/test_the_tool_package_declares_the_names_others_read.py`
   parses every module under `ai/lead` and `ai/graph` and fails on any import of a private
   module or a private name of that package, which covers the two modules the EDA sheet
-  test pinned and the forty-three it did not. `jobs/impls` still holds two such reads, so
-  the guard names `ai/lead` and `ai/graph` only and the worker's half is a backlog card.
+  test pinned and the forty-three it did not.
 
 * **A patched step and a written subtree state both sides of the stated-value guard in
   the catalog's own form.** The guard asks whether a batch introduced a departure from a

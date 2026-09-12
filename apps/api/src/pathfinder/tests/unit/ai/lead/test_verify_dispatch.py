@@ -66,9 +66,21 @@ class TestTheCapabilitiesAreReallyThere:
             verification.build_toolset()
         )
 
-    def test_the_lead_does_not_carry_enrichment_itself(self) -> None:
-        # If it ever does, the dispatch note above is the thing to correct.
-        assert "run_gene_set_enrichment" not in agent_tool_names(build_lead_agent())
+    def test_the_lead_serves_a_saved_gene_set_without_a_dispatch(self) -> None:
+        """The two calls a saved set answers, and no read of another universe.
+
+        A saved set's enrichment travels back on the completion call, and its
+        download takes the set's own id.
+        """
+        workbench_reads = {
+            _ENRICHMENT,
+            "get_enrichment_results",
+            "export_gene_set",
+            "get_download_url",
+        }
+        carried = agent_tool_names(build_lead_agent()) & workbench_reads
+
+        assert carried == {_ENRICHMENT, "export_gene_set"}
 
 
 def _criterion(index: int, search_name: str) -> Criterion:

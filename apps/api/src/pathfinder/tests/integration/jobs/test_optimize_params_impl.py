@@ -99,11 +99,7 @@ async def progress_sink(
 
 
 async def _fake_attach_export(result_json: dict[str, Any], search_name: str) -> None:
-    """Stand-in for _attach_export — the real one needs a request user_id ctx.
-
-    The export side-effect (write to S3/disk) is genuinely external; mocking
-    it here is the same pattern as ``test_optimize_params_durable.py``.
-    """
+    """Stand-in for attach_export, which needs a request user_id context."""
     del search_name
     result_json["downloads"] = {"jsonUrl": "https://ex/sweep.json"}
 
@@ -116,7 +112,7 @@ def run_impl(
     """Returns an awaitable that runs optimize_search_parameters_impl with
     a parameter_space sized to produce ``variants_count`` Cartesian variants.
     """
-    monkeypatch.setattr(optimize_params_impl, "_attach_export", _fake_attach_export)
+    monkeypatch.setattr(optimize_params_impl, "attach_export", _fake_attach_export)
 
     async def _run(
         *, variants_count: int, max_parallel: int | None = None

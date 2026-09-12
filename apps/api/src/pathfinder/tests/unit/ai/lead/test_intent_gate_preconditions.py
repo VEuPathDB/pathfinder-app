@@ -140,6 +140,34 @@ def test_a_classified_build_turn_reaches_frame_and_build() -> None:
     assert {"frame_problem", "build_strategy"} <= offered
 
 
+_SAVED_SET_TOOLS = frozenset({"run_gene_set_enrichment", "export_gene_set"})
+
+
+def test_a_saved_set_is_served_on_a_building_turn() -> None:
+    """A build in the same message does not withhold what a saved set needs."""
+    deps = _deps(
+        classification=IntentClassification.EDIT_STRATEGY,
+        domain=StrategyDomainState(operational_spec=_spec_with_criteria()),
+        with_steps=True,
+    )
+
+    assert _offered(deps) >= _SAVED_SET_TOOLS
+
+
+def test_a_saved_set_is_served_while_a_build_waits_for_its_check() -> None:
+    """The refusal withholds what writes the strategy, and nothing else."""
+    deps = _deps(
+        classification=IntentClassification.NEW_STRATEGY,
+        domain=StrategyDomainState(last_build_outcome=BuildOutcome()),
+    )
+    deps.state.turn_markers.verification_nudged = True
+
+    offered = _offered(deps)
+
+    assert offered >= _SAVED_SET_TOOLS
+    assert offered & BUILDING_TOOLS == {"verify_strategy"}
+
+
 def test_frame_is_hidden_once_a_frame_dispatch_ran_this_turn() -> None:
     deps = _deps(classification=IntentClassification.NEW_STRATEGY)
     deps.state.turn_markers.framed = True

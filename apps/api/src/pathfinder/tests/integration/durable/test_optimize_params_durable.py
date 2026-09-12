@@ -123,7 +123,7 @@ async def test_run_durable_task_wiring_optimize(
     """End-to-end: runner submits -> impl fans out -> result row matches sweep shape."""
     del db_cleaner, patch_app_db_engine, worker_seams
 
-    monkeypatch.setattr(optimize_params_impl, "_attach_export", _fake_attach_export)
+    monkeypatch.setattr(optimize_params_impl, "attach_export", _fake_attach_export)
     monkeypatch.setattr(
         optimize_params_impl, "run_single_trial", _fake_run_single_trial
     )

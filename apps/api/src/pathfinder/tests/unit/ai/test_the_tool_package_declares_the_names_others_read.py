@@ -1,4 +1,4 @@
-"""The names the Lead and the graph may read of the standalone tool package."""
+"""The names a reader outside the standalone tool package may read of it."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import ast
 from pathlib import Path
 from types import ModuleType
 
+from pathfinder import jobs
 from pathfinder.ai import graph, lead
 
 TOOL_PACKAGE = "pathfinder.ai.tools.standalone"
@@ -64,7 +65,17 @@ def test_the_graph_reads_only_declared_tool_names() -> None:
     assert _reaches_into_the_tool_package(graph) == []
 
 
+def test_the_worker_reads_only_declared_tool_names() -> None:
+    """A durable job's body names the same surface its agent-side tool does."""
+    assert _reaches_into_the_tool_package(jobs) == []
+
+
 def test_the_guard_walks_every_module_of_the_lead() -> None:
     """A walk that finds no file would pass the two rules above."""
     walked = {path.name for path in _package_root(lead).rglob("*.py")}
     assert {"lead_tools.py", "edit_dispatch.py", "live_state.py"} <= walked
+
+
+def test_the_guard_walks_every_module_of_the_worker() -> None:
+    walked = {path.name for path in _package_root(jobs).rglob("*.py")}
+    assert {"optimize_params_impl.py", "eda_compute_impl.py"} <= walked

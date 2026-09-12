@@ -14,6 +14,7 @@ from pathfinder.ai.tools.standalone._eda_models import (
     EdaStudySearchResult,
 )
 from pathfinder.services.eda.catalog import (
+    StudySearch,
     UnknownEdaDatasetError,
     get_study_detail_for_dataset,
     search_studies,
@@ -37,11 +38,40 @@ _FILTER_GUIDANCE = (
     "returns a count of zero with no error."
 )
 
+_DESCRIPTION_GUIDANCE = (
+    "Every description here is cut short. Call describe_eda_study on the "
+    "datasetId you pick, before opening an analysis: it reads that study in "
+    "full - its entities, its variables, and what this account may do with it."
+)
+
 _ENTITY_GUIDANCE = (
     "Call describe_eda_study again with an entity_id to read that entity's "
     "variables. A study can declare thousands, so they travel one entity at "
     "a time."
 )
+
+
+def _ranking_guidance(found: StudySearch) -> str:
+    """What the ranking says about a study the model cannot see in it."""
+    if found.ranking == "name":
+        return found.guidance
+    return (
+        f"These are the closest studies in this site's catalog of "
+        f"{found.catalog_size}. A study named by author, title or accession "
+        f"that is not among them is not on this site, so offer the closest "
+        f"one or ask which to use instead of searching again."
+    )
+
+
+def _ranking_summary(found: StudySearch, query: str) -> str:
+    """The line the recorded turn carries, in the terms of the ranking."""
+    if found.ranking == "name":
+        return f"{len(found.cards)} studies matched {query}"
+    best = max(card.relevance for card in found.cards)
+    return (
+        f"{len(found.cards)} closest of {found.catalog_size} studies on this "
+        f"site (best match {best:.2f})"
+    )
 
 
 async def search_eda_studies(
@@ -101,26 +131,9 @@ async def search_eda_studies(
             )
             for card in found.cards
         ],
-        guidance=" ".join(
-            part
-            for part in (
-                found.guidance,
-                (
-                    "Every description here is cut short. Call "
-                    "describe_eda_study on the datasetId you pick, before "
-                    "opening an analysis: it reads that study in full - its "
-                    "entities, its variables, and what this account may do "
-                    "with it."
-                ),
-            )
-            if part
-        ),
+        guidance=f"{_ranking_guidance(found)} {_DESCRIPTION_GUIDANCE}",
     )
-    return with_summary(
-        result,
-        f"{len(found.cards)} studies matched {query}",
-        ctx=ctx,
-    )
+    return with_summary(result, _ranking_summary(found, query), ctx=ctx)
 
 
 async def describe_eda_study(

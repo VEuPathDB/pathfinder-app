@@ -112,7 +112,8 @@ async def test_search_eda_studies_returns_cards_the_model_can_act_on(
                     can_subset=True,
                     can_export_rows=True,
                 )
-            ]
+            ],
+            catalog_size=120,
         )
 
     monkeypatch.setattr(eda_catalog, "search_studies", found)
@@ -134,7 +135,7 @@ async def test_search_eda_studies_says_so_when_nothing_matches(
 ) -> None:
     async def none(_site: str, _query: str, limit: int = 5) -> StudySearch:
         del limit
-        return StudySearch(cards=[])
+        return StudySearch(cards=[], catalog_size=0)
 
     monkeypatch.setattr(eda_catalog, "search_studies", none)
     result = returned(
@@ -160,7 +161,7 @@ async def test_search_eda_studies_carries_the_name_match_guidance(
 
     async def by_name(_site: str, _query: str, limit: int = 5) -> StudySearch:
         del limit
-        return StudySearch(cards=[card], guidance=NAME_MATCH_GUIDANCE)
+        return StudySearch(cards=[card], catalog_size=87, ranking="name")
 
     monkeypatch.setattr(eda_catalog, "search_studies", by_name)
     result = returned(
@@ -170,6 +171,37 @@ async def test_search_eda_studies_carries_the_name_match_guidance(
 
     assert [study.dataset_id for study in result.studies] == ["DS_heat"]
     assert result.guidance.startswith(NAME_MATCH_GUIDANCE)
+
+
+async def test_search_eda_studies_says_an_absent_study_is_not_on_the_site(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """A semantic top-k is the closest of the catalog, not a match on a name."""
+    card = StudyCard(
+        dataset_id="DS_hemocyte",
+        study_id="STUDY_hemocyte",
+        display_name="Hemocyte RNA-Seq after infection",
+        short_display_name="",
+        description="",
+        source_type="curated",
+        relevance=0.72,
+    )
+
+    async def closest(_site: str, _query: str, limit: int = 5) -> StudySearch:
+        del limit
+        return StudySearch(cards=[card, card, card], catalog_size=120)
+
+    monkeypatch.setattr(eda_catalog, "search_studies", closest)
+    result = returned(
+        await eda_catalog.search_eda_studies(
+            lead_ctx, query="Pinto hemocyte microarray"
+        ),
+        EdaStudySearchResult,
+    )
+
+    assert "catalog of 120" in result.guidance
+    assert "is not on this site" in result.guidance
+    assert "matched" not in result.guidance
 
 
 async def test_describe_eda_study_reports_the_entity_tree_and_the_gene_entity(

@@ -55,7 +55,7 @@ class TestASilentZeroReportsEmpty:
     async def test_search_eda_studies(self, monkeypatch: pytest.MonkeyPatch) -> None:
         async def _none(_site: str, _query: str, *, limit: int) -> StudySearch:
             del limit
-            return StudySearch(cards=[], guidance="")
+            return StudySearch(cards=[], catalog_size=0)
 
         monkeypatch.setattr(eda_catalog, "search_studies", _none)
         returned = await eda_catalog.search_eda_studies(
@@ -207,17 +207,20 @@ class TestThePinnedStrings:
             short_display_name="Heat shock",
             description="",
             source_type="curated",
+            relevance=0.72,
         )
 
         async def _three(_site: str, _query: str, *, limit: int) -> StudySearch:
             del limit
-            return StudySearch(cards=[card, card, card], guidance="")
+            return StudySearch(cards=[card, card, card], catalog_size=120)
 
         monkeypatch.setattr(eda_catalog, "search_studies", _three)
         returned = await eda_catalog.search_eda_studies(
             lead_run_context(tool_call_id="call_1"), "heat shock"
         )
-        assert summary_of(returned).data["summary"] == "3 studies matched heat shock"
+        assert summary_of(returned).data["summary"] == (
+            "3 closest of 120 studies on this site (best match 0.72)"
+        )
 
     async def test_open_eda_analysis(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """The line names the analysis the researcher named, and nothing after it."""

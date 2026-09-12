@@ -6,8 +6,10 @@ own markers, so a tool registered without a class fails the gate here.
 
 from __future__ import annotations
 
+import pytest
 from assistant_core.graph.durable import DURABLE_TOOLS
 from pydantic_ai import Agent
+from pydantic_ai.exceptions import CallDeferred
 from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import Tool
@@ -22,6 +24,8 @@ from pathfinder.ai.lead.guarantees import (
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.tests._support.durable_dispatch import capture_durable_dispatch
+from pathfinder.tests._support.run_context import lead_run_context
 
 
 def _tools() -> dict[str, Tool[LeadDeps]]:
@@ -48,9 +52,25 @@ def test_every_destructive_tool_is_approval_gated_on_the_registry() -> None:
     assert _classified(Reversibility.GATED_DESTRUCTIVE) == {"clear_strategy"}
 
 
-def test_the_durable_class_is_the_durable_registration() -> None:
+def test_every_durable_tool_is_registered_sequential() -> None:
+    """One parked call is checkpointed per turn, so a batch cannot hold two."""
     tools = _tools()
-    assert _classified(Reversibility.DURABLE) == set(DURABLE_TOOLS) & set(tools)
+    sequential = {name for name, tool in tools.items() if tool.sequential}
+    assert _classified(Reversibility.DURABLE) == sequential
+
+
+@pytest.mark.parametrize("name", sorted(_classified(Reversibility.DURABLE)))
+async def test_a_durable_tool_defers_a_job_a_worker_declared(
+    name: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The pin promises a worker runs these, so each one really defers to one."""
+    dispatch = capture_durable_dispatch(monkeypatch)
+
+    with pytest.raises(CallDeferred):
+        await _tools()[name].function(lead_run_context(tool_call_id="call_1"))
+
+    assert [entry["tool_name"] in DURABLE_TOOLS for entry in dispatch.created] == [True]
 
 
 def test_no_building_tool_is_classified_as_a_read() -> None:
