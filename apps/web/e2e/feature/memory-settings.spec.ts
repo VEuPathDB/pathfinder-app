@@ -24,7 +24,7 @@ test.describe("Settings / Memory tab", () => {
     // Switch to the Memory tab and verify the four sections + search field.
     await dialog.getByRole("button", { name: "Memory", exact: true }).click();
 
-    await expect(dialog.getByRole("button", { name: /Gene Sets/i })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: /Gene set notes/i })).toBeVisible();
     await expect(dialog.getByRole("button", { name: /Strategies/i })).toBeVisible();
     await expect(dialog.getByRole("button", { name: /Preferences/i })).toBeVisible();
     await expect(dialog.getByRole("button", { name: /Knowledge/i })).toBeVisible();
