@@ -11,7 +11,10 @@ status: stable
 # The decision
 
 `StrategyDomainState` carries `spec_before_turn`, a deep copy of the spec as
-the pre-turn hook found it. `domain/strategy/spec_diff.py::diff_specs` compares
+the pre-turn hook found it, once that spec is reconciled with the live graph
+(`domain/strategy/spec_reconciliation.py`): a criterion whose step the strategy
+no longer holds is not one this turn can keep.
+`domain/strategy/spec_diff.py::diff_specs` compares
 it against the spec the turn produced and reports one `CriterionChange` per
 criterion: `kept`, `changed`, `added` or `dropped`.
 

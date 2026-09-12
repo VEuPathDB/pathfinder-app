@@ -321,7 +321,7 @@ async def _run_lead_turn(
         stored = await retrieve_memories(state, runtime)
         memories = [s.value for s in stored]
         if stored:
-            writer(memory_retrieved_event(memories=stored))
+            emit_chunk(writer, memory_retrieved_event(memories=stored))
     emit_chunk(writer, turn_step_status(READING_THE_THREAD))
     capture = _LeadRunCapture()
     message_id = uuid4()

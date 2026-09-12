@@ -1,6 +1,7 @@
-"""PathFinder's pre-turn work: measure the recorded build against WDK, give a
-strategy that has no spec one derived from what it already is, and brief the
-turn on what moved since the thread last answered.
+"""PathFinder's pre-turn work: measure the recorded build against WDK, take the
+criteria whose steps the strategy lost out of the spec, give a strategy that has
+no spec one derived from what it already is, and brief the turn on what moved
+since the thread last answered.
 
 The user can edit the strategy between turns, in the graph editor or on the
 site. WDK owns it, so only WDK can say what it holds now.
@@ -15,6 +16,7 @@ from pathfinder.domain.strategy.spec_hydration import (
     hidden_params_dropped,
     spec_from_ast,
 )
+from pathfinder.domain.strategy.spec_reconciliation import spec_reconciled_with_graph
 from pathfinder.domain.strategy.staleness import detect_build_staleness
 from pathfinder.services.conversations.thread_activity import read_thread_activity
 from pathfinder.services.strategies.live_counts import read_wdk_step_counts
@@ -70,9 +72,35 @@ async def refresh_live_strategy_state(
         working_state.domain.last_build_outcome,
         live_counts,
     )
+    _drop_the_criteria_the_strategy_lost(working_state, context)
     await _hydrate_spec_from_the_strategy(working_state, context)
     _record_the_spec_the_turn_started_from(working_state)
     return working_state
+
+
+def _drop_the_criteria_the_strategy_lost(
+    state: PipelineState, context: Context
+) -> None:
+    """Take the criteria whose steps the strategy no longer holds out of the spec.
+
+    The last recorded build names every step the strategy held when the thread
+    last answered. A turn that resumes a parked call keeps the spec that turn
+    reached.
+    """
+    if state.resumes_parked_call:
+        return
+    spec = state.domain.operational_spec
+    graph = context.strategy_session.get_graph(None)
+    if spec is None or graph is None:
+        return
+    outcome = state.domain.last_build_outcome
+    state.domain.operational_spec = spec_reconciled_with_graph(
+        spec,
+        graph,
+        recorded_step_ids=frozenset()
+        if outcome is None
+        else {node.node_id for node in outcome.node_results},
+    )
 
 
 def _record_the_spec_the_turn_started_from(state: PipelineState) -> None:

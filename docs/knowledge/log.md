@@ -45,6 +45,28 @@
   searches, and `list_searches` already carries transform names into it; `list_transforms`
   was the one listing tool that showed a name it never recorded.
 
+* **A turn starts from the strategy the graph holds.** A criterion that reached a step is
+  addressed by that step's id, so `domain/strategy/spec_reconciliation.py` takes every
+  criterion whose step the graph no longer holds out of the spec, collapses the combine
+  left with one input and drops the structure left with none. A criterion reached a step
+  when the last recorded build names it, which covers every id whatever minted it, or,
+  for a spec whose criteria the record does not name, when its id carries the step
+  minter's own shape; a criterion in neither set never had a step and stays, so an option
+  criterion and an unbuilt one both keep their place. The build outcome is the authority
+  here because the edit path writes its new step under the criterion id the model chose
+  (`spec_to_operations::_node_for`), and only a full spec build renumbers criteria onto
+  minted ids. The pre-turn applies the reconciliation before it hydrates and before it
+  records `spec_before_turn`, so a spec it empties is re-derived from the live strategy
+  and the spec an edit is diffed against states what the strategy states: a criterion
+  re-bound over a step the editor deleted reads as `added` and not as `kept`. A turn that
+  resumes a parked call keeps the spec that turn reached.
+
+* **The stream writer takes the envelope and nothing else.** The turn runner keeps a
+  payload only when it is the `{"chunk": {...}}` envelope `emit_chunk` writes, so the
+  recalled-memories chunk goes through it and reaches the thread and the event log.
+  `tests/unit/ai/graph/test_recalled_memories_reach_the_thread.py` parses every module
+  under `ai/graph` and `ai/lead` and fails on a call of the writer of any other shape.
+
 * **A saved conversation outlives the build that saved it.** The turn state drops a
   field the resuming build no longer declares and is rebuilt as this build's models
   at the turn's entry; a value the build cannot read ends the turn with one sentence
