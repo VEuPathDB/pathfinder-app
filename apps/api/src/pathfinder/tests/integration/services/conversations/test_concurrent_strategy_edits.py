@@ -35,11 +35,13 @@ from pathfinder.services.strategies import (
     commit,
     insert_saved,
     spec_build,
+    stated_sides,
     step_wdk_push,
     sync,
 )
 from pathfinder.services.strategies.insert_saved import ClonedSavedStrategy
 from pathfinder.services.strategies.sync import SyncResult
+from pathfinder.tests._support import wdk_write_stubs
 
 # The push one writer is held inside while the other writer arrives. Local
 # Postgres and a stubbed WDK answer in well under a millisecond, so the
@@ -172,6 +174,9 @@ def slow_api(monkeypatch: pytest.MonkeyPatch) -> _SlowAPI:
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_incomplete)
     monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _no_reconcile)
     monkeypatch.setattr(commit, "sync_strategy_for_site", _fake_sync)
+    monkeypatch.setattr(
+        stated_sides, "validate_parameters", wdk_write_stubs.accepts_every_value
+    )
     return api
 
 

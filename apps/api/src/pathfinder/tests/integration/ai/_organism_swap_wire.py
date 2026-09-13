@@ -28,6 +28,7 @@ from veupathdb_mcp.catalog import (
 from pathfinder.ai.lead import edit_dispatch
 from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
+from pathfinder.tests._support import wdk_write_stubs
 
 PF = "Plasmodium falciparum 3D7"
 PV = "Plasmodium vivax P01"
@@ -177,15 +178,7 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     for module in (commit, step_wdk_push, sync, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
-    async def _noop_validate_plan(*_a: Any, **_k: Any) -> set[str]:
-        return set()
-
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate_plan)
-
-    async def _noop_reconcile(*_a: Any, **_k: Any) -> None:
-        return None
-
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
+    wdk_write_stubs.stub_every_catalog_read(monkeypatch)
     monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _chunk: None)
 
     def _fetch_at(*_args: object) -> ParamFetcher:
