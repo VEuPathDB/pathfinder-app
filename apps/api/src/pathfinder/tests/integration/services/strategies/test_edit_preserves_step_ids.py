@@ -50,6 +50,7 @@ from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support import wdk_write_stubs
 
 WDK_IDS = {"step_text": 100, "step_go": 200, "step_join": 300}
 
@@ -186,15 +187,7 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     for module in (commit, step_wdk_push, sync, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
-    async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
-        return set()
-
-    monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
-
-    async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
-        return None
-
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop_reconcile)
+    wdk_write_stubs.stub_every_catalog_read(monkeypatch)
     monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _chunk: None)
     return api
 
