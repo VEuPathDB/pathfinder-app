@@ -414,3 +414,57 @@ async def test_a_combine_above_a_replaced_search_is_created_with_the_new_input(
     ]
     assert [call.kwargs["secondary_step_id"] for call in combines] == [200]
     assert sync_state.wdk_step_ids["J"] != 300
+
+
+async def test_a_patched_leaf_pushes_the_name_it_now_states(
+    counting_api: CountingStrategyAPI,
+) -> None:
+    """WDK holds the name the step states, not the one it was created with."""
+    before = _leaf("A", "SearchA")
+    before.display_name = "Genes with 1 to 7 predicted transmembrane domains"
+    after = _leaf("A", "SearchA")
+    after.display_name = "Genes with 1 to 2 predicted transmembrane domains"
+    after.parameters = {"organism": MultiPickValue(values=["TgME49"])}
+    new_ast = StrategyAst(record_type="transcript", root=after)
+
+    graph = StrategyGraph("g1", "test", "plasmodb")
+    _populate_graph(graph, new_ast)
+    sync_state = WDKSyncState(wdk_step_ids={"A": 500})
+    plan = plan_step_pushes(
+        old_ast=StrategyAst(record_type="transcript", root=before),
+        new_ast=new_ast,
+        existing_wdk_ids={"A": 500},
+    )
+
+    await push_steps_with_plan(graph, sync_state, "plasmodb", plan)
+
+    assert [
+        call.kwargs["custom_name"]
+        for call in counting_api.named("update_step_properties")
+    ] == ["Genes with 1 to 2 predicted transmembrane domains"]
+
+
+async def test_a_patched_leaf_whose_name_stood_still_writes_no_name(
+    counting_api: CountingStrategyAPI,
+) -> None:
+    """A name WDK already holds costs no round trip of its own."""
+    before = _leaf("A", "SearchA")
+    before.display_name = "Genes with 1 to 7 predicted transmembrane domains"
+    after = _leaf("A", "SearchA")
+    after.display_name = before.display_name
+    after.parameters = {"organism": MultiPickValue(values=["TgME49"])}
+    new_ast = StrategyAst(record_type="transcript", root=after)
+
+    graph = StrategyGraph("g1", "test", "plasmodb")
+    _populate_graph(graph, new_ast)
+    sync_state = WDKSyncState(wdk_step_ids={"A": 500})
+    plan = plan_step_pushes(
+        old_ast=StrategyAst(record_type="transcript", root=before),
+        new_ast=new_ast,
+        existing_wdk_ids={"A": 500},
+    )
+
+    await push_steps_with_plan(graph, sync_state, "plasmodb", plan)
+
+    assert counting_api.named("update_step_properties") == []
+    assert counting_api.named("update_step_search_config") != []

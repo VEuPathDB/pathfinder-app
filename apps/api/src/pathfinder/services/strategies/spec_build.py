@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from assistant_core.platform.logging import get_logger
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue
@@ -36,6 +38,11 @@ from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
 from pathfinder.services.strategies.reconcile import reconcile_sync_state_with_wdk
+from pathfinder.services.strategies.stated_sides import (
+    CanonicalSides,
+    canonical_sides,
+    canonicalize_stated_leaves,
+)
 from pathfinder.services.strategies.step_wdk_push import push_step_to_wdk
 from pathfinder.services.strategies.sync import sync_strategy_for_site
 from pathfinder.services.strategies.sync_state import WDKSyncState, ensure_sync_state
@@ -94,7 +101,10 @@ def _replace_graph_contents(
 
 
 def _a_build_the_spec_refuses(
-    deps: StrategyMutationContext, graph: StrategyGraph, root: StrategyStepNode
+    deps: StrategyMutationContext,
+    graph: StrategyGraph,
+    root: StrategyStepNode,
+    sides: CanonicalSides,
 ) -> str | None:
     """Why the tree this build would leave behind departs from the spec.
 
@@ -114,10 +124,44 @@ def _a_build_the_spec_refuses(
     if join is not None:
         return join
     return new_value_contradiction(
-        stated=deps.stated_values,
+        stated=sides.stated,
         graph=candidate,
-        before=contradicted_values(deps.stated_values, graph, deps.entry_values),
+        before=contradicted_values(sides.stated, graph, sides.entry),
     )
+
+
+class _CanonicalBuild(NamedTuple):
+    """The tree this build writes, and the sides the guard measures it against."""
+
+    root: StrategyStepNode
+    sides: CanonicalSides
+
+
+async def _canonical_build(
+    deps: StrategyMutationContext, graph: StrategyGraph, root: StrategyStepNode
+) -> _CanonicalBuild:
+    """The build in the catalog's form, and the two sides the guard reads.
+
+    The canonicalization writes a tree of its own, so a build the spec refuses
+    leaves the caller's tree as the caller wrote it. A leaf the catalog turns
+    down has no canonical form, and its refusal is reported by its own push.
+    """
+    callbacks = make_validation_callbacks(deps.site_id)
+    written = root.model_copy(deep=True)
+    try:
+        writes = await canonicalize_stated_leaves(
+            root=written,
+            stated=deps.stated_values,
+            site_id=deps.site_id,
+            record_type=graph.record_type or "transcript",
+            callbacks=callbacks,
+        )
+    except ValidationError:
+        written, writes = root.model_copy(deep=True), []
+    sides = await canonical_sides(
+        graph=graph, stated=deps.stated_values, writes=writes, callbacks=callbacks
+    )
+    return _CanonicalBuild(root=written, sides=sides)
 
 
 async def build_strategy_from_spec(
@@ -137,7 +181,9 @@ async def build_strategy_from_spec(
         msg = "no active strategy graph for the current conversation"
         raise RuntimeError(msg)
 
-    refusal = _a_build_the_spec_refuses(deps, graph, root)
+    built = await _canonical_build(deps, graph, root)
+    root = built.root
+    refusal = _a_build_the_spec_refuses(deps, graph, root, built.sides)
     if refusal is not None:
         raise ApplyError(refusal)
 

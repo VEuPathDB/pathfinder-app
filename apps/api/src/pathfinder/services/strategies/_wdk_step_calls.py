@@ -149,8 +149,10 @@ async def _update_existing_step(
     sync_state: WDKSyncState,
     step: StrategyStep,
     record_type: str,
+    *,
+    name_moved: bool,
 ) -> None:
-    """Update an existing WDK step's search-config (parameters + weight)."""
+    """Update an existing WDK step's search-config and the name it states."""
     wdk_step_id = sync_state.wdk_step_ids[step.id]
     kind = step.kind.value
 
@@ -165,6 +167,11 @@ async def _update_existing_step(
         record_type=record_type,
         search_name=wdk_search_name(step),
     )
+    if name_moved and step.display_name:
+        await api.update_step_properties(
+            step_id=wdk_step_id,
+            spec=PatchStepSpec(custom_name=step.display_name),
+        )
 
 
 async def _patch_combine_metadata(

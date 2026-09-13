@@ -3,7 +3,7 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from veupathdb.domain.parameters import MultiPickValue
+from veupathdb.domain.parameters import MultiPickValue, ParamValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
 from veupathdb.errors import WDKError
 from veupathdb.wdk import (
@@ -14,6 +14,7 @@ from veupathdb.wdk import (
     WDKSearchConfig,
     WDKStep,
 )
+from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.domain.strategy.operations import (
     DeleteResolution,
@@ -22,7 +23,12 @@ from pathfinder.domain.strategy.operations import (
     UpdateStepParamsOp,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.services.strategies import commit, step_wdk_push, sync
+from pathfinder.services.strategies import (
+    commit,
+    stated_sides,
+    step_wdk_push,
+    sync,
+)
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync import SyncResult
@@ -95,6 +101,12 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
         return set()
 
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _noop_validate)
+
+    async def _echo_parameters(*_args: Any, **kwargs: Any) -> ValidatedParams:
+        params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
+        return ValidatedParams(params=params, record_class="transcript")
+
+    monkeypatch.setattr(stated_sides, "validate_parameters", _echo_parameters)
 
     async def _noop_reconcile(*_args: Any, **_kwargs: Any) -> None:
         return None

@@ -6,7 +6,6 @@ values the user stated. A write that changes either one is measured here.
 
 from __future__ import annotations
 
-import re
 from collections.abc import Collection, Mapping
 from typing import NamedTuple
 
@@ -22,6 +21,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.step_naming import states_the_wire_form
 
 __all__ = [
     "JoinContradiction",
@@ -131,11 +131,6 @@ def new_join_contradiction(
     return None
 
 
-def _states_the_wire_form(text: str, wire: str) -> bool:
-    """Whether these words carry this value, on its own and not inside a word."""
-    return re.search(rf"(?<!\w){re.escape(wire)}(?!\w)", text) is not None
-
-
 def stated_values(spec: OperationalSpec, criterion: Criterion) -> dict[str, str]:
     """The parameter values this criterion holds because the user stated them.
 
@@ -154,7 +149,7 @@ def stated_values(spec: OperationalSpec, criterion: Criterion) -> dict[str, str]
     found: dict[str, str] = {}
     for name, value in criterion.resolved_params.items():
         wire = to_wire(value)
-        if (name, wire) in grounded or _states_the_wire_form(criterion.text, wire):
+        if (name, wire) in grounded or states_the_wire_form(criterion.text, wire):
             found[name] = wire
     return found
 

@@ -19,7 +19,6 @@ from veupathdb_mcp import ToolErrorPayload
 from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone import strategy_edits
 from pathfinder.ai.tools.standalone.strategy_edits import (
     delete_step,
     insert_saved_strategy,
@@ -31,6 +30,7 @@ from pathfinder.ai.tools.standalone.strategy_edits import (
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.operations import DeleteResolution
 from pathfinder.platform.errors import ErrorCode
+from pathfinder.services.strategies import stated_sides
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import summary_of
@@ -149,7 +149,7 @@ class TestUpdateLeafParams:
             seen["parameters"] = dict(parameters)
             return ValidatedParams(params=dict(parameters), record_class="transcript")
 
-        monkeypatch.setattr(strategy_edits, "validate_parameters", _capture_validate)
+        monkeypatch.setattr(stated_sides, "validate_parameters", _capture_validate)
 
         await update_leaf_params(
             ctx(deps), "a", {"ReadFrequencyPercent": SinglePickValue(value="80%")}
@@ -229,7 +229,7 @@ class TestUpdateLeafParams:
                 ],
             )
 
-        monkeypatch.setattr(strategy_edits, "validate_parameters", _raising_validate)
+        monkeypatch.setattr(stated_sides, "validate_parameters", _raising_validate)
 
         with pytest.raises(ModelRetry) as excinfo:
             await update_leaf_params(
@@ -408,4 +408,4 @@ class TestAPushWDKRefusedIsTheAnswer:
         payload = returned(await delete_step(ctx(deps), "a"), ToolErrorPayload)
 
         assert payload.ok is False
-        assert [c.id for c in draft.criteria] == ["b"]
+        assert [c.id for c in deps.agent_state.operational_spec_draft.criteria] == ["b"]

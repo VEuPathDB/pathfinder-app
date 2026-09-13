@@ -5,23 +5,42 @@ from __future__ import annotations
 import pytest
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import ParamValue, StringValue
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode, leaves
 
+from pathfinder.ai.tools.standalone.strategy import apply_operations, build_strategy
 from pathfinder.ai.tools.standalone.strategy_edits import (
     replace_subtree,
     update_leaf_params,
 )
+from pathfinder.domain.strategy.operations import UpdateStepParamsOp
+from pathfinder.domain.strategy.revision import strategy_revision
 
 from ._spec_contradiction_case import (
     DEPARTED_GENE,
     MIC2,
+    PROFILE,
+    PROFILE_JOIN,
+    RON2,
+    ROOT,
+    SIGNAL,
+    SIMILARITY_JOIN,
     STATED_GENE,
+    TM,
+    TM_JOIN,
     cascades_from_the_size,
     lowercases_the_gene,
     measured_deps,
     records_the_call,
     refuses_a_second_look,
 )
-from ._strategy_edit_stubs import StubAPI, ctx, install_stub_api, leaf, pin_validator
+from ._strategy_edit_stubs import (
+    StubAPI,
+    combine,
+    ctx,
+    install_stub_api,
+    leaf,
+    pin_validator,
+)
 
 
 @pytest.fixture
@@ -199,3 +218,130 @@ class TestACanonicalizerAndTheStatedValueGuard:
         graph = deps.strategy_session.graph
         assert graph is not None
         assert graph.steps[MIC2].parameters == STATED_GENE
+
+
+def _measured_tree(mic2_params: dict[str, ParamValue]) -> StrategyStepNode:
+    """The five-criterion toxodb tree, with the gene the model writes at MIC2."""
+    return combine(
+        ROOT,
+        combine(TM_JOIN, leaf(TM), leaf(SIGNAL), op=CombineOp.UNION),
+        combine(
+            PROFILE_JOIN,
+            leaf(PROFILE),
+            combine(
+                SIMILARITY_JOIN,
+                leaf(MIC2, mic2_params),
+                leaf(RON2),
+                CombineOp.UNION,
+            ),
+        ),
+    )
+
+
+class TestABuildOverADepartedValue:
+    """The graph holds the catalog's form of a departed value; the model sends its own."""
+
+    async def test_a_build_that_repeats_a_departed_value_is_applied(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, lowercases_the_gene)
+        deps = measured_deps(
+            mic2_params={"ProfileGeneId": StringValue(value="tgme49_300100")}
+        )
+        graph = deps.strategy_session.graph
+        assert graph is not None
+
+        await build_strategy(
+            ctx(deps),
+            _measured_tree(dict(DEPARTED_GENE)),
+            base_revision=strategy_revision(graph.to_strategy_ast()),
+        )
+
+        rebuilt = deps.strategy_session.graph
+        assert rebuilt is not None
+        assert rebuilt.steps[MIC2].parameters == {
+            "ProfileGeneId": StringValue(value="tgme49_300100")
+        }
+        assert stub_api.named("create_step") != []
+
+    async def test_a_build_that_moves_a_stated_value_is_refused(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, lowercases_the_gene)
+        deps = measured_deps(mic2_params=STATED_GENE)
+        graph = deps.strategy_session.graph
+        assert graph is not None
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await build_strategy(
+                ctx(deps),
+                _measured_tree(dict(DEPARTED_GENE)),
+                base_revision=strategy_revision(graph.to_strategy_ast()),
+            )
+
+        assert "set_criterion" in str(excinfo.value)
+        assert graph.steps[MIC2].parameters == STATED_GENE
+        assert stub_api.calls == []
+
+    async def test_a_refused_build_leaves_the_tree_the_caller_wrote(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The canonicalization writes a tree of its own, not the caller's."""
+        pin_validator(monkeypatch, lowercases_the_gene)
+        deps = measured_deps(mic2_params=STATED_GENE)
+        graph = deps.strategy_session.graph
+        assert graph is not None
+        tree = _measured_tree(dict(DEPARTED_GENE))
+
+        with pytest.raises(ModelRetry):
+            await build_strategy(
+                ctx(deps),
+                tree,
+                base_revision=strategy_revision(graph.to_strategy_ast()),
+            )
+
+        written = next(node for node in leaves(tree) if node.id == MIC2)
+        assert written.parameters == DEPARTED_GENE
+
+
+class TestABatchOverADepartedValue:
+    """Every batch reaches the same seam, so a patch batch reads the same forms."""
+
+    async def test_a_batch_that_repeats_a_departed_value_is_applied(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, lowercases_the_gene)
+        deps = measured_deps(
+            mic2_params={"ProfileGeneId": StringValue(value="tgme49_300100")}
+        )
+        graph = deps.strategy_session.graph
+        assert graph is not None
+
+        await apply_operations(
+            ctx(deps),
+            strategy_revision(graph.to_strategy_ast()),
+            [UpdateStepParamsOp(step_id=MIC2, parameters=dict(DEPARTED_GENE))],
+        )
+
+        assert graph.steps[MIC2].parameters == {
+            "ProfileGeneId": StringValue(value="tgme49_300100")
+        }
+
+    async def test_a_batch_that_moves_a_stated_value_is_refused(
+        self, stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        pin_validator(monkeypatch, lowercases_the_gene)
+        deps = measured_deps(mic2_params=STATED_GENE)
+        graph = deps.strategy_session.graph
+        assert graph is not None
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await apply_operations(
+                ctx(deps),
+                strategy_revision(graph.to_strategy_ast()),
+                [UpdateStepParamsOp(step_id=MIC2, parameters=dict(DEPARTED_GENE))],
+            )
+
+        assert "set_criterion" in str(excinfo.value)
+        assert graph.steps[MIC2].parameters == STATED_GENE
+        assert stub_api.calls == []

@@ -11,6 +11,7 @@ from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import EditDelta
@@ -140,7 +141,7 @@ async def _push_the_edit(
         commit = await apply_operations_and_commit(
             deps=agent_deps.to_strategy_context(), ops=ops
         )
-    except ApplyError as exc:
+    except (ApplyError, ValidationError) as exc:
         # The batch rolls back, so the strategy is exactly as it was.
         refuse_and_restore(deps, unsupported_edit_message(str(exc)))
     outcome = await _outcome_after_edit(agent_deps, commit)

@@ -35,6 +35,8 @@ class StepPushPlan(BaseModel):
     step_id: str
     action: StepActionT
     reason: str
+    # A name WDK already holds is not written again.
+    name_moved: bool = False
 
 
 def _index_by_id(ast: StrategyAst) -> dict[str, StrategyStepNode]:
@@ -138,7 +140,14 @@ def plan_step_pushes(
 
     return [
         StepPushPlan(
-            step_id=step.id, action=decisions[step.id][0], reason=decisions[step.id][1]
+            step_id=step.id,
+            action=decisions[step.id][0],
+            reason=decisions[step.id][1],
+            name_moved=_name_moved(step, old_by_id.get(step.id)),
         )
         for step in new_steps
     ]
+
+
+def _name_moved(step: StrategyStepNode, old_step: StrategyStepNode | None) -> bool:
+    return old_step is None or step.display_name != old_step.display_name

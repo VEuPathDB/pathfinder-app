@@ -255,4 +255,44 @@ def test_a_transform_over_a_deleted_input_goes_with_it() -> None:
 
     pruned = state.operational_spec_draft
     assert pruned.structure is None
-    assert [c.id for c in pruned.criteria] == ["step_a", "step_c"]
+    assert [c.id for c in pruned.criteria] == ["step_c"]
+
+
+def _seed_and_transform() -> OperationalSpec:
+    """A seed leaf with a transform over it, the shape a draft build states."""
+    return OperationalSpec(
+        goal="orthologs of the signal peptide genes",
+        criteria=[
+            Criterion(
+                id="step_3fa0e628",
+                text="predicted signal peptide",
+                search_name="GenesBySignalPeptide",
+                role="seed",
+            ),
+            Criterion(
+                id="orthologs",
+                text="orthologs in Plasmodium falciparum 3D7",
+                search_name="GenesByOrthologs",
+                role="transform",
+            ),
+        ],
+        structure=SpecStructure(
+            root=StructureNode(
+                kind="transform",
+                criterion_id="orthologs",
+                inputs=[StructureNode(kind="leaf", criterion_id="step_3fa0e628")],
+            )
+        ),
+    )
+
+
+def test_a_transform_whose_step_left_collapses_to_its_input() -> None:
+    state = AgentToolState(operational_spec_draft=_seed_and_transform())
+
+    state.drop_criteria_for_steps(["orthologs"])
+
+    spec = state.operational_spec_draft
+    assert [c.id for c in spec.criteria] == ["step_3fa0e628"]
+    assert spec.structure is not None
+    assert spec.structure.root.kind == "leaf"
+    assert spec.structure.root.criterion_id == "step_3fa0e628"

@@ -205,3 +205,144 @@ class TestGroundingACombination:
 
         assert grounded.status is ConstraintStatus.GROUNDED
         assert "abstained" in grounded.note
+
+
+_ORTHOLOG_CRITERION = Criterion(
+    id="c_ortho",
+    text="orthologs in Plasmodium vivax P01",
+    search_name="GenesByOrthologs",
+    role="transform",
+)
+_AND_THROUGH_A_TRANSFORM = (
+    "mass spectrometry evidence AND "
+    "orthologs in Plasmodium vivax P01 AND "
+    "DeRisi expression"
+)
+
+
+def _ground_with_transform(structure: SpecStructure) -> GroundedConstraint:
+    [grounded] = ground_constraints(
+        [
+            _explicit(
+                ConstraintKind.COMBINATION,
+                _AND_THROUGH_A_TRANSFORM,
+                "how the evidence combines",
+            )
+        ],
+        search_names=["GenesByMassSpec", "GenesByRNASeqEvidence", "GenesByOrthologs"],
+        param_names=set(),
+        param_values={},
+        structure=structure,
+        criteria=[_MS_CRITERION, _DERISI_CRITERION, _ORTHOLOG_CRITERION],
+    )
+    return grounded
+
+
+class TestGroundingACombinationThatNamesATransform:
+    def test_a_transform_over_a_named_criterion_grounds_the_statement(self) -> None:
+        structure = SpecStructure(
+            root=StructureNode(
+                kind="combine",
+                operator=CombineOp.INTERSECT,
+                inputs=[
+                    StructureNode(
+                        kind="transform",
+                        criterion_id="c_ortho",
+                        inputs=[StructureNode(kind="leaf", criterion_id="c_ms")],
+                    ),
+                    StructureNode(kind="leaf", criterion_id="c_derisi"),
+                ],
+            )
+        )
+
+        grounded = _ground_with_transform(structure)
+
+        assert grounded.status is ConstraintStatus.GROUNDED
+        assert grounded.realized_value == "INTERSECT"
+
+    def test_a_transform_the_tree_leaves_out_abstains(self) -> None:
+        grounded = _ground_with_transform(_joined(CombineOp.INTERSECT))
+
+        assert grounded.status is ConstraintStatus.GROUNDED
+        assert "abstained" in grounded.note
+
+
+_EXCLUDE_CRITERION = Criterion(
+    id="c_crypto",
+    text="has an ortholog in Cryptosporidium parvum Iowa II",
+    search_name="GenesByOrthologPhyleticPattern",
+    role="exclude",
+)
+_AND_REMOVING = (
+    "mass spectrometry evidence AND DeRisi expression AND "
+    "remove any with a Cryptosporidium parvum Iowa II ortholog"
+)
+
+
+def _ground_with_exclusion(structure: SpecStructure) -> GroundedConstraint:
+    [grounded] = ground_constraints(
+        [
+            _explicit(
+                ConstraintKind.COMBINATION, _AND_REMOVING, "how the evidence combines"
+            )
+        ],
+        search_names=["GenesByMassSpec", "GenesByRNASeqEvidence"],
+        param_names=set(),
+        param_values={},
+        structure=structure,
+        criteria=[_MS_CRITERION, _DERISI_CRITERION, _EXCLUDE_CRITERION],
+    )
+    return grounded
+
+
+def _removed_from(operator: CombineOp, kept: StructureNode) -> SpecStructure:
+    return SpecStructure(
+        root=StructureNode(
+            kind="combine",
+            operator=operator,
+            inputs=[kept, StructureNode(kind="leaf", criterion_id="c_crypto")],
+        )
+    )
+
+
+class TestGroundingACombinationThatRemovesACriterion:
+    def test_a_minus_over_the_named_criteria_grounds_the_statement(self) -> None:
+        grounded = _ground_with_exclusion(
+            _removed_from(CombineOp.MINUS, _joined(CombineOp.INTERSECT).root)
+        )
+
+        assert grounded.status is ConstraintStatus.GROUNDED
+        assert grounded.realized_value == "INTERSECT"
+
+    def test_an_intersect_where_the_statement_removes_abstains(self) -> None:
+        """The tree keeps the genes the statement asks to remove."""
+        grounded = _ground_with_exclusion(
+            _removed_from(CombineOp.INTERSECT, _joined(CombineOp.INTERSECT).root)
+        )
+
+        assert grounded.status is ConstraintStatus.GROUNDED
+        assert "abstained" in grounded.note
+
+    def test_a_statement_of_one_filter_and_one_exclusion_says_why_it_abstains(
+        self,
+    ) -> None:
+        [grounded] = ground_constraints(
+            [
+                _explicit(
+                    ConstraintKind.COMBINATION,
+                    "mass spectrometry evidence AND "
+                    "remove any with a Cryptosporidium parvum Iowa II ortholog",
+                    "how the evidence combines",
+                )
+            ],
+            search_names=["GenesByMassSpec"],
+            param_names=set(),
+            param_values={},
+            structure=_removed_from(
+                CombineOp.MINUS, StructureNode(kind="leaf", criterion_id="c_ms")
+            ),
+            criteria=[_MS_CRITERION, _DERISI_CRITERION, _EXCLUDE_CRITERION],
+        )
+
+        assert grounded.status is ConstraintStatus.GROUNDED
+        assert "fewer than two" in grounded.note

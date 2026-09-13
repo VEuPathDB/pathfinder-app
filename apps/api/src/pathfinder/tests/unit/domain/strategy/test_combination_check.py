@@ -55,8 +55,9 @@ def _combine(operator: CombineOp, *inputs: StructureNode) -> StructureNode:
 
 
 def _matched(terms: list[str], criteria: list[Criterion]) -> dict[str, str]:
-    """The term-to-criterion map, empty when the match abstains."""
-    return match_terms(terms, criteria) or {}
+    """The term-to-criterion map of the combine members, empty when it abstains."""
+    found = match_terms(terms, criteria)
+    return {} if found is None else found.members
 
 
 def _meeting(structure: SpecStructure, criterion_ids: list[str]) -> str:
@@ -76,7 +77,7 @@ def _violation(
 
 class TestMatchTerms:
     def test_each_term_takes_the_criterion_that_shares_its_words(self) -> None:
-        matched = match_terms(
+        matched = _matched(
             ["mass spectrometry evidence", "DeRisi expression"], _CRITERIA
         )
 
@@ -86,7 +87,7 @@ class TestMatchTerms:
         }
 
     def test_the_search_name_counts_as_words_of_the_criterion(self) -> None:
-        matched = match_terms(["mass spec", "DeRisi"], _CRITERIA)
+        matched = _matched(["mass spec", "DeRisi"], _CRITERIA)
 
         assert matched == {"mass spec": "c_ms", "DeRisi": "c_derisi"}
 

@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
-from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
+from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.domain.strategy.operations import UpdateStepParamsOp
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import StatedCriterion
+from pathfinder.services.strategies import stated_sides
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -51,7 +55,15 @@ def _context() -> StrategyMutationContext:
     )
 
 
-async def test_a_refused_value_edit_keeps_both_roots() -> None:
+async def _echo(*_args: Any, **kwargs: Any) -> ValidatedParams:
+    params: dict[str, ParamValue] = dict(kwargs.get("parameters") or {})
+    return ValidatedParams(params=params, record_class="transcript")
+
+
+async def test_a_refused_value_edit_keeps_both_roots(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(stated_sides, "validate_parameters", _echo)
     deps = _context()
     graph = deps.strategy_session.graph
     assert graph is not None

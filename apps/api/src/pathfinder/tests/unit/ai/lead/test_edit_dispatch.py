@@ -8,6 +8,7 @@ import pytest
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import MultiPickValue, StringValue
 from veupathdb.domain.strategy import CombineOp, flatten_tree
+from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
@@ -402,3 +403,27 @@ async def test_an_unreachable_site_leaves_no_success_description(
     assert delta.description != "edited"
     assert "dataset: Invalid value" in delta.description
     assert delta.failed_step_ids == ["step_1"]
+
+
+async def test_a_value_the_catalog_turns_down_ends_the_edit_with_the_refusal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The commit canonicalizes what it writes, so its refusal reaches the Lead."""
+    before, session = _built()
+    after = before.model_copy(deep=True)
+    after.criteria.append(_option())
+    run = _edit_run(monkeypatch, before=before, after=after, session=session)
+
+    async def _refuse(**_kwargs: Any) -> CommitResult:
+        raise ValidationError(
+            title="Invalid parameter value",
+            detail="Parameter 'dataset' does not accept 'NotARealDataset'.",
+        )
+
+    monkeypatch.setattr(edit_dispatch, "apply_operations_and_commit", _refuse)
+
+    with pytest.raises(ModelRetry) as excinfo:
+        await run_edit(deps=run.deps, parent_tool_call_id="t1", reason="new dataset")
+
+    assert "NotARealDataset" in str(excinfo.value)
+    assert run.deps.state.domain.operational_spec == before

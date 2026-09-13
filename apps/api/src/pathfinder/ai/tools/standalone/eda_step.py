@@ -14,7 +14,10 @@ from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone._validation_helpers import get_graph
+from pathfinder.ai.tools.standalone._validation_helpers import (
+    get_graph,
+    validation_model_retry,
+)
 from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
 from pathfinder.ai.tools.standalone.stream_parts import (
     graph_snapshot_chunk,
@@ -320,10 +323,13 @@ async def create_eda_step(
         raise ValidationError(title=title, detail=detail)
     _refuse_an_occupied_slot(ctx, graph, attach)
 
-    result = await apply_operations_and_commit(
-        deps=_strategy_context(ctx),
-        ops=[AddLeafOp(step=node, attach=attach)],
-    )
+    try:
+        result = await apply_operations_and_commit(
+            deps=_strategy_context(ctx),
+            ops=[AddLeafOp(step=node, attach=attach)],
+        )
+    except ValidationError as exc:
+        raise validation_model_retry(exc, searchName=node.search_name) from exc
     _state_the_exported_step(ctx, graph, node)
     sync = result.sync_result
     metadata: list[DataChunk] = [graph_snapshot_chunk(session, graph)]

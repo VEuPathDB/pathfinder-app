@@ -90,10 +90,30 @@ def test_no_old_ast_creates_all_steps() -> None:
     plan = plan_step_pushes(old_ast=None, new_ast=new_ast, existing_wdk_ids={})
 
     assert plan == [
-        StepPushPlan(step_id="step_a", action=CreateAction(), reason="no wdk id"),
-        StepPushPlan(step_id="step_b", action=CreateAction(), reason="no wdk id"),
-        StepPushPlan(step_id="step_inner", action=CreateAction(), reason="no wdk id"),
-        StepPushPlan(step_id="step_t", action=CreateAction(), reason="no wdk id"),
+        StepPushPlan(
+            step_id="step_a",
+            action=CreateAction(),
+            reason="no wdk id",
+            name_moved=True,
+        ),
+        StepPushPlan(
+            step_id="step_b",
+            action=CreateAction(),
+            reason="no wdk id",
+            name_moved=True,
+        ),
+        StepPushPlan(
+            step_id="step_inner",
+            action=CreateAction(),
+            reason="no wdk id",
+            name_moved=True,
+        ),
+        StepPushPlan(
+            step_id="step_t",
+            action=CreateAction(),
+            reason="no wdk id",
+            name_moved=True,
+        ),
     ]
 
 
@@ -260,7 +280,10 @@ def test_display_name_only_change_patches_leaf() -> None:
 
     assert plan == [
         StepPushPlan(
-            step_id="step_a", action=PatchAction(), reason="display name changed"
+            step_id="step_a",
+            action=PatchAction(),
+            reason="display name changed",
+            name_moved=True,
         ),
     ]
 

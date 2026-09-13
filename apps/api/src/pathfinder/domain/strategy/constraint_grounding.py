@@ -10,9 +10,13 @@ from veupathdb.domain.parameters import to_wire
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.combination_check import (
+    TermMatch,
     combination_violation,
+    enough_members,
+    exclusion_stands_over,
     match_terms,
     meeting_operator,
+    transform_stands_over,
 )
 from pathfinder.domain.strategy.constraints import (
     CombinationRequest,
@@ -176,6 +180,29 @@ def _abstained(c: Constraint, why: str) -> GroundedConstraint:
     )
 
 
+def _why_it_says_nothing(matched: TermMatch, structure: SpecStructure) -> str | None:
+    """Why this tree answers nothing about the stated combination, or None.
+
+    A combine is read over two members or none. A transform the tree holds
+    away from those members, and an exclusion it subtracts from no branch,
+    describe another tree than this one.
+    """
+    if not enough_members(matched):
+        return "fewer than two of its terms name criteria a combine joins"
+    members = matched.members.values()
+    if any(
+        not transform_stands_over(structure, transform_id, members)
+        for transform_id in matched.transforms.values()
+    ):
+        return "a transform it names stands over none of those criteria"
+    if any(
+        not exclusion_stands_over(structure, exclude_id, members)
+        for exclude_id in matched.excludes.values()
+    ):
+        return "a criterion it removes is subtracted from no branch"
+    return None
+
+
 def _ground_combination(c: Constraint, realized: _RealizedSpec) -> GroundedConstraint:
     request = CombinationRequest.parse(c.requested_value)
     if request is None:
@@ -185,12 +212,16 @@ def _ground_combination(c: Constraint, realized: _RealizedSpec) -> GroundedConst
         return _abstained(c, "its terms name no distinct criteria of this strategy")
     if realized.structure is None:
         return _abstained(c, "the strategy has no structure yet")
-    violation = combination_violation(request, matched.values(), realized.structure)
+    silent = _why_it_says_nothing(matched, realized.structure)
+    if silent is not None:
+        return _abstained(c, silent)
+    members = matched.members.values()
+    violation = combination_violation(request, members, realized.structure)
     if violation is not None:
         return GroundedConstraint(
             constraint=c, status=ConstraintStatus.UNGROUNDABLE, note=violation
         )
-    found = meeting_operator(realized.structure, matched.values())
+    found = meeting_operator(realized.structure, members)
     return GroundedConstraint(
         constraint=c,
         status=ConstraintStatus.GROUNDED,

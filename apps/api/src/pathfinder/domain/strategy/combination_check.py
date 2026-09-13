@@ -1,9 +1,9 @@
 """Whether a strategy tree combines criteria the way the user stated.
 
 A stated combination names its criteria by their words. This module matches
-those words to criteria and reads the operators that join them. One rule says
-what a branch brings to a combine: a transform the statement names stands for
-its whole input, and any other transform brings what its input brings.
+those words to criteria and reads the operators that join them. Only a filter
+and a seed are members of that combine: a transform stands on the path to the
+root, and an exclusion is subtracted from a branch.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     SpecStructure,
     StructureNode,
+    criteria_under,
 )
 
 _WORD_RE = re.compile(r"[a-z0-9]+")
@@ -57,6 +58,7 @@ _REQUIRED_OPERATOR: dict[CombinationOperator, CombineOp] = {
     "AND": CombineOp.INTERSECT,
 }
 _MIN_MEETING_CRITERIA = 2
+_MIN_COMBINE_INPUTS = 2
 
 
 def required_operator(operator: CombinationOperator) -> CombineOp:
@@ -104,15 +106,32 @@ def _best_match(
     return overlapping[0][1]
 
 
+class TermMatch(NamedTuple):
+    """The criteria a statement's terms name, split by where the tree holds them.
+
+    ``members`` are the criteria a combine joins. A ``transform`` stands on the
+    path to the root and an ``exclude`` is subtracted from a branch, so neither
+    is a member of the combine the statement's operator names.
+    """
+
+    members: dict[str, str]
+    transforms: dict[str, str]
+    excludes: dict[str, str]
+
+
+_MEMBER_ROLES = frozenset({"filter", "seed"})
+
+
 def match_terms(
     terms: Sequence[str], criteria: Sequence[Criterion]
-) -> dict[str, str] | None:
+) -> TermMatch | None:
     """The criterion each term names, or None when the check must abstain.
 
     A term matches the criterion whose text and search name share the most
-    words with it. The terms must name distinct criteria.
+    words with it, and the terms must name distinct criteria.
     """
     words_by_id = {c.id: _words(f"{c.text} {c.search_name}") for c in criteria}
+    role_by_id = {c.id: c.role for c in criteria}
     matched: dict[str, str] = {}
     for term in terms:
         wanted = _words(term)
@@ -126,7 +145,70 @@ def match_terms(
         return None
     if len(set(matched.values())) != len(matched):
         return None
-    return matched
+    return TermMatch(
+        members={
+            term: cid
+            for term, cid in matched.items()
+            if role_by_id[cid] in _MEMBER_ROLES
+        },
+        transforms={
+            term: cid for term, cid in matched.items() if role_by_id[cid] == "transform"
+        },
+        excludes={
+            term: cid for term, cid in matched.items() if role_by_id[cid] == "exclude"
+        },
+    )
+
+
+def enough_members(matched: TermMatch) -> bool:
+    """Whether the statement names criteria a combine can be read over."""
+    return len(matched.members) >= _MIN_MEETING_CRITERIA
+
+
+def _nodes(node: StructureNode) -> Iterable[StructureNode]:
+    yield node
+    for child in node.inputs:
+        yield from _nodes(child)
+
+
+def transform_stands_over(
+    structure: SpecStructure, transform_id: str, criterion_ids: Collection[str]
+) -> bool:
+    """Whether the transform is on the path from one of these criteria to the root."""
+    wanted = frozenset(criterion_ids)
+    return any(
+        node.kind == "transform"
+        and node.criterion_id == transform_id
+        and bool(criteria_under(node) & wanted)
+        for node in _nodes(structure.root)
+    )
+
+
+def _subtracted_side(node: StructureNode) -> int | None:
+    """The input slot a difference removes, or None when it removes none."""
+    match node.operator:
+        case CombineOp.MINUS | CombineOp.LONLY:
+            return 1
+        case CombineOp.RMINUS | CombineOp.RONLY:
+            return 0
+        case _:
+            return None
+
+
+def exclusion_stands_over(
+    structure: SpecStructure, exclude_id: str, criterion_ids: Collection[str]
+) -> bool:
+    """Whether this criterion is subtracted from a branch holding these criteria."""
+    wanted = frozenset(criterion_ids)
+    for node in _nodes(structure.root):
+        side = _subtracted_side(node)
+        if side is None or len(node.inputs) < _MIN_COMBINE_INPUTS:
+            continue
+        removed = criteria_under(node.inputs[side])
+        kept = criteria_under(node.inputs[1 - side])
+        if exclude_id in removed and wanted <= kept:
+            return True
+    return False
 
 
 class _Brought(NamedTuple):
@@ -275,9 +357,9 @@ def first_combination_violation(
         if request is None:
             continue
         matched = match_terms(request.terms, criteria)
-        if matched is None:
+        if matched is None or not enough_members(matched):
             continue
-        message = combination_violation(request, matched.values(), structure)
+        message = combination_violation(request, matched.members.values(), structure)
         if message is not None:
             return CombinationBreach(
                 required=required_operator(request.operator),

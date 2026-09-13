@@ -17,7 +17,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 
-__all__ = ["spec_reconciled_with_graph"]
+__all__ = ["spec_reconciled_with_graph", "spec_without_steps"]
 
 _MINTED_STEP_ID = re.compile(r"^step_[0-9a-f]{8}$")
 
@@ -45,12 +45,23 @@ def spec_reconciled_with_graph(
             or _MINTED_STEP_ID.match(criterion.id) is not None
         )
     }
-    if not departed:
+    return spec_without_steps(spec, departed)
+
+
+def spec_without_steps(
+    spec: OperationalSpec, departed: Collection[str]
+) -> OperationalSpec:
+    """The spec without these criteria, and without what their loss orphans.
+
+    A combine left with one input is that input, and a transform whose own
+    criterion left is its input. A criterion the pruned structure no longer
+    names leaves the spec with it.
+    """
+    gone = set(departed)
+    if not gone:
         return spec
-    structure = _structure_without(spec.structure, departed)
-    lost = departed | (
-        structure_criteria(spec.structure) - structure_criteria(structure)
-    )
+    structure = _structure_without(spec.structure, gone)
+    lost = gone | (structure_criteria(spec.structure) - structure_criteria(structure))
     reconciled = spec.model_copy(deep=True)
     reconciled.criteria = [c for c in reconciled.criteria if c.id not in lost]
     reconciled.open_slots = [

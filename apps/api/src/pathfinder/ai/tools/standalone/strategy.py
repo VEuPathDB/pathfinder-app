@@ -14,12 +14,14 @@ from assistant_core.platform.types import JSONArray, JSONObject
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
+from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._validation_helpers import (
     OperationPayload,
     StepTreePayload,
     get_graph,
+    validation_model_retry,
 )
 from pathfinder.ai.tools.standalone.graph_helpers import count_summary
 from pathfinder.ai.tools.standalone.strategy_refusals import (
@@ -227,6 +229,10 @@ async def apply_operations(
             f"offending operation and send the batch again."
         )
         raise ModelRetry(msg) from exc
+    except ValidationError as exc:
+        raise validation_model_retry(
+            exc, recordType=graph.record_type or "transcript"
+        ) from exc
     refusal = wdk_refused_the_edit(result)
     if refusal is not None:
         return _refused(ctx, refusal, "VEuPathDB refused this batch")

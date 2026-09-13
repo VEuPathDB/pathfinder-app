@@ -2,31 +2,21 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import cast
 
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.types import JSONArray, JSONObject
+from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import ColocationParams, CombineOp, StepKind
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload, tool_error
-from veupathdb_mcp.catalog import (
-    ValidationCallbacks,
-    make_validation_callbacks,
-    validate_parameters,
-)
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._spec_edit_checks import (
-    CanonicalSides,
-    WrittenStep,
-    canonical_sides,
-    canonicalize_stated_leaves,
     refuse_a_write_the_spec_did_not_state,
 )
 from pathfinder.ai.tools.standalone._validation_helpers import (
@@ -34,7 +24,6 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     StepTreePayload,
     get_graph,
     get_graph_and_step,
-    validation_error_payload,
     validation_model_retry,
 )
 from pathfinder.ai.tools.standalone.graph_helpers import (
@@ -69,25 +58,38 @@ from pathfinder.services.strategies.insert_saved import (
 )
 
 
-def _make_callbacks(site_id: str) -> ValidationCallbacks:
-    return make_validation_callbacks(site_id, error_payload=validation_error_payload)
+async def _commit_or_retry(deps: AgentDeps, op: GraphOperation) -> CommitResult:
+    """Apply one operation, or answer with why the strategy refused it.
 
-
-async def _commit_or_retry(
-    deps: AgentDeps,
-    op: GraphOperation,
-    *,
-    sides: CanonicalSides | None = None,
-) -> CommitResult:
-    """Apply one operation, or answer with why the strategy refused it."""
-    context = deps.to_strategy_context()
-    if sides is not None:
-        context = replace(context, stated_values=sides.stated, entry_values=sides.entry)
+    The commit puts every value it writes in the catalog's form, so a value
+    the catalog turns down is answered here.
+    """
     try:
-        return await apply_and_commit(deps=context, op=op)
+        return await apply_and_commit(deps=deps.to_strategy_context(), op=op)
     except ApplyError as exc:
         msg = f"REJECTED: {exc}. Nothing was applied and the strategy is unchanged."
         raise ModelRetry(msg) from exc
+    except ValidationError as exc:
+        raise validation_model_retry(exc, **_refusal_context(deps, op)) from exc
+
+
+def _refusal_context(deps: AgentDeps, op: GraphOperation) -> dict[str, JsonValue]:
+    """What a refused value is reported with: the record type, and the search
+    of the step the operation patches."""
+    graph = deps.strategy_session.get_graph(None)
+    context: dict[str, JsonValue] = {
+        "recordType": "transcript"
+        if graph is None
+        else graph.record_type or "transcript"
+    }
+    match op:
+        case UpdateStepParamsOp() if graph is not None:
+            step = graph.get_step(op.step_id)
+            if step is not None and step.search_name:
+                context["searchName"] = step.search_name
+        case _:
+            pass
+    return context
 
 
 async def update_leaf_params(
@@ -121,39 +123,8 @@ async def update_leaf_params(
         )
         raise ModelRetry(msg)
 
-    record_type = graph.record_type or "transcript"
-    search = SearchContext(deps.site_id, record_type, step.search_name or "")
-    callbacks = _make_callbacks(deps.site_id)
-    try:
-        canonical = await validate_parameters(
-            search,
-            parameters={**step.parameters, **parameters},
-            callbacks=callbacks,
-        )
-        sides = await canonical_sides(
-            deps,
-            graph=graph,
-            writes=[
-                WrittenStep(
-                    step_id=step.id,
-                    search=search,
-                    names_sent=frozenset(parameters),
-                    written=canonical.params,
-                )
-            ],
-            callbacks=callbacks,
-        )
-    except ValidationError as exc:
-        raise validation_model_retry(
-            exc,
-            recordType=record_type,
-            searchName=step.search_name,
-        ) from exc
-
     result = await _commit_or_retry(
-        deps,
-        UpdateStepParamsOp(step_id=step_id, parameters=dict(canonical.params)),
-        sides=sides,
+        deps, UpdateStepParamsOp(step_id=step_id, parameters=dict(parameters))
     )
     refusal = wdk_refused_the_edit(result)
     if refusal is not None:
@@ -310,21 +281,9 @@ async def replace_subtree(
         )
         raise ModelRetry(msg)
 
-    record_type = graph.record_type or "transcript"
-    callbacks = _make_callbacks(deps.site_id)
-    try:
-        writes = await canonicalize_stated_leaves(
-            deps, subtree=new_subtree, record_type=record_type, callbacks=callbacks
-        )
-        sides = await canonical_sides(
-            deps, graph=graph, writes=writes, callbacks=callbacks
-        )
-    except ValidationError as exc:
-        raise validation_model_retry(exc, recordType=record_type) from exc
-
     op = ReplaceSubtreeOp(step_id=step_id, subtree=new_subtree)
     refuse_a_write_the_spec_did_not_state(deps, graph, op)
-    result = await _commit_or_retry(deps, op, sides=sides)
+    result = await _commit_or_retry(deps, op)
     refusal = wdk_refused_the_edit(result)
     if refusal is not None:
         return _refused(ctx, refusal, f"VEuPathDB refused the subtree at {step_id}")

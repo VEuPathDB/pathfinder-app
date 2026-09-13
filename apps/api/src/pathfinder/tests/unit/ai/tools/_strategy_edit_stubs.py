@@ -24,9 +24,14 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone import _spec_edit_checks, strategy_edits
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.services.strategies import commit, step_wdk_push, sync
+from pathfinder.services.strategies import (
+    commit,
+    spec_build,
+    stated_sides,
+    step_wdk_push,
+    sync,
+)
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -176,8 +181,8 @@ async def _fake_sync(**_kwargs: Any) -> SyncResult:
 
 
 def pin_validator(monkeypatch: pytest.MonkeyPatch, validator: Any) -> None:
-    """Serve one parameter validator to both seams a leaf patch calls."""
-    for module in (strategy_edits, _spec_edit_checks):
+    """Serve one parameter validator to every seam a write passes."""
+    for module in (stated_sides, spec_build):
         monkeypatch.setattr(module, "validate_parameters", validator)
 
 
@@ -186,9 +191,10 @@ def install_stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     api = StubAPI()
     for module in (commit, step_wdk_push, sync):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
-    monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _noop)
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _fake_sync)
-    monkeypatch.setattr(commit, "persist_strategy_ast_to_conversation", _noop)
+    for module in (commit, spec_build):
+        monkeypatch.setattr(module, "reconcile_sync_state_with_wdk", _noop)
+        monkeypatch.setattr(module, "sync_strategy_for_site", _fake_sync)
+        monkeypatch.setattr(module, "persist_strategy_ast_to_conversation", _noop)
     pin_validator(monkeypatch, _echo_parameters)
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_plan_params)
     return api

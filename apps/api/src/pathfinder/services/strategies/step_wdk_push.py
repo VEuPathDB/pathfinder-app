@@ -143,13 +143,17 @@ async def _execute_patch(
     site_id: str,
     step: StrategyStep,
     record_type: str,
+    *,
+    name_moved: bool,
 ) -> StepPushFailure | None:
     api = get_strategy_api(site_id)
     try:
         if step.kind.value == "combine":
             await _patch_combine_metadata(api, sync_state, step)
         else:
-            await _update_existing_step(api, sync_state, step, record_type)
+            await _update_existing_step(
+                api, sync_state, step, record_type, name_moved=name_moved
+            )
     except VEuPathDBError as exc:
         failure = _failure(step.id, wdk_search_name(step), exc, exc.status)
     except OSError as exc:
@@ -210,11 +214,18 @@ async def _execute_action(
     site_id: str,
     step: StrategyStep,
     record_type: str,
+    *,
+    name_moved: bool,
 ) -> tuple[StepPushFailure | None, int | None]:
     """Run one planned action, and name the WDK id a recreate replaces."""
     match action:
         case PatchAction():
-            return await _execute_patch(sync_state, site_id, step, record_type), None
+            return (
+                await _execute_patch(
+                    sync_state, site_id, step, record_type, name_moved=name_moved
+                ),
+                None,
+            )
         case CreateAction():
             return await _execute_create(sync_state, site_id, step, record_type), None
         case RecreateAction():
@@ -354,7 +365,12 @@ async def push_steps_with_plan(
             continue
         record_type = record_class_of(step.id, steps_by_id, fallback=strategy_class)
         failure, replaced = await _execute_action(
-            entry.action, sync_state, site_id, step, record_type
+            entry.action,
+            sync_state,
+            site_id,
+            step,
+            record_type,
+            name_moved=entry.name_moved,
         )
         if replaced is not None:
             recreated[step.id] = replaced

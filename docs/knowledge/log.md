@@ -60,6 +60,49 @@
   analysed set nor its id. The Lead's instructions state that a task reporting
   `status: failed` is reported rather than routed around.
 
+## 2026-09-13
+
+* **Only a filter and a seed are members of the combine a statement names.**
+  `domain/strategy/combination_check.py::match_terms` reads a stated combination over the
+  criteria a combine joins: a transform stands on the path to the root and an exclusion is
+  subtracted from a branch, so neither is a member, and a statement left with fewer than two
+  members gates no combine. `constraint_grounding` answers for the other two by their place in
+  the tree: a transform grounds when it stands on the path from a named criterion to the root,
+  an exclusion when it is subtracted from a branch that holds them, and the check abstains with
+  its own note when either describes another tree than this one. So "A AND transform AND B" is
+  honored by the tree it describes, "A AND B AND remove C" by `(A INTERSECT B) MINUS C`, and a
+  tree that joins the named members at UNION is still refused.
+
+* **A step's name never states a parameter value the step no longer holds.**
+  `domain/strategy/step_naming.py::name_restating` restates, in one pass over the name the
+  write found, every value the write moved, on the whole word and never inside one. A value
+  the name carries twice, and one two parameters moved apart, identify no parameter and are
+  left alone, because a stale name beats a fabricated one. `_apply_update_params` calls it, so
+  every parameter write carries the matching name, and the push writes `custom_name` beside the
+  search config when the plan says the name moved. The name a build writes is the criterion's
+  text, which the model writes and no renderer can compose again, so the rewrite corrects only
+  the words the write invalidated and needs no flag on the step.
+
+* **One seam puts a write in the catalog's form before the guard reads it.**
+  `services/strategies/stated_sides.py::canonical_batch` canonicalizes the values a batch
+  writes and hands the stated-value guard both of its sides; `commit.py` calls it for every
+  operation batch and `spec_build.py` for the tree a build writes, so `build_strategy`,
+  `apply_operations`, the Lead's spec edits and `eda_step` are covered by construction. A value
+  that departed from the spec before the turn began keeps its answer whichever wire form the
+  write spells it in, and a genuine change of a stated value is refused on every path. The
+  canonicalization writes a tree of its own, so a refused write leaves the caller's tree as the
+  caller wrote it, and a value the catalog turns down is answered as a refusal by every caller
+  rather than unwinding the turn. The tool layer states no sides of its own, and
+  `StrategyMutationContext` carries no entry values.
+
+* **One rule prunes the spec, wherever a step leaves the graph.**
+  `domain/strategy/spec_reconciliation.py::spec_without_steps` is the invariant both
+  entry points share: a combine left with one input is that input, a transform whose own
+  criterion left is its input, and a criterion the pruned structure no longer names
+  leaves the spec with it. `AgentToolState.drop_criteria_for_steps` calls it, so a
+  transform whose step a delete removed collapses to its live input instead of taking
+  the whole branch and the structure with it.
+
 ## 2026-09-12
 
 * **A standing preference reaches every turn, whatever the request is about.**

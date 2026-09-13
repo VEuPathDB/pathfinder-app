@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
@@ -6,7 +6,6 @@ from veupathdb.domain.strategy import (
     StrategyAst,
     flatten_tree,
     pushable_root_id,
-    subtree_ids,
     wdk_search_name,
 )
 from veupathdb.errors import ValidationError, VEuPathDBError
@@ -16,6 +15,7 @@ from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.operations import (
     GraphOperation,
     ReplaceStrategyOp,
+    ReplaceSubtreeOp,
 )
 from pathfinder.domain.strategy.operations.apply import (
     ApplyError,
@@ -23,20 +23,13 @@ from pathfinder.domain.strategy.operations.apply import (
     apply_operation,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.spec_edit_guard import (
-    JoinContradiction,
-    ValueContradiction,
-    contradicted_joins,
-    contradicted_values,
-    new_join_contradiction,
-    new_value_contradiction,
-)
 from pathfinder.domain.strategy.stated_shape import (
     SlotWrite,
-    criteria_with_steps,
-    evicted_by,
     overwritten_slot,
-    stated_shape,
+)
+from pathfinder.services.strategies.batch_refusal import (
+    entry_state,
+    refusal_after_the_batch,
 )
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.persist import (
@@ -45,6 +38,7 @@ from pathfinder.services.strategies.persist import (
 from pathfinder.services.strategies.reconcile import (
     reconcile_sync_state_with_wdk,
 )
+from pathfinder.services.strategies.stated_sides import canonical_batch
 from pathfinder.services.strategies.step_push_planner import plan_step_pushes
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
 from pathfinder.services.strategies.sync import (
@@ -115,104 +109,11 @@ def restore_graph(graph: StrategyGraph, old_ast: StrategyAst | None) -> None:
 
 
 def _replaces_a_subtree(op: GraphOperation) -> bool:
-    match op.kind:
-        case "replaceSubtree":
+    match op:
+        case ReplaceSubtreeOp():
             return True
         case _:
             return False
-
-
-def _departure_from_the_spec(
-    *,
-    graph: StrategyGraph,
-    stated: frozenset[str],
-    outside: set[str],
-) -> str | None:
-    """How the graph departs from the criteria the spec states, or nothing."""
-    shape = stated_shape(
-        graph=graph,
-        root_id=graph.primary_root_id() or "",
-        criteria=stated,
-        outside=outside,
-    )
-    if shape.holds:
-        return None
-    return (
-        f"a replaced subtree would leave the strategy holding "
-        f"{list(shape.searches)} where the spec states {list(shape.stated)}"
-    )
-
-
-@dataclass(frozen=True)
-class _EntryState:
-    """What the graph held before the batch applied."""
-
-    step_ids: set[str]
-    reachable: set[str]
-    joins: Mapping[frozenset[str], JoinContradiction]
-    values: Mapping[tuple[str, str], ValueContradiction]
-
-
-def _entry_state(deps: StrategyMutationContext, graph: StrategyGraph) -> _EntryState:
-    return _EntryState(
-        step_ids=set(graph.steps),
-        reachable=set(subtree_ids(graph.primary_root_id() or "", graph.steps)),
-        joins=contradicted_joins(deps.stated_structure, graph, deps.stated_criteria),
-        values=contradicted_values(deps.stated_values, graph, deps.entry_values),
-    )
-
-
-def _refusal_after_the_batch(
-    *,
-    deps: StrategyMutationContext,
-    graph: StrategyGraph,
-    entry: _EntryState,
-    slot_writes: Sequence[SlotWrite],
-    replaces_a_subtree: bool,
-) -> str | None:
-    """Why the tree the batch leaves behind is refused, or nothing."""
-    # The spec addresses this graph by step id, so a criterion answers to a
-    # step the graph held before the batch or to one the batch mints.
-    stated = criteria_with_steps(
-        deps.stated_criteria,
-        entry.step_ids,
-        minted=set(graph.steps) - entry.step_ids,
-    )
-    eviction = evicted_by(graph, slot_writes, was_reachable=entry.reachable)
-    if eviction is not None:
-        return _eviction_message(eviction, stated=stated)
-    if replaces_a_subtree and stated:
-        departure = _departure_from_the_spec(
-            graph=graph, stated=stated, outside=entry.step_ids - entry.reachable
-        )
-        if departure is not None:
-            return departure
-    join = new_join_contradiction(
-        structure=deps.stated_structure,
-        graph=graph,
-        criteria=deps.stated_criteria,
-        before=entry.joins,
-    )
-    if join is not None:
-        return join
-    return new_value_contradiction(
-        stated=deps.stated_values, graph=graph, before=entry.values
-    )
-
-
-def _eviction_message(write: SlotWrite, *, stated: frozenset[str]) -> str:
-    """Why a slot write is refused, naming the step it would take off the tree."""
-    answers = (
-        " and answers a criterion the spec states"
-        if write.occupant_step_id in stated
-        else ""
-    )
-    return (
-        f"the {write.slot} input of {write.target_step_id} holds "
-        f"{write.occupant_step_id}{answers}, and this batch overwrites it, so "
-        f"{write.occupant_step_id} would leave the strategy without being "
-        f"deleted. Delete that step first, or keep it wired into the tree"
-    )
 
 
 async def apply_operations_and_commit(
@@ -231,7 +132,11 @@ async def apply_operations_and_commit(
         raise ValidationError(title="No operations", detail=msg)
 
     graph = _require_graph(deps)
-    entry = _entry_state(deps, graph)
+    batch = await canonical_batch(
+        graph=graph, stated=deps.stated_values, site_id=deps.site_id, ops=ops
+    )
+    ops = batch.ops
+    entry = entry_state(deps, graph, batch.sides)
     replaces_a_subtree = any(_replaces_a_subtree(op) for op in ops)
     sync_state = ensure_sync_state(deps.strategy_session)
     snapshot = graph.to_strategy_ast(sync_state=sync_state)
@@ -255,10 +160,11 @@ async def apply_operations_and_commit(
         restore_graph(graph, old_ast)
         raise
 
-    refusal = _refusal_after_the_batch(
+    refusal = refusal_after_the_batch(
         deps=deps,
         graph=graph,
         entry=entry,
+        stated_values=batch.sides.stated,
         slot_writes=slot_writes,
         replaces_a_subtree=replaces_a_subtree,
     )
