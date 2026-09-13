@@ -123,6 +123,19 @@ class ZeroResultStep(CamelModel):
     criterion_text: str = ""
 
 
+class EnrichmentRun(CamelModel):
+    """One enrichment a durable task answered, and what it named.
+
+    A run that failed names the set it was asked for; a run that finished
+    names the set the worker reports it analysed.
+    """
+
+    task_id: UUID
+    gene_set_id: str
+    gene_set_name: str = ""
+    succeeded: bool = False
+
+
 class TurnMarkers(CamelModel):
     """What the Lead already did for one user message.
 
@@ -141,6 +154,18 @@ class TurnMarkers(CamelModel):
     eda_previewed: bool = False
     # The EDA cut this turn exported, which the turn's case records.
     eda_export: EdaExport | None = None
+    # Every enrichment answered under this message, in the order the workers
+    # answered them. A reply reads it to say which set an analysis ran on.
+    enrichment_runs: list[EnrichmentRun] = Field(default_factory=list)
+
+    def record_enrichment_runs(self, runs: Iterable[EnrichmentRun]) -> None:
+        """Add each answered enrichment once, keyed by its task."""
+        known = {run.task_id for run in self.enrichment_runs}
+        for run in runs:
+            if run.task_id in known:
+                continue
+            known.add(run.task_id)
+            self.enrichment_runs.append(run)
 
 
 class StrategyDomainState(BaseModel):

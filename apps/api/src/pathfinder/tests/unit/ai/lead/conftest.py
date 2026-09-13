@@ -8,7 +8,13 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    RetryPromptPart,
+    ToolCallPart,
+)
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
@@ -252,3 +258,25 @@ def endless_tool_call_model(tool_name: str) -> FunctionModel:
             tool_call_id=uuid4().hex,
         ),
     )
+
+
+class RetryRecordingScript:
+    """A model that records the retries it was told, then answers as scripted."""
+
+    def __init__(self, part: ToolCallPart) -> None:
+        self.retries: list[str] = []
+        self._part = part
+
+    def model(self) -> FunctionModel:
+        def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            del info
+            request = messages[-1]
+            if isinstance(request, ModelRequest):
+                self.retries.extend(
+                    part.model_response()
+                    for part in request.parts
+                    if isinstance(part, RetryPromptPart)
+                )
+            return ModelResponse(parts=[self._part])
+
+        return FunctionModel(_fn, model_name="scripted")

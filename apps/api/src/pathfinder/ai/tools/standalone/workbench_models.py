@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.wdk.enrichment import EnrichmentResult
 
@@ -17,13 +17,24 @@ from pathfinder.services.experiment.types.metrics import (
 from pathfinder.services.gene_sets.types import GeneSetSource
 
 
-class WdkSourceSpec(BaseModel):
-    """WDK provenance info for a gene set."""
+class WdkProvenance(BaseModel):
+    """What a saved gene set records about the strategy step behind it.
+
+    It is read from the conversation's strategy, so a set with no WDK step id
+    was pasted rather than taken from a step.
+    """
+
+    model_config = ConfigDict(frozen=True)
 
     search_name: str | None = None
     parameters: dict[str, ParamValue] | None = None
     wdk_strategy_id: int | None = None
     wdk_step_id: int | None = None
+
+    @property
+    def source(self) -> GeneSetSource:
+        """Where the set's genes came from, as the workbench records it."""
+        return "strategy" if self.wdk_step_id is not None else "paste"
 
 
 class GeneSetCreatedSummary(CamelModel):

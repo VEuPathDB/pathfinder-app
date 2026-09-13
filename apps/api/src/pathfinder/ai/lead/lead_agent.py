@@ -21,9 +21,11 @@ from pathfinder.ai.agents._instructions import (
     pinned_user_memories,
 )
 from pathfinder.ai.graph.runtime import one_toolset
+from pathfinder.ai.graph.state import EnrichmentRun
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_messages import (
+    analysis_ran_on_another_set_message,
     blamed_the_site_message,
     unrecorded_question_message,
     unverified_build_message,
@@ -177,6 +179,42 @@ def refuse_an_unrecorded_question(
     raise ModelRetry(unrecorded_question_message())
 
 
+def _names_the_set(prose: str, run: EnrichmentRun) -> bool:
+    """Whether the reply points the reader at this gene set."""
+    lowered = prose.casefold()
+    return run.gene_set_id.casefold() in lowered or (
+        bool(run.gene_set_name) and run.gene_set_name.casefold() in lowered
+    )
+
+
+def refuse_a_substituted_analysis(
+    ctx: RunContext[LeadDeps],
+    output: LeadResponse | DeferredToolRequests,
+) -> LeadResponse | DeferredToolRequests:
+    """Refuse a reply that reports one gene set's analysis under another's name.
+
+    The record belongs to the message this turn answers, and only an analysis
+    that followed a failure on another set is a substitution. It is asked once
+    per turn.
+    """
+    if not isinstance(output, LeadResponse) or ctx.deps.substituted_analysis_refused:
+        return output
+    runs = ctx.deps.state.turn_markers.enrichment_runs
+    ran_at = max((i for i, run in enumerate(runs) if run.succeeded), default=-1)
+    if ran_at < 0:
+        return output
+    analysed = runs[ran_at]
+    substituted = [
+        run
+        for run in runs[:ran_at]
+        if not run.succeeded and run.gene_set_id != analysed.gene_set_id
+    ]
+    if not substituted or _names_the_set(output.prose, analysed):
+        return output
+    ctx.deps.substituted_analysis_refused = True
+    raise ModelRetry(analysis_ran_on_another_set_message(analysed, substituted))
+
+
 LEAD_MODEL = "openai:gpt-5.6-luna"
 
 
@@ -242,4 +280,5 @@ def build_lead_agent() -> LeadAgent:
     agent.output_validator(verify_what_this_turn_built)
     agent.output_validator(refuse_blaming_the_site)
     agent.output_validator(refuse_an_unrecorded_question)
+    agent.output_validator(refuse_a_substituted_analysis)
     return agent

@@ -12,15 +12,18 @@ from pathfinder.ai.agents.roles import PhaseRole
 
 
 class PhaseStopReason(StrEnum):
-    """What ended the run: its call budget, or one call it kept repeating."""
+    """What ended the run: its call budget, one call it kept repeating, or a
+    tool that refused every attempt it was given."""
 
     BUDGET = "budget"
     REPEATED_CALL = "repeated_call"
+    TOOL_RETRIES = "tool_retries"
 
 
 _REASON_PHRASE: dict[PhaseStopReason, str] = {
     PhaseStopReason.BUDGET: "stopped on its call budget",
     PhaseStopReason.REPEATED_CALL: "stopped after repeating one call",
+    PhaseStopReason.TOOL_RETRIES: "stopped on a call one tool kept refusing",
 }
 
 _PASS_NAME: dict[PhaseRole, str] = {
@@ -45,6 +48,8 @@ class PhaseStop(CamelModel):
     tool_calls: int = 0
     criteria_bound: int = 0
     criteria_declared: int = 0
+    tool_name: str = ""
+    refusal: str = ""
 
     def render(self) -> str:
         """One sentence naming the stop, for the ledger and for a refusal."""
@@ -52,9 +57,11 @@ class PhaseStop(CamelModel):
             f"the {_PASS_NAME[self.role]} pass {_REASON_PHRASE[self.reason]} "
             f"after {count_noun(self.tool_calls, 'call')}"
         )
-        if not self.criteria_declared:
+        if self.criteria_declared:
+            sentence = (
+                f"{sentence} with {self.criteria_bound} of "
+                f"{self.criteria_declared} criteria bound"
+            )
+        if not self.refusal:
             return sentence
-        return (
-            f"{sentence} with {self.criteria_bound} of "
-            f"{self.criteria_declared} criteria bound"
-        )
+        return f"{sentence}; {self.tool_name} answered: {self.refusal}"

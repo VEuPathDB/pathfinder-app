@@ -6,6 +6,7 @@ import asyncio
 from uuid import UUID, uuid4
 
 import pytest
+from assistant_core.graph import approvals
 from assistant_core.graph.turn_state import (
     DurableCall,
     DurableDeferral,
@@ -21,18 +22,22 @@ from pydantic_ai.messages import (
     ToolReturn,
     UserPromptPart,
 )
-from pydantic_ai.tools import DeferredToolRequests
+from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.ai.graph._lead_turn import (
+from pathfinder.ai.graph import _lead_turn
+from pathfinder.ai.graph._lead_durable import (
     ConcurrentDurableDispatchError,
-    UnparkedDurableCallError,
+    durable_resume_hints,
     pending_durable_call,
-    resolve_turn_resumption,
 )
+from pathfinder.ai.graph._lead_turn import resolve_turn_resumption
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.lead.deltas import FrameResult
+from pathfinder.ai.lead.dispatch_resume import SubAgentOutcome
+from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentDurablePark
 from pathfinder.domain.strategy.session import StrategySession
 
@@ -166,8 +171,64 @@ def test_two_sub_agent_dispatches_with_durable_calls_are_refused() -> None:
         pending_durable_call(output=output, deps=deps, messages=[])
 
 
-def test_a_dispatch_and_a_lead_durable_call_in_one_response_are_refused() -> None:
-    """One suspended run is checkpointed, so the Lead's own call is unanswered."""
+_OWN_TASK_ID = UUID("0c6100d2-0000-4000-8000-000000000002")
+_NEXT_TASK_ID = UUID("0c6100d2-0000-4000-8000-000000000003")
+
+
+def _mixed_park() -> PendingDurableCall:
+    """One park: a dispatch's inner call, and the Lead's own call beside it."""
+    return PendingDurableCall(
+        phase="verification",
+        tool_call_id="call_verify",
+        tool_name="verify_strategy",
+        tool_args={"reason": "check the build"},
+        prior_messages_json=_HISTORY,
+        durable_calls=[
+            DurableCall(
+                tool_call_id="inner_enrich",
+                tool_name="run_gene_set_enrichment",
+                args={"gene_set_id": "gs-inner"},
+                task_id=_TASK_ID,
+                durable_tool_name="geneset_enrichment",
+            ),
+            DurableCall(
+                tool_call_id="call_enrich",
+                tool_name="run_gene_set_enrichment",
+                args={"gene_set_id": "gs-own"},
+                task_id=_OWN_TASK_ID,
+                durable_tool_name="geneset_enrichment",
+            ),
+        ],
+        sub_agent=SubAgentApprovalPending(
+            role="verification",
+            approvals=[
+                SubAgentApprovalCall(
+                    tool_call_id="inner_enrich",
+                    tool_name="run_gene_set_enrichment",
+                ),
+            ],
+            messages_json=_HISTORY,
+        ),
+    )
+
+
+def _both_reported() -> list[DurableTaskResult]:
+    return [
+        DurableTaskResult(
+            task_id=_TASK_ID,
+            status="success",
+            result={"geneSetId": "gs-inner", "geneCount": 155},
+        ),
+        DurableTaskResult(
+            task_id=_OWN_TASK_ID,
+            status="success",
+            result={"geneSetId": "gs-own", "geneCount": 42},
+        ),
+    ]
+
+
+def test_a_dispatch_and_a_lead_durable_call_are_parked_together() -> None:
+    """Both deferred calls sit in one park, so both can be answered."""
     state = _state()
     deps = _deps(state)
     deps.pending_sub_agent_durables["call_verify"] = SubAgentDurablePark(
@@ -189,7 +250,7 @@ def test_a_dispatch_and_a_lead_durable_call_in_one_response_are_refused() -> Non
         },
     )
     deps.durable_deferrals["call_enrich"] = DurableDeferral(
-        task_id=uuid4(),
+        task_id=_OWN_TASK_ID,
         tool_name="geneset_enrichment",
     )
     output = DeferredToolRequests(
@@ -199,8 +260,90 @@ def test_a_dispatch_and_a_lead_durable_call_in_one_response_are_refused() -> Non
         ],
     )
 
-    with pytest.raises(UnparkedDurableCallError, match="call_enrich"):
-        pending_durable_call(output=output, deps=deps, messages=[])
+    parked = pending_durable_call(output=output, deps=deps, messages=[])
+
+    assert parked is not None
+    assert parked.tool_call_id == "call_verify"
+    assert parked.sub_agent is not None
+    assert [c.tool_call_id for c in parked.durable_calls] == [
+        "inner_enrich",
+        "call_enrich",
+    ]
+    assert parked.task_ids == [_TASK_ID, _OWN_TASK_ID]
+
+
+async def test_each_parked_call_is_answered_once_on_the_completion_turn(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The sub-agent gets its own call; the Lead gets its own and the delta."""
+    state = _state()
+    state.pending_durable_call = _mixed_park()
+    state.durable_results = _both_reported()
+    handed: list[DeferredToolResults] = []
+
+    async def _resume(
+        *, deps: LeadDeps, approval: PendingDurableCall, resume: SubAgentResume
+    ) -> SubAgentOutcome:
+        del deps, approval
+        handed.append(resume.results)
+        return FrameResult(summary="verified")
+
+    monkeypatch.setattr(_lead_turn, "resume_sub_agent", _resume)
+
+    resumption = await resolve_turn_resumption(state=state, deps=_deps(state))
+
+    assert [sorted(results.calls) for results in handed] == [["inner_enrich"]]
+    assert resumption.results is not None
+    assert sorted(resumption.results.calls) == ["call_enrich", "call_verify"]
+    own = resumption.results.calls["call_enrich"]
+    assert isinstance(own, ToolReturn)
+    assert own.return_value == {
+        "status": "success",
+        "result": {"geneSetId": "gs-own", "geneCount": 42},
+    }
+
+
+async def test_a_sub_agent_that_parks_again_carries_the_leads_answered_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The Lead's call travels to the new park, so its result is not lost."""
+    state = _state()
+    state.pending_durable_call = _mixed_park()
+    state.durable_results = _both_reported()
+
+    async def _resume(
+        *, deps: LeadDeps, approval: PendingDurableCall, resume: SubAgentResume
+    ) -> SubAgentOutcome:
+        del deps, approval, resume
+        return SubAgentApprovalWait(
+            pending=SubAgentApprovalPending(
+                role="verification",
+                approvals=[
+                    SubAgentApprovalCall(
+                        tool_call_id="inner_next",
+                        tool_name="run_gene_set_enrichment",
+                    ),
+                ],
+                messages_json=_HISTORY,
+            ),
+            durable={
+                "inner_next": DurableDeferral(
+                    task_id=_NEXT_TASK_ID,
+                    tool_name="geneset_enrichment",
+                ),
+            },
+        )
+
+    monkeypatch.setattr(_lead_turn, "resume_sub_agent", _resume)
+
+    resumption = await resolve_turn_resumption(state=state, deps=_deps(state))
+
+    assert resumption.still_durable is not None
+    assert [c.tool_call_id for c in resumption.still_durable.durable_calls] == [
+        "inner_next",
+        "call_enrich",
+    ]
+    assert resumption.still_durable.task_ids == [_NEXT_TASK_ID, _OWN_TASK_ID]
 
 
 def test_a_call_no_worker_holds_is_not_a_durable_park() -> None:
@@ -290,3 +433,19 @@ def test_the_sub_agent_park_names_the_inner_call_the_worker_answers() -> None:
 
 def test_a_lead_park_names_its_own_call() -> None:
     assert [c.tool_call_id for c in _parked().durable_calls] == ["call_compute"]
+
+
+def test_a_lead_only_park_is_announced_the_way_the_runtime_announces_it() -> None:
+    parked = _parked()
+
+    assert durable_resume_hints(parked) == approvals.durable_hints(parked)
+
+
+def test_a_mixed_park_announces_the_dispatch_and_the_leads_own_calls() -> None:
+    """The dispatch stands for its inner calls; the Lead's own are named."""
+    parked = _mixed_park()
+
+    assert [hint.tool_call_id for hint in durable_resume_hints(parked)] == [
+        "call_verify",
+        "call_enrich",
+    ]

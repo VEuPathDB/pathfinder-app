@@ -26,6 +26,40 @@
   does through `revision_ops.materialize_revision`. Workbench gene sets are what the revert
   keeps. The dialog's own vitest, `BranchOrRevertDialog.test.tsx`, asserts the sentence.
 
+## 2026-09-13
+
+* **A saved gene set's WDK ids are read from the strategy, never typed.**
+  `ai/tools/standalone/workbench.py::create_workbench_gene_set` takes the LOCAL step id
+  of this conversation's graph, or none for the strategy's root, and reads the WDK
+  strategy id, the WDK step id, the search name and the parameters off the last push
+  (`services/strategies/sync_state.py`). A step the push does not name is refused with
+  the steps it does hold, and a thread with no pushed strategy saves a pasted set whose
+  message says enrichment has no background universe to recover.
+
+* **A parked dispatch and the Lead's own durable calls are answered together.**
+  `ai/graph/_lead_durable.py` builds one park carrying both groups and splits the
+  workers' answers on the ids `parked.sub_agent.approvals` names: the sub-agent resumes
+  with its half, the Lead with the rest beside the dispatch's delta, and a sub-agent
+  that parks again carries the Lead's answered calls into the new park. Each call is
+  answered once, so no job runs twice.
+
+* **A tool that refuses every attempt stops the pass; it does not crash the turn.**
+  `ai/lead/sub_agent_stream.py` records `PhaseStopReason.TOOL_RETRIES` with the tool's
+  name and the words of its last refusal, and keeps the partial draft, so the Lead
+  reports the refusal from the ledger the way it reports a budget stop. The library
+  raises one exception class for many unrelated failures, so only the message that names
+  the tool and the count it passed is absorbed; every other one still ends the run. The
+  library's error text, its documentation URL and its validation dumps reach no thread.
+
+* **A reply names the gene set an analysis actually ran on.**
+  Each answered enrichment is recorded once, keyed by its task, against the user message
+  the turn answers (`ai/graph/_lead_durable.py::enrichment_runs_answered`,
+  `TurnMarkers.enrichment_runs`), so a later message is never judged by an earlier one's
+  analyses. A reply is refused once per turn when an enrichment under that message
+  failed on one set, a later one ran on another, and the reply names neither the
+  analysed set nor its id. The Lead's instructions state that a task reporting
+  `status: failed` is reported rather than routed around.
+
 ## 2026-09-12
 
 * **A standing preference reaches every turn, whatever the request is about.**

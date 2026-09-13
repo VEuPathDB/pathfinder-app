@@ -8,6 +8,8 @@ from typing import Any
 import pytest
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from pydantic_ai import RunContext, Tool
+from pydantic_ai.exceptions import ModelRetry, UnexpectedModelBehavior
+from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.toolsets import FunctionToolset
 from pydantic_ai.usage import UsageLimits
@@ -15,6 +17,7 @@ from pydantic_ai.usage import UsageLimits
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead import sub_agent_stream
 from pathfinder.ai.lead.deltas import FrameResult
+from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
@@ -23,10 +26,12 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentRunUsage
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.lead.conftest import (
+    called_tool_names,
     endless_tool_call_model,
     final_result_model,
     lead_deps,
     pipeline_state,
+    tool_script_model,
 )
 
 pytestmark = pytest.mark.usefixtures("collector")
@@ -67,6 +72,33 @@ async def ping(ctx: RunContext[AgentDeps]) -> str:
     return "pong"
 
 
+REFUSAL = "STRUCTURE_REFUSED: the combine names a criterion the spec omits."
+
+
+async def refuse_always(ctx: RunContext[AgentDeps]) -> str:
+    """Refuse every call, as a structure check refuses a bad combine."""
+    del ctx
+    raise ModelRetry(REFUSAL)
+
+
+async def needs_int(ctx: RunContext[AgentDeps], count: int) -> str:
+    """Take an argument the scripted model never sends in the right type."""
+    del ctx
+    return str(count)
+
+
+_OTHER_CRASH = "Model token limit (4096) exceeded before any response was generated."
+
+
+def _crash_after_one_refusal(messages: list[ModelMessage]) -> ToolCallPart:
+    """Call the refusing tool once, then fail for an unrelated reason."""
+    if "refuse_always" in called_tool_names(messages):
+        raise UnexpectedModelBehavior(_OTHER_CRASH)
+    return ToolCallPart(
+        tool_name="refuse_always", args="{}", tool_call_id="call_refuse_1"
+    )
+
+
 def _pinned(
     monkeypatch: pytest.MonkeyPatch, model: FunctionModel, tool: Any
 ) -> Iterator[None]:
@@ -89,6 +121,32 @@ def binding_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 @pytest.fixture
 def looping_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     yield from _pinned(monkeypatch, endless_tool_call_model("ping"), ping)
+
+
+@pytest.fixture
+def refusing_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    yield from _pinned(
+        monkeypatch, endless_tool_call_model("refuse_always"), refuse_always
+    )
+
+
+@pytest.fixture
+def crashing_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    yield from _pinned(
+        monkeypatch, tool_script_model(_crash_after_one_refusal), refuse_always
+    )
+
+
+@pytest.fixture
+def mistyped_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    model = tool_script_model(
+        lambda _messages: ToolCallPart(
+            tool_name="needs_int",
+            args={"count": "not a number"},
+            tool_call_id="call_needs_int",
+        ),
+    )
+    yield from _pinned(monkeypatch, model, needs_int)
 
 
 @pytest.fixture
@@ -214,3 +272,74 @@ async def test_budget_stopped_dispatch_records_its_usage(
     recorded = usage_log[-1]
     assert recorded.parent_tool_call_id == "call_frame_1"
     assert recorded.usage.total_tokens > 0
+
+
+@pytest.mark.usefixtures("refusing_frame")
+async def test_a_tool_refused_past_its_retries_is_a_stop() -> None:
+    """An exhausted tool retry stops the pass; it does not crash the turn."""
+    deps = _deps()
+
+    delta = await _dispatch(deps)
+
+    assert delta is None
+    stop = deps.last_phase_stop
+    assert stop is not None
+    assert stop.reason is PhaseStopReason.TOOL_RETRIES
+    assert stop.role == "frame"
+    assert stop.tool_name == "refuse_always"
+    rendered = stop.render()
+    assert REFUSAL in rendered
+    assert "pydantic" not in rendered
+
+
+@pytest.mark.usefixtures("refusing_frame")
+async def test_a_refused_pass_hands_the_lead_the_refusals_words() -> None:
+    """The dispatch answers, and the ledger the Lead reads quotes the refusal."""
+    deps = _deps()
+
+    result = await run_frame(
+        deps=deps,
+        parent_tool_call_id="call_frame_1",
+        work_order=frame_work_order("bind the criteria", deps.state),
+    )
+
+    assert isinstance(result, FrameResult)
+    assert result.disposition == "needs_user"
+    stop = deps.last_phase_stop
+    assert stop is not None
+    assert (stop.tool_name, stop.refusal) == ("refuse_always", REFUSAL)
+    ledger = derive_ledger(deps.state, deps.intent, phase_stop=stop)
+    assert f"- stopped: {stop.render()}" in ledger.render_summary()
+
+
+@pytest.mark.usefixtures("crashing_frame")
+async def test_a_model_failure_of_another_kind_still_ends_the_run() -> None:
+    """Only an exhausted tool retry is a stop; every other crash propagates."""
+    deps = _deps()
+
+    with pytest.raises(UnexpectedModelBehavior) as raised:
+        await _dispatch(deps)
+
+    assert str(raised.value) == _OTHER_CRASH
+    assert deps.last_phase_stop is None
+
+
+@pytest.mark.usefixtures("mistyped_frame")
+async def test_a_validation_refusal_reaches_the_ledger_without_its_json() -> None:
+    """The stop quotes what the validator said, not the library's error dump."""
+    deps = _deps()
+
+    delta = await _dispatch(deps)
+
+    assert delta is None
+    stop = deps.last_phase_stop
+    assert stop is not None
+    assert (stop.reason, stop.tool_name) == (
+        PhaseStopReason.TOOL_RETRIES,
+        "needs_int",
+    )
+    assert (
+        stop.refusal
+        == "Input should be a valid integer, unable to parse string as an integer"
+    )
+    assert "```" not in stop.render()

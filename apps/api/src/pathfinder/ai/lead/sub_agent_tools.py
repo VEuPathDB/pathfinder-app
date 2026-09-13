@@ -292,6 +292,9 @@ class LeadDeps:
     site_blame_refused: bool = False
     # A reply that asked the user something and recorded nothing is refused once.
     unrecorded_question_refused: bool = False
+    # A reply that reported one gene set's analysis under another's name is
+    # refused once.
+    substituted_analysis_refused: bool = False
     # The workbench gene sets this turn created. Every agent of the turn writes
     # into this one list, and the Lead's node folds it into the domain.
     created_gene_sets: list[CreatedGeneSet] = field(default_factory=list)

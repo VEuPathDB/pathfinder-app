@@ -33,12 +33,54 @@ from pathfinder.ai.tools.standalone.workbench_models import (
     GeneSetCreatedSummary,
     GeneSetListItem,
     GeneSetListResponse,
-    WdkSourceSpec,
+    WdkProvenance,
 )
-from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
+from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
+from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.workbench.gene_sets import list_gene_sets, save_gene_set
 
 logger = get_logger(__name__)
+
+_NO_WDK_STEP = (
+    "It holds gene IDs only: this conversation has no pushed strategy step "
+    "behind them, so enrichment cannot recover a background gene universe."
+)
+
+
+def _no_such_step(step_id: str, known: list[str]) -> str:
+    """Why a save that names a step the strategy has not pushed is refused."""
+    held = ", ".join(sorted(known)) or "none"
+    return (
+        f"VALIDATION_ERROR: step_id={step_id!r} names no step this strategy "
+        f"has on VEuPathDB. The steps it has: {held}. Pass one of them, or "
+        f"pass none to save from the strategy's root step."
+    )
+
+
+def _wdk_provenance(session: StrategySession, step_id: str | None) -> WdkProvenance:
+    """What a save records about the strategy step behind its genes.
+
+    The ids come from the last push, keyed by the graph's own step id. A step
+    the push does not name is refused; a thread with no pushed strategy
+    records no ids.
+    """
+    graph = session.graph
+    sync_state = session.sync_state
+    if graph is None or sync_state is None:
+        return WdkProvenance()
+    if step_id is not None and step_id not in sync_state.wdk_step_ids:
+        raise ModelRetry(_no_such_step(step_id, list(sync_state.wdk_step_ids)))
+    local_id = step_id or strategy_root_id(graph, sync_state)
+    step = graph.get_step(local_id) if local_id is not None else None
+    wdk_step_id = sync_state.wdk_step_ids.get(local_id or "")
+    if wdk_step_id is None or step is None:
+        return WdkProvenance()
+    return WdkProvenance(
+        wdk_strategy_id=sync_state.wdk_strategy_id,
+        wdk_step_id=wdk_step_id,
+        search_name=step.search_name,
+        parameters=dict(step.parameters),
+    )
 
 
 async def create_workbench_gene_set(
@@ -46,7 +88,7 @@ async def create_workbench_gene_set(
     name: str,
     gene_ids: list[str],
     record_type: str = "transcript",
-    wdk_source: WdkSourceSpec | None = None,
+    step_id: str | None = None,
 ) -> ToolReturn[GeneSetCreatedResponse]:
     """Create a gene set in the user's Workbench for further analysis.
 
@@ -59,7 +101,10 @@ async def create_workbench_gene_set(
         name: Human-readable name for the gene set (e.g. 'Upregulated in gametocytes').
         gene_ids: List of gene IDs to include (e.g. ['PF3D7_1222600', 'PF3D7_1031000']).
         record_type: Record type (default 'transcript').
-        wdk_source: Optional WDK provenance (search name, parameters, strategy ID, step ID).
+        step_id: The step of THIS conversation's strategy the genes came from,
+            by its graph id (e.g. 'step_3'). Leave it out for the strategy's
+            root step. The WDK strategy and step ids are read from the
+            strategy; never type one.
     """
     if not name or not name.strip():
         msg = "VALIDATION_ERROR: Gene set name must be a non-empty string."
@@ -68,14 +113,13 @@ async def create_workbench_gene_set(
         msg = "VALIDATION_ERROR: gene_ids must contain at least one gene ID."
         raise ModelRetry(msg)
     deps = ctx.deps
-    src = wdk_source or WdkSourceSpec()
-    source: GeneSetSource = "strategy" if src.wdk_strategy_id is not None else "paste"
+    src = _wdk_provenance(deps.strategy_session, step_id)
     gs = GeneSet(
         id=str(uuid4()),
         name=name,
         site_id=deps.site_id,
         gene_ids=gene_ids,
-        source=source,
+        source=src.source,
         user_id=deps.user_id,
         wdk_strategy_id=src.wdk_strategy_id,
         wdk_step_id=src.wdk_step_id,
@@ -102,7 +146,11 @@ async def create_workbench_gene_set(
                 source=gs.source,
                 site_id=gs.site_id,
             ),
-            message=f"Gene set '{gs.name}' with {len(gs.gene_ids)} genes has been created in the Workbench.",
+            message=(
+                f"Gene set '{gs.name}' with {len(gs.gene_ids)} genes has been "
+                f"created in the Workbench."
+                + ("" if gs.wdk_step_id is not None else f" {_NO_WDK_STEP}")
+            ),
         ),
         f"{gs.name}: {len(gs.gene_ids):,} genes",
         ctx=ctx,

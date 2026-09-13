@@ -7,15 +7,11 @@ the run on a call the user or the worker must answer.
 from __future__ import annotations
 
 import contextlib
+from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from typing import Any
 
 from assistant_core.capabilities.repetition_guard import RepetitionGuard
-from assistant_core.conversation.stream_parts.agent_topology import (
-    SubAgentCallPayload,
-    sub_agent_call_event,
-)
-from assistant_core.cost import cost_for_run
 from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.stream_events import turn_status_event
 from assistant_core.graph.turn_state import (
@@ -31,38 +27,39 @@ from assistant_core.models.scripted import (
 from assistant_core.platform.logging import get_logger
 from langgraph.config import get_stream_writer
 from pydantic import BaseModel
-from pydantic_ai import AgentRunResultEvent
-from pydantic_ai.exceptions import UsageLimitExceeded
+from pydantic_ai import Agent, AgentRunResultEvent
+from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.messages import (
     FunctionToolResultEvent,
     ModelMessage,
     ModelMessagesTypeAdapter,
+    RetryPromptPart,
 )
 from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.graph.stream_events import ledger_update_event
-from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_events import (
     _announce_approval,
     _close_answered_approval,
     _forward_inner_event,
 )
+from pathfinder.ai.lead.sub_agent_progress import (
+    ContextMeter,
+    emit_live_ledger,
+    emit_running_usage,
+    record_stopped_usage,
+    run_usage,
+)
 from pathfinder.ai.lead.sub_agent_tools import (
     BUILD_SUB_AGENT_BY_ROLE,
-    WIRE_PHASE_BY_ROLE,
     LeadDeps,
     SubAgentCallUsage,
-    SubAgentRunUsage,
-    apply_agent_state,
-    phase_default_model_id,
     phase_override_kwargs,
     phase_usage_limits,
 )
-from pathfinder.ai.models.catalog import context_window_for
 
 logger = get_logger(__name__)
 
@@ -89,6 +86,50 @@ class SubAgentResume:
 
     messages: list[ModelMessage]
     results: DeferredToolResults
+
+
+@dataclass(frozen=True)
+class _ToolRefusal:
+    """One tool call the run sent back to the model, and the words it sent."""
+
+    tool_name: str
+    text: str
+
+
+def _refusal_of(event: FunctionToolResultEvent) -> _ToolRefusal | None:
+    """The refusal one tool result carries, or nothing when it succeeded.
+
+    A validator's refusal arrives as error details rather than a sentence, so
+    the messages are joined; the library's own retry instruction and its JSON
+    dump stay out of what a reply quotes.
+    """
+    part = event.part
+    if not isinstance(part, RetryPromptPart) or part.tool_name is None:
+        return None
+    content = part.content
+    return _ToolRefusal(
+        tool_name=part.tool_name,
+        text=content
+        if isinstance(content, str)
+        else "; ".join(detail["msg"] for detail in content),
+    )
+
+
+def _exhausted_its_retries(
+    exc: UnexpectedModelBehavior,
+    refusal: _ToolRefusal | None,
+) -> _ToolRefusal | None:
+    """The refusal the library says ran out of retries, or nothing.
+
+    The exception class also carries token limits, output-retry ceilings and
+    streaming faults, so the raised message is the discriminator: it names the
+    tool and the count the tool passed.
+    """
+    if refusal is None:
+        return None
+    if not exc.message.startswith(f"Tool {refusal.tool_name!r} exceeded max retries"):
+        return None
+    return refusal
 
 
 @dataclass(frozen=True)
@@ -148,6 +189,43 @@ def _park_run(
     )
 
 
+def _phase_agent(
+    deps: LeadDeps,
+    role: PhaseRole,
+) -> tuple[Agent[AgentDeps, Any], AbstractContextManager[None]]:
+    """The agent one dispatch runs, under the turn's override for its role."""
+    agent = BUILD_SUB_AGENT_BY_ROLE[role]()
+    overrides = phase_override_kwargs(deps.runtime, role)
+    if "model" in overrides:
+        overrides["model"] = maybe_wrap_model(overrides["model"], role)
+    if not overrides:
+        return agent, contextlib.nullcontext()
+    return agent, agent.override(**overrides)
+
+
+def _absorb_result[OutputT: BaseModel](
+    event: AgentRunResultEvent[Any],
+    *,
+    writer: Any,
+    role: PhaseRole,
+    expected_output_type: type[OutputT],
+    deferrals: dict[str, DurableDeferral],
+) -> tuple[OutputT | None, SubAgentApprovalWait | None]:
+    """The typed delta this run produced, or the calls it parked."""
+    agent_output = event.result.output
+    if isinstance(agent_output, expected_output_type):
+        return agent_output, None
+    if isinstance(agent_output, DeferredToolRequests):
+        return None, _park_run(
+            writer=writer,
+            role=role,
+            requests=agent_output,
+            messages=list(event.result.all_messages()),
+            deferrals=deferrals,
+        )
+    return None, None
+
+
 async def stream_sub_agent[OutputT: BaseModel](
     *,
     run: PhaseRun,
@@ -167,7 +245,7 @@ async def stream_sub_agent[OutputT: BaseModel](
     """
     role = run.role
     deps.last_phase_stop = None
-    agent = BUILD_SUB_AGENT_BY_ROLE[role]()
+    agent, override_ctx = _phase_agent(deps, role)
     writer = get_stream_writer()
     inner_calls: dict[str, str] = {}
     answered: frozenset[str] = (
@@ -175,9 +253,10 @@ async def stream_sub_agent[OutputT: BaseModel](
     )
     output: OutputT | None = None
     wait: SubAgentApprovalWait | None = None
+    refusal: _ToolRefusal | None = None
     usage = RunUsage()
     usage_recorded = False
-    context_meter = _ContextMeter()
+    context_meter = ContextMeter()
     # A pass that continues a stopped one runs on its own budget, so its card
     # adds what the dispatch already spent.
     baseline = deps.sub_agent_usage_by_call.get(
@@ -187,14 +266,6 @@ async def stream_sub_agent[OutputT: BaseModel](
     # canned plan.
     current_scope_id.set(deps.runtime.site_id)
     current_user_text.set(deps.state.user_prompt)
-    override_kwargs = phase_override_kwargs(deps.runtime, role)
-    if "model" in override_kwargs:
-        override_kwargs["model"] = maybe_wrap_model(override_kwargs["model"], role)
-    override_ctx = (
-        agent.override(**override_kwargs)
-        if override_kwargs
-        else contextlib.nullcontext()
-    )
     emit_chunk(
         writer,
         turn_status_event(
@@ -216,26 +287,15 @@ async def stream_sub_agent[OutputT: BaseModel](
             ) as events:
                 async for event in events:
                     if isinstance(event, AgentRunResultEvent):
-                        agent_output = event.result.output
-                        if isinstance(agent_output, expected_output_type):
-                            output = agent_output
-                        elif isinstance(agent_output, DeferredToolRequests):
-                            wait = _park_run(
-                                writer=writer,
-                                role=role,
-                                requests=agent_output,
-                                messages=list(event.result.all_messages()),
-                                deferrals=agent_deps.durable_deferrals,
-                            )
-                        response = event.result.response
+                        output, wait = _absorb_result(
+                            event,
+                            writer=writer,
+                            role=role,
+                            expected_output_type=expected_output_type,
+                            deferrals=agent_deps.durable_deferrals,
+                        )
                         deps.record_sub_agent_usage(
-                            SubAgentRunUsage(
-                                usage=event.result.usage,
-                                model_name=response.model_name,
-                                provider_name=response.provider_name,
-                                provider_url=response.provider_url,
-                                parent_tool_call_id=parent_tool_call_id,
-                            ),
+                            run_usage(event, parent_tool_call_id),
                         )
                         usage_recorded = True
                         continue
@@ -246,9 +306,10 @@ async def stream_sub_agent[OutputT: BaseModel](
                         event=event,
                     )
                     if isinstance(event, FunctionToolResultEvent):
+                        refusal = _refusal_of(event) or refusal
                         _close_answered_approval(writer, event, answered)
-                        _emit_live_ledger(writer, deps, agent_deps)
-                        _emit_running_sub_agent_usage(
+                        emit_live_ledger(writer, deps, agent_deps)
+                        emit_running_usage(
                             writer,
                             role,
                             parent_tool_call_id,
@@ -286,10 +347,31 @@ async def stream_sub_agent[OutputT: BaseModel](
                 agent_deps=agent_deps,
                 usage=usage,
             )
-            _record_stopped_usage(deps, role, parent_tool_call_id, usage)
+            record_stopped_usage(deps, role, parent_tool_call_id, usage)
+            return None
+        except UnexpectedModelBehavior as exc:
+            exhausted = _exhausted_its_retries(exc, refusal)
+            if exhausted is None:
+                raise
+            # One tool refused every attempt it was given. The refusal is the
+            # pass's own account of the stop, and the draft holds what it bound.
+            logger.warning(
+                "sub-agent exhausted a tool's retries; keeping partial progress",
+                role=role,
+                tool=exhausted.tool_name,
+                error=str(exc),
+            )
+            deps.last_phase_stop = _phase_stop(
+                PhaseStopReason.TOOL_RETRIES,
+                run=run,
+                agent_deps=agent_deps,
+                usage=usage,
+                refusal=exhausted,
+            )
+            record_stopped_usage(deps, role, parent_tool_call_id, usage)
             return None
     if not usage_recorded:
-        _record_stopped_usage(deps, role, parent_tool_call_id, usage)
+        record_stopped_usage(deps, role, parent_tool_call_id, usage)
     return wait if wait is not None else output
 
 
@@ -299,6 +381,7 @@ def _phase_stop(
     run: PhaseRun,
     agent_deps: AgentDeps,
     usage: RunUsage,
+    refusal: _ToolRefusal | None = None,
 ) -> PhaseStop:
     """The stop this run reports, sized by what it spent and what it bound."""
     draft = agent_deps.agent_state.operational_spec_draft
@@ -308,99 +391,6 @@ def _phase_stop(
         tool_calls=usage.tool_calls,
         criteria_bound=sum(1 for c in draft.criteria if c.bound),
         criteria_declared=run.declared_criteria,
+        tool_name="" if refusal is None else refusal.tool_name,
+        refusal="" if refusal is None else refusal.text,
     )
-
-
-def _record_stopped_usage(
-    deps: LeadDeps,
-    role: PhaseRole,
-    parent_tool_call_id: str,
-    usage: RunUsage,
-) -> None:
-    """Record usage for a run that ended without a result event.
-
-    A budget stop or a repetition stop yields no result, so the turn's
-    totals would otherwise drop the run's tokens.
-    """
-    model_id = phase_default_model_id(role)
-    provider, _, model = model_id.partition(":")
-    deps.record_sub_agent_usage(
-        SubAgentRunUsage(
-            usage=usage,
-            model_name=model or None,
-            provider_name=provider or None,
-            provider_url=None,
-            parent_tool_call_id=parent_tool_call_id,
-        ),
-    )
-
-
-@dataclass
-class _ContextMeter:
-    """The cumulative input tokens already reported for one dispatch.
-
-    ``RunUsage.input_tokens`` accumulates over a run, so one request's input
-    size is the delta between two readings. One request answers every one of
-    its parallel tool calls, so an unchanged reading repeats the last size
-    instead of reporting 0. A drop reads as 0.
-    """
-
-    seen_input: int = 0
-    last_size: int = 0
-
-    def last_request_input(self, usage: RunUsage) -> int:
-        delta = usage.input_tokens - self.seen_input
-        self.seen_input = usage.input_tokens
-        if delta > 0:
-            self.last_size = delta
-        elif delta < 0:
-            self.last_size = 0
-        return self.last_size
-
-
-def _emit_running_sub_agent_usage(
-    writer: Any,
-    role: PhaseRole,
-    parent_tool_call_id: str,
-    usage: RunUsage,
-    meter: _ContextMeter,
-    *,
-    baseline: SubAgentCallUsage,
-) -> None:
-    """Push the dispatch's running tokens/cost and context fill after each
-    inner tool call. ``baseline`` is what its earlier passes spent."""
-    model_id = phase_default_model_id(role)
-    provider, _, model = model_id.partition(":")
-    cost = baseline.cost + cost_for_run(
-        usage=usage,
-        model_name=model or None,
-        provider_name=provider or None,
-        provider_url=None,
-    )
-    emit_chunk(
-        writer,
-        sub_agent_call_event(
-            SubAgentCallPayload(
-                tool_call_id=parent_tool_call_id,
-                sub_agent=role,
-                phase=WIRE_PHASE_BY_ROLE[role],
-                state="started",
-                model_id=model_id,
-                tokens=baseline.tokens + usage.total_tokens,
-                cost_usd=str(cost),
-                context_tokens=meter.last_request_input(usage),
-                context_window=context_window_for(model_id),
-            )
-        ),
-    )
-
-
-def _emit_live_ledger(
-    writer: Any,
-    deps: LeadDeps,
-    agent_deps: AgentDeps,
-) -> None:
-    """Sync state and broadcast a ledger snapshot after a sub-agent tool call."""
-    apply_agent_state(deps, agent_deps)
-    ledger = derive_ledger(deps.state, deps.intent)
-    emit_chunk(writer, ledger_update_event(ledger=ledger))

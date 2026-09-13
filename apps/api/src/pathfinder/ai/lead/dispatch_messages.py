@@ -11,6 +11,7 @@ from collections.abc import Sequence
 
 from veupathdb.domain.parameters import to_wire
 
+from pathfinder.ai.graph.state import EnrichmentRun
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -292,6 +293,23 @@ def unrecorded_question_message() -> str:
         "same reply with one ``asked_questions`` entry per question: the "
         "question, the value you recommend for it, and the dimension it "
         "decides."
+    )
+
+
+def analysis_ran_on_another_set_message(
+    analysed: EnrichmentRun,
+    requested: Sequence[EnrichmentRun],
+) -> str:
+    """Why a reply that hides the gene set an analysis ran on is refused."""
+    named = analysed.gene_set_name or analysed.gene_set_id
+    could_not = ", ".join(run.gene_set_id for run in requested)
+    return (
+        f"This turn's enrichment ran on gene set {analysed.gene_set_id} "
+        f"({named}), and the enrichment it was asked for ({could_not}) did "
+        f"not run. A reply that reports this analysis must say which one "
+        f"failed and name the set that was analysed, by its name and its id, "
+        f"and must not report its terms under the other set's name. Yours "
+        f"names neither. Rewrite it."
     )
 
 

@@ -27,7 +27,6 @@ from pathfinder.ai.tools.standalone.workbench import GENESET_ENRICHMENT
 from pathfinder.ai.tools.standalone.workbench_models import (
     GeneSetCreatedResponse,
     GeneSetListResponse,
-    WdkSourceSpec,
 )
 from pathfinder.domain.memory import MemoryKind
 
@@ -157,7 +156,7 @@ async def create_workbench_gene_set(
     name: str,
     gene_ids: list[str],
     record_type: str = "transcript",
-    wdk_source: WdkSourceSpec | None = None,
+    step_id: str | None = None,
 ) -> ToolReturn[GeneSetCreatedResponse]:
     """Save gene IDs as a gene set in the user's Workbench.
 
@@ -170,15 +169,17 @@ async def create_workbench_gene_set(
         name: The name the user gave the set.
         gene_ids: The gene IDs to include.
         record_type: Record type (default 'transcript').
-        wdk_source: Optional WDK provenance (search name, parameters,
-            strategy ID, step ID).
+        step_id: The step of THIS conversation's strategy the genes came from,
+            by its graph id (e.g. 'step_3'). Leave it out for the strategy's
+            root step. The WDK strategy and step ids are read from the
+            strategy; never type one.
     """
     return await workbench.create_workbench_gene_set(
         inner_context(ctx),
         name=name,
         gene_ids=gene_ids,
         record_type=record_type,
-        wdk_source=wdk_source,
+        step_id=step_id,
     )
 
 

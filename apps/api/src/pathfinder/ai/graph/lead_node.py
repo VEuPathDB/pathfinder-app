@@ -57,6 +57,10 @@ from pathfinder.ai.graph._lead_capture import (
     emit_lead_usage,
 )
 from pathfinder.ai.graph._lead_delta import _build_state_delta
+from pathfinder.ai.graph._lead_durable import (
+    durable_resume_hints,
+    pending_durable_call,
+)
 from pathfinder.ai.graph._lead_events import (
     handle_sub_agent_event,
     is_suppressed_sub_agent_chunk,
@@ -65,7 +69,6 @@ from pathfinder.ai.graph._lead_model import resolve_lead_model_context
 from pathfinder.ai.graph._lead_turn import (
     TurnResumption,
     pending_approval,
-    pending_durable_call,
     resolve_turn_resumption,
     retrieve_memories,
 )
@@ -197,7 +200,7 @@ def _resume_hints(parked: ParkedCall | None) -> list[DeferredToolHint]:
     if parked is None:
         return []
     if isinstance(parked, PendingDurableCall):
-        return approvals.durable_hints(parked)
+        return durable_resume_hints(parked)
     return [approvals.deferred_hint(parked)]
 
 

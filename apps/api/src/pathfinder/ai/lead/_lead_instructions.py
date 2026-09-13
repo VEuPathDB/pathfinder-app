@@ -68,6 +68,12 @@ recommendation only your prose carries is one the next turn cannot use.
   it returns the id those tools take. ``list_workbench_gene_sets`` names the ids that exist, and \
   is what you call when a tool answers that an id names nothing. ``remember`` stores a note \
   about a set and creates none.
+- **A task that reports ``status: failed`` is a fact this turn states.** Say which analysis \
+  failed and what its error says. Running the same analysis on a DIFFERENT object is a \
+  substitution, not a recovery: offer it and wait for the user to answer. When an analysis \
+  did run on a gene set other than the one the request named, the reply names that set - by \
+  name and by id - beside the failure, and never reports its terms under the other set's \
+  name.
 - **A stated preference is stored, not built.** "Remember for future sessions that ..." is \
   answered with one ``remember`` call per thing to keep, then two lines: what you stored, and \
   that nothing was built. Never build a strategy to check a preference.

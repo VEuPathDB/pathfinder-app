@@ -13,13 +13,8 @@ from assistant_core.models.settings import baked_model_id
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import (
-    ModelMessage,
-    ModelRequest,
-    ModelResponse,
-    RetryPromptPart,
     ToolCallPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 
@@ -43,6 +38,7 @@ from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
 from pathfinder.tests._support.instructions import pinned_instructions
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
+    RetryRecordingScript,
     lead_deps,
     pipeline_state,
     user_intent,
@@ -320,30 +316,8 @@ def _nudge_deps(
     )
 
 
-class _Script:
-    """A model that records the retries it was told, then answers as scripted."""
-
-    def __init__(self, part: ToolCallPart) -> None:
-        self.retries: list[str] = []
-        self._part = part
-
-    def model(self) -> FunctionModel:
-        def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-            del info
-            request = messages[-1]
-            if isinstance(request, ModelRequest):
-                self.retries.extend(
-                    part.model_response()
-                    for part in request.parts
-                    if isinstance(part, RetryPromptPart)
-                )
-            return ModelResponse(parts=[self._part])
-
-        return FunctionModel(_fn, model_name="scripted")
-
-
-def _answering_script() -> _Script:
-    return _Script(
+def _answering_script() -> RetryRecordingScript:
+    return RetryRecordingScript(
         ToolCallPart(
             tool_name="final_result",
             args={"prose": _NUDGE_PROSE, "nextState": "await_user"},
@@ -352,8 +326,8 @@ def _answering_script() -> _Script:
     )
 
 
-def _parking_script() -> _Script:
-    return _Script(
+def _parking_script() -> RetryRecordingScript:
+    return RetryRecordingScript(
         ToolCallPart(
             tool_name="consult_user",
             args={"questions": [{"id": "q1", "prompt": "Which arm should I add?"}]},
@@ -362,7 +336,7 @@ def _parking_script() -> _Script:
     )
 
 
-def _run(deps: LeadDeps) -> _Script:
+def _run(deps: LeadDeps) -> RetryRecordingScript:
     script = _answering_script()
     result = asyncio.run(
         build_lead_agent().run(_NUDGE_PROMPT, deps=deps, model=script.model()),
