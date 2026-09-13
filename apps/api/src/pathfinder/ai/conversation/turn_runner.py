@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import dataclasses
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
@@ -106,6 +107,30 @@ class TurnRequest:
     durable_results: tuple[DurableTaskResult, ...] = ()
 
 
+async def write_turn_failure(writer: ChatWriter, exc: Exception) -> None:
+    """Close a turn that failed before its graph ran, the way a graph failure closes."""
+    error_text = _turn_failure_text(exc)
+    for chunk in (
+        ErrorChunk(error_text=error_text),
+        turn_failed_event(error_text=error_text),
+        FinishChunk(finish_reason="error"),
+        DoneChunk(),
+    ):
+        await writer.write(
+            chunk.model_dump(by_alias=True, mode="json", exclude_none=True)
+        )
+
+
+@contextlib.asynccontextmanager
+async def turn_closed_on_failure(writer: ChatWriter) -> AsyncIterator[None]:
+    """A setup step that raises inside still ends the turn on the wire."""
+    try:
+        yield
+    except Exception as exc:
+        await write_turn_failure(writer, exc)
+        raise
+
+
 async def run_turn(
     *,
     request: TurnRequest,
@@ -121,34 +146,34 @@ async def run_turn(
     reattaches via the events SSE endpoint in a later task.
     """
     body = request.body
-    conversation = await load_conversation(body.conversation_id)
-    effective_site_id = resolve_site_id(
-        chat_site_id=conversation.site_id if conversation is not None else None,
-        body_site_id=body.site_id,
-        conversation_id=body.conversation_id,
-    )
-    body = body.model_copy(update={"site_id": effective_site_id})
     async with contextlib.AsyncExitStack() as tool_source_sessions:
-        resolved = await tool_source_sessions.enter_async_context(
-            ResolvedToolSources(
-                declarations=spec.tool_sources,
-                credential=source_credential,
-                scan=tool_output_scan(),
-            ),
-        )
-        tool_sources = dict(resolved.by_name)
-        runtime_context = await spec.build_turn_context(
-            TurnContextRequest(
-                conversation=conversation,
-                site_id=effective_site_id,
-                user_id=request.user_id,
-                memory_store=memory_store,
-                cancel_event=asyncio.Event(),
-                phase_models=body.runtime_phase_models,
-                phase_reasoning=body.runtime_phase_reasoning,
-                tool_sources=tool_sources,
-            ),
-        )
+        async with turn_closed_on_failure(writer):
+            conversation = await load_conversation(body.conversation_id)
+            effective_site_id = resolve_site_id(
+                chat_site_id=conversation.site_id if conversation is not None else None,
+                body_site_id=body.site_id,
+                conversation_id=body.conversation_id,
+            )
+            body = body.model_copy(update={"site_id": effective_site_id})
+            resolved = await tool_source_sessions.enter_async_context(
+                ResolvedToolSources(
+                    declarations=spec.tool_sources,
+                    credential=source_credential,
+                    scan=tool_output_scan(),
+                ),
+            )
+            runtime_context = await spec.build_turn_context(
+                TurnContextRequest(
+                    conversation=conversation,
+                    site_id=effective_site_id,
+                    user_id=request.user_id,
+                    memory_store=memory_store,
+                    cancel_event=asyncio.Event(),
+                    phase_models=body.runtime_phase_models,
+                    phase_reasoning=body.runtime_phase_reasoning,
+                    tool_sources=dict(resolved.by_name),
+                ),
+            )
         # Work this turn defers outlives the turn, so it reads the picks here.
         with attach_phase_overrides(
             PhaseOverrides(
@@ -175,21 +200,23 @@ async def _run_turn_with_context(
 ) -> None:
     body = request.body
     turn_message_id = writer.turn_id
-    turn_token = await spec.turn_prologue(body.conversation_id)
-    start_event_id = await writer.write(
-        StartChunk(message_id=str(turn_message_id)).model_dump(
-            by_alias=True,
-            mode="json",
-            exclude_none=True,
-        ),
-    )
-    await writer.write(
-        turn_status_event(label="Starting the turn").model_dump(
-            by_alias=True,
-            mode="json",
-            exclude_none=True,
-        ),
-    )
+    async with turn_closed_on_failure(writer):
+        turn_token = await spec.turn_prologue(body.conversation_id)
+        start_event_id = await writer.write(
+            StartChunk(message_id=str(turn_message_id)).model_dump(
+                by_alias=True,
+                mode="json",
+                exclude_none=True,
+            ),
+        )
+        await writer.write(
+            turn_status_event(label="Starting the turn").model_dump(
+                by_alias=True,
+                mode="json",
+                exclude_none=True,
+            ),
+        )
+        graph_input = _graph_input(request, spec, writer, start_event_id)
 
     title_task: asyncio.Task[str] | None = None
     if body.last_user_text.strip():
@@ -197,18 +224,6 @@ async def _run_turn_with_context(
             generate_conversation_title(body.last_user_text, spec.build_mock_model),
         )
 
-    graph_input = turn_input(
-        spec.build_initial_state(
-            build_turn_start(
-                body,
-                request.user_id,
-                turn_message_id=writer.turn_id,
-                turn_start_event_id=start_event_id - 1,
-                durable_result=request.durable_result,
-                durable_results=request.durable_results,
-            ),
-        ),
-    )
     result = await _drive_graph(
         body=body,
         graph_input=graph_input,
@@ -258,6 +273,26 @@ async def _consume_graph_stream(ctx: _StreamConsumerCtx) -> None:
         stream_mode="custom",
     ):
         await _handle_custom(payload, ctx.result, ctx.writer)
+
+
+def _graph_input(
+    request: TurnRequest,
+    spec: AssistantSpec,
+    writer: ChatWriter,
+    start_event_id: int,
+) -> dict[str, Any]:
+    return turn_input(
+        spec.build_initial_state(
+            build_turn_start(
+                request.body,
+                request.user_id,
+                turn_message_id=writer.turn_id,
+                turn_start_event_id=start_event_id - 1,
+                durable_result=request.durable_result,
+                durable_results=request.durable_results,
+            ),
+        ),
+    )
 
 
 async def _drive_graph(

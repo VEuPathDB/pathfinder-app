@@ -2,6 +2,13 @@
 
 ## 2026-09-13
 
+* **A turn that fails before its graph runs ends on the wire the way a graph failure does.**
+  `ai/conversation/turn_runner.py::turn_closed_on_failure` wraps every setup step a turn takes
+  before `_drive_graph` (the checkpointer and memory store the job opens, the conversation row,
+  the tool sources, the turn context, the prologue and the graph input) and writes the error
+  chunk, the turn-failed part, a `finish` with reason `error` and `done` before the exception
+  leaves. A client that saw "Queued" therefore always sees an end.
+
 * **One model judges every text this application did not write, and a judgement that
   does not happen has an answer of its own.**
   `assistant-core` 0.3.0a12 replaces the local injection classifier with

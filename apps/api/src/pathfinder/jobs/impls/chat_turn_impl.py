@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from contextlib import nullcontext
 from typing import Any
 
@@ -13,7 +14,11 @@ from assistant_core.tasks.scope import (
     attach_user_id,
 )
 
-from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
+from pathfinder.ai.conversation.turn_runner import (
+    TurnRequest,
+    run_turn,
+    turn_closed_on_failure,
+)
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.auth_context import attach_wdk_auth
 from pathfinder.jobs.payloads import ChatTurnPayload
@@ -45,13 +50,19 @@ async def run_chat_turn(payload: dict[str, Any]) -> None:
         attach_wdk_auth(parsed.veupathdb_auth_token),
         attach_user_id(parsed.user_id),
         attach_conversation_application(body.conversation_id),
-        lifespan_checkpointer(
-            settings.database_url,
-            checkpoint_types=registry.checkpoint_types(),
-        ) as saver,
-        lifespan_memory_store(settings.database_url) as store,
+        contextlib.AsyncExitStack() as stores,
     ):
-        graph = spec.build_graph(saver)
+        async with turn_closed_on_failure(writer):
+            saver = await stores.enter_async_context(
+                lifespan_checkpointer(
+                    settings.database_url,
+                    checkpoint_types=registry.checkpoint_types(),
+                ),
+            )
+            store = await stores.enter_async_context(
+                lifespan_memory_store(settings.database_url),
+            )
+            graph = spec.build_graph(saver)
         capture = (
             capture_llm(parsed.capture_dir) if parsed.capture_dir else nullcontext()
         )

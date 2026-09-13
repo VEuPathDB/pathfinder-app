@@ -8,6 +8,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from assistant_core.conversation.deadline import CheckpointTimeoutError
 from assistant_core.platform.context import DEFAULT_APPLICATION_ID, application_id_ctx
 from assistant_core.spec import AssistantSpec
 from assistant_core.tasks import scope
@@ -197,3 +198,61 @@ async def test_run_chat_turn_tolerates_missing_token(
     await run_chat_turn(payload.model_dump(mode="json", by_alias=True))
 
     assert observer.observed_token is None
+
+
+class _RecordingWriter:
+    """Keeps every chunk the job writes, in order."""
+
+    def __init__(self, conversation_id: UUID, turn_id: UUID) -> None:
+        self.conversation_id = conversation_id
+        self.turn_id = turn_id
+        self.chunks: list[dict[str, Any]] = []
+
+    async def write(self, chunk: dict[str, Any]) -> int:
+        self.chunks.append(chunk)
+        return len(self.chunks)
+
+
+@asynccontextmanager
+async def _checkpointer_that_times_out(
+    *args: object, **kwargs: object
+) -> AsyncIterator[None]:
+    del args, kwargs
+    raise CheckpointTimeoutError(operation="setup", seconds=30.0)
+    yield None
+
+
+@pytest.mark.asyncio
+async def test_a_turn_that_cannot_open_its_checkpointer_ends_visibly(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A failure before the graph runs still closes the turn on the wire."""
+    writers: list[_RecordingWriter] = []
+
+    def recording_writer(*, conversation_id: UUID, turn_id: UUID) -> _RecordingWriter:
+        writers.append(_RecordingWriter(conversation_id, turn_id))
+        return writers[-1]
+
+    monkeypatch.setattr(chat_turn_impl, "ChatEventWriter", recording_writer)
+    monkeypatch.setattr(
+        chat_turn_impl, "lifespan_checkpointer", _checkpointer_that_times_out
+    )
+    monkeypatch.setattr(chat_turn_impl, "lifespan_memory_store", _fake_memory_ctx)
+    monkeypatch.setattr(chat_turn_impl, "get_assistant_registry", _FakeRegistry)
+    payload = ChatTurnPayload(
+        body=_body(),
+        user_id=uuid4(),
+        turn_id=uuid4(),
+        veupathdb_auth_token="user-token-abc",
+        assistant_id="pathfinder",
+    )
+
+    with pytest.raises(CheckpointTimeoutError):
+        await run_chat_turn(payload.model_dump(mode="json"))
+
+    kinds = [chunk["type"] for chunk in writers[0].chunks]
+    assert kinds == ["error", "data-turn-failed", "finish", "done"]
+    assert writers[0].chunks[0]["errorText"] == (
+        "CheckpointTimeoutError: The checkpointer did not answer setup within 30.0 seconds."
+    )
+    assert writers[0].chunks[2]["finishReason"] == "error"

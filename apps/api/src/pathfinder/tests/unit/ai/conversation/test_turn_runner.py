@@ -331,3 +331,56 @@ async def test_a_pending_title_is_awaited_and_written(
     assert title_task.cancelled() is False
     assert [chunk["type"] for chunk in writer.chunks] == ["data-conversation-title"]
     assert writer.chunks[0]["data"]["title"] == "Kinases in gametocytes"
+
+
+async def _conversation_that_cannot_load(conversation_id: UUID) -> None:
+    del conversation_id
+    msg = "the conversations table did not answer"
+    raise RuntimeError(msg)
+
+
+@pytest.mark.asyncio
+async def test_a_turn_that_fails_before_its_graph_ends_visibly(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The setup steps before the graph close the turn the way a graph failure does."""
+    monkeypatch.setattr(
+        turn_runner, "load_conversation", _conversation_that_cannot_load
+    )
+    writer = _StubWriter(conversation_id=uuid4(), turn_id=uuid4())
+    body = ChatRequestBody.model_validate(
+        {
+            "conversationId": str(writer.conversation_id),
+            "messages": [
+                {
+                    "id": str(uuid4()),
+                    "role": "user",
+                    "parts": [{"type": "text", "text": "hi"}],
+                },
+            ],
+            "siteId": "plasmodb",
+        },
+    )
+
+    with pytest.raises(RuntimeError):
+        await turn_runner.run_turn(
+            request=turn_runner.TurnRequest(body=body, user_id=uuid4()),
+            spec=_spec_never_reached(),
+            compiled_graph=None,
+            memory_store=None,
+            writer=writer,
+        )
+
+    kinds = [chunk["type"] for chunk in writer.chunks]
+    assert kinds == ["error", "data-turn-failed", "finish", "done"]
+    assert writer.chunks[0]["errorText"] == (
+        "RuntimeError: the conversations table did not answer"
+    )
+    assert writer.chunks[2]["finishReason"] == "error"
+
+
+def _spec_never_reached() -> Any:
+    class _Spec:
+        tool_sources: tuple[Any, ...] = ()
+
+    return _Spec()
