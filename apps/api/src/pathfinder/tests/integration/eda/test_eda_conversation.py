@@ -491,8 +491,12 @@ def _assert_tool_summaries(rows: list[dict[str, Any]]) -> None:
         _summary_for(rows, tool_name)
     studies = _summary_for(rows, "search_eda_studies")
     cards = _tool_output(rows, "search_eda_studies")["studies"]
+    permitted = set(_fixture("permissions.json")["perDataset"])
+    listed = [*_fixture("studies_list.json")["studies"], _study_overview()]
+    catalog = sum(1 for study in listed if study["datasetId"] in permitted)
     assert studies["summary"] == (
-        f"{len(cards)} studies matched rodent malaria phenotypes"
+        f"{len(cards)} closest of {catalog} studies on this site "
+        f"(best match {max(card['relevance'] for card in cards):.2f})"
     )
     assert studies["status"] == "ok"
     preview = _summary_for(rows, "preview_eda_subset")
