@@ -4,7 +4,8 @@ import { createContext, useContext } from "react";
 import type { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 
-export type ChatHelpers = ReturnType<typeof useChat<UIMessage>>;
+/** The thread's chat. Its stream has one re-attach owner, which is the runtime. */
+export type ChatHelpers = Omit<ReturnType<typeof useChat<UIMessage>>, "resumeStream">;
 
 const ChatHelpersContext = createContext<ChatHelpers | null>(null);
 

@@ -2,8 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render, screen, within } from "@testing-library/react";
 import type { UIMessage } from "ai";
 import type { TaskCompleted, TaskProgressChunk } from "@pathfinder/shared";
 
@@ -12,10 +11,6 @@ import {
   type ChatHelpers,
 } from "../../runtime/chatHelpersContext";
 import { DataBackgroundTaskStarted } from "./DataBackgroundTaskStarted";
-
-vi.mock("next/navigation", () => ({
-  usePathname: () => "/plasmodb/conversation/conv-1",
-}));
 
 const STARTED = {
   taskId: "t1",
@@ -31,10 +26,9 @@ function completedPart(data: TaskCompleted): UIMessage["parts"][number] {
   return { type: "data-task-completed", data };
 }
 
+/** Chat helpers whose every call is recorded, so the card can be held to none. */
 function makeChat(
   parts: UIMessage["parts"][number][],
-  resumeStream: () => Promise<void>,
-  status: ChatHelpers["status"] = "ready",
   later: UIMessage[] = [],
 ): ChatHelpers {
   return {
@@ -50,45 +44,39 @@ function makeChat(
       },
       ...later,
     ],
-    status,
+    status: "ready",
     error: undefined,
-    setMessages: () => {},
-    sendMessage: async () => {},
-    regenerate: async () => {},
-    stop: async () => {},
-    resumeStream,
-    addToolResult: async () => {},
-    addToolOutput: async () => {},
-    addToolApprovalResponse: () => {},
-    clearError: () => {},
+    setMessages: vi.fn(),
+    sendMessage: vi.fn(async () => {}),
+    regenerate: vi.fn(async () => {}),
+    stop: vi.fn(async () => {}),
+    addToolResult: vi.fn(async () => {}),
+    addToolOutput: vi.fn(async () => {}),
+    addToolApprovalResponse: vi.fn(),
+    clearError: vi.fn(),
   };
+}
+
+/** The names of the chat helpers the card called. */
+function calledHelpers(chat: ChatHelpers): string[] {
+  return Object.entries(chat)
+    .filter(([, value]) => vi.isMockFunction(value) && value.mock.calls.length > 0)
+    .map(([name]) => name);
 }
 
 function renderCard(
   parts: UIMessage["parts"][number][],
   options: {
-    resumeStream?: () => Promise<void>;
-    status?: ChatHelpers["status"];
     later?: UIMessage[];
   } = {},
 ) {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-  const chat = makeChat(
-    parts,
-    options.resumeStream ?? (async () => {}),
-    options.status ?? "ready",
-    options.later ?? [],
-  );
+  const chat = makeChat(parts, options.later ?? []);
   const ui = (
-    <QueryClientProvider client={client}>
-      <ChatHelpersProvider value={chat}>
-        <DataBackgroundTaskStarted data={STARTED} />
-      </ChatHelpersProvider>
-    </QueryClientProvider>
+    <ChatHelpersProvider value={chat}>
+      <DataBackgroundTaskStarted data={STARTED} />
+    </ChatHelpersProvider>
   );
-  return { ...render(ui), ui };
+  return { ...render(ui), ui, chat };
 }
 
 describe("DataBackgroundTaskStarted", () => {
@@ -235,37 +223,19 @@ describe("DataBackgroundTaskStarted", () => {
     expect(statuses).toEqual(["Completed", "Completed"]);
   });
 
-  it("reattaches the thread exactly once while the task is unfinished", async () => {
-    const resumeStream = vi.fn(async () => {});
-    const { rerender, ui } = renderCard([], { resumeStream });
-    await waitFor(() => {
-      expect(resumeStream).toHaveBeenCalledTimes(1);
-    });
+  it("draws an unfinished task from its parts and drives the thread nowhere", async () => {
+    const fetchCalls = vi.fn();
+    vi.stubGlobal("fetch", fetchCalls);
+    const { rerender, ui, chat } = renderCard([
+      progressPart({ taskId: "t1", percent: 0.4, message: "Comparing controls" }),
+    ]);
+
     rerender(ui);
-    await waitFor(() => {
-      expect(resumeStream).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  it("does not reattach while the suspending turn is still streaming", async () => {
-    const resumeStream = vi.fn(async () => {});
-    renderCard([], { resumeStream, status: "streaming" });
     await Promise.resolve();
-    expect(resumeStream).not.toHaveBeenCalled();
-  });
 
-  it("renders a reloaded finished card without reattaching the thread", async () => {
-    const resumeStream = vi.fn(async () => {});
-    renderCard(
-      [
-        progressPart({ taskId: "t1", percent: 1, message: "Scoring" }),
-        completedPart({ taskId: "t1", status: "success" }),
-      ],
-      { resumeStream },
-    );
-    expect(screen.getByTestId("task-row-status")).toHaveTextContent("Completed");
-    await Promise.resolve();
-    expect(resumeStream).not.toHaveBeenCalled();
+    expect(screen.getByTestId("task-row-status")).toHaveTextContent("40%");
+    expect(calledHelpers(chat)).toEqual([]);
+    expect(fetchCalls).not.toHaveBeenCalled();
   });
 });
 

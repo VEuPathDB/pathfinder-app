@@ -2,6 +2,25 @@
 
 ## 2026-09-13
 
+* **One owner re-attaches a suspended thread, once per park and once per delivered turn
+  boundary.** `features/conversation/runtime/useChatRuntime.ts` holds the thread's only
+  re-attach: it follows the turn a snapshot reports in flight, and then the message every
+  park leaves open, which it reads from the cursor store the transport writes
+  (`conversationCursors.readOpenMessage`). The cursor that store advances is part of what
+  the follow is keyed on, so a tail that ends at a delivered `done` with the same message
+  still open earns one more follow, and a tail that reports no turn in flight moves nothing
+  and is read once instead of polled. That cursor is held in React state and re-read when a
+  follow ends, because the React Compiler caches a call whose arguments do not change and
+  would otherwise freeze a render-phase read at its first value;
+  `useChatRuntime.compiler.test.ts` compiles the hook and holds the rule. The follow runs
+  while the SDK holds no stream of its own
+  and no earlier follow is still reading, because the SDK aborts a reconnect when a second
+  one starts and that abort leaves the first tail with no reader. A follow the log refuses
+  is told to the user in one sentence, since a thread draws its own turn's error and draws
+  nothing for a tail. The task card draws from message parts alone, and `ChatHelpers`
+  carries no `resumeStream`, so a thread with two parked tasks opens one tail for its park
+  and not one per card.
+
 * **A turn that fails before its graph runs ends on the wire the way a graph failure does.**
   `ai/conversation/turn_runner.py::turn_closed_on_failure` wraps every setup step a turn takes
   before `_drive_graph` (the checkpointer and memory store the job opens, the conversation row,

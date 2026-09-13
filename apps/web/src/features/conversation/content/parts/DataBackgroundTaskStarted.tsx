@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import {
   orderedLanes,
   taskLifecycle,
@@ -12,7 +11,6 @@ import type { BackgroundTaskStarted } from "@pathfinder/shared";
 
 import { THREAD_BLOCK_GAP } from "@/components/ai-elements/rhythm";
 import { TaskRow, type TaskOutcome } from "@/features/conversation/thread/TaskRow";
-import { useConversationId } from "@/features/conversation/useConversationId";
 import { humanizeToolName } from "@/features/conversation/toolNames";
 
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
@@ -26,23 +24,8 @@ function laneOf(progress: TaskProgress): string | null {
 }
 
 export function DataBackgroundTaskStarted({ data }: { data: BackgroundTaskStarted }) {
-  const conversationId = useConversationId();
   const chat = useChatHelpers();
   const { lanes, completed } = taskLifecycle(chat.messages, data.taskId, { laneOf });
-
-  // A suspended turn closes its own stream, so the task's progress, its outcome
-  // and the continuation reach this page only on a fresh tail of the thread.
-  useQuery({
-    queryKey: ["conversations", conversationId, "tasks", data.taskId, "reattach"],
-    queryFn: async () => {
-      await chat.resumeStream();
-      return data.taskId;
-    },
-    enabled: completed === null && chat.status === "ready",
-    staleTime: Infinity,
-    gcTime: Infinity,
-    retry: false,
-  });
 
   const tool = humanizeToolName(data.toolName);
   const result =

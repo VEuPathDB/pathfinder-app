@@ -24,7 +24,6 @@ function makeChat(messages: UIMessage[]): ChatHelpers {
     sendMessage: async () => {},
     regenerate: async () => {},
     stop: async () => {},
-    resumeStream: async () => {},
     addToolResult: async () => {},
     addToolOutput: async () => {},
     addToolApprovalResponse: () => {},

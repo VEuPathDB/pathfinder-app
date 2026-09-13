@@ -1,13 +1,14 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { toast } from "sonner";
 import { useState } from "react";
 import {
   type UIMessage,
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from "ai";
 import { useAISDKRuntime } from "@assistant-ui/react-ai-sdk";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsFetching, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { Strategy } from "@pathfinder/shared";
 import { graphClearedSchema } from "@pathfinder/shared/generated/zod/graphClearedSchema";
@@ -35,6 +36,16 @@ import { buildChatRequestBody } from "./buildRequestBody";
 import type { ChatHelpers } from "./chatHelpersContext";
 import { createDurableTransport } from "./durableTransport";
 import { GeneIdAttachmentAdapter } from "./geneIdAttachmentAdapter";
+
+/** The turn a snapshot reports in flight, before any message of it is open. */
+const SNAPSHOT_TURN = "snapshot-turn";
+
+export const THREAD_STOPPED_FOLLOWING =
+  "This thread stopped following the work it has running; reload the page to read where that work got to.";
+
+function reattachKey(conversationId: string): string[] {
+  return ["conversations", conversationId, "reattach"];
+}
 
 interface UseChatRuntimeArgs {
   conversationId: string;
@@ -157,7 +168,12 @@ export function useChatRuntime({
       }
     },
     onError: (err) => {
-      handleWdkAuthRefusal(err);
+      if (handleWdkAuthRefusal(err)) return;
+      // The thread's own turn draws its error; a refused follow draws nothing,
+      // so the user is told that the work it was reading runs on unread.
+      if (queryClient.isFetching({ queryKey: reattachKey(conversationId) }) > 0) {
+        toast.error(THREAD_STOPPED_FOLLOWING);
+      }
     },
     onFinish: () => {
       void queryClient.invalidateQueries({
@@ -168,25 +184,31 @@ export function useChatRuntime({
     },
   });
 
-  // A turn the snapshot found before this mount is re-attached: one it left
-  // running, or a message a durable task left open. A tail on an idle thread
-  // reports no turn in flight, and that report ends a turn started meanwhile.
-  const [reattach] = useState(
-    () =>
-      resume &&
-      (turnInFlight ||
-        conversationCursors.readOpenMessage(conversationId) !== undefined),
+  // The thread has one turn to follow at a time: the one the snapshot found
+  // running when this view opened, and then every message a park leaves open.
+  const [snapshotTurn, setSnapshotTurn] = useState(() => resume && turnInFlight);
+  const openMessageId = conversationCursors.readOpenMessage(conversationId)?.messageId;
+  const turnToFollow = openMessageId ?? (snapshotTurn ? SNAPSHOT_TURN : null);
+  // Every turn boundary the log delivers grants one follow. The cursor stands
+  // still while a tail reports no turn in flight, so a silent thread is read
+  // once and not polled. It is state, so the key advances with it.
+  const [delivered, setDelivered] = useState(() =>
+    conversationCursors.read(conversationId),
   );
+  const following = useIsFetching({ queryKey: reattachKey(conversationId) }) > 0;
 
-  // A turn the log still holds is read across its turn boundaries: the SDK
-  // builds one message per stream, so each turn the tail opens is its own read.
+  // The SDK aborts a reconnect when a second one starts, and a tail on an idle
+  // thread ends a turn started meanwhile: one re-attach runs, and only while
+  // the thread holds no stream of its own.
   useQuery({
-    queryKey: ["conversations", conversationId, "reattach"],
+    queryKey: [...reattachKey(conversationId), turnToFollow, delivered],
     queryFn: async () => {
       await resumeDurableThread(chatApi, transport);
-      return conversationId;
+      setDelivered(conversationCursors.read(conversationId));
+      setSnapshotTurn(false);
+      return turnToFollow;
     },
-    enabled: reattach,
+    enabled: turnToFollow !== null && !following && chatApi.status === "ready",
     staleTime: Infinity,
     gcTime: 0,
     retry: false,
@@ -198,10 +220,5 @@ export function useChatRuntime({
     },
   });
 
-  const chat: ChatHelpers = {
-    ...chatApi,
-    resumeStream: () => resumeDurableThread(chatApi, transport),
-  };
-
-  return { runtime, chat };
+  return { runtime, chat: chatApi };
 }
