@@ -2,10 +2,11 @@
 
 import type { UserQuestionAnswersPayload } from "@pathfinder/shared";
 import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/UserQuestionAnswer";
-import type { UIMessage } from "ai";
+import { getToolName, isToolUIPart, type UIMessage } from "ai";
+
+import { useConsultAnswersStore } from "@/state/useConsultAnswersStore";
 
 export interface ChatHelpersForApproval {
-  setMessages: (updater: (messages: UIMessage[]) => UIMessage[]) => void;
   addToolApprovalResponse: (response: {
     id: string;
     approved: boolean;
@@ -15,28 +16,32 @@ export interface ChatHelpersForApproval {
 
 export const USER_QUESTION_ANSWERS_PART_TYPE = "data-user-question-answers" as const;
 
+/** The consult carousel answers this tool's approval with the user's answers. */
+export const CONSULT_TOOL_NAME = "consult_user";
+
 export function handleConsultSubmit(
   chat: ChatHelpersForApproval,
-  pending: { approvalId: string; sourceMessage: UIMessage },
+  pending: { approvalId: string },
   answers: UserQuestionAnswer[],
 ): void {
-  const data: UserQuestionAnswersPayload = {
-    toolCallId: pending.approvalId,
-    answers,
-  };
-  const part: UIMessage["parts"][number] = {
-    type: USER_QUESTION_ANSWERS_PART_TYPE,
-    data,
-  };
-
-  chat.setMessages((messages) =>
-    messages.map((msg) => {
-      if (msg.id !== pending.sourceMessage.id) return msg;
-      const filtered = msg.parts.filter(
-        (p) => p.type !== USER_QUESTION_ANSWERS_PART_TYPE,
-      );
-      return { ...msg, parts: [...filtered, part] };
-    }),
-  );
+  useConsultAnswersStore.getState().recordAnswers(pending.approvalId, answers);
   chat.addToolApprovalResponse({ id: pending.approvalId, approved: true });
+}
+
+function answersPartsOf(part: UIMessage["parts"][number]): UIMessage["parts"] {
+  if (!isToolUIPart(part) || getToolName(part) !== CONSULT_TOOL_NAME) return [part];
+  if (part.state !== "approval-responded") return [part];
+  const data: UserQuestionAnswersPayload = {
+    toolCallId: part.toolCallId,
+    answers: useConsultAnswersStore.getState().answersFor(part.approval.id),
+  };
+  return [part, { type: USER_QUESTION_ANSWERS_PART_TYPE, data }];
+}
+
+/** Each answered consult carries its answers to the turn that resumes it. */
+export function withConsultAnswers(messages: UIMessage[]): UIMessage[] {
+  return messages.map((message) => ({
+    ...message,
+    parts: message.parts.flatMap(answersPartsOf),
+  }));
 }

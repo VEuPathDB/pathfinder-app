@@ -9,6 +9,23 @@
   that follows a failed body. Measured after the pin: an enrichment started by a completion
   turn reaches VEuPathDB and fails, if it fails, on its own arguments and not on a login.
 
+## 2026-09-13
+
+* **The answers a consult carousel collected reach the turn that resumes it.**
+  `state/useConsultAnswersStore.ts` holds them keyed by the approval they answer, and
+  `features/conversation/rail/consultActions.ts::withConsultAnswers` puts each set on the
+  request body as the `data-user-question-answers` part beside the consult call its own
+  message answers, when `runtime/buildRequestBody.ts` builds the body. The send carries the
+  answers whatever the message list holds, and an answered consult whose answers were never
+  recorded throws instead of resuming the turn with none.
+
+* **The revert dialog states the strategy rollback before the researcher confirms.**
+  `features/conversation/content/BranchOrRevertDialog.tsx` says the strategy goes back to
+  what it was at the reverted message and that a later version stays in the VEuPathDB
+  account, which is what `services/conversations/revert.py::revert_conversation_to_message`
+  does through `revision_ops.materialize_revision`. Workbench gene sets are what the revert
+  keeps. The dialog's own vitest, `BranchOrRevertDialog.test.tsx`, asserts the sentence.
+
 ## 2026-09-12
 
 * **A standing preference reaches every turn, whatever the request is about.**

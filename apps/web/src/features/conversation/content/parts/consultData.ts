@@ -8,7 +8,6 @@ import { z } from "zod";
 export interface PendingConsult {
   approvalId: string;
   questions: ConsultQuestion[];
-  sourceMessage: UIMessage;
 }
 
 export interface ConsultRecap {
@@ -63,7 +62,6 @@ export function findPendingConsult(message: UIMessage): PendingConsult | null {
       return {
         approvalId: part.approval.id,
         questions: questionsOf("input" in part ? part.input : undefined),
-        sourceMessage: message,
       };
     }
   }

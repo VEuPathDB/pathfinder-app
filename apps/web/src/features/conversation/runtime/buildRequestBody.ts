@@ -6,6 +6,8 @@ import {
 
 import type { PhaseModelMap, PhaseReasoningMap } from "@/state/useSettingsStore";
 
+import { withConsultAnswers } from "../rail/consultActions";
+
 export interface BuildChatRequestBodyArgs {
   conversationId: string;
   siteId: string;
@@ -36,7 +38,7 @@ export function buildChatRequestBody(
     conversationId: args.conversationId,
     id: args.id,
     trigger: args.trigger,
-    messages: args.messages,
+    messages: withConsultAnswers(args.messages),
     baseBody: args.baseBody,
     extra: {
       siteId: args.siteId,

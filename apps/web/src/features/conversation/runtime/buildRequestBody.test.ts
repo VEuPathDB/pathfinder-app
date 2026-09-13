@@ -1,4 +1,7 @@
-import { describe, it, expect } from "vitest";
+import type { UIMessage } from "ai";
+import { beforeEach, describe, it, expect } from "vitest";
+
+import { useConsultAnswersStore } from "@/state/useConsultAnswersStore";
 
 import { buildChatRequestBody } from "./buildRequestBody";
 
@@ -116,5 +119,105 @@ describe("buildChatRequestBody", () => {
     });
     expect("phaseModels" in out).toBe(false);
     expect("phaseReasoning" in out).toBe(false);
+  });
+});
+
+function answeredConsult(): UIMessage {
+  return {
+    id: "m1",
+    role: "assistant",
+    parts: [
+      {
+        type: "tool-consult_user",
+        toolCallId: "call-7",
+        state: "approval-responded",
+        approval: { id: "approval-7", approved: true },
+        input: { questions: [] },
+      },
+    ] as UIMessage["parts"],
+  };
+}
+
+const ANSWER = {
+  questionId: "q1",
+  prompt: "Fold-change threshold?",
+  chosenLabels: ["2-fold"],
+  note: "",
+};
+
+describe("the answers an approved consult carries", () => {
+  beforeEach(() => {
+    useConsultAnswersStore.setState({ byApprovalId: {} });
+  });
+
+  it("rides the message that answers the approval, keyed by its tool call", () => {
+    useConsultAnswersStore.getState().recordAnswers("approval-7", [ANSWER]);
+    const out = buildChatRequestBody({
+      conversationId: "c1",
+      siteId: "plasmodb",
+      id: "x",
+      trigger: "submit-message",
+      messages: [answeredConsult()],
+      baseBody: undefined,
+    });
+    expect(out.messages[0]?.parts[1]).toEqual({
+      type: "data-user-question-answers",
+      data: { toolCallId: "call-7", answers: [ANSWER] },
+    });
+  });
+
+  it("refuses a send whose answered consult it never recorded", () => {
+    expect(() =>
+      buildChatRequestBody({
+        conversationId: "c1",
+        siteId: "plasmodb",
+        id: "x",
+        trigger: "submit-message",
+        messages: [answeredConsult()],
+        baseBody: undefined,
+      }),
+    ).toThrow(/approval-7/);
+  });
+
+  it("leaves another tool's answered approval alone", () => {
+    const message: UIMessage = {
+      id: "m2",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-delete_step",
+          toolCallId: "call-9",
+          state: "approval-responded",
+          approval: { id: "approval-9", approved: true },
+          input: { stepId: 3 },
+        },
+      ] as UIMessage["parts"],
+    };
+    const out = buildChatRequestBody({
+      conversationId: "c1",
+      siteId: "plasmodb",
+      id: "x",
+      trigger: "submit-message",
+      messages: [message],
+      baseBody: undefined,
+    });
+    expect(out.messages[0]?.parts).toHaveLength(1);
+  });
+
+  it("leaves a message that answers nothing alone", () => {
+    const plain: UIMessage = {
+      id: "m0",
+      role: "user",
+      parts: [{ type: "text", text: "hello" }],
+    };
+    const out = buildChatRequestBody({
+      conversationId: "c1",
+      siteId: "plasmodb",
+      id: "x",
+      trigger: "submit-message",
+      messages: [plain],
+      baseBody: undefined,
+    });
+    expect(out.messages).toEqual([plain]);
   });
 });

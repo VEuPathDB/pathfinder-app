@@ -60,8 +60,9 @@ export function BranchOrRevertDialog({
               <div className="font-medium">Revert this chat</div>
               <div className="text-xs text-muted-foreground">
                 Delete every message after this point in this chat. Scratchpad notes and
-                pending tasks from those turns are also removed. Strategy graph and
-                workbench state are kept.
+                pending tasks from those turns are also removed. The strategy goes back
+                to what it was at this message; a later version stays in your VEuPathDB
+                account. Workbench gene sets are kept.
               </div>
             </div>
           </div>

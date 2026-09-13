@@ -91,6 +91,25 @@ describe("BranchOrRevertDialog", () => {
     expect(screen.getByTestId("edit-branch-button")).toBeEnabled();
   });
 
+  it("says the strategy rolls back to the reverted message", () => {
+    render(
+      <BranchOrRevertDialog
+        open
+        canBranch
+        pending={false}
+        error={null}
+        onBranch={vi.fn()}
+        onRevert={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText(
+        /The strategy goes back to what it was at this message; a later version stays in your VEuPathDB account\. Workbench gene sets are kept\./,
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("shows no error line when there is no error", () => {
     render(
       <BranchOrRevertDialog

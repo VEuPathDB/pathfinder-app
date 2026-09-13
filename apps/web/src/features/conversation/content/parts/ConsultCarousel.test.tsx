@@ -2,9 +2,12 @@
  * @vitest-environment jsdom
  */
 import type { UIMessage } from "ai";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 
+import { useConsultAnswersStore } from "@/state/useConsultAnswersStore";
+
+import { buildChatRequestBody } from "../../runtime/buildRequestBody";
 import type { ChatHelpers } from "../../runtime/chatHelpersContext";
 import { ConsultCarouselView } from "./ConsultCarousel";
 import { findPendingConsult, type PendingConsult } from "./consultData";
@@ -115,5 +118,67 @@ describe("the consult card names its own controls", () => {
     expect(
       await screen.findByRole("textbox", { name: "Your answer" }),
     ).toBeInTheDocument();
+  });
+});
+
+/** The message the SDK sends once the carousel answers the approval. */
+function answeredMessage(): UIMessage {
+  const message = pendingMessage();
+  return {
+    ...message,
+    parts: [
+      {
+        ...message.parts[0],
+        state: "approval-responded",
+        approval: { id: "approval-1", approved: true },
+      },
+    ] as UIMessage["parts"],
+  };
+}
+
+describe("the answers the carousel collects reach the turn", () => {
+  beforeEach(() => {
+    useConsultAnswersStore.setState({ byApprovalId: {} });
+  });
+
+  it("carries every answer on the request body built in the submit's own tick", async () => {
+    render(
+      <ConsultCarouselView pending={pendingOf(pendingMessage())} chat={chatStub()} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Union" }));
+    fireEvent.click(screen.getByTestId("consult-next"));
+    fireEvent.change(await screen.findByRole("textbox", { name: "Your answer" }), {
+      target: { value: "nothing else" },
+    });
+    fireEvent.click(screen.getByTestId("consult-submit"));
+
+    const body = buildChatRequestBody({
+      conversationId: "conv-1",
+      siteId: "plasmodb",
+      id: "conv-1",
+      trigger: "submit-message",
+      messages: [answeredMessage()],
+      baseBody: undefined,
+    });
+    expect(body.messages[0]?.parts[1]).toEqual({
+      type: "data-user-question-answers",
+      data: {
+        toolCallId: "call_kQ8zvR2mTf",
+        answers: [
+          {
+            questionId: "combine_mode",
+            prompt: COMBINE_PROMPT,
+            chosenLabels: ["Union"],
+            note: "",
+          },
+          {
+            questionId: "anything_else",
+            prompt: "Anything else I should know?",
+            chosenLabels: [],
+            note: "nothing else",
+          },
+        ],
+      },
+    });
   });
 });

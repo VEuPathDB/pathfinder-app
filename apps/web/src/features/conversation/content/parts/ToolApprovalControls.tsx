@@ -10,11 +10,9 @@ import {
 } from "@/features/conversation/thread/ApprovalCard";
 import { approvalPromptFor } from "@/features/conversation/toolNames";
 
+import { CONSULT_TOOL_NAME } from "../../rail/consultActions";
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { useThreadDevMode } from "../../thread/useThreadDevMode";
-
-// The consult carousel answers this tool's approval with the user's answers.
-const CONSULT_TOOL_NAME = "consult_user";
 
 export interface ToolApprovalView {
   approvalId: string;
