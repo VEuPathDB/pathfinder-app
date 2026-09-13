@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
@@ -9,7 +9,7 @@ import { http, HttpResponse } from "msw";
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
   useParams: () => ({ siteId: "plasmodb" }),
-  usePathname: () => `/plasmodb/conversation/${CONVERSATION_ID}`,
+  usePathname: () => `/plasmodb/conversation/${conversationId}`,
   useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ push: vi.fn() }),
 }));
@@ -23,13 +23,14 @@ import { useSessionStore } from "@/state/useSessionStore";
 
 import { ChatShell } from "./ChatShell";
 
-const CONVERSATION_ID = "11111111-1111-4111-8111-111111111111";
+/** A thread of this test's own, so no other test's tail can reach its log. */
+let conversationId = "";
 const FIRST_USER_ID = "aaaaaaa1-1111-4111-8111-111111111111";
 const SECOND_USER_ID = "aaaaaaa2-1111-4111-8111-111111111111";
 const FIRST_ASSISTANT_ID = "bbbbbbb1-1111-4111-8111-111111111111";
 const SECOND_ASSISTANT_ID = "bbbbbbb2-1111-4111-8111-111111111111";
 
-const BASE = `http://localhost:3000/api/v1/conversations/${CONVERSATION_ID}`;
+const CONVERSATIONS = "http://localhost:3000/api/v1/conversations";
 
 function turn(
   userId: string,
@@ -63,7 +64,6 @@ const FULL_LOG = [
 ];
 
 const STRATEGY = {
-  id: CONVERSATION_ID,
   name: "strategy",
   siteId: "plasmodb",
   steps: [],
@@ -90,24 +90,29 @@ interface RevertStubs {
 
 function installHandlers(stubs: RevertStubs): void {
   let snapshotCalls = 0;
+  const base = `${CONVERSATIONS}/${conversationId}`;
   server.use(
-    http.get(BASE, () => HttpResponse.json(STRATEGY)),
-    http.get(`${BASE}/events/snapshot`, () => {
+    http.get(base, () => HttpResponse.json({ ...STRATEGY, id: conversationId })),
+    http.get(`${base}/events/snapshot`, () => {
       snapshotCalls += 1;
       stubs.calls.push("snapshot");
       const chunks = snapshotCalls === 1 ? FULL_LOG : FIRST_TURN;
       return HttpResponse.json({ chunks, cursor: chunks.length });
     }),
-    http.get(`${BASE}/events`, () => new HttpResponse(null, { status: 204 })),
-    http.post(`${BASE}/revert-to-message`, () => {
+    // A tail this or another test's thread left running answers nothing.
+    http.get(
+      `${CONVERSATIONS}/:id/events`,
+      () => new HttpResponse(null, { status: 204 }),
+    ),
+    http.post(`${base}/revert-to-message`, () => {
       stubs.calls.push("revert");
       if (stubs.revertStatus === 204) return new HttpResponse(null, { status: 204 });
       return HttpResponse.json(stubs.revertBody, { status: stubs.revertStatus });
     }),
-    http.post(`${BASE}/begin`, () => {
+    http.post(`${base}/begin`, () => {
       stubs.calls.push("begin");
       return HttpResponse.json({
-        conversationId: CONVERSATION_ID,
+        conversationId,
         isNew: false,
         name: "strategy",
       });
@@ -130,7 +135,7 @@ function renderChat(): void {
     authStatusOptions(useSessionStore.getState().selectedSite).queryKey,
     { signedIn: true },
   );
-  useSessionStore.setState({ createdConversationId: CONVERSATION_ID });
+  useSessionStore.setState({ createdConversationId: conversationId });
   render(<ChatShell />, { wrapper: Wrapper });
 }
 
@@ -164,7 +169,12 @@ async function revertSecondTurn(): Promise<void> {
 }
 
 describe("revert truncates the client thread", { timeout: 30_000 }, () => {
+  beforeEach(() => {
+    conversationId = crypto.randomUUID();
+  });
+
   afterEach(() => {
+    sessionStorage.clear();
     useSessionStore.getState().setPendingUserSubmission(null);
     useSessionStore.setState({ createdConversationId: null, chatResetCounter: 0 });
   });

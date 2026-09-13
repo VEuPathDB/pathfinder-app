@@ -12,22 +12,11 @@ import { THREAD_STOPPED_FOLLOWING, useChatRuntime } from "./useChatRuntime";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
-const CONVERSATION_ID = "11111111-2222-4333-8444-666666666666";
 const OPEN_MESSAGE_ID = "33333333-4444-4555-8666-777777777777";
 const SECOND_MESSAGE_ID = "44444444-5555-4666-8777-888888888888";
 const FIRST_TASK = "00000000-0000-4000-8000-0000000000a1";
 const SECOND_TASK = "00000000-0000-4000-8000-0000000000a2";
 const THIRD_MESSAGE_ID = "55555555-6666-4777-8888-999999999999";
-
-const BEGIN_BODY = {
-  conversationId: CONVERSATION_ID,
-  isNew: false,
-  name: "Kinase genes",
-};
-
-function tailUrl(after: number): string {
-  return `/api/v1/conversations/${CONVERSATION_ID}/events?after=${String(after)}`;
-}
 
 function frame(eventId: number, payload: unknown): string {
   return `id: ${String(eventId)}\ndata: ${JSON.stringify(payload)}\n\n`;
@@ -207,7 +196,10 @@ const THIRD_TURN_ANSWERS = [
 ];
 
 interface ConversationStub {
+  /** This test's own thread. A thread of its own keeps every test's log apart. */
+  conversationId: string;
   tailUrls: string[];
+  tailUrl: (after: number) => string;
   endTurn: () => void;
   parkTurn: () => void;
 }
@@ -228,6 +220,8 @@ function stubConversationFetch(
   tails: TailSource = () => null,
   refuseTails = false,
 ): ConversationStub {
+  const conversationId = crypto.randomUUID();
+  const eventsUrl = `/api/v1/conversations/${conversationId}/events`;
   const tailUrls: string[] = [];
   const encoder = new TextEncoder();
   let turn: ReadableStreamDefaultController<Uint8Array> | undefined;
@@ -241,6 +235,10 @@ function stubConversationFetch(
     vi.fn((input: RequestInfo | URL) => {
       const url = String(input instanceof Request ? input.url : input);
       if (url.includes("/events")) {
+        // A tail another test's thread left running answers nothing and is not read.
+        if (!url.startsWith(eventsUrl)) {
+          return Promise.resolve(new Response(null, { status: 204 }));
+        }
         tailUrls.push(url);
         if (refuseTails) {
           return Promise.resolve(
@@ -267,10 +265,13 @@ function stubConversationFetch(
         );
       }
       return Promise.resolve(
-        new Response(JSON.stringify(BEGIN_BODY), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
+        new Response(
+          JSON.stringify({ conversationId, isNew: false, name: "Kinase genes" }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        ),
       );
     }),
   );
@@ -279,7 +280,9 @@ function stubConversationFetch(
     turn?.close();
   };
   return {
+    conversationId,
     tailUrls,
+    tailUrl: (after) => `${eventsUrl}?after=${String(after)}`,
     endTurn: () =>
       write(
         frame(1, { type: "start", messageId: OPEN_MESSAGE_ID }) +
@@ -305,7 +308,7 @@ async function settle(): Promise<void> {
 
 async function sendAndPark(stub: ConversationStub) {
   const { result } = renderHook(() =>
-    useChatRuntime({ conversationId: CONVERSATION_ID }),
+    useChatRuntime({ conversationId: stub.conversationId }),
   );
   await act(async () => {
     void result.current.chat.sendMessage({ text: "run the control tests" });
@@ -327,7 +330,7 @@ describe("useChatRuntime reattach", () => {
     const stub = stubConversationFetch();
 
     const { result } = renderHook(() =>
-      useChatRuntime({ conversationId: CONVERSATION_ID, resume: true }),
+      useChatRuntime({ conversationId: stub.conversationId, resume: true }),
     );
 
     await act(async () => {
@@ -348,19 +351,21 @@ describe("useChatRuntime reattach", () => {
 
   it("reattaches to the message the snapshot left open", async () => {
     const stub = stubConversationFetch();
-    conversationCursors.write(CONVERSATION_ID, 40);
-    conversationCursors.writeOpenMessage(CONVERSATION_ID, {
+    conversationCursors.write(stub.conversationId, 40);
+    conversationCursors.writeOpenMessage(stub.conversationId, {
       messageId: OPEN_MESSAGE_ID,
       after: 30,
     });
 
-    renderHook(() => useChatRuntime({ conversationId: CONVERSATION_ID, resume: true }));
+    renderHook(() =>
+      useChatRuntime({ conversationId: stub.conversationId, resume: true }),
+    );
 
     await waitFor(() => {
-      expect(stub.tailUrls).toEqual([tailUrl(30)]);
+      expect(stub.tailUrls).toEqual([stub.tailUrl(30)]);
     });
     await settle();
-    expect(stub.tailUrls).toEqual([tailUrl(30)]);
+    expect(stub.tailUrls).toEqual([stub.tailUrl(30)]);
   });
 
   it("follows the turn the snapshot reports in flight once, and no further", async () => {
@@ -368,17 +373,17 @@ describe("useChatRuntime reattach", () => {
 
     renderHook(() =>
       useChatRuntime({
-        conversationId: CONVERSATION_ID,
+        conversationId: stub.conversationId,
         resume: true,
         turnInFlight: true,
       }),
     );
 
     await waitFor(() => {
-      expect(stub.tailUrls).toEqual([tailUrl(0)]);
+      expect(stub.tailUrls).toEqual([stub.tailUrl(0)]);
     });
     await settle();
-    expect(stub.tailUrls).toEqual([tailUrl(0)]);
+    expect(stub.tailUrls).toEqual([stub.tailUrl(0)]);
   });
 
   it("follows the park a snapshot turn ends on, and drops the turn once it is read", async () => {
@@ -388,17 +393,17 @@ describe("useChatRuntime reattach", () => {
 
     renderHook(() =>
       useChatRuntime({
-        conversationId: CONVERSATION_ID,
+        conversationId: stub.conversationId,
         resume: true,
         turnInFlight: true,
       }),
     );
 
     await waitFor(() => {
-      expect(stub.tailUrls).toEqual([tailUrl(0), tailUrl(0)]);
+      expect(stub.tailUrls).toEqual([stub.tailUrl(0), stub.tailUrl(0)]);
     });
     await settle();
-    expect(stub.tailUrls).toEqual([tailUrl(0), tailUrl(0)]);
+    expect(stub.tailUrls).toEqual([stub.tailUrl(0), stub.tailUrl(0)]);
   });
 
   it("opens one tail per park, whatever the parked turn started", async () => {
@@ -409,10 +414,10 @@ describe("useChatRuntime reattach", () => {
     const result = await sendAndPark(stub);
 
     await waitFor(() => {
-      expect(stub.tailUrls).toEqual([tailUrl(0), tailUrl(7)]);
+      expect(stub.tailUrls).toEqual([stub.tailUrl(0), stub.tailUrl(7)]);
     });
     await settle();
-    expect(stub.tailUrls).toEqual([tailUrl(0), tailUrl(7)]);
+    expect(stub.tailUrls).toEqual([stub.tailUrl(0), stub.tailUrl(7)]);
     expect(result.current.chat.status).toBe("ready");
   });
 
@@ -425,7 +430,7 @@ describe("useChatRuntime reattach", () => {
 
     await waitFor(
       () => {
-        expect(stub.tailUrls).toEqual([tailUrl(0), tailUrl(7)]);
+        expect(stub.tailUrls).toEqual([stub.tailUrl(0), stub.tailUrl(7)]);
         expect(partsOf(result.current.chat.messages)).toContainEqual({
           type: "data-task-completed",
           id: SECOND_TASK,
@@ -456,10 +461,10 @@ describe("useChatRuntime reattach", () => {
     await waitFor(
       () => {
         expect(stub.tailUrls).toEqual([
-          tailUrl(0),
-          tailUrl(7),
-          tailUrl(14),
-          tailUrl(7),
+          stub.tailUrl(0),
+          stub.tailUrl(7),
+          stub.tailUrl(14),
+          stub.tailUrl(7),
         ]);
         expect(partsOf(result.current.chat.messages)).toContainEqual({
           type: "text",
@@ -470,26 +475,31 @@ describe("useChatRuntime reattach", () => {
       { timeout: 5000 },
     );
     await settle();
-    expect(stub.tailUrls).toEqual([tailUrl(0), tailUrl(7), tailUrl(14), tailUrl(7)]);
+    expect(stub.tailUrls).toEqual([
+      stub.tailUrl(0),
+      stub.tailUrl(7),
+      stub.tailUrl(14),
+      stub.tailUrl(7),
+    ]);
   });
 
   it("tells the user when the thread cannot follow its running work", async () => {
     const stub = stubConversationFetch(() => null, true);
-    conversationCursors.write(CONVERSATION_ID, 40);
-    conversationCursors.writeOpenMessage(CONVERSATION_ID, {
+    conversationCursors.write(stub.conversationId, 40);
+    conversationCursors.writeOpenMessage(stub.conversationId, {
       messageId: OPEN_MESSAGE_ID,
       after: 30,
     });
 
     const { result } = renderHook(() =>
-      useChatRuntime({ conversationId: CONVERSATION_ID, resume: true }),
+      useChatRuntime({ conversationId: stub.conversationId, resume: true }),
     );
 
     await waitFor(() => {
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith(THREAD_STOPPED_FOLLOWING);
     });
     await settle();
-    expect(stub.tailUrls).toEqual([tailUrl(30)]);
+    expect(stub.tailUrls).toEqual([stub.tailUrl(30)]);
     expect(vi.mocked(toast.error)).toHaveBeenCalledTimes(1);
     // The SDK marks its own stream failed; no turn runs, so the composer is free.
     expect(result.current.chat.status).toBe("error");

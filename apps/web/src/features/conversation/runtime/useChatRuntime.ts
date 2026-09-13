@@ -197,9 +197,8 @@ export function useChatRuntime({
   );
   const following = useIsFetching({ queryKey: reattachKey(conversationId) }) > 0;
 
-  // The SDK aborts a reconnect when a second one starts, and a tail on an idle
-  // thread ends a turn started meanwhile: one re-attach runs, and only while
-  // the thread holds no stream of its own.
+  // A tail on an idle thread ends a turn started meanwhile, so a thread reads
+  // only while it holds no stream of its own.
   useQuery({
     queryKey: [...reattachKey(conversationId), turnToFollow, delivered],
     queryFn: async () => {

@@ -13,11 +13,10 @@
   follow ends, because the React Compiler caches a call whose arguments do not change and
   would otherwise freeze a render-phase read at its first value;
   `useChatRuntime.compiler.test.ts` compiles the hook and holds the rule. The follow runs
-  while the SDK holds no stream of its own
-  and no earlier follow is still reading, because the SDK aborts a reconnect when a second
-  one starts and that abort leaves the first tail with no reader. A follow the log refuses
-  is told to the user in one sentence, since a thread draws its own turn's error and draws
-  nothing for a tail. The task card draws from message parts alone, and `ChatHelpers`
+  while the SDK holds no stream of its own and no earlier follow is still reading, because
+  the SDK aborts a reconnect when a second one starts and that abort leaves the first tail
+  with no reader. A follow the log refuses is told to the user in one sentence, since a
+  thread draws its own turn's error and draws nothing for a tail. The task card draws from message parts alone, and `ChatHelpers`
   carries no `resumeStream`, so a thread with two parked tasks opens one tail for its park
   and not one per card.
 

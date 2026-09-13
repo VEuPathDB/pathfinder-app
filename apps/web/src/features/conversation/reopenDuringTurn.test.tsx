@@ -1,16 +1,17 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-const CONVERSATION_ID = "33333333-3333-4333-8333-333333333333";
+/** A thread of this test's own, so no other test's tail can reach its log. */
+let conversationId = "";
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
   useParams: () => ({ siteId: "plasmodb" }),
-  usePathname: () => `/plasmodb/conversation/${CONVERSATION_ID}`,
+  usePathname: () => `/plasmodb/conversation/${conversationId}`,
   useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ push: vi.fn() }),
 }));
@@ -24,11 +25,10 @@ import { useSessionStore } from "@/state/useSessionStore";
 
 import { ChatView } from "./ChatView";
 
-const BASE = `http://localhost:3000/api/v1/conversations/${CONVERSATION_ID}`;
+const CONVERSATIONS = "http://localhost:3000/api/v1/conversations";
 const CURSOR = 220744;
 
 const STRATEGY = {
-  id: CONVERSATION_ID,
   name: "kinase strategy",
   siteId: "plasmodb",
   steps: [],
@@ -72,12 +72,17 @@ function tailBody(): string {
 
 function serveThread(snapshotChunks: unknown[], turnAlive = true): string[] {
   const tails: string[] = [];
+  const base = `${CONVERSATIONS}/${conversationId}`;
   server.use(
-    http.get(BASE, () => HttpResponse.json(STRATEGY)),
-    http.get(`${BASE}/events/snapshot`, () =>
+    http.get(base, () => HttpResponse.json({ ...STRATEGY, id: conversationId })),
+    http.get(`${base}/events/snapshot`, () =>
       HttpResponse.json({ chunks: snapshotChunks, cursor: CURSOR }),
     ),
-    http.get(`${BASE}/events`, ({ request }) => {
+    // A tail another test's thread left running answers nothing and is not read.
+    http.get(`${CONVERSATIONS}/:id/events`, ({ request, params }) => {
+      if (params["id"] !== conversationId) {
+        return new HttpResponse(null, { status: 204 });
+      }
       tails.push(new URL(request.url).search);
       if (!turnAlive) return new HttpResponse(null, { status: 204 });
       return new HttpResponse(tailBody(), {
@@ -94,8 +99,12 @@ function renderThread(): void {
     authStatusOptions(useSessionStore.getState().selectedSite).queryKey,
     { signedIn: true },
   );
-  render(<ChatView conversationId={CONVERSATION_ID} resumable />, { wrapper: Wrapper });
+  render(<ChatView conversationId={conversationId} resumable />, { wrapper: Wrapper });
 }
+
+beforeEach(() => {
+  conversationId = crypto.randomUUID();
+});
 
 afterEach(() => {
   sessionStorage.clear();
