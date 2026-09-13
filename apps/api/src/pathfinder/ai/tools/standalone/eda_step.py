@@ -271,8 +271,9 @@ async def create_eda_step(
     free: a slot that already holds a step is refused, because the export would
     take that step off the strategy. Delete it first, or name the free slot.
 
-    Available once ``preview_eda_subset`` has counted the open analysis this
-    turn, so the number you export is one you measured.
+    Available once ``preview_eda_subset`` has counted the open analysis, on
+    this message or an earlier one, so the number you export is one the thread
+    measured.
 
     Args:
         ctx: Agent run context.

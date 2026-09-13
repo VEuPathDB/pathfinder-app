@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from assistant_core.graph.tool_summary import with_summary
-from assistant_core.tasks.decorator import durable_tool
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType
@@ -29,6 +28,7 @@ from pathfinder.ai.tools.standalone.workbench_models import (
     GeneSetListResponse,
 )
 from pathfinder.domain.memory import MemoryKind
+from pathfinder.platform.durable_worker import durable_agent_tool
 
 LedgerSectionName = Literal["frame", "build", "verification"]
 
@@ -194,7 +194,7 @@ async def list_workbench_gene_sets(
     return await workbench.list_workbench_gene_sets(inner_context(ctx))
 
 
-@durable_tool(GENESET_ENRICHMENT)
+@durable_agent_tool(GENESET_ENRICHMENT)
 async def run_gene_set_enrichment(
     ctx: RunContext[LeadDeps],
     gene_set_id: str,
@@ -220,7 +220,7 @@ async def run_gene_set_enrichment(
             all five types.
     """
     del ctx, gene_set_id, enrichment_types
-    msg = "run_gene_set_enrichment runs on the worker via @durable_tool"
+    msg = "run_gene_set_enrichment runs on the worker via @durable_agent_tool"
     raise NotImplementedError(msg)
 
 

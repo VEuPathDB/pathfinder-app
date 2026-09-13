@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.persistence.models import Conversation
@@ -209,3 +209,63 @@ async def test_deleting_the_thread_removes_the_binding(
     await db_session.delete(await db_session.get(Conversation, conversation.id))
     await db_session.commit()
     assert await repo.get(conversation_id=conversation.id) is None
+
+
+async def _bound_analysis(
+    repo: ConversationAnalysesRepository, conversation_id: UUID
+) -> None:
+    await repo.bind(
+        conversation_id=conversation_id,
+        site_id="plasmodb",
+        dataset_id="DS_a",
+        analysis_id="A",
+    )
+
+
+async def test_a_preview_is_recorded_on_the_open_analysis(
+    session_maker: async_sessionmaker[AsyncSession], conversation: Conversation
+) -> None:
+    repo = ConversationAnalysesRepository(session_factory=session_maker)
+    await _bound_analysis(repo, conversation.id)
+
+    await repo.mark_previewed(conversation_id=conversation.id)
+
+    view = await repo.get(conversation_id=conversation.id)
+    assert view is not None
+    assert view.subset_previewed is True
+
+
+async def test_a_subset_change_counts_the_revision_and_forgets_the_preview(
+    session_maker: async_sessionmaker[AsyncSession], conversation: Conversation
+) -> None:
+    """A count taken before the change describes another subset."""
+    repo = ConversationAnalysesRepository(session_factory=session_maker)
+    await _bound_analysis(repo, conversation.id)
+    await repo.mark_previewed(conversation_id=conversation.id)
+
+    revision = await repo.increment_after_subset_change(conversation_id=conversation.id)
+
+    assert revision == 1
+    view = await repo.get(conversation_id=conversation.id)
+    assert view is not None
+    assert view.subset_previewed is False
+
+
+async def test_binding_another_analysis_forgets_the_preview(
+    session_maker: async_sessionmaker[AsyncSession], conversation: Conversation
+) -> None:
+    repo = ConversationAnalysesRepository(session_factory=session_maker)
+    await _bound_analysis(repo, conversation.id)
+    await repo.mark_previewed(conversation_id=conversation.id)
+
+    await repo.bind(
+        conversation_id=conversation.id,
+        site_id="plasmodb",
+        dataset_id="DS_b",
+        analysis_id="B",
+    )
+
+    view = await repo.get(conversation_id=conversation.id)
+    assert view is not None
+    assert view.subset_previewed is False
+    assert view.analysis_id == "B"

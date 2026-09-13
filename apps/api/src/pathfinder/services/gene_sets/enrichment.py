@@ -5,7 +5,13 @@ from typing import cast
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from pydantic import JsonValue
-from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType, EnrichmentService
+from veupathdb.domain.parameters import ParamValue
+from veupathdb_mcp.wdk import build_enrichment_params_from_gene_ids
+from veupathdb_mcp.wdk.enrichment import (
+    EnrichmentAnalysisType,
+    EnrichmentResult,
+    EnrichmentService,
+)
 
 from pathfinder.platform.identity import ENRICHMENT_STRATEGY_NAME
 from pathfinder.services.export import get_export_service
@@ -14,6 +20,40 @@ from pathfinder.services.gene_sets.types import GeneSet
 logger = get_logger(__name__)
 
 _FDR_SIGNIFICANCE_THRESHOLD = 0.05
+
+
+async def run_enrichment_batch(
+    gene_set: GeneSet,
+    analysis_types: list[EnrichmentAnalysisType],
+) -> tuple[list[EnrichmentResult], list[str]]:
+    """Run the analyses over the WDK result a gene set addresses.
+
+    A set of pasted ids has no step and no search, so its genes reach WDK as a
+    temporary dataset.
+    """
+    step_id = gene_set.wdk_step_id
+    search_name = gene_set.search_name
+    record_type = gene_set.record_type or "transcript"
+    parameters: dict[str, ParamValue] | None = (
+        dict(gene_set.parameters) if gene_set.parameters else None
+    )
+    if step_id is None and not search_name and gene_set.gene_ids:
+        (
+            search_name,
+            parameters,
+            record_type,
+        ) = await build_enrichment_params_from_gene_ids(
+            gene_set.site_id, gene_set.gene_ids
+        )
+    svc = EnrichmentService(strategy_name=ENRICHMENT_STRATEGY_NAME)
+    return await svc.run_batch(
+        site_id=gene_set.site_id,
+        analysis_types=analysis_types,
+        step_id=step_id,
+        search_name=search_name,
+        record_type=record_type,
+        parameters=parameters,
+    )
 
 
 async def run_enrichment_for_gene_set(
@@ -28,15 +68,7 @@ async def run_enrichment_for_gene_set(
 
     Returns a summary dict with enrichment results, download links, and errors.
     """
-    svc = EnrichmentService(strategy_name=ENRICHMENT_STRATEGY_NAME)
-    results, errors = await svc.run_batch(
-        site_id=gene_set.site_id,
-        analysis_types=analysis_types,
-        step_id=gene_set.wdk_step_id,
-        search_name=gene_set.search_name,
-        record_type=gene_set.record_type or "transcript",
-        parameters=gene_set.parameters,
-    )
+    results, errors = await run_enrichment_batch(gene_set, analysis_types)
 
     serialized = [r.model_dump(by_alias=True) for r in results]
     summary: JSONObject = {

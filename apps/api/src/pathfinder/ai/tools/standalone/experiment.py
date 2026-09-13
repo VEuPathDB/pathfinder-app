@@ -7,7 +7,7 @@ from assistant_core.graph.tool_summary import summary_chunks, with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.tasks.declaration import declare_durable_tool
-from assistant_core.tasks.decorator import DurableOutcome, durable_tool
+from assistant_core.tasks.decorator import DurableOutcome
 from pydantic import ConfigDict, Field
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
@@ -24,6 +24,7 @@ from pathfinder.ai.stream_part_payloads import (
     ControlTestResults,
     TestedParameter,
 )
+from pathfinder.platform.durable_worker import durable_agent_tool
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
 from pathfinder.services.experiment.published_names import published_names
@@ -151,7 +152,7 @@ CONTROL_TESTS = declare_durable_tool(
 )
 
 
-@durable_tool(CONTROL_TESTS)
+@durable_agent_tool(CONTROL_TESTS)
 async def run_control_tests_on_step(
     ctx: RunContext[AgentDeps],
     wdk_step_id: int,
@@ -180,7 +181,7 @@ async def run_control_tests_on_step(
         negative_controls: Known-negative IDs that should NOT be returned.
     """
     del ctx, wdk_step_id, positive_controls, negative_controls
-    msg = "run_control_tests_on_step runs on the worker via @durable_tool"
+    msg = "run_control_tests_on_step runs on the worker via @durable_agent_tool"
     raise NotImplementedError(msg)
 
 

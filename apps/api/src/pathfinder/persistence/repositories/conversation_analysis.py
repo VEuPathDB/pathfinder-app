@@ -20,6 +20,8 @@ __all__ = [
     "ConversationAnalysesRepository",
     "bind_analysis_row",
     "bump_analysis_row",
+    "changed_subset_row",
+    "mark_analysis_previewed_row",
     "read_analysis_row",
     "unbind_analysis_row",
 ]
@@ -52,13 +54,15 @@ async def bind_analysis_row(
 ) -> None:
     """Bind this analysis, replacing whatever the thread had open.
 
-    A replacement is a different document, so the revision restarts.
+    A replacement is a different document, so the revision and the preview
+    restart.
     """
     values = {
         "site_id": site_id,
         "dataset_id": dataset_id,
         "analysis_id": analysis_id,
         "revision": 0,
+        "subset_previewed": False,
     }
     await session.execute(
         insert(ConversationAnalysis)
@@ -85,6 +89,43 @@ async def bump_analysis_row(
         )
     ).scalar_one_or_none()
     return revision or 0
+
+
+async def changed_subset_row(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+) -> int:
+    """The new revision of an analysis whose subset moved, and no preview.
+
+    A count taken before the change describes another subset, so the analysis
+    holds no count until the next preview.
+    """
+    revision = (
+        await session.execute(
+            update(ConversationAnalysis)
+            .where(ConversationAnalysis.conversation_id == conversation_id)
+            .values(
+                revision=ConversationAnalysis.revision + 1,
+                subset_previewed=False,
+            )
+            .returning(ConversationAnalysis.revision)
+        )
+    ).scalar_one_or_none()
+    return revision or 0
+
+
+async def mark_analysis_previewed_row(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+) -> None:
+    """Record that a preview counted the subset of the open analysis."""
+    await session.execute(
+        update(ConversationAnalysis)
+        .where(ConversationAnalysis.conversation_id == conversation_id)
+        .values(subset_previewed=True),
+    )
 
 
 async def unbind_analysis_row(
@@ -148,6 +189,22 @@ class ConversationAnalysesRepository:
             )
             await session.commit()
             return revision
+
+    async def increment_after_subset_change(self, *, conversation_id: UUID) -> int:
+        """The new revision, with the preview of the old subset forgotten."""
+        async with self._session_factory() as session:
+            revision = await changed_subset_row(
+                session,
+                conversation_id=conversation_id,
+            )
+            await session.commit()
+            return revision
+
+    async def mark_previewed(self, *, conversation_id: UUID) -> None:
+        """Record the count on the thread's analysis, if it holds one."""
+        async with self._session_factory() as session:
+            await mark_analysis_previewed_row(session, conversation_id=conversation_id)
+            await session.commit()
 
     async def unbind(self, *, conversation_id: UUID) -> None:
         async with self._session_factory() as session:

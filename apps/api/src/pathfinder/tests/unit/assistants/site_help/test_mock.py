@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import pytest
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelRequest, ToolReturnPart
 from pydantic_ai.toolsets import FunctionToolset
+from veupathdb.wdk import WDKSearch
+from veupathdb_mcp.catalog import RecordTypeInfo
 
+from pathfinder.assistants.site_help import agent
 from pathfinder.assistants.site_help.agent import (
     SiteHelpDeps,
     SiteSummary,
@@ -14,8 +18,10 @@ from pathfinder.assistants.site_help.agent import (
 from pathfinder.assistants.site_help.mock import (
     CHECK_MARKER,
     CHECK_REPLY,
+    DESCRIBE_SITE_TOOL,
     LIST_SITES_TOOL,
     NOTHING_TO_PROCEED_REPLY,
+    ORGANISMS_PROMPT,
     PROCEED_PREFIX,
     PROCEED_PROMPT,
     RECORD_TYPES_PROMPT,
@@ -118,3 +124,39 @@ async def test_an_agent_with_no_site_help_tool_gets_the_last_prompt_line() -> No
     result = await titles.run("User's first message:\nwhich sites are there")
 
     assert result.output == "which sites are there"
+
+
+async def test_the_organism_question_is_answered_from_the_catalog(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The scripted answer quotes the species the describe tool returned."""
+
+    async def _organisms(site_id: str) -> list[str]:
+        del site_id
+        return [
+            "Toxoplasma gondii ME49",
+            "Toxoplasma gondii GT1",
+            "Hammondia hammondi H.H.34",
+            "Besnoitia besnoiti",
+        ]
+
+    async def _record_types(site_id: str) -> list[RecordTypeInfo]:
+        del site_id
+        return [RecordTypeInfo(name="transcript", display_name="Genes")]
+
+    async def _searches(site_id: str, record_type: str) -> list[WDKSearch]:
+        del site_id, record_type
+        return []
+
+    monkeypatch.setattr(agent, "list_organisms", _organisms)
+    monkeypatch.setattr(agent, "get_record_types", _record_types)
+    monkeypatch.setattr(agent, "get_raw_searches", _searches)
+
+    result = await build_site_help_agent().run(ORGANISMS_PROMPT, deps=_deps())
+
+    returns = _tool_returns(list(result.all_messages()))
+    assert [part.tool_name for part in returns] == [DESCRIBE_SITE_TOOL]
+    assert "Toxoplasma gondii (2 strains)" in result.output
+    assert "Hammondia hammondi (1 strain)" in result.output
+    assert result.output.endswith("Besnoitia besnoiti.")
+    assert "Besnoitia besnoiti (" not in result.output

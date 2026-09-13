@@ -1,7 +1,8 @@
 """What the thread knows about its open EDA analysis and the step it exported.
 
-Both shapes are projections a later turn reads: the analysis as the thread last
-rendered it, and the cut one export landed in the strategy.
+Three projections a later turn reads: the analysis the thread holds open, the
+analysis as the thread last rendered it, and the cut one export landed in the
+strategy.
 """
 
 from __future__ import annotations
@@ -10,6 +11,18 @@ from pydantic import Field
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.eda_parts import EdaEffectDirection, EdaEntityCount
+
+
+class OpenEdaAnalysis(CamelModel):
+    """The analysis the thread holds open, as the turn found it.
+
+    ``subset_previewed`` says whether a preview has counted this analysis on
+    any message of the thread, so an export can follow the count.
+    """
+
+    dataset_id: str
+    analysis_id: str
+    subset_previewed: bool = False
 
 
 class EdaAnalysisFacts(CamelModel):

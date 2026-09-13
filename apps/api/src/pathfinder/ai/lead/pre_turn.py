@@ -12,6 +12,7 @@ from __future__ import annotations
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.turn_briefing import compose_turn_briefing
+from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.spec_hydration import (
     hidden_params_dropped,
     spec_from_ast,
@@ -19,10 +20,12 @@ from pathfinder.domain.strategy.spec_hydration import (
 from pathfinder.domain.strategy.spec_reconciliation import spec_reconciled_with_graph
 from pathfinder.domain.strategy.staleness import detect_build_staleness
 from pathfinder.services.conversations.thread_activity import read_thread_activity
+from pathfinder.services.eda.binding import open_analysis_in
 from pathfinder.services.strategies.live_counts import read_wdk_step_counts
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 
 __all__ = [
+    "attach_open_eda_analysis",
     "attach_turn_briefing",
     "pathfinder_pre_turn",
     "refresh_live_strategy_state",
@@ -35,7 +38,8 @@ async def pathfinder_pre_turn(
 ) -> PipelineState:
     """The state the turn runs on: refreshed against WDK, then briefed."""
     refreshed = await refresh_live_strategy_state(state, context)
-    return await attach_turn_briefing(refreshed, context)
+    briefed = await attach_turn_briefing(refreshed, context)
+    return await attach_open_eda_analysis(briefed, context)
 
 
 async def attach_turn_briefing(
@@ -52,6 +56,29 @@ async def attach_turn_briefing(
         activity,
         requirements=state.domain.requirements,
     ).render()
+    return state
+
+
+async def attach_open_eda_analysis(
+    state: PipelineState,
+    context: Context,
+) -> PipelineState:
+    """Read the analysis the thread holds open onto the state.
+
+    The binding and its preview outlive the message that made them, so the
+    turn reads them rather than what this message did.
+    """
+    async with context.db_session_factory() as session:
+        bound = await open_analysis_in(session, conversation_id=state.conversation_id)
+    state.domain.open_eda_analysis = (
+        None
+        if bound is None
+        else OpenEdaAnalysis(
+            dataset_id=bound.dataset_id,
+            analysis_id=bound.analysis_id,
+            subset_previewed=bound.subset_previewed,
+        )
+    )
     return state
 
 

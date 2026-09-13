@@ -24,6 +24,7 @@ class Chunk(BaseModel):
     tool_name: str | None = Field(default=None, alias="toolName")
     approval_id: str | None = Field(default=None, alias="approvalId")
     input: dict[str, Any] | None = None
+    output: Any = None
     data: dict[str, Any] | None = None
     transient: bool = False
 

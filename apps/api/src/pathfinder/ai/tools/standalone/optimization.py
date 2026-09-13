@@ -4,7 +4,7 @@ Provides:
 
 - ``optimize_search_parameters`` — optimise search parameters against control
   gene lists. Durable: the real work runs on the verification worker via
-  ``@durable_tool``; the call is deferred while trials run and per-trial
+  ``@durable_agent_tool``; the call is deferred while trials run and per-trial
   progress streams back through ``task_progress``.
 """
 
@@ -16,7 +16,7 @@ from uuid import UUID
 from assistant_core.graph.tool_summary import summary_chunks
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.tasks.declaration import declare_durable_tool
-from assistant_core.tasks.decorator import DurableOutcome, durable_tool
+from assistant_core.tasks.decorator import DurableOutcome
 from pydantic import ConfigDict, Field, field_validator
 from pydantic_ai import RunContext
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
@@ -27,6 +27,7 @@ from pathfinder.ai.tools.standalone.optimization_models import (
     OptimizationSettings,
     OptimizationTarget,
 )
+from pathfinder.platform.durable_worker import durable_agent_tool
 
 _DEFAULT_SETTINGS = OptimizationSettings()
 
@@ -83,7 +84,7 @@ PARAMETER_SWEEP = declare_durable_tool(
 )
 
 
-@durable_tool(PARAMETER_SWEEP)
+@durable_agent_tool(PARAMETER_SWEEP)
 async def optimize_search_parameters(
     ctx: RunContext[AgentDeps],
     target: OptimizationTarget,
@@ -107,5 +108,5 @@ async def optimize_search_parameters(
         settings: Optimisation hyperparameters.
     """
     del ctx, target, controls, settings
-    msg = "optimize_search_parameters runs on the worker via @durable_tool"
+    msg = "optimize_search_parameters runs on the worker via @durable_agent_tool"
     raise NotImplementedError(msg)

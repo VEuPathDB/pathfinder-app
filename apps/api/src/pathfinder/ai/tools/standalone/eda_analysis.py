@@ -26,6 +26,7 @@ from pathfinder.ai.tools.standalone.eda_stream_parts import (
     analysis_state_chunks_if_changed,
     eda_subset_preview_chunk,
 )
+from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.services.eda import EdaFilter, EdaStudyDetail
 from pathfinder.services.eda.authoring import SubsetRejectedError, preview_subset
 from pathfinder.services.eda.binding import (
@@ -34,6 +35,7 @@ from pathfinder.services.eda.binding import (
     bind_analysis,
     bound_conversation_analysis,
     read_analysis,
+    record_subset_preview,
 )
 from pathfinder.services.eda.catalog import (
     UnknownEdaDatasetError,
@@ -99,7 +101,10 @@ async def open_eda_analysis(
     )
     ctx.deps.state.domain.close_eda_sheet_of_another_study(dataset_id)
     # Nothing is counted on an analysis this call has just created.
-    ctx.deps.state.turn_markers.eda_previewed = False
+    ctx.deps.state.domain.open_eda_analysis = OpenEdaAnalysis(
+        dataset_id=dataset_id,
+        analysis_id=state.analysis_id,
+    )
     opened = EdaAnalysisOpened(
         analysis_id=state.analysis_id,
         dataset_id=dataset_id,
@@ -215,6 +220,10 @@ async def set_eda_filters(
         )
         raise ModelRetry(msg) from exc
     ctx.deps.state.domain.close_eda_sheet()
+    ctx.deps.state.domain.open_eda_analysis = OpenEdaAnalysis(
+        dataset_id=dataset_id,
+        analysis_id=bound.analysis_id,
+    )
     return with_summary(
         EdaFiltersResult(
             applied=True,
@@ -306,7 +315,12 @@ async def preview_eda_subset(
         filters=filters,
         distribution_variable_id=distribution_variable_id,
     )
-    ctx.deps.state.turn_markers.eda_previewed = True
+    await record_subset_preview(conversation_id=ctx.deps.state.conversation_id)
+    ctx.deps.state.domain.open_eda_analysis = OpenEdaAnalysis(
+        dataset_id=bound.dataset_id,
+        analysis_id=bound.analysis_id,
+        subset_previewed=True,
+    )
     _entry, study = await _study(site_id, bound.dataset_id)
     variable = variable_at(study, entity_id, distribution_variable_id)
     statistics = (

@@ -58,6 +58,7 @@ from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.persistence.repositories.user import UserRepository
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.durable_worker import no_durable_worker
 from pathfinder.platform.tool_sources import admitted_tool_sources
 from pathfinder.services.conversations.begin import begin_conversation
 
@@ -416,6 +417,9 @@ async def _exec_one(
             stack.enter_context(capture_llm(capture.run_dir))
         await stack.enter_async_context(attach_wdk_auth(wdk_token))
         await stack.enter_async_context(attach_user_id(DEV_USER_ID))
+        # This process consumes no job, so a durable call is declined in
+        # writing and the turn reaches its artifacts.
+        stack.enter_context(no_durable_worker())
         # The debugger drives the turn itself, so it admits what the worker does.
         install_admitted_sources(admitted_tool_sources())
         install_durable_job_context(WdkJobContext())

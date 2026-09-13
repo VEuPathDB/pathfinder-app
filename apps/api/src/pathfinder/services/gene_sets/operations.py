@@ -4,7 +4,6 @@ from uuid import UUID, uuid4
 
 from assistant_core.platform.context import calling_application
 from assistant_core.platform.logging import get_logger
-from veupathdb.domain.parameters import ParamValue
 from veupathdb.errors import ValidationError
 from veupathdb.wdk import (
     get_strategy_api,
@@ -12,21 +11,14 @@ from veupathdb.wdk import (
 from veupathdb_mcp.wdk import (
     GeneSetWdkContext,
     StepResultsService,
-    build_enrichment_params_from_gene_ids,
     frozen_step_id,
     resolve_wdk_context,
 )
-from veupathdb_mcp.wdk.enrichment import (
-    EnrichmentAnalysisType,
-    EnrichmentResult,
-    EnrichmentService,
-)
+from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType, EnrichmentResult
 
 from pathfinder.platform.errors import InternalError, NotFoundError
-from pathfinder.platform.identity import (
-    ENRICHMENT_STRATEGY_NAME,
-    GENE_SET_STRATEGY_NAME,
-)
+from pathfinder.platform.identity import GENE_SET_STRATEGY_NAME
+from pathfinder.services.gene_sets.enrichment import run_enrichment_batch
 from pathfinder.services.gene_sets.store import GeneSetStore
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
 
@@ -272,32 +264,7 @@ class GeneSetService:
     ) -> list[EnrichmentResult]:
         """Run enrichment analysis on a gene set."""
         gs = await self.get_for_user(user_id, gene_set_id)
-
-        step_id = gs.wdk_step_id
-        search_name = gs.search_name
-        record_type = gs.record_type or "transcript"
-        enrichment_params: dict[str, ParamValue] | None = (
-            dict(gs.parameters) if gs.parameters else None
-        )
-
-        # A pasted gene set has gene IDs but no WDK step or search. Enrichment
-        # needs a temporary WDK dataset to run against.
-        if step_id is None and not search_name and gs.gene_ids:
-            (
-                search_name,
-                enrichment_params,
-                record_type,
-            ) = await build_enrichment_params_from_gene_ids(gs.site_id, gs.gene_ids)
-
-        svc = EnrichmentService(strategy_name=ENRICHMENT_STRATEGY_NAME)
-        results, errors = await svc.run_batch(
-            site_id=gs.site_id,
-            analysis_types=enrichment_types,
-            step_id=step_id,
-            search_name=search_name,
-            record_type=record_type,
-            parameters=enrichment_params,
-        )
+        results, errors = await run_enrichment_batch(gs, enrichment_types)
 
         if not results and errors:
             msg = "Enrichment analysis failed: " + "; ".join(errors)

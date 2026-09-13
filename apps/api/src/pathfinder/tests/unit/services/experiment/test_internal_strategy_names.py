@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.wdk import WDKStrategySummary
 from veupathdb_mcp.controls import IntersectionConfig
 from veupathdb_mcp.wdk.enrichment import EnrichmentResult
@@ -87,7 +88,14 @@ async def test_an_enrichment_run_names_the_strategy_it_writes(
         ) -> tuple[list[EnrichmentResult], list[str]]:
             return [], []
 
+    async def _dataset(
+        site_id: str, gene_ids: list[str]
+    ) -> tuple[str, dict[str, ParamValue], str]:
+        del site_id, gene_ids
+        return "GeneByLocusTag", {}, "transcript"
+
     monkeypatch.setattr(enrichment, "EnrichmentService", _Service)
+    monkeypatch.setattr(enrichment, "build_enrichment_params_from_gene_ids", _dataset)
 
     gene_set = GeneSet(
         id="gs-1",

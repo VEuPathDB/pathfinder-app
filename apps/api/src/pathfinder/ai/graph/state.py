@@ -17,7 +17,11 @@ from pathfinder.ai.lead.intent import (
     UserIntent,
 )
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
-from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
+from pathfinder.domain.eda_thread import (
+    EdaAnalysisFacts,
+    EdaExport,
+    OpenEdaAnalysis,
+)
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
 )
@@ -151,7 +155,6 @@ class TurnMarkers(CamelModel):
     verified: bool = False
     verification_dispatched: bool = False
     verification_nudged: bool = False
-    eda_previewed: bool = False
     # The EDA cut this turn exported, which the turn's case records.
     eda_export: EdaExport | None = None
     # Every enrichment answered under this message, in the order the workers
@@ -196,6 +199,9 @@ class StrategyDomainState(BaseModel):
     # The analysis-state card the thread last showed. A tool emits the card
     # again only when the state differs from this.
     eda_analysis: EdaAnalysisFacts | None = None
+    # The analysis the thread holds open, read from the binding at turn entry.
+    # Never persisted: another surface can close or replace it between turns.
+    open_eda_analysis: OpenEdaAnalysis | None = None
     # Every requirement the thread has stated, oldest first. A clarification
     # adds to this list; only a message that abandons the request clears it.
     requirements: list[Constraint] = Field(default_factory=list)

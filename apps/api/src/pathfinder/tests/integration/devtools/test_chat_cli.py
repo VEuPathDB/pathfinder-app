@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -12,6 +13,7 @@ from assistant_core.platform.context import (
     application_id_ctx,
 )
 from assistant_core.platform.db import async_session_factory
+from pydantic import BaseModel, ConfigDict, Field
 
 from pathfinder.assistants.site_help.mock import SITES_REPLY
 from pathfinder.devtools import chat
@@ -34,8 +36,12 @@ from pathfinder.devtools.chat import (
 from pathfinder.devtools.gates import user_body
 from pathfinder.persistence.repositories.user import UserRepository
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.durable_worker import durable_call_refusal
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.services.conversations.begin import begin_conversation
+
+# The durable tool the Lead calls on a saved set, under the name the model uses.
+ENRICHMENT_TOOL = "run_gene_set_enrichment"
 
 
 def test_parse_run_args_maps_phase_models_and_run_dir(tmp_path: Path) -> None:
@@ -408,3 +414,69 @@ async def test_the_worker_payload_names_the_thread_s_assistant(tmp_path: Path) -
     payload = await _worker_payload(args, capture, body, wdk_token=None)
 
     assert payload.assistant_id == "site_help"
+
+
+class _ToolChunk(BaseModel):
+    """The two chunks that name a tool call and carry what answered it."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    type: str = ""
+    tool_call_id: str = Field(default="", alias="toolCallId")
+    tool_name: str = Field(default="", alias="toolName")
+    output: Any = None
+
+
+def _tool_chunks(run_dir: Path) -> list[_ToolChunk]:
+    lines = (run_dir / "events.jsonl").read_text().splitlines()
+    return [
+        _ToolChunk.model_validate(json.loads(line)) for line in lines if line.strip()
+    ]
+
+
+def _answers_to(run_dir: Path, tool_name: str) -> list[Any]:
+    """What each call of this tool was answered with, in order."""
+    chunks = _tool_chunks(run_dir)
+    called = {
+        chunk.tool_call_id
+        for chunk in chunks
+        if chunk.type == "tool-input-available" and chunk.tool_name == tool_name
+    }
+    return [
+        chunk.output
+        for chunk in chunks
+        if chunk.type == "tool-output-available" and chunk.tool_call_id in called
+    ]
+
+
+@pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
+async def test_a_durable_call_is_declined_and_the_run_writes_its_artifacts(
+    tmp_path: Path,
+) -> None:
+    """The debugger runs no worker, so the turn ends with the refusal on record."""
+    args = parse_run_args(
+        [
+            "Run a GO enrichment on the gene set I saved",
+            "--site",
+            "plasmodb",
+            "--mock",
+            "--approve",
+            "auto",
+            "--quiet",
+            "--run-dir",
+            str(tmp_path / "run"),
+        ]
+    )
+
+    code = await run_once(args)
+
+    assert code == 0
+    run_dir = tmp_path / "run"
+    summary = json.loads((run_dir / "summary.json").read_text())
+    assert summary["status"] == "ok"
+    transcript = (run_dir / "transcript.md").read_text()
+    assert f"[lead] {ENRICHMENT_TOOL}" in transcript
+    assert durable_call_refusal(ENRICHMENT_TOOL) in transcript
+    assert _answers_to(run_dir, ENRICHMENT_TOOL) == [
+        durable_call_refusal(ENRICHMENT_TOOL)
+    ]

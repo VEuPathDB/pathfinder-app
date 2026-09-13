@@ -25,6 +25,7 @@ from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.persistence.repositories.conversation_analysis import (
     bind_analysis_row,
     bump_analysis_row,
+    changed_subset_row,
     read_analysis_row,
     unbind_analysis_row,
 )
@@ -223,7 +224,7 @@ async def _adopt(
         dataset_id=recorded.dataset_id,
         filters=filters,
     )
-    await bump_analysis_row(session, conversation_id=conversation_id)
+    await changed_subset_row(session, conversation_id=conversation_id)
 
 
 async def restore_thread_binding(

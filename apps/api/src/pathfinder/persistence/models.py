@@ -332,6 +332,11 @@ class ConversationAnalysis(Base):
     # Grows by one on every authoring mutation, so two surfaces editing the
     # same analysis always read a strictly increasing number.
     revision: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    # True once a preview has counted this analysis's subset. Binding another
+    # analysis restarts it with the revision.
+    subset_previewed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -348,6 +353,7 @@ class ConversationAnalysisView(BaseModel):
     dataset_id: str
     analysis_id: str
     revision: int
+    subset_previewed: bool = False
 
 
 class Export(Base):

@@ -16,10 +16,12 @@ from veupathdb.eda import (
     EdaStudyDetail,
 )
 
+from pathfinder.ai.lead.intent_gate import unmet_preconditions
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis
 from pathfinder.ai.tools.standalone._eda_models import EdaFiltersResult
 from pathfinder.domain.eda_parts import EdaAnalysisState, EdaFilterSheetEntry
+from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.authoring import SubsetRejectedError
 from pathfinder.services.eda.binding import ConversationAnalysisView
@@ -341,3 +343,29 @@ async def test_an_empty_filter_list_clears_the_subset(
     result = returned(answer, EdaFiltersResult)
     assert result.applied is True
     assert result.num_filters == 0
+
+
+async def test_a_filter_change_forgets_the_count_the_thread_took(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """The export waits for a count of the subset it exports, not of the last one."""
+    monkeypatch.setattr(eda_analysis, "apply_filters", _apply_ok)
+    monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
+    lead_ctx.deps.state.domain.open_eda_analysis = OpenEdaAnalysis(
+        dataset_id=PHENOTYPE_DATASET,
+        analysis_id=ANALYSIS_ID,
+        subset_previewed=True,
+    )
+
+    await eda_analysis.set_eda_filters(
+        lead_ctx,
+        dataset_id=PHENOTYPE_DATASET,
+        filters=[_species_filter("P. berghei")],
+    )
+
+    assert lead_ctx.deps.state.domain.open_eda_analysis == OpenEdaAnalysis(
+        dataset_id=PHENOTYPE_DATASET,
+        analysis_id=ANALYSIS_ID,
+        subset_previewed=False,
+    )
+    assert "create_eda_step" in unmet_preconditions(lead_ctx.deps)

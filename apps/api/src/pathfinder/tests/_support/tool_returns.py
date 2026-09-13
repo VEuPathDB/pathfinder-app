@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
-from pydantic_ai.messages import ToolReturn
+from pydantic_ai.messages import ToolReturn, ToolReturnPart
 
 
 def returned[T](result: ToolReturn[Any], shape: type[T]) -> T:
@@ -34,3 +34,9 @@ def summary_text(result: ToolReturn[Any]) -> str:
         actual = type(result.content).__name__
         msg = f"the tool wrote {actual} as its summary, not text"
         raise AssertionError(msg) from error
+
+
+def wire_size[T](result: ToolReturn[T], tool_name: str) -> int:
+    """The bytes the model reads, as the tool return part serializes them."""
+    part = ToolReturnPart(tool_name=tool_name, content=result.return_value)
+    return len(part.model_response_str().encode())

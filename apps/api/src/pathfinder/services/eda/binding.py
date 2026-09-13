@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
+from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain import find_gene_entity
 from veupathdb.eda import (
     EdaAnalysisDetail,
@@ -18,6 +19,7 @@ from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.persistence.repositories.conversation_analysis import (
     ConversationAnalysesRepository,
+    read_analysis_row,
 )
 from pathfinder.platform.errors import AppError, ErrorCode
 from pathfinder.services.eda.authoring import (
@@ -47,11 +49,14 @@ __all__ = [
     "bind_conversation_analysis",
     "bound_conversation_analysis",
     "bound_or_conflict",
+    "bump_after_subset_change",
     "bump_analysis_revision",
     "mutated_analysis_state",
+    "open_analysis_in",
     "open_analysis_or_conflict",
     "read_analysis",
     "read_analysis_state",
+    "record_subset_preview",
     "unbind_conversation_analysis",
 ]
 
@@ -92,6 +97,25 @@ async def bound_conversation_analysis(
     conversation_id: UUID,
 ) -> ConversationAnalysisView | None:
     return await _repo().get(conversation_id=conversation_id)
+
+
+async def open_analysis_in(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+) -> ConversationAnalysisView | None:
+    """The thread's binding, read inside a session the caller owns."""
+    return await read_analysis_row(session, conversation_id=conversation_id)
+
+
+async def bump_after_subset_change(*, conversation_id: UUID) -> int:
+    """Count one subset mutation. The preview of the old subset is forgotten."""
+    return await _repo().increment_after_subset_change(conversation_id=conversation_id)
+
+
+async def record_subset_preview(*, conversation_id: UUID) -> None:
+    """Record that a preview counted the open analysis's subset."""
+    await _repo().mark_previewed(conversation_id=conversation_id)
 
 
 async def bump_analysis_revision(*, conversation_id: UUID) -> int:
@@ -226,7 +250,7 @@ async def apply_filters(
         dataset_id=dataset_id,
         filters=filters,
     )
-    revision = await bump_analysis_revision(conversation_id=conversation_id)
+    revision = await bump_after_subset_change(conversation_id=conversation_id)
     entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
     return await analysis_state(
         site_id=site_id,

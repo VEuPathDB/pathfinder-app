@@ -185,7 +185,7 @@ already exist:
 | `search_eda_studies` | `ai/tools/standalone/catalog.py:41` `search_for_searches` - retrieval plus a discovery-gate write |
 | `browse_eda_variables` | `ai/tools/standalone/catalog_discovery.py:83` `get_parameter_options` - a vocabulary read with a per-turn dedup ledger |
 | `set_eda_filters` | `ai/tools/standalone/frame_spec.py:476` `set_criterion` - the validator raises `ModelRetry` against a sheet the model read earlier in the same turn |
-| `run_eda_compute` | `@durable_tool`, section 2 |
+| `run_eda_compute` | `@durable_agent_tool`, section 2 |
 
 ### 1.5 `persistence/` - references only
 
@@ -237,7 +237,7 @@ already owns the machinery. The mapping, naming the real mechanisms:
 
 | Step | Mechanism, with its file |
 |---|---|
-| 1. The agent calls `run_eda_compute` | `@durable_tool(EDA_COMPUTE)` over the declaration in `ai/tools/standalone/eda_compute.py`; the decorator is `assistant_core.tasks.decorator` |
+| 1. The agent calls `run_eda_compute` | `@durable_agent_tool(EDA_COMPUTE)` over the declaration in `ai/tools/standalone/eda_compute.py`; `platform/durable_worker.py` records the tool name and defers through `assistant_core.tasks.decorator` |
 | 2. A task row is created | `assistant_core.tasks.service.create_background_task(...)` -> `background_tasks` |
 | 3. A job is deferred | `task_app().configure_task(name=tool.job_name, queue=DURABLE_TASK_QUEUE, lock=str(conversation_id))`. The lock is the conversation, so the resume takes the same lock a chat turn takes |
 | 4. The run defers | the decorator records a `DurableDeferral` on the agent's deps and raises `CallDeferred`; the run ends with `DeferredToolRequests`, the node parks a `PendingDurableCall` (every durable call of the step, per CLAUDE.md's Durable Background Tasks), and `AsyncPostgresSaver` checkpoints the thread. No `interrupt()`, no node replay |

@@ -19,13 +19,18 @@ from pathfinder.devtools.models import (
     PhaseSnapshot,
     RunSummary,
     SpanNode,
+    ToolStatus,
     decode_errors,
     sub_agent_call_data,
     sub_agent_step_data,
 )
 
 LOOP_THRESHOLD = 5
-_RESULT_CLIP = 140
+RESULT_CLIP = 140
+# The model's terminal call. The reply it carries is the transcript's own
+# section, so a call that answered draws no row; one that failed is a retry of
+# the output itself, which every artifact shows.
+OUTPUT_TOOL = "final_result"
 _ARTIFACT_SUBDIRS = ("tools", "state", "errors", "wdk")
 _ARTIFACT_FILES = (
     "events.jsonl",
@@ -69,9 +74,16 @@ _SILENT_TYPES = {
 }
 
 
+def _as_text(value: object) -> str:
+    """One tool result, as the transcript prints it."""
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, default=str)
+
+
 def _clip(text: str) -> str:
     flat = " ".join(text.split())
-    return flat if len(flat) <= _RESULT_CLIP else flat[: _RESULT_CLIP - 1] + "…"
+    return flat if len(flat) <= RESULT_CLIP else flat[: RESULT_CLIP - 1] + "…"
 
 
 class _TracebackHandler(logging.Handler):
@@ -165,6 +177,9 @@ class RunCapture:
             "data-turn-usage": self._on_turn_usage,
             "data-ledger-update": self._on_ledger,
             "tool-input-available": self._on_tool_input,
+            "tool-output-available": self._on_tool_output,
+            "tool-output-error": self._on_tool_output_error,
+            "tool-output-denied": self._on_tool_denied,
             "tool-approval-request": self._on_approval,
             "data-background-task-started": self._on_durable_task,
             "error": self._on_error,
@@ -245,12 +260,52 @@ class RunCapture:
             self._ledger_by_phase[self._current_phase or "turn"] = env.data
 
     def _on_tool_input(self, env: Chunk) -> None:
-        if env.tool_call_id:
-            self._announced_calls.add(env.tool_call_id)
-        if env.tool_call_id and env.tool_name:
+        if not env.tool_call_id:
+            return
+        self._announced_calls.add(env.tool_call_id)
+        if env.tool_name:
             self._tool_name_by_call[env.tool_call_id] = env.tool_name
-        if env.tool_call_id and env.input is not None:
+        if env.input is not None:
             self._tool_args_by_call[env.tool_call_id] = env.input
+        if env.tool_call_id in self._calls:
+            return
+        # The turn's own call. A sub-agent's inner call runs outside the
+        # adapter and arrives as a step instead.
+        self._calls[env.tool_call_id] = CapturedToolCall(
+            seq=next(self._seq),
+            tool=env.tool_name or self._tool_name_by_call.get(env.tool_call_id, ""),
+            tool_call_id=env.tool_call_id,
+            args=env.input,
+            status="started",
+            started_ms=time.perf_counter() * 1000.0,
+        )
+
+    def _settle(self, env: Chunk, status: ToolStatus, result: str | None) -> None:
+        """Close the turn's own call the way a sub-agent step closes its own."""
+        call = self._calls.get(env.tool_call_id or "")
+        if call is None:
+            return
+        call.ended_ms = time.perf_counter() * 1000.0
+        if call.started_ms is not None:
+            call.duration_ms = call.ended_ms - call.started_ms
+        call.status = status
+        call.result = result
+        if status == "failed":
+            call.errors = decode_errors(result)
+            self._note_failure(call.tool)
+        elif status == "completed":
+            self._fail_counts.pop(call.tool, None)
+
+    def _on_tool_output(self, env: Chunk) -> None:
+        self._settle(env, "completed", _as_text(env.output))
+
+    def _on_tool_output_error(self, env: Chunk) -> None:
+        # A tool the model can answer is not a failed run: the row carries the
+        # failure and the run's status stays with the terminal error.
+        self._settle(env, "failed", env.error_text)
+
+    def _on_tool_denied(self, env: Chunk) -> None:
+        self._settle(env, "denied", "the user denied the call")
 
     def _on_durable_task(self, env: Chunk) -> None:
         data = env.data or {}
@@ -329,6 +384,15 @@ class RunCapture:
     def tool_calls(self) -> list[CapturedToolCall]:
         return sorted(self._calls.values(), key=lambda c: c.seq)
 
+    def rendered_calls(self) -> list[CapturedToolCall]:
+        """The calls an artifact draws. A terminal call that answered is the
+        reply, which the transcript prints on its own."""
+        return [
+            call
+            for call in self.tool_calls()
+            if not (call.tool == OUTPUT_TOOL and call.status == "completed")
+        ]
+
     def phases(self) -> list[str]:
         seen: list[str] = []
         for call in self.tool_calls():
@@ -346,7 +410,7 @@ class RunCapture:
         ]
 
     def tree(self) -> SpanNode:
-        calls = self.tool_calls()
+        calls = self.rendered_calls()
         phase_nodes: dict[str, SpanNode] = {}
         order: list[str] = []
         for call in calls:
@@ -419,8 +483,8 @@ class RunCapture:
 
     def _transcript(self) -> str:
         out = [f"# Turn {self.turn_id}", f"conversation: {self.conversation_id}", ""]
-        for call in self.tool_calls():
-            out.append(f"- [{call.phase}] {call.tool} → {call.status}")
+        for call in self.rendered_calls():
+            out.append(f"- [{call.phase or 'lead'}] {call.tool} → {call.status}")
             if call.result:
                 out.append(f"    {_clip(call.result)}")
         reply = self.assistant_text()
@@ -435,7 +499,7 @@ class RunCapture:
         with (out / "events.jsonl").open("w") as fh:
             for event in self._events:
                 fh.write(json.dumps(event, separators=(",", ":")) + "\n")
-        for call in self.tool_calls():
+        for call in self.rendered_calls():
             name = f"{call.seq:02d}-{call.tool or 'unknown'}.json"
             (out / "tools" / name).write_text(call.model_dump_json(indent=2))
         for snap in self.snapshots():

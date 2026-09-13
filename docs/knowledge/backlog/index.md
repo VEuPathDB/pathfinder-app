@@ -7,11 +7,7 @@ what left.
 
 ## Ranked
 
-1. [Enrichment from chat cannot read a pasted gene set](enrichment-from-chat-cannot-read-a-pasted-gene-set.md) - the durable path skips the temporary-dataset step the HTTP route builds, so a set that enriches in the workbench fails from chat.
-2. [An EDA export is impossible on the turn after the preview](an-eda-export-is-impossible-on-the-turn-after-the-preview.md) - the export tool is gated on a per-message preview marker, so the turn that takes the assistant's own offer cannot export and is told to run the compute again.
-3. [A second preference of the same name does not replace the first](a-second-preference-of-the-same-name-does-not-replace-the-first.md) - every remember mints a new key, so a changed standing preference accumulates beside the old one and a turn silently picks one.
-4. [Site help cannot name a site's organisms](site-help-cannot-name-a-sites-organisms.md) - describe_site carries no organism vocabulary, so the site's help assistant honestly refuses the first question a researcher asks.
-5. [The debugger hangs when a turn calls a durable tool](the-debugger-hangs-when-a-turn-calls-a-durable-tool.md) - a durable call raises AppNotOpen in the in-process debugger and the run neither fails nor completes, so no artifacts are written.
+Nothing outstanding.
 
 ## Known and accepted
 

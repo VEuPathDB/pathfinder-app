@@ -58,6 +58,7 @@ DOMAIN_FIELDS = {
     "created_gene_sets",
     "open_eda_sheet",
     "eda_analysis",
+    "open_eda_analysis",
     "requirements",
     "open_questions",
     "recommendations",

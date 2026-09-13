@@ -21,7 +21,7 @@ def test_the_conversation_is_the_primary_key_so_one_analysis_is_bound() -> None:
     assert keys == ["conversation_id"]
 
 
-def test_the_row_holds_only_the_reference_and_its_revision() -> None:
+def test_the_row_holds_only_the_reference_its_revision_and_the_preview() -> None:
     """Storing the descriptor would create a copy that drifts on the next edit."""
     columns = {c.name for c in _ANALYSES.columns}
     assert columns == {
@@ -30,6 +30,7 @@ def test_the_row_holds_only_the_reference_and_its_revision() -> None:
         "dataset_id",
         "analysis_id",
         "revision",
+        "subset_previewed",
         "created_at",
     }
 
@@ -64,4 +65,12 @@ def test_the_view_reads_the_reference_and_refuses_anything_else() -> None:
         "dataset_id",
         "analysis_id",
         "revision",
+        "subset_previewed",
     }
+
+
+def test_the_preview_of_the_subset_is_recorded_on_the_analysis() -> None:
+    """The export follows the count, and the count outlives its message."""
+    previewed = ConversationAnalysis.__table__.c.subset_previewed
+    assert previewed.nullable is False
+    assert previewed.server_default.arg == "false"

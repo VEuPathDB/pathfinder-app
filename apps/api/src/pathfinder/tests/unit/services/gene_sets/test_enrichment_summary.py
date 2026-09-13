@@ -6,9 +6,12 @@ the FDR the analysis already reports is what the count must read.
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 import pytest
 from assistant_core.platform.types import JSONArray, JSONObject
 from pydantic import TypeAdapter
+from veupathdb.domain.parameters import InputDatasetValue, ParamValue
 from veupathdb_mcp.wdk.enrichment import (
     EnrichmentAnalysisType,
     EnrichmentResult,
@@ -157,3 +160,58 @@ async def test_the_summary_keeps_its_wire_shape(
     downloads = _OBJECT.validate_python(summary["downloads"])
     assert downloads["csv"] == "/api/v1/exports/export-csv"
     assert downloads["expiresInSeconds"] == 3600
+
+
+class _RecordingEnrichmentService:
+    """Records the addressing one batch was asked to enrich."""
+
+    calls: ClassVar[list[dict[str, object]]] = []
+
+    def __init__(self, *, strategy_name: str) -> None:
+        self.strategy_name = strategy_name
+
+    async def run_batch(
+        self, **kwargs: object
+    ) -> tuple[list[EnrichmentResult], list[str]]:
+        _RecordingEnrichmentService.calls.append(kwargs)
+        return _RESULTS, []
+
+
+def _pasted_gene_set() -> GeneSet:
+    return GeneSet(
+        id="gs-2",
+        name="pasted panel",
+        site_id="plasmodb",
+        gene_ids=["PF3D7_0100100", "PF3D7_0100200"],
+        source="paste",
+    )
+
+
+async def test_a_pasted_set_is_enriched_through_a_temporary_dataset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A set with ids and no step reaches WDK as a locus-tag dataset search."""
+
+    async def _dataset(
+        site_id: str, gene_ids: list[str]
+    ) -> tuple[str, dict[str, ParamValue], str]:
+        assert site_id == "plasmodb"
+        assert gene_ids == ["PF3D7_0100100", "PF3D7_0100200"]
+        return (
+            "GeneByLocusTag",
+            {"ds_gene_ids": InputDatasetValue(dataset_id="991")},
+            "transcript",
+        )
+
+    _RecordingEnrichmentService.calls = []
+    monkeypatch.setattr(enrichment, "EnrichmentService", _RecordingEnrichmentService)
+    monkeypatch.setattr(enrichment, "get_export_service", _StubExportService)
+    monkeypatch.setattr(enrichment, "build_enrichment_params_from_gene_ids", _dataset)
+
+    await run_enrichment_for_gene_set(_pasted_gene_set(), _TYPES)
+
+    call = _RecordingEnrichmentService.calls[0]
+    assert call["step_id"] is None
+    assert call["search_name"] == "GeneByLocusTag"
+    assert call["parameters"] == {"ds_gene_ids": InputDatasetValue(dataset_id="991")}
+    assert call["record_type"] == "transcript"

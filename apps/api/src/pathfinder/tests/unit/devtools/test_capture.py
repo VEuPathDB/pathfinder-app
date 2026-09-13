@@ -11,10 +11,12 @@ from pydantic import TypeAdapter
 
 from pathfinder.devtools.capture import (
     LOOP_THRESHOLD,
+    OUTPUT_TOOL,
     RunCapture,
     capture_tracebacks,
     reset_run_dir,
 )
+from pathfinder.platform.durable_worker import durable_call_refusal
 
 
 def _write(cap: RunCapture, chunk: JSONObject) -> None:
@@ -335,6 +337,7 @@ def test_a_call_announced_twice_counts_once(tmp_path: Path) -> None:
     _write(cap, announce)
 
     assert cap.summary().tool_calls == 1
+    assert [call.tool for call in cap.tool_calls()] == ["list_veupathdb_sites"]
 
 
 def test_a_lead_run_counts_its_dispatches_and_its_inner_steps(
@@ -355,3 +358,178 @@ def test_a_lead_run_counts_its_dispatches_and_its_inner_steps(
     _write(cap, _step("search_catalog", "c1", "p1", "completed", result="2 hits"))
 
     assert cap.summary().tool_calls == 2
+
+
+def test_the_transcript_names_a_durable_call_the_run_declined(tmp_path: Path) -> None:
+    """A run with no worker must be readable afterwards: the refusal is in the file."""
+    refusal = durable_call_refusal("run_control_tests_on_step")
+    cap = _new(tmp_path)
+    _write(cap, _call("verification", "verification", "p1", "started"))
+    _write(cap, _step("run_control_tests_on_step", "c1", "p1", "started", args={}))
+    _write(
+        cap, _step("run_control_tests_on_step", "c1", "p1", "completed", result=refusal)
+    )
+
+    cap.flush()
+
+    transcript = (tmp_path / "transcript.md").read_text()
+    assert refusal in transcript
+    assert json.loads((tmp_path / "summary.json").read_text())["tool_calls"] == 1
+
+
+def _lead_input(tool: str, tcid: str, args: JSONObject) -> JSONObject:
+    return {
+        "type": "tool-input-available",
+        "toolCallId": tcid,
+        "toolName": tool,
+        "input": args,
+    }
+
+
+def _lead_output(tcid: str, output: str) -> JSONObject:
+    return {"type": "tool-output-available", "toolCallId": tcid, "output": output}
+
+
+def _lead_error(tcid: str, error: str) -> JSONObject:
+    return {"type": "tool-output-error", "toolCallId": tcid, "errorText": error}
+
+
+def test_the_transcript_names_the_calls_the_lead_made_itself(tmp_path: Path) -> None:
+    """A turn that dispatches nothing still has its own calls to read."""
+    refusal = durable_call_refusal("run_gene_set_enrichment")
+    cap = _new(tmp_path)
+    _write(cap, _lead_input("run_gene_set_enrichment", "c1", {"gene_set_id": "gs_1"}))
+    _write(cap, _lead_output("c1", refusal))
+
+    cap.flush()
+
+    transcript = (tmp_path / "transcript.md").read_text()
+    assert "- [lead] run_gene_set_enrichment" in transcript
+    assert refusal in transcript
+    assert (tmp_path / "tools" / "01-run_gene_set_enrichment.json").exists()
+
+
+def test_a_lead_call_that_failed_reads_as_failed(tmp_path: Path) -> None:
+    cap = _new(tmp_path)
+    _write(cap, _lead_input("export_gene_set", "c1", {"gene_set_id": "gs_1"}))
+    _write(cap, _lead_error("c1", "NOT_FOUND: no such gene set"))
+
+    cap.flush()
+
+    calls = cap.tool_calls()
+    assert [(c.tool, c.status, c.result) for c in calls] == [
+        ("export_gene_set", "failed", "NOT_FOUND: no such gene set")
+    ]
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["failures"] == 1
+    assert summary["status"] == "ok"
+
+
+def test_a_parked_call_stays_open_in_the_transcript(tmp_path: Path) -> None:
+    """A durable call the worker answers later has no output in this turn."""
+    cap = _new(tmp_path)
+    _write(cap, _lead_input("run_eda_compute", "c1", {}))
+
+    cap.flush()
+
+    transcript = (tmp_path / "transcript.md").read_text()
+    assert "- [lead] run_eda_compute" in transcript
+    assert "started" in transcript
+
+
+_WDK_ERROR = "VEuPathDB service error: WDK_SERVICE_ERROR 500 on /users/current"
+
+
+def test_a_lead_stuck_on_one_tool_reads_as_a_loop_in_both_artifacts(
+    tmp_path: Path,
+) -> None:
+    """The summary and the diagnosis answer one run the same way."""
+    cap = _new(tmp_path)
+    for index in range(LOOP_THRESHOLD):
+        tcid = f"c{index}"
+        _write(cap, _lead_input("export_gene_set", tcid, {"gene_set_id": "gs_1"}))
+        _write(cap, _lead_error(tcid, _WDK_ERROR))
+
+    cap.flush()
+
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["loop_detected"] is True
+    assert summary["failures"] == LOOP_THRESHOLD
+    kinds = [a["kind"] for a in json.loads((tmp_path / "diagnosis.json").read_text())]
+    assert "loop" in kinds
+
+
+def test_a_failed_lead_call_decodes_its_errors(tmp_path: Path) -> None:
+    """The catch-22 detector reads `call.errors`, so a turn's own calls fill it."""
+    cap = _new(tmp_path)
+    _write(cap, _lead_input("create_plan", "c1", {"steps": []}))
+    _write(
+        cap,
+        _lead_error(
+            "c1",
+            '{"ok": false, "code": "VALIDATION_ERROR", '
+            '"message": "Missing required parameters: document_type", '
+            '"details": {"errors": [{"context": {"searchName": "GenesByText", '
+            '"missing": ["document_type"]}}]}}',
+        ),
+    )
+
+    call = cap.tool_calls()[0]
+
+    assert [(e.kind, e.param) for e in call.errors] == [
+        ("missing_required", "document_type")
+    ]
+
+
+def test_a_tool_that_recovers_is_no_longer_looping(tmp_path: Path) -> None:
+    """A success clears the count, as it does for a sub-agent's own call."""
+    cap = _new(tmp_path)
+    for index in range(LOOP_THRESHOLD - 1):
+        tcid = f"c{index}"
+        _write(cap, _lead_input("export_gene_set", tcid, {}))
+        _write(cap, _lead_error(tcid, _WDK_ERROR))
+    _write(cap, _lead_input("export_gene_set", "ok", {}))
+    _write(cap, _lead_output("ok", "the file is ready"))
+    _write(cap, _lead_input("export_gene_set", "again", {}))
+    _write(cap, _lead_error("again", _WDK_ERROR))
+
+    assert cap.summary().loop_detected is False
+
+
+def test_a_terminal_call_that_answered_is_not_a_row_anywhere(tmp_path: Path) -> None:
+    """The reply the output tool carries is the transcript's own section."""
+    cap = _new(tmp_path)
+    _write(cap, _lead_input("classify_user_intent", "c1", {}))
+    _write(cap, _lead_output("c1", "new_strategy"))
+    _write(cap, _lead_input(OUTPUT_TOOL, "c2", {"prose": "here is what I found"}))
+    _write(cap, _lead_output("c2", "Final result processed."))
+
+    cap.flush()
+
+    assert [call.tool for call in cap.rendered_calls()] == ["classify_user_intent"]
+    assert OUTPUT_TOOL not in (tmp_path / "transcript.md").read_text()
+    assert OUTPUT_TOOL not in (tmp_path / "tree.txt").read_text()
+    assert [path.name for path in sorted((tmp_path / "tools").iterdir())] == [
+        "01-classify_user_intent.json"
+    ]
+    assert cap.summary().tool_calls == 2
+
+
+def test_a_terminal_call_the_model_kept_failing_reads_as_a_loop(
+    tmp_path: Path,
+) -> None:
+    """An output the model cannot produce is the loop the debugger must show."""
+    cap = _new(tmp_path)
+    for index in range(LOOP_THRESHOLD):
+        tcid = f"c{index}"
+        _write(cap, _lead_input(OUTPUT_TOOL, tcid, {"prose": ""}))
+        _write(cap, _lead_error(tcid, "prose: Field required"))
+
+    cap.flush()
+
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["failures"] == LOOP_THRESHOLD
+    assert summary["loop_detected"] is True
+    kinds = [a["kind"] for a in json.loads((tmp_path / "diagnosis.json").read_text())]
+    assert "loop" in kinds
+    assert OUTPUT_TOOL in (tmp_path / "transcript.md").read_text()

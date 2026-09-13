@@ -9,8 +9,6 @@
   that follows a failed body. Measured after the pin: an enrichment started by a completion
   turn reaches VEuPathDB and fails, if it fails, on its own arguments and not on a login.
 
-## 2026-09-13
-
 * **The answers a consult carousel collected reach the turn that resumes it.**
   `state/useConsultAnswersStore.ts` holds them keyed by the approval they answer, and
   `features/conversation/rail/consultActions.ts::withConsultAnswers` puts each set on the
@@ -25,8 +23,6 @@
   account, which is what `services/conversations/revert.py::revert_conversation_to_message`
   does through `revision_ops.materialize_revision`. Workbench gene sets are what the revert
   keeps. The dialog's own vitest, `BranchOrRevertDialog.test.tsx`, asserts the sentence.
-
-## 2026-09-13
 
 * **A saved gene set's WDK ids are read from the strategy, never typed.**
   `ai/tools/standalone/workbench.py::create_workbench_gene_set` takes the LOCAL step id
@@ -59,8 +55,6 @@
   failed on one set, a later one ran on another, and the reply names neither the
   analysed set nor its id. The Lead's instructions state that a task reporting
   `status: failed` is reported rather than routed around.
-
-## 2026-09-13
 
 * **Only a filter and a seed are members of the combine a statement names.**
   `domain/strategy/combination_check.py::match_terms` reads a stated combination over the
@@ -102,6 +96,69 @@
   leaves the spec with it. `AgentToolState.drop_criteria_for_steps` calls it, so a
   transform whose step a delete removed collapses to its live input instead of taking
   the whole branch and the structure with it.
+
+* **A gene set enriches the same way from either facade.**
+  `services/gene_sets/enrichment.py::run_enrichment_batch` holds the whole addressing
+  rule: a set with a step or a search reaches `EnrichmentService.run_batch` as it is, and
+  a set of pasted ids reaches it as a temporary WDK dataset on the locus-tag search. The
+  HTTP route's service method and the workbench facade the durable job calls both go
+  through that one function, so neither repeats the rule and neither can lose it.
+
+* **An EDA export follows the count of the subset it exports.**
+  The preview is recorded on the thread's analysis (`conversation_analyses.subset_previewed`,
+  revision `2026_09_13_0001`), and `ai/lead/pre_turn.py::attach_open_eda_analysis` reads the
+  binding onto `StrategyDomainState.open_eda_analysis` at turn entry, so
+  `ai/lead/intent_gate.py` offers `create_eda_step` for an analysis this thread counted on any
+  message and withholds it where the thread holds no analysis or none was counted. A change of
+  subset forgets the count in the same statement that counts the mutation
+  (`services/eda/binding.py::apply_filters`), and binding another analysis restarts both, so the
+  gate never opens for a number nobody took. Every writer of the subset states it the same way:
+  the two filter surfaces through `apply_filters`, and a revert that puts another subset back
+  through `services/eda/thread_surgery.py`, where a branch opens a document of its own and starts
+  uncounted. The per-message `eda_previewed` marker is gone: no code read it after this rule, and
+  a write-only marker states nothing.
+
+* **A standing preference is one memory, however often it is stated.**
+  `ai/tools/standalone/memory_tools.py::remember` writes a kind in `STANDING_MEMORY_KINDS`
+  under `domain/memory.py::standing_memory_key`, a slug of the name the user gave it, so a
+  second statement replaces the first and the retrieval carries no contradiction. The kinds
+  that accumulate keep the minted key, and the reply says "Stored" or "Updated". The slug is
+  cut to a length the store can index, and a name that carries no letter and no digit keys
+  nothing: the tool asks the model for a name rather than writing every such preference into
+  one bucket.
+
+* **Site help names the organisms a site carries.**
+  `assistants/site_help/agent.py::describe_site` reads the site's organism vocabulary through
+  `veupathdb_mcp.gene_lookup.list_organisms` and groups it by the species each term names
+  (`assistants/site_help/organisms.py`): the species with the most strains first, each with its
+  strain count and up to three strain names, plus the totals. A term whose second word is an
+  unknown epithet, or one that ends in `-like`, names an organism and not a species, so it stands
+  alone with no strain line, and a term of two words is a species the site lists no strain for.
+  One result carries the first `MAX_SPECIES` of them and says how many it left out; a genus
+  argument answers with that genus alone, names the genus beside the counts it narrowed, and a
+  genus the site does not carry comes back naming the genera it does, the way an unknown site id
+  comes back naming the sites. The organism question is answered from the catalog rather than
+  refused, and no answer reports a count of zero organisms for a site that has them.
+
+* **A durable call in a process with no worker is answered in writing.**
+  `platform/durable_worker.py::DurableCallsRefused` rides `agent_capabilities`, so inside
+  `no_durable_worker()` a call to a deferring agent tool returns a refusal naming the tool
+  instead of writing a task row and deferring a job nothing consumes. The name the model calls
+  a tool by is not the name of the job it defers, so `durable_agent_tool` records the first
+  where the two are bound and every durable tool of this application now defers through it.
+  `devtools/chat.py` enters that block for an in-process run, so the turn finishes and its
+  artifacts are written; a `--via-worker` run defers as before. The runtime half, a defer that
+  raises leaving a task row behind, stays in the backlog.
+
+* **A run's transcript names the calls the turn made itself.**
+  `devtools/capture.py` reads `tool-input-available` and what settles it into the same row a
+  sub-agent step writes, so `transcript.md`, `tools/` and the span tree carry an assistant's own
+  tool calls under `lead` beside its dispatches. A turn that calls one tool and answers is no
+  longer a transcript with nothing in it. The row settles the way a step settles: a failure
+  decodes its errors and counts toward the loop the summary and the diagnosis both report, a
+  success clears that count. A terminal call that answered draws no row, because the reply it
+  carries is the transcript's own section; one that failed draws one everywhere, because a
+  retried output is the loop a reader of these artifacts is looking for.
 
 ## 2026-09-12
 

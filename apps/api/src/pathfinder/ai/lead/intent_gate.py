@@ -109,6 +109,12 @@ def verification_pending(deps: LeadDeps) -> bool:
     return markers.verification_nudged and not markers.verified
 
 
+def _subset_was_previewed(deps: LeadDeps) -> bool:
+    """Whether the thread's open analysis has had its subset counted."""
+    analysis = deps.state.domain.open_eda_analysis
+    return analysis is not None and analysis.subset_previewed
+
+
 def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
     """The tools whose precondition this turn does not meet.
 
@@ -127,7 +133,7 @@ def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
         unmet.add("recover_failed_steps")
     if (ledger.build.outcome is None and not steps) or markers.verified:
         unmet.add("verify_strategy")
-    if not markers.eda_previewed:
+    if not _subset_was_previewed(deps):
         unmet.add("create_eda_step")
     if verification_pending(deps):
         unmet |= BUILDING_TOOLS - {"verify_strategy"}

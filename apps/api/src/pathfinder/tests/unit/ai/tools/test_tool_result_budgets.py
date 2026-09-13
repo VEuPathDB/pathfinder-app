@@ -10,7 +10,6 @@ import json
 
 import pytest
 from pydantic_ai import RunContext
-from pydantic_ai.messages import ToolReturn, ToolReturnPart
 from veupathdb.eda import (
     EdaPermissionEntry,
     EdaStudyDetail,
@@ -27,7 +26,7 @@ from pathfinder.ai.tools.standalone._eda_models import (
 from pathfinder.services.eda.binding import ConversationAnalysisView
 from pathfinder.services.eda.catalog import StudyCard, StudySearch
 from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests._support.tool_returns import returned, wire_size
 
 FIXTURES = FIXTURE_DIR
 
@@ -46,12 +45,6 @@ _STUDY = "STUDY_53f554ec6a"
 @pytest.fixture
 def studies_ctx() -> RunContext[LeadDeps]:
     return lead_run_context(user_prompt="which studies measure phenotype scores")
-
-
-def wire_size[T](answer: ToolReturn[T], tool_name: str) -> int:
-    """The bytes the model reads, as the tool return part serializes them."""
-    part = ToolReturnPart(tool_name=tool_name, content=answer.return_value)
-    return len(part.model_response_str().encode())
 
 
 _DESCRIPTION = (

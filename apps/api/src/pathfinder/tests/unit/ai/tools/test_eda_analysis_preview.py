@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from uuid import UUID
 
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb.eda import EdaDistributionResponse
+from veupathdb.eda import EdaDistributionResponse, EdaStringSetFilter
 
+from pathfinder.ai.lead.intent_gate import unmet_preconditions
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis
 from pathfinder.ai.tools.standalone._eda_models import EdaSubsetPreviewResult
+from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.authoring import SubsetPreview
 from pathfinder.services.eda.binding import ConversationAnalysisView
@@ -27,6 +30,7 @@ from pathfinder.tests._support.eda_doubles import (
 from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_DATASET,
     PHENOTYPE_ENTITY,
+    PHENOTYPE_STUDY,
     fixture,
 )
 from pathfinder.tests._support.tool_returns import returned
@@ -94,7 +98,12 @@ async def _preview_with_missing(_site: str, **_kwargs: object) -> SubsetPreview:
     )
 
 
+async def _record_preview(*, conversation_id: object) -> None:
+    del conversation_id
+
+
 def _wire(monkeypatch: pytest.MonkeyPatch, preview: object) -> None:
+    monkeypatch.setattr(eda_analysis, "record_subset_preview", _record_preview)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "read_analysis", read_analysis_detail)
     monkeypatch.setattr(eda_analysis, "preview_subset", preview)
@@ -232,3 +241,77 @@ async def test_a_preview_with_no_open_analysis_raises_a_model_retry(
     with pytest.raises(ModelRetry) as excinfo:
         await eda_analysis.preview_eda_subset(lead_ctx, entity_id=PHENOTYPE_ENTITY)
     assert "open_eda_analysis" in str(excinfo.value)
+
+
+async def test_a_preview_records_the_count_on_the_thread_s_analysis(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """The count belongs to the analysis, so a later message can export it."""
+    counted: list[UUID | None] = []
+
+    async def _record(*, conversation_id: UUID | None) -> None:
+        counted.append(conversation_id)
+
+    _wire(monkeypatch, _preview_ok)
+    monkeypatch.setattr(eda_analysis, "record_subset_preview", _record)
+
+    await eda_analysis.preview_eda_subset(lead_ctx, entity_id=PHENOTYPE_ENTITY)
+
+    assert counted == [lead_ctx.deps.state.conversation_id]
+    open_analysis = lead_ctx.deps.state.domain.open_eda_analysis
+    assert open_analysis is not None
+    assert open_analysis.analysis_id == ANALYSIS_ID
+    assert open_analysis.subset_previewed
+
+
+async def _applied(
+    _site: str,
+    *,
+    conversation_id: UUID,
+    analysis_id: str,
+    dataset_id: str,
+    filters: object,
+) -> EdaAnalysisState:
+    del conversation_id, analysis_id, filters
+    return EdaAnalysisState(
+        site_id="plasmodb",
+        dataset_id=dataset_id,
+        study_id=PHENOTYPE_STUDY,
+        analysis_id=ANALYSIS_ID,
+        revision=2,
+        study_display_name="Rodent malaria phenotypes",
+        display_name="berghei subset",
+        num_filters=1,
+        num_computations=0,
+        filters=[],
+        filter_summaries=["Species is one of P. berghei"],
+        entity_counts=[],
+        can_export_rows=False,
+    )
+
+
+async def test_a_count_after_a_filter_change_opens_the_export_again(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """The gate follows the subset: counted, changed, counted again."""
+    _wire(monkeypatch, _preview_ok)
+    monkeypatch.setattr(eda_analysis, "apply_filters", _applied)
+
+    await eda_analysis.preview_eda_subset(lead_ctx, entity_id=PHENOTYPE_ENTITY)
+    assert "create_eda_step" not in unmet_preconditions(lead_ctx.deps)
+
+    await eda_analysis.set_eda_filters(
+        lead_ctx,
+        dataset_id=PHENOTYPE_DATASET,
+        filters=[
+            EdaStringSetFilter(
+                entity_id=PHENOTYPE_ENTITY,
+                variable_id=SPECIES_VARIABLE,
+                string_set=["P. berghei"],
+            )
+        ],
+    )
+    assert "create_eda_step" in unmet_preconditions(lead_ctx.deps)
+
+    await eda_analysis.preview_eda_subset(lead_ctx, entity_id=PHENOTYPE_ENTITY)
+    assert "create_eda_step" not in unmet_preconditions(lead_ctx.deps)

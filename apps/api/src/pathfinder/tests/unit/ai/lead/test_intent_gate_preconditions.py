@@ -19,6 +19,7 @@ from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
 from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategySession
@@ -290,15 +291,37 @@ def test_verify_is_hidden_once_it_succeeded_this_turn() -> None:
     assert "verify_strategy" not in _offered(deps)
 
 
-def test_create_eda_step_is_hidden_until_a_preview_counted_the_subset() -> None:
+def _open_analysis(*, previewed: bool) -> StrategyDomainState:
+    return StrategyDomainState(
+        open_eda_analysis=OpenEdaAnalysis(
+            dataset_id="DS_e973eadd57",
+            analysis_id="4XlEvvr",
+            subset_previewed=previewed,
+        ),
+    )
+
+
+def test_create_eda_step_is_hidden_when_the_thread_has_no_analysis() -> None:
     deps = _deps(classification=IntentClassification.EXTEND_STRATEGY)
 
     assert "create_eda_step" not in _offered(deps)
 
 
-def test_create_eda_step_is_offered_after_a_preview_this_turn() -> None:
-    deps = _deps(classification=IntentClassification.EXTEND_STRATEGY)
-    deps.state.turn_markers.eda_previewed = True
+def test_create_eda_step_is_hidden_until_a_preview_counted_the_subset() -> None:
+    deps = _deps(
+        classification=IntentClassification.EXTEND_STRATEGY,
+        domain=_open_analysis(previewed=False),
+    )
+
+    assert "create_eda_step" not in _offered(deps)
+
+
+def test_create_eda_step_is_offered_for_a_preview_on_an_earlier_message() -> None:
+    """The preview belongs to the analysis, so the next turn can export it."""
+    deps = _deps(
+        classification=IntentClassification.EXTEND_STRATEGY,
+        domain=_open_analysis(previewed=True),
+    )
 
     assert "create_eda_step" in _offered(deps)
 

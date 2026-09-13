@@ -213,3 +213,22 @@ async def test_opening_an_analysis_on_an_unknown_dataset_creates_nothing(
         )
     assert "search_eda_studies" in str(excinfo.value)
     assert opened == []
+
+
+async def test_a_new_analysis_starts_with_nothing_counted(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """An export waits for a count of the analysis this call just created."""
+    monkeypatch.setattr(binding, "open_analysis", lambda *_a, **_k: _resolved("A"))
+    monkeypatch.setattr(binding, "read_analysis", read_analysis_detail)
+    monkeypatch.setattr(binding, "bind_conversation_analysis", _noop_bind)
+    _serve_study(monkeypatch, phenotype_study)
+
+    await eda_analysis.open_eda_analysis(
+        lead_ctx, dataset_id=PHENOTYPE_DATASET, purpose="explore"
+    )
+
+    open_analysis = lead_ctx.deps.state.domain.open_eda_analysis
+    assert open_analysis is not None
+    assert open_analysis.dataset_id == PHENOTYPE_DATASET
+    assert not open_analysis.subset_previewed

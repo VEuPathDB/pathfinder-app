@@ -8,12 +8,13 @@ from uuid import UUID
 from assistant_core.graph.tool_summary import summary_chunks
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.tasks.declaration import declare_durable_tool
-from assistant_core.tasks.decorator import DurableOutcome, durable_tool
+from assistant_core.tasks.decorator import DurableOutcome
 from pydantic import ConfigDict
 from pydantic_ai import RunContext
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.platform.durable_worker import durable_agent_tool
 
 _ESTIMATED_SECONDS = 120
 
@@ -61,7 +62,7 @@ EDA_COMPUTE = declare_durable_tool(
 )
 
 
-@durable_tool(EDA_COMPUTE)
+@durable_agent_tool(EDA_COMPUTE)
 async def run_eda_compute(
     ctx: RunContext[LeadDeps],
     *,
@@ -130,5 +131,5 @@ async def run_eda_compute(
         method,
         caption,
     )
-    msg = "run_eda_compute runs on the worker via @durable_tool"
+    msg = "run_eda_compute runs on the worker via @durable_agent_tool"
     raise NotImplementedError(msg)

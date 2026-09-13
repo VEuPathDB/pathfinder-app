@@ -8,11 +8,32 @@ from assistant_core.graph.tool_summary import with_summary
 from assistant_core.memory.retrieval import rerank_by_hybrid_score
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.memory.store import MemoryStore, StoredMemory
+from pydantic_ai import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.tools import RunContext
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.domain.memory import MEMORY_KINDS, MemoryKind
+from pathfinder.domain.memory import (
+    MEMORY_KINDS,
+    STANDING_MEMORY_KINDS,
+    MemoryKind,
+    UnnamedMemoryError,
+    standing_memory_key,
+)
+
+
+def _standing_key(kind: MemoryKind, name: str) -> str | None:
+    """The key a kind of this name is written under, or None for a new row."""
+    if kind not in STANDING_MEMORY_KINDS:
+        return None
+    try:
+        return standing_memory_key(name)
+    except UnnamedMemoryError as unnamed:
+        msg = (
+            f"{unnamed} Call remember again with a short name for what this "
+            f"states, such as 'Default organism'."
+        )
+        raise ModelRetry(msg) from unnamed
 
 
 async def search_memory(
@@ -75,8 +96,11 @@ async def remember(
 
     Use for biological facts the user has taught you or preferences they've
     stated. It stores a note and nothing else: a gene set the user wants in
-    their workbench is created with ``create_workbench_gene_set``. Returns the
-    storage key or an error string.
+    their workbench is created with ``create_workbench_gene_set``.
+
+    A preference is keyed by its name, so stating one again replaces what the
+    user said before. The reply says whether it stored a new memory or updated
+    the one that name already holds.
 
     Args:
         kind: Which memory kind the entry belongs to. ``gene_set_note`` is a
@@ -108,8 +132,14 @@ async def remember(
         content=content,
         created_at=datetime.now(UTC),
     )
+    key = _standing_key(kind, name)
+    replaced = key is not None and (
+        await mem_store.get(user_id=user_id, kind=kind, key=key) is not None
+    )
+    stored_key = await mem_store.put(user_id=user_id, value=value, key=key)
+    action = "Updated" if replaced else "Stored"
     return with_summary(
-        await mem_store.put(user_id=user_id, value=value),
-        f"Remembered {name} as {kind}",
+        f"{action} {name} as {kind} under {stored_key}",
+        f"{action} {name} as {kind}",
         ctx=ctx,
     )

@@ -26,6 +26,7 @@ REACHED = {
     "pathfinder.platform.tiers",
     "pathfinder.platform.tool_sources",
     "veupathdb_mcp.catalog",
+    "veupathdb_mcp.gene_lookup",
 }
 
 

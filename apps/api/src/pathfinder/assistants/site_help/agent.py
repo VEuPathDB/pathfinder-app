@@ -16,8 +16,16 @@ from pydantic_ai.settings import ModelSettings
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets import AbstractToolset
 from veupathdb_mcp.catalog import get_raw_searches, get_record_types, list_sites
+from veupathdb_mcp.gene_lookup import list_organisms
 
 from pathfinder.assistants.site_help.mock import build_site_help_mock
+from pathfinder.assistants.site_help.organisms import (
+    MAX_SPECIES,
+    OrganismSummary,
+    organism_note,
+    organism_summaries,
+    organisms_of_genus,
+)
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 from pathfinder.platform.refusals import agent_capabilities
@@ -38,9 +46,12 @@ SITE_HELP_INSTRUCTIONS = (
     "You help researchers find their way around the VEuPathDB family of "
     "sites. Answer in plain markdown, briefly.\n\n"
     "Use `list_veupathdb_sites` to name the sites and what each one covers, "
-    "and `describe_site` to report one site's record types and how many "
-    "searches each of them offers. Both tools read the live catalog: quote "
-    "what they return and never invent a site, a record type or a count.\n\n"
+    "and `describe_site` to report one site's record types, how many searches "
+    "each of them offers, and the species it carries with their strain "
+    "counts. A site with many species answers with the widest of them and "
+    "says how many it left out; call it again with a genus to read that genus "
+    "alone. Both tools read the live catalog: quote what they return and "
+    "never invent a site, a record type, an organism or a count.\n\n"
     "Where this deployment reaches the VEuPathDB WDK server, three more tools "
     "answer: `wdk_list_record_types` and `wdk_search_for_searches` read one "
     "site's catalog, and `wdk_run_control_tests_on_search` measures a search "
@@ -77,11 +88,17 @@ class RecordTypeSummary(CamelModel):
 
 
 class SiteDetail(CamelModel):
-    """What one site offers, by record type."""
+    """What one site offers: its record types and the organisms it carries."""
 
     site_id: str
     display_name: str
     record_types: list[RecordTypeSummary]
+    organisms: list[OrganismSummary]
+    # The counts and the species are this genus's when one was applied.
+    genus: str
+    organism_count: int
+    species_count: int
+    organism_note: str = ""
 
 
 async def list_veupathdb_sites(
@@ -100,18 +117,37 @@ async def list_veupathdb_sites(
 
 
 async def describe_site(
-    ctx: RunContext[SiteHelpDeps], site_id: str
+    ctx: RunContext[SiteHelpDeps], site_id: str, genus: str = ""
 ) -> ToolReturn[SiteDetail]:
-    """Report one site's record types and the search count of each.
+    """Report one site's record types, its search counts and its organisms.
 
-    ``site_id`` is the id ``list_veupathdb_sites`` returns, such as
-    ``plasmodb``. Call this when the user asks what a site holds or what
-    they can search there.
+    Call this when the user asks what a site holds, what they can search
+    there, or which organisms or strains it covers. The organisms are the
+    species of the site's own organism vocabulary, the ones with the most
+    strains first, each with its strain count and up to three strain names.
+
+    A site with many species answers with the first of them and says how many
+    it left out. Name a genus to read that genus alone: the answer then names
+    the genus it was narrowed to, and a genus the site does not carry comes
+    back with the ones it does.
+
+    Args:
+        ctx: Agent run context.
+        site_id: The id ``list_veupathdb_sites`` returns, such as ``plasmodb``.
+        genus: One genus, such as ``Aspergillus``, or empty for every organism.
     """
     sites = {site.id: site for site in await list_sites()}
     site = sites.get(site_id)
     if site is None:
         msg = f"Unknown site {site_id!r}. The sites are: {sorted(sites)}."
+        raise ModelRetry(msg)
+    declared = await list_organisms(site_id)
+    organisms = organisms_of_genus(declared, genus)
+    if genus and not organisms:
+        msg = (
+            f"Unknown genus {genus!r} on {site_id}. The genera are: "
+            f"{sorted({term.split()[0] for term in declared})}."
+        )
         raise ModelRetry(msg)
     record_types = await get_record_types(site_id)
     summaries = [
@@ -122,11 +158,19 @@ async def describe_site(
         )
         for record_type in record_types
     ]
+    species = organism_summaries(organisms)
     return with_summary(
         SiteDetail(
             site_id=site.id,
             display_name=site.display_name,
             record_types=summaries,
+            organisms=species[:MAX_SPECIES],
+            genus=genus.strip(),
+            organism_count=len(organisms),
+            species_count=len(species),
+            organism_note=organism_note(
+                [one.species for one in species[MAX_SPECIES:]], genus.strip()
+            ),
         ),
         f"{site.id}: {site.display_name}",
         ctx=ctx,

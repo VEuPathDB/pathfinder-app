@@ -1,9 +1,10 @@
 """Site help's script for the deterministic test model.
 
-Six arcs for the site-help agent: a fixed reply to the check prompt, one
-local tool call for a question about the sites, one call to each of the two
-tools a declared source serves, an answer that names what the thread asked
-for earlier, and an echo for anything else.
+Seven arcs for the site-help agent: a fixed reply to the check prompt, one
+local tool call for a question about the sites, one for a question about the
+organisms, one call to each of the two tools a declared source serves, an
+answer that names what the thread asked for earlier, and an echo for anything
+else.
 """
 
 from __future__ import annotations
@@ -21,8 +22,11 @@ from assistant_core.models.scripted import (
     tool_return_parts,
     user_texts,
 )
-from pydantic_ai.messages import ModelMessage, ToolCallPart
+from pydantic import BaseModel, ConfigDict
+from pydantic_ai.messages import ModelMessage, ToolCallPart, ToolReturnPart
 from pydantic_ai.models.function import FunctionModel
+
+from pathfinder.assistants.site_help.organisms import OrganismSummary
 
 SITE_HELP = "site_help"
 LIST_SITES_TOOL = "list_veupathdb_sites"
@@ -44,11 +48,16 @@ CONTROL_TESTS_REPLY = "The control test is done."
 SCRIPT_SITE = "plasmodb"
 CONTROL_TESTS_SEARCH = "GenesByMolecularWeight"
 
+ORGANISMS_PROMPT = "which strains does this site cover"
+ORGANISMS_PREFIX = "That site covers "
+NO_ORGANISMS_REPLY = "That site declares no organisms."
+
 PROCEED_PROMPT = "Yes, please proceed."
 PROCEED_PREFIX = "Proceeding with: "
 NOTHING_TO_PROCEED_REPLY = "What would you like me to proceed with?"
 
 _SITES_MARKERS = ("which sites", "what sites", "list the sites")
+_ORGANISM_MARKERS = ("which strains", "which organisms", "what organisms")
 _RECORD_TYPE_MARKERS = ("record types",)
 _CONTROL_TEST_MARKERS = ("control test",)
 _PROCEED_MARKERS = ("please proceed", "go ahead")
@@ -82,6 +91,31 @@ def _control_tests_call() -> ToolCallPart:
     )
 
 
+class _DescribedSite(BaseModel):
+    """The organisms one describe call answered with."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    organisms: list[OrganismSummary] = []
+
+
+def _named_organism(organism: OrganismSummary) -> str:
+    """One species, with its strain count when the site lists strains."""
+    if not organism.strain_count:
+        return organism.species
+    plural = "strain" if organism.strain_count == 1 else "strains"
+    return f"{organism.species} ({organism.strain_count} {plural})"
+
+
+def _organisms_reply(part: ToolReturnPart) -> str:
+    """Name every species the describe call returned, with its strain count."""
+    described = _DescribedSite.model_validate(part.content, from_attributes=True)
+    if not described.organisms:
+        return NO_ORGANISMS_REPLY
+    named = ", ".join(_named_organism(one) for one in described.organisms)
+    return f"{ORGANISMS_PREFIX}{named}."
+
+
 def _proceed_reply(messages: list[ModelMessage]) -> str:
     """Name the request the thread already made, when the thread carries one."""
     earlier = user_texts(messages)[:-1]
@@ -90,12 +124,10 @@ def _proceed_reply(messages: list[ModelMessage]) -> str:
     return f"{PROCEED_PREFIX}{earlier[-1]}"
 
 
-def _marker_script(messages: list[ModelMessage], lowered: str) -> ScriptedPart | None:
-    """The part the markers in the user's text select, or None for no marker."""
-    if CHECK_MARKER in lowered:
-        return scripted_text(CHECK_REPLY)
-    if has_any(lowered, _PROCEED_MARKERS):
-        return scripted_text(_proceed_reply(messages))
+def _tool_call_for(lowered: str) -> ScriptedPart | None:
+    """The tool the markers in the user's text call, or None for no marker."""
+    if has_any(lowered, _ORGANISM_MARKERS):
+        return scripted_call(DESCRIBE_SITE_TOOL, {"site_id": SCRIPT_SITE})
     if has_any(lowered, _SITES_MARKERS):
         return scripted_call(LIST_SITES_TOOL, {})
     if has_any(lowered, _CONTROL_TEST_MARKERS):
@@ -105,9 +137,20 @@ def _marker_script(messages: list[ModelMessage], lowered: str) -> ScriptedPart |
     return None
 
 
+def _marker_script(messages: list[ModelMessage], lowered: str) -> ScriptedPart | None:
+    """The part the markers in the user's text select, or None for no marker."""
+    if CHECK_MARKER in lowered:
+        return scripted_text(CHECK_REPLY)
+    if has_any(lowered, _PROCEED_MARKERS):
+        return scripted_text(_proceed_reply(messages))
+    return _tool_call_for(lowered)
+
+
 def _site_help_script(messages: list[ModelMessage]) -> ScriptedPart:
     turn = current_turn(messages)
     for part in tool_return_parts(turn):
+        if part.tool_name == DESCRIBE_SITE_TOOL:
+            return scripted_text(_organisms_reply(part))
         if part.tool_name in _REPLY_AFTER:
             return scripted_text(_REPLY_AFTER[part.tool_name])
     text = last_user_text(turn)
@@ -145,6 +188,9 @@ __all__ = [
     "DESCRIBE_SITE_TOOL",
     "LIST_SITES_TOOL",
     "NOTHING_TO_PROCEED_REPLY",
+    "NO_ORGANISMS_REPLY",
+    "ORGANISMS_PREFIX",
+    "ORGANISMS_PROMPT",
     "PROCEED_PREFIX",
     "PROCEED_PROMPT",
     "RECORD_TYPES_PROMPT",

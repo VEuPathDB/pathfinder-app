@@ -13,6 +13,7 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import AgentDepsT, RunContext, ToolDefinition
 
+from pathfinder.platform.durable_worker import DurableCallsRefused
 from pathfinder.platform.errors import AppError
 
 _NOT_FOUND_STATUS = 404
@@ -91,12 +92,17 @@ class ServiceRefusalRetry(AbstractCapability[AgentDepsT]):
 def agent_capabilities(
     carried: Sequence[AgentCapability[AgentDepsT]],
 ) -> list[AgentCapability[AgentDepsT]]:
-    """What one agent runs with, plus the seam every agent here carries.
+    """What one agent runs with, plus the seams every agent here carries.
 
     A refusal this application names answers the model on every assistant, so
-    an agent that declares nothing else still answers one.
+    an agent that declares nothing else still answers one. A durable call is
+    answered the same way where no worker consumes its job.
     """
-    return [ServiceRefusalRetry[AgentDepsT](), *carried]
+    return [
+        ServiceRefusalRetry[AgentDepsT](),
+        DurableCallsRefused[AgentDepsT](),
+        *carried,
+    ]
 
 
 __all__ = [

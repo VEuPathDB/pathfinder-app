@@ -15,7 +15,7 @@ from assistant_core.graph.tool_summary import summary_chunks, with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.tasks.declaration import declare_durable_tool
-from assistant_core.tasks.decorator import DurableOutcome, durable_tool
+from assistant_core.tasks.decorator import DurableOutcome
 from pydantic import ConfigDict, Field
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
@@ -36,6 +36,7 @@ from pathfinder.ai.tools.standalone.workbench_models import (
     WdkProvenance,
 )
 from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
+from pathfinder.platform.durable_worker import durable_agent_tool
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.workbench.gene_sets import list_gene_sets, save_gene_set
 
@@ -222,7 +223,7 @@ GENESET_ENRICHMENT = declare_durable_tool(
 )
 
 
-@durable_tool(GENESET_ENRICHMENT)
+@durable_agent_tool(GENESET_ENRICHMENT)
 async def run_gene_set_enrichment(
     ctx: RunContext[AgentDeps],
     gene_set_id: str,
@@ -246,7 +247,7 @@ async def run_gene_set_enrichment(
             all five types.
     """
     del ctx, gene_set_id, enrichment_types
-    msg = "run_gene_set_enrichment runs on the worker via @durable_tool"
+    msg = "run_gene_set_enrichment runs on the worker via @durable_agent_tool"
     raise NotImplementedError(msg)
 
 
