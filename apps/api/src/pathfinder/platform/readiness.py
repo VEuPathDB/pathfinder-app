@@ -1,10 +1,11 @@
 """Readiness-state tracking for the API lifecycle.
 
 A single process-wide :class:`ReadinessState` records the init status of the
-process subsystems - database, embedding backend, PIGuard, graph checkpointer -
-and of each site catalog. The process is ready when every subsystem is ready
-and at least one catalog is loaded; a site whose catalog is not loaded is
-degraded, not fatal. ``/health/ready`` consults this state to return 200/503.
+process subsystems - database, embedding backend, graph checkpointer, and
+input screening where the deployment turns it on - and of each site catalog.
+The process is ready when every reported subsystem is ready and at least one
+catalog is loaded; a site whose catalog is not loaded is degraded, not fatal.
+``/health/ready`` consults this state to return 200/503.
 """
 
 from __future__ import annotations
@@ -16,9 +17,11 @@ _CATALOGS = "catalogs"
 _FIXED_SUBSYSTEMS = (
     "database",
     "embedding_backend",
-    "piguard",
     "graph_checkpointer",
 )
+
+# A subsystem the deployment may not run. Absent means it holds nothing back.
+_OPTIONAL_SUBSYSTEMS = ("input_screening",)
 
 
 class SubsystemStatus(BaseModel):
@@ -33,23 +36,35 @@ class ReadinessState(BaseModel):
 
     database: SubsystemStatus = Field(default_factory=SubsystemStatus)
     embedding_backend: SubsystemStatus = Field(default_factory=SubsystemStatus)
-    piguard: SubsystemStatus = Field(default_factory=SubsystemStatus)
     graph_checkpointer: SubsystemStatus = Field(default_factory=SubsystemStatus)
+    input_screening: SubsystemStatus | None = None
     catalogs: dict[str, SubsystemStatus] = Field(default_factory=dict)
+
+    @property
+    def _reported_optional(self) -> list[tuple[str, SubsystemStatus]]:
+        """The optional subsystems this deployment runs, with their status."""
+        return [
+            (name, status)
+            for name in _OPTIONAL_SUBSYSTEMS
+            if (status := getattr(self, name)) is not None
+        ]
 
     @property
     def all_ready(self) -> bool:
         return (
             self.database.ready
             and self.embedding_backend.ready
-            and self.piguard.ready
             and self.graph_checkpointer.ready
+            and all(status.ready for _, status in self._reported_optional)
             and any(c.ready for c in self.catalogs.values())
         )
 
     @property
     def not_ready(self) -> list[str]:
         missing = [name for name in _FIXED_SUBSYSTEMS if not getattr(self, name).ready]
+        missing += [
+            name for name, status in self._reported_optional if not status.ready
+        ]
         if not any(c.ready for c in self.catalogs.values()):
             missing.append(_CATALOGS)
         return missing
@@ -79,13 +94,13 @@ class ReadinessState(BaseModel):
         return None if status.ready else status
 
     def mark_ready(self, subsystem: str) -> None:
-        if subsystem not in _FIXED_SUBSYSTEMS:
+        if subsystem not in _FIXED_SUBSYSTEMS + _OPTIONAL_SUBSYSTEMS:
             msg = f"unknown subsystem: {subsystem}"
             raise ValueError(msg)
         setattr(self, subsystem, SubsystemStatus(ready=True))
 
     def mark_failed(self, subsystem: str, error: str) -> None:
-        if subsystem not in _FIXED_SUBSYSTEMS:
+        if subsystem not in _FIXED_SUBSYSTEMS + _OPTIONAL_SUBSYSTEMS:
             msg = f"unknown subsystem: {subsystem}"
             raise ValueError(msg)
         setattr(self, subsystem, SubsystemStatus(ready=False, error=error))

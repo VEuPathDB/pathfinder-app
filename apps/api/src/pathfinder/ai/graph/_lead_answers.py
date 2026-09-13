@@ -7,7 +7,8 @@ one they answered.
 
 from __future__ import annotations
 
-from assistant_core.capabilities.input_screening import is_pure_approval
+import re
+
 from assistant_core.graph import approvals
 from assistant_core.graph.turn_state import PendingApproval
 from pydantic_ai.messages import (
@@ -22,13 +23,53 @@ from pydantic_ai.tools import DeferredToolApprovalResult, ToolDenied
 from pathfinder.ai.graph.state import PipelineState
 
 __all__ = [
+    "MAX_APPROVAL_LENGTH",
     "answers_for",
+    "is_pure_approval",
     "sibling_answers",
     "typed_reply",
     "unanswered_inner",
 ]
 
 _DENIED_BY_REPLY = "The user replied instead of answering the approval."
+
+MAX_APPROVAL_LENGTH = 80
+
+_APPROVAL_PHRASE = re.compile(
+    r"""^\s*(?:
+        yes|yep|yeah|ok|okay|sure|fine|
+        approved?|proceed|go(?:\s+ahead)?|continue|
+        run\s+it|execute(?:\s+(?:it|the\s+plan))?|launch(?:\s+it)?|
+        do\s+it|confirm(?:ed)?|accept(?:ed)?|
+        sounds?\s+good|looks?\s+good|
+        perfect|great
+    )[\s\.\!\,]*$""",
+    re.IGNORECASE | re.VERBOSE,
+)
+
+_TWO_PHRASES = re.compile(
+    r"^\s*(?P<head>[^,.\!\?]{0,40}?)\s*[,\.]\s*(?P<tail>[^,.\!\?]{0,40})[\s\.\!\?]*$",
+)
+
+
+def is_pure_approval(text: str) -> bool:
+    """The text is an approval phrase and carries no instruction of its own.
+
+    One approval phrase, or two joined by a connective, inside
+    ``MAX_APPROVAL_LENGTH`` characters. Everything else is a new message.
+    """
+    stripped = text.strip()
+    if not stripped or len(stripped) > MAX_APPROVAL_LENGTH:
+        return False
+    if _APPROVAL_PHRASE.match(stripped):
+        return True
+    joined = _TWO_PHRASES.match(stripped)
+    if joined is None:
+        return False
+    return bool(
+        _APPROVAL_PHRASE.match(joined.group("head"))
+        and _APPROVAL_PHRASE.match(joined.group("tail")),
+    )
 
 
 def answers_for(

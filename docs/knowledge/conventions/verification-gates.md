@@ -81,7 +81,7 @@ is a distribution](../decisions/the-mcp-server-is-a-distribution.md).
 
 The unit tier refuses every connection made through Python's socket module. An autouse fixture in `src/pathfinder/tests/unit/conftest.py` patches `socket.socket.connect`, `connect_ex`, `socket.getaddrinfo` and the event loop's `create_connection`/`getaddrinfo`, so a stub that no longer covers its seam fails there instead of passing against a live server. The refusal derives from `BaseException`, because every HTTP client here retries under `except Exception` and would otherwise swallow it.
 
-Two limits are worth knowing. The guard runs per test, so anything at collection time is outside it, including the PIGuard model download the root `conftest.py` performs at import. And a C extension that opens its own socket without going through the `socket` module is not covered.
+Two limits are worth knowing. The guard runs per test, so anything at collection time is outside it. And a C extension that opens its own socket without going through the `socket` module is not covered.
 
 A unit test that needs a real connection carries `@pytest.mark.allow_network`. No production test does: the two database-backed ones live in `tests/integration/`, where they belong. A new marked test needs a reason, because the marker is how the guard is defeated.
 

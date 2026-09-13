@@ -123,8 +123,7 @@ test.describe("Auth", () => {
     await chatPage.goto();
     await chatPage.newChat();
 
-    // Send a message to create state. (Keep it plainly biological — phrases
-    // like "session persistence" trip the PIGuard safety screen.)
+    // Send a message to create state.
     await chatPage.send("show me kinase genes");
     await chatPage.expectAssistantMessage(/\[mock\]/);
     await chatPage.expectIdle();

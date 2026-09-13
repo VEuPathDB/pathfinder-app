@@ -17,6 +17,7 @@ class ErrorCode(StrEnum):
     UNAUTHORIZED = "UNAUTHORIZED"
     FORBIDDEN = "FORBIDDEN"
     RATE_LIMITED = "RATE_LIMITED"
+    SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE"
 
     # VEuPathDB
     SITE_NOT_FOUND = "SITE_NOT_FOUND"
@@ -122,6 +123,22 @@ class ForbiddenError(AppError):
         detail: str | None = None,
     ) -> None:
         super().__init__(code=code, title=title, status=403, detail=detail)
+
+
+class ScreeningUnavailableError(AppError):
+    """The injection judge did not answer, so the message was never screened.
+
+    The boundary fails closed: an unscreened message does not reach an agent.
+    The refusal names neither the judge nor the provider behind it.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            code=ErrorCode.SERVICE_UNAVAILABLE,
+            title="Screening is unavailable",
+            status=503,
+            detail="Screening is unavailable. Send the message again in a moment.",
+        )
 
 
 class StrategyAstCorruptError(AppError):

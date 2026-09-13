@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -24,8 +23,19 @@ import pathfinder.jobs.app
 from pathfinder import main
 from pathfinder.jobs import logging_filters
 from pathfinder.platform.langfuse import prompts
-from pathfinder.platform.readiness import get_readiness, reset_readiness
+from pathfinder.platform.readiness import (
+    SubsystemStatus,
+    get_readiness,
+    reset_readiness,
+)
 from pathfinder.services.export import sweeper
+
+_MISSING_CREDENTIAL = "the deployment holds no key for the screening model"
+_UNBUILT = "a disabled screener builds nothing"
+
+
+class _MissingCredentialError(Exception):
+    """The shape a provider client raises when its key is absent."""
 
 
 @asynccontextmanager
@@ -163,63 +173,7 @@ async def test_the_lifespan_leaves_the_process_s_logging_alone(
     assert logging.getLogger().handlers == before
 
 
-async def test_the_blocking_model_load_leaves_the_event_loop_free(
-    offline_warm_up: None,
-    piguard_enabled: None,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """``warm_up_scanner`` holds the CPU for seconds, so it belongs on a thread."""
-    del offline_warm_up, piguard_enabled
-    callers: list[str] = []
-
-    def record_model() -> None:
-        callers.append(threading.current_thread().name)
-
-    class _Discovery:
-        async def get_catalog(self, site_id: str) -> None:
-            del site_id
-
-    monkeypatch.setattr(main, "get_site_router", _Router)
-    monkeypatch.setattr(main, "warm_up_scanner", record_model)
-    monkeypatch.setattr(main, "get_discovery_service", _Discovery)
-
-    await main._warm_up_subsystems()
-    reset_readiness()
-
-    assert callers
-    assert all(name != threading.main_thread().name for name in callers)
-
-
-async def test_a_disabled_piguard_is_ready_by_policy_and_loads_no_model(
-    offline_warm_up: None,
-    piguard_disabled: None,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A deployment that screens no input is ready, and holds no ONNX session."""
-    del offline_warm_up, piguard_disabled
-    reset_readiness()
-
-    def fail_load() -> None:
-        pytest.fail("the model must not load when PIGuard is disabled")
-
-    class _Discovery:
-        async def get_catalog(self, site_id: str) -> None:
-            del site_id
-
-    monkeypatch.setattr(main, "warm_up_scanner", fail_load)
-    monkeypatch.setattr(main, "get_site_router", _Router)
-    monkeypatch.setattr(main, "get_discovery_service", _Discovery)
-
-    await main._warm_up_subsystems()
-
-    readiness = get_readiness()
-    assert readiness.piguard.ready is True
-    assert readiness.piguard.error is None
-    assert "piguard" not in readiness.not_ready
-    reset_readiness()
-
-
-async def test_a_warm_up_death_outside_its_handlers_fails_the_loading_subsystems(
+async def test_a_warm_up_death_outside_its_handlers_fails_the_loading_subsystem(
     isolated_lifespan: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A type no warm-up step catches still reaches ``/health/ready``."""
@@ -246,10 +200,6 @@ async def test_a_warm_up_death_outside_its_handlers_fails_the_loading_subsystems
             readiness.embedding_backend.error
             == "ZeroDivisionError: catalog index divided by zero"
         )
-        assert (
-            readiness.piguard.error
-            == "ZeroDivisionError: catalog index divided by zero"
-        )
 
     reset_readiness()
 
@@ -269,7 +219,6 @@ async def test_a_site_that_refuses_is_degraded_and_the_rest_load(
             if site_id == "veupathdb":
                 raise refusal
 
-    monkeypatch.setattr(main, "warm_up_scanner", lambda: None)
     monkeypatch.setattr(main, "get_site_router", _Router)
     monkeypatch.setattr(main, "get_discovery_service", _Discovery)
 
@@ -323,7 +272,6 @@ async def test_the_portal_is_preloaded_after_the_component_sites(
         async def get_catalog(self, site_id: str) -> None:
             del site_id
 
-    monkeypatch.setattr(main, "warm_up_scanner", lambda: None)
     monkeypatch.setattr(main, "get_site_router", _Router)
     monkeypatch.setattr(main, "get_discovery_service", _Discovery)
 
@@ -331,3 +279,94 @@ async def test_the_portal_is_preloaded_after_the_component_sites(
 
     assert list(get_readiness().catalogs) == ["plasmodb", "veupathdb"]
     reset_readiness()
+
+
+class TestTheWarmUpBuildsTheJudge:
+    """A model this deployment cannot reach is a 503, not a 500 per message."""
+
+    @staticmethod
+    def _ready_but_for_the_warm_up() -> None:
+        """The two subsystems the lifespan marks before it spawns the warm-up."""
+        reset_readiness()
+        get_readiness().mark_ready("database")
+        get_readiness().mark_ready("graph_checkpointer")
+
+    async def test_a_built_judge_reports_the_subsystem_ready(
+        self,
+        offline_warm_up: None,
+        input_screening_enabled: None,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        del offline_warm_up, input_screening_enabled
+        self._ready_but_for_the_warm_up()
+
+        class _Discovery:
+            async def get_catalog(self, site_id: str) -> None:
+                del site_id
+
+        monkeypatch.setattr(main, "get_site_router", _Router)
+        monkeypatch.setattr(main, "get_discovery_service", _Discovery)
+
+        await main._warm_up_subsystems()
+
+        readiness = get_readiness()
+        assert readiness.input_screening == SubsystemStatus(ready=True)
+        assert "input_screening" not in readiness.not_ready
+        reset_readiness()
+
+    async def test_a_judge_that_cannot_be_built_fails_the_subsystem(
+        self,
+        offline_warm_up: None,
+        input_screening_enabled: None,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        del offline_warm_up, input_screening_enabled
+        self._ready_but_for_the_warm_up()
+
+        def no_credential() -> None:
+            raise _MissingCredentialError(_MISSING_CREDENTIAL)
+
+        class _Discovery:
+            async def get_catalog(self, site_id: str) -> None:
+                del site_id
+
+        monkeypatch.setattr(main, "warm_up_screening", no_credential)
+        monkeypatch.setattr(main, "get_site_router", _Router)
+        monkeypatch.setattr(main, "get_discovery_service", _Discovery)
+
+        await main._warm_up_subsystems()
+
+        readiness = get_readiness()
+        assert readiness.not_ready == ["input_screening"]
+        assert readiness.input_screening == SubsystemStatus(
+            ready=False,
+            error=_MISSING_CREDENTIAL,
+        )
+        reset_readiness()
+
+    async def test_a_disabled_screener_reports_no_subsystem(
+        self,
+        offline_warm_up: None,
+        input_screening_disabled: None,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        del offline_warm_up, input_screening_disabled
+        self._ready_but_for_the_warm_up()
+
+        def fail_build() -> None:
+            raise AssertionError(_UNBUILT)
+
+        class _Discovery:
+            async def get_catalog(self, site_id: str) -> None:
+                del site_id
+
+        monkeypatch.setattr(main, "warm_up_screening", fail_build)
+        monkeypatch.setattr(main, "get_site_router", _Router)
+        monkeypatch.setattr(main, "get_discovery_service", _Discovery)
+
+        await main._warm_up_subsystems()
+
+        readiness = get_readiness()
+        assert readiness.input_screening is None
+        assert readiness.not_ready == []
+        reset_readiness()

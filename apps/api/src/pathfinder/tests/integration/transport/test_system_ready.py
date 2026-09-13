@@ -190,12 +190,42 @@ async def test_readiness_is_503_when_a_process_subsystem_failed(
     api_ready: None,
 ) -> None:
     del api_ready
-    get_readiness().mark_failed("piguard", "OSError")
+    get_readiness().mark_failed("embedding_backend", "OSError")
 
     resp = await client.get("/health/ready")
 
     assert resp.status_code == 503
-    assert resp.json()["notReady"] == ["piguard"]
+    assert resp.json()["notReady"] == ["embedding_backend"]
+
+
+async def test_readiness_is_503_when_the_injection_judge_did_not_build(
+    client: httpx.AsyncClient,
+    api_ready: None,
+) -> None:
+    """A screening model this deployment cannot reach holds the process back."""
+    del api_ready
+    get_readiness().mark_failed("input_screening", "OpenAIError: Missing credentials")
+
+    resp = await client.get("/health/ready")
+
+    assert resp.status_code == 503
+    assert resp.json()["notReady"] == ["input_screening"]
+    assert resp.json()["readiness"]["input_screening"] == {
+        "ready": False,
+        "error": "OpenAIError: Missing credentials",
+    }
+
+
+async def test_a_deployment_that_screens_nothing_reports_no_screening_subsystem(
+    client: httpx.AsyncClient,
+    api_ready: None,
+) -> None:
+    del api_ready
+
+    resp = await client.get("/health/ready")
+
+    assert resp.status_code == 200
+    assert resp.json()["readiness"]["input_screening"] is None
 
 
 async def test_system_ready_names_the_degraded_sites(

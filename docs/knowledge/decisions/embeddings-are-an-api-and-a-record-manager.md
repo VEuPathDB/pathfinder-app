@@ -123,8 +123,9 @@ warm-up to race.
 
 # What stays
 
-`onnxruntime` stays a dependency. PIGuard is an ONNX model and loads through it;
-only the fastembed text model left.
+No local inference runtime stays. The fastembed text model left with this
+decision, and the injection classifier that kept `onnxruntime` left with the
+judge that replaced it.
 
 The record manager and the two tables are the MCP unit's, and the embedder is
 declared once per unit; see [the embedding index belongs to the MCP

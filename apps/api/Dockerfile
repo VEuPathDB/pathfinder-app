@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Cached layer: dependencies and models. Only the manifests below bust it, so
-# the application source stays out of it.
+# Cached layer: dependencies. Only the manifests below bust it, so the
+# application source stays out of it.
 COPY apps/api/pyproject.toml apps/api/
 COPY apps/api/uv.lock apps/api/
 COPY apps/api/config.toml apps/api/
@@ -24,32 +24,6 @@ COPY apps/api/config.toml apps/api/
 WORKDIR /app/apps/api
 RUN --mount=type=cache,target=/root/.cache/uv \
     UV_LINK_MODE=copy uv sync --frozen --no-install-project
-
-# Download PIGuard ONNX model + tokenizer for prompt-injection detection.
-# hf_hub_download fills the HF cache on the mount, so a later build finds the
-# files there; the copy into /app/models/piguard is what the image layer keeps.
-ENV HF_HOME=/root/.cache/huggingface
-RUN --mount=type=cache,target=/root/.cache/huggingface \
-    .venv/bin/python <<'PYEOF'
-from huggingface_hub import hf_hub_download
-import os
-import shutil
-model_dir = '/app/models/piguard'
-os.makedirs(model_dir, exist_ok=True)
-for fname in ('model.onnx', 'tokenizer.json'):
-    cached = hf_hub_download(repo_id='ahmedomuharram/piguard-onnx', filename=fname)
-    shutil.copyfile(cached, os.path.join(model_dir, fname))
-print(f'PIGuard model copied to {model_dir}')
-PYEOF
-
-# Verify PIGuard loads correctly at build time.
-RUN .venv/bin/python <<'PYEOF'
-import onnxruntime
-from tokenizers import Tokenizer
-session = onnxruntime.InferenceSession('/app/models/piguard/model.onnx', providers=['CPUExecutionProvider'])
-tokenizer = Tokenizer.from_file('/app/models/piguard/tokenizer.json')
-print('PIGuard ONNX model verified')
-PYEOF
 
 # Fast layer: application code. Every code change re-runs it.
 

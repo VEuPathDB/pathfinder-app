@@ -2,6 +2,33 @@
 
 ## 2026-09-13
 
+* **One model judges every text this application did not write, and a judgement that
+  does not happen has an answer of its own.**
+  `assistant-core` 0.3.0a12 replaces the local injection classifier with
+  `ModelInjectionJudge`, and `ai/capabilities/security.py` builds one judge for both
+  trust boundaries: the scan the chat dispatcher runs on the researcher's message and
+  the `screened_output` scan `ai/conversation/turn_runner.py` installs on every tool
+  source. A judged injection in a message is 403 `FORBIDDEN`; a judgement that failed
+  is 503 `SERVICE_UNAVAILABLE`, because an unscreened message reaches no agent. A
+  judged tool result is replaced with the runtime's sentence, and one the judge could
+  not read with this application's, so a provider blip loses one result and never the
+  turn that ran the tool. Neither refusal names the judge, its confidence or the
+  provider. `INPUT_SCREENING_ENABLED` gates both boundaries and
+  `INPUT_SCREENING_MODEL` names the model; the api process screens the message and
+  the worker screens the results, so both carry the pair. Both build the judge before
+  they serve: the api warm-up reports `input_screening` in `ReadinessState`, failed
+  with the provider's own message where the model cannot be resolved and absent where
+  the deployment screens nothing, so a missing credential is a 503 at start and not a
+  broken message; the worker, which serves no probe, raises `WorkerCannotScreenError`
+  out of its entry point instead, because a worker that cannot screen would withhold
+  every tool result of every turn. Under
+  `PATHFINDER_CHAT_PROVIDER=mock` the judge runs on a scripted model that calls one
+  marker string an injection, so the suite screens without reaching a provider.
+  Nothing is downloaded or loaded any more: the image builds no model stage and
+  `onnxruntime` is out of the lock. The approval-phrase test the runtime deleted with
+  its classifier now lives beside its only reader, as
+  `ai/graph/_lead_answers.py::is_pure_approval`.
+
 * **A completion turn runs under the credential the durable call carried.**
   The runtime (`assistant-core` 0.3.0a10) opens the turn that answers a durable task inside
   the same carried job context as the task's body, so a WDK read or a second durable call

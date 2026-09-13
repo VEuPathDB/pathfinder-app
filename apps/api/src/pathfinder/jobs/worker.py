@@ -25,6 +25,7 @@ from assistant_core.tasks.runner import install_worker_context, register_durable
 from procrastinate.worker import Worker
 from veupathdb_mcp.embeddings import use_embedding_session_factory
 
+from pathfinder.ai.capabilities.security import warm_up_screening
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.completion import open_completion_turn
@@ -34,6 +35,32 @@ from pathfinder.jobs.logging_filters import install_procrastinate_redaction
 from pathfinder.jobs.runtime import build_worker_context
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.tool_sources import admitted_tool_sources
+
+_CANNOT_SCREEN = "the injection judge did not build; this worker consumes no jobs"
+
+
+class WorkerCannotScreenError(RuntimeError):
+    """The worker cannot screen a tool result, so it refuses to start."""
+
+
+def _build_the_injection_judge() -> None:
+    """Build the judge before the worker pulls a job.
+
+    Every tool result this process reads crosses the judge. A worker that
+    cannot build it would withhold every result of every turn, so it stops
+    instead. The api answers 503 for the same misconfiguration.
+    """
+    if not get_settings().input_screening_enabled:
+        return
+    try:
+        warm_up_screening()
+    except Exception as error:
+        logging.getLogger(__name__).exception(
+            "The injection judge did not build. Point INPUT_SCREENING_MODEL at a "
+            "model this deployment can reach, or set "
+            "INPUT_SCREENING_ENABLED=false to run without screening.",
+        )
+        raise WorkerCannotScreenError(_CANNOT_SCREEN) from error
 
 
 class _RunningWorker(Protocol):
@@ -50,6 +77,7 @@ async def amain() -> None:
     # The index shares this process's pool instead of opening a second one.
     use_embedding_session_factory(async_session_factory)
     logging.getLogger(__name__).info("Pathfinder worker starting")
+    _build_the_injection_judge()
     # Turns run here, so this is the process where a declaration resolves.
     install_admitted_sources(admitted_tool_sources())
     register_all_tools()

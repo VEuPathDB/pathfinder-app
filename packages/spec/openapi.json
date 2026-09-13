@@ -78,7 +78,7 @@
           "health"
         ],
         "summary": "Readiness Check",
-        "description": "Readiness check - can this process serve requests?\n\nReturns 503 until every process subsystem is ready (database, embedding\nmodel, PIGuard, graph checkpointer) and at least one site catalog is\nloaded. ``degraded`` names the sites whose catalog is not loaded; they are\nrefused on their own routes and retried in the background. Also\nre-verifies the DB with a live ping so stale state does not mask a broken\ndependency.",
+        "description": "Readiness check - can this process serve requests?\n\nReturns 503 until every process subsystem is ready (database, embedding\nmodel, graph checkpointer, and input screening where the deployment runs\nit) and at least one site catalog is loaded.\n``degraded`` names the sites whose catalog is not loaded; they are refused\non their own routes and retried in the background. Also\nre-verifies the DB with a live ping so stale state does not mask a broken\ndependency.",
         "operationId": "readiness_check_health_ready_get",
         "responses": {
           "200": {
@@ -13483,11 +13483,18 @@
           "embedding_backend": {
             "$ref": "#/components/schemas/SubsystemStatus"
           },
-          "piguard": {
-            "$ref": "#/components/schemas/SubsystemStatus"
-          },
           "graph_checkpointer": {
             "$ref": "#/components/schemas/SubsystemStatus"
+          },
+          "input_screening": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubsystemStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "catalogs": {
             "additionalProperties": {
@@ -17271,6 +17278,7 @@
           "UNAUTHORIZED",
           "FORBIDDEN",
           "RATE_LIMITED",
+          "SERVICE_UNAVAILABLE",
           "SITE_NOT_FOUND",
           "SITE_UNAVAILABLE",
           "SEARCH_NOT_FOUND",

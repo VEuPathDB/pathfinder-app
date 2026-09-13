@@ -9,17 +9,12 @@ card and runs when the user answers it.
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.mcp.admission import (
-    AdmissionRecord,
-    AdmittedSources,
-    install_admitted_sources,
-)
+from assistant_core.mcp.admission import AdmittedSources, install_admitted_sources
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,29 +29,17 @@ from pathfinder.assistants.site_help.mock import (
     WDK_CONTROL_TESTS_TOOL,
     WDK_RECORD_TYPES_TOOL,
 )
-from pathfinder.platform.config import get_settings
-from pathfinder.platform.tool_sources import (
-    WDK_MCP_PART_NAMESPACE,
-    WDK_MCP_SOURCE_ID,
-)
-from pathfinder.tests.integration.chat._helpers import (
-    chat_post_body,
-    chat_turn_jobs,
-    parse_sse_body,
-    run_deferred_chat_turns,
-    wait_until_chat_turn_deferred,
-)
+from pathfinder.tests.integration.chat._helpers import chat_post_body
 from pathfinder.tests.integration.http._wdk_mcp_double import (
     ANNOTATIONS,
     CONTROL_TEST_RESULT,
     RECORD_TYPES,
+    SITE_HELP,
+    admit_wdk_mcp,
+    run_site_help_turn,
     served_double,
 )
-from pathfinder.tests.integration.http.conftest import client_for, make_user
-
-SITE_HELP = "site_help"
-SERVICE_TOKEN = "wdk-mcp-client-secret-0123456789abcdef"
-CALL_SECONDS = 30
+from pathfinder.tests.integration.http.conftest import make_user
 
 
 @pytest.fixture(scope="module")
@@ -72,26 +55,8 @@ def admitted_double(
     monkeypatch: pytest.MonkeyPatch,
 ) -> Iterator[str]:
     """Admit the served double under the id site help declares."""
-    install_admitted_sources(
-        AdmittedSources(
-            records=(
-                AdmissionRecord(
-                    source_id=WDK_MCP_SOURCE_ID,
-                    endpoint=served_endpoint,
-                    credential_mode="service",
-                    part_namespace=WDK_MCP_PART_NAMESPACE,
-                    max_call_seconds=CALL_SECONDS,
-                ),
-            ),
-        ),
-    )
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_TOKEN", SERVICE_TOKEN)
-    get_settings.cache_clear()
-    try:
-        yield served_endpoint
-    finally:
-        install_admitted_sources(AdmittedSources())
-        get_settings.cache_clear()
+    with admit_wdk_mcp(served_endpoint, monkeypatch) as endpoint:
+        yield endpoint
 
 
 @pytest.fixture
@@ -109,19 +74,7 @@ async def _turn(
     *,
     body: dict[str, Any],
 ) -> list[dict[str, Any]]:
-    queued = len(chat_turn_jobs(in_memory_jobs))
-    async with client_for(app, user_id) as client:
-        task = asyncio.create_task(
-            client.post("/api/v1/chat", json=body, timeout=60.0),
-        )
-        await asyncio.wait_for(
-            wait_until_chat_turn_deferred(in_memory_jobs, queued),
-            timeout=10.0,
-        )
-        await run_deferred_chat_turns()
-        response = await asyncio.wait_for(task, timeout=60.0)
-    assert response.status_code == 200, response.text
-    return parse_sse_body(response.text)
+    return await run_site_help_turn(app, user_id, in_memory_jobs, body)
 
 
 def _prompt_body(conversation_id: UUID, prompt: str) -> dict[str, Any]:

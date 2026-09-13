@@ -52,7 +52,6 @@ src/pathfinder/tests/unit/ai/capabilities/test_repetition_guard.py::test_first_c
 src/pathfinder/tests/unit/ai/capabilities/test_repetition_guard.py::test_interleaved_calls_do_not_block
 src/pathfinder/tests/unit/ai/capabilities/test_repetition_guard.py::test_two_consecutive_identical_calls_proceed
 src/pathfinder/tests/unit/ai/capabilities/test_repetition_guard.py::test_unclassified_tool_resets_counter
-src/pathfinder/tests/unit/ai/capabilities/test_security.py::test_scan_is_noop_when_piguard_disabled
 src/pathfinder/tests/unit/ai/conversation/test_checkpoint_serde.py::test_a_populated_state_keeps_its_nested_types
 src/pathfinder/tests/unit/ai/conversation/test_checkpoint_serde.py::test_every_registered_type_is_a_real_class
 src/pathfinder/tests/unit/ai/conversation/test_checkpoint_serde.py::test_the_allowlist_carries_the_types_a_thread_read_decodes

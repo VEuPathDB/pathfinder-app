@@ -99,9 +99,10 @@ async def readiness_check() -> ReadinessResponse | JSONResponse:
     """Readiness check - can this process serve requests?
 
     Returns 503 until every process subsystem is ready (database, embedding
-    model, PIGuard, graph checkpointer) and at least one site catalog is
-    loaded. ``degraded`` names the sites whose catalog is not loaded; they are
-    refused on their own routes and retried in the background. Also
+    model, graph checkpointer, and input screening where the deployment runs
+    it) and at least one site catalog is loaded.
+    ``degraded`` names the sites whose catalog is not loaded; they are refused
+    on their own routes and retried in the background. Also
     re-verifies the DB with a live ping so stale state does not mask a broken
     dependency.
     """

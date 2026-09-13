@@ -32,7 +32,7 @@ from veupathdb_mcp.catalog import get_discovery_service
 from veupathdb_mcp.embeddings import use_embedding_session_factory
 
 from pathfinder import __version__
-from pathfinder.ai.capabilities.security import warm_up_scanner
+from pathfinder.ai.capabilities.security import warm_up_screening
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.jobs.job_context import WdkJobContext
@@ -55,7 +55,11 @@ from pathfinder.platform.observability import (
     shutdown_observability,
 )
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER
-from pathfinder.platform.readiness import get_readiness, reset_readiness
+from pathfinder.platform.readiness import (
+    ReadinessState,
+    get_readiness,
+    reset_readiness,
+)
 from pathfinder.platform.security import (
     RejectNullBytesMiddleware,
     csrf_middleware,
@@ -92,14 +96,32 @@ from pathfinder.transport.http.routers import (
 logger = get_logger(__name__)
 
 
+def _build_the_injection_judge(readiness: ReadinessState) -> None:
+    """Build the judge, and report it only where the deployment screens.
+
+    Building it names the model, so a deployment that holds no credential for
+    it answers 503 instead of failing every message the researcher sends.
+    """
+    if not get_settings().input_screening_enabled:
+        logger.info("[warm-up] Input screening is off; the judge stays unbuilt")
+        return
+    try:
+        warm_up_screening()
+    except Exception as error:
+        logger.exception("[warm-up] The injection judge did not build")
+        readiness.mark_failed("input_screening", str(error))
+        return
+    readiness.mark_ready("input_screening")
+
+
 async def _warm_up_subsystems() -> None:
-    """Reach the embedding backend, load PIGuard, and preload the catalogs.
+    """Build the injection judge, reach the embedding backend, load the catalogs.
 
     Each step is independent. A failure marks its subsystem as not ready and
-    the rest continue. The PIGuard load holds the CPU for seconds, so it runs
-    on a thread and the server keeps answering while it runs.
+    the rest continue.
     """
     readiness = get_readiness()
+    _build_the_injection_judge(readiness)
     try:
         logger.info("[warm-up] Reaching the embedding backend")
         await get_embedder().embed_query("ready")
@@ -113,18 +135,6 @@ async def _warm_up_subsystems() -> None:
     ) as e:
         logger.exception("[warm-up] Embedding backend failed")
         readiness.mark_failed("embedding_backend", str(e))
-
-    if get_settings().piguard_enabled:
-        try:
-            logger.info("[warm-up] Loading PIGuard ONNX model")
-            await asyncio.to_thread(warm_up_scanner)
-            readiness.mark_ready("piguard")
-        except (VEuPathDBError, OSError, RuntimeError) as e:
-            logger.exception("[warm-up] PIGuard failed")
-            readiness.mark_failed("piguard", str(e))
-    else:
-        logger.info("[warm-up] PIGuard disabled (PIGUARD_ENABLED=false); skipping")
-        readiness.mark_ready("piguard")
 
     try:
         logger.info("[warm-up] Preloading discovery catalogs (all sites)")

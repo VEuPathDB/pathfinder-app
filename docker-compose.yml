@@ -43,8 +43,11 @@ services:
       EMBEDDING_INDEX_SYNC_ENABLED: "true"
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       CORS_ORIGIN_REGEX: ${CORS_ORIGIN_REGEX:-}
-      # Set PIGUARD_ENABLED=false to skip the prompt-injection model load + per-message scan.
-      PIGUARD_ENABLED: ${PIGUARD_ENABLED:-true}
+      # Set INPUT_SCREENING_ENABLED=false to skip the injection judge, and give
+      # the worker the same two values. This process screens the user's
+      # message; the worker screens every tool result.
+      INPUT_SCREENING_ENABLED: ${INPUT_SCREENING_ENABLED:-true}
+      INPUT_SCREENING_MODEL: ${INPUT_SCREENING_MODEL:-openai:gpt-5.6-luna}
       # Set OTEL_INCLUDE_CONTENT=true to export prompts and completions in agent traces.
       OTEL_INCLUDE_CONTENT: ${OTEL_INCLUDE_CONTENT:-false}
       # Seconds of silence after which the chat SSE stream sends a comment frame.
@@ -107,6 +110,9 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-}
+      # This process runs the turn, so it screens every tool result.
+      INPUT_SCREENING_ENABLED: ${INPUT_SCREENING_ENABLED:-true}
+      INPUT_SCREENING_MODEL: ${INPUT_SCREENING_MODEL:-openai:gpt-5.6-luna}
       S2_API_KEY: ${S2_API_KEY:-}
       VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-}
       VEUPATHDB_AUTH_TOKEN: ${VEUPATHDB_AUTH_TOKEN:-}

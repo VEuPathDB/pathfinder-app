@@ -29,11 +29,12 @@ process, took 2.6 s.
 # What was decided
 
 **Readiness is about this process.** `ReadinessState.all_ready` is every fixed
-subsystem ready - database, embedding backend, PIGuard, graph checkpointer - and
-`any(c.ready for c in catalogs.values())`. `not_ready` keeps naming the fixed
-subsystems, plus the single entry `catalogs` when no catalog is loaded at all, so
-a 503 always says which precondition is missing. `degraded` names the sites whose
-catalog failed or is still loading, on `/health/ready` and on `/health/system`.
+subsystem ready - database, embedding backend, graph checkpointer - plus every
+optional one the deployment reports, and `any(c.ready for c in catalogs.values())`.
+`not_ready` keeps naming those subsystems, plus the single entry `catalogs` when
+no catalog is loaded at all, so a 503 always says which precondition is missing.
+`degraded` names the sites whose catalog failed or is still loading, on
+`/health/ready` and on `/health/system`.
 
 **A preload has a per-site budget.** The warm-up in `main.py` calls
 `platform/site_catalogs.py::preload_catalogs`, which registers every site and

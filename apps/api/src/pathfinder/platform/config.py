@@ -144,9 +144,9 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     # Conversation provider. "mock" gives deterministic offline runs.
     pathfinder_chat_provider: str = ""
 
-    # Prompt-injection screening with the PIGuard ONNX model.
-    piguard_enabled: bool = True
-    piguard_model_dir: Path = Path("/app/models/piguard")
+    # Prompt-injection screening, and the model one judgement runs on.
+    input_screening_enabled: bool = True
+    input_screening_model: str = "openai:gpt-5.6-luna"
 
     # Background worker
     worker_concurrency: int = Field(

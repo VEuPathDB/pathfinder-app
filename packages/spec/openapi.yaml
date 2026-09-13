@@ -72,11 +72,13 @@ paths:
 
         Returns 503 until every process subsystem is ready (database, embedding
 
-        model, PIGuard, graph checkpointer) and at least one site catalog is
+        model, graph checkpointer, and input screening where the deployment runs
 
-        loaded. ``degraded`` names the sites whose catalog is not loaded; they are
+        it) and at least one site catalog is loaded.
 
-        refused on their own routes and retried in the background. Also
+        ``degraded`` names the sites whose catalog is not loaded; they are refused
+
+        on their own routes and retried in the background. Also
 
         re-verifies the DB with a live ping so stale state does not mask a broken
 
@@ -8596,10 +8598,12 @@ components:
           $ref: '#/components/schemas/SubsystemStatus'
         embedding_backend:
           $ref: '#/components/schemas/SubsystemStatus'
-        piguard:
-          $ref: '#/components/schemas/SubsystemStatus'
         graph_checkpointer:
           $ref: '#/components/schemas/SubsystemStatus'
+        input_screening:
+          anyOf:
+          - $ref: '#/components/schemas/SubsystemStatus'
+          - type: 'null'
         catalogs:
           additionalProperties:
             $ref: '#/components/schemas/SubsystemStatus'
@@ -10975,6 +10979,7 @@ components:
       - UNAUTHORIZED
       - FORBIDDEN
       - RATE_LIMITED
+      - SERVICE_UNAVAILABLE
       - SITE_NOT_FOUND
       - SITE_UNAVAILABLE
       - SEARCH_NOT_FOUND

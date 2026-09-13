@@ -1,8 +1,10 @@
-"""A stand-in for veupathdb-wdk-mcp, served over HTTP for one test module.
+"""A stand-in for veupathdb-wdk-mcp, and what a test needs to drive it.
 
-It answers under the served server's own tool names and annotations, so the
-path a declaration takes to reach the agent is exercised over a socket. The
-served server's live behaviour is proven by its own integration lane.
+The double answers under the served server's own tool names and annotations,
+so the path a declaration takes to reach the agent is exercised over a socket.
+The served server's live behaviour is proven by its own integration lane.
+Beside it: how a test serves an MCP source, how this deployment admits one,
+and how one site-help turn runs against it.
 """
 
 from __future__ import annotations
@@ -12,10 +14,36 @@ from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager, contextmanager
 from socket import socket
 from typing import Any
+from uuid import UUID
 
+import pytest
 import uvicorn
+from assistant_core.mcp.admission import (
+    AdmissionRecord,
+    AdmittedSources,
+    install_admitted_sources,
+)
+from fastapi import FastAPI
 from fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+from procrastinate.testing import InMemoryConnector
+
+from pathfinder.platform.config import get_settings
+from pathfinder.platform.tool_sources import (
+    WDK_MCP_PART_NAMESPACE,
+    WDK_MCP_SOURCE_ID,
+)
+from pathfinder.tests.integration.chat._helpers import (
+    chat_turn_jobs,
+    parse_sse_body,
+    run_deferred_chat_turns,
+    wait_until_chat_turn_deferred,
+)
+from pathfinder.tests.integration.http.conftest import client_for
+
+SITE_HELP = "site_help"
+SERVICE_TOKEN = "wdk-mcp-client-secret-0123456789abcdef"
+CALL_SECONDS = 30
 
 RECORD_TYPES = ["transcript", "organism"]
 SEARCH_NAMES = ["GenesByMolecularWeight", "GenesByTaxon"]
@@ -106,9 +134,9 @@ class _AnnouncingServer(uvicorn.Server):
 
 
 @asynccontextmanager
-async def served_double() -> AsyncIterator[str]:
-    """Serve the double on a port the operating system picks. Yields its URL."""
-    app = build_double().http_app(path="/mcp", stateless_http=True)
+async def serve_mcp(source: FastMCP[None]) -> AsyncIterator[str]:
+    """Serve one MCP server on a port the operating system picks."""
+    app = source.http_app(path="/mcp", stateless_http=True)
     server = _AnnouncingServer(
         uvicorn.Config(app, host="127.0.0.1", port=0, log_level="warning"),
     )
@@ -120,3 +148,59 @@ async def served_double() -> AsyncIterator[str]:
     finally:
         server.should_exit = True
         await task
+
+
+@asynccontextmanager
+async def served_double() -> AsyncIterator[str]:
+    """Serve the double. Yields its URL."""
+    async with serve_mcp(build_double()) as endpoint:
+        yield endpoint
+
+
+@contextmanager
+def admit_wdk_mcp(endpoint: str, monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
+    """Admit one served endpoint under the id site help declares."""
+    install_admitted_sources(
+        AdmittedSources(
+            records=(
+                AdmissionRecord(
+                    source_id=WDK_MCP_SOURCE_ID,
+                    endpoint=endpoint,
+                    credential_mode="service",
+                    part_namespace=WDK_MCP_PART_NAMESPACE,
+                    max_call_seconds=CALL_SECONDS,
+                ),
+            ),
+        ),
+    )
+    monkeypatch.setenv("PATHFINDER_WDK_MCP_TOKEN", SERVICE_TOKEN)
+    get_settings.cache_clear()
+    try:
+        yield endpoint
+    finally:
+        install_admitted_sources(AdmittedSources())
+        get_settings.cache_clear()
+
+
+async def run_site_help_turn(
+    app: FastAPI,
+    user_id: UUID,
+    connector: InMemoryConnector,
+    body: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Post one site-help body, run the deferred turn, and return its chunks."""
+    queued = len(chat_turn_jobs(connector))
+    async with client_for(app, user_id) as client:
+        task = asyncio.create_task(
+            client.post("/api/v1/chat", json=body, timeout=60.0),
+        )
+        await asyncio.wait_for(
+            wait_until_chat_turn_deferred(connector, queued),
+            timeout=10.0,
+        )
+        await run_deferred_chat_turns()
+        response = await asyncio.wait_for(task, timeout=60.0)
+    if response.status_code != 200:
+        msg = f"chat returned {response.status_code}; body={response.text[:500]!r}"
+        raise AssertionError(msg)
+    return parse_sse_body(response.text)

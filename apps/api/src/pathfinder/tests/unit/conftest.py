@@ -19,18 +19,18 @@ from pathfinder.platform.config import get_settings
 
 
 @pytest.fixture
-def piguard_enabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+def input_screening_enabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Turns input screening on for one test."""
-    monkeypatch.setenv("PIGUARD_ENABLED", "true")
+    monkeypatch.setenv("INPUT_SCREENING_ENABLED", "true")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
 
 
 @pytest.fixture
-def piguard_disabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+def input_screening_disabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Turns input screening off for one test."""
-    monkeypatch.setenv("PIGUARD_ENABLED", "false")
+    monkeypatch.setenv("INPUT_SCREENING_ENABLED", "false")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()

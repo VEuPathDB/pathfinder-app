@@ -34,6 +34,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
     StartChunk,
 )
 
+from pathfinder.ai.capabilities.security import tool_output_scan
 from pathfinder.ai.conversation._turn_helpers import (
     _extract_chunk,
     build_turn_start,
@@ -132,6 +133,7 @@ async def run_turn(
             ResolvedToolSources(
                 declarations=spec.tool_sources,
                 credential=source_credential,
+                scan=tool_output_scan(),
             ),
         )
         tool_sources = dict(resolved.by_name)

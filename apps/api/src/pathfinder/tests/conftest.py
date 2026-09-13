@@ -8,22 +8,6 @@ from pathlib import Path
 from typing import Annotated, Any
 from uuid import UUID, uuid4
 
-# The scanner names its model directory at import, so the PIGuard model must
-# be on disk before the first pathfinder import.
-
-if "PIGUARD_MODEL_DIR" not in os.environ:
-    from huggingface_hub import hf_hub_download
-
-    _piguard_cache = Path.home() / ".cache" / "pathfinder" / "piguard"
-    _piguard_cache.mkdir(parents=True, exist_ok=True)
-    for _fname in ("model.onnx", "tokenizer.json"):
-        hf_hub_download(
-            repo_id="ahmedomuharram/piguard-onnx",
-            filename=_fname,
-            local_dir=str(_piguard_cache),
-        )
-    os.environ["PIGUARD_MODEL_DIR"] = str(_piguard_cache)
-
 # The suite has no API key, so every embedding call is the deterministic one.
 os.environ["EMBEDDING_BACKEND"] = "fake"
 
@@ -38,10 +22,6 @@ os.environ.setdefault(
     "DATABASE_URL",
     "postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test",
 )
-# No test feeds a real message through the injection model, so the suite
-# screens nothing and the model stays unloaded. A test about screening takes
-# the `piguard_enabled` fixture.
-os.environ.setdefault("PIGUARD_ENABLED", "false")
 os.environ.setdefault("PATHFINDER_CHAT_PROVIDER", "mock")
 os.environ.setdefault("OPENAI_API_KEY", "")
 os.environ.setdefault("ANTHROPIC_API_KEY", "")
@@ -84,7 +64,6 @@ from veupathdb_mcp.embeddings import (
     use_embedding_session_factory,
 )
 
-from pathfinder.ai.capabilities.security import warm_up_scanner
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.app import procrastinate_app
@@ -332,17 +311,6 @@ async def in_memory_jobs() -> AsyncGenerator[InMemoryConnector]:
 def _test_env_defaults() -> None:
     # The rate limiter stays off, because a test can exceed the request rate.
     limiter.enabled = False
-
-
-@pytest.fixture(scope="session", autouse=True)
-def _warm_the_input_scanner() -> None:
-    """Load the injection model once, the way readiness loads it in production.
-
-    The call returns without loading while screening is off. Where it is on,
-    the first chat POST of the process would otherwise build the ONNX session
-    inside the enqueue wait.
-    """
-    warm_up_scanner()
 
 
 @pytest.fixture

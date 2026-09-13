@@ -25,7 +25,7 @@ src/pathfinder/
   ai/                        # The agents themselves
     agents/                  #   Sub-agent roles (frame, execution, verification), instructions,
                              #     history compaction, tool and parameter vocabulary
-    capabilities/            #   PIGuard, error classification, resilience, security
+    capabilities/            #   Injection-judge wiring, error classification, resilience, security
     conversation/            #   Dispatcher, turn runner, assistant routing, request body,
                              #     title generator, turn stop
     graph/                   #   The two-node LangGraph: state, runtime, builder, lead_node,

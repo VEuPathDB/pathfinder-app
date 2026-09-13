@@ -88,9 +88,9 @@ package's dependency list says it.
 **The rejected alternative is keeping the server inside `apps/api` behind those
 contracts.** It costs nothing to keep and it is what the tree did until now. It
 was rejected because the owner is publishing the folder as its own repository,
-and because the served image inherited 1.95 GB of PathFinder - the PIGuard ONNX
-model, the agent framework and the whole application tree - to serve seventeen
-WDK reads.
+and because the served image inherited 1.95 GB of PathFinder - a local
+classifier model, the agent framework and the whole application tree - to serve
+seventeen WDK reads.
 
 # What stayed behind, and why
 

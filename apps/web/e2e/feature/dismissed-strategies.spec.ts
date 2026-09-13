@@ -210,8 +210,7 @@ test.describe("Dismissed Strategies — complex flows", () => {
     apiClient,
     page,
   }) => {
-    // Create first WDK strategy. (Keep prompts plainly biological — some
-    // phrasings trip the PIGuard safety screen.)
+    // Create first WDK strategy.
     const id1 = await makeWdkLinked(
       page,
       chatPage,
@@ -296,7 +295,6 @@ test.describe("Dismissed Strategies — complex flows", () => {
     await sidebarPage.selectConversation(strategyId);
 
     // Send a new message to verify the conversation is fully functional.
-    // (Plainly biological — some phrasings trip the PIGuard safety screen.)
     await chatPage.send("find ribosomal genes");
     await chatPage.expectAssistantMessage(/ribosomal genes/);
 
