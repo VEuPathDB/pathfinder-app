@@ -7,7 +7,7 @@ what left.
 
 ## Ranked
 
-1. [A completion turn runs with no WDK login](a-durable-tool-started-by-a-completion-turn-has-no-wdk-login.md) - the completion turn opens outside the carried job context, so every WDK-backed tool in it, durable or not, is refused for a login the researcher has (measured on two sites).
+1. [A saved gene set records the step id the model typed](a-saved-gene-set-records-the-step-id-the-model-typed.md) - the save tool writes the WDK ids the model passes instead of reading them from the sync state, so a strategy-backed set can point at a step that does not exist.
 2. [A refused analysis is answered with another gene set](a-refused-analysis-is-answered-with-another-gene-set.md) - a failed enrichment task was routed around by trying a neighbouring set, and the reply named the researcher's set for another set's terms.
 3. [Enrichment from chat cannot read a pasted gene set](enrichment-from-chat-cannot-read-a-pasted-gene-set.md) - the durable path skips the temporary-dataset step the HTTP route builds, so a set that enriches in the workbench fails from chat.
 4. [A transform named in an AND statement can meet at no combine](a-transform-named-in-an-and-statement-can-meet-at-no-combine.md) - the combination check matches a statement's terms to the transform criterion and then wants it as a member of a combine, so a transform-then-filter request is refused until FRAME runs out of retries.

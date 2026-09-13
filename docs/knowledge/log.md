@@ -1,5 +1,14 @@
 # Log
 
+## 2026-09-13
+
+* **A completion turn runs under the credential the durable call carried.**
+  The runtime (`assistant-core` 0.3.0a10) opens the turn that answers a durable task inside
+  the same carried job context as the task's body, so a WDK read or a second durable call
+  made from that turn is authenticated as the researcher, on every path including the one
+  that follows a failed body. Measured after the pin: an enrichment started by a completion
+  turn reaches VEuPathDB and fails, if it fails, on its own arguments and not on a login.
+
 ## 2026-09-12
 
 * **A standing preference reaches every turn, whatever the request is about.**
