@@ -13,6 +13,7 @@ from pydantic_ai import RunContext
 
 from pathfinder.ai.agents.pinned_sheets import blocks_within_budget
 from pathfinder.ai.lead.derive import derive_ledger
+from pathfinder.ai.lead.intent_gate import turn_is_off_topic
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 
@@ -126,9 +127,27 @@ def pinned_user_intent(ctx: RunContext[LeadDeps]) -> str | None:
     return "\n".join(lines)
 
 
+_OFF_TOPIC_REDIRECT = (
+    "## This turn is out of scope\n"
+    "Answer in two sentences and call no tool. Say that PathFinder builds, "
+    "edits and checks search strategies on the VEuPathDB databases and runs "
+    "enrichment, EDA and exports on what they return, then invite the user to "
+    "put their question in those terms. Write nothing else: no code, no draft, "
+    "and no answer to what was asked."
+)
+
+
 def pinned_turn_briefing(ctx: RunContext[LeadDeps]) -> str | None:
-    """What moved on the thread since the Lead last answered, or nothing."""
-    return ctx.deps.state.domain.turn_briefing or None
+    """What moved on the thread since the Lead last answered, and the redirect
+    an out-of-scope turn answers with.
+
+    The catch-up is windowed on the last answer, so a turn that drops it drops
+    it for good. The redirect is last, because it is what this turn does.
+    """
+    briefing = ctx.deps.state.domain.turn_briefing
+    if not turn_is_off_topic(ctx.deps):
+        return briefing or None
+    return "\n\n".join(block for block in (briefing, _OFF_TOPIC_REDIRECT) if block)
 
 
 def pinned_user_prompt(ctx: RunContext[LeadDeps]) -> str | None:

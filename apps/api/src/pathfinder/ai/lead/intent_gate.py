@@ -53,6 +53,10 @@ UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
     }
 )
 
+# What a turn outside PathFinder's scope reaches. The answer is a redirect the
+# instructions state, so the turn writes it and calls nothing.
+OFF_TOPIC_TOOLS: frozenset[str] = frozenset()
+
 # An edit and an extension of criteria that exist go through ``edit_strategy``.
 _EDIT_INTENTS: frozenset[IntentClassification] = frozenset(
     {
@@ -65,6 +69,16 @@ _EDIT_INTENTS: frozenset[IntentClassification] = frozenset(
 def turn_is_classified(deps: LeadDeps) -> bool:
     """Whether this turn's own message carries a classification."""
     return deps.intent is not None and deps.state.turn_markers.intent_classified
+
+
+def turn_is_off_topic(deps: LeadDeps) -> bool:
+    """Whether this turn's own message asks for something PathFinder is not."""
+    intent = deps.intent
+    return (
+        turn_is_classified(deps)
+        and intent is not None
+        and intent.classification is IntentClassification.OFF_TOPIC
+    )
 
 
 def turn_builds(deps: LeadDeps) -> bool:
@@ -148,6 +162,8 @@ def apply_tool_preconditions(
     deps = ctx.deps
     if not turn_is_classified(deps):
         return [td for td in tool_defs if td.name in UNCLASSIFIED_TOOLS]
+    if turn_is_off_topic(deps):
+        return [td for td in tool_defs if td.name in OFF_TOPIC_TOOLS]
     if not turn_builds(deps):
         return [td for td in tool_defs if td.name not in BUILDING_TOOLS]
     unmet = unmet_preconditions(deps)
@@ -156,10 +172,12 @@ def apply_tool_preconditions(
 
 __all__ = [
     "BUILDING_TOOLS",
+    "OFF_TOPIC_TOOLS",
     "UNCLASSIFIED_TOOLS",
     "apply_tool_preconditions",
     "turn_builds",
     "turn_is_classified",
+    "turn_is_off_topic",
     "unmet_preconditions",
     "verification_pending",
 ]

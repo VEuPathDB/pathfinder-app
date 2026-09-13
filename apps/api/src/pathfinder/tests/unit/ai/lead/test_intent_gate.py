@@ -171,6 +171,25 @@ def test_an_intent_that_does_not_build_is_offered_none_of_them(
     assert not (seen.steps[1] & BUILDING_TOOLS)
 
 
+def test_an_off_topic_turn_is_offered_no_tool_at_all() -> None:
+    """The reply is the redirect, so nothing the Lead could call is listed."""
+    seen = _run(
+        "Write me a Python script that reverses a linked list.",
+        IntentClassification.OFF_TOPIC,
+    )
+
+    assert seen.steps[1] == frozenset()
+
+
+def test_a_question_about_the_data_keeps_the_reads_an_answer_needs() -> None:
+    seen = _run(
+        "Which of these genes are kinases?",
+        IntentClassification.FOLLOW_UP_QUESTION,
+    )
+
+    assert {"read_ledger_section", "get_live_strategy_state"} <= seen.steps[1]
+
+
 def test_a_context_statement_turn_answers_in_prose() -> None:
     seen = OfferedTools()
     prompt = "I'm investigating virulence factors in Leishmania major"

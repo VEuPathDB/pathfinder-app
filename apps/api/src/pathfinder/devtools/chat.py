@@ -270,10 +270,21 @@ def route_framework_logs_to_stderr() -> None:
     """Sends framework log output to stderr so stdout carries only the trace and the
     summary.
 
-    The configuration is process-wide, so only a command line calls it.
+    ``format_exc_info`` flattens a traceback before the renderer reaches it, so a
+    logged exception costs a string and not a rendered stack holding every local
+    of the run. The configuration is process-wide, so only a command line calls it.
     """
 
-    structlog.configure(logger_factory=structlog.PrintLoggerFactory(file=sys.stderr))
+    structlog.configure(
+        processors=[
+            structlog.contextvars.merge_contextvars,
+            structlog.processors.add_log_level,
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.format_exc_info,
+            structlog.dev.ConsoleRenderer(colors=False),
+        ],
+        logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
+    )
 
 
 _VIA_WORKER_TIMEOUT_S = 1200

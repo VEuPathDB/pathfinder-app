@@ -2,7 +2,7 @@
 
 The role table maps an agent's tool names onto the script that answers for it.
 Sub-agents emit their typed delta via ``final_result``. The Lead's arcs live in
-``arcs``; the canned FRAME specs live in ``specs``.
+``arcs`` and ``prose_arcs``; the canned FRAME specs live in ``specs``.
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ from pathfinder.ai.models.mock.arcs import (
     LOOP_CALL_ARGS,
     LOOP_MARKERS,
     SUCCESS_PROSE,
+    classified_this_turn,
     lead_script,
     spec_for,
     verification_succeeds,
@@ -106,8 +107,14 @@ def _execution_script(messages: list[ModelMessage]) -> ToolCallPart:
     return terminal_call({"actionsTaken": ["[mock] recovery"], "followUpNeeded": False})
 
 
-def _silent_script(messages: list[ModelMessage]) -> ToolCallPart:
-    del messages
+def _unmarked_script(messages: list[ModelMessage]) -> ToolCallPart:
+    """The script for a step whose tool list names no role.
+
+    A turn the classification put out of scope is offered no tool at all, so
+    the role table has nothing to read and the Lead's own arc answers it.
+    """
+    if classified_this_turn(messages):
+        return lead_script(messages)
     return terminal_call({})
 
 
@@ -121,7 +128,7 @@ _SCRIPTS: dict[str, RoleScript] = {
 PATHFINDER_SCRIPT = ScriptedModel(
     roles=_ROLES,
     scripts=_SCRIPTS,
-    unknown=_silent_script,
+    unknown=_unmarked_script,
 )
 
 

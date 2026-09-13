@@ -3,13 +3,12 @@
 The Lead routes on the latest user message (plus consult-resume state) and
 drives a scripted FRAME -> BUILD -> VERIFY flow; a build the thread refuses
 ends the turn instead of verifying. The role table that picks this script,
-and the sub-agent scripts, live in ``mock``; the canned FRAME specs live in
-``specs`` and the arguments the calls carry in ``arc_args``.
+and the sub-agent scripts, live in ``mock``; the arcs that only answer in prose
+live in ``prose_arcs``, the canned FRAME specs in ``specs`` and the arguments
+the calls carry in ``arc_args``.
 """
 
 from __future__ import annotations
-
-from typing import Literal
 
 from assistant_core.models.scripted import (
     called_tool_parts,
@@ -21,7 +20,6 @@ from assistant_core.models.scripted import (
     next_unmade_call,
     retry_prompt_parts,
     scripted_call,
-    terminal_call,
     tool_return_parts,
 )
 from pydantic import BaseModel, ConfigDict
@@ -32,6 +30,14 @@ from pathfinder.ai.models.mock.arc_args import (
     consult_args,
     variant_args,
 )
+from pathfinder.ai.models.mock.prose_arcs import (
+    CLARIFY_MARKERS,
+    CLASSIFY,
+    LeadTurnState,
+    classify,
+    lead_final,
+    prose_only_sequence,
+)
 from pathfinder.ai.models.mock.specs import (
     SpecPlan,
     combined_spec,
@@ -41,18 +47,6 @@ from pathfinder.ai.models.mock.specs import (
     single_spec,
 )
 
-LeadTurnState = Literal["await_user", "complete"]
-
-_CLARIFY_PROSE = (
-    "Before I build this, let me **clarify** a few things so the strategy "
-    "matches what you mean:\n\n"
-    "- **Which** evidence defines 'expressed' — a mass-spec stage or a "
-    "microarray percentile?\n"
-    "- **How strict** on 'doesn't vary much' — what dN/dS cutoff?\n"
-    "- What counts as 'no human equivalent' — which phylogenetic profile "
-    "pattern?\n\n"
-    "Answer those and I'll frame the strategy."
-)
 SUCCESS_PROSE = (
     "**Verified end-to-end.** The strategy framed, built, and verified "
     "cleanly: root size looks right and the leaves are non-empty."
@@ -61,11 +55,6 @@ FEEDBACK_PROSE = (
     "**Verification found a problem.** One leaf **returned 0** rows, so the "
     "combined result is empty; that pattern is too narrow. Loosen it and I "
     "will re-verify."
-)
-_IMPACT_PROSE = (
-    "Switching the combine to INTERSECT makes the **operator** **stricter**: "
-    "the result **drops** to genes supported by *both* signals. That tightens "
-    "specificity at the cost of recall, so expect a smaller candidate list."
 )
 _VARIANT_PROSE = (
     "I ran both search variants and compared their result sets above. Tell me "
@@ -102,24 +91,18 @@ _REMEMBER_PROSE = (
     "Stored for future sessions: your default organism. I built nothing - say "
     "the word and I will turn it into a strategy."
 )
-_CONTEXT_PROSE = (
-    "Good area to be in. I have not built anything yet. Want me to put a "
-    "candidate strategy together for it?"
-)
 _RECALL_PROSE = "This thread already carries: "
 _RECALL_NOTHING = "no ledger yet"
 
 # Markers are deliberately specific to the journeys' turn prompts so generic
 # biology prompts fall through to the plain echo.
 _FIX_MARKERS = ("loosen", "%mamm", "fix the phylogenetic", "fix the pattern")
-_IMPACT_MARKERS = ("switching the interpro", "switch the interpro", "interpro/go")
 _BUILD_MARKERS = ("3d7", "trophozoite", "derisi", "create step", "create delegation")
 # A kinase-broadening request builds the two-leaf spec and fails verification,
 # so the turn carries the zero-result guidance the editor specs read.
 _FEEDBACK_MARKERS = ("interpro", "pf00069", "ec 2.7")
 _GO_MARKERS = ("go term strategy", "protein kinase go genes")
 _COMBINED_MARKERS = ("comprehensive kinase strategy", "all parameter types")
-_CLARIFY_MARKERS = ("human equivalent", "vary much")
 _VARIANT_MARKERS = ("compare two search variants", "compare search variants")
 _CONSULT_MARKERS = ("consult me before planning", "ask me design questions")
 # The FRAME arc that asks for one catalog listing over and over, which is what
@@ -130,10 +113,8 @@ _EDIT_MARKERS = ("keep the rest", "swap the organism", "substitute the organism"
 # An imperative to run or add, including assent to an offer the assistant made
 # and a retry after a failed task. Every one of them asks for a build.
 _ASSENT_MARKERS = ("yes, rerun", "run the differential expression now")
-# A request to store a preference, and a bare statement of what the user works
-# on. Neither asks for a strategy.
+# A request to store a preference. It asks for no strategy.
 _REMEMBER_MARKERS = ("please remember", "remember for future sessions")
-_CONTEXT_MARKERS = ("i'm investigating", "i am investigating")
 # A request to read the thread's own record back. The Lead answers from the
 # Ledger, so a branch's inherited state is visible in the reply.
 _RECALL_MARKERS = ("recap what i have asked",)
@@ -150,7 +131,6 @@ _ENRICHMENT_TYPES = ("go_function", "go_process", "go_component")
 _RECALL_SECTION = "frame"
 LOOP_CALL_ARGS = {"record_type": "transcript"}
 
-CLASSIFY = "classify_user_intent"
 BUILD = "build_strategy"
 
 # The substring of ``build_would_replace_the_strategy`` that names the refusal.
@@ -182,26 +162,10 @@ def verification_succeeds(text: str) -> bool:
     lowered = text.lower()
     if has_any(lowered, _FIX_MARKERS):
         return True
-    return not has_any(lowered, _FEEDBACK_MARKERS + _CLARIFY_MARKERS)
+    return not has_any(lowered, _FEEDBACK_MARKERS + CLARIFY_MARKERS)
 
 
-def _lead_final(prose: str, next_state: LeadTurnState) -> ToolCallPart:
-    return terminal_call({"prose": prose, "nextState": next_state})
-
-
-def _classify(classification: str) -> ToolCallPart:
-    return scripted_call(
-        CLASSIFY,
-        {
-            "intent": {
-                "classification": classification,
-                "inferredGoal": f"[mock] {classification}",
-            },
-        },
-    )
-
-
-def _classified_this_turn(messages: list[ModelMessage]) -> bool:
+def classified_this_turn(messages: list[ModelMessage]) -> bool:
     return any(
         part.tool_name == CLASSIFY for part in called_tool_parts(current_turn(messages))
     )
@@ -209,7 +173,7 @@ def _classified_this_turn(messages: list[ModelMessage]) -> bool:
 
 def _build_head(classification: str) -> list[ToolCallPart]:
     return [
-        _classify(classification),
+        classify(classification),
         scripted_call("frame_problem", {"reason": "mock frame"}),
         scripted_call(BUILD, {}),
     ]
@@ -224,7 +188,7 @@ def _build_sequence(
     return [
         *_build_head(classification),
         scripted_call("verify_strategy", {"reason": "mock verification"}),
-        _lead_final(prose, next_state),
+        lead_final(prose, next_state),
     ]
 
 
@@ -236,7 +200,7 @@ def _refused_build_sequence(classification: str) -> list[ToolCallPart]:
     """
     return [
         *_build_head(classification),
-        _lead_final(_BUILD_REFUSED_PROSE, "await_user"),
+        lead_final(_BUILD_REFUSED_PROSE, "await_user"),
     ]
 
 
@@ -260,12 +224,12 @@ def _lead_sequence(messages: list[ModelMessage]) -> list[ToolCallPart]:
     ids = attachment_gene_ids(joined_user_text(messages))
     if ids:
         return [
-            _classify("new_strategy"),
+            classify("new_strategy"),
             scripted_call(
                 "build_control_set",
                 {"name": "Uploaded controls", "positive_ids": ids},
             ),
-            _lead_final(_CONTROLS_PROSE, "await_user"),
+            lead_final(_CONTROLS_PROSE, "await_user"),
         ]
     return _routed_sequence(messages, raw)
 
@@ -281,22 +245,8 @@ def _recall_sequence(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """Read one Ledger section and answer with it, dispatching no sub-agent."""
     return [
         scripted_call("read_ledger_section", {"section": _RECALL_SECTION}),
-        _lead_final(f"{_RECALL_PROSE}{_ledger_section_read(messages)}", "await_user"),
+        lead_final(f"{_RECALL_PROSE}{_ledger_section_read(messages)}", "await_user"),
     ]
-
-
-def _prose_only_sequence(lowered: str) -> list[ToolCallPart] | None:
-    """The arcs that answer in prose and call no tool."""
-    if has_any(lowered, _IMPACT_MARKERS):
-        return [_lead_final(_IMPACT_PROSE, "await_user")]
-    if has_any(lowered, _CLARIFY_MARKERS):
-        return [_lead_final(_CLARIFY_PROSE, "await_user")]
-    if has_any(lowered, _CONTEXT_MARKERS):
-        return [
-            _classify("context_statement"),
-            _lead_final(_CONTEXT_PROSE, "await_user"),
-        ]
-    return None
 
 
 class _ExportedFile(BaseModel):
@@ -327,19 +277,19 @@ def _kept_sequence(
     """
     if has_any(lowered, _EXPORT_MARKERS):
         return [
-            _classify("follow_up_question"),
+            classify("follow_up_question"),
             scripted_call(
                 "export_gene_set",
                 {"gene_set_id": _EXPORT_GENE_SET_ID, "output_format": "csv"},
             ),
-            _lead_final(
+            lead_final(
                 f"{_EXPORT_PROSE}{_exported_link(messages)}",
                 "await_user",
             ),
         ]
     if has_any(lowered, _ENRICHMENT_MARKERS):
         return [
-            _classify("follow_up_question"),
+            classify("follow_up_question"),
             scripted_call(
                 "run_gene_set_enrichment",
                 {
@@ -347,11 +297,11 @@ def _kept_sequence(
                     "enrichment_types": list(_ENRICHMENT_TYPES),
                 },
             ),
-            _lead_final(_ENRICHMENT_PROSE, "await_user"),
+            lead_final(_ENRICHMENT_PROSE, "await_user"),
         ]
     if has_any(lowered, _SAVE_GENE_SET_MARKERS):
         return [
-            _classify("follow_up_question"),
+            classify("follow_up_question"),
             scripted_call(
                 "create_workbench_gene_set",
                 {
@@ -359,11 +309,11 @@ def _kept_sequence(
                     "gene_ids": list(_SAVE_GENE_SET_IDS),
                 },
             ),
-            _lead_final(_SAVE_GENE_SET_PROSE, "await_user"),
+            lead_final(_SAVE_GENE_SET_PROSE, "await_user"),
         ]
     if has_any(lowered, _REMEMBER_MARKERS):
         return [
-            _classify("memory_request"),
+            classify("memory_request"),
             scripted_call(
                 "remember",
                 {
@@ -373,7 +323,7 @@ def _kept_sequence(
                     "content": {"organism": "Plasmodium falciparum 3D7"},
                 },
             ),
-            _lead_final(_REMEMBER_PROSE, "await_user"),
+            lead_final(_REMEMBER_PROSE, "await_user"),
         ]
     return None
 
@@ -388,28 +338,28 @@ def _one_tool_sequence(
         return kept
     if has_any(lowered, _EDIT_MARKERS):
         return [
-            _classify("edit_strategy"),
+            classify("edit_strategy"),
             scripted_call("edit_strategy", {"reason": "mock edit: swap the organism"}),
             scripted_call(
                 "verify_strategy", {"reason": "mock verification of an edit"}
             ),
-            _lead_final(_EDIT_PROSE, "await_user"),
+            lead_final(_EDIT_PROSE, "await_user"),
         ]
     if has_any(lowered, LOOP_MARKERS):
         return [
-            _classify("new_strategy"),
+            classify("new_strategy"),
             scripted_call("frame_problem", {"reason": "mock loop"}),
-            _lead_final(_LOOP_PROSE, "await_user"),
+            lead_final(_LOOP_PROSE, "await_user"),
         ]
     if has_any(lowered, _VARIANT_MARKERS):
         return [
-            _classify("follow_up_question"),
+            classify("follow_up_question"),
             scripted_call("compare_search_variants", variant_args()),
-            _lead_final(_VARIANT_PROSE, "await_user"),
+            lead_final(_VARIANT_PROSE, "await_user"),
         ]
     if has_any(lowered, _CONSULT_MARKERS):
         return [
-            _classify("new_strategy"),
+            classify("new_strategy"),
             scripted_call("consult_user", consult_args()),
         ]
     return None
@@ -420,7 +370,7 @@ def _routed_sequence(messages: list[ModelMessage], raw: str) -> list[ToolCallPar
     dispatched = _one_tool_sequence(messages, lowered)
     if dispatched is not None:
         return dispatched
-    prose = _prose_only_sequence(lowered)
+    prose = prose_only_sequence(lowered)
     if prose is not None:
         return prose
     if has_any(lowered, _ASSENT_MARKERS):
@@ -434,7 +384,7 @@ def _routed_sequence(messages: list[ModelMessage], raw: str) -> list[ToolCallPar
     )
     if has_any(lowered, build):
         return _build_branch(messages, raw)
-    return [_lead_final(f"[mock] {raw}", "await_user")]
+    return [lead_final(f"[mock] {raw}", "await_user")]
 
 
 def _build_branch(
@@ -468,6 +418,6 @@ def lead_script(messages: list[ModelMessage]) -> ToolCallPart:
     sequence = _lead_sequence(messages)
     if sequence[0].tool_name != CLASSIFY:
         return next_unmade_call(sequence, messages)
-    if not _classified_this_turn(messages):
+    if not classified_this_turn(messages):
         return sequence[0]
     return next_unmade_call(sequence[1:], messages)

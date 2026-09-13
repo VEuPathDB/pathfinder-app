@@ -29,6 +29,25 @@
   its classifier now lives beside its only reader, as
   `ai/graph/_lead_answers.py::is_pure_approval`.
 
+* **The test tier and the chat debugger log the way a served process logs.**
+  `tests/conftest.py::_configured_logging` calls `setup_logging` once per session and
+  `devtools/chat.py::route_framework_logs_to_stderr` names the same processor chain, so
+  `structlog.processors.format_exc_info` runs before the renderer on every surface. A
+  logged exception is a string there, not a stack the console renderer expands with every
+  local of the frame that raised it, and a record reaches stdlib logging, which is where
+  a test reads one.
+
+* **A turn the Lead classifies as off-topic reaches no tool, and has a budget of its own.**
+  `ai/lead/intent_gate.py` offers such a turn nothing, `ai/lead/lead_pins.py` pins the
+  two-sentence redirect after the turn briefing, `refuse_an_off_topic_essay` in
+  `ai/lead/lead_agent.py` refuses a reply that carries a code fence or passes 400 characters,
+  and `ai/lead/turn_budget.py::off_topic_budget_stop` ends the turn once such a run passes
+  40000 tokens. The Lead's own run otherwise spends up to `Settings.lead_turn_token_limit`,
+  600000 tokens, a sub-agent pass carrying a ceiling of its own. A run that reaches either
+  ceiling ends with a sentence naming the budget instead of an error chunk, because the
+  stream emitter re-raises the graph's control-flow signal and answers every other
+  exception with an error chunk of its own.
+
 * **A completion turn runs under the credential the durable call carried.**
   The runtime (`assistant-core` 0.3.0a10) opens the turn that answers a durable task inside
   the same carried job context as the task's body, so a WDK read or a second durable call

@@ -296,6 +296,18 @@ def unrecorded_question_message() -> str:
     )
 
 
+def off_topic_essay_message(max_chars: int) -> str:
+    """Why an out-of-scope reply that answers the request anyway is refused."""
+    return (
+        f"This turn asks for something PathFinder does not do, and your reply "
+        f"answers it. Write the redirect instead: two sentences, under "
+        f"{max_chars} characters, naming what PathFinder does - strategies on "
+        f"the VEuPathDB databases, enrichment, EDA, exports - and inviting the "
+        f"user to rephrase. No code block, no draft, no answer to what was "
+        f"asked."
+    )
+
+
 def analysis_ran_on_another_set_message(
     analysed: EnrichmentRun,
     requested: Sequence[EnrichmentRun],

@@ -107,6 +107,19 @@ def classify_user_intent(
 
     Both are answered in prose, and ``memory_request`` with one ``remember``
     call per thing to keep. Neither is a request to build.
+
+    PathFinder does its work through these tools; it writes no code and no
+    general text. In scope: building, extending, editing and verifying
+    strategies; enrichment; EDA; exports; workbench gene sets; memory;
+    questions about the databases, the searches, the parameters and the
+    organisms; and the biology behind a search - what a kinase is, what a
+    signal peptide is, what a p-value cutoff means here. ``off_topic`` is the
+    rest: code in any language, prose or email drafting, translation, general
+    knowledge, and any message that names no VEuPathDB object, gene, organism,
+    dataset or analysis. A borderline message that carries a real biological
+    question is in scope. An ``off_topic`` turn reaches no tool after this one
+    and answers in two sentences, so a message the tools can answer is never
+    one.
     """
     ctx.deps.intent = intent
     ctx.deps.state.turn_markers.intent_classified = True

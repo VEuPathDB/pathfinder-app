@@ -144,6 +144,16 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     # Conversation provider. "mock" gives deterministic offline runs.
     pathfinder_chat_provider: str = ""
 
+    lead_turn_token_limit: int = Field(
+        default=600_000,
+        ge=1,
+        description=(
+            "Tokens the Lead's own run may spend in one turn. A sub-agent pass "
+            "the Lead dispatches carries a ceiling of its own and is not "
+            "counted here. A run that reaches it ends with a reply that says so."
+        ),
+    )
+
     # Prompt-injection screening, and the model one judgement runs on.
     input_screening_enabled: bool = True
     input_screening_model: str = "openai:gpt-5.6-luna"

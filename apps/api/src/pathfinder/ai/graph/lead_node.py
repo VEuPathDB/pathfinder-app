@@ -46,7 +46,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.tools import DeferredToolRequests
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
-from pydantic_ai.usage import RunUsage, UsageLimits
+from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.graph._lead_capture import (
     _charge_token_delta,
@@ -84,15 +84,14 @@ from pathfinder.ai.graph.turn_status import (
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.lead_agent import LeadAgent, LeadResponse
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentRunUsage
+from pathfinder.ai.lead.turn_budget import (
+    lead_turn_budget_message,
+    lead_usage_limits,
+    off_topic_budget_stop,
+)
 from pathfinder.ai.models.catalog import context_window_for
 
 logger = get_logger(__name__)
-
-LEAD_USAGE_LIMITS: UsageLimits = UsageLimits(
-    request_limit=80,
-    tool_calls_limit=80,
-    total_tokens_limit=4_000_000,
-)
 
 _FINALIZE: Literal["finalize_turn"] = "finalize_turn"
 
@@ -195,6 +194,38 @@ def _absorb_loop_stop(
     )
 
 
+def _stream_ends_after(
+    event: AgentStreamEvent | AgentRunResultEvent[Any],
+    guard: ToolRepetitionGuard,
+    capture: _LeadRunCapture,
+    usage: RunUsage,
+    deps: LeadDeps,
+) -> bool:
+    """Whether this event is the last one the turn takes from the run."""
+    return _guard_stopped_on(event, guard) or _off_topic_budget_ends_the_turn(
+        capture, usage, deps
+    )
+
+
+def _off_topic_budget_ends_the_turn(
+    capture: _LeadRunCapture,
+    usage: RunUsage,
+    deps: LeadDeps,
+) -> bool:
+    """Whether an out-of-scope turn has spent what such a turn may spend.
+
+    A turn that already holds its answer is finished, so the budget takes
+    nothing from it.
+    """
+    if capture.response is not None:
+        return False
+    stop = off_topic_budget_stop(usage, deps.intent)
+    if stop is None:
+        return False
+    capture.response = LeadResponse(prose=stop, next_state="await_user")
+    return True
+
+
 def _resume_hints(parked: ParkedCall | None) -> list[DeferredToolHint]:
     """What the resumed stream needs to re-announce the calls it answers."""
     if parked is None:
@@ -230,6 +261,7 @@ async def _drive_lead_stream(
     resume_prompt = _run_prompt(state, resumption)
     resume_messages = approvals.resume_history(parked) if parked is not None else None
     usage_acc = RunUsage()
+    limits = lead_usage_limits()
     override_ctx, agent_model = resolve_lead_model_context(
         agent,
         model_override=deps.runtime.phase_models.get("lead"),
@@ -247,60 +279,64 @@ async def _drive_lead_stream(
     async def _agent_events() -> AsyncGenerator[
         AgentStreamEvent | AgentRunResultEvent[Any]
     ]:
-        async with agent.run_stream_events(
-            resume_prompt,
-            deps=deps,
-            message_history=resume_messages,
-            deferred_tool_results=deferred_results,
-            capabilities=[RepetitionGuard(guard=guard)],
-            usage_limits=LEAD_USAGE_LIMITS,
-            usage=usage_acc,
-        ) as events:
-            async for event in events:
-                if isinstance(event, AgentRunResultEvent):
-                    _absorb_run_result(event, capture, deps)
-                else:
-                    handle_sub_agent_event(
-                        deps,
+        # The budget stop is absorbed here, not around the emitter: the emitter
+        # answers an exception of the run with an error chunk of its own. A
+        # stream that ends instead leaves the turn its own reply.
+        try:
+            async with agent.run_stream_events(
+                resume_prompt,
+                deps=deps,
+                message_history=resume_messages,
+                deferred_tool_results=deferred_results,
+                capabilities=[RepetitionGuard(guard=guard)],
+                usage_limits=limits,
+                usage=usage_acc,
+            ) as events:
+                async for event in events:
+                    if isinstance(event, AgentRunResultEvent):
+                        _absorb_run_result(event, capture, deps)
+                    else:
+                        handle_sub_agent_event(
+                            deps,
+                            writer,
+                            event,
+                            sub_agent_tool_calls,
+                            capture.sub_agent_usage_by_call,
+                        )
+                    await _charge_token_delta(
+                        deps.runtime,
+                        state,
+                        capture,
+                        usage_acc,
                         writer,
-                        event,
-                        sub_agent_tool_calls,
-                        capture.sub_agent_usage_by_call,
+                        agent_model,
                     )
-                await _charge_token_delta(
-                    deps.runtime,
-                    state,
-                    capture,
-                    usage_acc,
-                    writer,
-                    agent_model,
-                )
-                yield event
-                if _guard_stopped_on(event, guard):
-                    return
+                    yield event
+                    if _stream_ends_after(event, guard, capture, usage_acc, deps):
+                        return
+        except UsageLimitExceeded as exc:
+            logger.warning(
+                "lead reached its turn budget",
+                conversation_id=str(state.conversation_id),
+                error=str(exc),
+            )
+            capture.response = LeadResponse(
+                prose=lead_turn_budget_message(),
+                next_state="await_user",
+            )
 
     try:
         with override_ctx:
             async for v6_chunk in emitter.chunks(_agent_events()):
                 _emit_unless_suppressed(writer, v6_chunk, sub_agent_tool_calls)
-    except UsageLimitExceeded as exc:
-        logger.warning(
-            "lead exceeded usage cap",
-            conversation_id=str(state.conversation_id),
-            error=str(exc),
-        )
-        capture.response = LeadResponse(
-            prose=(
-                f"Investigation paused: hit safety cap ({exc}). "
-                "Refine the request or approve a continuation."
-            ),
-            next_state="await_user",
-        )
+    # The emitter re-raises the graph's control-flow signal and answers every
+    # other exception of the run with an error chunk, so these two handlers see
+    # that signal and a failure of the loop that writes the chunks.
     except GraphBubbleUp:
         raise
     except Exception:
         logger.exception(
-            "lead stream raised",
+            "lead turn raised while emitting",
             conversation_id=str(state.conversation_id),
             user_id=str(state.user_id),
         )

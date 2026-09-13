@@ -295,6 +295,8 @@ class LeadDeps:
     # A reply that reported one gene set's analysis under another's name is
     # refused once.
     substituted_analysis_refused: bool = False
+    # An out-of-scope reply that answers the request anyway is refused once.
+    off_topic_essay_refused: bool = False
     # The workbench gene sets this turn created. Every agent of the turn writes
     # into this one list, and the Lead's node folds it into the domain.
     created_gene_sets: list[CreatedGeneSet] = field(default_factory=list)

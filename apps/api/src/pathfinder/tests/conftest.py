@@ -38,6 +38,7 @@ from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.memory.store import MemoryStore
 from assistant_core.persistence.models import Base
 from assistant_core.platform import db
+from assistant_core.platform.logging import setup_logging
 from assistant_core.registry import resolve_turn_assistant
 from assistant_core.spec import AssistantSpec
 from fastapi import Depends, FastAPI
@@ -305,6 +306,17 @@ async def in_memory_jobs() -> AsyncGenerator[InMemoryConnector]:
 
 
 # Environment and app.
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _configured_logging() -> None:
+    """Log the way a served process logs.
+
+    The configuration puts ``format_exc_info`` before the renderer, so a
+    logged exception costs one string instead of a rendered stack carrying
+    every local, and each record reaches stdlib logging where a test reads it.
+    """
+    setup_logging()
 
 
 @pytest.fixture(scope="session", autouse=True)

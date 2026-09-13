@@ -27,13 +27,14 @@ from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_messages import (
     analysis_ran_on_another_set_message,
     blamed_the_site_message,
+    off_topic_essay_message,
     unrecorded_question_message,
     unverified_build_message,
 )
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
 from pathfinder.ai.lead.frame_dispatch import frame_problem
 from pathfinder.ai.lead.guarantees import machine_guarantees_pin
-from pathfinder.ai.lead.intent_gate import apply_tool_preconditions
+from pathfinder.ai.lead.intent_gate import apply_tool_preconditions, turn_is_off_topic
 from pathfinder.ai.lead.lead_consult import consult_user
 from pathfinder.ai.lead.lead_pins import (
     pinned_eda_sheet,
@@ -179,6 +180,31 @@ def refuse_an_unrecorded_question(
     raise ModelRetry(unrecorded_question_message())
 
 
+# An out-of-scope reply is a redirect, and a redirect is two sentences.
+OFF_TOPIC_REPLY_MAX_CHARS = 400
+_CODE_FENCE = "```"
+
+
+def refuse_an_off_topic_essay(
+    ctx: RunContext[LeadDeps],
+    output: LeadResponse | DeferredToolRequests,
+) -> LeadResponse | DeferredToolRequests:
+    """Refuse an out-of-scope reply that answers the request anyway.
+
+    A turn the classification puts outside PathFinder's scope reaches no tool,
+    so the only cost left to bound is the prose. It is asked once per turn.
+    """
+    if not isinstance(output, LeadResponse) or ctx.deps.off_topic_essay_refused:
+        return output
+    if not turn_is_off_topic(ctx.deps):
+        return output
+    prose = output.prose
+    if _CODE_FENCE not in prose and len(prose) <= OFF_TOPIC_REPLY_MAX_CHARS:
+        return output
+    ctx.deps.off_topic_essay_refused = True
+    raise ModelRetry(off_topic_essay_message(OFF_TOPIC_REPLY_MAX_CHARS))
+
+
 def _names_the_set(prose: str, run: EnrichmentRun) -> bool:
     """Whether the reply points the reader at this gene set."""
     lowered = prose.casefold()
@@ -281,4 +307,5 @@ def build_lead_agent() -> LeadAgent:
     agent.output_validator(refuse_blaming_the_site)
     agent.output_validator(refuse_an_unrecorded_question)
     agent.output_validator(refuse_a_substituted_analysis)
+    agent.output_validator(refuse_an_off_topic_essay)
     return agent

@@ -25,6 +25,7 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.logs import logged_events
 
 
 class _StoreThatNeverAnswers(AsyncPostgresStore):
@@ -101,7 +102,7 @@ def short_deadline() -> Generator[None]:
 
 async def test_retrieval_degrades_to_no_memories(
     short_deadline: None,
-    capsys: pytest.CaptureFixture[str],
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """A store that never answers costs the turn its memories, not the turn."""
     del short_deadline
@@ -110,7 +111,9 @@ async def test_retrieval_degrades_to_no_memories(
     found = await _lead_turn.retrieve_memories(_state(), runtime)
 
     assert found == []
-    assert "memory retrieval timed out" in capsys.readouterr().out
+    assert logged_events(caplog.records) == [
+        "memory retrieval timed out; the turn runs without memories"
+    ]
 
 
 async def test_retrieval_gives_up_at_the_deadline(short_deadline: None) -> None:
