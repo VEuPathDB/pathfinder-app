@@ -2,6 +2,12 @@
 
 ## 2026-09-13
 
+* **The full-stack and integration tiers run on a pull request and once a night, never on a bare push to main.**
+  `.github/workflows/ci.yml` gates the Playwright job off `push` and runs the API job's unit tier
+  alone on a push, with a nightly `schedule` and a `workflow_dispatch` that treat every path as
+  changed. The pull request that landed a commit already ran the full set, and the private
+  repository's Actions minutes are metered. `conventions/verification-gates.md` states the cadence.
+
 * **One owner re-attaches a suspended thread, once per park and once per delivered turn
   boundary.** `features/conversation/runtime/useChatRuntime.ts` holds the thread's only
   re-attach: it follows the turn a snapshot reports in flight, and then the message every

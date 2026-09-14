@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # The full-stack tier runs on every pull request and once a night on main;
+  # a push to main runs the unit and lint tiers only.
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,15 +19,17 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
+    # A scheduled or hand-started run has no diff to filter, so it runs everything.
     outputs:
-      api: ${{ steps.filter.outputs.api }}
-      web: ${{ steps.filter.outputs.web }}
-      knowledge: ${{ steps.filter.outputs.knowledge }}
-      wdk: ${{ steps.filter.outputs.wdk }}
+      api: ${{ steps.filter.outputs.api == 'true' || steps.filter.outcome == 'skipped' }}
+      web: ${{ steps.filter.outputs.web == 'true' || steps.filter.outcome == 'skipped' }}
+      knowledge: ${{ steps.filter.outputs.knowledge == 'true' || steps.filter.outcome == 'skipped' }}
+      wdk: ${{ steps.filter.outputs.wdk == 'true' || steps.filter.outcome == 'skipped' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
         id: filter
+        if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
         with:
           filters: |
             api:
@@ -162,6 +169,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-api
 
+      # A push to main runs the unit tier; a pull request, the nightly run and
+      # a hand-started run add the integration tier on top.
       - name: Run tests
         working-directory: apps/api
         env:
@@ -169,7 +178,8 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test
           API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
           PATHFINDER_CHAT_PROVIDER: mock
-        run: uv run pytest --cov=src --cov-report=xml --cov-fail-under=40
+          TEST_TIER: ${{ github.event_name == 'push' && 'src/pathfinder/tests/unit' || 'src/pathfinder/tests' }}
+        run: uv run pytest "$TEST_TIER" --cov=src --cov-report=xml --cov-fail-under=40
 
   lint-web:
     name: Lint Web
@@ -247,10 +257,13 @@ jobs:
   test-e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
-    # Full-stack; runs on api or web changes, after web lint+test (skip-safe).
+    # Full-stack; runs on a pull request, the nightly run and a hand-started
+    # run, on api or web changes, after web lint+test (skip-safe). A push to
+    # main does not run it: the pull request that landed it already did.
     needs: [changes, lint-web, test-web]
     if: >-
       ${{ !cancelled()
+        && github.event_name != 'push'
         && needs.lint-web.result != 'failure'
         && needs.test-web.result != 'failure'
         && (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true') }}

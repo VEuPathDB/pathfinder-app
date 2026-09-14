@@ -10,6 +10,14 @@ status: stable
 
 Gates passing is necessary, not sufficient: see the definition of done in `CLAUDE.md`. These are the commands.
 
+`.github/workflows/ci.yml` runs them in tiers, and the cadence is part of the
+gate: the lint and unit tiers run on every push and every pull request; the
+full-stack Playwright tier and the API integration tier run on every pull
+request, once a night on `main`, and on a hand-started run, never on a bare push
+to `main`, because the pull request that landed the commit already ran them and
+the private repository's Actions minutes are metered. A scheduled run treats
+every path as changed.
+
 # Backend (`apps/api`)
 
 ```
