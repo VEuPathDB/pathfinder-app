@@ -34,6 +34,11 @@
   called unresolved is named, and the turns run two to four times faster on a quarter of
   the tool calls.
 
+* **A saved gene set keeps the parameters a user sees.** `create_workbench_gene_set`
+  records a search step's parameters after reading which of them WDK marks visible
+  (`services/gene_sets/step_genes.py::visible_parameter_names`); a hidden parameter such as
+  `dataset_url` is WDK's own default and records no choice the researcher made, so the
+  workbench header no longer prints it.
 * **An EDA subset that selects no genes is not exported.** `create_eda_step` counts the
   study's gene entity under the analysis' filters before it writes anything
   (`ai/tools/standalone/_eda_step_guard.py`) and refuses an empty subset with the reason:

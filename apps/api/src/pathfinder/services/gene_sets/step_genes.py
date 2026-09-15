@@ -1,6 +1,8 @@
 """The gene ids a WDK step holds."""
 
+from veupathdb.domain.search import SearchContext
 from veupathdb.wdk import StrategyAPI, WDKRecordInstance, get_strategy_api
+from veupathdb_mcp.catalog import get_search_parameters
 
 from pathfinder.services.gene_sets.operations import dedup_ordered
 
@@ -54,3 +56,17 @@ def extract_gene_id(record: WDKRecordInstance) -> str | None:
     if record.id:
         return record.id[0].value or None
     return None
+
+
+async def visible_parameter_names(
+    site_id: str, *, record_type: str, search_name: str
+) -> frozenset[str]:
+    """The parameters of a search that WDK shows a user.
+
+    A hidden parameter is WDK's own default and records no choice of the
+    researcher, so a save keeps the visible ones.
+    """
+    found = await get_search_parameters(
+        SearchContext(site_id=site_id, search_name=search_name, record_type=record_type)
+    )
+    return frozenset(p.name for p in found.parameters if p.is_visible)

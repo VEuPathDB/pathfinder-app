@@ -32,7 +32,12 @@ WDK_ROOT_STEP_ID = 227253290
 WDK_STRATEGY_ID = 214618620
 STEP_GENES = ["PF3D7_0709000", "PF3D7_1133400", "PF3D7_1222600"]
 PASTED_GENES = ["PF3D7_0102900", "PF3D7_0304600"]
-LEAF_PARAMS = {"text_expression": StringValue(value="secreted")}
+# The step carries a hidden WDK default beside the value the researcher chose.
+LEAF_PARAMS = {
+    "text_expression": StringValue(value="secreted"),
+    "dataset_url": StringValue(value="https://plasmodb.org/a/app/record/dataset/DS_1"),
+}
+VISIBLE_LEAF_PARAMS = {"text_expression": StringValue(value="secreted")}
 
 
 @pytest.fixture
@@ -51,6 +56,14 @@ def reads(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, int]]:
         return list(STEP_GENES)
 
     monkeypatch.setattr(workbench, "step_gene_ids", _read)
+
+    async def _visible(
+        site_id: str, *, record_type: str, search_name: str
+    ) -> frozenset[str]:
+        del site_id, record_type, search_name
+        return frozenset({"text_expression"})
+
+    monkeypatch.setattr(workbench, "visible_parameter_names", _visible)
     return seen
 
 
@@ -145,7 +158,7 @@ async def test_a_save_from_a_leaf_step_reads_that_steps_genes(
     )
     assert saved[0].source == "strategy"
     assert saved[0].search_name == "GenesByText"
-    assert saved[0].parameters == LEAF_PARAMS
+    assert saved[0].parameters == VISIBLE_LEAF_PARAMS
     assert created.gene_set_created.gene_count == 3
 
 
@@ -274,3 +287,14 @@ async def test_a_step_that_returns_no_genes_is_refused(
 
     assert "no genes" in str(raised.value)
     assert saved == []
+
+
+async def test_a_save_keeps_the_parameters_a_user_sees_and_drops_the_hidden_ones(
+    saved: list[GeneSet], reads: list[tuple[str, int]]
+) -> None:
+    """WDK fills a hidden parameter itself; it is no choice the researcher made."""
+    del reads
+
+    await _save(_deps(_leaf_session()), step_id=LEAF_STEP_ID)
+
+    assert saved[0].parameters == VISIBLE_LEAF_PARAMS

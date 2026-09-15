@@ -38,7 +38,10 @@ from pathfinder.ai.tools.standalone.workbench_models import (
 )
 from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
 from pathfinder.platform.durable_worker import durable_agent_tool
-from pathfinder.services.gene_sets.step_genes import step_gene_ids
+from pathfinder.services.gene_sets.step_genes import (
+    step_gene_ids,
+    visible_parameter_names,
+)
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.workbench.gene_sets import list_gene_sets, save_gene_set
 
@@ -104,9 +107,23 @@ def _wdk_provenance(session: StrategySession, step_id: str | None) -> WdkProvena
     )
 
 
+async def _with_the_parameters_a_user_sees(
+    site_id: str, src: WdkProvenance, record_type: str
+) -> WdkProvenance:
+    """The provenance with only the parameters WDK shows for its search."""
+    if src.search_name is None or src.parameters is None:
+        return src
+    visible = await visible_parameter_names(
+        site_id, record_type=record_type, search_name=src.search_name
+    )
+    kept = {name: value for name, value in src.parameters.items() if name in visible}
+    return src.model_copy(update={"parameters": kept})
+
+
 async def _genes_of_step(
     deps: AgentDeps,
     step_id: str | None,
+    record_type: str,
 ) -> tuple[list[str], WdkProvenance]:
     """The genes a step of this conversation's strategy holds, and its ids."""
     src = _wdk_provenance(deps.strategy_session, step_id)
@@ -115,7 +132,7 @@ async def _genes_of_step(
     ids = await step_gene_ids(deps.site_id, src.wdk_step_id)
     if not ids:
         raise ModelRetry(_STEP_HOLDS_NO_GENES)
-    return ids, src
+    return ids, await _with_the_parameters_a_user_sees(deps.site_id, src, record_type)
 
 
 async def create_workbench_gene_set(
@@ -149,7 +166,7 @@ async def create_workbench_gene_set(
         raise ModelRetry(msg)
     deps = ctx.deps
     if gene_ids is None:
-        ids, src = await _genes_of_step(deps, step_id)
+        ids, src = await _genes_of_step(deps, step_id, record_type)
     else:
         if step_id is not None:
             raise ModelRetry(_A_LIST_AND_A_STEP)
