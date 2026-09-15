@@ -165,7 +165,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a14
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a15
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -234,11 +234,14 @@ services:
   research-mcp:
     # The second server of the same distribution, built from the same release
     # at its own target. It reads no account and opens no database.
+    # The metasearch is asked first and is one refused attempt when it is down,
+    # so its health does not gate the research tools. The entry keeps it in the
+    # start graph of a command that names this service.
     depends_on:
       searxng:
-        condition: service_healthy
+        condition: service_started
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a14
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a15
       target: research
     restart: unless-stopped
     mem_limit: 512m
