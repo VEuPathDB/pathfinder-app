@@ -15,8 +15,9 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS
-from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
+from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.tests.unit.ai.lead.conftest import (
     OfferedTools,

@@ -29,8 +29,9 @@ from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead import sub_agent_stream, sub_agent_tools
-from pathfinder.ai.lead.lead_agent import LEAD_MODEL, LeadAgent, LeadResponse
+from pathfinder.ai.lead.lead_agent import LEAD_MODEL, LeadAgent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.lead.verify_dispatch import verify_strategy
 from pathfinder.ai.tools.standalone.experiment import run_control_tests_on_step
 from pathfinder.domain.strategy.build_outcome import BuildOutcome

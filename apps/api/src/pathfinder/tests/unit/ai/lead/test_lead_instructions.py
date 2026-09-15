@@ -137,3 +137,12 @@ def test_the_lead_removes_a_step_with_the_delete_tool() -> None:
 
     assert "A step the user wants gone is removed with ``delete_step``" in instructions
     assert "Never dispatch a framing or building pass to remove a step" in instructions
+
+
+def test_the_instructions_name_the_three_fields_the_contract_reads() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert "``strategy_changed`` against every write the turn made" in instructions
+    assert "``asked_questions``" in instructions
+    assert "``analysed_gene_set_ids``" in instructions
+    assert "a single correction listing every mismatch" in instructions

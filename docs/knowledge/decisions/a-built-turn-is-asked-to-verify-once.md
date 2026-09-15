@@ -16,20 +16,21 @@ answered anyway, closing with "I'm stopping here rather than report a gene
 count" after `create_eda_step` had succeeded. A gate hides a tool; it cannot
 compel a call.
 
-**The refusal is a `ModelRetry` from an output validator on the Lead agent.**
-`verify_what_this_turn_built` reads this turn's `TurnMarkers`: when the turn
-built something and verification neither ran nor succeeded, the first
-`final_result` is refused with the step ids it built and the two moves that
-answer the refusal - call `verify_strategy`, or say in the reply why a check is
-not possible right now.
+**The refusal is a `ModelRetry` on the Lead's answer.** It reads this turn's
+`TurnMarkers`: when the turn built something and verification neither ran nor
+succeeded (`TurnMarkers.build_unverified`), the first `final_result` is refused
+with the step ids it built and the two moves that answer the refusal - call
+`verify_strategy`, or say in the reply why a check is not possible right now.
+The rule lives in the Lead's turn contract as the unverified-build rule
+(`ai/lead/turn_contract.py`, `decisions/one-turn-contract.md`).
 
-**It fires at most once per turn**, tracked as `verification_nudged` on the
-same markers. The second answer goes through even when it still declines: only
-the model knows whether a check is possible on this turn, so the validator
-compels the attempt and not the outcome. A verification that ran and reported
-failure is not asked again either, which is why `verification_dispatched` is a
-marker of its own: `verified` follows the digest's verdict, and a failed check
-is still a check.
+**It fires at most once per turn**, tracked as `contract_refused` on the same
+markers, which every rule of the contract shares. The second answer goes
+through even when it still declines: only the model knows whether a check is
+possible on this turn, so the contract compels the attempt and not the outcome.
+A verification that ran and reported failure is not asked again either, which
+is why `verification_dispatched` is a marker of its own: `verified` follows the
+digest's verdict, and a failed check is still a check.
 
 # What was rejected
 

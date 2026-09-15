@@ -6,14 +6,11 @@ a tool the Lead invokes, not a node in a fixed graph.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any
 
 from assistant_core.conversation.history import HISTORY_PROCESSORS
-from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field
 from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
 from pydantic_ai.capabilities import PrepareTools, ProcessHistory, Thinking
-from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.toolsets import AbstractToolset
 
 from pathfinder.ai.agents._instructions import (
@@ -21,27 +18,11 @@ from pathfinder.ai.agents._instructions import (
     pinned_user_memories,
 )
 from pathfinder.ai.graph.runtime import one_toolset
-from pathfinder.ai.graph.state import EnrichmentRun
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
-from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.dispatch_messages import (
-    analysis_ran_on_another_set_message,
-    blamed_the_site_message,
-    claimed_change_message,
-    eda_criterion_not_built_message,
-    off_topic_essay_message,
-    unrecorded_question_message,
-    unreported_change_message,
-    unverified_build_message,
-)
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
 from pathfinder.ai.lead.frame_dispatch import frame_problem
 from pathfinder.ai.lead.guarantees import machine_guarantees_pin
-from pathfinder.ai.lead.intent_gate import (
-    apply_tool_preconditions,
-    turn_builds,
-    turn_is_off_topic,
-)
+from pathfinder.ai.lead.intent_gate import apply_tool_preconditions
 from pathfinder.ai.lead.lead_consult import consult_user
 from pathfinder.ai.lead.lead_pins import (
     pinned_eda_sheet,
@@ -63,12 +44,15 @@ from pathfinder.ai.lead.lead_tools import (
     remember,
     run_gene_set_enrichment,
 )
-from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.sub_agent_dispatch import (
     build_strategy,
     recover_failed_steps,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_contract import (
+    LeadResponse,
+    hold_the_turn_contract,
+)
 from pathfinder.ai.lead.verify_dispatch import verify_strategy
 from pathfinder.ai.tools.standalone.control_sets import (
     build_control_set,
@@ -79,14 +63,7 @@ from pathfinder.ai.tools.standalone.control_sets import (
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
 from pathfinder.ai.tools.toolsets import eda
-from pathfinder.domain.strategy.constraints import OpenQuestion
-from pathfinder.domain.strategy.operational_spec import (
-    DroppedCriterion,
-    eda_backed_drops,
-)
 from pathfinder.platform.refusals import agent_capabilities
-
-LeadTurnState = Literal["await_user", "complete"]
 
 
 def turn_tool_sources(ctx: RunContext[LeadDeps]) -> AbstractToolset[Any] | None:
@@ -94,235 +71,7 @@ def turn_tool_sources(ctx: RunContext[LeadDeps]) -> AbstractToolset[Any] | None:
     return one_toolset(ctx.deps.runtime.tool_sources)
 
 
-class LeadResponse(CamelModel):
-    """The Lead's final user-facing turn output.
-
-    ``prose`` is rendered to the user verbatim (no upstream/downstream
-    translation). ``next_state`` tells the dispatcher whether the turn is
-    paused waiting on the user (``await_user``) or fully resolved
-    (``complete`` - typically after a successful verification).
-    """
-
-    prose: str = Field(
-        max_length=4000,
-        description=(
-            "User-facing reply for this turn. Plain markdown. Do NOT "
-            "include sub-agent log noise - synthesize from the Ledger."
-        ),
-    )
-    next_state: LeadTurnState = "await_user"
-    strategy_changed: bool = Field(
-        description=(
-            "True when this turn built, edited, deleted, cleared, or exported "
-            "a step into the strategy. False when the strategy is as the turn "
-            "found it. The runtime checks this against what the turn actually "
-            "wrote."
-        ),
-    )
-    asked_questions: list[OpenQuestion] = Field(
-        default_factory=list,
-        max_length=8,
-        description=(
-            "One entry per question this reply asks the user, carrying the "
-            "value you recommend for it and the dimension it decides. A "
-            "question you ask in prose and leave out of here is one the next "
-            "turn has to ask again."
-        ),
-    )
-
-
 LeadAgent = Agent[LeadDeps, LeadResponse | DeferredToolRequests]
-
-
-def verify_what_this_turn_built(
-    ctx: RunContext[LeadDeps],
-    output: LeadResponse | DeferredToolRequests,
-) -> LeadResponse | DeferredToolRequests:
-    """Refuse the first answer of a turn that built and never verified.
-
-    The precondition gate offers ``verify_strategy``; a gate cannot compel the
-    call. The refusal is asked once per turn, so a second answer that states
-    why a check is impossible still reaches the user.
-    """
-    markers = ctx.deps.state.turn_markers
-    if (
-        not markers.built
-        or markers.verified
-        or markers.verification_dispatched
-        or markers.verification_nudged
-    ):
-        return output
-    markers.verification_nudged = True
-    raise ModelRetry(
-        unverified_build_message(ctx.deps.state.domain.last_build_outcome),
-    )
-
-
-def refuse_a_misreported_change(
-    ctx: RunContext[LeadDeps],
-    output: LeadResponse | DeferredToolRequests,
-) -> LeadResponse | DeferredToolRequests:
-    """Refuse a reply whose account of a change is not what the turn wrote.
-
-    The turn's markers are the record: a turn that ran no write left the
-    strategy as it found it. The refusal is asked once per turn.
-    """
-    if not isinstance(output, LeadResponse):
-        return output
-    markers = ctx.deps.state.turn_markers
-    if markers.change_report_refused or output.strategy_changed == (
-        markers.changed_strategy
-    ):
-        return output
-    markers.change_report_refused = True
-    if markers.changed_strategy:
-        raise ModelRetry(unreported_change_message())
-    raise ModelRetry(claimed_change_message(ctx.deps.state.domain.last_build_outcome))
-
-
-def _unbuilt_eda_criterion(ctx: RunContext[LeadDeps]) -> DroppedCriterion | None:
-    """The dropped EDA criterion this turn opened no analysis for, or None.
-
-    An analysis the thread already holds open on that dataset counts: the
-    filters and the export act on it.
-    """
-    opened = set(ctx.deps.state.turn_markers.eda_datasets_opened)
-    analysis = ctx.deps.state.domain.open_eda_analysis
-    if analysis is not None:
-        opened.add(analysis.dataset_id)
-    return next(
-        (
-            dropped
-            for dropped in eda_backed_drops(ctx.deps.state.domain.operational_spec)
-            if dropped.eda_dataset_id not in opened
-        ),
-        None,
-    )
-
-
-def refuse_an_unbuilt_eda_criterion(
-    ctx: RunContext[LeadDeps],
-    output: LeadResponse | DeferredToolRequests,
-) -> LeadResponse | DeferredToolRequests:
-    """Refuse a reply that leaves an EDA-backed criterion to the user.
-
-    The framing pass drops such a criterion and only the EDA tools build it, so
-    an answer from a turn that opened no analysis on its dataset reports work
-    the turn did not attempt. It is asked once per turn, of a turn that builds.
-    """
-    if not isinstance(output, LeadResponse):
-        return output
-    markers = ctx.deps.state.turn_markers
-    if markers.eda_route_refused or not turn_builds(ctx.deps):
-        return output
-    pending = _unbuilt_eda_criterion(ctx)
-    if pending is None:
-        return output
-    markers.eda_route_refused = True
-    raise ModelRetry(eda_criterion_not_built_message(pending))
-
-
-def refuse_blaming_the_site(
-    ctx: RunContext[LeadDeps],
-    output: LeadResponse | DeferredToolRequests,
-) -> LeadResponse | DeferredToolRequests:
-    """Refuse a reply that attributes an internal stop to VEuPathDB.
-
-    A pass that ran out of calls is this turn's own limit. The refusal names
-    that limit, so the rewrite states it instead of asking the user to wait for
-    a site that reported no failure. It is asked once per turn.
-    """
-    if not isinstance(output, LeadResponse) or ctx.deps.site_blame_refused:
-        return output
-    ledger = derive_ledger(ctx.deps.state, ctx.deps.intent)
-    blame = blamed_the_site(output.prose, build=ledger.build)
-    if blame is None:
-        return output
-    ctx.deps.site_blame_refused = True
-    raise ModelRetry(blamed_the_site_message(blame, ctx.deps.last_phase_stop))
-
-
-def refuse_an_unrecorded_question(
-    ctx: RunContext[LeadDeps],
-    output: LeadResponse | DeferredToolRequests,
-) -> LeadResponse | DeferredToolRequests:
-    """Refuse a reply that asks the user something and records no question.
-
-    The next turn binds what the reply recorded, so a question only the prose
-    carries is asked again. A turn that framed nothing asks for no value, so
-    the refusal is asked of a framing turn, once.
-    """
-    if not isinstance(output, LeadResponse) or ctx.deps.unrecorded_question_refused:
-        return output
-    if not ctx.deps.state.turn_markers.framed:
-        return output
-    if output.next_state != "await_user" or output.asked_questions:
-        return output
-    if "?" not in output.prose:
-        return output
-    ctx.deps.unrecorded_question_refused = True
-    raise ModelRetry(unrecorded_question_message())
-
-
-# An out-of-scope reply is a redirect, and a redirect is two sentences.
-OFF_TOPIC_REPLY_MAX_CHARS = 400
-_CODE_FENCE = "```"
-
-
-def refuse_an_off_topic_essay(
-    ctx: RunContext[LeadDeps],
-    output: LeadResponse | DeferredToolRequests,
-) -> LeadResponse | DeferredToolRequests:
-    """Refuse an out-of-scope reply that answers the request anyway.
-
-    A turn the classification puts outside PathFinder's scope reaches no tool,
-    so the only cost left to bound is the prose. It is asked once per turn.
-    """
-    if not isinstance(output, LeadResponse) or ctx.deps.off_topic_essay_refused:
-        return output
-    if not turn_is_off_topic(ctx.deps):
-        return output
-    prose = output.prose
-    if _CODE_FENCE not in prose and len(prose) <= OFF_TOPIC_REPLY_MAX_CHARS:
-        return output
-    ctx.deps.off_topic_essay_refused = True
-    raise ModelRetry(off_topic_essay_message(OFF_TOPIC_REPLY_MAX_CHARS))
-
-
-def _names_the_set(prose: str, run: EnrichmentRun) -> bool:
-    """Whether the reply points the reader at this gene set."""
-    lowered = prose.casefold()
-    return run.gene_set_id.casefold() in lowered or (
-        bool(run.gene_set_name) and run.gene_set_name.casefold() in lowered
-    )
-
-
-def refuse_a_substituted_analysis(
-    ctx: RunContext[LeadDeps],
-    output: LeadResponse | DeferredToolRequests,
-) -> LeadResponse | DeferredToolRequests:
-    """Refuse a reply that reports one gene set's analysis under another's name.
-
-    The record belongs to the message this turn answers, and only an analysis
-    that followed a failure on another set is a substitution. It is asked once
-    per turn.
-    """
-    if not isinstance(output, LeadResponse) or ctx.deps.substituted_analysis_refused:
-        return output
-    runs = ctx.deps.state.turn_markers.enrichment_runs
-    ran_at = max((i for i, run in enumerate(runs) if run.succeeded), default=-1)
-    if ran_at < 0:
-        return output
-    analysed = runs[ran_at]
-    substituted = [
-        run
-        for run in runs[:ran_at]
-        if not run.succeeded and run.gene_set_id != analysed.gene_set_id
-    ]
-    if not substituted or _names_the_set(output.prose, analysed):
-        return output
-    ctx.deps.substituted_analysis_refused = True
-    raise ModelRetry(analysis_ran_on_another_set_message(analysed, substituted))
 
 
 LEAD_MODEL = "openai:gpt-5.6-luna"
@@ -388,11 +137,5 @@ def build_lead_agent() -> LeadAgent:
         agent.instructions(fn)
     agent.instructions(machine_guarantees_pin(agent.toolsets))
     agent.instructions(pinned_turn_briefing)
-    agent.output_validator(verify_what_this_turn_built)
-    agent.output_validator(refuse_a_misreported_change)
-    agent.output_validator(refuse_blaming_the_site)
-    agent.output_validator(refuse_an_unrecorded_question)
-    agent.output_validator(refuse_a_substituted_analysis)
-    agent.output_validator(refuse_an_unbuilt_eda_criterion)
-    agent.output_validator(refuse_an_off_topic_essay)
+    agent.output_validator(hold_the_turn_contract)
     return agent

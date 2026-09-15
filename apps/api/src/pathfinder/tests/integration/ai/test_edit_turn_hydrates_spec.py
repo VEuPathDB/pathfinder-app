@@ -203,7 +203,7 @@ async def test_the_hydrated_spec_keeps_the_persisted_percentile(
     assert refusing_api.calls == 0
 
 
-async def test_pre_turn_does_not_overwrite_a_real_spec(
+async def test_pre_turn_keeps_a_framed_criterion_and_states_the_built_steps(
     db_session: AsyncSession,
     session_maker: async_sessionmaker[AsyncSession],
     refusing_api: _RefusingStrategyApi,
@@ -217,7 +217,13 @@ async def test_pre_turn_does_not_overwrite_a_real_spec(
 
     refreshed = await refresh_live_strategy_state(_state(framed), _context(session))
 
-    assert refreshed.domain.operational_spec == framed
+    spec = refreshed.domain.operational_spec
+    assert spec is not None
+    by_id = {c.id: c for c in spec.criteria}
+    assert by_id["c1"].text == "framed"
+    assert by_id["c1"].search_name == "GenesByText"
+    assert {"step_taxon", "step_expr"} <= set(by_id)
+    assert spec.goal == "the framed goal"
     assert refusing_api.calls == 0
 
 

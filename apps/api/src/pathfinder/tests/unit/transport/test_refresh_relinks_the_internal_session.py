@@ -13,7 +13,12 @@ from fastapi import FastAPI, Request, Response
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.platform.error_handlers import veupathdb_error_handler
-from pathfinder.platform.security import create_dev_login_token, create_user_token
+from pathfinder.platform.security import (
+    SessionToken,
+    create_dev_login_token,
+    create_user_token,
+    decode_session_token,
+)
 from pathfinder.transport.http.routers.veupathdb_auth import router
 
 TOKEN_ACCOUNT = uuid4()
@@ -52,6 +57,19 @@ def _client(app: FastAPI) -> httpx.AsyncClient:
     return httpx.AsyncClient(transport=transport, base_url="http://test")
 
 
+def _refreshed_session(response: httpx.Response) -> SessionToken:
+    """The identity the refreshed ``pathfinder-auth`` cookie carries.
+
+    The token's expiry follows the second it was signed in, so the claims are
+    what a caller can compare and the encoded string is not.
+    """
+    cookie = response.cookies.get("pathfinder-auth")
+    assert cookie is not None
+    claims = decode_session_token(cookie)
+    assert claims is not None
+    return claims
+
+
 @pytest.mark.asyncio
 async def test_a_session_that_already_names_the_account_is_kept(
     monkeypatch: pytest.MonkeyPatch,
@@ -85,8 +103,7 @@ async def test_a_session_naming_another_account_is_relinked(
             },
         )
     assert response.status_code == 200
-    minted = create_user_token(TOKEN_ACCOUNT)
-    assert f"pathfinder-auth={minted}" in response.headers.get("set-cookie", "")
+    assert _refreshed_session(response) == SessionToken(sub=TOKEN_ACCOUNT)
 
 
 @pytest.mark.asyncio
@@ -100,8 +117,7 @@ async def test_without_an_internal_session_the_token_is_minted(
             cookies={"Authorization": "veupathdb-jwt"},
         )
     assert response.status_code == 200
-    minted = create_user_token(TOKEN_ACCOUNT)
-    assert f"pathfinder-auth={minted}" in response.headers.get("set-cookie", "")
+    assert _refreshed_session(response) == SessionToken(sub=TOKEN_ACCOUNT)
 
 
 @pytest.mark.asyncio
@@ -118,8 +134,7 @@ async def test_an_expired_internal_session_is_replaced(
             },
         )
     assert response.status_code == 200
-    minted = create_user_token(TOKEN_ACCOUNT)
-    assert f"pathfinder-auth={minted}" in response.headers.get("set-cookie", "")
+    assert _refreshed_session(response) == SessionToken(sub=TOKEN_ACCOUNT)
 
 
 @pytest.mark.asyncio

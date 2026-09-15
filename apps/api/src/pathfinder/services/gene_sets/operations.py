@@ -38,7 +38,7 @@ class EmptyGeneSetError(ValidationError):
         )
 
 
-def _dedup_ordered(gene_ids: list[str]) -> list[str]:
+def dedup_ordered(gene_ids: list[str]) -> list[str]:
     """Remove duplicate gene IDs and keep first-seen order."""
     seen: set[str] = set()
     out: list[str] = []
@@ -91,7 +91,7 @@ class GeneSetService:
         """
         ctx = wdk or GeneSetWdkContext()
         gene_ids, ctx, step_count = await resolve_wdk_context(site_id, gene_ids, ctx)
-        unique_gene_ids = _dedup_ordered(gene_ids)
+        unique_gene_ids = dedup_ordered(gene_ids)
         if not unique_gene_ids:
             raise EmptyGeneSetError(name)
 
@@ -136,7 +136,7 @@ class GeneSetService:
                 wdk_strategy_id=wdk_strategy_id, record_type=gs.record_type
             ),
         )
-        gs.gene_ids = _dedup_ordered(gene_ids)
+        gs.gene_ids = dedup_ordered(gene_ids)
         gs.wdk_strategy_id = ctx.wdk_strategy_id
         gs.wdk_step_id = ctx.wdk_step_id
         gs.step_count = step_count

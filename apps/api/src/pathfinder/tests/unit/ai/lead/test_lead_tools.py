@@ -13,9 +13,10 @@ from pydantic_ai.messages import ToolCallPart
 from pathfinder.ai.lead import lead_tools
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
-from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
+from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.tools.standalone import export, workbench
 from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResult

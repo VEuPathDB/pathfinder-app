@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-import pytest
-from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
@@ -18,17 +16,12 @@ from veupathdb.wdk import WDKStepTree
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead._delete_rules import steps_outside_the_strategy
 from pathfinder.ai.lead.intent import IntentClassification
-from pathfinder.ai.lead.lead_agent import (
-    LeadResponse,
-    refuse_an_unbuilt_eda_criterion,
-)
 from pathfinder.ai.lead.lead_pins import (
     eda_route_blocks,
     pinned_detached_steps,
     pinned_turn_briefing,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     DroppedCriterion,
@@ -49,7 +42,6 @@ _REASON = (
     "EDA-backed criterion: the Lead builds it with open_eda_analysis, "
     "set_eda_filters, preview_eda_subset and create_eda_step."
 )
-_PROSE = "The piggyBac score could not be mapped to a searchable gene field."
 
 
 def _spec(*, dropped: bool = True, kinases: bool = True) -> OperationalSpec:
@@ -263,74 +255,6 @@ class TestTheRouteThePinPrints:
 
         assert eda_route_blocks(run_context_for(deps)) == []
         assert pinned_turn_briefing(run_context_for(deps)) is None
-
-
-class TestTheAnswerThatLeavesTheCriterionToTheUser:
-    def _output(self) -> LeadResponse:
-        return LeadResponse(prose=_PROSE, strategy_changed=False)
-
-    def test_a_turn_that_opened_no_analysis_is_refused(self) -> None:
-        deps = _deps(_session(_eda_leaf("step_af9d7803")), spec=_spec())
-
-        with pytest.raises(ModelRetry) as raised:
-            refuse_an_unbuilt_eda_criterion(run_context_for(deps), self._output())
-
-        message = str(raised.value)
-        assert _CRITERION in message
-        assert _DATASET in message
-        assert "open_eda_analysis" in message
-        assert "set_eda_filters" in message
-        assert "preview_eda_subset" in message
-        assert "create_eda_step" in message
-        assert "Never ask the user for an analysis specification" in message
-
-    def test_the_refusal_is_asked_once_per_turn(self) -> None:
-        deps = _deps(_session(_eda_leaf("step_af9d7803")), spec=_spec())
-        output = self._output()
-
-        with pytest.raises(ModelRetry):
-            refuse_an_unbuilt_eda_criterion(run_context_for(deps), output)
-
-        assert refuse_an_unbuilt_eda_criterion(run_context_for(deps), output) is output
-
-    def test_a_turn_that_opened_the_analysis_passes(self) -> None:
-        deps = _deps(_session(_eda_leaf("step_af9d7803")), spec=_spec())
-        deps.state.turn_markers.record_eda_dataset_opened(_DATASET)
-        output = self._output()
-
-        assert refuse_an_unbuilt_eda_criterion(run_context_for(deps), output) is output
-
-    def test_an_analysis_the_thread_already_holds_open_passes(self) -> None:
-        deps = _deps(_session(_eda_leaf("step_af9d7803")), spec=_spec())
-        deps.state.domain.open_eda_analysis = OpenEdaAnalysis(
-            dataset_id=_DATASET, analysis_id="an-1"
-        )
-        output = self._output()
-
-        assert refuse_an_unbuilt_eda_criterion(run_context_for(deps), output) is output
-
-    def test_an_analysis_on_another_dataset_does_not_pass(self) -> None:
-        deps = _deps(_session(_eda_leaf("step_af9d7803")), spec=_spec())
-        deps.state.turn_markers.record_eda_dataset_opened("DS_other")
-
-        with pytest.raises(ModelRetry):
-            refuse_an_unbuilt_eda_criterion(run_context_for(deps), self._output())
-
-    def test_a_spec_with_no_eda_drop_passes(self) -> None:
-        deps = _deps(_session(_eda_leaf("step_af9d7803")), spec=_spec(dropped=False))
-        output = self._output()
-
-        assert refuse_an_unbuilt_eda_criterion(run_context_for(deps), output) is output
-
-    def test_a_turn_that_does_not_build_passes(self) -> None:
-        deps = _deps(
-            _session(_eda_leaf("step_af9d7803")),
-            spec=_spec(),
-            classification=IntentClassification.FOLLOW_UP_QUESTION,
-        )
-        output = self._output()
-
-        assert refuse_an_unbuilt_eda_criterion(run_context_for(deps), output) is output
 
 
 class TestTheStepsOutsideTheStrategy:

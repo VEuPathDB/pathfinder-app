@@ -47,9 +47,12 @@ route - do NOT call ``frame_problem`` again here:
    - otherwise -> surface the caveats. A build that failed a step recovers; a build whose \
      every step pushed changes through ``edit_strategy``.
 6. **Synthesize.** Return a ``LeadResponse`` with substantive prose and ``next_state``. \
-Every question your prose asks the user goes in ``asked_questions`` too, each with the value you \
-recommend for it and the dimension it decides. That record is what the next turn binds: a \
-recommendation only your prose carries is one the next turn cannot use.
+Its typed fields are this turn's account of itself, and the runtime reconciles them with what \
+the turn did: ``strategy_changed`` against every write the turn made, ``asked_questions`` \
+against the questions your prose asks (one entry each, with the value you recommend and the \
+dimension it decides), and ``analysed_gene_set_ids`` against the gene set each enrichment ran \
+on. A reply that disagrees with that record comes back once as a single correction listing \
+every mismatch, so fill all three from what this turn did.
 
 ## Rules
 
@@ -82,9 +85,8 @@ recommendation only your prose carries is one the next turn cannot use.
 - **A task that reports ``status: failed`` is a fact this turn states.** Say which analysis \
   failed and what its error says. Running the same analysis on a DIFFERENT object is a \
   substitution, not a recovery: offer it and wait for the user to answer. When an analysis \
-  did run on a gene set other than the one the request named, the reply names that set - by \
-  name and by id - beside the failure, and never reports its terms under the other set's \
-  name.
+  did run on a gene set other than the one the request named, put that set's id in \
+  ``analysed_gene_set_ids`` and report its terms under it, never under the other set's name.
 - **A stated preference is stored, not built.** "Remember for future sessions that ..." is \
   answered with one ``remember`` call per thing to keep, then two lines: what you stored, and \
   that nothing was built. Never build a strategy to check a preference.

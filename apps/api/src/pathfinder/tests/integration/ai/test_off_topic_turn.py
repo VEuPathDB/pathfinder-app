@@ -1,7 +1,7 @@
 """A turn PathFinder does no part of is classified, redirected and ended.
 
 The scripted model drives the real Lead agent, so the tool list, the pins and
-the output validators are the ones a served turn runs under.
+the turn contract are the ones a served turn runs under.
 """
 
 from __future__ import annotations
@@ -12,12 +12,12 @@ from pydantic_ai.messages import ModelResponse, ToolCallPart
 
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification
-from pathfinder.ai.lead.lead_agent import (
+from pathfinder.ai.lead.lead_agent import build_lead_agent
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_contract import (
     OFF_TOPIC_REPLY_MAX_CHARS,
     LeadResponse,
-    build_lead_agent,
 )
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.models.mock.prose_arcs import KINASE_PROSE, OFF_TOPIC_PROSE
 from pathfinder.tests._support.run_context import turn_runtime

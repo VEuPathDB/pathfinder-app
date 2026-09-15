@@ -9,8 +9,9 @@ from assistant_core.tasks.declaration import declared_durable_tools
 from pydantic_ai.messages import ModelMessage, ToolReturnPart
 
 from pathfinder.ai.agents.verification import build_verification_agent
-from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
+from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.devtools.capture import RESULT_CLIP
 from pathfinder.platform.durable_worker import (

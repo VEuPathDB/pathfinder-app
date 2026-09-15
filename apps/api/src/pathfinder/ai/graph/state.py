@@ -157,9 +157,8 @@ class TurnMarkers(CamelModel):
     edited: bool = False
     verified: bool = False
     verification_dispatched: bool = False
-    verification_nudged: bool = False
-    change_report_refused: bool = False
-    eda_route_refused: bool = False
+    # A reply that did not match the turn's record is corrected once.
+    contract_refused: bool = False
     # The EDA datasets this turn opened an analysis on.
     eda_datasets_opened: list[str] = Field(default_factory=list)
     # The EDA cut this turn exported, which the turn's case records.
@@ -172,6 +171,11 @@ class TurnMarkers(CamelModel):
     def changed_strategy(self) -> bool:
         """Whether this turn wrote to the strategy."""
         return self.built or self.edited
+
+    @property
+    def build_unverified(self) -> bool:
+        """Whether this turn built and no pass checked the result."""
+        return self.built and not (self.verified or self.verification_dispatched)
 
     def record_eda_dataset_opened(self, dataset_id: str) -> None:
         """Record the dataset this turn opened an analysis on, once."""

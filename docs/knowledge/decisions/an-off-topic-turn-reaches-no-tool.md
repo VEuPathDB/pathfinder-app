@@ -28,8 +28,9 @@ message (`services/conversations/thread_activity.py`): a task that finished
 before an off-topic turn falls out of the next turn's window, so a turn that
 dropped the briefing would drop that news for good.
 
-**The reply is bounded.** The `refuse_an_off_topic_essay` output validator
-refuses, once per turn, a reply that carries a fenced code block or passes
+**The reply is bounded.** The off-topic-essay rule of the Lead's turn contract
+(`ai/lead/turn_contract.py`, `decisions/one-turn-contract.md`) refuses, once per
+turn, a reply that carries a fenced code block or passes
 `OFF_TOPIC_REPLY_MAX_CHARS`. A gate cannot compel prose, so the cap is checked
 where the prose is.
 
@@ -93,8 +94,8 @@ is measured live at acceptance, not by the suite.
 
 # What the reader can check
 
-`tests/unit/ai/lead/test_intent_gate.py`, `test_off_topic_reply.py`,
-`test_lead_pins.py`, `test_turn_budget.py`,
+`tests/unit/ai/lead/test_intent_gate.py`, `test_turn_contract.py`,
+`test_turn_contract_correction.py`, `test_lead_pins.py`, `test_turn_budget.py`,
 `tests/unit/ai/graph/test_lead_turn_budget.py`, and
 `tests/integration/ai/test_off_topic_turn.py`, which drives the real Lead over
 the scripted model and reads the two tool calls the turn makes.

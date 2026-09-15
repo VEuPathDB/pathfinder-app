@@ -1,0 +1,341 @@
+"""Every rule of the Lead's turn contract, over the record its turn left."""
+
+from __future__ import annotations
+
+from uuid import uuid4
+
+from pathfinder.ai.lead.intent import IntentClassification
+from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from pathfinder.ai.lead.turn_contract import (
+    OFF_TOPIC_REPLY_MAX_CHARS,
+    reconcile,
+    turn_record,
+)
+from pathfinder.domain.eda_thread import OpenEdaAnalysis
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
+from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.tests._support.run_context import run_context_for
+from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
+    AN_ESSAY,
+    ANALYSED_RUN,
+    ASKING_REPLY,
+    BLAMING_REPLY,
+    CLAIMS_A_CHANGE,
+    CLEAN_REPLY,
+    CRITERION,
+    DATASET,
+    EDA_PROSE,
+    ENRICHMENT_REPLY,
+    FAILED_RUN,
+    REAL_FAILURE_REPLY,
+    REDIRECT,
+    REPORTS_THE_STRATEGY,
+    WITH_CODE,
+    blame_deps,
+    building_deps,
+    eda_deps,
+    enrichment_deps,
+    framing_deps,
+    kinds,
+    off_topic_deps,
+    reading_deps,
+    reply,
+)
+
+
+class TestTheRecordTheTurnLeft:
+    def test_the_record_reads_the_build_and_its_counts(self) -> None:
+        record = turn_record(run_context_for(building_deps()))
+
+        assert record.changed_strategy is True
+        assert record.build_unverified is False
+        assert record.build_outcome is not None
+        assert record.build_outcome.root_count == 132
+
+    def test_the_record_names_the_analysed_set_and_what_it_replaced(self) -> None:
+        record = turn_record(
+            run_context_for(enrichment_deps(FAILED_RUN, ANALYSED_RUN)),
+        )
+
+        assert record.analysed is not None
+        assert record.analysed.gene_set_id == "gs-other"
+        assert [run.gene_set_id for run in record.substituted] == ["gs-requested"]
+
+    def test_the_record_names_the_dropped_eda_criterion(self) -> None:
+        record = turn_record(run_context_for(eda_deps()))
+
+        assert record.turn_builds is True
+        assert record.eda_criterion_pending is not None
+        assert record.eda_criterion_pending.eda_dataset_id == DATASET
+
+    def test_the_record_carries_the_stop_and_the_off_topic_verdict(self) -> None:
+        deps = off_topic_deps()
+        deps.last_phase_stop = PhaseStop(
+            role="frame", reason=PhaseStopReason.BUDGET, tool_calls=60
+        )
+
+        record = turn_record(run_context_for(deps))
+
+        assert record.off_topic is True
+        assert record.last_phase_stop is not None
+        assert record.last_phase_stop.tool_calls == 60
+
+
+class TestTheUnverifiedBuildRule:
+    def test_a_build_no_pass_checked_is_a_mismatch(self) -> None:
+        deps = building_deps(verified=False)
+
+        mismatches = reconcile(
+            reply("I added the step.", changed=True),
+            turn_record(run_context_for(deps)),
+        )
+
+        assert [m.kind for m in mismatches] == ["unverified_build"]
+        assert "1 step(s) on VEuPathDB" in mismatches[0].sentence
+        assert "root count 132" in mismatches[0].sentence
+        assert "verify_strategy" in mismatches[0].sentence
+
+    def test_a_verified_build_is_no_mismatch(self) -> None:
+        deps = building_deps(verified=True)
+
+        assert kinds(deps, reply("I added the step.", changed=True)) == []
+
+    def test_a_dispatched_verification_that_failed_is_no_mismatch(self) -> None:
+        deps = building_deps(verified=False)
+        deps.state.turn_markers.verification_dispatched = True
+
+        assert kinds(deps, reply("I added the step.", changed=True)) == []
+
+    def test_a_turn_that_built_nothing_is_no_mismatch(self) -> None:
+        assert kinds(reading_deps(), reply(REPORTS_THE_STRATEGY)) == []
+
+
+class TestTheMisreportedChangeRule:
+    def test_a_claimed_change_the_turn_never_made_is_a_mismatch(self) -> None:
+        mismatches = reconcile(
+            reply(CLAIMS_A_CHANGE, changed=True),
+            turn_record(run_context_for(reading_deps())),
+        )
+
+        assert [m.kind for m in mismatches] == ["misreported_change"]
+        assert "no build, edit, delete, clear or export" in mismatches[0].sentence
+        assert "3 step(s)" in mismatches[0].sentence
+        assert "root count 1" in mismatches[0].sentence
+
+    def test_a_change_the_reply_leaves_out_is_a_mismatch(self) -> None:
+        mismatches = reconcile(
+            reply(REPORTS_THE_STRATEGY, changed=False),
+            turn_record(run_context_for(building_deps())),
+        )
+
+        assert [m.kind for m in mismatches] == ["misreported_change"]
+        assert "strategy_changed to true" in mismatches[0].sentence
+
+    def test_a_reported_change_that_matches_the_build_stands(self) -> None:
+        assert kinds(building_deps(), reply("I added the step.", changed=True)) == []
+
+    def test_a_reply_that_reports_no_change_on_a_read_turn_stands(self) -> None:
+        assert kinds(reading_deps(), reply(REPORTS_THE_STRATEGY)) == []
+
+
+class TestTheUnbuiltEdaCriterionRule:
+    def test_a_turn_that_opened_no_analysis_is_a_mismatch(self) -> None:
+        mismatches = reconcile(
+            reply(EDA_PROSE),
+            turn_record(run_context_for(eda_deps())),
+        )
+
+        assert [m.kind for m in mismatches] == ["unbuilt_eda_criterion"]
+        sentence = mismatches[0].sentence
+        assert CRITERION in sentence
+        assert DATASET in sentence
+        assert "open_eda_analysis" in sentence
+        assert "set_eda_filters" in sentence
+        assert "preview_eda_subset" in sentence
+        assert "create_eda_step" in sentence
+        assert "Never ask the user for an analysis specification" in sentence
+
+    def test_a_turn_that_opened_the_analysis_stands(self) -> None:
+        deps = eda_deps()
+        deps.state.turn_markers.record_eda_dataset_opened(DATASET)
+
+        assert kinds(deps, reply(EDA_PROSE)) == []
+
+    def test_an_analysis_the_thread_already_holds_open_stands(self) -> None:
+        deps = eda_deps()
+        deps.state.domain.open_eda_analysis = OpenEdaAnalysis(
+            dataset_id=DATASET, analysis_id="an-1"
+        )
+
+        assert kinds(deps, reply(EDA_PROSE)) == []
+
+    def test_an_analysis_on_another_dataset_is_still_a_mismatch(self) -> None:
+        deps = eda_deps()
+        deps.state.turn_markers.record_eda_dataset_opened("DS_other")
+
+        assert kinds(deps, reply(EDA_PROSE)) == ["unbuilt_eda_criterion"]
+
+    def test_a_spec_with_no_eda_drop_stands(self) -> None:
+        assert kinds(eda_deps(dropped=False), reply(EDA_PROSE)) == []
+
+    def test_a_turn_that_does_not_build_stands(self) -> None:
+        deps = eda_deps(classification=IntentClassification.FOLLOW_UP_QUESTION)
+
+        assert kinds(deps, reply(EDA_PROSE)) == []
+
+
+class TestTheBlamedSiteRule:
+    def test_a_blaming_reply_is_a_mismatch_and_names_the_real_stop(self) -> None:
+        deps = blame_deps()
+        deps.last_phase_stop = PhaseStop(
+            role="frame",
+            reason=PhaseStopReason.BUDGET,
+            tool_calls=60,
+            criteria_bound=3,
+            criteria_declared=8,
+        )
+
+        mismatches = reconcile(
+            reply(BLAMING_REPLY),
+            turn_record(run_context_for(deps)),
+        )
+
+        assert [m.kind for m in mismatches] == ["blamed_the_site"]
+        assert (
+            "the framing pass stopped on its call budget after 60 calls"
+            in mismatches[0].sentence
+        )
+
+    def test_a_reply_naming_a_real_wdk_failure_stands(self) -> None:
+        deps = blame_deps()
+        deps.state.domain.last_build_outcome = BuildOutcome(
+            pushed_step_ids=["s1", "s2"],
+            failed_steps=[
+                StepPushFailure(step_id="s3", search_name="GenesByTaxon", error="422"),
+            ],
+        )
+
+        assert kinds(deps, reply(REAL_FAILURE_REPLY)) == []
+
+    def test_a_reply_that_blames_nothing_stands(self) -> None:
+        assert kinds(blame_deps(), reply(CLEAN_REPLY)) == []
+
+
+class TestTheUnrecordedQuestionRule:
+    def test_a_question_the_reply_does_not_record_is_a_mismatch(self) -> None:
+        mismatches = reconcile(
+            reply(ASKING_REPLY),
+            turn_record(run_context_for(framing_deps())),
+        )
+
+        assert [m.kind for m in mismatches] == ["unrecorded_question"]
+        assert "asked_questions" in mismatches[0].sentence
+
+    def test_a_reply_from_a_turn_that_framed_nothing_stands(self) -> None:
+        assert kinds(blame_deps(), reply(ASKING_REPLY)) == []
+
+    def test_a_recorded_question_stands(self) -> None:
+        report = reply(
+            ASKING_REPLY,
+            questions=[
+                OpenQuestion(
+                    question="Which gametocyte RNA-seq study?",
+                    dimension=ConstraintKind.DATA_TYPE,
+                    recommended_value="the 3D7 one",
+                ),
+            ],
+        )
+
+        assert kinds(framing_deps(), report) == []
+
+    def test_a_reply_that_asks_nothing_stands(self) -> None:
+        assert kinds(framing_deps(), reply(CLEAN_REPLY)) == []
+
+    def test_a_completed_turn_stands(self) -> None:
+        assert kinds(framing_deps(), reply(ASKING_REPLY, next_state="complete")) == ([])
+
+
+class TestTheSubstitutedAnalysisRule:
+    def test_a_reply_that_lists_no_analysed_set_is_a_mismatch(self) -> None:
+        mismatches = reconcile(
+            reply(ENRICHMENT_REPLY),
+            turn_record(run_context_for(enrichment_deps(FAILED_RUN, ANALYSED_RUN))),
+        )
+
+        assert [m.kind for m in mismatches] == ["substituted_analysis"]
+        sentence = mismatches[0].sentence
+        assert "gs-other" in sentence
+        assert "WDK Strategy 214617320" in sentence
+        assert "gs-requested" in sentence
+        assert "analysed_gene_set_ids" in sentence
+        assert "by its name and its id" not in sentence
+        assert "names neither" not in sentence
+
+    def test_a_reply_that_lists_the_analysed_set_stands(self) -> None:
+        deps = enrichment_deps(FAILED_RUN, ANALYSED_RUN)
+
+        assert kinds(deps, reply(ENRICHMENT_REPLY, analysed=["gs-other"])) == []
+
+    def test_naming_the_set_in_prose_alone_is_a_mismatch(self) -> None:
+        """The typed field is the record, not the sentence."""
+        deps = enrichment_deps(FAILED_RUN, ANALYSED_RUN)
+        prose = "I ran it on 'WDK Strategy 214617320' (gs-other) instead."
+
+        assert kinds(deps, reply(prose)) == ["substituted_analysis"]
+
+    def test_an_enrichment_that_ran_on_the_set_asked_for_stands(self) -> None:
+        deps = enrichment_deps(
+            FAILED_RUN.model_copy(update={"succeeded": True}),
+        )
+
+        assert kinds(deps, reply(ENRICHMENT_REPLY)) == []
+
+    def test_a_failure_after_a_success_is_not_a_substitution(self) -> None:
+        deps = enrichment_deps(ANALYSED_RUN, FAILED_RUN)
+
+        assert kinds(deps, reply("The enrichment on set A failed.")) == []
+
+    def test_a_turn_with_no_enrichment_stands(self) -> None:
+        assert kinds(enrichment_deps(), reply(ENRICHMENT_REPLY)) == []
+
+    def test_an_earlier_messages_enrichments_do_not_judge_this_reply(self) -> None:
+        """The record belongs to the message it was made under."""
+        deps = enrichment_deps(FAILED_RUN, ANALYSED_RUN)
+        deps.state.user_message_id = uuid4()
+        prose = "The strategy searched Plasmodium falciparum 3D7."
+
+        assert kinds(deps, reply(prose)) == []
+
+
+class TestTheOffTopicEssayRule:
+    def test_the_cap_on_an_out_of_scope_reply_is_four_hundred_characters(self) -> None:
+        assert OFF_TOPIC_REPLY_MAX_CHARS == 400
+
+    def test_a_reply_that_writes_code_is_a_mismatch(self) -> None:
+        mismatches = reconcile(
+            reply(WITH_CODE),
+            turn_record(run_context_for(off_topic_deps())),
+        )
+
+        assert [m.kind for m in mismatches] == ["off_topic_essay"]
+        assert "code" in mismatches[0].sentence
+
+    def test_a_reply_over_the_cap_is_a_mismatch(self) -> None:
+        assert len(AN_ESSAY) > OFF_TOPIC_REPLY_MAX_CHARS
+
+        mismatches = reconcile(
+            reply(AN_ESSAY),
+            turn_record(run_context_for(off_topic_deps())),
+        )
+
+        assert [m.kind for m in mismatches] == ["off_topic_essay"]
+        assert str(OFF_TOPIC_REPLY_MAX_CHARS) in mismatches[0].sentence
+
+    def test_the_two_sentence_redirect_stands(self) -> None:
+        assert len(REDIRECT) <= OFF_TOPIC_REPLY_MAX_CHARS
+        assert kinds(off_topic_deps(), reply(REDIRECT)) == []
+
+    def test_a_question_about_the_data_may_answer_at_length_with_code(self) -> None:
+        deps = off_topic_deps(IntentClassification.FOLLOW_UP_QUESTION)
+
+        assert kinds(deps, reply(AN_ESSAY + WITH_CODE)) == []

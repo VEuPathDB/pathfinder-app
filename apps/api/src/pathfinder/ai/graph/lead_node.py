@@ -82,13 +82,14 @@ from pathfinder.ai.graph.turn_status import (
     turn_step_status,
 )
 from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.lead_agent import LeadAgent, LeadResponse
+from pathfinder.ai.lead.lead_agent import LeadAgent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentRunUsage
 from pathfinder.ai.lead.turn_budget import (
     lead_turn_budget_message,
     lead_usage_limits,
     off_topic_budget_stop,
 )
+from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.catalog import context_window_for
 
 logger = get_logger(__name__)

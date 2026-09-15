@@ -15,8 +15,9 @@ from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 
 from pathfinder.ai.lead import sub_agent_tools
 from pathfinder.ai.lead.intent import IntentClassification
-from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
+from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.tools.toolsets import verification
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.tests._support.sub_agents import pinned_sub_agent

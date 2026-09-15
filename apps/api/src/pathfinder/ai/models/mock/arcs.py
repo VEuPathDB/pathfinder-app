@@ -297,7 +297,11 @@ def _kept_sequence(
                     "enrichment_types": list(_ENRICHMENT_TYPES),
                 },
             ),
-            lead_final(_ENRICHMENT_PROSE, "await_user"),
+            lead_final(
+                _ENRICHMENT_PROSE,
+                "await_user",
+                analysed_gene_set_ids=[_ENRICHMENT_GENE_SET_ID],
+            ),
         ]
     if has_any(lowered, _SAVE_GENE_SET_MARKERS):
         return [

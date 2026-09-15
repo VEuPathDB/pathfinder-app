@@ -30,8 +30,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead.lead_agent import LeadResponse
 from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
+from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.catalog import context_window_for
 
 logger = get_logger(__name__)

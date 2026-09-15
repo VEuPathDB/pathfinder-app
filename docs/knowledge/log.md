@@ -2,6 +2,17 @@
 
 ## 2026-09-15
 
+* **One turn contract holds the Lead's reply to what the turn did.**
+  `ai/lead/turn_contract.py` owns `LeadResponse`, a frozen `TurnRecord` built from the turn's
+  markers, the domain state and the ledger, a pure `reconcile` with one rule per failure class,
+  and `hold_the_turn_contract`, the Lead's only output validator. A reply that disagrees with
+  the record comes back once, latched on `TurnMarkers.contract_refused`, with every mismatch
+  listed under one heading instead of up to seven serial retries. `LeadResponse` carries a new
+  `analysed_gene_set_ids`, so the substituted-analysis rule reads a typed field instead of
+  scanning the prose for the gene set's name. The seven validators, their four `LeadDeps`
+  latches and the three marker latches are gone. Decision:
+  `decisions/one-turn-contract.md`.
+
 * **The Lead reaches every step it is asked to move.** `create_eda_step` joins an export to
   the strategy in one call: `replace_step_id` takes a step's place, `attach_to_step_id` fills a
   free combine input, and `combine_with_root` adds the export as the second input of a new
@@ -12,7 +23,7 @@
   records the dropped criterion itself, keyed on the criterion id, with its dataset; the
   pinned route block (`ai/lead/lead_pins.py`) orders the remaining criteria built first and
   names the one export call that fits the live graph; an export that lands clears the drop it
-  answers, so the block and `refuse_an_unbuilt_eda_criterion` stop firing.
+  answers, so the block and the contract's unbuilt-EDA-criterion rule stop firing.
 
 ## 2026-09-14
 

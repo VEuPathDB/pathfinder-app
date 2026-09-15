@@ -118,9 +118,13 @@ def _frame_precondition_fails(
 
 
 def verification_pending(deps: LeadDeps) -> bool:
-    """Whether this turn's answer was refused until its build is checked."""
+    """Whether this turn's answer was refused before a check passed.
+
+    A dispatch that reported failure is a check the build did not pass, so the
+    turn keeps the one way out until a verification succeeds.
+    """
     markers = deps.state.turn_markers
-    return markers.verification_nudged and not markers.verified
+    return markers.contract_refused and markers.built and not markers.verified
 
 
 def _subset_was_previewed(deps: LeadDeps) -> bool:

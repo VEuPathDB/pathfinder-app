@@ -1,4 +1,4 @@
-"""The Lead agent: what the factory builds, and what its validators refuse."""
+"""The Lead agent: what the factory builds, and what its contract refuses."""
 
 from __future__ import annotations
 
@@ -7,14 +7,10 @@ import inspect
 from datetime import UTC, datetime
 from uuid import uuid4
 
-import pytest
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.models.settings import baked_model_id
 from pydantic_ai import DeferredToolRequests, RunContext
-from pydantic_ai.exceptions import ModelRetry
-from pydantic_ai.messages import (
-    ToolCallPart,
-)
+from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 
@@ -24,19 +20,11 @@ from pathfinder.ai.graph.lead_node import make_lead_node
 from pathfinder.ai.lead import lead_agent
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.intent import IntentClassification
-from pathfinder.ai.lead.lead_agent import (
-    LEAD_MODEL,
-    LeadResponse,
-    build_lead_agent,
-    refuse_an_unrecorded_question,
-    refuse_blaming_the_site,
-)
-from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from pathfinder.ai.lead.lead_agent import LEAD_MODEL, build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.ai.lead.turn_contract import LeadResponse
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.tests._support.instructions import pinned_instructions
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     RetryRecordingScript,
     lead_deps,
@@ -83,20 +71,6 @@ PINNED_INSTRUCTIONS = [
     "pinned_turn_briefing",
 ]
 
-_BLAMING_REPLY = (
-    "I kept every requirement you stated. Please try the build again once the "
-    "site finishes refreshing the plan's search bindings; I will then "
-    "materialize and verify it without changing these requirements."
-)
-_REAL_FAILURE_REPLY = (
-    "VEuPathDB refused one step with a 422 on the organism parameter, so the "
-    "build pushed two steps of three. Try again later once I re-bind that "
-    "criterion."
-)
-_CLEAN_REPLY = (
-    "The planning pass stopped on its call budget with three of eight criteria "
-    "bound. I am running it again on the remaining five."
-)
 _NUDGE_PROMPT = "Export the heat-shock genes as a step"
 _NUDGE_PROSE = "I added the step."
 
@@ -169,143 +143,6 @@ def test_the_lead_renders_the_memories_its_turn_retrieved() -> None:
     )
 
 
-def _blame_deps() -> LeadDeps:
-    return lead_deps(pipeline_state(user_prompt="Now build."))
-
-
-def test_the_blaming_reply_is_refused_and_told_the_real_stop() -> None:
-    deps = _blame_deps()
-    deps.last_phase_stop = PhaseStop(
-        role="frame",
-        reason=PhaseStopReason.BUDGET,
-        tool_calls=60,
-        criteria_bound=3,
-        criteria_declared=8,
-    )
-
-    with pytest.raises(ModelRetry) as raised:
-        refuse_blaming_the_site(
-            run_context_for(deps),
-            LeadResponse(prose=_BLAMING_REPLY, strategy_changed=False),
-        )
-
-    assert "the framing pass stopped on its call budget after 60 calls" in str(
-        raised.value
-    )
-
-
-def test_the_refusal_is_asked_once_per_turn() -> None:
-    deps = _blame_deps()
-    output = LeadResponse(prose=_BLAMING_REPLY, strategy_changed=False)
-
-    with pytest.raises(ModelRetry):
-        refuse_blaming_the_site(run_context_for(deps), output)
-
-    assert refuse_blaming_the_site(run_context_for(deps), output) is output
-
-
-def test_a_reply_naming_a_real_wdk_failure_stands() -> None:
-    deps = _blame_deps()
-    deps.state.domain.last_build_outcome = BuildOutcome(
-        pushed_step_ids=["s1", "s2"],
-        failed_steps=[
-            StepPushFailure(step_id="s3", search_name="GenesByTaxon", error="422"),
-        ],
-    )
-    output = LeadResponse(prose=_REAL_FAILURE_REPLY, strategy_changed=False)
-
-    assert refuse_blaming_the_site(run_context_for(deps), output) is output
-
-
-def test_a_reply_that_blames_nothing_stands() -> None:
-    output = LeadResponse(prose=_CLEAN_REPLY, strategy_changed=False)
-
-    assert refuse_blaming_the_site(run_context_for(_blame_deps()), output) is output
-
-
-def test_a_deferred_request_is_not_prose() -> None:
-    output = DeferredToolRequests()
-
-    assert refuse_blaming_the_site(run_context_for(_blame_deps()), output) is output
-
-
-_ASKING_REPLY = (
-    "The spec needs one value: which gametocyte RNA-seq study should the "
-    "expression filter read? I recommend the 3D7 one."
-)
-
-
-def _framing_deps() -> LeadDeps:
-    deps = lead_deps(pipeline_state(user_prompt="Now build.", user_message_id=uuid4()))
-    deps.state.turn_markers.framed = True
-    return deps
-
-
-def test_a_reply_from_a_turn_that_framed_nothing_stands() -> None:
-    output = LeadResponse(
-        prose=_ASKING_REPLY, next_state="await_user", strategy_changed=False
-    )
-
-    assert refuse_an_unrecorded_question(run_context_for(_blame_deps()), output) is (
-        output
-    )
-
-
-def test_a_question_the_reply_does_not_record_is_refused() -> None:
-    deps = _framing_deps()
-
-    with pytest.raises(ModelRetry) as raised:
-        refuse_an_unrecorded_question(
-            run_context_for(deps),
-            LeadResponse(
-                prose=_ASKING_REPLY, next_state="await_user", strategy_changed=False
-            ),
-        )
-
-    assert "asked_questions" in str(raised.value)
-
-
-def test_a_recorded_question_stands() -> None:
-    output = LeadResponse(
-        prose=_ASKING_REPLY,
-        next_state="await_user",
-        strategy_changed=False,
-        asked_questions=[
-            OpenQuestion(
-                question="Which gametocyte RNA-seq study?",
-                dimension=ConstraintKind.DATA_TYPE,
-                recommended_value="the 3D7 one",
-            ),
-        ],
-    )
-
-    assert refuse_an_unrecorded_question(run_context_for(_framing_deps()), output) is (
-        output
-    )
-
-
-def test_a_reply_that_asks_nothing_stands() -> None:
-    output = LeadResponse(
-        prose=_CLEAN_REPLY, next_state="await_user", strategy_changed=False
-    )
-
-    assert refuse_an_unrecorded_question(run_context_for(_framing_deps()), output) is (
-        output
-    )
-
-
-def test_the_unrecorded_question_refusal_is_asked_once_per_turn() -> None:
-    deps = _framing_deps()
-    output = LeadResponse(
-        prose=_ASKING_REPLY, next_state="await_user", strategy_changed=False
-    )
-
-    with pytest.raises(ModelRetry):
-        refuse_an_unrecorded_question(run_context_for(deps), output)
-
-    assert refuse_an_unrecorded_question(run_context_for(deps), output) is output
-
-
 def _nudge_deps(
     *,
     built: bool,
@@ -372,7 +209,7 @@ def test_a_built_turn_that_never_verified_is_asked_once() -> None:
     assert "verify_strategy" in script.retries[0]
     assert "1 step(s) on VEuPathDB" in script.retries[0]
     assert "root count 1543" in script.retries[0]
-    assert deps.state.turn_markers.verification_nudged is True
+    assert deps.state.turn_markers.contract_refused is True
 
 
 def test_the_second_answer_goes_through_even_when_it_still_declines() -> None:
@@ -384,7 +221,7 @@ def test_a_verified_turn_is_never_asked() -> None:
     deps = _nudge_deps(built=True, verified=True)
 
     assert _run(deps).retries == []
-    assert deps.state.turn_markers.verification_nudged is False
+    assert deps.state.turn_markers.contract_refused is False
 
 
 def test_a_verification_that_ran_and_failed_is_never_asked_again() -> None:
@@ -407,4 +244,4 @@ def test_a_turn_that_parks_on_an_approval_is_never_asked() -> None:
 
     assert isinstance(result.output, DeferredToolRequests)
     assert script.retries == []
-    assert deps.state.turn_markers.verification_nudged is False
+    assert deps.state.turn_markers.contract_refused is False

@@ -17,8 +17,9 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
-from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
+from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
@@ -165,12 +166,42 @@ def test_a_saved_set_is_served_while_a_build_waits_for_its_check() -> None:
         classification=IntentClassification.NEW_STRATEGY,
         domain=StrategyDomainState(last_build_outcome=BuildOutcome()),
     )
-    deps.state.turn_markers.verification_nudged = True
+    deps.state.turn_markers.built = True
+    deps.state.turn_markers.contract_refused = True
 
     offered = _offered(deps)
 
     assert offered >= _SAVED_SET_TOOLS
     assert offered & BUILDING_TOOLS == {"verify_strategy"}
+
+
+def test_a_verification_that_ran_and_failed_keeps_the_gate_closed() -> None:
+    """A dispatch that reported failure is a check the build did not pass."""
+    deps = _deps(
+        classification=IntentClassification.NEW_STRATEGY,
+        domain=StrategyDomainState(last_build_outcome=BuildOutcome()),
+    )
+    deps.state.turn_markers.built = True
+    deps.state.turn_markers.contract_refused = True
+    deps.state.turn_markers.verification_dispatched = True
+
+    assert _offered(deps) & BUILDING_TOOLS == {"verify_strategy"}
+
+
+def test_a_verification_that_passed_opens_the_gate() -> None:
+    """A checked build leaves the turn free to write again."""
+    deps = _deps(
+        classification=IntentClassification.NEW_STRATEGY,
+        domain=StrategyDomainState(last_build_outcome=BuildOutcome()),
+    )
+    deps.state.turn_markers.built = True
+    deps.state.turn_markers.contract_refused = True
+    deps.state.turn_markers.verified = True
+
+    offered = _offered(deps) & BUILDING_TOOLS
+
+    assert "frame_problem" in offered
+    assert "verify_strategy" not in offered
 
 
 def test_frame_is_hidden_once_a_frame_dispatch_ran_this_turn() -> None:

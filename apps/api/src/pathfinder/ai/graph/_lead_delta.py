@@ -13,8 +13,8 @@ from assistant_core.memory.schemas import MemoryValue
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead.lead_agent import LeadResponse
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.strategy.constraints import OpenQuestion
 
 

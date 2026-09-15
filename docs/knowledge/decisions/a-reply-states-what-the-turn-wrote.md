@@ -11,12 +11,13 @@ status: stable
 # What was decided
 
 `LeadResponse` has a required boolean, `strategy_changed`. The Lead fills it on every answer.
-`refuse_a_misreported_change` (`ai/lead/lead_agent.py`) reads the turn's markers
-(`TurnMarkers.built`, `TurnMarkers.edited`, together `changed_strategy`) and raises one
-`ModelRetry` when the flag and the markers disagree: a reply that reports a change the turn
-never wrote is told the strategy is exactly as the turn found it, with its step and root
-counts; a reply that hides a change the turn did write is told to report it. The refusal is
-asked once per turn, so a second answer reaches the user.
+The check reads the turn's markers (`TurnMarkers.built`, `TurnMarkers.edited`, together
+`changed_strategy`) and reports a mismatch when the flag and the markers disagree: a reply
+that reports a change the turn never wrote is told the strategy is exactly as the turn found
+it, with its step and root counts; a reply that hides a change the turn did write is told to
+report it. It now lives in the Lead's turn contract as the misreported-change rule
+(`ai/lead/turn_contract.py`, `decisions/one-turn-contract.md`), which corrects the reply once
+per turn with every mismatch it found, so a second answer reaches the user.
 
 Every path that writes the strategy sets a marker: a build and a resync through
 `PipelineState.record_build`, a clear through `edited`. A recovery pass records a build only
