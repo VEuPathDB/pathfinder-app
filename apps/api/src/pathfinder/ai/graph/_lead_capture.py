@@ -51,6 +51,23 @@ class GuardStop:
     rule: BlockRule
 
 
+@dataclass(frozen=True)
+class SpendOutsideTheLead:
+    """What one turn spent beyond the Lead's own model calls."""
+
+    sub_agent_tokens: int = 0
+    sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
+    tool_cost: Decimal = field(default_factory=lambda: Decimal(0))
+
+    def minus(self, billed: "SpendOutsideTheLead") -> "SpendOutsideTheLead":
+        """The part of this spend the quota has not received yet."""
+        return SpendOutsideTheLead(
+            sub_agent_tokens=self.sub_agent_tokens - billed.sub_agent_tokens,
+            sub_agent_cost=self.sub_agent_cost - billed.sub_agent_cost,
+            tool_cost=self.tool_cost - billed.tool_cost,
+        )
+
+
 @dataclass
 class _LeadRunCapture:
     """Terminal state captured from the Lead agent's streaming run."""
@@ -72,6 +89,10 @@ class _LeadRunCapture:
     sub_agent_tokens: int = 0
     sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
     tool_cost: Decimal = field(default_factory=lambda: Decimal(0))
+    # The part of the spend outside the Lead's calls the quota already holds.
+    billed_outside_the_lead: SpendOutsideTheLead = field(
+        default_factory=SpendOutsideTheLead,
+    )
     sub_agent_usage_by_call: dict[str, SubAgentCallUsage] = field(default_factory=dict)
     lead_model: str = ""
     last_request_input_tokens: int = 0
@@ -97,6 +118,14 @@ class _LeadRunCapture:
         return (
             state.turn_total_tokens + self.cumulative_tokens,
             str(state.turn_total_cost_usd + self.cumulative_cost),
+        )
+
+    def spend_outside_the_lead(self) -> SpendOutsideTheLead:
+        """What the sub-agents and the served tools have cost this turn."""
+        return SpendOutsideTheLead(
+            sub_agent_tokens=self.sub_agent_tokens,
+            sub_agent_cost=self.sub_agent_cost,
+            tool_cost=self.tool_cost,
         )
 
     def residual_totals(self, state: PipelineState) -> tuple[int, str]:
@@ -277,10 +306,10 @@ async def _persist_residual_quota(
         return
     lead_residual_tokens = max(capture.tokens - capture.charged_tokens, 0)
     lead_residual_cost = max(capture.cost_usd - capture.charged_cost, Decimal(0))
-    sub_agent_tokens = capture.sub_agent_tokens
-    sub_agent_cost = capture.sub_agent_cost
-    total_tokens = lead_residual_tokens + sub_agent_tokens
-    total_cost = lead_residual_cost + sub_agent_cost + capture.tool_cost
+    spend = capture.spend_outside_the_lead()
+    unbilled = spend.minus(capture.billed_outside_the_lead)
+    total_tokens = lead_residual_tokens + unbilled.sub_agent_tokens
+    total_cost = lead_residual_cost + unbilled.sub_agent_cost + unbilled.tool_cost
     if total_tokens == 0 and total_cost == 0:
         return
     async with context.db_session_factory() as session:
@@ -291,15 +320,14 @@ async def _persist_residual_quota(
                 tokens=total_tokens,
                 cost_usd=total_cost,
             )
-            capture.charged_output_tokens += lead_residual_tokens
-            capture.charged_cost += lead_residual_cost
-            capture.sub_agent_tokens = 0
-            capture.sub_agent_cost = Decimal(0)
-            capture.tool_cost = Decimal(0)
+            await session.commit()
         except SQLAlchemyError:
             logger.warning(
                 "failed to accumulate lead residual quota",
                 user_id=str(state.user_id),
                 conversation_id=str(state.conversation_id),
             )
-        await session.commit()
+            return
+        capture.charged_output_tokens += lead_residual_tokens
+        capture.charged_cost += lead_residual_cost
+        capture.billed_outside_the_lead = spend

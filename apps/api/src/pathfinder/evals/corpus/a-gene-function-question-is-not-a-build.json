@@ -1,0 +1,31 @@
+{
+  "name": "a-gene-function-question-is-not-a-build",
+  "turns": [
+    "What does PF3D7_0708400 do?"
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A question whose answer is one gene's annotation asks for an explanation, so it stays a follow_up_question and reaches no building tool. This is the counterpart of a-count-question-is-a-build: the rule that makes a count a build must not make every question one. A turn classified as a question persists no strategy AST.",
+  "expected": {
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [
+      "Verified end-to-end"
+    ]
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-09-15",
+    "stagingId": "",
+    "reference": "log.md#2026-09-15",
+    "curatorNote": "The gene is a named annotation lookup, not a set."
+  }
+}

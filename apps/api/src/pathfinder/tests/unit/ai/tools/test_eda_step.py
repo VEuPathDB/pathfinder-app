@@ -21,10 +21,12 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.commit import CommitResult
-from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
+from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET, PHENOTYPE_ENTITY
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+    CountedSubset,
+    analysis_detail,
     bound,
     pushing_commit,
     read_detail,
@@ -66,12 +68,13 @@ def _wire(
     read: object,
     commit: object | None = None,
     genes_selected: int = 3984,
-) -> None:
+) -> list[CountedSubset]:
     monkeypatch.setattr(eda_step, "bound_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read)
-    wire_gene_count(monkeypatch, count=genes_selected)
+    counted = wire_gene_count(monkeypatch, count=genes_selected)
     if commit is not None:
         monkeypatch.setattr(eda_step, "apply_operations_and_commit", commit)
+    return counted
 
 
 async def test_a_subset_export_uses_the_generic_subset_search(
@@ -423,7 +426,7 @@ async def test_a_subset_that_selects_no_genes_is_not_exported(
         reason = "no export may reach the commit"
         raise AssertionError(reason)
 
-    _wire(monkeypatch, read=read_detail, commit=commit, genes_selected=0)
+    counted = _wire(monkeypatch, read=read_detail, commit=commit, genes_selected=0)
 
     with pytest.raises(ModelRetry) as refusal:
         await eda_step.create_eda_step(lead_ctx)
@@ -431,3 +434,10 @@ async def test_a_subset_that_selects_no_genes_is_not_exported(
     assert "0 of 5,399 genes" in str(refusal.value)
     assert "run_eda_compute" in str(refusal.value)
     assert committed == []
+    assert [(c.dataset_id, c.entity_id) for c in counted] == [
+        (PHENOTYPE_DATASET, PHENOTYPE_ENTITY),
+    ]
+    assert (
+        list(counted[0].filters)
+        == analysis_detail(with_computation=False).descriptor.subset.descriptor
+    )

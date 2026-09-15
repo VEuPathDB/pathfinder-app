@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
+from dataclasses import dataclass
 from typing import Any
 
 import pytest
@@ -13,6 +14,7 @@ from veupathdb.eda import (
     EdaComputation,
     EdaComputationDescriptor,
     EdaDifferentialExpressionConfig,
+    EdaFilter,
     EdaLabeledRange,
     EdaStringSetFilter,
     EdaSubsetDescriptor,
@@ -170,16 +172,31 @@ def pushing_commit(
     return commit
 
 
-def wire_gene_count(monkeypatch: pytest.MonkeyPatch, *, count: int = 3984) -> None:
-    """The gene count the export clears, read from the recorded phenotype study."""
+@dataclass(frozen=True)
+class CountedSubset:
+    """The dataset, the entity and the filters one gene count was taken over."""
+
+    dataset_id: str
+    entity_id: str
+    filters: Sequence[EdaFilter]
+
+
+def wire_gene_count(
+    monkeypatch: pytest.MonkeyPatch, *, count: int = 3984
+) -> list[CountedSubset]:
+    """The gene count the export clears, and what each count was taken over."""
+    counted: list[CountedSubset] = []
 
     async def _count(
-        _site: str, *, dataset_id: str, entity_id: str, filters: object
+        _site: str, *, dataset_id: str, entity_id: str, filters: Sequence[EdaFilter]
     ) -> SubsetCount:
-        del dataset_id, filters
+        counted.append(
+            CountedSubset(dataset_id=dataset_id, entity_id=entity_id, filters=filters),
+        )
         return SubsetCount(entity_id=entity_id, count=count, unfiltered_count=5399)
 
     monkeypatch.setattr(
         _eda_step_guard, "get_study_detail_for_dataset", phenotype_study
     )
     monkeypatch.setattr(_eda_step_guard, "verified_count", _count)
+    return counted

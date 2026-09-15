@@ -14,6 +14,7 @@ from uuid import uuid4
 
 import pytest
 from langgraph.errors import GraphBubbleUp
+from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.messages import ModelMessage, ModelResponse
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 from sqlalchemy.exc import OperationalError
@@ -158,6 +159,24 @@ def test_a_failed_run_is_named_to_the_user_and_asked_to_be_sent_again(
     assert fallback_prose(capture) == (
         "I stopped this turn on an error I could not recover from: peer closed "
         "connection. Send the message again and I will start over from it."
+    )
+
+
+def test_a_provider_failure_reaches_the_reply_without_its_response_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The provider's payload is persisted prose if the reply repeats it."""
+    capture = _LeadRunCapture()
+    body = {"error": {"message": "Rate limit reached for org-abc123"}}
+    failure = ModelHTTPError(status_code=429, model_name="luna", body=body)
+
+    _drive(monkeypatch, failure, capture, Collector())
+
+    assert capture.run_error == str(failure)
+    assert fallback_prose(capture) == (
+        "I stopped this turn on an error I could not recover from: the model "
+        "provider answered 429. Send the message again and I will start over "
+        "from it."
     )
 
 

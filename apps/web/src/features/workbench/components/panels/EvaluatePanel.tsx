@@ -107,6 +107,7 @@ export function EvaluatePanel() {
       targetGeneIds: strategyBacked ? undefined : activeSet.geneIds,
       enrichmentTypes,
       name: `${activeSet.name} (evaluation)`,
+      geneSetId: activeSet.id,
     } satisfies ExperimentRunConfig;
 
     try {

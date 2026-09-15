@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pathfinder.tests.integration.http._authz_matrix_support import (
     CONVERSATION,
     EXPERIMENT,
@@ -21,6 +23,23 @@ _EXP = frozenset({EXPERIMENT.name})
 _GS = frozenset({GENE_SET.name})
 _MEM = frozenset({MEMORY.name})
 _PRIMARY_KEY = {"primaryKey": [{"name": "source_id", "value": GENE_IDS[0]}]}
+_ORGANISM = "Plasmodium falciparum 3D7"
+
+
+def _experiment_body(gene_set_id: str) -> dict[str, Any]:
+    """A create-experiment body whose only foreign id is the gene set."""
+    return {
+        "siteId": SITE_ID,
+        "recordType": "transcript",
+        "searchName": "GenesByText",
+        "parameters": {},
+        "positiveControls": [GENE_IDS[0]],
+        "negativeControls": [GENE_IDS[1]],
+        "controlsSearchName": "GeneByLocusTag",
+        "controlsParamName": "ds_gene_ids",
+        "name": "stolen evaluation",
+        "geneSetId": gene_set_id,
+    }
 
 
 def _conversation_cases(owned: Owned) -> tuple[Case, ...]:
@@ -242,6 +261,41 @@ def _gene_set_cases(owned: Owned) -> tuple[Case, ...]:
                 "setBId": second,
                 "operation": "union",
                 "name": "stolen union",
+            },
+        ),
+        Case(
+            "POST",
+            "/api/v1/experiments",
+            "/api/v1/experiments",
+            _GS,
+            _experiment_body(first),
+        ),
+        Case(
+            "POST",
+            "/api/v1/experiments/batch",
+            "/api/v1/experiments/batch",
+            _GS,
+            {
+                "base": _experiment_body(first),
+                "organismParamName": "organism",
+                "targetOrganisms": [{"organism": _ORGANISM}],
+            },
+        ),
+        Case(
+            "POST",
+            "/api/v1/experiments/benchmark",
+            "/api/v1/experiments/benchmark",
+            _GS,
+            {
+                "base": _experiment_body(first),
+                "controlSets": [
+                    {
+                        "label": "primary",
+                        "positiveControls": [GENE_IDS[0]],
+                        "negativeControls": [GENE_IDS[1]],
+                        "isPrimary": True,
+                    },
+                ],
             },
         ),
     )

@@ -3561,6 +3561,49 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/gene-sets/{gene_set_id}/experiments:
+    get:
+      tags:
+      - gene-sets
+      summary: List Gene Set Experiments
+      description: List this user's experiments on one gene set, newest first.
+      operationId: list_gene_set_experiments_api_v1_gene_sets__gene_set_id__experiments_get
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: gene_set_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Gene Set Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Experiment'
+                title: Response List Gene Set Experiments Api V1 Gene Sets  Gene Set Id  Experiments Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/gene-sets/confidence:
     post:
       tags:
@@ -4251,7 +4294,7 @@ components:
           title: Kind
           default: addCombine
         step:
-          $ref: '#/components/schemas/StrategyStepNode'
+          $ref: '#/components/schemas/StrategyStepNode-Input'
         leftId:
           type: string
           title: Leftid
@@ -4272,7 +4315,7 @@ components:
           title: Kind
           default: addLeaf
         step:
-          $ref: '#/components/schemas/StrategyStepNode'
+          $ref: '#/components/schemas/StrategyStepNode-Input'
         attach:
           oneOf:
           - $ref: '#/components/schemas/AttachNewRoot'
@@ -4296,7 +4339,7 @@ components:
           title: Kind
           default: addTransform
         step:
-          $ref: '#/components/schemas/StrategyStepNode'
+          $ref: '#/components/schemas/StrategyStepNode-Input'
         inputId:
           type: string
           title: Inputid
@@ -4527,6 +4570,20 @@ components:
       - negativeControls
       title: BenchmarkControlSet
       description: A single control set within a benchmark suite.
+    BootstrapResult:
+      properties:
+        nIterations:
+          type: integer
+          title: Niterations
+          default: 0
+        metricCis:
+          additionalProperties:
+            $ref: '#/components/schemas/ConfidenceInterval'
+          type: object
+          title: Metriccis
+      type: object
+      title: BootstrapResult
+      description: Robustness assessment via bootstrap resampling.
     BuildGoldRequest:
       properties:
         goldId:
@@ -4857,6 +4914,49 @@ components:
         WDK defines the same set. LONLY matches MINUS and RONLY matches RMINUS.
 
         Both names stay, for round-trip fidelity with WDK.'
+    ConfidenceInterval:
+      properties:
+        lower:
+          type: number
+          title: Lower
+          default: 0.0
+        mean:
+          type: number
+          title: Mean
+          default: 0.0
+        upper:
+          type: number
+          title: Upper
+          default: 0.0
+        std:
+          type: number
+          title: Std
+          default: 0.0
+      type: object
+      title: ConfidenceInterval
+      description: Bootstrap confidence interval for a single metric.
+    ConfusionMatrix:
+      properties:
+        truePositives:
+          type: integer
+          title: Truepositives
+        falsePositives:
+          type: integer
+          title: Falsepositives
+        trueNegatives:
+          type: integer
+          title: Truenegatives
+        falseNegatives:
+          type: integer
+          title: Falsenegatives
+      type: object
+      required:
+      - truePositives
+      - falsePositives
+      - trueNegatives
+      - falseNegatives
+      title: ConfusionMatrix
+      description: 2x2 confusion matrix counts.
     ControlSetResponse:
       properties:
         id:
@@ -5312,6 +5412,11 @@ components:
           - type: string
           - type: 'null'
           title: Controlsetid
+        geneSetId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Genesetid
         maxListSize:
           anyOf:
           - type: integer
@@ -5430,6 +5535,38 @@ components:
       - geneIds
       title: CreateGeneSetRequest
       description: Request to create a gene set from IDs, a strategy, or an upload.
+    CrossValidationResult:
+      properties:
+        k:
+          type: integer
+          title: K
+        folds:
+          items:
+            $ref: '#/components/schemas/FoldMetrics'
+          type: array
+          title: Folds
+        meanMetrics:
+          $ref: '#/components/schemas/ExperimentMetrics'
+        stdMetrics:
+          additionalProperties:
+            type: number
+          type: object
+          title: Stdmetrics
+        overfittingScore:
+          type: number
+          title: Overfittingscore
+          default: 0.0
+        overfittingLevel:
+          type: string
+          title: Overfittinglevel
+          default: low
+      type: object
+      required:
+      - k
+      - folds
+      - meanMetrics
+      title: CrossValidationResult
+      description: Aggregated cross-validation result.
     CustomEnrichRequest:
       properties:
         geneSetName:
@@ -7238,6 +7375,347 @@ components:
       - cursor
       title: EventsSnapshot
       description: The completed history a thread serves, and where a tail continues it.
+    Experiment:
+      properties:
+        id:
+          type: string
+          title: Id
+        config:
+          $ref: '#/components/schemas/ExperimentConfig'
+        userId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Userid
+        applicationId:
+          type: string
+          title: Applicationid
+        status:
+          type: string
+          enum:
+          - pending
+          - running
+          - completed
+          - error
+          - cancelled
+          title: Status
+          default: pending
+        metrics:
+          anyOf:
+          - $ref: '#/components/schemas/ExperimentMetrics'
+          - type: 'null'
+        crossValidation:
+          anyOf:
+          - $ref: '#/components/schemas/CrossValidationResult'
+          - type: 'null'
+        enrichmentResults:
+          items:
+            $ref: '#/components/schemas/EnrichmentResult'
+          type: array
+          title: Enrichmentresults
+        truePositiveGenes:
+          items:
+            $ref: '#/components/schemas/GeneInfo'
+          type: array
+          title: Truepositivegenes
+        falseNegativeGenes:
+          items:
+            $ref: '#/components/schemas/GeneInfo'
+          type: array
+          title: Falsenegativegenes
+        falsePositiveGenes:
+          items:
+            $ref: '#/components/schemas/GeneInfo'
+          type: array
+          title: Falsepositivegenes
+        trueNegativeGenes:
+          items:
+            $ref: '#/components/schemas/GeneInfo'
+          type: array
+          title: Truenegativegenes
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+        totalTimeSeconds:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Totaltimeseconds
+        createdAt:
+          type: string
+          title: Createdat
+          default: ''
+        completedAt:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Completedat
+        batchId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Batchid
+        benchmarkId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Benchmarkid
+        controlSetLabel:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Controlsetlabel
+        isPrimaryBenchmark:
+          type: boolean
+          title: Isprimarybenchmark
+          default: false
+        wdkStrategyId:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Wdkstrategyid
+        wdkStepId:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Wdkstepid
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        robustness:
+          anyOf:
+          - $ref: '#/components/schemas/BootstrapResult'
+          - type: 'null'
+      type: object
+      required:
+      - id
+      - config
+      title: Experiment
+      description: Full experiment with config and results.
+    ExperimentConfig:
+      properties:
+        siteId:
+          type: string
+          title: Siteid
+        recordType:
+          type: string
+          title: Recordtype
+        searchName:
+          type: string
+          title: Searchname
+        parameters:
+          additionalProperties:
+            oneOf:
+            - $ref: '#/components/schemas/StringValue'
+            - $ref: '#/components/schemas/NumberValue'
+            - $ref: '#/components/schemas/NumberRangeValue'
+            - $ref: '#/components/schemas/DateValue'
+            - $ref: '#/components/schemas/DateRangeValue'
+            - $ref: '#/components/schemas/TimestampValue'
+            - $ref: '#/components/schemas/SinglePickValue'
+            - $ref: '#/components/schemas/MultiPickValue'
+            - $ref: '#/components/schemas/FilterValue'
+            - $ref: '#/components/schemas/InputDatasetValue'
+            - $ref: '#/components/schemas/InputStepValue'
+            discriminator:
+              propertyName: type
+              mapping:
+                date: '#/components/schemas/DateValue'
+                date-range: '#/components/schemas/DateRangeValue'
+                filter: '#/components/schemas/FilterValue'
+                input-dataset: '#/components/schemas/InputDatasetValue'
+                input-step: '#/components/schemas/InputStepValue'
+                multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
+                number: '#/components/schemas/NumberValue'
+                number-range: '#/components/schemas/NumberRangeValue'
+                single-pick-vocabulary: '#/components/schemas/SinglePickValue'
+                string: '#/components/schemas/StringValue'
+                timestamp: '#/components/schemas/TimestampValue'
+          type: object
+          title: Parameters
+        positiveControls:
+          items:
+            type: string
+          type: array
+          title: Positivecontrols
+        negativeControls:
+          items:
+            type: string
+          type: array
+          title: Negativecontrols
+        controlsSearchName:
+          type: string
+          title: Controlssearchname
+        controlsParamName:
+          type: string
+          title: Controlsparamname
+        controlsValueFormat:
+          type: string
+          enum:
+          - newline
+          - json_list
+          - comma
+          title: Controlsvalueformat
+          default: newline
+        enableCrossValidation:
+          type: boolean
+          title: Enablecrossvalidation
+          default: false
+        kFolds:
+          type: integer
+          title: Kfolds
+          default: 5
+        enrichmentTypes:
+          items:
+            $ref: '#/components/schemas/EnrichmentAnalysisType'
+          type: array
+          title: Enrichmenttypes
+        name:
+          type: string
+          title: Name
+          default: ''
+        description:
+          type: string
+          title: Description
+          default: ''
+        parameterDisplayValues:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          title: Parameterdisplayvalues
+        mode:
+          type: string
+          enum:
+          - single
+          - multi-step
+          - import
+          title: Mode
+          default: single
+        stepTree:
+          anyOf:
+          - $ref: '#/components/schemas/StrategyStepNode-Output'
+          - type: 'null'
+        sourceStrategyId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sourcestrategyid
+        controlSetId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Controlsetid
+        geneSetId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Genesetid
+        maxListSize:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Maxlistsize
+        parentExperimentId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Parentexperimentid
+        targetGeneIds:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Targetgeneids
+      type: object
+      required:
+      - siteId
+      - recordType
+      - searchName
+      - parameters
+      - positiveControls
+      - negativeControls
+      - controlsSearchName
+      - controlsParamName
+      title: ExperimentConfig
+      description: 'Full configuration for an experiment run.
+
+
+        Supports three modes:
+
+
+        * **single** (default): one search + parameters.
+
+        * **multi-step**: a recursive ``step_tree`` of search/combine/transform nodes.
+
+        * **import**: import an existing Pathfinder strategy by ``source_strategy_id``.'
+    ExperimentMetrics:
+      properties:
+        confusionMatrix:
+          $ref: '#/components/schemas/ConfusionMatrix'
+        sensitivity:
+          type: number
+          title: Sensitivity
+        specificity:
+          type: number
+          title: Specificity
+        precision:
+          type: number
+          title: Precision
+        f1Score:
+          type: number
+          title: F1Score
+        mcc:
+          type: number
+          title: Mcc
+        balancedAccuracy:
+          type: number
+          title: Balancedaccuracy
+        negativePredictiveValue:
+          type: number
+          title: Negativepredictivevalue
+          default: 0.0
+        falsePositiveRate:
+          type: number
+          title: Falsepositiverate
+          default: 0.0
+        falseNegativeRate:
+          type: number
+          title: Falsenegativerate
+          default: 0.0
+        youdensJ:
+          type: number
+          title: Youdensj
+          default: 0.0
+        totalResults:
+          type: integer
+          title: Totalresults
+          default: 0
+        totalPositives:
+          type: integer
+          title: Totalpositives
+          default: 0
+        totalNegatives:
+          type: integer
+          title: Totalnegatives
+          default: 0
+      type: object
+      required:
+      - confusionMatrix
+      - sensitivity
+      - specificity
+      - precision
+      - f1Score
+      - mcc
+      - balancedAccuracy
+      title: ExperimentMetrics
+      description: Full classification metrics derived from a confusion matrix.
     FetchGeneIdsRequest:
       properties:
         strategyId:
@@ -7330,6 +7808,29 @@ components:
           title: Filters
       type: object
       title: FilterValue
+    FoldMetrics:
+      properties:
+        foldIndex:
+          type: integer
+          title: Foldindex
+        metrics:
+          $ref: '#/components/schemas/ExperimentMetrics'
+        positiveControlIds:
+          items:
+            type: string
+          type: array
+          title: Positivecontrolids
+        negativeControlIds:
+          items:
+            type: string
+          type: array
+          title: Negativecontrolids
+      type: object
+      required:
+      - foldIndex
+      - metrics
+      title: FoldMetrics
+      description: Metrics for a single cross-validation fold.
     ForkConversationRequest:
       properties:
         fromMessageId:
@@ -7415,6 +7916,31 @@ components:
       - enrichmentScore
       title: GeneConfidenceScoreResponse
       description: One gene confidence score.
+    GeneInfo:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        organism:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Organism
+        product:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Product
+      type: object
+      required:
+      - id
+      title: GeneInfo
+      description: Minimal gene metadata.
     GeneResolveRequest:
       properties:
         geneIds:
@@ -8843,7 +9369,7 @@ components:
           title: Kind
           default: replaceStrategy
         root:
-          $ref: '#/components/schemas/StrategyStepNode'
+          $ref: '#/components/schemas/StrategyStepNode-Input'
         name:
           anyOf:
           - type: string
@@ -8870,7 +9396,7 @@ components:
           type: string
           title: Stepid
         subtree:
-          $ref: '#/components/schemas/StrategyStepNode'
+          $ref: '#/components/schemas/StrategyStepNode-Input'
       type: object
       required:
       - stepId
@@ -9548,10 +10074,10 @@ components:
           type: string
           title: Recordtype
         root:
-          $ref: '#/components/schemas/StrategyStepNode'
+          $ref: '#/components/schemas/StrategyStepNode-Input'
         detachedRoots:
           items:
-            $ref: '#/components/schemas/StrategyStepNode'
+            $ref: '#/components/schemas/StrategyStepNode-Input'
           type: array
           title: Detachedroots
         name:
@@ -9602,7 +10128,7 @@ components:
       - root
       title: StrategyAst
       description: Serialized strategy graph state used at every persistence boundary.
-    StrategyStepNode:
+    StrategyStepNode-Input:
       properties:
         searchName:
           type: string
@@ -9639,11 +10165,110 @@ components:
           title: Parameters
         primaryInput:
           anyOf:
-          - $ref: '#/components/schemas/StrategyStepNode'
+          - $ref: '#/components/schemas/StrategyStepNode-Input'
           - type: 'null'
         secondaryInput:
           anyOf:
-          - $ref: '#/components/schemas/StrategyStepNode'
+          - $ref: '#/components/schemas/StrategyStepNode-Input'
+          - type: 'null'
+        operator:
+          anyOf:
+          - $ref: '#/components/schemas/CombineOp'
+          - type: 'null'
+        colocationParams:
+          anyOf:
+          - $ref: '#/components/schemas/ColocationParams'
+          - type: 'null'
+        displayName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Displayname
+        filters:
+          items:
+            $ref: '#/components/schemas/StepFilter'
+          type: array
+          title: Filters
+        analyses:
+          items:
+            $ref: '#/components/schemas/StepAnalysis'
+          type: array
+          title: Analyses
+        reports:
+          items:
+            $ref: '#/components/schemas/StepReport'
+          type: array
+          title: Reports
+        wdkWeight:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Wdkweight
+        expandedStrategyId:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Expandedstrategyid
+        expandedName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expandedname
+        id:
+          type: string
+          title: Id
+      type: object
+      required:
+      - searchName
+      title: StrategyStepNode
+      description: 'Recursive strategy node.
+
+
+        The kind follows the structure: two inputs is a combine, one input is a
+
+        transform, and no input is a search.'
+    StrategyStepNode-Output:
+      properties:
+        searchName:
+          type: string
+          title: Searchname
+        parameters:
+          additionalProperties:
+            oneOf:
+            - $ref: '#/components/schemas/StringValue'
+            - $ref: '#/components/schemas/NumberValue'
+            - $ref: '#/components/schemas/NumberRangeValue'
+            - $ref: '#/components/schemas/DateValue'
+            - $ref: '#/components/schemas/DateRangeValue'
+            - $ref: '#/components/schemas/TimestampValue'
+            - $ref: '#/components/schemas/SinglePickValue'
+            - $ref: '#/components/schemas/MultiPickValue'
+            - $ref: '#/components/schemas/FilterValue'
+            - $ref: '#/components/schemas/InputDatasetValue'
+            - $ref: '#/components/schemas/InputStepValue'
+            discriminator:
+              propertyName: type
+              mapping:
+                date: '#/components/schemas/DateValue'
+                date-range: '#/components/schemas/DateRangeValue'
+                filter: '#/components/schemas/FilterValue'
+                input-dataset: '#/components/schemas/InputDatasetValue'
+                input-step: '#/components/schemas/InputStepValue'
+                multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
+                number: '#/components/schemas/NumberValue'
+                number-range: '#/components/schemas/NumberRangeValue'
+                single-pick-vocabulary: '#/components/schemas/SinglePickValue'
+                string: '#/components/schemas/StringValue'
+                timestamp: '#/components/schemas/TimestampValue'
+          type: object
+          title: Parameters
+        primaryInput:
+          anyOf:
+          - $ref: '#/components/schemas/StrategyStepNode-Output'
+          - type: 'null'
+        secondaryInput:
+          anyOf:
+          - $ref: '#/components/schemas/StrategyStepNode-Output'
           - type: 'null'
         operator:
           anyOf:
@@ -12540,6 +13165,105 @@ components:
       - revision
       title: StrategyRevisionPayload
       type: object
+    StrategyStepNode:
+      description: 'Recursive strategy node.
+
+
+        The kind follows the structure: two inputs is a combine, one input is a
+
+        transform, and no input is a search.'
+      properties:
+        searchName:
+          title: Searchname
+          type: string
+        parameters:
+          additionalProperties:
+            discriminator:
+              mapping:
+                date: '#/components/schemas/DateValue'
+                date-range: '#/components/schemas/DateRangeValue'
+                filter: '#/components/schemas/FilterValue'
+                input-dataset: '#/components/schemas/InputDatasetValue'
+                input-step: '#/components/schemas/InputStepValue'
+                multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
+                number: '#/components/schemas/NumberValue'
+                number-range: '#/components/schemas/NumberRangeValue'
+                single-pick-vocabulary: '#/components/schemas/SinglePickValue'
+                string: '#/components/schemas/StringValue'
+                timestamp: '#/components/schemas/TimestampValue'
+              propertyName: type
+            oneOf:
+            - $ref: '#/components/schemas/StringValue'
+            - $ref: '#/components/schemas/NumberValue'
+            - $ref: '#/components/schemas/NumberRangeValue'
+            - $ref: '#/components/schemas/DateValue'
+            - $ref: '#/components/schemas/DateRangeValue'
+            - $ref: '#/components/schemas/TimestampValue'
+            - $ref: '#/components/schemas/SinglePickValue'
+            - $ref: '#/components/schemas/MultiPickValue'
+            - $ref: '#/components/schemas/FilterValue'
+            - $ref: '#/components/schemas/InputDatasetValue'
+            - $ref: '#/components/schemas/InputStepValue'
+          title: Parameters
+          type: object
+        primaryInput:
+          anyOf:
+          - $ref: '#/components/schemas/StrategyStepNode'
+          - type: 'null'
+        secondaryInput:
+          anyOf:
+          - $ref: '#/components/schemas/StrategyStepNode'
+          - type: 'null'
+        operator:
+          anyOf:
+          - $ref: '#/components/schemas/CombineOp'
+          - type: 'null'
+        colocationParams:
+          anyOf:
+          - $ref: '#/components/schemas/ColocationParams'
+          - type: 'null'
+        displayName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Displayname
+        filters:
+          items:
+            $ref: '#/components/schemas/StepFilter'
+          title: Filters
+          type: array
+        analyses:
+          items:
+            $ref: '#/components/schemas/StepAnalysis'
+          title: Analyses
+          type: array
+        reports:
+          items:
+            $ref: '#/components/schemas/StepReport'
+          title: Reports
+          type: array
+        wdkWeight:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Wdkweight
+        expandedStrategyId:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Expandedstrategyid
+        expandedName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expandedname
+        id:
+          title: Id
+          type: string
+      required:
+      - searchName
+      title: StrategyStepNode
+      type: object
     StructureNode:
       properties:
         kind:
@@ -13186,479 +13910,6 @@ components:
           - $ref: '#/components/schemas/VariantComparison'
           - type: 'null'
       title: StreamPartsSchemaIndex
-      type: object
-    BootstrapResult:
-      description: Robustness assessment via bootstrap resampling.
-      properties:
-        nIterations:
-          default: 0
-          title: Niterations
-          type: integer
-        metricCis:
-          additionalProperties:
-            $ref: '#/components/schemas/ConfidenceInterval'
-          title: Metriccis
-          type: object
-      title: BootstrapResult
-      type: object
-    ConfidenceInterval:
-      description: Bootstrap confidence interval for a single metric.
-      properties:
-        lower:
-          default: 0.0
-          title: Lower
-          type: number
-        mean:
-          default: 0.0
-          title: Mean
-          type: number
-        upper:
-          default: 0.0
-          title: Upper
-          type: number
-        std:
-          default: 0.0
-          title: Std
-          type: number
-      title: ConfidenceInterval
-      type: object
-    ConfusionMatrix:
-      description: 2x2 confusion matrix counts.
-      properties:
-        truePositives:
-          title: Truepositives
-          type: integer
-        falsePositives:
-          title: Falsepositives
-          type: integer
-        trueNegatives:
-          title: Truenegatives
-          type: integer
-        falseNegatives:
-          title: Falsenegatives
-          type: integer
-      required:
-      - truePositives
-      - falsePositives
-      - trueNegatives
-      - falseNegatives
-      title: ConfusionMatrix
-      type: object
-    CrossValidationResult:
-      description: Aggregated cross-validation result.
-      properties:
-        k:
-          title: K
-          type: integer
-        folds:
-          items:
-            $ref: '#/components/schemas/FoldMetrics'
-          title: Folds
-          type: array
-        meanMetrics:
-          $ref: '#/components/schemas/ExperimentMetrics'
-        stdMetrics:
-          additionalProperties:
-            type: number
-          title: Stdmetrics
-          type: object
-        overfittingScore:
-          default: 0.0
-          title: Overfittingscore
-          type: number
-        overfittingLevel:
-          default: low
-          title: Overfittinglevel
-          type: string
-      required:
-      - k
-      - folds
-      - meanMetrics
-      title: CrossValidationResult
-      type: object
-    ExperimentConfig:
-      description: 'Full configuration for an experiment run.
-
-
-        Supports three modes:
-
-
-        * **single** (default): one search + parameters.
-
-        * **multi-step**: a recursive ``step_tree`` of search/combine/transform nodes.
-
-        * **import**: import an existing Pathfinder strategy by ``source_strategy_id``.'
-      properties:
-        siteId:
-          title: Siteid
-          type: string
-        recordType:
-          title: Recordtype
-          type: string
-        searchName:
-          title: Searchname
-          type: string
-        parameters:
-          additionalProperties:
-            discriminator:
-              mapping:
-                date: '#/components/schemas/DateValue'
-                date-range: '#/components/schemas/DateRangeValue'
-                filter: '#/components/schemas/FilterValue'
-                input-dataset: '#/components/schemas/InputDatasetValue'
-                input-step: '#/components/schemas/InputStepValue'
-                multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
-                number: '#/components/schemas/NumberValue'
-                number-range: '#/components/schemas/NumberRangeValue'
-                single-pick-vocabulary: '#/components/schemas/SinglePickValue'
-                string: '#/components/schemas/StringValue'
-                timestamp: '#/components/schemas/TimestampValue'
-              propertyName: type
-            oneOf:
-            - $ref: '#/components/schemas/StringValue'
-            - $ref: '#/components/schemas/NumberValue'
-            - $ref: '#/components/schemas/NumberRangeValue'
-            - $ref: '#/components/schemas/DateValue'
-            - $ref: '#/components/schemas/DateRangeValue'
-            - $ref: '#/components/schemas/TimestampValue'
-            - $ref: '#/components/schemas/SinglePickValue'
-            - $ref: '#/components/schemas/MultiPickValue'
-            - $ref: '#/components/schemas/FilterValue'
-            - $ref: '#/components/schemas/InputDatasetValue'
-            - $ref: '#/components/schemas/InputStepValue'
-          title: Parameters
-          type: object
-        positiveControls:
-          items:
-            type: string
-          title: Positivecontrols
-          type: array
-        negativeControls:
-          items:
-            type: string
-          title: Negativecontrols
-          type: array
-        controlsSearchName:
-          title: Controlssearchname
-          type: string
-        controlsParamName:
-          title: Controlsparamname
-          type: string
-        controlsValueFormat:
-          default: newline
-          enum:
-          - newline
-          - json_list
-          - comma
-          title: Controlsvalueformat
-          type: string
-        enableCrossValidation:
-          default: false
-          title: Enablecrossvalidation
-          type: boolean
-        kFolds:
-          default: 5
-          title: Kfolds
-          type: integer
-        enrichmentTypes:
-          items:
-            $ref: '#/components/schemas/EnrichmentAnalysisType'
-          title: Enrichmenttypes
-          type: array
-        name:
-          default: ''
-          title: Name
-          type: string
-        description:
-          default: ''
-          title: Description
-          type: string
-        parameterDisplayValues:
-          anyOf:
-          - additionalProperties:
-              type: string
-            type: object
-          - type: 'null'
-          title: Parameterdisplayvalues
-        mode:
-          default: single
-          enum:
-          - single
-          - multi-step
-          - import
-          title: Mode
-          type: string
-        stepTree:
-          anyOf:
-          - $ref: '#/components/schemas/StrategyStepNode'
-          - type: 'null'
-        sourceStrategyId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Sourcestrategyid
-        controlSetId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Controlsetid
-        maxListSize:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Maxlistsize
-        parentExperimentId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Parentexperimentid
-        targetGeneIds:
-          anyOf:
-          - items:
-              type: string
-            type: array
-          - type: 'null'
-          title: Targetgeneids
-      required:
-      - siteId
-      - recordType
-      - searchName
-      - parameters
-      - positiveControls
-      - negativeControls
-      - controlsSearchName
-      - controlsParamName
-      title: ExperimentConfig
-      type: object
-    ExperimentMetrics:
-      description: Full classification metrics derived from a confusion matrix.
-      properties:
-        confusionMatrix:
-          $ref: '#/components/schemas/ConfusionMatrix'
-        sensitivity:
-          title: Sensitivity
-          type: number
-        specificity:
-          title: Specificity
-          type: number
-        precision:
-          title: Precision
-          type: number
-        f1Score:
-          title: F1Score
-          type: number
-        mcc:
-          title: Mcc
-          type: number
-        balancedAccuracy:
-          title: Balancedaccuracy
-          type: number
-        negativePredictiveValue:
-          default: 0.0
-          title: Negativepredictivevalue
-          type: number
-        falsePositiveRate:
-          default: 0.0
-          title: Falsepositiverate
-          type: number
-        falseNegativeRate:
-          default: 0.0
-          title: Falsenegativerate
-          type: number
-        youdensJ:
-          default: 0.0
-          title: Youdensj
-          type: number
-        totalResults:
-          default: 0
-          title: Totalresults
-          type: integer
-        totalPositives:
-          default: 0
-          title: Totalpositives
-          type: integer
-        totalNegatives:
-          default: 0
-          title: Totalnegatives
-          type: integer
-      required:
-      - confusionMatrix
-      - sensitivity
-      - specificity
-      - precision
-      - f1Score
-      - mcc
-      - balancedAccuracy
-      title: ExperimentMetrics
-      type: object
-    FoldMetrics:
-      description: Metrics for a single cross-validation fold.
-      properties:
-        foldIndex:
-          title: Foldindex
-          type: integer
-        metrics:
-          $ref: '#/components/schemas/ExperimentMetrics'
-        positiveControlIds:
-          items:
-            type: string
-          title: Positivecontrolids
-          type: array
-        negativeControlIds:
-          items:
-            type: string
-          title: Negativecontrolids
-          type: array
-      required:
-      - foldIndex
-      - metrics
-      title: FoldMetrics
-      type: object
-    GeneInfo:
-      description: Minimal gene metadata.
-      properties:
-        id:
-          title: Id
-          type: string
-        name:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Name
-        organism:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Organism
-        product:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Product
-      required:
-      - id
-      title: GeneInfo
-      type: object
-    Experiment:
-      description: Full experiment with config and results.
-      properties:
-        id:
-          title: Id
-          type: string
-        config:
-          $ref: '#/components/schemas/ExperimentConfig'
-        userId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Userid
-        applicationId:
-          title: Applicationid
-          type: string
-        status:
-          default: pending
-          enum:
-          - pending
-          - running
-          - completed
-          - error
-          - cancelled
-          title: Status
-          type: string
-        metrics:
-          anyOf:
-          - $ref: '#/components/schemas/ExperimentMetrics'
-          - type: 'null'
-        crossValidation:
-          anyOf:
-          - $ref: '#/components/schemas/CrossValidationResult'
-          - type: 'null'
-        enrichmentResults:
-          items:
-            $ref: '#/components/schemas/EnrichmentResult'
-          title: Enrichmentresults
-          type: array
-        truePositiveGenes:
-          items:
-            $ref: '#/components/schemas/GeneInfo'
-          title: Truepositivegenes
-          type: array
-        falseNegativeGenes:
-          items:
-            $ref: '#/components/schemas/GeneInfo'
-          title: Falsenegativegenes
-          type: array
-        falsePositiveGenes:
-          items:
-            $ref: '#/components/schemas/GeneInfo'
-          title: Falsepositivegenes
-          type: array
-        trueNegativeGenes:
-          items:
-            $ref: '#/components/schemas/GeneInfo'
-          title: Truenegativegenes
-          type: array
-        error:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Error
-        totalTimeSeconds:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Totaltimeseconds
-        createdAt:
-          default: ''
-          title: Createdat
-          type: string
-        completedAt:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Completedat
-        batchId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Batchid
-        benchmarkId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Benchmarkid
-        controlSetLabel:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Controlsetlabel
-        isPrimaryBenchmark:
-          default: false
-          title: Isprimarybenchmark
-          type: boolean
-        wdkStrategyId:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Wdkstrategyid
-        wdkStepId:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Wdkstepid
-        notes:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Notes
-        robustness:
-          anyOf:
-          - $ref: '#/components/schemas/BootstrapResult'
-          - type: 'null'
-      required:
-      - id
-      - config
-      title: Experiment
       type: object
   securitySchemes:
     APIKeyCookie:

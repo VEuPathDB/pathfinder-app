@@ -116,6 +116,9 @@ class ExperimentRow(Base):
     data: Mapped[JSONObject] = mapped_column(JSON, default=dict)
     batch_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     benchmark_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # The workbench set the run evaluated. An experiment can start from a
+    # strategy instead, so the pointer is empty for those.
+    gene_set_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -128,6 +131,7 @@ class ExperimentRow(Base):
         Index("ix_experiments_user_app", "user_id", "application_id"),
         Index("ix_experiments_batch_id", "batch_id"),
         Index("ix_experiments_benchmark_id", "benchmark_id"),
+        Index("ix_experiments_gene_set_id", "gene_set_id"),
     )
 
 

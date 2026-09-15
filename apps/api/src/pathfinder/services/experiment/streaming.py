@@ -23,6 +23,7 @@ from pathfinder.services.experiment.service import run_experiment
 from pathfinder.services.experiment.store import get_experiment_store
 from pathfinder.services.experiment.types import (
     BatchExperimentConfig,
+    BatchOrganismTarget,
     Experiment,
     ExperimentConfig,
     experiment_to_json,
@@ -170,6 +171,107 @@ async def stream_experiment(
         await _cancel_task_silently(task)
 
 
+def organism_varies_nothing(base: ExperimentConfig) -> str | None:
+    """Name the reason the organism parameter changes nothing for this base.
+
+    Such a batch would run the same evaluation once per organism and label
+    each result with an organism it did not use.
+    """
+    if base.target_gene_ids:
+        return "the base evaluates a fixed gene list, which runs no search"
+    if base.is_tree_mode:
+        return "the base runs a step tree, which holds its own organism parameters"
+    return None
+
+
+def organism_config(
+    base: ExperimentConfig,
+    organism_param_name: str,
+    target: BatchOrganismTarget,
+) -> ExperimentConfig:
+    """Derive one organism's config from the batch base.
+
+    The copy carries every field the base names, so a field this function does
+    not override reaches the organism's experiment unchanged.
+    """
+    parameters = dict(base.parameters)
+    parameters[organism_param_name] = SinglePickValue(value=target.organism)
+    return base.model_copy(
+        deep=True,
+        update={
+            "parameters": parameters,
+            "positive_controls": (
+                target.positive_controls
+                if target.positive_controls is not None
+                else list(base.positive_controls)
+            ),
+            "negative_controls": (
+                target.negative_controls
+                if target.negative_controls is not None
+                else list(base.negative_controls)
+            ),
+            "name": f"{base.name} ({target.organism})",
+        },
+    )
+
+
+async def _run_one_organism(
+    base: ExperimentConfig,
+    org_param: str,
+    target: BatchOrganismTarget,
+    callback: _ProgressCallback,
+    user_id: str | None,
+) -> Experiment | None:
+    """Run one organism's experiment. A failed organism does not end the batch."""
+    try:
+        return await run_experiment(
+            organism_config(base, org_param, target),
+            user_id=user_id,
+            progress_callback=callback,
+        )
+    except Exception as exc:
+        logger.exception(
+            "Batch organism experiment failed",
+            organism=target.organism,
+            error=str(exc),
+        )
+        return None
+
+
+async def _run_batch(
+    batch_config: BatchExperimentConfig,
+    batch_id: str,
+    callback: _ProgressCallback,
+    *,
+    user_id: str | None,
+) -> tuple[list[Experiment], str | None]:
+    """Run one experiment per organism and return them with any batch failure."""
+    results: list[Experiment] = []
+    base = batch_config.base_config
+    blocked = organism_varies_nothing(base)
+    if blocked is not None:
+        return results, f"This batch cannot vary by organism: {blocked}."
+    store = get_experiment_store()
+    try:
+        for target in batch_config.target_organisms:
+            exp = await _run_one_organism(
+                base,
+                batch_config.organism_param_name,
+                target,
+                callback,
+                user_id,
+            )
+            if exp is None:
+                continue
+            exp.batch_id = batch_id
+            store.save(exp)
+            results.append(exp)
+    except Exception as exc:
+        logger.exception("Batch experiment failed", error=str(exc))
+        return results, sanitize_error_for_client(exc)
+    return results, None
+
+
 async def stream_batch_experiment(
     batch_config: BatchExperimentConfig,
     *,
@@ -180,66 +282,9 @@ async def stream_batch_experiment(
     queue: asyncio.Queue[ExperimentProgressEvent] = asyncio.Queue()
     callback = _make_callback(queue)
 
-    async def _run() -> tuple[list[Experiment], str | None]:
-        results: list[Experiment] = []
-        base = batch_config.base_config
-        org_param = batch_config.organism_param_name
-        store = get_experiment_store()
-        try:
-            for target in batch_config.target_organisms:
-                params = dict(base.parameters)
-                params[org_param] = SinglePickValue(value=target.organism)
-                org_config = ExperimentConfig(
-                    site_id=base.site_id,
-                    record_type=base.record_type,
-                    search_name=base.search_name,
-                    parameters=params,
-                    positive_controls=(
-                        target.positive_controls
-                        if target.positive_controls is not None
-                        else list(base.positive_controls)
-                    ),
-                    negative_controls=(
-                        target.negative_controls
-                        if target.negative_controls is not None
-                        else list(base.negative_controls)
-                    ),
-                    controls_search_name=base.controls_search_name,
-                    controls_param_name=base.controls_param_name,
-                    controls_value_format=base.controls_value_format,
-                    enable_cross_validation=base.enable_cross_validation,
-                    k_folds=base.k_folds,
-                    enrichment_types=list(base.enrichment_types),
-                    name=f"{base.name} ({target.organism})",
-                    description=base.description,
-                    parameter_display_values=(
-                        dict(base.parameter_display_values)
-                        if base.parameter_display_values
-                        else None
-                    ),
-                )
-                try:
-                    exp = await run_experiment(
-                        org_config,
-                        user_id=user_id,
-                        progress_callback=callback,
-                    )
-                except Exception as exc:
-                    logger.exception(
-                        "Batch organism experiment failed",
-                        organism=target.organism,
-                        error=str(exc),
-                    )
-                    continue
-                exp.batch_id = batch_id
-                store.save(exp)
-                results.append(exp)
-        except Exception as exc:
-            logger.exception("Batch experiment failed", error=str(exc))
-            return results, sanitize_error_for_client(exc)
-        return results, None
-
-    task = asyncio.create_task(_run())
+    task = asyncio.create_task(
+        _run_batch(batch_config, batch_id, callback, user_id=user_id),
+    )
     try:
         while True:
             get_task = asyncio.create_task(queue.get())

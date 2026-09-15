@@ -40,6 +40,7 @@ class CreateExperimentRequest(CamelModel):
     description: str = Field(default="", max_length=2000)
     parameter_display_values: JSONObject | None = Field(default=None)
     control_set_id: str | None = Field(default=None)
+    gene_set_id: str | None = Field(default=None)
     max_list_size: int | None = Field(default=None)
     parent_experiment_id: str | None = Field(default=None)
     target_gene_ids: list[str] | None = Field(default=None)

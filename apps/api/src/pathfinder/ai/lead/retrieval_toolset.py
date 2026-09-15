@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
@@ -12,6 +13,7 @@ from pydantic_ai.toolsets import AbstractToolset, WrapperToolset
 from pydantic_ai.toolsets.abstract import ToolsetTool
 from pydantic_core import from_json
 
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, ToolCharge
 
 # The served reads whose answers carry a reference the reply may cite.
@@ -75,33 +77,43 @@ class ResearchAnswer(BaseModel):
 
 
 @dataclass
-class RetrievalRecordingToolset(WrapperToolset[LeadDeps]):
+class RetrievalRecordingToolset(WrapperToolset[Any]):
     """Puts every reference a research tool answers with on the turn's markers,
-    and what the answer cost on the turn's bill."""
+    and what the answer cost on the turn's bill.
+
+    The markers and the charge sink are the turn's, so the agent that reads
+    through this toolset can be the Lead or one of its sub-agents.
+    """
+
+    markers: TurnMarkers
+    charge: Callable[[ToolCharge], None]
 
     async def call_tool(
         self,
         name: str,
         tool_args: dict[str, Any],
-        ctx: RunContext[LeadDeps],
-        tool: ToolsetTool[LeadDeps],
+        ctx: RunContext[Any],
+        tool: ToolsetTool[Any],
     ) -> Any:
         result = await super().call_tool(name, tool_args, ctx, tool)
         if name in RESEARCH_TOOLS:
             answer = ResearchAnswer.model_validate(result)
             for reference in answer.references():
-                ctx.deps.state.turn_markers.record_retrieved_source(reference)
+                self.markers.record_retrieved_source(reference)
             if answer.cost_usd:
-                ctx.deps.record_tool_charge(
-                    ToolCharge(tool_name=name, cost_usd=answer.cost_usd),
-                )
+                self.charge(ToolCharge(tool_name=name, cost_usd=answer.cost_usd))
         return result
 
 
 def recording_retrievals(
-    sources: AbstractToolset[LeadDeps] | None,
-) -> AbstractToolset[LeadDeps] | None:
-    """The turn's served sources, with their retrievals recorded."""
+    sources: AbstractToolset[Any] | None,
+    deps: LeadDeps,
+) -> AbstractToolset[Any] | None:
+    """The turn's served sources, with their retrievals recorded on the turn."""
     if sources is None:
         return None
-    return RetrievalRecordingToolset(sources)
+    return RetrievalRecordingToolset(
+        sources,
+        markers=deps.state.turn_markers,
+        charge=deps.record_tool_charge,
+    )

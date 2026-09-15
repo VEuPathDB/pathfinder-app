@@ -15,6 +15,7 @@ from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps, one_toolset
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
+from pathfinder.ai.lead.retrieval_toolset import recording_retrievals
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentDurablePark
 from pathfinder.domain.strategy.constraints import (
@@ -48,7 +49,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
         site_id=runtime.site_id,
         user_id=runtime.user_id,
         strategy_session=runtime.strategy_session,
-        tool_sources=one_toolset(runtime.tool_sources),
+        tool_sources=recording_retrievals(one_toolset(runtime.tool_sources), deps),
         agent_state=AgentToolState(
             discovered_searches=dict(state.domain.discovered_searches),
             # The draft is a copy, so a pass that binds nothing leaves the

@@ -11,6 +11,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     flatten_tree,
 )
+from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
@@ -298,3 +299,24 @@ async def test_a_save_keeps_the_parameters_a_user_sees_and_drops_the_hidden_ones
     await _save(_deps(_leaf_session()), step_id=LEAF_STEP_ID)
 
     assert saved[0].parameters == VISIBLE_LEAF_PARAMS
+
+
+async def test_a_search_the_catalog_cannot_read_still_saves_the_set(
+    monkeypatch: pytest.MonkeyPatch, saved: list[GeneSet], reads: list[tuple[str, int]]
+) -> None:
+    """The genes are already in hand, so a definition nobody can read loses nothing."""
+    del reads
+
+    async def _unreadable(
+        site_id: str, *, record_type: str, search_name: str
+    ) -> frozenset[str]:
+        del site_id, record_type
+        raise ValidationError(
+            title="Search definition could not be read", detail=search_name
+        )
+
+    monkeypatch.setattr(workbench, "visible_parameter_names", _unreadable)
+
+    await _save(_deps(_leaf_session()), step_id=LEAF_STEP_ID)
+
+    assert saved[0].parameters == LEAF_PARAMS

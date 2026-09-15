@@ -49,6 +49,7 @@ class ExperimentConfig(CamelModel):
     step_tree: StrategyStepNode | None = None
     source_strategy_id: str | None = None
     control_set_id: str | None = None
+    gene_set_id: str | None = None
     max_list_size: int | None = None
     parent_experiment_id: str | None = None
     target_gene_ids: list[str] | None = None

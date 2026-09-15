@@ -56,7 +56,7 @@ async def create_experiment(
     user_id: CurrentUser,
 ) -> StreamingResponse:
     """Create and run an experiment, streaming typed progress events directly."""
-    config = config_from_request(body)
+    config = await config_from_request(body, user_id)
 
     async def _producer() -> AsyncIterator[ExperimentEvent]:
         async for event in stream_experiment(config, user_id=str(user_id)):
@@ -76,7 +76,7 @@ async def create_batch_experiment(
     user_id: CurrentUser,
 ) -> StreamingResponse:
     """Run the same search across multiple organisms, streaming progress directly."""
-    base_config = config_from_request(body.base)
+    base_config = await config_from_request(body.base, user_id)
     batch_config = BatchExperimentConfig(
         base_config=base_config,
         organism_param_name=body.organism_param_name,
@@ -108,7 +108,7 @@ async def create_benchmark(
     user_id: CurrentUser,
 ) -> StreamingResponse:
     """Run the same strategy against multiple control sets, streaming progress directly."""
-    base_config = config_from_request(body.base)
+    base_config = await config_from_request(body.base, user_id)
     control_sets = [
         (
             cs.label,

@@ -47,4 +47,30 @@ describe("createExperimentStream serialization", () => {
     expect(body["kFolds"]).toBe(5);
     expect(body["targetGeneIds"]).toEqual(["PF3D7_0100100", "PF3D7_0300300"]);
   });
+
+  it("carries the gene set an evaluation was started from", async () => {
+    const config: ExperimentRunConfig = {
+      siteId: "plasmodb",
+      positiveControls: ["PF3D7_0100100"],
+      name: "gametocyte secreted (evaluation)",
+      geneSetId: "gs-gametocyte",
+    };
+    await drain(createExperimentStream(config));
+
+    const body = calls[0]?.opts.body as Record<string, unknown>;
+    expect(body["geneSetId"]).toBe("gs-gametocyte");
+  });
+
+  it("names no gene set when the run did not start from one", async () => {
+    const config: ExperimentRunConfig = {
+      siteId: "plasmodb",
+      positiveControls: ["PF3D7_0100100"],
+      name: "ad hoc run",
+    };
+    await drain(createExperimentStream(config));
+
+    const body = calls[0]?.opts.body as Record<string, unknown>;
+    expect(body["geneSetId"]).toBe(undefined);
+    expect(body["siteId"]).toBe("plasmodb");
+  });
 });

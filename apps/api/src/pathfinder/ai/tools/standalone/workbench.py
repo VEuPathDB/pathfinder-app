@@ -22,6 +22,7 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb.domain.strategy import StepKind
+from veupathdb.errors import ValidationError
 from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType, EnrichmentResult
 
 from pathfinder.ai.agents.state import CreatedGeneSet
@@ -113,9 +114,14 @@ async def _with_the_parameters_a_user_sees(
     """The provenance with only the parameters WDK shows for its search."""
     if src.search_name is None or src.parameters is None:
         return src
-    visible = await visible_parameter_names(
-        site_id, record_type=record_type, search_name=src.search_name
-    )
+    try:
+        visible = await visible_parameter_names(
+            site_id, record_type=record_type, search_name=src.search_name
+        )
+    except ValidationError:
+        # A definition the catalog cannot read decides nothing, and the genes
+        # are already in hand: the set is saved with what the step carried.
+        return src
     kept = {name: value for name, value in src.parameters.items() if name in visible}
     return src.model_copy(update={"parameters": kept})
 

@@ -21,6 +21,17 @@ vi.mock("@/state/useWorkbenchStore", () => ({
     selector(storeState),
 }));
 
+// The stored evaluations of the active set; this panel reads the store's
+// just-run experiment, so the list stays empty.
+vi.mock("@/features/workbench/api/experiments", () => ({
+  listGeneSetExperiments: vi.fn(async () => []),
+  geneSetExperimentsOptions: (geneSetId: string) => ({
+    queryKey: ["experiments", "by-gene-set", geneSetId] as const,
+    queryFn: async () => [],
+    enabled: geneSetId !== "",
+  }),
+}));
+
 // Mock the API call
 const mockRequestJson = vi.fn();
 vi.mock("@/lib/api/http", () => ({

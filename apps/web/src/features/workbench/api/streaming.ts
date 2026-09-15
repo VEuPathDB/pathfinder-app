@@ -28,6 +28,7 @@ export type ExperimentRunConfig = {
   enrichmentTypes?: string[] | undefined;
   name?: string | undefined;
   description?: string | undefined;
+  geneSetId?: string | undefined;
 };
 
 export interface BatchOrganismTarget {
@@ -123,6 +124,7 @@ function serializeConfig(config: ExperimentRunConfig): ExperimentRunConfig {
     enrichmentTypes: config.enrichmentTypes,
     name: config.name,
     description: config.description,
+    geneSetId: config.geneSetId,
   };
 }
 

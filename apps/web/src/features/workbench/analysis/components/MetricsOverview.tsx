@@ -161,6 +161,10 @@ export function MetricsOverview({ metrics }: MetricsOverviewProps) {
                   {showSecondary ? "Show less" : "Show all metrics"}
                 </Button>
               </div>
+
+              <p className="px-5 pb-3 text-xs text-muted-foreground">
+                Computed over the control genes, not the full result set.
+              </p>
             </div>
 
             <div className="flex items-center justify-center p-4 max-lg:py-6">

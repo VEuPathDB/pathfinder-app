@@ -10,3 +10,4 @@ export type {
   BatchOrganismTarget,
   BenchmarkControlSetInput,
 } from "./streaming";
+export { listGeneSetExperiments, geneSetExperimentsOptions } from "./experiments";

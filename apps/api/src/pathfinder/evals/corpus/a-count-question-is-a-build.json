@@ -1,0 +1,29 @@
+{
+  "name": "a-count-question-is-a-build",
+  "turns": [
+    "How many protein-coding genes does 3D7 have?"
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A question whose answer is a count is a request to build the set that answers it. The cataloged run read the question mark, classified the turn as a follow_up_question, and never offered the framing and building tools, so the count came from prose and no strategy reached the account. This pins the classification half no unit test can measure: the turn frames the problem and persists a strategy AST.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": []
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-09-15",
+    "stagingId": "",
+    "reference": "log.md#2026-09-15",
+    "curatorNote": "The prompt is the phrasing the classifier rule names."
+  }
+}

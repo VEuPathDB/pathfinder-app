@@ -51,6 +51,28 @@
   the fallback reply names the error and asks for the message again, instead of asking the
   user to rephrase. Measured: two turns ended on a provider disconnect inside FRAME and both
   told the user to rephrase a well-formed request.
+* **A gene set remembers the evaluation that scored it.** `experiments` carries a nullable
+  `gene_set_id` (alembic `2026_09_15_0001`), the three create routes record it, and
+  `GET /api/v1/gene-sets/{id}/experiments` reads it back newest first for the calling user, so
+  reopening a set shows when it was evaluated and unlocks Gene Confidence, Custom Enrichment and
+  Parameter Sweep. The panels read through to the server rather than from a browser store, so the
+  state is the same on a second device. Measured before the change: a completed evaluation with all
+  its metrics was in Postgres and invisible in the UI, leaving those three panels locked forever.
+* **An experiment may not name a gene set the caller does not own.** The ownership read lives in the
+  one adapter all three create routes pass through, and answers the same 404 as its neighbours, so a
+  refusal never confirms that an id exists. The authorization matrix covers all three routes with no
+  waiver.
+* **A per-organism batch child carries every field of the base it varies.** The rebuild copies the
+  config structurally instead of naming fields, because a rebuild whose default is to drop loses the
+  next field somebody adds; eight of twenty-three were being dropped. A base the organism cannot
+  vary, a fixed gene list or a step tree, is refused with the reason rather than run as a different
+  search under the researcher's label.
+* **An engine that answers a body we cannot read is one refusal, not a dead search.**
+  `veupathdb-mcp` is 0.2.0a15: a 200 carrying HTML or an unexpected shape is recorded against that
+  engine and the next one answers, in both keyed web backends and five literature clients. A
+  sub-agent's research reads now reach the turn's own markers and its bill, so a paper VERIFY
+  retrieved can be cited, and a priced search a sub-agent made is charged once. A failure the user
+  reads names the shape of the failure and never the provider's response body.
 * **A question a search answers is a build.** "How many genes" and "which genes" are
   classified as builds and answered by the step's size, with the step as provenance; see
   [A question a search answers is a build](decisions/a-question-a-search-answers-is-a-build.md).

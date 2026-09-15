@@ -178,9 +178,12 @@ describe("EvaluatePanel", () => {
     const sentConfig = createExperimentStream.mock.calls[0]?.[0] as {
       positiveControls: string[];
       searchName: string;
+      geneSetId: string;
     };
     expect(sentConfig.positiveControls).toEqual(["PF3D7_0709000", "PF3D7_1133400"]);
     expect(sentConfig.searchName).toBe("GenesByTaxon");
+    // The run belongs to the set it evaluated, so reopening that set finds it.
+    expect(sentConfig.geneSetId).toBe("set-1");
   });
 
   it("sends a wire-valid fold count when cross-validation is off", async () => {

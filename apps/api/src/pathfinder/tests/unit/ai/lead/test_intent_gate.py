@@ -321,3 +321,22 @@ def test_an_off_topic_turn_cannot_read_a_gene_record() -> None:
     )
 
     assert "read_gene_record" not in seen.steps[1]
+
+
+_COUNT_QUESTION = "How many protein-coding genes does 3D7 have?"
+_EXPLAIN_QUESTION = "What does PF3D7_0708400 do?"
+
+
+def test_a_count_question_builds_and_an_explanation_question_reads() -> None:
+    """A question a search answers is a build; a question about a gene is a read.
+
+    Both are questions in grammar, and the classification the turn writes is
+    what decides which tools the turn reaches.
+    """
+    counting = _run(_COUNT_QUESTION, IntentClassification.NEW_STRATEGY)
+    explaining = _run(_EXPLAIN_QUESTION, IntentClassification.FOLLOW_UP_QUESTION)
+
+    assert "frame_problem" in counting.steps[1]
+    assert counting.steps[1] >= UNLOCKED_ON_A_FRESH_THREAD
+    assert not (explaining.steps[1] & BUILDING_TOOLS)
+    assert "read_gene_record" in explaining.steps[1]

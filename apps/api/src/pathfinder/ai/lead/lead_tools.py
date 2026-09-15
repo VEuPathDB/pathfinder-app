@@ -99,7 +99,8 @@ def classify_user_intent(
     question of yours. A retry after a failed task is the same request
     again, so it keeps the classification that request had. None of them
     is a ``follow_up_question``: that value is for a message that asks you
-    to EXPLAIN something and asks for no change to the data.
+    to EXPLAIN something the thread already holds. A question whose answer is
+    a count, a list or a membership is a build however it is phrased.
 
     A question whose answer is the size or the members of a gene search on
     the site - "how many protein-coding genes does 3D7 have", "which genes

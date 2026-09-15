@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { useInvalidateGeneSets } from "@/features/workbench/hooks/useInvalidateGeneSets";
 import { retakeGeneSet } from "../api/geneSets";
 import { canRetakeGeneSet } from "./canRetakeGeneSet";
+import { evaluatedLabel } from "./evaluatedLabel";
+import { useActiveSetExperiment } from "@/features/workbench/hooks/useActiveSetExperiment";
 import { PublishToVdiButton } from "./PublishToVdiButton";
 import { SOURCE_CONFIG } from "./geneSetSourceConfig";
 import {
@@ -62,6 +64,18 @@ function RetakeButton({ geneSetId }: { geneSetId: string }) {
   );
 }
 
+function EvaluatedBadge() {
+  const label = evaluatedLabel(useActiveSetExperiment());
+
+  if (label === null) return null;
+
+  return (
+    <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+      {label}
+    </span>
+  );
+}
+
 function ActiveSetHeader() {
   const selectedSite = useSessionStore((s) => s.selectedSite);
   const { data: geneSets = [] } = useGeneSetsQuery(selectedSite);
@@ -85,6 +99,7 @@ function ActiveSetHeader() {
           {activeSet.source}
         </span>
         <span className="text-xs text-muted-foreground">{activeSet.siteId}</span>
+        <EvaluatedBadge />
         {canRetakeGeneSet(activeSet) && <RetakeButton geneSetId={activeSet.id} />}
         <PublishToVdiButton geneSet={activeSet} />
       </div>

@@ -14,7 +14,7 @@ import { requestJson } from "@/lib/api/http";
 
 const GeneConfidenceScoreListSchema = z.array(geneConfidenceScoreResponseSchema);
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
-import { useWorkbenchStore } from "@/state/useWorkbenchStore";
+import { useActiveSetExperiment } from "@/features/workbench/hooks/useActiveSetExperiment";
 
 // ---------------------------------------------------------------------------
 // Enrichment data extraction (prepares input for the backend)
@@ -63,25 +63,20 @@ function hasClassifiedGenes(exp: Experiment): boolean {
 }
 
 export function ConfidencePanel() {
-  const activeSetId = useWorkbenchStore((s) => s.activeSetId);
-  const lastExperiment = useWorkbenchStore((s) => s.lastExperiment);
-  const lastExperimentSetId = useWorkbenchStore((s) => s.lastExperimentSetId);
+  const experiment = useActiveSetExperiment();
 
-  const isRelevant =
-    lastExperiment != null &&
-    lastExperimentSetId === activeSetId &&
-    hasClassifiedGenes(lastExperiment) === true;
+  const isRelevant = experiment != null && hasClassifiedGenes(experiment) === true;
 
   const requestBody = ((): GeneConfidenceRequest | null => {
-    if (!lastExperiment || !hasClassifiedGenes(lastExperiment)) return null;
+    if (!experiment || !hasClassifiedGenes(experiment)) return null;
     const { enrichmentGeneCounts, maxEnrichmentTerms } = extractEnrichmentCounts(
-      lastExperiment.enrichmentResults ?? [],
+      experiment.enrichmentResults ?? [],
     );
     return {
-      tpIds: (lastExperiment.truePositiveGenes ?? []).map((g) => g.id),
-      fpIds: (lastExperiment.falsePositiveGenes ?? []).map((g) => g.id),
-      fnIds: (lastExperiment.falseNegativeGenes ?? []).map((g) => g.id),
-      tnIds: (lastExperiment.trueNegativeGenes ?? []).map((g) => g.id),
+      tpIds: (experiment.truePositiveGenes ?? []).map((g) => g.id),
+      fpIds: (experiment.falsePositiveGenes ?? []).map((g) => g.id),
+      fnIds: (experiment.falseNegativeGenes ?? []).map((g) => g.id),
+      tnIds: (experiment.trueNegativeGenes ?? []).map((g) => g.id),
       ...(Object.keys(enrichmentGeneCounts).length > 0 ? { enrichmentGeneCounts } : {}),
       // The field is the enrichment divisor, so it needs at least one term.
       ...(maxEnrichmentTerms > 0 ? { maxEnrichmentTerms } : {}),
@@ -93,7 +88,7 @@ export function ConfidencePanel() {
     isPending: loading,
     error: queryError,
   } = useQuery({
-    queryKey: ["gene-confidence", activeSetId, lastExperiment?.id] as const,
+    queryKey: ["gene-confidence", experiment?.id] as const,
     queryFn: () =>
       requestJson(GeneConfidenceScoreListSchema, "/api/v1/gene-sets/confidence", {
         method: "POST",

@@ -68,7 +68,7 @@ from pathfinder.ai.graph._lead_events import (
 from pathfinder.ai.graph._lead_model import resolve_lead_model_context
 from pathfinder.ai.graph._lead_stops import (
     absorb_loop_stop,
-    fallback_prose,
+    final_reply,
     guard_stop_of,
     guard_stopped_on,
     stop_response,
@@ -374,23 +374,14 @@ async def _run_lead_turn(
         message_id=message_id,
     )
 
-    if (
-        capture.response is None
-        and capture.pending_approval is None
-        and capture.pending_durable_call is None
-    ):
-        capture.response = stop_response(
-            fallback_prose(capture),
-            changed=state.turn_markers.changed_strategy,
-        )
+    capture.response = final_reply(
+        capture,
+        changed=state.turn_markers.changed_strategy,
+    )
 
     _emit_residual_prose(writer, capture, message_id=message_id)
     residual_tokens, residual_cost = capture.residual_totals(state)
-    final_sub_agent_tokens = capture.sub_agent_tokens
-    final_sub_agent_cost = capture.sub_agent_cost
     await _persist_residual_quota(runtime.context, state, capture)
-    capture.sub_agent_tokens = final_sub_agent_tokens
-    capture.sub_agent_cost = final_sub_agent_cost
     emit_turn_usage(writer, residual_tokens, residual_cost)
     emit_lead_usage(
         writer,
