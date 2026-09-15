@@ -7,7 +7,7 @@ the arcs here build the same calls.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Literal
 
 from assistant_core.models.scripted import has_any, scripted_call, terminal_call
@@ -63,15 +63,18 @@ def lead_final(
     *,
     strategy_changed: bool = False,
     analysed_gene_set_ids: Sequence[str] = (),
+    sources: Sequence[Mapping[str, str]] = (),
 ) -> ToolCallPart:
     """The Lead's final answer, as the turn contract reads it: what the arc
-    wrote, and the gene sets whose enrichment it reports."""
+    wrote, the gene sets whose enrichment it reports, and the references it
+    cites."""
     return terminal_call(
         {
             "prose": prose,
             "nextState": next_state,
             "strategyChanged": strategy_changed,
             "analysedGeneSetIds": list(analysed_gene_set_ids),
+            "sources": [dict(source) for source in sources],
         },
     )
 

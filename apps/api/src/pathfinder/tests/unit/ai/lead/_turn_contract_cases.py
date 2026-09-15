@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID, uuid4
 
+from pydantic_ai import RunContext
+from pydantic_ai.messages import ModelMessage, ModelRequest, ToolReturnPart
+from pydantic_ai.models.test import TestModel
+from pydantic_ai.usage import RunUsage
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
@@ -11,6 +16,7 @@ from pathfinder.ai.graph.state import EnrichmentRun, StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
+    CitedSource,
     LeadResponse,
     LeadTurnState,
     reconcile,
@@ -90,6 +96,7 @@ def reply(
     next_state: LeadTurnState = "await_user",
     questions: list[OpenQuestion] | None = None,
     analysed: list[str] | None = None,
+    sources: list[CitedSource] | None = None,
 ) -> LeadResponse:
     return LeadResponse(
         prose=prose,
@@ -97,7 +104,36 @@ def reply(
         strategy_changed=changed,
         asked_questions=list(questions or []),
         analysed_gene_set_ids=list(analysed or []),
+        sources=list(sources or []),
     )
+
+
+def research_answer(tool_name: str, payload: dict[str, Any]) -> ModelMessage:
+    """The message one research tool's answer arrives in."""
+    return ModelRequest(
+        parts=[
+            ToolReturnPart(
+                tool_name=tool_name,
+                content=payload,
+                tool_call_id="call_research",
+            ),
+        ],
+    )
+
+
+def kinds_after(
+    deps: LeadDeps,
+    report: LeadResponse,
+    messages: list[ModelMessage],
+) -> list[str]:
+    """The mismatches of a reply, over a turn whose tools answered ``messages``."""
+    ctx: RunContext[LeadDeps] = RunContext(
+        deps=deps,
+        model=TestModel(),
+        usage=RunUsage(),
+        messages=messages,
+    )
+    return [m.kind for m in reconcile(report, turn_record(ctx))]
 
 
 def kinds(deps: LeadDeps, report: LeadResponse) -> list[str]:

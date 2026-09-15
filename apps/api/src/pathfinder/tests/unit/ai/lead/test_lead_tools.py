@@ -6,9 +6,11 @@ from inspect import signature
 from typing import Any
 
 import pytest
+from assistant_core.graph.stream_events import ToolSummaryPayload
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
-from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import ToolCallPart, ToolReturn
+from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
 from pathfinder.ai.lead import lead_tools
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
@@ -23,6 +25,8 @@ from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResu
 from pathfinder.ai.tools.toolsets import execution
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.export.service import ExportResult
+from pathfinder.services.gene_records import read
+from pathfinder.services.gene_records.read import GeneRecordSummary
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.durable_dispatch import capture_durable_dispatch
@@ -374,3 +378,80 @@ def test_the_lead_offers_no_download_it_has_no_id_for() -> None:
     """A WDK step id is not a name the Lead can read, so it takes none."""
     assert "get_download_url" not in UNCLASSIFIED_TOOLS
     assert "get_download_url" not in build_lead_agent()._function_toolset.tools
+
+
+def _summary_lines(result: ToolReturn[Any]) -> list[str]:
+    """The one-line summaries a tool return carries."""
+    return [
+        ToolSummaryPayload.model_validate(chunk.data).summary
+        for chunk in result.metadata or []
+        if isinstance(chunk, DataChunk) and chunk.type == "data-tool-summary"
+    ]
+
+
+_RECORD_LINE = (
+    "TGME49_233460: SAG-related sequence SRS29B, 1 exon, chromosome VIII, 14 orthologs"
+)
+
+_TOXO_RECORD = GeneRecordSummary(
+    site_id="toxodb",
+    gene_id="TGME49_233460",
+    record_url="https://toxodb.org/toxo/app/record/gene/TGME49_233460",
+    organism="Toxoplasma gondii ME49",
+    product="SAG-related sequence SRS29B",
+    chromosome="VIII",
+    exon_count=1,
+    transcript_count=1,
+    ortholog_count=14,
+)
+
+
+@pytest.fixture
+def the_record(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
+    """The record read the tool reaches, and what it was asked for."""
+    asked: list[tuple[str, str]] = []
+
+    async def _read(site_id: str, gene_id: str) -> GeneRecordSummary:
+        asked.append((site_id, gene_id))
+        return _TOXO_RECORD
+
+    monkeypatch.setattr(read, "read_gene_record", _read)
+    return asked
+
+
+async def test_the_record_tool_answers_the_site_the_turn_runs_on(
+    the_record: list[tuple[str, str]],
+) -> None:
+    ctx = run_context_for(
+        lead_deps(
+            pipeline_state(user_prompt="How many exons does TGME49_233460 have?")
+        ),
+        tool_call_id="call_record",
+    )
+
+    result = await lead_tools.read_gene_record(ctx, "TGME49_233460")
+
+    assert the_record == [("plasmodb", "TGME49_233460")]
+    assert returned(result, GeneRecordSummary).product == "SAG-related sequence SRS29B"
+    assert _summary_lines(result) == [_RECORD_LINE]
+
+
+@pytest.mark.usefixtures("the_record")
+async def test_a_record_read_is_a_source_the_turn_retrieved() -> None:
+    ctx = run_context_for(
+        lead_deps(pipeline_state(user_prompt="What is TGME49_233460?")),
+        tool_call_id="call_record",
+    )
+
+    await lead_tools.read_gene_record(ctx, "TGME49_233460")
+    await lead_tools.read_gene_record(ctx, "TGME49_233460")
+
+    assert ctx.deps.state.turn_markers.retrieved_sources == [
+        "https://toxodb.org/toxo/app/record/gene/TGME49_233460",
+    ]
+
+
+def test_the_record_read_is_offered_before_the_turn_is_classified() -> None:
+    """A question about a gene needs no classification to be answered."""
+    assert "read_gene_record" in UNCLASSIFIED_TOOLS
+    assert "read_gene_record" not in BUILDING_TOOLS

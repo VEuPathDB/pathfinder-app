@@ -32,6 +32,8 @@ from pathfinder.ai.tools.standalone.workbench_models import (
 )
 from pathfinder.domain.memory import MemoryKind
 from pathfinder.platform.durable_worker import durable_agent_tool
+from pathfinder.services.gene_records import read
+from pathfinder.services.gene_records.read import GeneRecordSummary
 
 LedgerSectionName = Literal["frame", "build", "verification"]
 
@@ -302,6 +304,25 @@ async def get_live_strategy_state(
         ctx=ctx,
         status="ok" if genes else "empty",
     )
+
+
+async def read_gene_record(
+    ctx: RunContext[LeadDeps],
+    gene_id: str,
+) -> ToolReturn[GeneRecordSummary]:
+    """Read one gene's record on this site.
+
+    The record is where a fact about a named gene comes from: its product, its
+    exon and transcript counts, its chromosome, the orthologs the site lists
+    for it, and the site's own expression summary. Call it before you state
+    any of those, and cite it in ``sources``. A web page is not a record.
+
+    Args:
+        gene_id: A gene source id on this site, for example 'PF3D7_1133400'.
+    """
+    found = await read.read_gene_record(ctx.deps.runtime.site_id, gene_id)
+    ctx.deps.state.turn_markers.record_retrieved_source(found.record_url)
+    return with_summary(found, found.summary_line(), ctx=ctx)
 
 
 async def clear_strategy(

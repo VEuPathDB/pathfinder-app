@@ -404,3 +404,16 @@ def unreported_change_message() -> str:
         "export ran). Set strategy_changed to true and state what changed "
         "and the new counts."
     )
+
+
+def unretrieved_source_message(absent: Sequence[str]) -> str:
+    """Why a reply that cites a reference this turn never read is refused."""
+    named = ", ".join(absent)
+    return (
+        f"Your reply lists {named} under ``sources``, and no read of this turn "
+        f"returned it: this is a reference this turn did not retrieve, so the "
+        f"user cannot check it. Either drop it, or retrieve it first - "
+        f"``read_gene_record`` for a fact about a gene, "
+        f"``research_literature_search`` for a paper, ``research_web_search`` "
+        f"for a page - and list what came back."
+    )

@@ -24,6 +24,11 @@ def test_the_instructions_name_every_eda_tool_in_call_order() -> None:
     assert positions == sorted(positions)
 
 
+def test_the_instructions_ask_for_a_stated_premise_to_be_checked() -> None:
+    assert "A premise the question states as fact is checked" in LEAD_INSTRUCTIONS
+    assert "answering around a false premise" in LEAD_INSTRUCTIONS
+
+
 def test_the_instructions_say_when_eda_beats_a_classic_search() -> None:
     assert "sample-level" in LEAD_INSTRUCTIONS
     assert "eda_analysis_spec" in LEAD_INSTRUCTIONS
@@ -139,10 +144,28 @@ def test_the_lead_removes_a_step_with_the_delete_tool() -> None:
     assert "Never dispatch a framing or building pass to remove a step" in instructions
 
 
-def test_the_instructions_name_the_three_fields_the_contract_reads() -> None:
+def test_the_instructions_name_the_four_fields_the_contract_reads() -> None:
     instructions = _flat(LEAD_INSTRUCTIONS)
 
     assert "``strategy_changed`` against every write the turn made" in instructions
     assert "``asked_questions``" in instructions
     assert "``analysed_gene_set_ids``" in instructions
+    assert "``sources``" in instructions
     assert "a single correction listing every mismatch" in instructions
+
+
+def test_a_fact_about_a_gene_is_read_from_its_record() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert "A fact about a gene is read from its record" in instructions
+    assert "``read_gene_record``" in instructions
+
+
+def test_the_two_research_reads_answer_what_the_record_does_not() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert "the biology the record does not hold" in instructions
+    assert (
+        "a name, a claim or a current event neither the catalog nor the record"
+        in instructions
+    )

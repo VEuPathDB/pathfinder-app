@@ -51,6 +51,7 @@ LEAD_TOOL_NAMES = frozenset(
         "import_control_ids_from_strategy",
         "list_control_sets",
         "list_workbench_gene_sets",
+        "read_gene_record",
         "read_ledger_section",
         "recover_failed_steps",
         "remember",

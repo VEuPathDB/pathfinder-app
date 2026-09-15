@@ -166,6 +166,9 @@ class TurnMarkers(CamelModel):
     # Every enrichment answered under this message, in the order the workers
     # answered them. A reply reads it to say which set an analysis ran on.
     enrichment_runs: list[EnrichmentRun] = Field(default_factory=list)
+    # Every url, DOI and PMID this turn's own reads retrieved. A reference the
+    # reply cites is checked against it.
+    retrieved_sources: list[str] = Field(default_factory=list)
 
     @property
     def changed_strategy(self) -> bool:
@@ -181,6 +184,11 @@ class TurnMarkers(CamelModel):
         """Record the dataset this turn opened an analysis on, once."""
         if dataset_id not in self.eda_datasets_opened:
             self.eda_datasets_opened.append(dataset_id)
+
+    def record_retrieved_source(self, reference: str) -> None:
+        """Record one reference this turn retrieved, once."""
+        if reference and reference not in self.retrieved_sources:
+            self.retrieved_sources.append(reference)
 
     def record_enrichment_runs(self, runs: Iterable[EnrichmentRun]) -> None:
         """Add each answered enrichment once, keyed by its task."""

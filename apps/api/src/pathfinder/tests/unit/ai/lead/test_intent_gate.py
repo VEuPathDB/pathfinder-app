@@ -292,3 +292,32 @@ def test_every_building_intent_is_offered_the_whole_eda_route(
 
     assert isinstance(result.output, LeadResponse)
     assert seen.steps[1] >= EDA_ROUTE_TOOLS
+
+
+@pytest.mark.parametrize(
+    "classification",
+    [
+        IntentClassification.FOLLOW_UP_QUESTION,
+        IntentClassification.NEW_STRATEGY,
+        IntentClassification.EXTEND_STRATEGY,
+        IntentClassification.EDIT_STRATEGY,
+        IntentClassification.CONTEXT_STATEMENT,
+        IntentClassification.MEMORY_REQUEST,
+    ],
+)
+def test_every_intent_but_off_topic_can_read_a_gene_record(
+    classification: IntentClassification,
+) -> None:
+    """A fact about a gene is read from its record on any turn that has one."""
+    seen = _run("How many exons does TGME49_233460 have?", classification)
+
+    assert "read_gene_record" in seen.steps[1]
+
+
+def test_an_off_topic_turn_cannot_read_a_gene_record() -> None:
+    seen = _run(
+        "Write me a Python script that reverses a linked list.",
+        IntentClassification.OFF_TOPIC,
+    )
+
+    assert "read_gene_record" not in seen.steps[1]

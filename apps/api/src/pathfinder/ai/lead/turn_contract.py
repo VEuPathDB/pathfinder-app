@@ -1,5 +1,6 @@
-"""The Lead's typed reply, the record of the turn it answers, and the one
-reconciliation that holds the first against the second."""
+"""The Lead's typed reply, the record of the turn it answers - what it wrote
+and what it retrieved - and the reconciliation that holds one against the
+other."""
 
 from __future__ import annotations
 
@@ -7,9 +8,10 @@ from collections.abc import Callable, Sequence
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.messages import ModelMessage, ToolReturnPart
 
 from pathfinder.ai.graph.state import EnrichmentRun
 from pathfinder.ai.lead.derive import derive_ledger
@@ -21,6 +23,7 @@ from pathfinder.ai.lead.dispatch_messages import (
     off_topic_essay_message,
     unrecorded_question_message,
     unreported_change_message,
+    unretrieved_source_message,
     unverified_build_message,
 )
 from pathfinder.ai.lead.intent_gate import turn_builds, turn_is_off_topic
@@ -42,6 +45,102 @@ OFF_TOPIC_REPLY_MAX_CHARS = 400
 _CODE_FENCE = "```"
 
 CONTRACT_HEADING = "This reply does not match what the turn did:"
+
+# The served reads whose answers carry a reference the reply may cite.
+RESEARCH_TOOLS: frozenset[str] = frozenset(
+    {"research_web_search", "research_literature_search"},
+)
+
+# What a written reference carries before the identifier itself.
+_REFERENCE_PREFIXES = (
+    "https://",
+    "http://",
+    "www.",
+    "doi.org/",
+    "dx.doi.org/",
+    "doi:",
+    "pmid:",
+    "pubmed.ncbi.nlm.nih.gov/",
+)
+
+
+def normalized_reference(value: str) -> str:
+    """One comparable form of a url, a DOI or a PMID."""
+    text = value.strip().casefold()
+    for prefix in _REFERENCE_PREFIXES:
+        text = text.removeprefix(prefix)
+    return text.rstrip("/")
+
+
+class CitedSource(CamelModel):
+    """One reference a reply names, and where this turn read it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["record", "literature", "web"]
+    label: str = Field(
+        max_length=200,
+        description=(
+            "What the reader sees: the gene id and the site for a record, the "
+            "title for a paper or a page."
+        ),
+    )
+    url: str | None = None
+    doi: str | None = None
+    pmid: str | None = None
+
+    def references(self) -> list[str]:
+        """Every identifier this source is checked by."""
+        return [value for value in (self.url, self.doi, self.pmid) if value]
+
+
+class _RetrievedReference(BaseModel):
+    """One result or source a research answer lists."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    url: str | None = None
+    doi: str | None = None
+    pmid: str | None = None
+
+
+class ResearchAnswer(BaseModel):
+    """The references one research tool's answer carries."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    results: list[_RetrievedReference] = Field(default_factory=list)
+    sources: list[_RetrievedReference] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _an_answer_that_is_not_an_object_lists_nothing(cls, value: object) -> object:
+        """A tool that answered text or a refusal retrieved no reference."""
+        match value:
+            case {**fields}:
+                return fields
+            case _:
+                return {}
+
+    def references(self) -> list[str]:
+        """Every identifier this answer retrieved."""
+        return [
+            found
+            for item in (*self.results, *self.sources)
+            for found in (item.url, item.doi, item.pmid)
+            if found
+        ]
+
+
+def research_references(messages: Sequence[ModelMessage]) -> list[str]:
+    """Every reference the research tools answered this turn with."""
+    return [
+        found
+        for message in messages
+        for part in message.parts
+        if isinstance(part, ToolReturnPart) and part.tool_name in RESEARCH_TOOLS
+        for found in ResearchAnswer.model_validate(part.content).references()
+    ]
 
 
 class LeadResponse(CamelModel):
@@ -88,6 +187,16 @@ class LeadResponse(CamelModel):
             "named is reported under the id it actually ran on."
         ),
     )
+    sources: list[CitedSource] = Field(
+        default_factory=list,
+        max_length=20,
+        description=(
+            "One entry per reference this reply names: a gene record you read, "
+            "a paper, or a page. Every url, DOI and PMID here must be one a "
+            "read of THIS turn returned; a reference you did not retrieve is "
+            "one the user cannot check."
+        ),
+    )
 
 
 class TurnRecord(CamelModel):
@@ -106,6 +215,7 @@ class TurnRecord(CamelModel):
     substituted: list[EnrichmentRun]
     last_phase_stop: PhaseStop | None
     build_section: BuildSection
+    retrieved_sources: tuple[str, ...]
 
 
 MismatchKind = Literal[
@@ -116,6 +226,7 @@ MismatchKind = Literal[
     "unrecorded_question",
     "substituted_analysis",
     "off_topic_essay",
+    "unretrieved_source",
 ]
 
 
@@ -184,6 +295,10 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         substituted=substituted,
         last_phase_stop=deps.last_phase_stop,
         build_section=derive_ledger(deps.state, deps.intent).build,
+        retrieved_sources=(
+            *markers.retrieved_sources,
+            *research_references(ctx.messages),
+        ),
     )
 
 
@@ -249,6 +364,20 @@ def _off_topic_essay(report: LeadResponse, record: TurnRecord) -> str | None:
     return off_topic_essay_message(OFF_TOPIC_REPLY_MAX_CHARS)
 
 
+def _unretrieved_source(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A reference the reply lists is one a read of this turn returned."""
+    retrieved = {normalized_reference(found) for found in record.retrieved_sources}
+    absent = [
+        reference
+        for source in report.sources
+        for reference in source.references()
+        if normalized_reference(reference) not in retrieved
+    ]
+    if not absent:
+        return None
+    return unretrieved_source_message(absent)
+
+
 _RULES: tuple[
     tuple[MismatchKind, Callable[[LeadResponse, TurnRecord], str | None]], ...
 ] = (
@@ -259,6 +388,7 @@ _RULES: tuple[
     ("unrecorded_question", _unrecorded_question),
     ("substituted_analysis", _substituted_analysis),
     ("off_topic_essay", _off_topic_essay),
+    ("unretrieved_source", _unretrieved_source),
 )
 
 

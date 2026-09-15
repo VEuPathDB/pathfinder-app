@@ -2,6 +2,19 @@
 
 ## 2026-09-15
 
+* **A fact about a gene is read from the gene's record.** `services/gene_records/read.py`
+  reads a site's gene record through the client, asking only for the attributes that
+  record type declares, and `read_gene_record` puts the product, the exon and transcript
+  counts, the chromosome, the orthologs the site lists and its expression summary in front
+  of the Lead on every classified intent but off-topic. A reply's references are typed
+  (`LeadResponse.sources`) and the turn contract refuses one this turn never retrieved.
+  The Lead is also told to check a premise the question states as fact before it answers
+  around it. Measured before and after on the same questions: an exon count that was
+  invented ("3 exons") is read ("1 exon, SAG-related sequence SRS29B"), an orthology
+  called unresolved is named, and the turns run two to four times faster on a quarter of
+  the tool calls.
+
+
 * **One turn contract holds the Lead's reply to what the turn did.**
   `ai/lead/turn_contract.py` owns `LeadResponse`, a frozen `TurnRecord` built from the turn's
   markers, the domain state and the ledger, a pure `reconcile` with one rule per failure class,

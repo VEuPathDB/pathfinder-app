@@ -8,6 +8,7 @@ from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.turn_contract import (
     OFF_TOPIC_REPLY_MAX_CHARS,
+    CitedSource,
     reconcile,
     turn_record,
 )
@@ -37,9 +38,11 @@ from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     enrichment_deps,
     framing_deps,
     kinds,
+    kinds_after,
     off_topic_deps,
     reading_deps,
     reply,
+    research_answer,
 )
 
 
@@ -339,3 +342,121 @@ class TestTheOffTopicEssayRule:
         deps = off_topic_deps(IntentClassification.FOLLOW_UP_QUESTION)
 
         assert kinds(deps, reply(AN_ESSAY + WITH_CODE)) == []
+
+
+_A_PAPER = {
+    "query": "SRS29B",
+    "results": [
+        {
+            "title": "SAG1-related sequences",
+            "doi": "10.1016/j.molbiopara.2006.01.001",
+            "pmid": "16460820",
+            "url": "https://pubmed.ncbi.nlm.nih.gov/16460820/",
+        },
+    ],
+    "sources": [{"id": "s1", "url": "https://europepmc.org/article/MED/16460820"}],
+}
+_RECORD_URL = "https://toxodb.org/toxo/app/record/gene/TGME49_233460"
+
+
+class TestTheSourcesTheReplyLists:
+    def test_a_paper_this_turn_retrieved_passes(self) -> None:
+        deps = reading_deps()
+        report = reply(
+            "The SRS family is reviewed there.",
+            sources=[
+                CitedSource(
+                    kind="literature",
+                    label="SAG1-related sequences",
+                    doi="10.1016/j.molbiopara.2006.01.001",
+                ),
+            ],
+        )
+
+        found = kinds_after(
+            deps,
+            report,
+            [research_answer("research_literature_search", _A_PAPER)],
+        )
+
+        assert found == []
+
+    def test_a_reference_no_read_of_this_turn_returned_is_one_mismatch(self) -> None:
+        deps = reading_deps()
+        report = reply(
+            "The SRS family is reviewed there.",
+            sources=[
+                CitedSource(
+                    kind="literature",
+                    label="A review nobody read",
+                    doi="10.1000/invented.2026.99",
+                ),
+            ],
+        )
+
+        found = kinds_after(
+            deps,
+            report,
+            [research_answer("research_literature_search", _A_PAPER)],
+        )
+
+        assert found == ["unretrieved_source"]
+
+    def test_a_doi_written_only_in_the_prose_is_not_scanned(self) -> None:
+        deps = reading_deps()
+        report = reply("See doi:10.1000/invented.2026.99 for the review.")
+
+        assert kinds(deps, report) == []
+
+    def test_the_record_this_turn_read_is_a_source_it_can_cite(self) -> None:
+        deps = reading_deps()
+        deps.state.turn_markers.record_retrieved_source(_RECORD_URL)
+        report = reply(
+            "The record says one exon.",
+            sources=[
+                CitedSource(
+                    kind="record",
+                    label="TGME49_233460 on ToxoDB",
+                    url=_RECORD_URL,
+                ),
+            ],
+        )
+
+        assert kinds(deps, report) == []
+
+    def test_the_same_reference_is_matched_whatever_form_it_is_written_in(self) -> None:
+        deps = reading_deps()
+        report = reply(
+            "The review states it.",
+            sources=[
+                CitedSource(
+                    kind="literature",
+                    label="SAG1-related sequences",
+                    url="https://doi.org/10.1016/j.molbiopara.2006.01.001",
+                    pmid="16460820",
+                ),
+            ],
+        )
+
+        found = kinds_after(
+            deps,
+            report,
+            [research_answer("research_literature_search", _A_PAPER)],
+        )
+
+        assert found == []
+
+    def test_a_tool_answer_that_is_text_carries_no_reference(self) -> None:
+        deps = reading_deps()
+        report = reply(
+            "The page states it.",
+            sources=[CitedSource(kind="web", label="A page", url="https://x.test/a")],
+        )
+
+        found = kinds_after(
+            deps,
+            report,
+            [research_answer("research_web_search", {})],
+        )
+
+        assert found == ["unretrieved_source"]

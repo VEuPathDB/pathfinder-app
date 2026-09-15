@@ -107,6 +107,7 @@ _TOOL_NAME_TOKENS = frozenset(
         "import_control_ids_from_gene_set",
         "import_control_ids_from_strategy",
         "list_control_sets",
+        "read_gene_record",
         "read_ledger_section",
         "recover_failed_steps",
         "verify_strategy",
