@@ -26,7 +26,11 @@ from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.stated_shape import stated_shape
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import bound, read_detail
+from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+    bound,
+    read_detail,
+    wire_gene_count,
+)
 
 from ._strategy_edit_stubs import (
     StubAPI,
@@ -63,6 +67,7 @@ def _eda_ctx(
 ) -> RunContext[LeadDeps]:
     monkeypatch.setattr(eda_step, "bound_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read_detail)
+    wire_gene_count(monkeypatch)
     run_ctx = lead_run_context(
         user_prompt="export the febrile subset",
         strategy_session=session_with(root, _EDA_WDK_IDS),

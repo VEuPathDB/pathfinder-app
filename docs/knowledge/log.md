@@ -34,6 +34,18 @@
   called unresolved is named, and the turns run two to four times faster on a quarter of
   the tool calls.
 
+* **An EDA subset that selects no genes is not exported.** `create_eda_step` counts the
+  study's gene entity under the analysis' filters before it writes anything
+  (`ai/tools/standalone/_eda_step_guard.py`) and refuses an empty subset with the reason:
+  a filter on a sample-level entity selects samples, and a comparison ("up in A versus B")
+  is a `run_eda_compute`, not a subset. `preview_eda_subset` names the gene count beside a
+  count of any other entity. Measured: a bradyzoite request filtered samples to "tissue
+  cyst", previewed 16,708 count rows, and exported a step that held zero genes.
+* **A run that ends on an error says so.** When the runtime answers a failure of the
+  Lead's run with an error chunk, the turn keeps its text (`_LeadRunCapture.run_error`) and
+  the fallback reply names the error and asks for the message again, instead of asking the
+  user to rephrase. Measured: two turns ended on a provider disconnect inside FRAME and both
+  told the user to rephrase a well-formed request.
 * **A question a search answers is a build.** "How many genes" and "which genes" are
   classified as builds and answered by the step's size, with the step as provenance; see
   [A question a search answers is a build](decisions/a-question-a-search-answers-is-a-build.md).

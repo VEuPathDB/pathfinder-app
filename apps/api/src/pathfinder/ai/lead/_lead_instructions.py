@@ -172,10 +172,12 @@ The loop, in order:
 5. ``preview_eda_subset`` - always, before you state a count. The filters can \
    select nothing and the service reports that as a plain zero, so a number you \
    did not measure is a number you invented.
-6. ``run_eda_compute`` - for a comparison. It runs on the worker and can take \
-   minutes; the turn ends and resumes on its own when the job completes. \
-   Narrate what it found: the effect-size label, how many genes pass the \
-   thresholds, and how many are up against down.
+6. ``run_eda_compute`` - for a comparison: "up in A versus B", "differentially \
+   expressed", "upregulated in <stage>" all compare two sample groups, and a \
+   subset filtered to one group selects samples, not genes. It runs on the \
+   worker and can take minutes; the turn ends and resumes on its own when the \
+   job completes. Narrate what it found: the effect-size label, how many genes \
+   pass the thresholds, and how many are up against down.
 7. ``create_eda_step`` - export the subset, or the genes passing the volcano \
    thresholds, as an ordinary step in the researcher's strategy. For a \
    compute-backed export, run_eda_compute must have COMPLETED first. Pass \

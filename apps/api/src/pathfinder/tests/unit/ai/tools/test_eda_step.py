@@ -31,6 +31,7 @@ from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
     read_detail_with_computation,
     recording_commit,
     unbound,
+    wire_gene_count,
 )
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     combine,
@@ -60,10 +61,15 @@ def lead_ctx() -> RunContext[LeadDeps]:
 
 
 def _wire(
-    monkeypatch: pytest.MonkeyPatch, *, read: object, commit: object | None = None
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    read: object,
+    commit: object | None = None,
+    genes_selected: int = 3984,
 ) -> None:
     monkeypatch.setattr(eda_step, "bound_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read)
+    wire_gene_count(monkeypatch, count=genes_selected)
     if commit is not None:
         monkeypatch.setattr(eda_step, "apply_operations_and_commit", commit)
 
@@ -404,3 +410,24 @@ async def test_an_export_the_site_took_records_the_build(
     markers = lead_ctx.deps.state.turn_markers
     assert markers.built is True
     assert markers.edited is True
+
+
+async def test_a_subset_that_selects_no_genes_is_not_exported(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """A sample-level filter selects samples; the step it would make holds no gene."""
+    committed: list[object] = []
+
+    async def commit(**kwargs: object) -> CommitResult:
+        committed.append(kwargs)
+        reason = "no export may reach the commit"
+        raise AssertionError(reason)
+
+    _wire(monkeypatch, read=read_detail, commit=commit, genes_selected=0)
+
+    with pytest.raises(ModelRetry) as refusal:
+        await eda_step.create_eda_step(lead_ctx)
+
+    assert "0 of 5,399 genes" in str(refusal.value)
+    assert "run_eda_compute" in str(refusal.value)
+    assert committed == []

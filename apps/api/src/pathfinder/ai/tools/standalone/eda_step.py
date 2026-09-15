@@ -11,10 +11,14 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.strategy import CombineOp
+from veupathdb.eda import EdaAnalysisDetail
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone._eda_step_guard import (
+    refuse_an_empty_gene_subset,
+)
 from pathfinder.ai.tools.standalone._eda_step_spec import (
     restate_the_structure,
     spec_after_the_replacement,
@@ -42,7 +46,7 @@ from pathfinder.services.eda.binding import (
     read_analysis,
 )
 from pathfinder.services.eda.compute import NoComputationError, VolcanoThresholds
-from pathfinder.services.eda.steps import eda_step_node
+from pathfinder.services.eda.steps import EdaStepPlan, eda_step_node
 from pathfinder.services.strategies.commit import (
     CommitResult,
     apply_operations_and_commit,
@@ -179,6 +183,34 @@ def _guidance(wdk_strategy_id: int | None, *, is_compute_backed: bool) -> str:
     )
 
 
+async def _planned_export(
+    binding: ConversationAnalysisView,
+    analysis: EdaAnalysisDetail,
+    *,
+    thresholds: VolcanoThresholds | None,
+    search_name: str | None,
+) -> EdaStepPlan:
+    """The step the analysis exports, once it is known to hold genes."""
+    try:
+        plan = eda_step_node(
+            analysis,
+            dataset_id=binding.dataset_id,
+            thresholds=thresholds,
+            search_name=search_name,
+        )
+    except NoComputationError as exc:
+        msg = (
+            f"{exc} Call run_eda_compute to run the differential expression, "
+            f"then export the genes that pass its thresholds."
+        )
+        raise ModelRetry(msg) from exc
+    if not plan.is_compute_backed:
+        await refuse_an_empty_gene_subset(
+            binding.site_id, dataset_id=binding.dataset_id, analysis=analysis
+        )
+    return plan
+
+
 async def create_eda_step(
     ctx: RunContext[LeadDeps],
     *,
@@ -256,23 +288,16 @@ async def create_eda_step(
     _checked_thresholds(effect_size_threshold, significance_threshold)
 
     analysis = await read_analysis(binding.site_id, analysis_id=binding.analysis_id)
-    try:
-        plan = eda_step_node(
-            analysis,
-            dataset_id=binding.dataset_id,
-            thresholds=_thresholds(
-                effect_size_threshold,
-                significance_threshold,
-                effect_direction,
-            ),
-            search_name=search_name,
-        )
-    except NoComputationError as exc:
-        msg = (
-            f"{exc} Call run_eda_compute to run the differential expression, "
-            f"then export the genes that pass its thresholds."
-        )
-        raise ModelRetry(msg) from exc
+    plan = await _planned_export(
+        binding,
+        analysis,
+        thresholds=_thresholds(
+            effect_size_threshold,
+            significance_threshold,
+            effect_direction,
+        ),
+        search_name=search_name,
+    )
     node = plan.node
     is_compute_backed = plan.is_compute_backed
 

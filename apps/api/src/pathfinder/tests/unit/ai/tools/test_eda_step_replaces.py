@@ -30,6 +30,7 @@ from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
     bound,
     read_detail,
     recording_commit,
+    wire_gene_count,
 )
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     combine,
@@ -42,6 +43,7 @@ from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
 def _wire(monkeypatch: pytest.MonkeyPatch, *, commit: object | None = None) -> None:
     monkeypatch.setattr(eda_step, "bound_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read_detail)
+    wire_gene_count(monkeypatch)
     if commit is not None:
         monkeypatch.setattr(eda_step, "apply_operations_and_commit", commit)
 

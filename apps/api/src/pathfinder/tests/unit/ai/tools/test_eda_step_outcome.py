@@ -28,6 +28,7 @@ from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
     read_detail,
     read_detail_with_computation,
     recording_commit,
+    wire_gene_count,
 )
 
 
@@ -43,6 +44,7 @@ def lead_ctx() -> RunContext[LeadDeps]:
 def _wire(monkeypatch: pytest.MonkeyPatch, *, read: object, commit: object) -> None:
     monkeypatch.setattr(eda_step, "bound_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read)
+    wire_gene_count(monkeypatch)
     monkeypatch.setattr(eda_step, "apply_operations_and_commit", commit)
 
 

@@ -20,7 +20,11 @@ from pathfinder.domain.strategy.operations import UpdateStepParamsOp
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.strategies import stated_sides
 from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import bound, read_detail
+from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+    bound,
+    read_detail,
+    wire_gene_count,
+)
 
 from ._strategy_edit_stubs import StubAPI, ctx, install_stub_api, leaf, seed
 
@@ -87,6 +91,7 @@ async def test_create_eda_step_answers_with_the_refusal(
 
     monkeypatch.setattr(eda_step, "bound_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read_detail)
+    wire_gene_count(monkeypatch)
     monkeypatch.setattr(eda_step, "apply_operations_and_commit", _refuse)
     lead_ctx = lead_run_context(
         user_prompt="export the febrile subset",

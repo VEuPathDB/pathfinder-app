@@ -56,6 +56,8 @@ class _LeadRunCapture:
     """Terminal state captured from the Lead agent's streaming run."""
 
     guard_stop: GuardStop | None = None
+    # The text of the error chunk that ended the run, when one did.
+    run_error: str | None = None
 
     new_messages: list[ModelMessage] = field(default_factory=list)
     finish_reason: str = "stop"

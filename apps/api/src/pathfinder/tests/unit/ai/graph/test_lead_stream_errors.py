@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
+from pathfinder.ai.graph._lead_stops import fallback_prose
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
@@ -143,3 +144,25 @@ def test_any_other_failure_reaches_the_user_as_an_error_chunk(
 
     assert [chunk["type"] for chunk in writer.chunks_of("error")] == ["error"]
     assert _turn_failures(caplog) == []
+
+
+def test_a_failed_run_is_named_to_the_user_and_asked_to_be_sent_again(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A transport failure is not a badly phrased message; the reply says which it was."""
+    capture = _LeadRunCapture()
+
+    _drive(monkeypatch, RuntimeError("peer closed connection"), capture, Collector())
+
+    assert capture.run_error == "peer closed connection"
+    assert fallback_prose(capture) == (
+        "I stopped this turn on an error I could not recover from: peer closed "
+        "connection. Send the message again and I will start over from it."
+    )
+
+
+def test_a_run_that_ended_without_a_reply_and_without_an_error_asks_for_more() -> None:
+    assert fallback_prose(_LeadRunCapture()) == (
+        "I couldn't produce a response for this turn. Please rephrase or provide "
+        "more context and I'll try again."
+    )

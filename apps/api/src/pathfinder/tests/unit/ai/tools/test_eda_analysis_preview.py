@@ -17,7 +17,7 @@ from pathfinder.ai.tools.standalone import eda_analysis
 from pathfinder.ai.tools.standalone._eda_models import EdaSubsetPreviewResult
 from pathfinder.domain.eda_parts import EdaAnalysisState
 from pathfinder.services.eda import binding
-from pathfinder.services.eda.authoring import SubsetPreview
+from pathfinder.services.eda.authoring import SubsetCount, SubsetPreview
 from pathfinder.services.eda.binding import ConversationAnalysisView
 from pathfinder.tests._support.eda_doubles import (
     ANALYSIS_ID,
@@ -102,12 +102,20 @@ async def _record_preview(*, conversation_id: object) -> None:
     del conversation_id
 
 
+async def _genes_counted(
+    _site: str, *, dataset_id: str, entity_id: str, filters: object
+) -> SubsetCount:
+    del dataset_id, filters
+    return SubsetCount(entity_id=entity_id, count=0, unfiltered_count=5399)
+
+
 def _wire(monkeypatch: pytest.MonkeyPatch, preview: object) -> None:
     monkeypatch.setattr(eda_analysis, "record_subset_preview", _record_preview)
     monkeypatch.setattr(eda_analysis, "bound_analysis", _bound)
     monkeypatch.setattr(eda_analysis, "read_analysis", read_analysis_detail)
     monkeypatch.setattr(eda_analysis, "preview_subset", preview)
     monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(eda_analysis, "verified_count", _genes_counted)
 
 
 def _captions(metadata: object) -> list[str]:
@@ -315,3 +323,29 @@ async def test_a_count_after_a_filter_change_opens_the_export_again(
 
     await eda_analysis.preview_eda_subset(lead_ctx, entity_id=PHENOTYPE_ENTITY)
     assert "create_eda_step" not in unmet_preconditions(lead_ctx.deps)
+
+
+async def test_a_preview_of_another_entity_also_says_how_many_genes_it_selects(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """A count of samples reads like a result; the step would hold genes."""
+    _wire(monkeypatch, _preview_ok)
+
+    answer = await eda_analysis.preview_eda_subset(lead_ctx, entity_id="ENT_samples")
+    result = returned(answer, EdaSubsetPreviewResult)
+
+    assert "Genes this subset selects: 0 of 5,399." in result.guidance
+    assert "A step exports genes" in result.guidance
+
+
+async def test_a_preview_of_the_gene_entity_repeats_no_gene_count(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    _wire(monkeypatch, _preview_ok)
+
+    answer = await eda_analysis.preview_eda_subset(lead_ctx, entity_id=PHENOTYPE_ENTITY)
+
+    assert (
+        "Genes this subset selects"
+        not in returned(answer, EdaSubsetPreviewResult).guidance
+    )

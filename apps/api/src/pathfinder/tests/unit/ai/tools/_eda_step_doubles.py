@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+import pytest
 from veupathdb.eda import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
@@ -18,13 +19,19 @@ from veupathdb.eda import (
     EdaVariableSpec,
 )
 
+from pathfinder.ai.tools.standalone import _eda_step_guard
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import ConversationAnalysisView
+from pathfinder.services.eda.authoring import SubsetCount
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import ensure_sync_state
-from pathfinder.tests._support.eda_doubles import ANALYSIS_ID, SPECIES_VARIABLE
+from pathfinder.tests._support.eda_doubles import (
+    ANALYSIS_ID,
+    SPECIES_VARIABLE,
+    phenotype_study,
+)
 from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET, PHENOTYPE_ENTITY
 
 WDK_STRATEGY_ID = 330423363
@@ -161,3 +168,18 @@ def pushing_commit(
         )
 
     return commit
+
+
+def wire_gene_count(monkeypatch: pytest.MonkeyPatch, *, count: int = 3984) -> None:
+    """The gene count the export clears, read from the recorded phenotype study."""
+
+    async def _count(
+        _site: str, *, dataset_id: str, entity_id: str, filters: object
+    ) -> SubsetCount:
+        del dataset_id, filters
+        return SubsetCount(entity_id=entity_id, count=count, unfiltered_count=5399)
+
+    monkeypatch.setattr(
+        _eda_step_guard, "get_study_detail_for_dataset", phenotype_study
+    )
+    monkeypatch.setattr(_eda_step_guard, "verified_count", _count)

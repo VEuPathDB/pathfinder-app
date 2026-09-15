@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
@@ -28,7 +30,11 @@ from pathfinder.ai.tools.standalone.eda_stream_parts import (
 )
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.services.eda import EdaFilter, EdaStudyDetail
-from pathfinder.services.eda.authoring import SubsetRejectedError, preview_subset
+from pathfinder.services.eda.authoring import (
+    SubsetRejectedError,
+    preview_subset,
+    verified_count,
+)
 from pathfinder.services.eda.binding import (
     ConversationAnalysisView,
     apply_filters,
@@ -262,6 +268,27 @@ async def _bound_or_retry(
     return bound
 
 
+async def _genes_the_subset_selects(
+    site_id: str,
+    *,
+    study: EdaStudyDetail,
+    dataset_id: str,
+    entity_id: str,
+    filters: Sequence[EdaFilter],
+) -> str:
+    """The gene count beside a count of another entity: a step exports genes."""
+    gene = find_gene_entity(study, subject="strategy step")
+    if gene.entity_id is None or gene.entity_id == entity_id:
+        return ""
+    genes = await verified_count(
+        site_id, dataset_id=dataset_id, entity_id=gene.entity_id, filters=filters
+    )
+    return (
+        f" Genes this subset selects: {genes.count:,} of {genes.unfiltered_count:,}. "
+        "A step exports genes, so that is the count a step would hold."
+    )
+
+
 async def preview_eda_subset(
     ctx: RunContext[LeadDeps],
     *,
@@ -327,6 +354,13 @@ async def preview_eda_subset(
     statistics = (
         None if preview.distribution is None else preview.distribution.statistics
     )
+    genes_selected = await _genes_the_subset_selects(
+        site_id,
+        study=study,
+        dataset_id=bound.dataset_id,
+        entity_id=entity_id,
+        filters=filters,
+    )
     result = EdaSubsetPreviewResult(
         entity_id=preview.entity_id,
         entity_display_name=preview.entity_display_name,
@@ -351,7 +385,8 @@ async def preview_eda_subset(
             has_filters=bool(filters),
             is_multi_valued=variable is not None and variable.is_multi_valued,
             num_missing_cases=0 if statistics is None else statistics.num_missing_cases,
-        ),
+        )
+        + genes_selected,
     )
     chunk = eda_subset_preview_chunk(
         dataset_id=bound.dataset_id,

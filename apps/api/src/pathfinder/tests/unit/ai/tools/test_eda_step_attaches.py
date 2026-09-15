@@ -28,7 +28,11 @@ from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import bound, read_detail
+from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+    bound,
+    read_detail,
+    wire_gene_count,
+)
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     combine,
     install_stub_api,
@@ -43,6 +47,7 @@ _GOAL = "essential kinases"
 def _wire(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(eda_step, "bound_analysis", bound)
     monkeypatch.setattr(eda_step, "read_analysis", read_detail)
+    wire_gene_count(monkeypatch)
 
 
 def _lead_ctx_over(root: StrategyStepNode) -> RunContext[LeadDeps]:

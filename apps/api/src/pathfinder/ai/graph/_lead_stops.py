@@ -66,3 +66,17 @@ def absorb_loop_stop(
         loop_stop_prose(capture.guard_stop),
         changed=state.turn_markers.changed_strategy,
     )
+
+
+def fallback_prose(capture: _LeadRunCapture) -> str:
+    """What the user reads when the run ended with no reply of its own."""
+    if capture.run_error:
+        return (
+            "I stopped this turn on an error I could not recover from: "
+            f"{capture.run_error}. Send the message again and I will start over "
+            "from it."
+        )
+    return (
+        "I couldn't produce a response for this turn. Please rephrase or provide "
+        "more context and I'll try again."
+    )

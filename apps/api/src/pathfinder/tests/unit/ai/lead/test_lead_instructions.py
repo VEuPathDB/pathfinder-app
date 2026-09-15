@@ -24,6 +24,13 @@ def test_the_instructions_name_every_eda_tool_in_call_order() -> None:
     assert positions == sorted(positions)
 
 
+def test_the_instructions_send_a_comparison_to_the_compute_not_to_a_sample_subset() -> (
+    None
+):
+    assert "up in A versus B" in LEAD_INSTRUCTIONS
+    assert "selects samples, not genes" in LEAD_INSTRUCTIONS
+
+
 def test_the_instructions_make_a_question_a_search_answers_a_build() -> None:
     assert "A question a search answers is a build" in LEAD_INSTRUCTIONS
     assert "how many genes" in LEAD_INSTRUCTIONS

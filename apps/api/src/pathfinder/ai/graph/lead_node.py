@@ -45,7 +45,7 @@ from pydantic_ai.messages import (
     FunctionToolResultEvent,
 )
 from pydantic_ai.tools import DeferredToolRequests
-from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
+from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, ErrorChunk
 from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.graph._lead_capture import (
@@ -68,6 +68,7 @@ from pathfinder.ai.graph._lead_events import (
 from pathfinder.ai.graph._lead_model import resolve_lead_model_context
 from pathfinder.ai.graph._lead_stops import (
     absorb_loop_stop,
+    fallback_prose,
     guard_stop_of,
     guard_stopped_on,
     stop_response,
@@ -167,8 +168,14 @@ def _emit_unless_suppressed(
     writer: Any,
     chunk: BaseChunk,
     sub_agent_tool_calls: dict[str, str],
+    capture: _LeadRunCapture,
 ) -> None:
-    """Write one chunk, unless a sub-agent already renders that call itself."""
+    """Write one chunk, unless a sub-agent already renders that call itself.
+
+    The error chunk that ends a run is kept, so the turn's reply can name it.
+    """
+    if isinstance(chunk, ErrorChunk):
+        capture.run_error = chunk.error_text
     if is_suppressed_sub_agent_chunk(chunk, sub_agent_tool_calls):
         return
     emit_chunk(writer, chunk)
@@ -309,7 +316,7 @@ async def _drive_lead_stream(
     try:
         with override_ctx:
             async for v6_chunk in emitter.chunks(_agent_events()):
-                _emit_unless_suppressed(writer, v6_chunk, sub_agent_tool_calls)
+                _emit_unless_suppressed(writer, v6_chunk, sub_agent_tool_calls, capture)
     # The emitter re-raises the graph's control-flow signal and answers every
     # other exception of the run with an error chunk, so these two handlers see
     # that signal and a failure of the loop that writes the chunks.
@@ -373,8 +380,7 @@ async def _run_lead_turn(
         and capture.pending_durable_call is None
     ):
         capture.response = stop_response(
-            "I couldn't produce a response for this turn. Please "
-            "rephrase or provide more context and I'll try again.",
+            fallback_prose(capture),
             changed=state.turn_markers.changed_strategy,
         )
 
