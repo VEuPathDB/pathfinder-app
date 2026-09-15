@@ -25,7 +25,7 @@
 * **A served tool's price joins the turn's bill.** A research answer that carries
   `costUsd` (the Brave Search API call, 0.005 by default) reaches the Lead's cost capture
   through `LeadDeps.record_tool_charge`, so the turn total the thread shows and the
-  monthly budget `quota.accumulate` charges both include it. `veupathdb-mcp` is 0.2.0a12;
+  monthly budget `quota.accumulate` charges both include it. `veupathdb-mcp` is 0.2.0a13;
   `RESEARCH_MCP_BRAVE_SEARCH_API_KEY` on the research server turns the keyed engine on,
   and the scraped engines stay as the free fallback.
   The Lead is also told to check a premise the question states as fact before it answers
@@ -34,7 +34,9 @@
   called unresolved is named, and the turns run two to four times faster on a quarter of
   the tool calls.
 
-* **`veupathdb-mcp` is 0.2.0a12**, in the uv source and both compose build contexts. The
+* **`veupathdb-mcp` is 0.2.0a13**, in the uv source and both compose build contexts. A web
+  engine that finds nothing has answered, so an empty search is an empty result and not a
+  served error that a retrying host turns into a dead turn. The
   literature tool ranks a paper that is identified and described above a stub that is only
   identified, and both above a listing page, a search page, a structure or a recommendation
   of a paper. Both research tools refuse a query with no letter or digit, and report what
