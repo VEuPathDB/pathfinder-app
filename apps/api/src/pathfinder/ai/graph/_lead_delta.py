@@ -88,7 +88,10 @@ def _build_state_delta(
         state.turn_total_tokens + capture.tokens + capture.sub_agent_tokens
     )
     cumulative_cost = (
-        state.turn_total_cost_usd + capture.cost_usd + capture.sub_agent_cost
+        state.turn_total_cost_usd
+        + capture.cost_usd
+        + capture.sub_agent_cost
+        + capture.tool_cost
     )
     delta: dict[str, Any] = {
         "domain": _domain_delta(deps=deps, capture=capture),

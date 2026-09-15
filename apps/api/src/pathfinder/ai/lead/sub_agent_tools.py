@@ -218,6 +218,14 @@ class SubAgentCallUsage:
         return SubAgentCallUsage(tokens=self.tokens + tokens, cost=self.cost + cost)
 
 
+@dataclass(frozen=True)
+class ToolCharge:
+    """What one served tool call cost the deployment, in USD."""
+
+    tool_name: str
+    cost_usd: Decimal
+
+
 @dataclass
 class SubAgentRunUsage:
     """Usage from one pass of a sub-agent dispatch.
@@ -258,6 +266,10 @@ class LeadDeps:
     retrieved_memories: list[MemoryValue]
     record_sub_agent_usage: Callable[[SubAgentRunUsage], None] = field(
         default=lambda _u: None,
+    )
+    # A served tool that priced its answer charges the turn through here.
+    record_tool_charge: Callable[[ToolCharge], None] = field(
+        default=lambda _c: None,
     )
     # What each dispatch has spent so far, keyed by its tool call id. The
     # Lead's node owns the mapping and a continued pass reads its baseline.

@@ -8,6 +8,7 @@ cycle.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
@@ -30,7 +31,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
+from pathfinder.ai.lead.sub_agent_tools import (
+    SubAgentCallUsage,
+    SubAgentRunUsage,
+    ToolCharge,
+)
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.catalog import context_window_for
 
@@ -53,6 +58,7 @@ class _LeadRunCapture:
     charged_cost: Decimal = field(default_factory=lambda: Decimal(0))
     sub_agent_tokens: int = 0
     sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
+    tool_cost: Decimal = field(default_factory=lambda: Decimal(0))
     sub_agent_usage_by_call: dict[str, SubAgentCallUsage] = field(default_factory=dict)
     lead_model: str = ""
     last_request_input_tokens: int = 0
@@ -71,7 +77,7 @@ class _LeadRunCapture:
 
     @property
     def cumulative_cost(self) -> Decimal:
-        return self.charged_cost + self.sub_agent_cost
+        return self.charged_cost + self.sub_agent_cost + self.tool_cost
 
     def live_totals(self, state: PipelineState) -> tuple[int, str]:
         """Running turn totals (base + charged-so-far) for a usage event."""
@@ -84,7 +90,12 @@ class _LeadRunCapture:
         """Final turn totals using the captured (not charged) lead tokens."""
         return (
             state.turn_total_tokens + self.tokens + self.sub_agent_tokens,
-            str(state.turn_total_cost_usd + self.cost_usd + self.sub_agent_cost),
+            str(
+                state.turn_total_cost_usd
+                + self.cost_usd
+                + self.sub_agent_cost
+                + self.tool_cost
+            ),
         )
 
 
@@ -105,6 +116,33 @@ def absorb_sub_agent_usage(capture: _LeadRunCapture, info: SubAgentRunUsage) -> 
     by_call = capture.sub_agent_usage_by_call
     spent = by_call.get(info.parent_tool_call_id, SubAgentCallUsage())
     by_call[info.parent_tool_call_id] = spent.plus(info.usage.total_tokens, cost)
+
+
+def absorb_tool_charge(capture: _LeadRunCapture, charge: ToolCharge) -> None:
+    """Add what one served tool call cost to the turn total."""
+    capture.tool_cost += charge.cost_usd
+
+
+def usage_recorders(
+    capture: _LeadRunCapture,
+    state: PipelineState,
+    writer: Any,
+) -> tuple[Callable[[SubAgentRunUsage], None], Callable[[ToolCharge], None]]:
+    """The two spends outside the Lead's own calls; each reports the running total."""
+
+    def _report() -> None:
+        total_tokens, cost_usd = capture.live_totals(state)
+        emit_turn_usage(writer, total_tokens, cost_usd)
+
+    def record_sub_agent(info: SubAgentRunUsage) -> None:
+        absorb_sub_agent_usage(capture, info)
+        _report()
+
+    def record_tool(charge: ToolCharge) -> None:
+        absorb_tool_charge(capture, charge)
+        _report()
+
+    return record_sub_agent, record_tool
 
 
 def emit_lead_usage(
@@ -229,7 +267,7 @@ async def _persist_residual_quota(
     sub_agent_tokens = capture.sub_agent_tokens
     sub_agent_cost = capture.sub_agent_cost
     total_tokens = lead_residual_tokens + sub_agent_tokens
-    total_cost = lead_residual_cost + sub_agent_cost
+    total_cost = lead_residual_cost + sub_agent_cost + capture.tool_cost
     if total_tokens == 0 and total_cost == 0:
         return
     async with context.db_session_factory() as session:
@@ -244,6 +282,7 @@ async def _persist_residual_quota(
             capture.charged_cost += lead_residual_cost
             capture.sub_agent_tokens = 0
             capture.sub_agent_cost = Decimal(0)
+            capture.tool_cost = Decimal(0)
         except SQLAlchemyError:
             logger.warning(
                 "failed to accumulate lead residual quota",

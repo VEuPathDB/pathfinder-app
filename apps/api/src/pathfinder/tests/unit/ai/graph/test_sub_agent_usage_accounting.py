@@ -12,10 +12,19 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.usage import RunUsage
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture, absorb_sub_agent_usage
+from pathfinder.ai.graph._lead_capture import (
+    _LeadRunCapture,
+    absorb_sub_agent_usage,
+    absorb_tool_charge,
+    usage_recorders,
+)
 from pathfinder.ai.graph._lead_events import handle_sub_agent_event
 from pathfinder.ai.lead.deltas import FrameResult
-from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
+from pathfinder.ai.lead.sub_agent_tools import (
+    SubAgentCallUsage,
+    SubAgentRunUsage,
+    ToolCharge,
+)
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,
     lead_deps,
@@ -118,3 +127,35 @@ def test_the_completed_card_reports_what_the_dispatch_spent() -> None:
 def test_a_dispatch_with_no_recorded_usage_reports_zero() -> None:
     assert SubAgentCallUsage().tokens == 0
     assert SubAgentCallUsage().cost == Decimal(0)
+
+
+def test_a_priced_tool_call_joins_the_turn_total() -> None:
+    """A search the deployment paid for is billed with the model calls."""
+    capture = _LeadRunCapture()
+    capture.charged_cost = Decimal("0.010")
+
+    absorb_tool_charge(
+        capture, ToolCharge(tool_name="research_web_search", cost_usd=Decimal("0.005"))
+    )
+    absorb_tool_charge(
+        capture, ToolCharge(tool_name="research_web_search", cost_usd=Decimal("0.005"))
+    )
+
+    assert capture.tool_cost == Decimal("0.010")
+    assert capture.cumulative_cost == Decimal("0.020")
+
+
+def test_a_tool_charge_reports_the_running_total_like_a_sub_agent_pass() -> None:
+    """The thread's running cost moves when a served search is paid for."""
+    capture = _LeadRunCapture()
+    state = pipeline_state(user_prompt="q")
+    writer = ChunkCollector()
+    record_sub_agent, record_tool = usage_recorders(capture, state, writer)
+
+    record_sub_agent(_pass(2441))
+    record_tool(ToolCharge(tool_name="research_web_search", cost_usd=Decimal("0.005")))
+
+    reported = [c["data"]["costUsd"] for c in writer.chunks_of("data-turn-usage")]
+    assert len(reported) == 2
+    assert Decimal(reported[1]) - Decimal(reported[0]) == Decimal("0.005")
+    assert capture.tool_cost == Decimal("0.005")

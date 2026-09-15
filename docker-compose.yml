@@ -165,7 +165,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a7
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a11
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -217,7 +217,7 @@ services:
     # The second server of the same distribution, built from the same release
     # at its own target. It reads no account and opens no database.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a7
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a11
       target: research
     restart: unless-stopped
     mem_limit: 512m
@@ -239,6 +239,9 @@ services:
       # Empty admits nothing.
       RESEARCH_MCP_SERVICE_TOKENS: ${RESEARCH_MCP_SERVICE_TOKENS:-}
       RESEARCH_MCP_S2_API_KEY: ${S2_API_KEY:-}
+      # A Brave Search API key makes Brave the first web engine; each answered call
+      # is priced on the answer and charged to the user's monthly budget.
+      RESEARCH_MCP_BRAVE_SEARCH_API_KEY: ${RESEARCH_MCP_BRAVE_SEARCH_API_KEY:-}
       # A mailbox Crossref reads out of the User-Agent, which routes the call
       # to its polite pool. Empty keeps the anonymous pool.
       RESEARCH_MCP_CROSSREF_MAILTO: ${RESEARCH_MCP_CROSSREF_MAILTO:-}

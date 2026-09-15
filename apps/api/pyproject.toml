@@ -59,7 +59,7 @@ constraint-dependencies = [
 [tool.uv.sources]
 assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0a12" }
 veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a10" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0a7" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0a11" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0a12" }
 
 [build-system]

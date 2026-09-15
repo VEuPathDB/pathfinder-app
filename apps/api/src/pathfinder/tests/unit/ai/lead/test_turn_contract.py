@@ -38,11 +38,9 @@ from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     enrichment_deps,
     framing_deps,
     kinds,
-    kinds_after,
     off_topic_deps,
     reading_deps,
     reply,
-    research_answer,
 )
 
 
@@ -344,24 +342,21 @@ class TestTheOffTopicEssayRule:
         assert kinds(deps, reply(AN_ESSAY + WITH_CODE)) == []
 
 
-_A_PAPER = {
-    "query": "SRS29B",
-    "results": [
-        {
-            "title": "SAG1-related sequences",
-            "doi": "10.1016/j.molbiopara.2006.01.001",
-            "pmid": "16460820",
-            "url": "https://pubmed.ncbi.nlm.nih.gov/16460820/",
-        },
-    ],
-    "sources": [{"id": "s1", "url": "https://europepmc.org/article/MED/16460820"}],
-}
+# What the recorder put on the markers after one literature search answered.
+_A_PAPER_REFERENCES = (
+    "https://pubmed.ncbi.nlm.nih.gov/16460820/",
+    "10.1016/j.molbiopara.2006.01.001",
+    "16460820",
+    "https://europepmc.org/article/MED/16460820",
+)
 _RECORD_URL = "https://toxodb.org/toxo/app/record/gene/TGME49_233460"
 
 
 class TestTheSourcesTheReplyLists:
     def test_a_paper_this_turn_retrieved_passes(self) -> None:
         deps = reading_deps()
+        for reference in _A_PAPER_REFERENCES:
+            deps.state.turn_markers.record_retrieved_source(reference)
         report = reply(
             "The SRS family is reviewed there.",
             sources=[
@@ -373,16 +368,12 @@ class TestTheSourcesTheReplyLists:
             ],
         )
 
-        found = kinds_after(
-            deps,
-            report,
-            [research_answer("research_literature_search", _A_PAPER)],
-        )
-
-        assert found == []
+        assert kinds(deps, report) == []
 
     def test_a_reference_no_read_of_this_turn_returned_is_one_mismatch(self) -> None:
         deps = reading_deps()
+        for reference in _A_PAPER_REFERENCES:
+            deps.state.turn_markers.record_retrieved_source(reference)
         report = reply(
             "The SRS family is reviewed there.",
             sources=[
@@ -394,13 +385,7 @@ class TestTheSourcesTheReplyLists:
             ],
         )
 
-        found = kinds_after(
-            deps,
-            report,
-            [research_answer("research_literature_search", _A_PAPER)],
-        )
-
-        assert found == ["unretrieved_source"]
+        assert kinds(deps, report) == ["unretrieved_source"]
 
     def test_a_doi_written_only_in_the_prose_is_not_scanned(self) -> None:
         deps = reading_deps()
@@ -426,6 +411,8 @@ class TestTheSourcesTheReplyLists:
 
     def test_the_same_reference_is_matched_whatever_form_it_is_written_in(self) -> None:
         deps = reading_deps()
+        for reference in _A_PAPER_REFERENCES:
+            deps.state.turn_markers.record_retrieved_source(reference)
         report = reply(
             "The review states it.",
             sources=[
@@ -438,25 +425,4 @@ class TestTheSourcesTheReplyLists:
             ],
         )
 
-        found = kinds_after(
-            deps,
-            report,
-            [research_answer("research_literature_search", _A_PAPER)],
-        )
-
-        assert found == []
-
-    def test_a_tool_answer_that_is_text_carries_no_reference(self) -> None:
-        deps = reading_deps()
-        report = reply(
-            "The page states it.",
-            sources=[CitedSource(kind="web", label="A page", url="https://x.test/a")],
-        )
-
-        found = kinds_after(
-            deps,
-            report,
-            [research_answer("research_web_search", {})],
-        )
-
-        assert found == ["unretrieved_source"]
+        assert kinds(deps, report) == []

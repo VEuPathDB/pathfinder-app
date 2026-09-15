@@ -53,8 +53,8 @@ from pathfinder.ai.graph._lead_capture import (
     _emit_residual_prose,
     _LeadRunCapture,
     _persist_residual_quota,
-    absorb_sub_agent_usage,
     emit_lead_usage,
+    usage_recorders,
 )
 from pathfinder.ai.graph._lead_delta import _build_state_delta
 from pathfinder.ai.graph._lead_durable import (
@@ -83,7 +83,7 @@ from pathfinder.ai.graph.turn_status import (
 )
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.lead_agent import LeadAgent
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentRunUsage
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_budget import (
     lead_turn_budget_message,
     lead_usage_limits,
@@ -370,18 +370,15 @@ async def _run_lead_turn(
     capture = _LeadRunCapture()
     message_id = uuid4()
 
-    def _record_sub_agent_usage(usage_info: SubAgentRunUsage) -> None:
-        absorb_sub_agent_usage(capture, usage_info)
-        total_tokens, cost_usd = capture.live_totals(state)
-        emit_turn_usage(writer, total_tokens, cost_usd)
-
+    record_sub_agent_usage, record_tool_charge = usage_recorders(capture, state, writer)
     working_state = await pre_turn(state, runtime.context)
     deps = LeadDeps(
         state=working_state,
         intent=state.domain.user_intent,
         runtime=runtime.context,
         retrieved_memories=memories,
-        record_sub_agent_usage=_record_sub_agent_usage,
+        record_sub_agent_usage=record_sub_agent_usage,
+        record_tool_charge=record_tool_charge,
         sub_agent_usage_by_call=capture.sub_agent_usage_by_call,
     )
 

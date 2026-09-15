@@ -8,10 +8,9 @@ from collections.abc import Callable, Sequence
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
-from pydantic_ai.messages import ModelMessage, ToolReturnPart
 
 from pathfinder.ai.graph.state import EnrichmentRun
 from pathfinder.ai.lead.derive import derive_ledger
@@ -45,11 +44,6 @@ OFF_TOPIC_REPLY_MAX_CHARS = 400
 _CODE_FENCE = "```"
 
 CONTRACT_HEADING = "This reply does not match what the turn did:"
-
-# The served reads whose answers carry a reference the reply may cite.
-RESEARCH_TOOLS: frozenset[str] = frozenset(
-    {"research_web_search", "research_literature_search"},
-)
 
 # What a written reference carries before the identifier itself.
 _REFERENCE_PREFIXES = (
@@ -92,55 +86,6 @@ class CitedSource(CamelModel):
     def references(self) -> list[str]:
         """Every identifier this source is checked by."""
         return [value for value in (self.url, self.doi, self.pmid) if value]
-
-
-class _RetrievedReference(BaseModel):
-    """One result or source a research answer lists."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    url: str | None = None
-    doi: str | None = None
-    pmid: str | None = None
-
-
-class ResearchAnswer(BaseModel):
-    """The references one research tool's answer carries."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    results: list[_RetrievedReference] = Field(default_factory=list)
-    sources: list[_RetrievedReference] = Field(default_factory=list)
-
-    @model_validator(mode="before")
-    @classmethod
-    def _an_answer_that_is_not_an_object_lists_nothing(cls, value: object) -> object:
-        """A tool that answered text or a refusal retrieved no reference."""
-        match value:
-            case {**fields}:
-                return fields
-            case _:
-                return {}
-
-    def references(self) -> list[str]:
-        """Every identifier this answer retrieved."""
-        return [
-            found
-            for item in (*self.results, *self.sources)
-            for found in (item.url, item.doi, item.pmid)
-            if found
-        ]
-
-
-def research_references(messages: Sequence[ModelMessage]) -> list[str]:
-    """Every reference the research tools answered this turn with."""
-    return [
-        found
-        for message in messages
-        for part in message.parts
-        if isinstance(part, ToolReturnPart) and part.tool_name in RESEARCH_TOOLS
-        for found in ResearchAnswer.model_validate(part.content).references()
-    ]
 
 
 class LeadResponse(CamelModel):
@@ -295,10 +240,7 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         substituted=substituted,
         last_phase_stop=deps.last_phase_stop,
         build_section=derive_ledger(deps.state, deps.intent).build,
-        retrieved_sources=(
-            *markers.retrieved_sources,
-            *research_references(ctx.messages),
-        ),
+        retrieved_sources=tuple(markers.retrieved_sources),
     )
 
 

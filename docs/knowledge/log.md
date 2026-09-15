@@ -8,11 +8,28 @@
   counts, the chromosome, the orthologs the site lists and its expression summary in front
   of the Lead on every classified intent but off-topic. A reply's references are typed
   (`LeadResponse.sources`) and the turn contract refuses one this turn never retrieved.
+  What a served research tool returned is recorded where PathFinder owns the call:
+  `ai/lead/retrieval_toolset.py` wraps the turn's tool sources and puts every reference a
+  research answer carries on the turn markers. A served tool's return reaches the Lead as
+  JSON text with its stream part in the return's metadata, so the message history is not
+  read for it; measured on a real turn, reading it there refused two real citations.
+* **A served tool's price joins the turn's bill.** A research answer that carries
+  `costUsd` (the Brave Search API call, 0.005 by default) reaches the Lead's cost capture
+  through `LeadDeps.record_tool_charge`, so the turn total the thread shows and the
+  monthly budget `quota.accumulate` charges both include it. `veupathdb-mcp` is 0.2.0a11;
+  `RESEARCH_MCP_BRAVE_SEARCH_API_KEY` on the research server turns the keyed engine on,
+  and the scraped engines stay as the free fallback.
   The Lead is also told to check a premise the question states as fact before it answers
   around it. Measured before and after on the same questions: an exon count that was
   invented ("3 exons") is read ("1 exon, SAG-related sequence SRS29B"), an orthology
   called unresolved is named, and the turns run two to four times faster on a quarter of
   the tool calls.
+
+* **`veupathdb-mcp` is 0.2.0a11**, in the uv source and both compose build contexts. The
+  literature tool ranks a paper that is identified and described above a stub that is only
+  identified, and both above a listing page, a search page or a non-article DOI. Both
+  research tools report what they searched: one row per literature source with its
+  count and its error, and the web engine that answered beside every engine that refused.
 
 
 * **One turn contract holds the Lead's reply to what the turn did.**

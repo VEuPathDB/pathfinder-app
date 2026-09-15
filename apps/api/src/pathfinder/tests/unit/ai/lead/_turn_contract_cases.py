@@ -2,13 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic_ai import RunContext
-from pydantic_ai.messages import ModelMessage, ModelRequest, ToolReturnPart
-from pydantic_ai.models.test import TestModel
-from pydantic_ai.usage import RunUsage
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
@@ -106,34 +101,6 @@ def reply(
         analysed_gene_set_ids=list(analysed or []),
         sources=list(sources or []),
     )
-
-
-def research_answer(tool_name: str, payload: dict[str, Any]) -> ModelMessage:
-    """The message one research tool's answer arrives in."""
-    return ModelRequest(
-        parts=[
-            ToolReturnPart(
-                tool_name=tool_name,
-                content=payload,
-                tool_call_id="call_research",
-            ),
-        ],
-    )
-
-
-def kinds_after(
-    deps: LeadDeps,
-    report: LeadResponse,
-    messages: list[ModelMessage],
-) -> list[str]:
-    """The mismatches of a reply, over a turn whose tools answered ``messages``."""
-    ctx: RunContext[LeadDeps] = RunContext(
-        deps=deps,
-        model=TestModel(),
-        usage=RunUsage(),
-        messages=messages,
-    )
-    return [m.kind for m in reconcile(report, turn_record(ctx))]
 
 
 def kinds(deps: LeadDeps, report: LeadResponse) -> list[str]:

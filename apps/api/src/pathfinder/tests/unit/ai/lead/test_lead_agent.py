@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+from dataclasses import replace
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -12,6 +13,7 @@ from assistant_core.models.settings import baked_model_id
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.models.test import TestModel
+from pydantic_ai.toolsets import FunctionToolset
 from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.agents._instructions import pinned_user_memories
@@ -25,6 +27,7 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.tests._support.instructions import pinned_instructions
+from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     RetryRecordingScript,
     lead_deps,
@@ -246,3 +249,45 @@ def test_a_turn_that_parks_on_an_approval_is_never_asked() -> None:
     assert isinstance(result.output, DeferredToolRequests)
     assert script.retries == []
     assert deps.state.turn_markers.contract_refused is False
+
+
+_SERVED_PAPER = (
+    '{"query": "SRS29B", "results": [{"title": "SAG1-related sequences", '
+    '"doi": "10.1016/j.molbiopara.2006.01.001", "pmid": null, "url": null}], '
+    '"sources": [], "sourcesStatus": [], "guidance": ""}'
+)
+
+
+async def test_the_turn_sources_record_what_they_return() -> None:
+    """A served answer reaches the turn's markers through the recorder."""
+    inner: FunctionToolset[object] = FunctionToolset()
+
+    def literature(query: str) -> str:
+        del query
+        return _SERVED_PAPER
+
+    inner.add_function(literature, name="research_literature_search")
+    deps = lead_deps(pipeline_state(user_prompt="q"))
+    deps.runtime = replace(deps.runtime, tool_sources={"research": inner})
+    ctx = run_context_for(deps, tool_call_id="call_lit")
+    sources = lead_agent.turn_tool_sources(ctx)
+    assert sources is not None
+    tools = await sources.get_tools(ctx)
+
+    answer = await sources.call_tool(
+        "research_literature_search",
+        {"query": "SRS29B"},
+        ctx,
+        tools["research_literature_search"],
+    )
+
+    assert answer == _SERVED_PAPER
+    assert deps.state.turn_markers.retrieved_sources == [
+        "10.1016/j.molbiopara.2006.01.001",
+    ]
+
+
+def test_a_turn_with_no_sources_offers_no_source_tools() -> None:
+    ctx = run_context_for(lead_deps(pipeline_state(user_prompt="q")))
+
+    assert [lead_agent.turn_tool_sources(ctx)] == [None]

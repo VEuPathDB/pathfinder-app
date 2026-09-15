@@ -45,6 +45,7 @@ from pathfinder.ai.lead.lead_tools import (
     remember,
     run_gene_set_enrichment,
 )
+from pathfinder.ai.lead.retrieval_toolset import recording_retrievals
 from pathfinder.ai.lead.sub_agent_dispatch import (
     build_strategy,
     recover_failed_steps,
@@ -68,8 +69,8 @@ from pathfinder.platform.refusals import agent_capabilities
 
 
 def turn_tool_sources(ctx: RunContext[LeadDeps]) -> AbstractToolset[Any] | None:
-    """The servers this turn resolved, as the tools of this run."""
-    return one_toolset(ctx.deps.runtime.tool_sources)
+    """The servers this turn resolved, as the tools of this run, recording what they return."""
+    return recording_retrievals(one_toolset(ctx.deps.runtime.tool_sources))
 
 
 LeadAgent = Agent[LeadDeps, LeadResponse | DeferredToolRequests]
