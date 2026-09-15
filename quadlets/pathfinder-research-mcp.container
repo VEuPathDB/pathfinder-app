@@ -11,6 +11,7 @@ PodmanArgs=--memory=512m
 
 # API keys and app settings loaded from .env
 EnvironmentFile=%h/.config/pathfinder/.env
+Environment=RESEARCH_MCP_SEARXNG_URL=http://pathfinder-searxng:8080
 
 # This server reads no account and opens no database, so it holds neither a
 # database URL nor a catalog volume.

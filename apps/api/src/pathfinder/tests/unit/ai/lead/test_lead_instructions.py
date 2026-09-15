@@ -24,6 +24,12 @@ def test_the_instructions_name_every_eda_tool_in_call_order() -> None:
     assert positions == sorted(positions)
 
 
+def test_the_instructions_make_a_question_a_search_answers_a_build() -> None:
+    assert "A question a search answers is a build" in LEAD_INSTRUCTIONS
+    assert "how many genes" in LEAD_INSTRUCTIONS
+    assert "size of the step" in LEAD_INSTRUCTIONS
+
+
 def test_the_instructions_ask_for_a_stated_premise_to_be_checked() -> None:
     assert "A premise the question states as fact is checked" in LEAD_INSTRUCTIONS
     assert "answering around a false premise" in LEAD_INSTRUCTIONS

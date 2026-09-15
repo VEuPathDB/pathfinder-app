@@ -101,6 +101,15 @@ def classify_user_intent(
     is a ``follow_up_question``: that value is for a message that asks you
     to EXPLAIN something and asks for no change to the data.
 
+    A question whose answer is the size or the members of a gene search on
+    the site - "how many protein-coding genes does 3D7 have", "which genes
+    on chromosome 6 carry a signal peptide", "compare the gene counts of
+    three organisms" - asks for a build, whatever its grammar: the search
+    computes the answer and the step behind it is the provenance. It is
+    ``new_strategy`` on a thread with no strategy and ``extend_strategy``
+    otherwise, never a ``follow_up_question``. A question the record or
+    the literature answers - a product, a mechanism, a rate - is not one.
+
     Two classifications ask for no strategy at all:
 
     - ``context_statement``: the message states what the user works on and

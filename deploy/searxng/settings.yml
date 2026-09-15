@@ -1,0 +1,11 @@
+# The SearXNG instance the research server asks first. It serves one internal
+# client, so the JSON format is on and the request limiter is off. The cookie
+# secret comes from SEARXNG_SECRET in the environment.
+use_default_settings: true
+server:
+  limiter: false
+  image_proxy: false
+search:
+  formats:
+    - html
+    - json

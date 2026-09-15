@@ -34,7 +34,16 @@
   called unresolved is named, and the turns run two to four times faster on a quarter of
   the tool calls.
 
-* **`veupathdb-mcp` is 0.2.0a13**, in the uv source and both compose build contexts. A web
+* **A question a search answers is a build.** "How many genes" and "which genes" are
+  classified as builds and answered by the step's size, with the step as provenance; see
+  [A question a search answers is a build](decisions/a-question-a-search-answers-is-a-build.md).
+* **A SearXNG metasearch runs in the stack and answers web searches first.** The `searxng`
+  service (compose, and `quadlets/pathfinder-searxng.container`) serves the research
+  server only, with `deploy/searxng/settings.yml` turning its JSON format on and its
+  limiter off; `RESEARCH_MCP_SEARXNG_URL` points the research server at it, and the
+  scraped engines and an optional keyed Brave stay behind it. Measured before the change:
+  twelve web queries every scraped engine refused, eleven answered by SearXNG at 0.4 s.
+* **`veupathdb-mcp` is 0.2.0a14**, in the uv source and both compose build contexts. A web
   engine that finds nothing has answered, so an empty search is an empty result and not a
   served error that a retrying host turns into a dead turn. The
   literature tool ranks a paper that is identified and described above a stub that is only

@@ -165,7 +165,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a13
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a14
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -213,11 +213,32 @@ services:
     volumes:
       - catalogs_cache:/app/data/catalogs
 
+  searxng:
+    # The metasearch the research server asks first. It serves this stack only,
+    # so it publishes no port; its settings turn the JSON format on and the
+    # request limiter off.
+    image: searxng/searxng:2026.9.15-ca4965040
+    restart: unless-stopped
+    mem_limit: 256m
+    volumes:
+      - ./deploy/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
   research-mcp:
     # The second server of the same distribution, built from the same release
     # at its own target. It reads no account and opens no database.
+    depends_on:
+      searxng:
+        condition: service_healthy
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a13
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a14
       target: research
     restart: unless-stopped
     mem_limit: 512m
@@ -239,8 +260,10 @@ services:
       # Empty admits nothing.
       RESEARCH_MCP_SERVICE_TOKENS: ${RESEARCH_MCP_SERVICE_TOKENS:-}
       RESEARCH_MCP_S2_API_KEY: ${S2_API_KEY:-}
-      # A Brave Search API key makes Brave the first web engine; each answered call
-      # is priced on the answer and charged to the user's monthly budget.
+      # The metasearch asked first for a web search.
+      RESEARCH_MCP_SEARXNG_URL: ${RESEARCH_MCP_SEARXNG_URL:-http://searxng:8080}
+      # A Brave Search API key makes Brave the web engine after the metasearch; each
+      # answered call is priced on the answer and charged to the user's monthly budget.
       RESEARCH_MCP_BRAVE_SEARCH_API_KEY: ${RESEARCH_MCP_BRAVE_SEARCH_API_KEY:-}
       # A mailbox Crossref reads out of the User-Agent, which routes the call
       # to its polite pool. Empty keeps the anonymous pool.

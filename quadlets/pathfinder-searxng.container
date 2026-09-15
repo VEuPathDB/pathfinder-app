@@ -1,0 +1,25 @@
+[Unit]
+Description=Pathfinder SearXNG metasearch
+
+[Container]
+ContainerName=pathfinder-searxng
+Image=docker.io/searxng/searxng:2026.9.15-ca4965040
+Network=pathfinder.network
+PodmanArgs=--memory=256m
+
+# The settings file turns the JSON format on and the request limiter off.
+Volume=%h/.config/pathfinder/searxng/settings.yml:/etc/searxng/settings.yml:ro,Z
+# SEARXNG_SECRET comes from .env
+EnvironmentFile=%h/.config/pathfinder/.env
+
+HealthCmd=wget -q -O /dev/null http://localhost:8080/healthz || exit 1
+HealthInterval=30s
+HealthTimeout=10s
+HealthStartPeriod=15s
+HealthRetries=3
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

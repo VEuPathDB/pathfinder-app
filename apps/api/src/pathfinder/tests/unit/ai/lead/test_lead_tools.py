@@ -455,3 +455,11 @@ def test_the_record_read_is_offered_before_the_turn_is_classified() -> None:
     """A question about a gene needs no classification to be answered."""
     assert "read_gene_record" in UNCLASSIFIED_TOOLS
     assert "read_gene_record" not in BUILDING_TOOLS
+
+
+def test_the_classifier_is_told_a_question_a_search_answers_is_a_build() -> None:
+    doc = lead_tools.classify_user_intent.__doc__ or ""
+
+    assert "A question whose answer is the size or the members of a gene search" in doc
+    assert "``new_strategy``" in doc
+    assert "follow_up_question" in doc
