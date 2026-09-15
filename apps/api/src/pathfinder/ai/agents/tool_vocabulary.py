@@ -69,13 +69,15 @@ SEARCH_LOOKUP_TOOLS: frozenset[str] = frozenset(
 )
 
 
-# A discovery tool answers from a fixed catalog, so a run that keeps rephrasing
-# its query reads the same source again. The cap is the run's budget for one
-# tool, whatever the arguments.
+# A catalog tool answers from a fixed catalog, so a run that keeps rephrasing
+# its query reads the same source again. A research tool reads a different
+# slice of an open corpus with every phrasing, so its cap bounds the spend of
+# one run and nothing else. Each cap is the run's budget for one tool, whatever
+# the arguments.
 DISCOVERY_CALL_CAPS: dict[str, int] = {
     "search_eda_studies": 6,
-    "research_web_search": 8,
-    "research_literature_search": 6,
+    "research_web_search": 12,
+    "research_literature_search": 12,
     "search_for_searches": 12,
 }
 

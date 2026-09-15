@@ -66,6 +66,12 @@ from pathfinder.ai.graph._lead_events import (
     is_suppressed_sub_agent_chunk,
 )
 from pathfinder.ai.graph._lead_model import resolve_lead_model_context
+from pathfinder.ai.graph._lead_stops import (
+    absorb_loop_stop,
+    guard_stop_of,
+    guard_stopped_on,
+    stop_response,
+)
 from pathfinder.ai.graph._lead_turn import (
     TurnResumption,
     pending_approval,
@@ -168,37 +174,6 @@ def _emit_unless_suppressed(
     emit_chunk(writer, chunk)
 
 
-def _guard_stopped_on(
-    event: AgentStreamEvent | AgentRunResultEvent[Any],
-    guard: ToolRepetitionGuard,
-) -> bool:
-    """True for the result of the call whose refusal ends the run."""
-    return (
-        isinstance(event, FunctionToolResultEvent)
-        and event.tool_call_id == guard.stopped_call_id
-    )
-
-
-def _stop_response(prose: str, *, changed: bool) -> LeadResponse:
-    """The reply the runtime writes when a turn ends without one."""
-    return LeadResponse(prose=prose, next_state="await_user", strategy_changed=changed)
-
-
-def _absorb_loop_stop(
-    state: PipelineState,
-    capture: _LeadRunCapture,
-    guard: ToolRepetitionGuard,
-) -> None:
-    """Say why the turn ended when the guard stopped the Lead's own run."""
-    if not guard.stopped_call_id or capture.response is not None:
-        return
-    capture.response = _stop_response(
-        "I stopped this turn: I was repeating the same lookup and making "
-        "no progress. Tell me what to try instead and I will carry on.",
-        changed=state.turn_markers.changed_strategy,
-    )
-
-
 def _stream_ends_after(
     event: AgentStreamEvent | AgentRunResultEvent[Any],
     guard: ToolRepetitionGuard,
@@ -207,9 +182,10 @@ def _stream_ends_after(
     deps: LeadDeps,
 ) -> bool:
     """Whether this event is the last one the turn takes from the run."""
-    return _guard_stopped_on(event, guard) or _off_topic_budget_ends_the_turn(
-        capture, usage, deps
-    )
+    if guard_stopped_on(event, guard) and isinstance(event, FunctionToolResultEvent):
+        capture.guard_stop = guard_stop_of(event)
+        return True
+    return _off_topic_budget_ends_the_turn(capture, usage, deps)
 
 
 def _off_topic_budget_ends_the_turn(
@@ -227,7 +203,7 @@ def _off_topic_budget_ends_the_turn(
     stop = off_topic_budget_stop(usage, deps.intent)
     if stop is None:
         return False
-    capture.response = _stop_response(stop, changed=False)
+    capture.response = stop_response(stop, changed=False)
     return True
 
 
@@ -325,7 +301,7 @@ async def _drive_lead_stream(
                 conversation_id=str(state.conversation_id),
                 error=str(exc),
             )
-            capture.response = _stop_response(
+            capture.response = stop_response(
                 lead_turn_budget_message(),
                 changed=state.turn_markers.changed_strategy,
             )
@@ -346,7 +322,7 @@ async def _drive_lead_stream(
             user_id=str(state.user_id),
         )
         raise
-    _absorb_loop_stop(state, capture, guard)
+    absorb_loop_stop(state, capture, guard)
 
 
 async def _run_lead_turn(
@@ -396,7 +372,7 @@ async def _run_lead_turn(
         and capture.pending_approval is None
         and capture.pending_durable_call is None
     ):
-        capture.response = _stop_response(
+        capture.response = stop_response(
             "I couldn't produce a response for this turn. Please "
             "rephrase or provide more context and I'll try again.",
             changed=state.turn_markers.changed_strategy,

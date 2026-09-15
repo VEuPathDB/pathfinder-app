@@ -13,10 +13,19 @@
   research answer carries on the turn markers. A served tool's return reaches the Lead as
   JSON text with its stream part in the return's metadata, so the message history is not
   read for it; measured on a real turn, reading it there refused two real citations.
+* **A research tool's read budget fits a thorough turn, and a stopped turn says which
+  rule stopped it.** The two research tools may be read twelve times in one run
+  (`DISCOVERY_CALL_CAPS`): a literature or web query reads a different slice of an open
+  corpus with each phrasing, so the cap bounds spend and nothing else, unlike a catalog
+  tool where rephrasing re-reads one source. When the guard ends a run, `_lead_stops.py`
+  reads the rule from the refusal the runtime wrote and the reply names it: a budget
+  stop no longer tells the user the Lead "was repeating the same lookup". Measured on
+  the larger model: five of twenty research turns ended at the old cap of six on
+  distinct queries, every one with the untrue reply.
 * **A served tool's price joins the turn's bill.** A research answer that carries
   `costUsd` (the Brave Search API call, 0.005 by default) reaches the Lead's cost capture
   through `LeadDeps.record_tool_charge`, so the turn total the thread shows and the
-  monthly budget `quota.accumulate` charges both include it. `veupathdb-mcp` is 0.2.0a11;
+  monthly budget `quota.accumulate` charges both include it. `veupathdb-mcp` is 0.2.0a12;
   `RESEARCH_MCP_BRAVE_SEARCH_API_KEY` on the research server turns the keyed engine on,
   and the scraped engines stay as the free fallback.
   The Lead is also told to check a premise the question states as fact before it answers
@@ -25,10 +34,11 @@
   called unresolved is named, and the turns run two to four times faster on a quarter of
   the tool calls.
 
-* **`veupathdb-mcp` is 0.2.0a11**, in the uv source and both compose build contexts. The
+* **`veupathdb-mcp` is 0.2.0a12**, in the uv source and both compose build contexts. The
   literature tool ranks a paper that is identified and described above a stub that is only
-  identified, and both above a listing page, a search page or a non-article DOI. Both
-  research tools report what they searched: one row per literature source with its
+  identified, and both above a listing page, a search page, a structure or a recommendation
+  of a paper. Both research tools refuse a query with no letter or digit, and report what
+  they searched: one row per literature source with its
   count and its error, and the web engine that answered beside every engine that refused.
 
 

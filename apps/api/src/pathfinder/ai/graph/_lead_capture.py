@@ -15,6 +15,7 @@ from typing import Any
 from uuid import UUID
 
 from assistant_core import quota
+from assistant_core.capabilities.repetition_guard import BlockRule
 from assistant_core.conversation.stream_parts.agent_topology import lead_usage_event
 from assistant_core.cost import cost_for_run
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
@@ -42,9 +43,19 @@ from pathfinder.ai.models.catalog import context_window_for
 logger = get_logger(__name__)
 
 
+@dataclass(frozen=True)
+class GuardStop:
+    """The call whose refusal ended the run, and the rule that refused it."""
+
+    tool_name: str
+    rule: BlockRule
+
+
 @dataclass
 class _LeadRunCapture:
     """Terminal state captured from the Lead agent's streaming run."""
+
+    guard_stop: GuardStop | None = None
 
     new_messages: list[ModelMessage] = field(default_factory=list)
     finish_reason: str = "stop"
