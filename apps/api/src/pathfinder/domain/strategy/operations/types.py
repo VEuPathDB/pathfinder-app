@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Literal, get_args
 
 from pydantic import Discriminator, Field
 from veupathdb.domain.parameters import ParamValue
@@ -150,6 +150,35 @@ GraphOperation = Annotated[
     | ReplaceStrategyOp,
     Discriminator("kind"),
 ]
+
+# Every operation a batch may carry. None of them removes a step, and the four
+# that would - deleteStep, deleteEdge, replaceStrategy and replaceSubtree - go
+# through a tool of their own, which decides what the removal leaves behind.
+EditableOperation = Annotated[
+    AddLeafOp
+    | AddCombineOp
+    | AddTransformOp
+    | DuplicateStepOp
+    | UpdateStepParamsOp
+    | UpdateCombineOperatorOp
+    | UpdateStepMetaOp
+    | UpdateStrategyMetaOp
+    | WireInputOp,
+    Discriminator("kind"),
+]
+
+
+def _tags_of(union: object) -> frozenset[str]:
+    """The ``kind`` each member of a discriminated operation union declares."""
+    members = get_args(get_args(union)[0])
+    return frozenset(str(model.model_fields["kind"].default) for model in members)
+
+
+EDITABLE_KINDS = _tags_of(EditableOperation)
+"""The tags a batch carries."""
+
+KINDS_A_BATCH_REFUSES = _tags_of(GraphOperation) - EDITABLE_KINDS
+"""The tags only a tool of their own carries, because each removes steps."""
 
 
 class OperationChoice(CamelModel):

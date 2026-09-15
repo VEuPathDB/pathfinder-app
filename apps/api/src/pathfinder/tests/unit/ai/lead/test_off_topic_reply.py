@@ -55,7 +55,8 @@ def test_the_cap_on_an_out_of_scope_reply_is_four_hundred_characters() -> None:
 def test_a_reply_that_writes_code_is_refused() -> None:
     with pytest.raises(ModelRetry) as raised:
         refuse_an_off_topic_essay(
-            run_context_for(_off_topic_deps()), LeadResponse(prose=_WITH_CODE)
+            run_context_for(_off_topic_deps()),
+            LeadResponse(prose=_WITH_CODE, strategy_changed=False),
         )
 
     assert "code" in str(raised.value)
@@ -66,14 +67,15 @@ def test_a_reply_over_the_cap_is_refused() -> None:
 
     with pytest.raises(ModelRetry) as raised:
         refuse_an_off_topic_essay(
-            run_context_for(_off_topic_deps()), LeadResponse(prose=_AN_ESSAY)
+            run_context_for(_off_topic_deps()),
+            LeadResponse(prose=_AN_ESSAY, strategy_changed=False),
         )
 
     assert str(OFF_TOPIC_REPLY_MAX_CHARS) in str(raised.value)
 
 
 def test_the_two_sentence_redirect_stands() -> None:
-    output = LeadResponse(prose=_REDIRECT)
+    output = LeadResponse(prose=_REDIRECT, strategy_changed=False)
 
     assert len(_REDIRECT) <= OFF_TOPIC_REPLY_MAX_CHARS
     assert refuse_an_off_topic_essay(run_context_for(_off_topic_deps()), output) is (
@@ -83,7 +85,7 @@ def test_the_two_sentence_redirect_stands() -> None:
 
 def test_a_question_about_the_data_may_answer_at_length_with_code() -> None:
     """The cap belongs to the redirect, not to every reply."""
-    output = LeadResponse(prose=_AN_ESSAY + _WITH_CODE)
+    output = LeadResponse(prose=_AN_ESSAY + _WITH_CODE, strategy_changed=False)
 
     assert (
         refuse_an_off_topic_essay(
@@ -95,7 +97,7 @@ def test_a_question_about_the_data_may_answer_at_length_with_code() -> None:
 
 def test_the_refusal_is_asked_once_per_turn() -> None:
     deps = _off_topic_deps()
-    output = LeadResponse(prose=_WITH_CODE)
+    output = LeadResponse(prose=_WITH_CODE, strategy_changed=False)
 
     with pytest.raises(ModelRetry):
         refuse_an_off_topic_essay(run_context_for(deps), output)
@@ -107,7 +109,11 @@ def test_the_refusal_reaches_the_model_once_and_the_turn_still_answers() -> None
     script = RetryRecordingScript(
         ToolCallPart(
             tool_name="final_result",
-            args={"prose": _WITH_CODE, "nextState": "await_user"},
+            args={
+                "prose": _WITH_CODE,
+                "nextState": "await_user",
+                "strategyChanged": False,
+            },
             tool_call_id="call_final",
         ),
     )

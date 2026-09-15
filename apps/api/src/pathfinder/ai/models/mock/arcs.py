@@ -188,7 +188,7 @@ def _build_sequence(
     return [
         *_build_head(classification),
         scripted_call("verify_strategy", {"reason": "mock verification"}),
-        lead_final(prose, next_state),
+        lead_final(prose, next_state, strategy_changed=True),
     ]
 
 
@@ -343,7 +343,7 @@ def _one_tool_sequence(
             scripted_call(
                 "verify_strategy", {"reason": "mock verification of an edit"}
             ),
-            lead_final(_EDIT_PROSE, "await_user"),
+            lead_final(_EDIT_PROSE, "await_user", strategy_changed=True),
         ]
     if has_any(lowered, LOOP_MARKERS):
         return [

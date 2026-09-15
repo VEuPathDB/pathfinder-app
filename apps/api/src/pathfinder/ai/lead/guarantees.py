@@ -38,6 +38,7 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "compare_search_variants": Reversibility.READ,
     "compare_variants_scored": Reversibility.UNREVISIONED_WRITE,
     "consult_user": Reversibility.IN_STATE,
+    "delete_step": Reversibility.GATED_DESTRUCTIVE,
     "create_eda_step": Reversibility.REVISIONED_WRITE,
     "create_workbench_gene_set": Reversibility.UNREVISIONED_WRITE,
     "describe_eda_study": Reversibility.READ,

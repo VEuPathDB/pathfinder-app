@@ -45,8 +45,12 @@ strategy that already has steps requires ``base_revision`` from \
 - ``apply_operations(base_revision, operations, graph_id?)`` — Change an \
 EXISTING strategy with a batch of typed operations (``addLeaf``, \
 ``addCombine``, ``addTransform``, ``updateStepParams``, \
-``updateCombineOperator``, ``updateStepMeta``, ``wireInput``, \
-``deleteStep``, ``deleteEdge``, ``duplicateStep``). They apply in order and \
+``updateCombineOperator``, ``updateStepMeta``, ``updateStrategyMeta``, \
+``wireInput``, ``duplicateStep``). ``apply_operations`` removes nothing: \
+``deleteStep``, ``deleteEdge``, ``replaceStrategy`` and ``replaceSubtree`` \
+are not in the list, and a batch that names one is refused whole. Two tools \
+remove steps and both ask the researcher first: ``delete_step`` for one \
+step, ``replace_subtree`` for one branch. They apply in order and \
 land together; if one is rejected nothing changes. Sends only the delta, so \
 adding one step does not restate every existing step's parameters.
 - ``update_leaf_params(step_id, parameters, graph_id?)`` — Change a leaf's \
@@ -76,7 +80,10 @@ Use after a build to confirm step ids before edits.
 ``update_leaf_params`` / ``update_combine_operator`` / ``update_step_metadata``, \
 not build + delete.
 - **Delete abandoned steps**: if a build attempt fails or you change \
-approach, ``delete_step`` immediately.
+approach, ``delete_step`` immediately. ``apply_operations`` refuses every \
+operation that removes a step. When ``delete_step`` refuses one, report the \
+refusal to the Lead and remove nothing: it means the graph does not say what \
+the removal would leave behind.
 - **The spec owns the operators and the stated values**: a combine operator or \
 a parameter value the operational spec states changes in the framing pass \
 first, never through an edit here.
@@ -136,7 +143,8 @@ If a step fails to push, or you need to refine the strategy:
 - ``update_step_metadata(step_id, display_name)`` — local rename, no WDK \
   call.
 - ``replace_subtree(step_id, new_subtree)`` — swap a subtree for a new \
-  declarative tree. Old WDK steps are abandoned, new subtree is pushed.
+  declarative tree; the researcher approves the call. Old WDK steps are \
+  abandoned, new subtree is pushed.
 - ``delete_step(step_id)`` — re-wires the parent up; refuses to leave the \
   graph empty.
 - ``insert_saved_strategy(target_step_id, saved_wdk_strategy_id, operator)`` — \
@@ -155,7 +163,8 @@ tools.
 
 - Build the whole tree in a SINGLE ``build_strategy`` call. Do not call it \
   multiple times to incrementally add steps; that wipes the prior build. \
-  Once a strategy exists, edit it with ``apply_operations`` instead.
+  Once a strategy exists, edit it with ``apply_operations`` instead, which \
+  changes and rewires steps and never removes one.
 - Pass the ``revision`` from ``get_strategy`` as ``base_revision``. A \
   CONFLICT means the researcher changed the strategy while you were \
   working: re-read it and keep only the edits that still make sense, rather \

@@ -30,6 +30,7 @@ from pathfinder.ai.tools.standalone import (
     eda_compute,
     experiment,
     optimization,
+    strategy_edits,
     workbench,
 )
 from pathfinder.assistants.site_help.agent import build_site_help_agent
@@ -52,6 +53,12 @@ _SUB_AGENT_DISPATCH_MODULES = frozenset(
 # A tool that returns another tool's ToolReturn carries that tool's summary,
 # which names the same call.
 _DELEGATES = {"request_search_inspection": "get_search_overview"}
+
+# Two surfaces mount one delete, which writes the summary both return, so the
+# line is read where that shared body defines it.
+_SHARED_BODIES: dict[str, Callable[..., Any]] = {
+    "delete_step": strategy_edits.delete_the_step
+}
 
 # The four durable tools never run their own body: the summary is built from
 # the resumed payload instead, so it is driven rather than read.
@@ -279,6 +286,9 @@ def test_every_registered_tool_emits_a_summary() -> None:
             continue
         target = _DELEGATES.get(name, name)
         source = registered[target] if target != name else fn
+        shared = _SHARED_BODIES.get(name)
+        if shared is not None:
+            target, source = shared.__name__, shared
         defs = _defs_for(source)
         if not _reaches_a_summary(target, defs, set(registered), {}):
             missing.append(f"{fn.__module__}.{name}")

@@ -5,6 +5,7 @@ from __future__ import annotations
 from veupathdb.eda import (
     EdaAnalysisDetail,
     EdaComputation,
+    EdaFilter,
     EdaNewAnalysis,
     EdaVisualization,
     EdaVolcanoConfiguration,
@@ -92,6 +93,12 @@ def eda_step_request(
         eda_dataset_id=dataset_id,
         eda_analysis_spec=serialize_spec(spec),
     )
+
+
+def exported_subset(request: EdaStepRequest) -> list[EdaFilter]:
+    """The subset filters a step's parameters carry, as the export wrote them."""
+    spec = EdaNewAnalysis.model_validate_json(request.eda_analysis_spec)
+    return list(spec.descriptor.subset.descriptor)
 
 
 def exported_thresholds(request: EdaStepRequest) -> VolcanoThresholds | None:

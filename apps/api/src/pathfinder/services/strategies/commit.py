@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
+from pydantic import BaseModel, ConfigDict
 from veupathdb.domain.strategy import (
     StrategyAst,
     flatten_tree,
@@ -90,22 +91,71 @@ async def apply_and_commit(
     return await apply_operations_and_commit(deps=deps, ops=[op])
 
 
-def restore_graph(graph: StrategyGraph, old_ast: StrategyAst | None) -> None:
+class GraphLabels(BaseModel):
+    """What a batch writes on the graph itself, beside its steps."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    description: str | None = None
+    last_step_id: str | None = None
+
+
+def graph_labels(graph: StrategyGraph) -> GraphLabels:
+    """The name, the description and the write cursor the graph carries now."""
+    return GraphLabels(
+        name=graph.name,
+        description=graph.description,
+        last_step_id=graph.last_step_id,
+    )
+
+
+def restore_graph(
+    graph: StrategyGraph, old_ast: StrategyAst | None, entry: GraphLabels
+) -> None:
     """Put the graph back the way it was before a failed batch.
 
     ``apply_operation`` edits the live nodes, so a batch that fails partway
-    has already changed the graph. Replaying the pre-batch tree is what makes
-    a rejected batch a no-op rather than a half-applied edit.
+    has already changed the graph. Replaying the pre-batch tree and the labels
+    it carried is what makes a rejected batch a no-op rather than a
+    half-applied edit. A graph with no tree to replay takes its labels back
+    the same way.
     """
     graph.steps.clear()
     graph.roots.clear()
-    graph.last_step_id = None
-    if old_ast is None:
-        return
-    apply_operation(graph, ReplaceStrategyOp(root=old_ast.root))
-    for detached in old_ast.detached_roots:
-        graph.steps.update(flatten_tree(detached))
-    graph.recompute_roots()
+    if old_ast is not None:
+        apply_operation(graph, ReplaceStrategyOp(root=old_ast.root))
+        for detached in old_ast.detached_roots:
+            graph.steps.update(flatten_tree(detached))
+        graph.recompute_roots()
+    graph.name = entry.name
+    graph.description = entry.description
+    graph.last_step_id = entry.last_step_id
+
+
+def _the_tree_the_batch_leaves(
+    graph: StrategyGraph,
+    old_ast: StrategyAst | None,
+    sync_state: WDKSyncState,
+    entry_labels: GraphLabels,
+) -> StrategyAst | None:
+    """The tree the applied batch leaves, or a refusal that puts the old one back.
+
+    A batch that lands a tree no reader can rebuild takes every later read of
+    the strategy with it, so the graph goes back to what it was. A tree that
+    holds a loop does not fail: it never ends, so the recursion limit is one
+    of the two answers this reads.
+    """
+    try:
+        return graph.to_strategy_ast(sync_state=sync_state)
+    except (ValueError, RecursionError) as exc:
+        restore_graph(graph, old_ast, entry_labels)
+        reason = " ".join(str(exc).split())
+        msg = (
+            f"the strategy this batch leaves cannot be read back, so the "
+            f"operations were rolled back: {reason}"
+        )
+        raise ApplyError(msg) from exc
 
 
 def _replaces_a_subtree(op: GraphOperation) -> bool:
@@ -144,6 +194,7 @@ async def apply_operations_and_commit(
     # snapshot would alias the post-mutation state and defeat plan_step_pushes
     # change detection.
     old_ast = snapshot.model_copy(deep=True) if snapshot is not None else None
+    entry_labels = graph_labels(graph)
 
     descriptions: list[str] = []
     dropped_step_ids: list[str] = []
@@ -157,7 +208,7 @@ async def apply_operations_and_commit(
             descriptions.append(step_result.description)
             dropped_step_ids.extend(step_result.dropped_step_ids)
     except ApplyError, ValueError:
-        restore_graph(graph, old_ast)
+        restore_graph(graph, old_ast, entry_labels)
         raise
 
     refusal = refusal_after_the_batch(
@@ -169,17 +220,16 @@ async def apply_operations_and_commit(
         replaces_a_subtree=replaces_a_subtree,
     )
     if refusal is not None:
-        restore_graph(graph, old_ast)
+        restore_graph(graph, old_ast, entry_labels)
         raise ApplyError(refusal)
 
     result = ApplyResult(
         description="; ".join(descriptions),
         dropped_step_ids=sorted(set(dropped_step_ids)),
     )
+    new_ast = _the_tree_the_batch_leaves(graph, old_ast, sync_state, entry_labels)
     if graph.steps:
         graph.save_history(result.description)
-
-    new_ast = graph.to_strategy_ast(sync_state=sync_state)
     # WDK is only offered the computable part of the graph. A combine that
     # lost an input stays on the canvas and in the persisted AST, but pushing
     # it would be rejected, so the plan is built from the surviving branch.

@@ -23,7 +23,10 @@ from pathfinder.ai.lead.ledger_sections import (
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.combination_check import first_combination_violation
 from pathfinder.domain.strategy.constraints import Constraint
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    DroppedCriterion,
+    OperationalSpec,
+)
 
 
 def build_contradiction(build: BuildSection, *, built_step_count: int) -> str | None:
@@ -112,6 +115,12 @@ def digest_held_to_the_build(
     )
 
 
+def _drop_line(entry: DroppedCriterion) -> str:
+    """One dropped criterion, with the EDA dataset it is realized from."""
+    dataset = f" (eda dataset {entry.eda_dataset_id})" if entry.eda_dataset_id else ""
+    return f"  - {entry.text}: {entry.reason}{dataset}"
+
+
 class InvestigationLedger(CamelModel):
     """State of one investigation, read in full by the Lead each turn.
 
@@ -128,10 +137,21 @@ class InvestigationLedger(CamelModel):
     # wire: the Lead's prose is what a reader needs, not a second copy of it.
     phase_stop: PhaseStop | None = Field(default=None, exclude=True)
 
+    def _drop_reasons(self) -> list[str]:
+        """Each dropped criterion with the reason the drop recorded.
+
+        A drop hands the criterion back to the Lead, which needs the reason to
+        decide what answers it instead.
+        """
+        spec = self.frame.spec
+        if spec is None:
+            return []
+        return [_drop_line(entry) for entry in spec.dropped]
+
     def render_summary(self) -> str:
         """Render the compact markdown view the Lead reads in pinned context.
 
-        It holds counts and derived booleans only, to keep the prompt bounded.
+        Counts, derived booleans and the reason of each dropped criterion.
         """
         intent = self.user_intent
         intent_line = (
@@ -167,6 +187,7 @@ class InvestigationLedger(CamelModel):
                     else []
                 ),
                 f"- dropped: {self.frame.dropped_count}",
+                *self._drop_reasons(),
                 f"- open_slots: {self.frame.open_slot_count}",
                 f"- needs_user: {self.frame.needs_user}",
                 f"- ready_to_build: {self.frame.ready_to_build}",

@@ -54,6 +54,7 @@ LEAD_TOOL_NAMES = frozenset(
         "compare_variants_scored",
         "consult_user",
         "create_workbench_gene_set",
+        "delete_step",
         "edit_strategy",
         "export_gene_set",
         "frame_problem",
@@ -116,11 +117,11 @@ def test_the_built_agent_carries_every_lead_tool() -> None:
     assert set(build_lead_agent()._function_toolset.tools) == LEAD_TOOL_NAMES
 
 
-def test_the_consult_and_clear_tools_ask_for_approval() -> None:
-    """The two tools the user answers: a design fork, and a deletion."""
+def test_the_tools_that_ask_for_approval() -> None:
+    """The three tools the user answers: a design fork and two deletions."""
     tools = build_lead_agent()._function_toolset.tools
     deferred = sorted(name for name, tool in tools.items() if tool.requires_approval)
-    assert deferred == ["clear_strategy", "consult_user"]
+    assert deferred == ["clear_strategy", "consult_user", "delete_step"]
 
 
 def test_the_built_agent_keeps_its_model_and_identity() -> None:
@@ -184,7 +185,8 @@ def test_the_blaming_reply_is_refused_and_told_the_real_stop() -> None:
 
     with pytest.raises(ModelRetry) as raised:
         refuse_blaming_the_site(
-            run_context_for(deps), LeadResponse(prose=_BLAMING_REPLY)
+            run_context_for(deps),
+            LeadResponse(prose=_BLAMING_REPLY, strategy_changed=False),
         )
 
     assert "the framing pass stopped on its call budget after 60 calls" in str(
@@ -194,7 +196,7 @@ def test_the_blaming_reply_is_refused_and_told_the_real_stop() -> None:
 
 def test_the_refusal_is_asked_once_per_turn() -> None:
     deps = _blame_deps()
-    output = LeadResponse(prose=_BLAMING_REPLY)
+    output = LeadResponse(prose=_BLAMING_REPLY, strategy_changed=False)
 
     with pytest.raises(ModelRetry):
         refuse_blaming_the_site(run_context_for(deps), output)
@@ -210,13 +212,13 @@ def test_a_reply_naming_a_real_wdk_failure_stands() -> None:
             StepPushFailure(step_id="s3", search_name="GenesByTaxon", error="422"),
         ],
     )
-    output = LeadResponse(prose=_REAL_FAILURE_REPLY)
+    output = LeadResponse(prose=_REAL_FAILURE_REPLY, strategy_changed=False)
 
     assert refuse_blaming_the_site(run_context_for(deps), output) is output
 
 
 def test_a_reply_that_blames_nothing_stands() -> None:
-    output = LeadResponse(prose=_CLEAN_REPLY)
+    output = LeadResponse(prose=_CLEAN_REPLY, strategy_changed=False)
 
     assert refuse_blaming_the_site(run_context_for(_blame_deps()), output) is output
 
@@ -240,7 +242,9 @@ def _framing_deps() -> LeadDeps:
 
 
 def test_a_reply_from_a_turn_that_framed_nothing_stands() -> None:
-    output = LeadResponse(prose=_ASKING_REPLY, next_state="await_user")
+    output = LeadResponse(
+        prose=_ASKING_REPLY, next_state="await_user", strategy_changed=False
+    )
 
     assert refuse_an_unrecorded_question(run_context_for(_blame_deps()), output) is (
         output
@@ -253,7 +257,9 @@ def test_a_question_the_reply_does_not_record_is_refused() -> None:
     with pytest.raises(ModelRetry) as raised:
         refuse_an_unrecorded_question(
             run_context_for(deps),
-            LeadResponse(prose=_ASKING_REPLY, next_state="await_user"),
+            LeadResponse(
+                prose=_ASKING_REPLY, next_state="await_user", strategy_changed=False
+            ),
         )
 
     assert "asked_questions" in str(raised.value)
@@ -263,6 +269,7 @@ def test_a_recorded_question_stands() -> None:
     output = LeadResponse(
         prose=_ASKING_REPLY,
         next_state="await_user",
+        strategy_changed=False,
         asked_questions=[
             OpenQuestion(
                 question="Which gametocyte RNA-seq study?",
@@ -278,7 +285,9 @@ def test_a_recorded_question_stands() -> None:
 
 
 def test_a_reply_that_asks_nothing_stands() -> None:
-    output = LeadResponse(prose=_CLEAN_REPLY, next_state="await_user")
+    output = LeadResponse(
+        prose=_CLEAN_REPLY, next_state="await_user", strategy_changed=False
+    )
 
     assert refuse_an_unrecorded_question(run_context_for(_framing_deps()), output) is (
         output
@@ -287,7 +296,9 @@ def test_a_reply_that_asks_nothing_stands() -> None:
 
 def test_the_unrecorded_question_refusal_is_asked_once_per_turn() -> None:
     deps = _framing_deps()
-    output = LeadResponse(prose=_ASKING_REPLY, next_state="await_user")
+    output = LeadResponse(
+        prose=_ASKING_REPLY, next_state="await_user", strategy_changed=False
+    )
 
     with pytest.raises(ModelRetry):
         refuse_an_unrecorded_question(run_context_for(deps), output)
@@ -316,11 +327,17 @@ def _nudge_deps(
     )
 
 
-def _answering_script() -> RetryRecordingScript:
+def _answering_script(deps: LeadDeps) -> RetryRecordingScript:
+    """An answer that reports the change the turn made, so only the
+    verification nudge can refuse it."""
     return RetryRecordingScript(
         ToolCallPart(
             tool_name="final_result",
-            args={"prose": _NUDGE_PROSE, "nextState": "await_user"},
+            args={
+                "prose": _NUDGE_PROSE,
+                "nextState": "await_user",
+                "strategyChanged": deps.state.turn_markers.changed_strategy,
+            },
             tool_call_id="call_final",
         ),
     )
@@ -337,7 +354,7 @@ def _parking_script() -> RetryRecordingScript:
 
 
 def _run(deps: LeadDeps) -> RetryRecordingScript:
-    script = _answering_script()
+    script = _answering_script(deps)
     result = asyncio.run(
         build_lead_agent().run(_NUDGE_PROMPT, deps=deps, model=script.model()),
     )

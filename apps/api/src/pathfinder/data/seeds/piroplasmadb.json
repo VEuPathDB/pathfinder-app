@@ -305,7 +305,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_signal_peptide",
             "parameters": {
-              "organism": "[\"Babesia bovis T2Bo\"]"
+              "organism": "[\"Babesia bovis T2Bo\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           },
@@ -485,7 +486,8 @@
         "displayName": "Signal Peptide",
         "id": "leaf_signal_peptide",
         "parameters": {
-          "organism": "[\"Babesia bovis T2Bo\"]"
+          "organism": "[\"Babesia bovis T2Bo\"]",
+          "signalp_version": "SignalP-6.0"
         },
         "searchName": "GenesWithSignalPeptide"
       }
@@ -798,7 +800,8 @@
               "displayName": "Signal Peptide",
               "id": "leaf_signal_peptide",
               "parameters": {
-                "organism": "[\"Babesia bovis T2Bo\"]"
+                "organism": "[\"Babesia bovis T2Bo\"]",
+                "signalp_version": "SignalP-6.0"
               },
               "searchName": "GenesWithSignalPeptide"
             },
@@ -1014,7 +1017,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_signal_peptide",
             "parameters": {
-              "organism": "[\"Babesia bovis T2Bo\"]"
+              "organism": "[\"Babesia bovis T2Bo\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           }

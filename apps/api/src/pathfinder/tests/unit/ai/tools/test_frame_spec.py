@@ -14,23 +14,16 @@ from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import (
     MultiPickValue,
     ParamValue,
-    StringValue,
     VocabOption,
 )
 from veupathdb.domain.strategy import StepValidation
 from veupathdb.errors import ValidationError
-from veupathdb.wdk import WDKParameter, WDKSearch, WDKSearchResponse, WDKStringParam
+from veupathdb.wdk import WDKParameter, WDKSearch, WDKSearchResponse
 from veupathdb_mcp.catalog import (
-    COMPUTE_QUERY,
-    EDA_ANALYSIS_SPEC_PARAM,
-    EDA_DATASET_ID_PARAM,
     ParameterInfo,
     ParamFetcher,
     ResolvedParams,
-    ResolvedSearch,
     ValidatedParams,
-    ValidationCallbacks,
-    format_param_info_typed,
     search_inspection,
     searches,
 )
@@ -51,7 +44,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.tests._support.catalog_builders import ParamsAt, serve_search_details
+from pathfinder.tests._support.catalog_builders import ParamsAt
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -385,109 +378,3 @@ async def test_set_criterion_binds_when_resolved_params_valid(
     # A proposal already carries the names, so the template would only repeat them.
     assert result.params_template == {}
     assert st.operational_spec_draft.criteria[0].id == "c1"
-
-
-_DATASET_ID = "DS_e973eadd57"
-_DESEQ_SEARCH = "GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRCDESeq"
-_INVENTED_SPEC = (
-    '{"data_type":"read counts",'
-    '"comparison":{"case":"febrile","control":"normal"},'
-    '"fold_change":{"direction":"both","minimum":2},'
-    '"adjusted_p_value":{"maximum":0.05}}'
-)
-_EDA_PARAMS: list[WDKParameter] = [
-    WDKStringParam(
-        name=name, display_name=name, allow_empty_value=True, initial_display_value=""
-    )
-    for name in (EDA_DATASET_ID_PARAM, EDA_ANALYSIS_SPEC_PARAM)
-]
-
-
-def _eda_response() -> WDKSearchResponse:
-    return WDKSearchResponse(
-        search_data=WDKSearch(
-            url_segment=_DESEQ_SEARCH,
-            display_name=_DESEQ_SEARCH,
-            query_name=COMPUTE_QUERY,
-            param_names=[p.name for p in _EDA_PARAMS],
-            parameters=_EDA_PARAMS,
-        ),
-        validation=StepValidation.model_validate(
-            {"level": "DISPLAYABLE", "isValid": True, "errors": None}
-        ),
-    )
-
-
-async def _eda_details(
-    ctx: SearchContext, **_kw: object
-) -> tuple[WDKSearchResponse, str]:
-    return _eda_response(), ctx.record_type
-
-
-async def _eda_resolved(_ctx: SearchContext, **_kw: object) -> ResolvedSearch:
-    return ResolvedSearch(response=_eda_response(), values_were_read=True)
-
-
-def _eda_callbacks(_site_id: str, **_kw: object) -> ValidationCallbacks:
-    async def _record_type(
-        record_type: str | None, _search_name: str | None
-    ) -> str | None:
-        return record_type
-
-    async def _hint(_search_name: str, _record_type: str | None) -> str | None:
-        return None
-
-    return ValidationCallbacks(
-        resolve_record_type_for_search=_record_type, find_record_type_hint=_hint
-    )
-
-
-class TestAProposedEdaSpecComesBackAsARetry:
-    @pytest.fixture(autouse=True)
-    def _serve(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        infos = format_param_info_typed(_EDA_PARAMS)
-        serve_params(monkeypatch, lambda _context: infos)
-        serve_definition(monkeypatch, _EDA_PARAMS)
-        serve_resolution(
-            monkeypatch,
-            {
-                EDA_DATASET_ID_PARAM: StringValue(value=_DATASET_ID),
-                EDA_ANALYSIS_SPEC_PARAM: StringValue(value=_INVENTED_SPEC),
-            },
-        )
-        monkeypatch.setattr(frame_spec, "fetch_search_details", _eda_details)
-        monkeypatch.setattr(frame_spec, "make_validation_callbacks", _eda_callbacks)
-        serve_search_details(monkeypatch, _eda_resolved)
-
-    async def _call(self, state: AgentToolState) -> SetCriterionResult:
-        return await bind(
-            state,
-            _DESEQ_SEARCH,
-            {
-                EDA_DATASET_ID_PARAM: _DATASET_ID,
-                EDA_ANALYSIS_SPEC_PARAM: _INVENTED_SPEC,
-            },
-            criterion_id="c_deseq",
-            text="genes up in febrile against normal",
-        )
-
-    @pytest.mark.asyncio
-    async def test_the_retry_names_the_eda_tools_and_the_spec_parameter(self) -> None:
-        with pytest.raises(ModelRetry) as excinfo:
-            await self._call(AgentToolState())
-
-        message = str(excinfo.value)
-        assert "open_eda_analysis" in message
-        assert "set_eda_filters" in message
-        assert "run_eda_compute" in message
-        assert "create_eda_step" in message
-        assert EDA_ANALYSIS_SPEC_PARAM in message
-
-    @pytest.mark.asyncio
-    async def test_the_criterion_is_not_bound(self) -> None:
-        state = AgentToolState()
-
-        with pytest.raises(ModelRetry):
-            await self._call(state)
-
-        assert state.operational_spec_draft.criteria == []

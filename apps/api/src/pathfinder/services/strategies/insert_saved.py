@@ -37,7 +37,7 @@ from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,
 )
 from pathfinder.platform.errors import ErrorCode, NotFoundError
-from pathfinder.services.strategies.commit import restore_graph
+from pathfinder.services.strategies.commit import graph_labels, restore_graph
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.spec_build import (
     build_strategy_from_spec,
@@ -177,6 +177,7 @@ async def insert_saved_into_conversation(
         )
 
     entry_ast = graph.to_strategy_ast()
+    entry_labels = graph_labels(graph)
     cloned = await clone_saved_strategy(deps.site_id, saved_wdk_strategy_id)
     if target_step_id:
         new_full_root, combine_step_id = _build_new_root(
@@ -204,7 +205,7 @@ async def insert_saved_into_conversation(
     except ApplyError:
         # The splice wires its combine into the graph before the build reads
         # the tree, so a refused build puts the graph back.
-        restore_graph(graph, entry_ast)
+        restore_graph(graph, entry_ast, entry_labels)
         raise
     if outcome.failed_steps:
         first = outcome.failed_steps[0]

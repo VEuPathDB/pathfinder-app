@@ -63,7 +63,11 @@ RECOVERY_FINAL: dict[str, Any] = {
     "actionsTaken": ["deleted s2"],
     "followUpNeeded": False,
 }
-LEAD_FINAL: dict[str, Any] = {"prose": "scripted", "nextState": "await_user"}
+LEAD_FINAL: dict[str, Any] = {
+    "prose": "scripted",
+    "nextState": "await_user",
+    "strategyChanged": False,
+}
 
 TEST_INSTRUCTIONS = "Call the tool the script names, then return the typed output."
 

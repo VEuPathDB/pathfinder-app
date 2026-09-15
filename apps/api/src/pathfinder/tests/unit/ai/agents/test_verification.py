@@ -23,3 +23,19 @@ def test_a_numeric_parameter_is_restated_only_from_the_constraint_report() -> No
 
 def test_verification_instructions_are_ascii() -> None:
     assert _VERIFICATION_INSTRUCTIONS.isascii()
+
+
+def test_a_subset_step_states_its_cut_as_the_filters_it_carries() -> None:
+    instructions = _normalized(_VERIFICATION_INSTRUCTIONS)
+
+    assert (
+        "a subset step with ``subset_filters``, one sentence per filter"
+    ) in instructions
+    assert "Those filters ARE the subset's cut" in instructions
+    assert "never call the cut missing" in instructions
+
+
+def test_a_study_step_is_never_answered_with_a_rebuild() -> None:
+    assert (
+        "not something to call unverified or to ask for a rebuild over"
+    ) in _normalized(_VERIFICATION_INSTRUCTIONS)

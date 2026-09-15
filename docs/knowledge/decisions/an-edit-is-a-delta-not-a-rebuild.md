@@ -129,8 +129,46 @@ A restructure also gives up the record class stored on each step, because
 catalog.
 
 `build_strategy` is now unreachable on a thread with a strategy, so a genuine
-"start over" goes through `clear_strategy`, the Lead's one destructive tool,
-which the user approves before any step is removed.
+"start over" goes through `clear_strategy`. It is one of the Lead's two
+destructive tools. `delete_step` removes the step it names and whatever that
+step's departure orphans: the combine above it, the secondary branch of a
+combine under a transform, or, for a root that is not the strategy's own root
+combine, the subtree under it. The root it measures against is the step the
+strategy is cited with, which is the one root of a whole graph or the root the
+last push made the WDK strategy's. It refuses two calls rather than guess: a
+transform nothing can take the place of, at the root and under another
+transform, and any root of more than one step on a thread that holds several
+roots when no push says which is the strategy, because the largest component
+is not the strategy's. A root of one step takes only itself, so it goes.
+`clear_strategy` removes the whole strategy. The user approves either before
+any step is removed. The Lead's `delete_step` and the building pass's are one
+tool reading one set of rules, so no caller chooses how the tree is re-wired,
+and the surface a refusal is written for changes only the way out it names.
+`apply_operations` removes nothing: the operation union the model reads leaves
+`DeleteStepOp`, `DeleteEdgeOp`, `ReplaceStrategyOp` and `ReplaceSubtreeOp`
+out, and a batch that names any of them is refused whole. Each of the four
+removes steps: an edge delete because a collapse takes the combine and the
+step under its other slot, a strategy replacement because it keeps only the
+tree it carries, and a subtree replacement because it drops the steps the new
+branch does not carry. Three model-driven surfaces take steps off a strategy.
+Two ask the researcher first: `delete_step` for one step, and
+`replace_subtree` for one branch, which is also refused when the branch would
+drop a criterion the spec states. The third, `create_eda_step` with
+`replace_step_id`, replaces the named step's subtree without a card: the route
+block the Lead reads names the one step the export supersedes, so the call
+carries the researcher's own instruction, and the spec guard bounds what can
+go. Whether that replacement should be gated like the other two is an open
+decision, not settled here. The graph canvas still sends an edge delete,
+through the HTTP route, and the commit path still replaces a strategy to
+restore one; both read the wider union. The
+third path, a spec edit, still resolves its own delete through
+`operations/resolutions.py::compute_delete_choices`, and it answers two
+reachable shapes differently from `delete_step`: a transform under a
+transform, which `delete_step` refuses and the spec edit deletes with the tree
+under it, and a detached leaf root, which `delete_step` removes on its own and
+the spec edit turns into a delete of the whole strategy. The stated-shape
+guard stops both before a write. Which of the two answers is right is the open
+decision.
 
 # Anchors
 

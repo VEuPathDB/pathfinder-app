@@ -16,8 +16,20 @@ const GENE_SET: GeneSet = {
   createdAt: "2026-09-04T00:00:00Z",
 };
 
+const SEARCH_BACKED_SET: GeneSet = {
+  ...GENE_SET,
+  source: "strategy",
+  searchName: "GenesByRNASeqTgonME49",
+  parameters: {
+    fold_change: { type: "string", value: "2" },
+    organism: { type: "multi-pick-vocabulary", values: ["Toxoplasma gondii ME49"] },
+  },
+};
+
+let geneSets: GeneSet[] = [GENE_SET];
+
 vi.mock("@/features/workbench/hooks/useGeneSetsQuery", () => ({
-  useGeneSetsQuery: () => ({ data: [GENE_SET] }),
+  useGeneSetsQuery: () => ({ data: geneSets }),
 }));
 
 const chatViewProps: { conversationId: string }[] = [];
@@ -59,6 +71,7 @@ function makeExperiment(): Experiment {
 describe("WorkbenchMain", () => {
   beforeEach(() => {
     chatViewProps.length = 0;
+    geneSets = [GENE_SET];
     useWorkbenchStore.setState({
       activeSetId: "set-1",
       lastExperiment: makeExperiment(),
@@ -76,6 +89,17 @@ describe("WorkbenchMain", () => {
     render(<WorkbenchMain />);
     expect(screen.getByText("Evaluate")).toBeInTheDocument();
     expect(screen.getByText("Gene Confidence")).toBeInTheDocument();
+  });
+
+  it("reads the search parameters of the active set as values", () => {
+    geneSets = [SEARCH_BACKED_SET];
+
+    render(<WorkbenchMain />);
+
+    const header = screen.getByText(/GenesByRNASeqTgonME49/);
+    expect(header).toHaveTextContent("fold_change: 2");
+    expect(header).toHaveTextContent("organism: Toxoplasma gondii ME49");
+    expect(header).not.toHaveTextContent("[object Object]");
   });
 
   it("never uses an experiment id as a conversation id", () => {

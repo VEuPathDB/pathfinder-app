@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
@@ -269,7 +270,9 @@ def test_the_commit_context_carries_the_criteria_the_spec_states(
         structure=_TWO_STEP_STRUCTURE,
     )
 
-    context = eda_step._strategy_context(lead_ctx)
+    spec = lead_ctx.deps.state.domain.operational_spec
+
+    context = eda_step._strategy_context(lead_ctx, spec)
 
     assert context.stated_criteria == frozenset({"step_a", "step_b"})
     assert context.stated_structure == _TWO_STEP_STRUCTURE
@@ -278,7 +281,7 @@ def test_the_commit_context_carries_the_criteria_the_spec_states(
 def test_a_thread_that_framed_no_spec_states_no_criteria(
     lead_ctx: RunContext[LeadDeps],
 ) -> None:
-    assert eda_step._strategy_context(lead_ctx).stated_criteria == frozenset()
+    assert eda_step._strategy_context(lead_ctx, None).stated_criteria == frozenset()
 
 
 def _lead_ctx_over(root: StrategyStepNode) -> RunContext[LeadDeps]:
@@ -363,3 +366,41 @@ async def test_a_thread_that_framed_no_spec_records_nothing(
     result = returned(answer, eda_step.EdaStepCreated)
     assert list(graph.steps) == [result.step_id]
     assert lead_ctx.deps.state.domain.operational_spec is None
+
+
+async def test_an_export_the_site_did_not_take_still_marks_the_turn(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """A detached export changed the canvas, so the turn wrote to the strategy."""
+
+    async def unsynced_commit(*, deps: object, ops: list[Any]) -> CommitResult:
+        del deps, ops
+        return CommitResult(description="added a step")
+
+    _wire(monkeypatch, read=read_detail, commit=unsynced_commit)
+
+    await eda_step.create_eda_step(lead_ctx)
+
+    markers = lead_ctx.deps.state.turn_markers
+    assert markers.built is False
+    assert markers.edited is True
+    assert markers.changed_strategy is True
+
+
+async def test_an_export_the_site_took_records_the_build(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    applied: list[Any] = []
+    _wire(
+        monkeypatch,
+        read=read_detail,
+        commit=pushing_commit(
+            applied, session=lead_ctx.deps.runtime.strategy_session, count=132
+        ),
+    )
+
+    await eda_step.create_eda_step(lead_ctx)
+
+    markers = lead_ctx.deps.state.turn_markers
+    assert markers.built is True
+    assert markers.edited is True

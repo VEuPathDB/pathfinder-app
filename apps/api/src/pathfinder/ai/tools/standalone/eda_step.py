@@ -5,15 +5,23 @@ from __future__ import annotations
 from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
+from pydantic import Field
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb.domain.strategy import StrategyStepNode, subtree_ids
+from veupathdb.domain.strategy import CombineOp
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone._eda_step_spec import (
+    restate_the_structure,
+    spec_after_the_replacement,
+    state_the_exported_step,
+    structure_states_the_graph,
+)
+from pathfinder.ai.tools.standalone._eda_step_write import export_write
 from pathfinder.ai.tools.standalone._validation_helpers import (
     get_graph,
     validation_model_retry,
@@ -25,14 +33,8 @@ from pathfinder.ai.tools.standalone.stream_parts import (
 )
 from pathfinder.domain.eda_parts import EdaEffectDirection
 from pathfinder.domain.eda_thread import EdaExport
-from pathfinder.domain.strategy.operational_spec import Criterion
-from pathfinder.domain.strategy.operations import AddLeafOp
-from pathfinder.domain.strategy.operations.types import (
-    AttachIntoSlot,
-    AttachNewRoot,
-    AttachPoint,
-)
-from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
 from pathfinder.services.eda.binding import (
     ConversationAnalysisView,
@@ -56,6 +58,13 @@ class EdaStepCreated(EdaExport):
     wdk_strategy_id: int | None = None
     wdk_url: str | None = None
     guidance: str = ""
+    # The step this export took the place of, and every step that left with it.
+    replaced_step_id: str | None = None
+    dropped_step_ids: list[str] = Field(default_factory=list)
+    # The operator this export was joined to the strategy's root with, and the
+    # combine step that join created, which is the strategy's new root.
+    combined_with_root: CombineOp | None = None
+    combine_step_id: str | None = None
 
 
 def _thresholds(
@@ -82,9 +91,11 @@ async def bound_analysis(
     )
 
 
-def _strategy_context(ctx: RunContext[LeadDeps]) -> StrategyMutationContext:
+def _strategy_context(
+    ctx: RunContext[LeadDeps], spec: OperationalSpec | None
+) -> StrategyMutationContext:
+    """The context a write runs under, measured against ``spec``."""
     runtime = ctx.deps.runtime
-    spec = ctx.deps.state.domain.operational_spec
     return StrategyMutationContext(
         site_id=runtime.site_id,
         strategy_session=runtime.strategy_session,
@@ -119,65 +130,6 @@ def _checked_thresholds(
         raise ModelRetry(msg)
 
 
-def _attach_point(
-    attach_to_step_id: str | None,
-    slot: Literal["primary", "secondary"] | None,
-) -> AttachPoint:
-    if attach_to_step_id is None and slot is None:
-        return AttachNewRoot()
-    if attach_to_step_id is None:
-        msg = (
-            f"slot={slot!r} names an input of a combine step, so it needs "
-            f"attach_to_step_id. Leave both unset to add the step as a new root."
-        )
-        raise ModelRetry(msg)
-    if slot is None:
-        msg = (
-            f"attach_to_step_id={attach_to_step_id!r} needs a slot: 'primary' or "
-            f"'secondary' names which input of that combine to fill."
-        )
-        raise ModelRetry(msg)
-    return AttachIntoSlot(target_step_id=attach_to_step_id, slot=slot)
-
-
-def _criterion_note(ctx: RunContext[LeadDeps], step_id: str) -> str:
-    """The criterion a step answers, as a parenthetical, or nothing."""
-    spec = ctx.deps.state.domain.operational_spec
-    if spec is None:
-        return ""
-    stated = [c.text for c in spec.criteria if c.id == step_id]
-    return f" ({stated[0]})" if stated else ""
-
-
-def _refuse_an_occupied_slot(
-    ctx: RunContext[LeadDeps], graph: StrategyGraph, attach: AttachPoint
-) -> None:
-    """An export fills a free slot, never one that already holds a step.
-
-    A new step holds nothing, so filling an occupied slot would take the step
-    that slot holds off the strategy with no delete and no record of the loss.
-    """
-    if attach.mode != "into-slot":
-        return
-    target = graph.get_step(attach.target_step_id)
-    if target is None:
-        return
-    occupant = (
-        target.primary_input_id
-        if attach.slot == "primary"
-        else target.secondary_input_id
-    )
-    if occupant is None:
-        return
-    msg = (
-        f"The {attach.slot} input of {attach.target_step_id} already holds "
-        f"{occupant}{_criterion_note(ctx, occupant)}. Exporting into it would "
-        f"take {occupant} off the strategy, so nothing was added. Delete "
-        f"{occupant} first, or name a slot that is free."
-    )
-    raise ModelRetry(msg)
-
-
 def _record_the_build(ctx: RunContext[LeadDeps], commit: CommitResult) -> None:
     """Take the exported step as this turn's build, with the sync's counts.
 
@@ -200,26 +152,18 @@ def _record_the_build(ctx: RunContext[LeadDeps], commit: CommitResult) -> None:
     )
 
 
-def _state_the_exported_step(
-    ctx: RunContext[LeadDeps], graph: StrategyGraph, node: StrategyStepNode
-) -> None:
-    """State the exported step as a criterion of the spec.
-
-    A step wired into the main tree is one the strategy states, so a later
-    write is measured against it like any other criterion.
-    """
-    root_id = graph.primary_root_id()
-    if root_id is None or node.id not in subtree_ids(root_id, graph.steps):
-        return
-    ctx.deps.state.domain.record_criterion(
-        Criterion(
-            id=node.id,
-            text=node.display_name or "the open EDA analysis",
-            search_name=node.search_name,
-            resolved_params=dict(node.parameters),
-            confidence=1.0,
-        ),
-    )
+def _landed(
+    step_id: str,
+    replace_step_id: str | None,
+    combine_with_root: CombineOp | None,
+    root_before: str | None,
+) -> str:
+    """The one line this export is summarized by."""
+    if replace_step_id is not None:
+        return f"Step {step_id} replaced {replace_step_id}"
+    if combine_with_root is not None:
+        return f"Step {step_id} combined with {root_before} ({combine_with_root.value})"
+    return f"Step {step_id} added to the strategy"
 
 
 def _guidance(wdk_strategy_id: int | None, *, is_compute_backed: bool) -> str:
@@ -241,6 +185,8 @@ async def create_eda_step(
     search_name: str | None = None,
     attach_to_step_id: str | None = None,
     slot: Literal["primary", "secondary"] | None = None,
+    replace_step_id: str | None = None,
+    combine_with_root: CombineOp | None = None,
     effect_size_threshold: float | None = None,
     significance_threshold: float | None = None,
     effect_direction: EdaEffectDirection = "upAndDown",
@@ -271,6 +217,19 @@ async def create_eda_step(
     free: a slot that already holds a step is refused, because the export would
     take that step off the strategy. Delete it first, or name the free slot.
 
+    Set ``replace_step_id`` to put the export in the place of a step the
+    strategy already holds: it takes that step's slot in its parent combine, or
+    becomes the root when it replaces the root, and the replaced subtree leaves
+    the strategy. Use it for a step this analysis states better. It never
+    travels with ``attach_to_step_id`` or ``slot``, which name another target.
+
+    Set ``combine_with_root`` to join the export to the strategy the researcher
+    already has: the export is added and a new combine over the old root and
+    the export becomes the root, which is how a step is added to a result.
+    INTERSECT keeps the genes both hold, UNION keeps either, MINUS drops the
+    export's genes from the result. It needs a strategy with one root, and it
+    names the whole placement, so it travels with none of the three above.
+
     Available once ``preview_eda_subset`` has counted the open analysis, on
     this message or an earlier one, so the number you export is one the thread
     measured.
@@ -281,6 +240,8 @@ async def create_eda_step(
             the generic subset or compute search.
         attach_to_step_id: The combine step to wire this into.
         slot: Which input of that combine to fill. It must be empty.
+        replace_step_id: The step this export takes the place of.
+        combine_with_root: The operator to join the export to the root with.
         effect_size_threshold: Minimum absolute effect size to keep.
         significance_threshold: Maximum p-value to keep.
         effect_direction: Which side of the volcano to keep.
@@ -293,7 +254,6 @@ async def create_eda_step(
         )
         raise ModelRetry(msg)
     _checked_thresholds(effect_size_threshold, significance_threshold)
-    attach = _attach_point(attach_to_step_id, slot)
 
     analysis = await read_analysis(binding.site_id, analysis_id=binding.analysis_id)
     try:
@@ -322,16 +282,39 @@ async def create_eda_step(
         title = "No active strategy graph"
         detail = "create_eda_step needs an initialized graph in the session."
         raise ValidationError(title=title, detail=detail)
-    _refuse_an_occupied_slot(ctx, graph, attach)
+    root_before = graph.primary_root_id()
+    write = export_write(
+        ctx,
+        graph,
+        node,
+        attach_to_step_id=attach_to_step_id,
+        slot=slot,
+        replace_step_id=replace_step_id,
+        combine_with_root=combine_with_root,
+    )
+
+    restate = structure_states_the_graph(ctx, graph)
+    stated = (
+        ctx.deps.state.domain.operational_spec
+        if replace_step_id is None
+        else spec_after_the_replacement(ctx, graph, node, replace_step_id)
+    )
 
     try:
         result = await apply_operations_and_commit(
-            deps=_strategy_context(ctx),
-            ops=[AddLeafOp(step=node, attach=attach)],
+            deps=_strategy_context(ctx, stated), ops=write.ops
         )
     except ValidationError as exc:
         raise validation_model_retry(exc, searchName=node.search_name) from exc
-    _state_the_exported_step(ctx, graph, node)
+    except ApplyError as exc:
+        msg = f"REJECTED: {exc}. Nothing was added and the strategy is unchanged."
+        raise ModelRetry(msg) from exc
+    if replace_step_id is None:
+        state_the_exported_step(ctx, graph, node)
+    else:
+        ctx.deps.state.domain.operational_spec = stated
+    if restate:
+        restate_the_structure(ctx, graph)
     sync = result.sync_result
     metadata: list[DataChunk] = [graph_snapshot_chunk(session, graph)]
     if sync is not None and sync.wdk_url is not None:
@@ -355,8 +338,13 @@ async def create_eda_step(
         wdk_strategy_id=wdk_strategy_id,
         wdk_url=sync.wdk_url if sync is not None else None,
         guidance=_guidance(wdk_strategy_id, is_compute_backed=is_compute_backed),
+        replaced_step_id=replace_step_id,
+        dropped_step_ids=list(result.dropped_step_ids),
+        combined_with_root=combine_with_root,
+        combine_step_id=None if write.combine is None else write.combine.step.id,
     )
     ctx.deps.state.turn_markers.eda_export = created
+    ctx.deps.state.turn_markers.edited = True
     _record_the_build(ctx, result)
     refusal = wdk_refused_the_edit(result)
     if refusal is not None:
@@ -367,9 +355,5 @@ async def create_eda_step(
             status="warn",
             extra=metadata,
         )
-    return with_summary(
-        created,
-        f"Step {node.id} added to the strategy",
-        ctx=ctx,
-        extra=metadata,
-    )
+    landed = _landed(node.id, replace_step_id, combine_with_root, root_before)
+    return with_summary(created, landed, ctx=ctx, extra=metadata)

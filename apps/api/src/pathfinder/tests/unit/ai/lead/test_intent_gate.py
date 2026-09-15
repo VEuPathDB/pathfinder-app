@@ -17,6 +17,7 @@ from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS
 from pathfinder.ai.lead.lead_agent import LeadResponse, build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.tests.unit.ai.lead.conftest import (
     OfferedTools,
     lead_deps,
@@ -51,7 +52,7 @@ def _classify_args(classification: IntentClassification) -> dict[str, Any]:
 def _final_part(call_id: str = "call_final") -> ToolCallPart:
     return ToolCallPart(
         tool_name="final_result",
-        args={"prose": _PROSE, "nextState": "await_user"},
+        args={"prose": _PROSE, "nextState": "await_user", "strategyChanged": False},
         tool_call_id=call_id,
     )
 
@@ -251,3 +252,42 @@ def test_a_corrected_classification_unhides_the_building_tools() -> None:
     assert not (seen.steps[1] & BUILDING_TOOLS)
     assert seen.steps[2] >= UNLOCKED_ON_A_FRESH_THREAD
     assert {"build_strategy", "edit_strategy"} <= seen.steps[2]
+
+
+# The four calls that build an EDA-backed criterion, in the order the route
+# runs them.
+EDA_ROUTE_TOOLS = frozenset(
+    {
+        "open_eda_analysis",
+        "set_eda_filters",
+        "preview_eda_subset",
+        "create_eda_step",
+    }
+)
+
+
+@pytest.mark.parametrize(
+    "classification",
+    [
+        IntentClassification.NEW_STRATEGY,
+        IntentClassification.EXTEND_STRATEGY,
+        IntentClassification.EDIT_STRATEGY,
+    ],
+)
+def test_every_building_intent_is_offered_the_whole_eda_route(
+    classification: IntentClassification,
+) -> None:
+    """An EDA-backed criterion is built by these four, whatever the request is."""
+    prompt = "Genes essential in blood stages"
+    deps = _deps(prompt)
+    deps.state.domain.open_eda_analysis = OpenEdaAnalysis(
+        dataset_id="DS_70dd50fed7", analysis_id="an-1", subset_previewed=True
+    )
+    seen = OfferedTools()
+    agent = build_lead_agent()
+    result = asyncio.run(
+        agent.run(prompt, deps=deps, model=_model(prompt, classification, seen))
+    )
+
+    assert isinstance(result.output, LeadResponse)
+    assert seen.steps[1] >= EDA_ROUTE_TOOLS

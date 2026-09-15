@@ -217,7 +217,8 @@
           "displayName": "Signal Peptide",
           "id": "leaf_signal_peptide",
           "parameters": {
-            "organism": "[\"Toxoplasma gondii ME49\"]"
+            "organism": "[\"Toxoplasma gondii ME49\"]",
+            "signalp_version": "SignalP-6.0"
           },
           "searchName": "GenesWithSignalPeptide"
         }
@@ -493,7 +494,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_sp",
             "parameters": {
-              "organism": "[\"Toxoplasma gondii ME49\"]"
+              "organism": "[\"Toxoplasma gondii ME49\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           },
@@ -721,7 +723,8 @@
           "displayName": "Signal Peptide",
           "id": "leaf_sp",
           "parameters": {
-            "organism": "[\"Toxoplasma gondii ME49\"]"
+            "organism": "[\"Toxoplasma gondii ME49\"]",
+            "signalp_version": "SignalP-6.0"
           },
           "searchName": "GenesWithSignalPeptide"
         },
@@ -1030,7 +1033,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_sp",
             "parameters": {
-              "organism": "[\"Toxoplasma gondii ME49\"]"
+              "organism": "[\"Toxoplasma gondii ME49\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           },
@@ -1266,7 +1270,8 @@
           "displayName": "Signal Peptide",
           "id": "leaf_sp",
           "parameters": {
-            "organism": "[\"Toxoplasma gondii ME49\"]"
+            "organism": "[\"Toxoplasma gondii ME49\"]",
+            "signalp_version": "SignalP-6.0"
           },
           "searchName": "GenesWithSignalPeptide"
         }

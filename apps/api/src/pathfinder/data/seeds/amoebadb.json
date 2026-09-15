@@ -128,7 +128,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_signal_pep",
             "parameters": {
-              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           }
@@ -319,7 +320,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_sp_inv",
             "parameters": {
-              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           },
@@ -625,7 +627,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_sp_encyst",
             "parameters": {
-              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+              "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           }
@@ -892,7 +895,8 @@
         "displayName": "Signal Peptide",
         "id": "leaf_sp_base",
         "parameters": {
-          "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]"
+          "organism": "[\"Entamoeba histolytica HM-1:IMSS\"]",
+          "signalp_version": "SignalP-6.0"
         },
         "searchName": "GenesWithSignalPeptide"
       }

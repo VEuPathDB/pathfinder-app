@@ -68,7 +68,8 @@ def test_a_reply_that_hides_the_gene_set_it_analysed_is_refused() -> None:
 
     with pytest.raises(ModelRetry) as raised:
         refuse_a_substituted_analysis(
-            run_context_for(deps), LeadResponse(prose=_SUBSTITUTED_REPLY)
+            run_context_for(deps),
+            LeadResponse(prose=_SUBSTITUTED_REPLY, strategy_changed=False),
         )
 
     message = str(raised.value)
@@ -77,7 +78,7 @@ def test_a_reply_that_hides_the_gene_set_it_analysed_is_refused() -> None:
 
 
 def test_a_reply_that_names_the_gene_set_it_analysed_stands() -> None:
-    output = LeadResponse(prose=_NAMED_REPLY)
+    output = LeadResponse(prose=_NAMED_REPLY, strategy_changed=False)
 
     assert (
         refuse_a_substituted_analysis(run_context_for(_substitution_deps()), output)
@@ -91,7 +92,7 @@ def test_a_reply_whose_enrichment_ran_on_the_set_asked_for_stands() -> None:
             update={"gene_set_id": "gs-requested", "succeeded": True}
         )
     )
-    output = LeadResponse(prose=_SUBSTITUTED_REPLY)
+    output = LeadResponse(prose=_SUBSTITUTED_REPLY, strategy_changed=False)
 
     assert refuse_a_substituted_analysis(run_context_for(deps), output) is output
 
@@ -100,7 +101,9 @@ def test_a_later_message_is_not_judged_by_an_earlier_messages_enrichments() -> N
     """The record belongs to the message it was made under."""
     deps = _deps_with_runs(_FAILED_RUN, _ANALYSED_RUN)
     deps.state.user_message_id = uuid4()
-    output = LeadResponse(prose="The strategy searched Plasmodium falciparum 3D7.")
+    output = LeadResponse(
+        prose="The strategy searched Plasmodium falciparum 3D7.", strategy_changed=False
+    )
 
     assert refuse_a_substituted_analysis(run_context_for(deps), output) is output
 
@@ -110,6 +113,7 @@ def test_a_failure_after_a_success_is_not_a_substitution() -> None:
     deps = _deps_with_runs(_ANALYSED_RUN, _FAILED_RUN)
     output = LeadResponse(
         prose="The enrichment on set A failed: it has no WDK step.",
+        strategy_changed=False,
     )
 
     assert refuse_a_substituted_analysis(run_context_for(deps), output) is output
@@ -117,7 +121,7 @@ def test_a_failure_after_a_success_is_not_a_substitution() -> None:
 
 def test_the_substitution_refusal_is_asked_once_per_turn() -> None:
     deps = _substitution_deps()
-    output = LeadResponse(prose=_SUBSTITUTED_REPLY)
+    output = LeadResponse(prose=_SUBSTITUTED_REPLY, strategy_changed=False)
 
     with pytest.raises(ModelRetry):
         refuse_a_substituted_analysis(run_context_for(deps), output)
@@ -131,7 +135,11 @@ def test_a_substituted_reply_is_re_asked_and_the_next_answer_goes_through() -> N
     script = RetryRecordingScript(
         ToolCallPart(
             tool_name="final_result",
-            args={"prose": _SUBSTITUTED_REPLY, "nextState": "await_user"},
+            args={
+                "prose": _SUBSTITUTED_REPLY,
+                "nextState": "await_user",
+                "strategyChanged": False,
+            },
             tool_call_id="call_final",
         ),
     )

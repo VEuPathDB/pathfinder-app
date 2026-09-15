@@ -337,7 +337,8 @@
             "displayName": "Signal Peptide (Secreted)",
             "id": "signal_peptide_immune",
             "parameters": {
-              "organism": "[\"Anopheles gambiae PEST\"]"
+              "organism": "[\"Anopheles gambiae PEST\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           }
@@ -547,7 +548,8 @@
           "displayName": "Signal Peptide (Secreted)",
           "id": "signal_obp",
           "parameters": {
-            "organism": "[\"Anopheles gambiae PEST\"]"
+            "organism": "[\"Anopheles gambiae PEST\"]",
+            "signalp_version": "SignalP-6.0"
           },
           "searchName": "GenesWithSignalPeptide"
         }
@@ -702,7 +704,8 @@
           "displayName": "Signal Peptide (Secreted)",
           "id": "signal_salivary",
           "parameters": {
-            "organism": "[\"Anopheles gambiae PEST\"]"
+            "organism": "[\"Anopheles gambiae PEST\"]",
+            "signalp_version": "SignalP-6.0"
           },
           "searchName": "GenesWithSignalPeptide"
         },

@@ -109,7 +109,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             update_combine_operator,
             update_step_metadata,
             Tool(delete_step, requires_approval=True, max_retries=3),
-            replace_subtree,
+            Tool(replace_subtree, requires_approval=True, max_retries=3),
             insert_saved_strategy,
             add_step_filter,
             add_step_analysis,

@@ -56,8 +56,20 @@ CLARIFY_MARKERS = ("human equivalent", "vary much")
 _CONTEXT_MARKERS = ("i'm investigating", "i am investigating")
 
 
-def lead_final(prose: str, next_state: LeadTurnState) -> ToolCallPart:
-    return terminal_call({"prose": prose, "nextState": next_state})
+def lead_final(
+    prose: str,
+    next_state: LeadTurnState,
+    *,
+    strategy_changed: bool = False,
+) -> ToolCallPart:
+    """The Lead's final answer. ``strategy_changed`` is what the arc wrote."""
+    return terminal_call(
+        {
+            "prose": prose,
+            "nextState": next_state,
+            "strategyChanged": strategy_changed,
+        },
+    )
 
 
 def classify(classification: str) -> ToolCallPart:

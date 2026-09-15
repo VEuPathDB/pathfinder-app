@@ -23,6 +23,7 @@ from pathfinder.domain.strategy.constraints import (
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
+    DroppedCriterion,
     OperationalSpec,
     SpecStructure,
     StructureNode,
@@ -236,3 +237,44 @@ class TestTheStructureRule:
 
     def test_a_thread_that_stated_no_combination_does_not_contradict(self) -> None:
         assert _structure_contradiction([], _combined_spec(CombineOp.INTERSECT)) == ""
+
+
+class TestTheSummaryCarriesEveryDropReason:
+    """The Lead decides what to do about a drop, so it reads the reason."""
+
+    def _dropped(self) -> InvestigationLedger:
+        spec = OperationalSpec(
+            goal="essential drug targets",
+            dropped=[
+                DroppedCriterion(
+                    text="essential in blood stages",
+                    reason=(
+                        "EDA-backed criterion: the Lead builds it with "
+                        "open_eda_analysis."
+                    ),
+                    eda_dataset_id="DS_70dd50fed7",
+                )
+            ],
+        )
+        return InvestigationLedger(
+            user_intent=None,
+            frame=FrameSection(spec=spec),
+            build=BuildSection(),
+            verification=VerificationSection(),
+        )
+
+    def test_the_count_still_reports_one_drop(self) -> None:
+        assert "- dropped: 1" in self._dropped().render_summary()
+
+    def test_the_reason_reaches_the_summary_beside_its_criterion(self) -> None:
+        summary = self._dropped().render_summary()
+
+        assert "essential in blood stages: EDA-backed criterion" in summary
+        assert "open_eda_analysis." in summary
+        assert "(eda dataset DS_70dd50fed7)" in summary
+
+    def test_a_frame_with_no_drop_adds_no_line(self) -> None:
+        summary = _ledger().render_summary()
+
+        assert "- dropped: 0" in summary
+        assert "EDA-backed" not in summary

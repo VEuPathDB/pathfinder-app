@@ -21,6 +21,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
+from veupathdb.domain.strategy import StepKind
 from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType, EnrichmentResult
 
 from pathfinder.ai.agents.state import CreatedGeneSet
@@ -37,6 +38,7 @@ from pathfinder.ai.tools.standalone.workbench_models import (
 )
 from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
 from pathfinder.platform.durable_worker import durable_agent_tool
+from pathfinder.services.gene_sets.step_genes import step_gene_ids
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.workbench.gene_sets import list_gene_sets, save_gene_set
 
@@ -45,6 +47,21 @@ logger = get_logger(__name__)
 _NO_WDK_STEP = (
     "It holds gene IDs only: this conversation has no pushed strategy step "
     "behind them, so enrichment cannot recover a background gene universe."
+)
+
+_NO_STEP_TO_SAVE_FROM = (
+    "This conversation has no pushed strategy step to save from. Pass "
+    "gene_ids to save a list of genes instead."
+)
+
+_A_LIST_AND_A_STEP = (
+    "A pasted gene list carries no strategy step. Leave step_id out to save "
+    "these ids as a list, or leave gene_ids out to save the genes of that step."
+)
+
+_STEP_HOLDS_NO_GENES = (
+    "That step returns no genes on VEuPathDB, so there is nothing to save. "
+    "Widen the strategy, or pass gene_ids to save a list of genes."
 )
 
 
@@ -76,20 +93,37 @@ def _wdk_provenance(session: StrategySession, step_id: str | None) -> WdkProvena
     wdk_step_id = sync_state.wdk_step_ids.get(local_id or "")
     if wdk_step_id is None or step is None:
         return WdkProvenance()
+    # Only a search step can be re-run from its name and parameters alone. A
+    # combine runs no search of its own, and a transform needs its input step.
+    runs_search = step.kind is StepKind.SEARCH
     return WdkProvenance(
         wdk_strategy_id=sync_state.wdk_strategy_id,
         wdk_step_id=wdk_step_id,
-        search_name=step.search_name,
-        parameters=dict(step.parameters),
+        search_name=step.search_name if runs_search else None,
+        parameters=dict(step.parameters) if runs_search else None,
     )
+
+
+async def _genes_of_step(
+    deps: AgentDeps,
+    step_id: str | None,
+) -> tuple[list[str], WdkProvenance]:
+    """The genes a step of this conversation's strategy holds, and its ids."""
+    src = _wdk_provenance(deps.strategy_session, step_id)
+    if src.wdk_step_id is None:
+        raise ModelRetry(_NO_STEP_TO_SAVE_FROM)
+    ids = await step_gene_ids(deps.site_id, src.wdk_step_id)
+    if not ids:
+        raise ModelRetry(_STEP_HOLDS_NO_GENES)
+    return ids, src
 
 
 async def create_workbench_gene_set(
     ctx: RunContext[AgentDeps],
     name: str,
-    gene_ids: list[str],
     record_type: str = "transcript",
     step_id: str | None = None,
+    gene_ids: list[str] | None = None,
 ) -> ToolReturn[GeneSetCreatedResponse]:
     """Create a gene set in the user's Workbench for further analysis.
 
@@ -100,26 +134,34 @@ async def create_workbench_gene_set(
 
     Args:
         name: Human-readable name for the gene set (e.g. 'Upregulated in gametocytes').
-        gene_ids: List of gene IDs to include (e.g. ['PF3D7_1222600', 'PF3D7_1031000']).
         record_type: Record type (default 'transcript').
-        step_id: The step of THIS conversation's strategy the genes came from,
+        step_id: The step of THIS conversation's strategy whose genes to save,
             by its graph id (e.g. 'step_3'). Leave it out for the strategy's
-            root step. The WDK strategy and step ids are read from the
-            strategy; never type one.
+            root step. The genes of a step are read from that step on
+            VEuPathDB, and its WDK ids come from the strategy; never type one.
+        gene_ids: A list of gene IDs the user pasted or this turn computed,
+            which no step holds (e.g. ['PF3D7_1222600', 'PF3D7_1031000']). It
+            saves that list alone, so leave it out whenever the genes are a
+            step's.
     """
     if not name or not name.strip():
         msg = "VALIDATION_ERROR: Gene set name must be a non-empty string."
         raise ModelRetry(msg)
-    if not gene_ids:
-        msg = "VALIDATION_ERROR: gene_ids must contain at least one gene ID."
-        raise ModelRetry(msg)
     deps = ctx.deps
-    src = _wdk_provenance(deps.strategy_session, step_id)
+    if gene_ids is None:
+        ids, src = await _genes_of_step(deps, step_id)
+    else:
+        if step_id is not None:
+            raise ModelRetry(_A_LIST_AND_A_STEP)
+        if not gene_ids:
+            msg = "VALIDATION_ERROR: gene_ids must contain at least one gene ID."
+            raise ModelRetry(msg)
+        ids, src = gene_ids, WdkProvenance()
     gs = GeneSet(
         id=str(uuid4()),
         name=name,
         site_id=deps.site_id,
-        gene_ids=gene_ids,
+        gene_ids=ids,
         source=src.source,
         user_id=deps.user_id,
         wdk_strategy_id=src.wdk_strategy_id,

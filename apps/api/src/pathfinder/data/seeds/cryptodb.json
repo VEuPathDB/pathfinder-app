@@ -67,7 +67,8 @@
             "displayName": "Signal Peptide (Secreted)",
             "id": "leaf_signal_peptide",
             "parameters": {
-              "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+              "organism": "[\"Cryptosporidium parvum Iowa II\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           },
@@ -364,7 +365,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_signal_oocyst",
             "parameters": {
-              "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+              "organism": "[\"Cryptosporidium parvum Iowa II\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           }
@@ -576,7 +578,8 @@
           "displayName": "Signal Peptide",
           "id": "leaf_signal",
           "parameters": {
-            "organism": "[\"Cryptosporidium parvum Iowa II\"]"
+            "organism": "[\"Cryptosporidium parvum Iowa II\"]",
+            "signalp_version": "SignalP-6.0"
           },
           "searchName": "GenesWithSignalPeptide"
         },

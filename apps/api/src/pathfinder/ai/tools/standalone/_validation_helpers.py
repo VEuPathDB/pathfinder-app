@@ -1,17 +1,29 @@
-"""Shared error payloads, graph and step lookup, and result models for strategy tools."""
+"""Shared error payloads, graph and step lookup, and result models for strategy
+tools."""
 
 import json
 from typing import Annotated
 
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, JsonValue
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    JsonValue,
+)
+from pydantic import ValidationError as PydanticValidationError
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import StrategyAst, StrategyStep, StrategyStepNode
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload, tool_error
 
-from pathfinder.domain.strategy.operations import GraphOperation
+from pathfinder.domain.strategy.operations import (
+    KINDS_A_BATCH_REFUSES,
+    EditableOperation,
+)
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.stated_shape import placeholder_names
 from pathfinder.platform.errors import ErrorCode
@@ -34,7 +46,7 @@ StepTreePayload = Annotated[StrategyStepNode, AfterValidator(_reject_placeholder
 """A step tree the model authored, refused while it holds a placeholder name."""
 
 
-def _step_tree_of(op: GraphOperation) -> StrategyStepNode | None:
+def _step_tree_of(op: EditableOperation) -> StrategyStepNode | None:
     """The step tree an operation carries, or None when it carries none."""
     if op.kind == "addLeaf":
         return op.step
@@ -42,22 +54,57 @@ def _step_tree_of(op: GraphOperation) -> StrategyStepNode | None:
         return op.step
     if op.kind == "addTransform":
         return op.step
-    if op.kind == "replaceSubtree":
-        return op.subtree
-    if op.kind == "replaceStrategy":
-        return op.root
     return None
 
 
-def _reject_placeholder_operations(op: GraphOperation) -> GraphOperation:
+def _reject_placeholder_operations(op: EditableOperation) -> EditableOperation:
     tree = _step_tree_of(op)
     if tree is not None:
         _reject_placeholder_steps(tree)
     return op
 
 
+A_REMOVAL_IN_A_BATCH = (
+    "A batch never removes a step. Two tools here do, and each asks the "
+    "researcher first: delete_step takes one step out and chooses how the "
+    "tree is re-wired around it, and replace_subtree builds one branch again "
+    "and "
+    "refuses a branch that would drop a criterion the spec states. An edge "
+    "delete removes steps too, because a collapse takes the combine and the "
+    "step under its other slot, and a strategy replacement removes every step "
+    "the tree it carries does not hold. Send this batch without the "
+    "deleteStep, deleteEdge, replaceStrategy and replaceSubtree operations, "
+    "and call delete_step or replace_subtree for the change you want."
+)
+
+
+class _OperationTag(CamelModel):
+    """The kind an authored operation declares, read before the union reads it."""
+
+    model_config = ConfigDict(extra="ignore", from_attributes=True)
+
+    kind: str = ""
+
+
+def _refuse_a_removal_in_a_batch(value: object) -> object:
+    """A batch carries every edit but the ones that remove a step.
+
+    A payload the tag model cannot read is left to the union, which names the
+    kinds a batch does carry.
+    """
+    try:
+        tag = _OperationTag.model_validate(value)
+    except PydanticValidationError:
+        return value
+    if tag.kind in KINDS_A_BATCH_REFUSES:
+        raise ValueError(A_REMOVAL_IN_A_BATCH)
+    return value
+
+
 OperationPayload = Annotated[
-    GraphOperation, AfterValidator(_reject_placeholder_operations)
+    EditableOperation,
+    BeforeValidator(_refuse_a_removal_in_a_batch),
+    AfterValidator(_reject_placeholder_operations),
 ]
 """One graph operation the model authored, held to the same name rule."""
 

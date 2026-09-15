@@ -76,7 +76,11 @@ def _final_only(seen: OfferedTools) -> FunctionModel:
             parts=[
                 ToolCallPart(
                     tool_name="final_result",
-                    args={"prose": _PROSE, "nextState": "await_user"},
+                    args={
+                        "prose": _PROSE,
+                        "nextState": "await_user",
+                        "strategyChanged": False,
+                    },
                     tool_call_id="call_final",
                 ),
             ],
@@ -368,7 +372,11 @@ def test_classifying_this_turn_marks_the_turn_and_unlocks_the_tools() -> None:
             parts=[
                 ToolCallPart(
                     tool_name="final_result",
-                    args={"prose": _PROSE, "nextState": "await_user"},
+                    args={
+                        "prose": _PROSE,
+                        "nextState": "await_user",
+                        "strategyChanged": False,
+                    },
                     tool_call_id="call_final",
                 ),
             ],
@@ -402,7 +410,11 @@ def _replies_twice(seen: OfferedTools) -> FunctionModel:
             parts=[
                 ToolCallPart(
                     tool_name="final_result",
-                    args={"prose": _PROSE, "nextState": "await_user"},
+                    args={
+                        "prose": _PROSE,
+                        "nextState": "await_user",
+                        "strategyChanged": False,
+                    },
                     tool_call_id=f"call_final_{len(seen.steps)}",
                 ),
             ],

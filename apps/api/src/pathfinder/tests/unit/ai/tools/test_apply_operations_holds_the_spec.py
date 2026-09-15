@@ -1,4 +1,8 @@
-"""Every batch that replaces a subtree holds the criteria the spec states."""
+"""Every write that replaces a subtree holds the criteria the spec states.
+
+A batch carries no replacement, so the batch tool is measured on what it
+does carry and the commit service on the replacements its callers send.
+"""
 
 from __future__ import annotations
 
@@ -96,53 +100,6 @@ def _placeholder_replacement() -> ReplaceSubtreeOp:
 
 
 class TestTheApplyOperationsTool:
-    async def test_a_batch_that_drops_criteria_is_refused(
-        self, stub_api: StubAPI
-    ) -> None:
-        deps = _deps()
-        graph = deps.strategy_session.graph
-        assert graph is not None
-        revision = strategy_revision(graph.to_strategy_ast())
-
-        with pytest.raises(ModelRetry) as excinfo:
-            await apply_operations(ctx(deps), revision, [_placeholder_replacement()])
-
-        assert "step_k1" in str(excinfo.value)
-        assert "step_k2" in str(excinfo.value)
-        assert set(graph.steps) == {
-            "step_k1",
-            "step_k2",
-            "step_ms",
-            "step_u1",
-            "step_c1",
-        }
-        assert graph.steps["step_u1"].operator == CombineOp.UNION
-        assert stub_api.calls == []
-
-    async def test_a_batch_that_keeps_every_criterion_is_applied(
-        self, stub_api: StubAPI
-    ) -> None:
-        deps = _deps()
-        graph = deps.strategy_session.graph
-        assert graph is not None
-        revision = strategy_revision(graph.to_strategy_ast())
-        kept = combine(
-            "step_u1", leaf("step_k1"), leaf("step_k2"), op=CombineOp.INTERSECT
-        )
-
-        payload = returned(
-            await apply_operations(
-                ctx(deps),
-                revision,
-                [ReplaceSubtreeOp(step_id="step_u1", subtree=kept)],
-            ),
-            dict[str, JsonValue],
-        )
-
-        assert payload["applied"] == 1
-        assert graph.steps["step_u1"].operator == CombineOp.INTERSECT
-        assert stub_api.named("create_combined_step") != []
-
     @pytest.mark.usefixtures("stub_api")
     async def test_a_placeholder_inside_an_operation_never_validates(self) -> None:
         deps = _deps()
@@ -155,9 +112,9 @@ class TestTheApplyOperationsTool:
                     "base_revision": "r1",
                     "operations": [
                         {
-                            "kind": "replaceSubtree",
-                            "stepId": "step_u1",
-                            "subtree": {"searchName": "__input_step__"},
+                            "kind": "addLeaf",
+                            "step": {"searchName": "__input_step__"},
+                            "attach": {"mode": "new-root"},
                         }
                     ],
                 }

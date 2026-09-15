@@ -358,7 +358,8 @@
               "displayName": "Signal peptide",
               "id": "s2_signal",
               "parameters": {
-                "organism": "[\"Giardia Assemblage A isolate WB\"]"
+                "organism": "[\"Giardia Assemblage A isolate WB\"]",
+                "signalp_version": "SignalP-6.0"
               },
               "searchName": "GenesWithSignalPeptide"
             },
@@ -1121,7 +1122,8 @@
             "displayName": "Signal peptide",
             "id": "s6_signal",
             "parameters": {
-              "organism": "[\"Giardia Assemblage A isolate WB\"]"
+              "organism": "[\"Giardia Assemblage A isolate WB\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           },

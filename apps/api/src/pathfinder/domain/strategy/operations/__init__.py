@@ -1,4 +1,6 @@
 from pathfinder.domain.strategy.operations.types import (
+    EDITABLE_KINDS,
+    KINDS_A_BATCH_REFUSES,
     AddCombineOp,
     AddLeafOp,
     AddTransformOp,
@@ -9,6 +11,7 @@ from pathfinder.domain.strategy.operations.types import (
     DeleteResolution,
     DeleteStepOp,
     DuplicateStepOp,
+    EditableOperation,
     GraphOperation,
     OperationChoice,
     ReplaceStrategyOp,
@@ -21,6 +24,8 @@ from pathfinder.domain.strategy.operations.types import (
 )
 
 __all__ = [
+    "EDITABLE_KINDS",
+    "KINDS_A_BATCH_REFUSES",
     "AddCombineOp",
     "AddLeafOp",
     "AddTransformOp",
@@ -31,6 +36,7 @@ __all__ = [
     "DeleteResolution",
     "DeleteStepOp",
     "DuplicateStepOp",
+    "EditableOperation",
     "GraphOperation",
     "OperationChoice",
     "ReplaceStrategyOp",

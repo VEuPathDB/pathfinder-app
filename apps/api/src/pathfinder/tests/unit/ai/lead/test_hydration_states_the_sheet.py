@@ -11,13 +11,26 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
+from assistant_core.graph.turn_state import PendingApproval
 from veupathdb.domain.parameters import StringValue
-from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
+from veupathdb.domain.strategy import (
+    COMBINE_SEARCH_NAME,
+    CombineOp,
+    StrategyStepNode,
+    flatten_tree,
+)
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead import pre_turn
 from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+    structure_criteria,
+)
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.database import no_database
 
@@ -84,3 +97,165 @@ async def test_a_hidden_parameter_is_not_stated_by_the_derived_criterion() -> No
     assert criterion.resolved_params["profileset_generic"] == StringValue(
         value="Pfal3D7 Su seven stages"
     )
+
+
+def _split_spec_session() -> StrategySession:
+    """A strategy of three leaves, one of which the spec will not name."""
+    session = StrategySession(site_id="plasmodb")
+    graph = StrategyGraph(graph_id="g1", name="Essential kinases", site_id="plasmodb")
+    graph.record_type = "transcript"
+    graph.steps = flatten_tree(
+        StrategyStepNode(
+            id="step_c2",
+            search_name=COMBINE_SEARCH_NAME,
+            operator=CombineOp.INTERSECT,
+            primary_input=StrategyStepNode(
+                id="step_c1",
+                search_name=COMBINE_SEARCH_NAME,
+                operator=CombineOp.INTERSECT,
+                primary_input=StrategyStepNode(
+                    id="step_kinase", search_name="GenesByInterproDomain"
+                ),
+                secondary_input=StrategyStepNode(
+                    id="step_export",
+                    search_name=_SEARCH,
+                    display_name="berghei subset",
+                    parameters={
+                        "profileset_generic": StringValue(value="Pfal3D7"),
+                        "dataset_url": StringValue(value=_DATASET_URL),
+                    },
+                ),
+            ),
+            secondary_input=StrategyStepNode(
+                id="step_ortholog", search_name="GenesByOrthologPattern"
+            ),
+        ),
+    )
+    graph.recompute_roots()
+    session.graph = graph
+    return session
+
+
+def _spec_without_the_export() -> OperationalSpec:
+    return OperationalSpec(
+        goal="essential kinases",
+        criteria=[
+            Criterion(
+                id="step_kinase", text="PF00069", search_name="GenesByInterproDomain"
+            ),
+            Criterion(
+                id="step_ortholog",
+                text="no human ortholog",
+                search_name="GenesByOrthologPattern",
+            ),
+        ],
+        structure=SpecStructure(
+            root=StructureNode(
+                kind="combine",
+                operator=CombineOp.INTERSECT,
+                inputs=[
+                    StructureNode(kind="leaf", criterion_id="step_kinase"),
+                    StructureNode(kind="leaf", criterion_id="step_ortholog"),
+                ],
+            ),
+        ),
+    )
+
+
+@pytest.mark.usefixtures("sheet")
+async def test_a_live_step_the_spec_left_out_is_stated_before_the_turn_edits() -> None:
+    """A step no criterion names is one the next edit would silently remove."""
+    state = _state()
+    state.domain.operational_spec = _spec_without_the_export()
+
+    refreshed = await refresh_live_strategy_state(
+        state, _context(_split_spec_session())
+    )
+
+    spec = refreshed.domain.operational_spec
+    assert spec is not None
+    assert sorted(c.id for c in spec.criteria) == [
+        "step_export",
+        "step_kinase",
+        "step_ortholog",
+    ]
+    assert structure_criteria(spec.structure) == {
+        "step_kinase",
+        "step_export",
+        "step_ortholog",
+    }
+    before = refreshed.domain.spec_before_turn
+    assert before is not None
+    assert structure_criteria(before.structure) == structure_criteria(spec.structure)
+
+
+@pytest.mark.usefixtures("sheet")
+async def test_the_stated_step_carries_the_sheet_parameters_only() -> None:
+    state = _state()
+    state.domain.operational_spec = _spec_without_the_export()
+
+    refreshed = await refresh_live_strategy_state(
+        state, _context(_split_spec_session())
+    )
+
+    spec = refreshed.domain.operational_spec
+    assert spec is not None
+    export = next(c for c in spec.criteria if c.id == "step_export")
+    assert export.text == "berghei subset"
+    assert export.resolved_params == {
+        "profileset_generic": StringValue(value="Pfal3D7")
+    }
+
+
+@pytest.mark.usefixtures("sheet")
+async def test_a_structure_the_strategy_has_not_built_is_left_alone() -> None:
+    """A framed criterion with no step is a plan, not a step left out."""
+    state = _state()
+    spec = _spec_without_the_export()
+    spec.criteria.append(
+        Criterion(id="c_planned", text="secreted", search_name="GenesBySignalPeptide")
+    )
+    spec.structure = SpecStructure(
+        root=StructureNode(
+            kind="combine",
+            operator=CombineOp.INTERSECT,
+            inputs=[
+                StructureNode(kind="leaf", criterion_id="step_kinase"),
+                StructureNode(kind="leaf", criterion_id="c_planned"),
+            ],
+        ),
+    )
+    state.domain.operational_spec = spec
+
+    refreshed = await refresh_live_strategy_state(
+        state, _context(_split_spec_session())
+    )
+
+    stated = refreshed.domain.operational_spec
+    assert stated is not None
+    assert structure_criteria(stated.structure) == {"step_kinase", "c_planned"}
+
+
+@pytest.mark.usefixtures("sheet")
+async def test_a_turn_that_resumes_a_parked_call_keeps_the_parked_spec() -> None:
+    """The parked delete is removing that criterion, so the turn never restates it."""
+    state = _state()
+    parked = _spec_without_the_export()
+    parked.criteria = [c for c in parked.criteria if c.id != "step_ortholog"]
+    parked.structure = SpecStructure(
+        root=StructureNode(kind="leaf", criterion_id="step_kinase"),
+    )
+    state.domain.operational_spec = parked
+    state.domain.spec_before_turn = parked.model_copy(deep=True)
+    state.pending_approval = PendingApproval(
+        phase="lead", tool_call_id="call_delete", tool_name="delete_step"
+    )
+
+    refreshed = await refresh_live_strategy_state(
+        state, _context(_split_spec_session())
+    )
+
+    spec = refreshed.domain.operational_spec
+    assert spec is not None
+    assert [c.id for c in spec.criteria] == ["step_kinase"]
+    assert structure_criteria(spec.structure) == {"step_kinase"}

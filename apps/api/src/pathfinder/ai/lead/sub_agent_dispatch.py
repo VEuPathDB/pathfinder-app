@@ -6,6 +6,8 @@ build re-enters.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
@@ -39,6 +41,8 @@ from pathfinder.domain.strategy.operational_spec import (
     renumber_criteria,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
+from pathfinder.domain.strategy.revision import strategy_revision
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
@@ -138,6 +142,8 @@ async def run_recovery(
         "Return a RecoveryDelta with actions_taken and final_outcome.",
     ]
     work_order = "\n".join(work_order_parts)
+    session = deps.runtime.strategy_session
+    before = _written_strategy(session)
     agent_deps = agent_deps_for(deps)
     streamed = await stream_sub_agent(
         run=PhaseRun("execution", work_order),
@@ -151,7 +157,11 @@ async def run_recovery(
         return streamed
     apply_agent_state(deps, agent_deps)
     delta = streamed if streamed is not None else RecoveryDelta()
-    deps.state.record_build(await _resync_outcome(agent_deps, outcome))
+    resynced = await _resync_outcome(agent_deps, outcome)
+    if _written_strategy(session) == before:
+        deps.state.record_resync(resynced)
+    else:
+        deps.state.record_build(resynced)
     return delta
 
 
@@ -176,6 +186,25 @@ async def recover_failed_steps(
     if isinstance(result, SubAgentApprovalWait):
         defer_dispatch(ctx.deps, tool_call_id, result)
     return result
+
+
+@dataclass(frozen=True)
+class _WrittenStrategy:
+    """What the thread plans and what VEuPathDB holds of it.
+
+    A pass that leaves both alone wrote nothing, whatever it reported.
+    """
+
+    revision: str
+    wdk_step_ids: tuple[tuple[str, int], ...]
+
+
+def _written_strategy(session: StrategySession) -> _WrittenStrategy:
+    graph = session.get_graph(None)
+    return _WrittenStrategy(
+        revision="" if graph is None else strategy_revision(graph.to_strategy_ast()),
+        wdk_step_ids=tuple(sorted(ensure_sync_state(session).wdk_step_ids.items())),
+    )
 
 
 async def _resync_outcome(agent_deps: AgentDeps, prior: BuildOutcome) -> BuildOutcome:

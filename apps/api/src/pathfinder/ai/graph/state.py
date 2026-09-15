@@ -152,14 +152,31 @@ class TurnMarkers(CamelModel):
     intent_classified: bool = False
     framed: bool = False
     built: bool = False
+    # A write this turn made outside a build: a clear, or an export the site
+    # did not take.
+    edited: bool = False
     verified: bool = False
     verification_dispatched: bool = False
     verification_nudged: bool = False
+    change_report_refused: bool = False
+    eda_route_refused: bool = False
+    # The EDA datasets this turn opened an analysis on.
+    eda_datasets_opened: list[str] = Field(default_factory=list)
     # The EDA cut this turn exported, which the turn's case records.
     eda_export: EdaExport | None = None
     # Every enrichment answered under this message, in the order the workers
     # answered them. A reply reads it to say which set an analysis ran on.
     enrichment_runs: list[EnrichmentRun] = Field(default_factory=list)
+
+    @property
+    def changed_strategy(self) -> bool:
+        """Whether this turn wrote to the strategy."""
+        return self.built or self.edited
+
+    def record_eda_dataset_opened(self, dataset_id: str) -> None:
+        """Record the dataset this turn opened an analysis on, once."""
+        if dataset_id not in self.eda_datasets_opened:
+            self.eda_datasets_opened.append(dataset_id)
 
     def record_enrichment_runs(self, runs: Iterable[EnrichmentRun]) -> None:
         """Add each answered enrichment once, keyed by its task."""
@@ -416,8 +433,12 @@ class PipelineState(TurnState):
         """What the Lead already did for the message this turn answers."""
         return self.domain.markers_for(self.user_message_id)
 
-    def record_build(self, outcome: BuildOutcome) -> None:
-        """Take the build this turn produced, and the searches it emptied."""
+    def record_resync(self, outcome: BuildOutcome) -> None:
+        """Take the counts a sync read, and the searches it found empty."""
         self.domain.last_build_outcome = outcome
         self.domain.record_zero_results(outcome)
+
+    def record_build(self, outcome: BuildOutcome) -> None:
+        """Take the build this turn produced, and the searches it emptied."""
+        self.record_resync(outcome)
         self.turn_markers.built = True

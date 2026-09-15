@@ -9,76 +9,35 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Sequence
 
 import pytest
-from pydantic_ai import RunContext, Tool
+from pydantic_ai import Tool
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.parameters import StringValue
-from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
-from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.strategy import apply_operations, build_strategy
 from pathfinder.ai.tools.toolsets.execution import build_toolset
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operations import GraphOperation, UpdateStepMetaOp
 from pathfinder.domain.strategy.operations.apply import ApplyError
-from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync_state import WDKSyncState
-from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
+from pathfinder.tests._support.operations import editable_models
+from pathfinder.tests.unit.ai.tools._apply_operations_stubs import (
+    context_and_commit,
+    graph_with,
+    leaf,
+    pin_apply,
+    revision_of,
+)
+from pathfinder.tests.unit.ai.tools.conftest import unwrap_function_toolset
 
-Commit = Callable[..., Awaitable[CommitResult]]
 Build = Callable[..., Awaitable[BuildOutcome]]
-
-
-def _leaf(step_id: str, display: str | None = None) -> StrategyStepNode:
-    return StrategyStepNode(
-        id=step_id,
-        search_name="GenesByTaxon",
-        display_name=display,
-        parameters={"organism": StringValue(value="Pf3D7")},
-    )
-
-
-def _ctx(
-    graph: StrategyGraph, committed: list[list[GraphOperation]]
-) -> tuple[RunContext[AgentDeps], Commit]:
-    session = StrategySession(site_id="plasmodb")
-    session.add_graph(graph)
-    session.sync_state = WDKSyncState()
-
-    async def _commit(
-        *, deps: StrategyMutationContext, ops: Sequence[GraphOperation]
-    ) -> CommitResult:
-        del deps
-        committed.append(list(ops))
-        return CommitResult(description="applied")
-
-    return agent_run_context(strategy_session=session), _commit
-
-
-def _graph_with(node: StrategyStepNode) -> StrategyGraph:
-    g = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
-    g.record_type = "transcript"
-    g.steps.update(flatten_tree(node))
-    g.recompute_roots()
-    return g
-
-
-def _revision_of(graph: StrategyGraph) -> str:
-    return strategy_revision(graph.to_strategy_ast())
 
 
 def _outcome() -> BuildOutcome:
     return BuildOutcome(wdk_strategy_id=1, root_count=0)
-
-
-def _pin_apply(monkeypatch: pytest.MonkeyPatch, commit: Commit) -> None:
-    monkeypatch.setattr(
-        "pathfinder.ai.tools.standalone.strategy.apply_operations_and_commit",
-        commit,
-    )
 
 
 def _pin_build(monkeypatch: pytest.MonkeyPatch, build: Build) -> None:
@@ -92,14 +51,14 @@ class TestRevisionPrecondition:
     async def test_a_matching_revision_applies_the_operations(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        graph = _graph_with(_leaf("step_a"))
+        graph = graph_with(leaf("step_a"))
         committed: list[list[GraphOperation]] = []
-        ctx, commit = _ctx(graph, committed)
-        _pin_apply(monkeypatch, commit)
+        ctx, commit = context_and_commit(graph, committed)
+        pin_apply(monkeypatch, commit)
 
         await apply_operations(
             ctx,
-            base_revision=_revision_of(graph),
+            base_revision=revision_of(graph),
             operations=[UpdateStepMetaOp(step_id="step_a", display_name="Kinases")],
         )
 
@@ -109,10 +68,10 @@ class TestRevisionPrecondition:
     async def test_a_stale_revision_is_refused(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        graph = _graph_with(_leaf("step_a"))
+        graph = graph_with(leaf("step_a"))
         committed: list[list[GraphOperation]] = []
-        ctx, commit = _ctx(graph, committed)
-        _pin_apply(monkeypatch, commit)
+        ctx, commit = context_and_commit(graph, committed)
+        pin_apply(monkeypatch, commit)
 
         with pytest.raises(ModelRetry):
             await apply_operations(
@@ -128,9 +87,9 @@ class TestRevisionPrecondition:
     ) -> None:
         """The refusal carries the current revision, so a retry needs no extra
         read."""
-        graph = _graph_with(_leaf("step_a"))
-        ctx, commit = _ctx(graph, [])
-        _pin_apply(monkeypatch, commit)
+        graph = graph_with(leaf("step_a"))
+        ctx, commit = context_and_commit(graph, [])
+        pin_apply(monkeypatch, commit)
 
         with pytest.raises(ModelRetry) as caught:
             await apply_operations(
@@ -139,18 +98,18 @@ class TestRevisionPrecondition:
                 operations=[UpdateStepMetaOp(step_id="step_a", display_name="x")],
             )
 
-        assert _revision_of(graph) in str(caught.value)
+        assert revision_of(graph) in str(caught.value)
 
     async def test_a_human_edit_between_turns_blocks_the_write(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A parameter change between the read and the write blocks the
         write."""
-        graph = _graph_with(_leaf("step_a"))
-        seen_by_model = _revision_of(graph)
+        graph = graph_with(leaf("step_a"))
+        seen_by_model = revision_of(graph)
         committed: list[list[GraphOperation]] = []
-        ctx, commit = _ctx(graph, committed)
-        _pin_apply(monkeypatch, commit)
+        ctx, commit = context_and_commit(graph, committed)
+        pin_apply(monkeypatch, commit)
 
         graph.steps["step_a"].parameters = {
             "organism": StringValue(value="P. vivax P01")
@@ -173,11 +132,11 @@ class TestRevisionPrecondition:
     ) -> None:
         """The fingerprint excludes counts, so a fresh count keeps a held
         revision valid."""
-        graph = _graph_with(_leaf("step_a"))
-        before = _revision_of(graph)
+        graph = graph_with(leaf("step_a"))
+        before = revision_of(graph)
         committed: list[list[GraphOperation]] = []
-        ctx, commit = _ctx(graph, committed)
-        _pin_apply(monkeypatch, commit)
+        ctx, commit = context_and_commit(graph, committed)
+        pin_apply(monkeypatch, commit)
 
         ctx.deps.strategy_session.sync_state = WDKSyncState(
             step_counts={"step_a": 412}, wdk_step_ids={"step_a": 100}
@@ -196,10 +155,10 @@ class TestRevisionPrecondition:
     ) -> None:
         graph = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
         committed: list[list[GraphOperation]] = []
-        ctx, commit = _ctx(graph, committed)
-        _pin_apply(monkeypatch, commit)
+        ctx, commit = context_and_commit(graph, committed)
+        pin_apply(monkeypatch, commit)
 
-        assert _revision_of(graph) == ""
+        assert revision_of(graph) == ""
 
         with pytest.raises(ModelRetry):
             await apply_operations(
@@ -213,15 +172,13 @@ class TestOperationListValidation:
     async def test_an_empty_operation_list_is_refused(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        graph = _graph_with(_leaf("step_a"))
+        graph = graph_with(leaf("step_a"))
         committed: list[list[GraphOperation]] = []
-        ctx, commit = _ctx(graph, committed)
-        _pin_apply(monkeypatch, commit)
+        ctx, commit = context_and_commit(graph, committed)
+        pin_apply(monkeypatch, commit)
 
         with pytest.raises(ModelRetry):
-            await apply_operations(
-                ctx, base_revision=_revision_of(graph), operations=[]
-            )
+            await apply_operations(ctx, base_revision=revision_of(graph), operations=[])
 
         assert committed == []
 
@@ -232,8 +189,8 @@ class TestBuildStrategyNoLongerClobbersSilently:
     ) -> None:
         """A whole-graph replacement over an existing strategy needs the
         revision."""
-        graph = _graph_with(_leaf("step_a"))
-        ctx, _commit = _ctx(graph, [])
+        graph = graph_with(leaf("step_a"))
+        ctx, _commit = context_and_commit(graph, [])
         built: list[dict[str, object]] = []
 
         async def _build(**kwargs: object) -> BuildOutcome:
@@ -244,28 +201,28 @@ class TestBuildStrategyNoLongerClobbersSilently:
         _pin_build(monkeypatch, _build)
 
         with pytest.raises(ModelRetry):
-            await build_strategy(ctx, root=_leaf("step_b"))
+            await build_strategy(ctx, root=leaf("step_b"))
 
         assert built == []
 
     async def test_the_conflict_points_at_the_cheaper_tool(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        graph = _graph_with(_leaf("step_a"))
-        ctx, _commit = _ctx(graph, [])
+        graph = graph_with(leaf("step_a"))
+        ctx, _commit = context_and_commit(graph, [])
 
         with pytest.raises(ModelRetry) as caught:
-            await build_strategy(ctx, root=_leaf("step_b"))
+            await build_strategy(ctx, root=leaf("step_b"))
 
         assert "apply_operations" in str(caught.value)
-        assert _revision_of(graph) in str(caught.value)
+        assert revision_of(graph) in str(caught.value)
 
     async def test_an_empty_strategy_needs_no_revision(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A build over an empty strategy overwrites nothing."""
         graph = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
-        ctx, _commit = _ctx(graph, [])
+        ctx, _commit = context_and_commit(graph, [])
         built: list[dict[str, object]] = []
 
         async def _build(**kwargs: object) -> BuildOutcome:
@@ -274,7 +231,7 @@ class TestBuildStrategyNoLongerClobbersSilently:
 
         _pin_build(monkeypatch, _build)
 
-        await build_strategy(ctx, root=_leaf("step_a"))
+        await build_strategy(ctx, root=leaf("step_a"))
 
         assert len(built) == 1
 
@@ -283,7 +240,7 @@ class TestBuildStrategyNoLongerClobbersSilently:
     ) -> None:
         """A strategy that returns no genes is the failure the reader must see."""
         graph = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
-        ctx, _commit = _ctx(graph, [])
+        ctx, _commit = context_and_commit(graph, [])
 
         async def _build(**kwargs: object) -> BuildOutcome:
             del kwargs
@@ -291,7 +248,7 @@ class TestBuildStrategyNoLongerClobbersSilently:
 
         _pin_build(monkeypatch, _build)
 
-        returned = await build_strategy(ctx, root=_leaf("step_a"))
+        returned = await build_strategy(ctx, root=leaf("step_a"))
 
         summaries = [
             (chunk.data["summary"], chunk.data["status"])
@@ -305,7 +262,7 @@ class TestBuildStrategyNoLongerClobbersSilently:
     ) -> None:
         """A root whose push failed carries no number, so the build reports none."""
         graph = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
-        ctx, _commit = _ctx(graph, [])
+        ctx, _commit = context_and_commit(graph, [])
 
         async def _build(**kwargs: object) -> BuildOutcome:
             del kwargs
@@ -313,7 +270,7 @@ class TestBuildStrategyNoLongerClobbersSilently:
 
         _pin_build(monkeypatch, _build)
 
-        returned = await build_strategy(ctx, root=_leaf("step_a"))
+        returned = await build_strategy(ctx, root=leaf("step_a"))
 
         summaries = [
             (chunk.data["summary"], chunk.data["status"])
@@ -325,8 +282,8 @@ class TestBuildStrategyNoLongerClobbersSilently:
     async def test_the_matching_revision_allows_a_deliberate_replacement(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        graph = _graph_with(_leaf("step_a"))
-        ctx, _commit = _ctx(graph, [])
+        graph = graph_with(leaf("step_a"))
+        ctx, _commit = context_and_commit(graph, [])
         built: list[dict[str, object]] = []
 
         async def _build(**kwargs: object) -> BuildOutcome:
@@ -335,9 +292,7 @@ class TestBuildStrategyNoLongerClobbersSilently:
 
         _pin_build(monkeypatch, _build)
 
-        await build_strategy(
-            ctx, root=_leaf("step_b"), base_revision=_revision_of(graph)
-        )
+        await build_strategy(ctx, root=leaf("step_b"), base_revision=revision_of(graph))
 
         assert len(built) == 1
 
@@ -348,8 +303,8 @@ class TestRejectedBatchesAreRetryable:
     ) -> None:
         """An apply error becomes a retry, so the model can correct the
         operation."""
-        graph = _graph_with(_leaf("step_a"))
-        ctx, _commit = _ctx(graph, [])
+        graph = graph_with(leaf("step_a"))
+        ctx, _commit = context_and_commit(graph, [])
 
         async def _boom(
             *, deps: StrategyMutationContext, ops: Sequence[GraphOperation]
@@ -358,12 +313,12 @@ class TestRejectedBatchesAreRetryable:
             msg = "step 'ghost' not found"
             raise ApplyError(msg)
 
-        _pin_apply(monkeypatch, _boom)
+        pin_apply(monkeypatch, _boom)
 
         with pytest.raises(ModelRetry) as caught:
             await apply_operations(
                 ctx,
-                base_revision=_revision_of(graph),
+                base_revision=revision_of(graph),
                 operations=[UpdateStepMetaOp(step_id="ghost", display_name="x")],
             )
 
@@ -373,8 +328,8 @@ class TestRejectedBatchesAreRetryable:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A rejected batch rolls back, so the same revision stays valid."""
-        graph = _graph_with(_leaf("step_a"))
-        ctx, _commit = _ctx(graph, [])
+        graph = graph_with(leaf("step_a"))
+        ctx, _commit = context_and_commit(graph, [])
 
         async def _boom(
             *, deps: StrategyMutationContext, ops: Sequence[GraphOperation]
@@ -383,9 +338,9 @@ class TestRejectedBatchesAreRetryable:
             msg = "nope"
             raise ApplyError(msg)
 
-        _pin_apply(monkeypatch, _boom)
+        pin_apply(monkeypatch, _boom)
 
-        revision = _revision_of(graph)
+        revision = revision_of(graph)
         with pytest.raises(ModelRetry) as caught:
             await apply_operations(
                 ctx,
@@ -394,23 +349,6 @@ class TestRejectedBatchesAreRetryable:
             )
 
         assert revision in str(caught.value)
-
-
-_OPERATION_KINDS = frozenset(
-    {
-        "AddLeafOp",
-        "AddCombineOp",
-        "AddTransformOp",
-        "DuplicateStepOp",
-        "DeleteStepOp",
-        "DeleteEdgeOp",
-        "UpdateStepParamsOp",
-        "UpdateCombineOperatorOp",
-        "UpdateStepMetaOp",
-        "UpdateStrategyMetaOp",
-        "WireInputOp",
-    }
-)
 
 
 class TestToolSchema:
@@ -422,24 +360,17 @@ class TestToolSchema:
         assert "base_revision" in schema["properties"]
         assert "operations" in schema["properties"]
 
-    def test_every_operation_kind_reaches_the_model(self) -> None:
+    def test_the_model_reads_every_editable_operation_and_no_other(self) -> None:
+        """The schema and the union are one list, read from the union itself."""
         schema = Tool(apply_operations).function_schema.json_schema
         defs = schema.get("$defs", {})
+        offered = {
+            name for name, spec in defs.items() if "kind" in spec.get("properties", {})
+        }
 
-        assert sorted(_OPERATION_KINDS - set(defs)) == []
+        assert offered == {model.__name__ for model in editable_models()}
 
     def test_the_tool_is_registered_on_the_execution_toolset(self) -> None:
-        names: list[str] = []
+        toolset = unwrap_function_toolset(build_toolset())
 
-        def collect(toolset: object) -> None:
-            tools = getattr(toolset, "tools", None)
-            if tools is not None:
-                names.extend(tools)
-            for attr in ("wrapped", "toolset", "_toolset"):
-                inner = getattr(toolset, attr, None)
-                if inner is not None:
-                    collect(inner)
-
-        collect(build_toolset())
-
-        assert "apply_operations" in names
+        assert "apply_operations" in toolset.tools

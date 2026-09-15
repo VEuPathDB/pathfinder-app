@@ -57,6 +57,9 @@ class DroppedCriterion(CamelModel):
 
     text: str
     reason: str
+    # The EDA dataset the criterion is realized from, when its search is
+    # EDA-backed. The Lead builds those with its EDA tools.
+    eda_dataset_id: str | None = None
 
 
 class StructureNode(CamelModel):
@@ -157,6 +160,13 @@ class SpecTree(NamedTuple):
 
     root: StrategyStepNode
     step_id_by_criterion: dict[str, str]
+
+
+def eda_backed_drops(spec: OperationalSpec | None) -> list[DroppedCriterion]:
+    """Every dropped criterion the Lead's EDA tools realize, in drop order."""
+    if spec is None:
+        return []
+    return [dropped for dropped in spec.dropped if dropped.eda_dataset_id]
 
 
 def structure_criteria(structure: SpecStructure | None) -> frozenset[str]:

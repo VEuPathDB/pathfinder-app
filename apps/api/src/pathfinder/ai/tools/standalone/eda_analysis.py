@@ -105,6 +105,7 @@ async def open_eda_analysis(
         dataset_id=dataset_id,
         analysis_id=state.analysis_id,
     )
+    ctx.deps.state.turn_markers.record_eda_dataset_opened(dataset_id)
     opened = EdaAnalysisOpened(
         analysis_id=state.analysis_id,
         dataset_id=dataset_id,

@@ -105,3 +105,35 @@ def test_the_lead_is_told_to_route_an_edit_to_the_edit_tool() -> None:
     assert "the pinned Operational Spec has criteria, call ``edit_strategy``" in _flat(
         LEAD_INSTRUCTIONS
     )
+
+
+def _eda_section() -> str:
+    return LEAD_INSTRUCTIONS[
+        LEAD_INSTRUCTIONS.index("## EDA: sample-level data") : LEAD_INSTRUCTIONS.index(
+            "## User-facing voice"
+        )
+    ]
+
+
+def test_the_export_can_take_the_place_of_a_step_already_held() -> None:
+    assert "replace_step_id" in _flat(_eda_section())
+
+
+def test_an_eda_backed_criterion_never_reaches_the_framing_tools() -> None:
+    section = _flat(_eda_section())
+
+    assert "do NOT route it through frame_problem or build_strategy" in section
+
+
+def test_the_user_is_never_asked_for_an_analysis_specification() -> None:
+    section = _flat(_eda_section())
+
+    assert "Never ask the user for an analysis specification" in section
+    assert "create_eda_step writes it" in section
+
+
+def test_the_lead_removes_a_step_with_the_delete_tool() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert "A step the user wants gone is removed with ``delete_step``" in instructions
+    assert "Never dispatch a framing or building pass to remove a step" in instructions

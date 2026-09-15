@@ -109,7 +109,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_signal_peptide",
             "parameters": {
-              "organism": "[\"Leishmania major strain Friedlin\"]"
+              "organism": "[\"Leishmania major strain Friedlin\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           },
@@ -249,7 +250,8 @@
           "displayName": "Signal Peptide",
           "id": "leaf_signal_tb",
           "parameters": {
-            "organism": "[\"Trypanosoma brucei brucei TREU927\"]"
+            "organism": "[\"Trypanosoma brucei brucei TREU927\"]",
+            "signalp_version": "SignalP-6.0"
           },
           "searchName": "GenesWithSignalPeptide"
         }
@@ -377,7 +379,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_sp_lm2",
             "parameters": {
-              "organism": "[\"Leishmania major strain Friedlin\"]"
+              "organism": "[\"Leishmania major strain Friedlin\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           },

@@ -262,9 +262,27 @@ def _apply_duplicate_step(
     return ApplyResult(description=f"Duplicated {op.source_step_id}")
 
 
+def _refuse_a_wire_that_loops(graph: StrategyGraph, op: WireInputOp) -> None:
+    """A step never reads its own output, directly or through a step it feeds.
+
+    A loop leaves a tree no reader can walk, and the strategy cannot be read
+    back at all once one is written.
+    """
+    if op.source_step_id == op.target_step_id:
+        msg = f"{op.target_step_id} cannot take its own output as an input"
+        raise ApplyError(msg)
+    if op.target_step_id in subtree_ids(op.source_step_id, graph.steps):
+        msg = (
+            f"{op.source_step_id} already reads {op.target_step_id}, so wiring "
+            f"it into {op.target_step_id} would make a loop"
+        )
+        raise ApplyError(msg)
+
+
 def _apply_wire_input(graph: StrategyGraph, op: WireInputOp) -> ApplyResult:
     target = _require(graph, op.target_step_id, "target step")
     _require(graph, op.source_step_id, "source step")
+    _refuse_a_wire_that_loops(graph, op)
     _set_input_slot(target, op.slot, op.source_step_id)
     if target.primary_input_id and target.secondary_input_id:
         target.kind = StepKind.COMBINE

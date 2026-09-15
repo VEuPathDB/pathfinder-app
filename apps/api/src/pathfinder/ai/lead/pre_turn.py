@@ -16,6 +16,7 @@ from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.spec_hydration import (
     hidden_params_dropped,
     spec_from_ast,
+    spec_stating_every_step,
 )
 from pathfinder.domain.strategy.spec_reconciliation import spec_reconciled_with_graph
 from pathfinder.domain.strategy.staleness import detect_build_staleness
@@ -101,6 +102,7 @@ async def refresh_live_strategy_state(
     )
     _drop_the_criteria_the_strategy_lost(working_state, context)
     await _hydrate_spec_from_the_strategy(working_state, context)
+    await _state_every_step_the_strategy_holds(working_state, context)
     _record_the_spec_the_turn_started_from(working_state)
     return working_state
 
@@ -128,6 +130,39 @@ def _drop_the_criteria_the_strategy_lost(
         if outcome is None
         else {node.node_id for node in outcome.node_results},
     )
+
+
+async def _state_every_step_the_strategy_holds(
+    state: PipelineState, context: Context
+) -> None:
+    """State a criterion for every live step the spec leaves out.
+
+    An edit is planned against the structure the spec states, so a step it
+    leaves out is one the next edit removes without being asked to. A turn
+    that resumes a parked call keeps the spec that turn reached, which is
+    already the spec the parked call is answered against.
+    """
+    if state.resumes_parked_call:
+        return
+    spec = state.domain.operational_spec
+    graph = context.strategy_session.get_graph(None)
+    if spec is None or not spec.criteria or graph is None:
+        return
+    ast = graph.to_strategy_ast(sync_state=context.strategy_session.sync_state)
+    if ast is None:
+        return
+    stated = spec_stating_every_step(spec, ast)
+    added = {c.id for c in stated.criteria} - {c.id for c in spec.criteria}
+    if not added:
+        return
+    sheets = await sheet_params_for_searches(
+        site_id=context.site_id,
+        record_type=ast.record_type,
+        search_names=[
+            c.search_name for c in stated.criteria if c.id in added and c.search_name
+        ],
+    )
+    state.domain.operational_spec = hidden_params_dropped(stated, sheet_params=sheets)
 
 
 def _record_the_spec_the_turn_started_from(state: PipelineState) -> None:

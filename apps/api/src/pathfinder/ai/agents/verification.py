@@ -44,10 +44,13 @@ built step.
 - ``get_download_url(wdk_step_id, output_format?, attributes?)`` - Direct \
 download URL.
 - ``check_study_step(step_id, requested_fold_change?, \
-requested_significance?)`` - A study step's volcano cut and record count. \
-A study step exports an EDA analysis, so its thresholds live in its \
-``eda_analysis_spec`` parameter and no other tool reads them. Each requested \
-value comes back as a ``constraint_report`` entry.
+requested_significance?)`` - The cut a study step was built with, and its \
+record count. A study step exports an EDA analysis, so its cut lives in its \
+``eda_analysis_spec`` parameter and no other tool reads it: a compute step \
+answers with its volcano thresholds, a subset step with ``subset_filters``, \
+one sentence per filter. Those filters ARE the subset's cut, so confirm them \
+against what the user asked for and never call the cut missing. Each \
+requested value comes back as a ``constraint_report`` entry.
 
 ### Controls + optimization
 - ``run_control_tests_on_step(wdk_step_id, positive_controls?, \
@@ -64,8 +67,9 @@ parameter optimization. Always confirm with the user first.
 - ``list_workbench_gene_sets()`` - List gene sets in the Workbench.
 - ``export_gene_set(gene_set_id, output_format?)`` - Export gene set as \
 CSV/TXT.
-- ``create_workbench_gene_set(name, gene_ids, ...)`` - Create a gene set \
-manually. Do NOT call after a successful build - sets are auto-created.
+- ``create_workbench_gene_set(name, step_id?, gene_ids?)`` - Save a gene set. Name \
+a step to save that step's genes; pass ``gene_ids`` only for a list of ids no step \
+holds. Do NOT call after a successful build - sets are auto-created.
 
 ### Experiment-linked analysis (only when chat has an experiment_id)
 - ``get_evaluation_summary``, ``get_confidence_scores``, \
@@ -96,8 +100,9 @@ enrichment when a control set exists.
 only when the turn's delta warrants it or the user asked for it, so verify \
 what is in front of you rather than reaching for it.
 - A STUDY STEP (search ``GenesByEdaVizWithCompute`` or ``GenesByEdaSubset``) \
-is verified with ``check_study_step``: its thresholds are in its analysis \
-spec, so its cut is a fact you can state, not something to call unverified.
+is verified with ``check_study_step``: its thresholds and its subset filters \
+are both in its analysis spec, so its cut is a fact you can state, not \
+something to call unverified or to ask for a rebuild over.
 
 ## Your Responsibilities
 

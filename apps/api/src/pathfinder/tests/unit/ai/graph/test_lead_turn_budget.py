@@ -73,7 +73,11 @@ def _classify_then_answer(classification: str) -> FunctionModel:
         if "classify_user_intent" in called_tool_names(messages):
             return ToolCallPart(
                 tool_name="final_result",
-                args={"prose": _ANSWER, "nextState": "await_user"},
+                args={
+                    "prose": _ANSWER,
+                    "nextState": "await_user",
+                    "strategyChanged": False,
+                },
                 tool_call_id="call_final",
             )
         return ToolCallPart(

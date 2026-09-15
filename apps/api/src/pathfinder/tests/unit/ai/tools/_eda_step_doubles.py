@@ -100,7 +100,12 @@ async def read_detail_with_computation(
     return analysis_detail(with_computation=True)
 
 
-def recording_commit(applied: list[Any], *, wdk_url: str | None = None) -> Commit:
+def recording_commit(
+    applied: list[Any],
+    *,
+    wdk_url: str | None = None,
+    dropped: list[str] | None = None,
+) -> Commit:
     """A commit that records the operations and reports a landed strategy."""
 
     async def commit(*, deps: object, ops: list[Any]) -> CommitResult:
@@ -108,6 +113,7 @@ def recording_commit(applied: list[Any], *, wdk_url: str | None = None) -> Commi
         applied.append(ops)
         return CommitResult(
             description="added a step",
+            dropped_step_ids=list(dropped or []),
             sync_result=SyncResult(
                 wdk_strategy_id=WDK_STRATEGY_ID,
                 wdk_url=wdk_url,

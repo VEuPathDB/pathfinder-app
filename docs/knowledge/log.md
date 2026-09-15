@@ -1,5 +1,50 @@
 # Log
 
+## 2026-09-15
+
+* **The Lead reaches every step it is asked to move.** `create_eda_step` joins an export to
+  the strategy in one call: `replace_step_id` takes a step's place, `attach_to_step_id` fills a
+  free combine input, and `combine_with_root` adds the export as the second input of a new
+  root combine over the current root (one two-operation commit), so an export is never left
+  detached when the strategy holds a step. The Lead has an approval-gated `delete_step`
+  (`ai/lead/lead_tools.py`) for a step the user wants gone, including a detached root; a
+  framing pass is never dispatched to remove a step. FRAME's refusal of an EDA-backed search
+  records the dropped criterion itself, keyed on the criterion id, with its dataset; the
+  pinned route block (`ai/lead/lead_pins.py`) orders the remaining criteria built first and
+  names the one export call that fits the live graph; an export that lands clears the drop it
+  answers, so the block and `refuse_an_unbuilt_eda_criterion` stop firing.
+
+## 2026-09-14
+
+* **A reply states whether this turn changed the strategy, and the runtime checks it.**
+  `LeadResponse.strategy_changed` (`ai/lead/lead_agent.py`) is a required field the Lead
+  fills on every answer; `refuse_a_misreported_change` compares it with the turn's write
+  markers (`TurnMarkers.built`, set by every build and resync that moved the strategy, and
+  `TurnMarkers.edited`, set by a clear) and refuses once in either direction: a claimed
+  change on a turn that wrote nothing, or a silent change the reply leaves out.
+  `run_recovery` fingerprints the strategy before and after the sub-agent (the revision hash
+  and the pushed WDK ids) and records a build only when that pair moved. Decision:
+  `decisions/a-reply-states-what-the-turn-wrote.md`.
+
+* **An EDA-backed criterion is never built empty, and an EDA export can replace a step.**
+  FRAME's `set_criterion` refuses a search that declares `eda_analysis_spec`
+  (`veupathdb_mcp.catalog.is_eda_backed`) on both its calls and tells FRAME to drop the
+  criterion with a reason naming the dataset; the pinned ledger summary now prints each
+  dropped criterion with its reason. The WDK push (`services/strategies/_wdk_step_calls.py`)
+  refuses a leaf create or patch whose `eda_analysis_spec` is empty before any site call, so
+  no path can build a step that answers a whole study and call it a filter.
+  `create_eda_step(replace_step_id=...)` writes a `ReplaceSubtreeOp`, so the export takes the
+  replaced step's slot in its combine, the replaced criteria leave the spec, and the Lead is
+  told never to ask the user for an analysis specification.
+
+* **A saved gene set holds the genes of the step it names.** `create_workbench_gene_set`
+  reads a step's ids from VEuPathDB (`services/gene_sets/step_genes.py`) when it is given a
+  step or nothing (the root); a pasted `gene_ids` list is saved as a paste with no WDK ids,
+  no search and no parameters, and a list beside a step is refused. A combine root stores no
+  search name, the shape the automatic root set already has, so the workbench Evaluate panel
+  scores the stored ids instead of re-running a leaf search. The workbench set header renders
+  each parameter through `formatParamValue` instead of `String(v)`.
+
 ## 2026-09-13
 
 * **The full-stack and integration tiers run on a pull request and once a night, never on a bare push to main.**

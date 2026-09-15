@@ -27,14 +27,21 @@ from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_messages import (
     analysis_ran_on_another_set_message,
     blamed_the_site_message,
+    claimed_change_message,
+    eda_criterion_not_built_message,
     off_topic_essay_message,
     unrecorded_question_message,
+    unreported_change_message,
     unverified_build_message,
 )
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
 from pathfinder.ai.lead.frame_dispatch import frame_problem
 from pathfinder.ai.lead.guarantees import machine_guarantees_pin
-from pathfinder.ai.lead.intent_gate import apply_tool_preconditions, turn_is_off_topic
+from pathfinder.ai.lead.intent_gate import (
+    apply_tool_preconditions,
+    turn_builds,
+    turn_is_off_topic,
+)
 from pathfinder.ai.lead.lead_consult import consult_user
 from pathfinder.ai.lead.lead_pins import (
     pinned_eda_sheet,
@@ -48,6 +55,7 @@ from pathfinder.ai.lead.lead_tools import (
     classify_user_intent,
     clear_strategy,
     create_workbench_gene_set,
+    delete_step,
     export_gene_set,
     get_live_strategy_state,
     list_workbench_gene_sets,
@@ -72,6 +80,10 @@ from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_sc
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
 from pathfinder.ai.tools.toolsets import eda
 from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.domain.strategy.operational_spec import (
+    DroppedCriterion,
+    eda_backed_drops,
+)
 from pathfinder.platform.refusals import agent_capabilities
 
 LeadTurnState = Literal["await_user", "complete"]
@@ -99,6 +111,14 @@ class LeadResponse(CamelModel):
         ),
     )
     next_state: LeadTurnState = "await_user"
+    strategy_changed: bool = Field(
+        description=(
+            "True when this turn built, edited, deleted, cleared, or exported "
+            "a step into the strategy. False when the strategy is as the turn "
+            "found it. The runtime checks this against what the turn actually "
+            "wrote."
+        ),
+    )
     asked_questions: list[OpenQuestion] = Field(
         default_factory=list,
         max_length=8,
@@ -136,6 +156,70 @@ def verify_what_this_turn_built(
     raise ModelRetry(
         unverified_build_message(ctx.deps.state.domain.last_build_outcome),
     )
+
+
+def refuse_a_misreported_change(
+    ctx: RunContext[LeadDeps],
+    output: LeadResponse | DeferredToolRequests,
+) -> LeadResponse | DeferredToolRequests:
+    """Refuse a reply whose account of a change is not what the turn wrote.
+
+    The turn's markers are the record: a turn that ran no write left the
+    strategy as it found it. The refusal is asked once per turn.
+    """
+    if not isinstance(output, LeadResponse):
+        return output
+    markers = ctx.deps.state.turn_markers
+    if markers.change_report_refused or output.strategy_changed == (
+        markers.changed_strategy
+    ):
+        return output
+    markers.change_report_refused = True
+    if markers.changed_strategy:
+        raise ModelRetry(unreported_change_message())
+    raise ModelRetry(claimed_change_message(ctx.deps.state.domain.last_build_outcome))
+
+
+def _unbuilt_eda_criterion(ctx: RunContext[LeadDeps]) -> DroppedCriterion | None:
+    """The dropped EDA criterion this turn opened no analysis for, or None.
+
+    An analysis the thread already holds open on that dataset counts: the
+    filters and the export act on it.
+    """
+    opened = set(ctx.deps.state.turn_markers.eda_datasets_opened)
+    analysis = ctx.deps.state.domain.open_eda_analysis
+    if analysis is not None:
+        opened.add(analysis.dataset_id)
+    return next(
+        (
+            dropped
+            for dropped in eda_backed_drops(ctx.deps.state.domain.operational_spec)
+            if dropped.eda_dataset_id not in opened
+        ),
+        None,
+    )
+
+
+def refuse_an_unbuilt_eda_criterion(
+    ctx: RunContext[LeadDeps],
+    output: LeadResponse | DeferredToolRequests,
+) -> LeadResponse | DeferredToolRequests:
+    """Refuse a reply that leaves an EDA-backed criterion to the user.
+
+    The framing pass drops such a criterion and only the EDA tools build it, so
+    an answer from a turn that opened no analysis on its dataset reports work
+    the turn did not attempt. It is asked once per turn, of a turn that builds.
+    """
+    if not isinstance(output, LeadResponse):
+        return output
+    markers = ctx.deps.state.turn_markers
+    if markers.eda_route_refused or not turn_builds(ctx.deps):
+        return output
+    pending = _unbuilt_eda_criterion(ctx)
+    if pending is None:
+        return output
+    markers.eda_route_refused = True
+    raise ModelRetry(eda_criterion_not_built_message(pending))
 
 
 def refuse_blaming_the_site(
@@ -276,6 +360,7 @@ def build_lead_agent() -> LeadAgent:
             Tool(import_control_ids_from_strategy),
             Tool(compare_variants_scored),
             Tool(clear_strategy, requires_approval=True),
+            Tool(delete_step, requires_approval=True),
             Tool(consult_user, requires_approval=True),
         ],
         toolsets=[eda.build_toolset(), turn_tool_sources],
@@ -304,8 +389,10 @@ def build_lead_agent() -> LeadAgent:
     agent.instructions(machine_guarantees_pin(agent.toolsets))
     agent.instructions(pinned_turn_briefing)
     agent.output_validator(verify_what_this_turn_built)
+    agent.output_validator(refuse_a_misreported_change)
     agent.output_validator(refuse_blaming_the_site)
     agent.output_validator(refuse_an_unrecorded_question)
     agent.output_validator(refuse_a_substituted_analysis)
+    agent.output_validator(refuse_an_unbuilt_eda_criterion)
     agent.output_validator(refuse_an_off_topic_essay)
     return agent

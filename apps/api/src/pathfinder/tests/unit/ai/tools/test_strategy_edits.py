@@ -28,7 +28,6 @@ from pathfinder.ai.tools.standalone.strategy_edits import (
     update_step_metadata,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion
-from pathfinder.domain.strategy.operations import DeleteResolution
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies import stated_sides
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -87,20 +86,16 @@ class TestDeleteStep:
         with pytest.raises(ModelRetry):
             await delete_step(ctx(deps), "missing")
 
-    async def test_promote_primary_keeps_the_primary_input(
+    async def test_the_root_combine_keeps_its_primary_input(
         self, stub_api: StubAPI
     ) -> None:
+        """The rules choose the resolution; no caller names one."""
         deps = seed(
             combine("c", leaf("a"), leaf("b")),
             wdk_step_ids={"a": 100, "b": 200, "c": 300},
         )
 
-        payload = returned(
-            await delete_step(
-                ctx(deps), "c", resolution=DeleteResolution.PROMOTE_PRIMARY
-            ),
-            DeletedSteps,
-        )
+        payload = returned(await delete_step(ctx(deps), "c"), DeletedSteps)
 
         assert sorted(payload.deleted) == ["b", "c"]
         assert stub_api.step_ids("delete_step") == {200, 300}

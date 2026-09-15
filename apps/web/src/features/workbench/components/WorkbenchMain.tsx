@@ -1,5 +1,6 @@
 "use client";
 
+import { formatParamValue } from "@/lib/parameters/paramValue";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
@@ -93,7 +94,7 @@ function ActiveSetHeader() {
           {activeSet.parameters != null &&
             Object.entries(activeSet.parameters)
               .slice(0, 3)
-              .map(([k, v]) => ` \u00b7 ${k}: ${String(v)}`)
+              .map(([k, v]) => ` \u00b7 ${k}: ${formatParamValue(v)}`)
               .join("")}
         </p>
       )}

@@ -16,6 +16,11 @@ from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload, tool_error
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.lead._delete_rules import (
+    DeleteSurface,
+    delete_resolution,
+    refuse_a_delete_the_graph_cannot_place,
+)
 from pathfinder.ai.tools.standalone._spec_edit_checks import (
     refuse_a_write_the_spec_did_not_state,
 )
@@ -42,7 +47,6 @@ from pathfinder.ai.tools.standalone.stream_parts import (
     strategy_link_chunk,
 )
 from pathfinder.domain.strategy.operations import (
-    DeleteResolution,
     DeleteStepOp,
     GraphOperation,
     ReplaceSubtreeOp,
@@ -218,14 +222,32 @@ async def delete_step(
     ctx: RunContext[AgentDeps],
     step_id: str,
     *,
-    resolution: DeleteResolution = DeleteResolution.COLLAPSE_COMBINE,
     graph_id: str | None = None,
 ) -> ToolReturn[JSONObject]:
-    """Delete a step and re-wire the tree to preserve a single root.
+    """Delete a step and re-wire the tree around it.
 
-    ``resolution`` selects the disambiguation policy. Defaults to
-    ``collapse-combine`` which drops the step + its parent combine and
-    reconnects the sibling to the grandparent.
+    A step under a combine takes that combine with it and its sibling takes
+    their place; a combine under a transform leaves with its secondary branch;
+    a root leaves with whatever hangs under it. A transform nothing can take
+    the place of, and a root of a thread whose strategy no push names, are
+    refused rather than guessed at.
+    """
+    return await delete_the_step(
+        ctx, step_id, graph_id=graph_id, surface=DeleteSurface.BUILDING
+    )
+
+
+async def delete_the_step(
+    ctx: RunContext[AgentDeps],
+    step_id: str,
+    *,
+    graph_id: str | None = None,
+    surface: DeleteSurface,
+) -> ToolReturn[JSONObject]:
+    """Remove one step under the rules both delete surfaces read.
+
+    The surface decides only how a refusal states the way out, because the
+    Lead holds clear_strategy and the building pass does not.
     """
     deps = ctx.deps
     session = deps.strategy_session
@@ -238,6 +260,8 @@ async def delete_step(
             f"ids: {sorted(graph.steps.keys())}."
         )
         raise ModelRetry(msg)
+    refuse_a_delete_the_graph_cannot_place(graph, session.sync_state, step_id, surface)
+    resolution = delete_resolution(graph, session.sync_state, step_id)
 
     result = await _commit_or_retry(
         deps, DeleteStepOp(step_id=step_id, resolution=resolution)

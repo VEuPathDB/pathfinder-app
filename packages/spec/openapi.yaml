@@ -11586,6 +11586,11 @@ components:
         reason:
           title: Reason
           type: string
+        edaDatasetId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Edadatasetid
       required:
       - text
       - reason

@@ -49,7 +49,10 @@ def test_every_destructive_tool_is_approval_gated_on_the_registry() -> None:
     tools = _tools()
     gated = {name for name, tool in tools.items() if tool.requires_approval is True}
     assert _classified(Reversibility.GATED_DESTRUCTIVE) <= gated
-    assert _classified(Reversibility.GATED_DESTRUCTIVE) == {"clear_strategy"}
+    assert _classified(Reversibility.GATED_DESTRUCTIVE) == {
+        "clear_strategy",
+        "delete_step",
+    }
 
 
 def test_every_durable_tool_is_registered_sequential() -> None:

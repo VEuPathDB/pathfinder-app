@@ -18,7 +18,7 @@ from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSp
 from pathfinder.domain.strategy.operations import (
     AddCombineOp,
     AddLeafOp,
-    GraphOperation,
+    EditableOperation,
     WireInputOp,
 )
 from pathfinder.domain.strategy.operations.types import AttachIntoSlot, AttachNewRoot
@@ -172,7 +172,7 @@ class TestABatchThatWritesASlot:
         deps = _batch_deps()
         graph = deps.strategy_session.graph
         assert graph is not None
-        op: GraphOperation = AddLeafOp(
+        op: EditableOperation = AddLeafOp(
             step=leaf("step_new"),
             attach=AttachIntoSlot(target_step_id="step_c1", slot="secondary"),
         )
@@ -199,7 +199,7 @@ class TestABatchThatWritesASlot:
         deps = _batch_deps()
         graph = deps.strategy_session.graph
         assert graph is not None
-        op: GraphOperation = WireInputOp(
+        op: EditableOperation = WireInputOp(
             target_step_id="step_c1", slot="primary", source_step_id="step_k1"
         )
 
@@ -216,7 +216,7 @@ class TestABatchThatWritesASlot:
         deps = _batch_deps()
         graph = deps.strategy_session.graph
         assert graph is not None
-        ops: list[GraphOperation] = [
+        ops: list[EditableOperation] = [
             AddLeafOp(step=leaf("step_new"), attach=AttachNewRoot()),
             AddCombineOp(
                 step=StrategyStepNode(

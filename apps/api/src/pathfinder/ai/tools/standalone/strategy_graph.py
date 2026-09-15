@@ -6,7 +6,7 @@ Each function takes ``RunContext[AgentDeps]`` and mirrors the original
 
 import math
 
-from assistant_core.graph.tool_summary import with_summary
+from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import Field, JsonValue, ValidationError
@@ -33,8 +33,13 @@ from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph, strategy_root_id
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.platform.errors import ErrorCode
+from pathfinder.services.eda.catalog import (
+    UnknownEdaDatasetError,
+    get_study_detail_for_dataset,
+)
 from pathfinder.services.eda.compute import VolcanoThresholds
-from pathfinder.services.eda.export import exported_thresholds
+from pathfinder.services.eda.description import display_names, filter_summaries
+from pathfinder.services.eda.export import exported_subset, exported_thresholds
 from pathfinder.services.strategies.schemas import StepResponse
 
 logger = get_logger(__name__)
@@ -136,6 +141,8 @@ class StudyStepCheck(CamelModel):
     dataset_id: str
     record_count: int | None = None
     thresholds: VolcanoThresholds | None = None
+    # One sentence per subset filter the step carries, in the sheet's words.
+    subset_filters: list[str] = Field(default_factory=list)
     checks: list[ConstraintCheck] = Field(default_factory=list)
 
     @computed
@@ -193,18 +200,39 @@ def _study_step_request(step: StrategyStep) -> EdaStepRequest | None:
         return None
 
 
-def check_study_step(
+async def _subset_filters(site_id: str, request: EdaStepRequest) -> list[str]:
+    """The sentences a study step's own subset filters read as.
+
+    The study is read for the names the researcher knows the variables by, so
+    a step that carries no filter needs no read. A study this account cannot
+    reach costs the sentences those names and nothing else.
+    """
+    filters = exported_subset(request)
+    if not filters:
+        return []
+    try:
+        _entry, study = await get_study_detail_for_dataset(
+            site_id, request.eda_dataset_id
+        )
+    except UnknownEdaDatasetError:
+        return filter_summaries(filters, display_names={})
+    return filter_summaries(filters, display_names=display_names(study))
+
+
+async def check_study_step(
     ctx: RunContext[AgentDeps],
     step_id: str,
     requested_fold_change: float | None = None,
     requested_significance: float | None = None,
 ) -> ToolReturn[StudyStepCheck | ToolErrorPayload]:
-    """Read a study step's thresholds and compare them with what was asked.
+    """Read the cut a study step was built with and compare it with the request.
 
     A study step exports an EDA analysis, so the cut it was built with lives in
     its ``eda_analysis_spec`` parameter rather than in a plain search
     parameter. This reads that cut and the step's record count, so a study step
-    is verified by its own numbers instead of reported as unverified.
+    is verified by its own numbers instead of reported as unverified. A subset
+    step states its cut as ``subset_filters``, one sentence per filter; a
+    compute step states it as volcano thresholds.
 
     Pass ``requested_fold_change`` as a fold change (2 for "at least
     2-fold") and ``requested_significance`` as the p-value the user asked for.
@@ -249,12 +277,14 @@ def check_study_step(
     sync_state = session.sync_state
     count = sync_state.step_counts.get(step_id) if sync_state else None
     thresholds = exported_thresholds(request)
+    subset_filters = await _subset_filters(ctx.deps.site_id, request)
     check = StudyStepCheck(
         step_id=step_id,
         search_name=step.search_name,
         dataset_id=request.eda_dataset_id,
         record_count=count,
         thresholds=thresholds,
+        subset_filters=subset_filters,
         checks=(
             []
             if thresholds is None
@@ -275,8 +305,16 @@ def check_study_step(
 
 def _study_step_summary(check: StudyStepCheck) -> str:
     records = "unknown" if check.record_count is None else f"{check.record_count:,}"
-    if check.thresholds is None:
+    filters = (
+        ""
+        if not check.subset_filters
+        else count_noun(len(check.subset_filters), "filter")
+    )
+    if check.thresholds is not None:
+        fold = _number(_fold_change(check.thresholds.effect_size_threshold))
+        significance = _number(check.thresholds.significance_threshold)
+        cut = f"{records} records at {fold}-fold and p {significance}"
+        return cut if not filters else f"{cut}, {filters}"
+    if not filters:
         return f"{records} records, whole subset"
-    fold = _number(_fold_change(check.thresholds.effect_size_threshold))
-    significance = _number(check.thresholds.significance_threshold)
-    return f"{records} records at {fold}-fold and p {significance}"
+    return f"{records} records, {filters}: {check.subset_filters[0]}"

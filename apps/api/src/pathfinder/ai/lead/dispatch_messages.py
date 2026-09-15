@@ -17,6 +17,7 @@ from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
+    DroppedCriterion,
     OperationalSpec,
     carried_values,
     structure_criteria,
@@ -357,4 +358,50 @@ def unverified_build_message(outcome: BuildOutcome | None) -> str:
         f"This turn changed the strategy - {pushed} step(s) on VEuPathDB, root "
         f"count {count} - and nothing verified the result. Call verify_strategy, "
         f"or state in your reply why verification is not possible right now."
+    )
+
+
+def claimed_change_message(outcome: BuildOutcome | None) -> str:
+    """Why a reply that reports a change this turn never made is refused.
+
+    The turn's own record of what it wrote is the only evidence. It is asked
+    once per turn.
+    """
+    pushed = len(outcome.pushed_step_ids) if outcome is not None else 0
+    root = outcome.root_count if outcome is not None else None
+    count = "unknown" if root is None else str(root)
+    return (
+        f"This reply says the strategy changed, but this turn ran no build, "
+        f"edit, delete, clear or export: the strategy is exactly as the turn "
+        f"found it - {pushed} step(s), root count {count}. Rewrite the reply "
+        f"to describe the strategy as it is and what you would change, or "
+        f"make the change with the tools and answer again."
+    )
+
+
+def eda_criterion_not_built_message(dropped: DroppedCriterion) -> str:
+    """Refuse an answer that leaves an EDA-backed criterion for the user.
+
+    Only the EDA tools write the analysis document, so a turn that opened no
+    analysis on the criterion's dataset has not tried to build it.
+    """
+    return (
+        f"The spec drops {dropped.text!r} because its search is EDA-backed, and "
+        f"this turn opened no EDA analysis on dataset {dropped.eda_dataset_id}. "
+        f"Build it now: open_eda_analysis("
+        f'dataset_id="{dropped.eda_dataset_id}"), then set_eda_filters, then '
+        f"preview_eda_subset, then create_eda_step, with replace_step_id when "
+        f"the strategy already holds a step for this criterion. Never ask the "
+        f"user for an analysis specification, and never answer that the "
+        f"criterion cannot be built or mapped: create_eda_step writes that "
+        f"document from the analysis you filtered."
+    )
+
+
+def unreported_change_message() -> str:
+    """Why a reply that leaves out the change this turn made is refused."""
+    return (
+        "This turn changed the strategy (a build, edit, delete, clear or "
+        "export ran). Set strategy_changed to true and state what changed "
+        "and the new counts."
     )

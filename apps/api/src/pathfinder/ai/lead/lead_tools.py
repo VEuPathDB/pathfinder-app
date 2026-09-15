@@ -7,8 +7,10 @@ from typing import Any, Literal
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb import JSONObject
 from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType
 
+from pathfinder.ai.lead._delete_rules import DeleteSurface
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.intent import UserIntent
@@ -18,6 +20,7 @@ from pathfinder.ai.tools.standalone import (
     conversation,
     export,
     memory_tools,
+    strategy_edits,
     workbench,
 )
 from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResult
@@ -167,11 +170,11 @@ async def remember(
 async def create_workbench_gene_set(
     ctx: RunContext[LeadDeps],
     name: str,
-    gene_ids: list[str],
     record_type: str = "transcript",
     step_id: str | None = None,
+    gene_ids: list[str] | None = None,
 ) -> ToolReturn[GeneSetCreatedResponse]:
-    """Save gene IDs as a gene set in the user's Workbench.
+    """Save a gene set in the user's Workbench.
 
     This is the save the user asks for when they say "save these genes as a
     gene set". The set appears in the Workbench sidebar, and its id is what
@@ -180,19 +183,21 @@ async def create_workbench_gene_set(
 
     Args:
         name: The name the user gave the set.
-        gene_ids: The gene IDs to include.
         record_type: Record type (default 'transcript').
-        step_id: The step of THIS conversation's strategy the genes came from,
+        step_id: The step of THIS conversation's strategy whose genes to save,
             by its graph id (e.g. 'step_3'). Leave it out for the strategy's
-            root step. The WDK strategy and step ids are read from the
-            strategy; never type one.
+            root step. The genes of a step are read from that step on
+            VEuPathDB, and its WDK ids come from the strategy; never type one.
+        gene_ids: A list of gene IDs the user pasted or this turn computed,
+            which no step holds. It saves that list alone, so leave it out
+            whenever the genes are a step's.
     """
     return await workbench.create_workbench_gene_set(
         inner_context(ctx),
         name=name,
-        gene_ids=gene_ids,
         record_type=record_type,
         step_id=step_id,
+        gene_ids=gene_ids,
     )
 
 
@@ -320,7 +325,44 @@ async def clear_strategy(
     ``confirm`` must be true; the call is refused otherwise.
     """
     inner = inner_context(ctx)
-    return await conversation.clear_strategy(inner, confirm=confirm)
+    cleared = await conversation.clear_strategy(inner, confirm=confirm)
+    ctx.deps.state.turn_markers.edited = True
+    return cleared
+
+
+async def delete_step(
+    ctx: RunContext[LeadDeps],
+    step_id: str,
+) -> ToolReturn[JSONObject]:
+    """Remove one step from the strategy.
+
+    This is how a step the user wants gone leaves: a step they say is wrong, a
+    step left over from an earlier turn, or a step standing outside the
+    strategy. A step under a combine takes that combine with it and its
+    sibling takes their place, and a combine under a transform leaves with its
+    secondary branch so the transform reads its primary. The strategy's own
+    root collapses onto its primary input when it is a combine, and any other
+    root leaves with whatever hangs under it. Two calls are refused: a
+    transform nothing can take the place of (the strategy's root one, and one
+    under another transform), and any root of more than one step on a thread
+    that holds several roots and no push says which is the strategy - name a
+    step under the one you mean instead. A loose step of its own goes. The
+    write appends a revision, so a revert restores what it removed, and the
+    user approves the call before it runs, so do not also ask in prose.
+
+    Args:
+        step_id: The step to remove, by the id the strategy graph shows.
+    """
+    inner = inner_context(ctx)
+    deleted = await strategy_edits.delete_the_step(
+        inner, step_id, surface=DeleteSurface.LEAD
+    )
+    ctx.deps.state.turn_markers.edited = True
+    if ctx.deps.state.domain.operational_spec is not None:
+        ctx.deps.state.domain.operational_spec = (
+            inner.deps.agent_state.operational_spec_draft
+        )
+    return deleted
 
 
 def read_ledger_section(

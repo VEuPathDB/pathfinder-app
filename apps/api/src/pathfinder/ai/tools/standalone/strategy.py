@@ -188,9 +188,12 @@ async def apply_operations(
     Operations apply in order and all land together; if one is rejected the
     strategy is left exactly as it was.
 
-    A batch that overwrites an input slot never takes the step that slot holds
-    off the strategy: delete that step in the same batch, or wire it back in
-    under the step that replaces it.
+    A batch never removes a step. Two tools here do, and each asks the
+    researcher first: ``delete_step`` for one step, which chooses how the tree
+    is re-wired and takes the removed steps out of the spec's criteria, and
+    ``replace_subtree`` for one branch. A batch that overwrites an input slot
+    is refused for the same reason, so remove the step that slot holds with
+    ``delete_step`` first, or wire it back in under the step that replaces it.
     """
     deps = ctx.deps
     session = deps.strategy_session

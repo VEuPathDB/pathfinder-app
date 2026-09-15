@@ -29,6 +29,7 @@ from pathfinder.domain.strategy.operations import (
 from pathfinder.domain.strategy.spec_to_operations import UnsupportedEditError
 
 from ._builders import (
+    applied,
     combine,
     expr_leaf,
     graph_of,
@@ -37,6 +38,7 @@ from ._builders import (
     spec_of,
     text_leaf,
     three_step_root,
+    transform,
 )
 
 
@@ -250,3 +252,31 @@ def test_a_changed_criterion_that_names_no_step_is_refused() -> None:
 
     with pytest.raises(UnsupportedEditError):
         plan(labelled, after, graph_of(three_step_root()))
+
+
+def test_dropping_a_branch_under_a_transform_keeps_the_transform() -> None:
+    """A criterion names a leaf or a transform, never the combine above it.
+
+    The combine goes with the branch, and the transform reads what is left, so
+    the edit path answers this shape the way ``delete_step`` does.
+    """
+    root = transform("step_t1", combine("step_c1", text_leaf(), expr_leaf()))
+    before = spec_of(root)
+    after = before.model_copy(deep=True)
+    after.criteria = [c for c in after.criteria if c.id != "step_expr"]
+    after.structure = SpecStructure(
+        root=StructureNode(
+            kind="transform",
+            criterion_id="step_t1",
+            inputs=[StructureNode(kind="leaf", criterion_id="step_text")],
+        ),
+    )
+
+    ops = plan(before, after, graph_of(root))
+
+    assert ops == [
+        DeleteStepOp(step_id="step_expr", resolution=DeleteResolution.COLLAPSE_COMBINE)
+    ]
+    graph = applied(root, ops)
+    assert sorted(graph.steps) == ["step_t1", "step_text"]
+    assert graph.steps["step_t1"].primary_input_id == "step_text"

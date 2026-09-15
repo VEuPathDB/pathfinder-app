@@ -319,7 +319,8 @@
           "displayName": "Signal Peptide (Secreted)",
           "id": "leaf_signal_pep",
           "parameters": {
-            "organism": "[\"Homo sapiens REF\"]"
+            "organism": "[\"Homo sapiens REF\"]",
+            "signalp_version": "SignalP-6.0"
           },
           "searchName": "GenesWithSignalPeptide"
         }
@@ -553,7 +554,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_il_signal",
             "parameters": {
-              "organism": "[\"Homo sapiens REF\"]"
+              "organism": "[\"Homo sapiens REF\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           }
@@ -610,7 +612,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_chemo_signal",
             "parameters": {
-              "organism": "[\"Homo sapiens REF\"]"
+              "organism": "[\"Homo sapiens REF\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           }

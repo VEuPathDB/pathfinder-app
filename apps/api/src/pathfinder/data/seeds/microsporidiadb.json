@@ -83,7 +83,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_signal_peptide_1",
             "parameters": {
-              "organism": "[\"Encephalitozoon cuniculi GB-M1\"]"
+              "organism": "[\"Encephalitozoon cuniculi GB-M1\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           }
@@ -133,7 +134,8 @@
           "displayName": "Signal Peptide",
           "id": "leaf_signal_peptide_2",
           "parameters": {
-            "organism": "[\"Encephalitozoon cuniculi GB-M1\"]"
+            "organism": "[\"Encephalitozoon cuniculi GB-M1\"]",
+            "signalp_version": "SignalP-6.0"
           },
           "searchName": "GenesWithSignalPeptide"
         }

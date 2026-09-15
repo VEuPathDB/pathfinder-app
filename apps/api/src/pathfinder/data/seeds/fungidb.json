@@ -106,7 +106,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_signal_1",
             "parameters": {
-              "organism": "[\"Aspergillus fumigatus Af293\"]"
+              "organism": "[\"Aspergillus fumigatus Af293\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           }
@@ -250,7 +251,8 @@
             "displayName": "Signal Peptide",
             "id": "leaf_signal_2",
             "parameters": {
-              "organism": "[\"Aspergillus fumigatus Af293\"]"
+              "organism": "[\"Aspergillus fumigatus Af293\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           }
@@ -555,7 +557,8 @@
         "displayName": "Signal Peptide",
         "id": "leaf_signal_3",
         "parameters": {
-          "organism": "[\"Aspergillus fumigatus Af293\"]"
+          "organism": "[\"Aspergillus fumigatus Af293\"]",
+          "signalp_version": "SignalP-6.0"
         },
         "searchName": "GenesWithSignalPeptide"
       }

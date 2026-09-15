@@ -29,6 +29,9 @@ from pathfinder.ai.tools.standalone._catalog_models import (
     ensure_search_registered,
     register_search,
 )
+from pathfinder.ai.tools.standalone._frame_eda import (
+    refuse_a_search_the_criterion_cannot_use,
+)
 from pathfinder.ai.tools.standalone._frame_proposals import (
     DeclaredAssumption,
     ParamProposals,
@@ -40,7 +43,6 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     _refuse_unmatched_values,
 )
 from pathfinder.ai.tools.standalone._frame_roles import (
-    refuse_a_role_the_search_cannot_take,
     refuse_a_transform_on_a_saved_strategy,
 )
 from pathfinder.ai.tools.standalone._frame_saved import (
@@ -252,7 +254,9 @@ async def set_criterion(
         definition = await read_search_definition(
             ctx.deps.site_id, record_type, search_name
         )
-        await refuse_a_role_the_search_cannot_take(ctx, record_type, definition, role)
+        await refuse_a_search_the_criterion_cannot_use(
+            ctx, record_type, definition, role, criterion_id, text
+        )
         register_search(state, definition, record_type)
         return _criterion_return(
             ctx,
@@ -267,7 +271,9 @@ async def set_criterion(
         )
     search = SearchContext(ctx.deps.site_id, record_type, search_name)
     definition = await _search_definition(search)
-    await refuse_a_role_the_search_cannot_take(ctx, record_type, definition, role)
+    await refuse_a_search_the_criterion_cannot_use(
+        ctx, record_type, definition, role, criterion_id, text
+    )
     await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
     fetch_at = _memoized_fetch(ctx.deps.site_id, record_type, search_name)
     infos = await fetch_at({})

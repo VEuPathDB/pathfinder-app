@@ -243,7 +243,8 @@
               "displayName": "Signal Peptide",
               "id": "step_4",
               "parameters": {
-                "organism": "[\"Plasmodium falciparum 3D7\"]"
+                "organism": "[\"Plasmodium falciparum 3D7\"]",
+                "signalp_version": "SignalP-6.0"
               },
               "searchName": "GenesWithSignalPeptide"
             },
@@ -456,7 +457,8 @@
             "displayName": "Signal Peptide",
             "id": "step_1",
             "parameters": {
-              "organism": "[\"Plasmodium falciparum 3D7\"]"
+              "organism": "[\"Plasmodium falciparum 3D7\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           },
@@ -937,7 +939,8 @@
           "displayName": "Signal Peptide",
           "id": "step_2",
           "parameters": {
-            "organism": "[\"Plasmodium falciparum 3D7\"]"
+            "organism": "[\"Plasmodium falciparum 3D7\"]",
+            "signalp_version": "SignalP-6.0"
           },
           "searchName": "GenesWithSignalPeptide"
         }
@@ -1135,7 +1138,8 @@
       "displayName": "Signal Peptide Genes",
       "id": "step_1",
       "parameters": {
-        "organism": "[\"Plasmodium falciparum 3D7\"]"
+        "organism": "[\"Plasmodium falciparum 3D7\"]",
+        "signalp_version": "SignalP-6.0"
       },
       "searchName": "GenesWithSignalPeptide"
     }
@@ -1285,7 +1289,8 @@
             "displayName": "Signal Peptide",
             "id": "step_1",
             "parameters": {
-              "organism": "[\"Plasmodium falciparum 3D7\"]"
+              "organism": "[\"Plasmodium falciparum 3D7\"]",
+              "signalp_version": "SignalP-6.0"
             },
             "searchName": "GenesWithSignalPeptide"
           },

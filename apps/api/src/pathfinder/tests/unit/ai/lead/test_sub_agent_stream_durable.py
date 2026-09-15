@@ -58,7 +58,11 @@ _VERIFICATION_FINAL: dict[str, Any] = {
         "success": True,
     },
 }
-_LEAD_FINAL: dict[str, Any] = {"prose": "scripted", "nextState": "await_user"}
+_LEAD_FINAL: dict[str, Any] = {
+    "prose": "scripted",
+    "nextState": "await_user",
+    "strategyChanged": False,
+}
 _RESULT_A: dict[str, Any] = {"positiveIntersection": 3, "positiveControlsCount": 3}
 _RESULT_B: dict[str, Any] = {"positiveIntersection": 1, "positiveControlsCount": 2}
 

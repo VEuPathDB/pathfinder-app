@@ -108,7 +108,11 @@ class _LeadJourney:
         if "verify_strategy" in self.called:
             return ToolCallPart(
                 tool_name="final_result",
-                args={"prose": _ZERO_PROSE, "nextState": "await_user"},
+                args={
+                    "prose": _ZERO_PROSE,
+                    "nextState": "await_user",
+                    "strategyChanged": True,
+                },
                 tool_call_id="call_final_2",
             )
         if "final_result" in self.called:
@@ -119,7 +123,11 @@ class _LeadJourney:
             )
         return ToolCallPart(
             tool_name="final_result",
-            args={"prose": _ZERO_PROSE, "nextState": "await_user"},
+            args={
+                "prose": _ZERO_PROSE,
+                "nextState": "await_user",
+                "strategyChanged": True,
+            },
             tool_call_id="call_final_1",
         )
 

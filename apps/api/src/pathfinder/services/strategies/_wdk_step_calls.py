@@ -1,7 +1,10 @@
 """The WDK calls that create or patch one step of a strategy."""
 
+from collections.abc import Mapping
+
 from assistant_core.platform.logging import get_logger
 from veupathdb.domain.strategy import CombineOp, StrategyStep, wdk_search_name
+from veupathdb.errors import ValidationError
 from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
@@ -10,10 +13,32 @@ from veupathdb.wdk import (
     WDKSearchConfig,
     encode_params,
 )
+from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM
 
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
+
+
+def _refuse_an_empty_eda_analysis(
+    search_name: str, str_params: Mapping[str, str]
+) -> None:
+    """A step that names the analysis parameter and leaves it empty is refused.
+
+    An empty analysis document states no subset, so the search answers every
+    record of the study and the step filters nothing.
+    """
+    spec = str_params.get(EDA_ANALYSIS_SPEC_PARAM)
+    if spec is None or spec.strip():
+        return
+    raise ValidationError(
+        title="EDA-backed step without an analysis",
+        detail=(
+            f"{search_name} carries {EDA_ANALYSIS_SPEC_PARAM} with no value. "
+            f"The analysis document is written by the EDA tools and exported "
+            f"by create_eda_step, so the step needs that export."
+        ),
+    )
 
 
 async def _push_leaf_step(
@@ -24,6 +49,7 @@ async def _push_leaf_step(
     record_type: str,
 ) -> int:
     """Push a leaf step to WDK. Returns the WDK step ID."""
+    _refuse_an_empty_eda_analysis(search_name, str_params)
     wdk_result = await api.create_step(
         NewStepSpec(
             search_name=search_name,
@@ -160,6 +186,7 @@ async def _update_existing_step(
     if kind == "combine":
         return
     str_params: dict[str, str] = encode_params(step.parameters)
+    _refuse_an_empty_eda_analysis(wdk_search_name(step), str_params)
 
     await api.update_step_search_config(
         step_id=wdk_step_id,

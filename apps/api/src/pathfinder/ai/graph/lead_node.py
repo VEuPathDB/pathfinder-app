@@ -178,19 +178,23 @@ def _guard_stopped_on(
     )
 
 
+def _stop_response(prose: str, *, changed: bool) -> LeadResponse:
+    """The reply the runtime writes when a turn ends without one."""
+    return LeadResponse(prose=prose, next_state="await_user", strategy_changed=changed)
+
+
 def _absorb_loop_stop(
+    state: PipelineState,
     capture: _LeadRunCapture,
     guard: ToolRepetitionGuard,
 ) -> None:
     """Say why the turn ended when the guard stopped the Lead's own run."""
     if not guard.stopped_call_id or capture.response is not None:
         return
-    capture.response = LeadResponse(
-        prose=(
-            "I stopped this turn: I was repeating the same lookup and making "
-            "no progress. Tell me what to try instead and I will carry on."
-        ),
-        next_state="await_user",
+    capture.response = _stop_response(
+        "I stopped this turn: I was repeating the same lookup and making "
+        "no progress. Tell me what to try instead and I will carry on.",
+        changed=state.turn_markers.changed_strategy,
     )
 
 
@@ -222,7 +226,7 @@ def _off_topic_budget_ends_the_turn(
     stop = off_topic_budget_stop(usage, deps.intent)
     if stop is None:
         return False
-    capture.response = LeadResponse(prose=stop, next_state="await_user")
+    capture.response = _stop_response(stop, changed=False)
     return True
 
 
@@ -320,9 +324,9 @@ async def _drive_lead_stream(
                 conversation_id=str(state.conversation_id),
                 error=str(exc),
             )
-            capture.response = LeadResponse(
-                prose=lead_turn_budget_message(),
-                next_state="await_user",
+            capture.response = _stop_response(
+                lead_turn_budget_message(),
+                changed=state.turn_markers.changed_strategy,
             )
 
     try:
@@ -341,7 +345,7 @@ async def _drive_lead_stream(
             user_id=str(state.user_id),
         )
         raise
-    _absorb_loop_stop(capture, guard)
+    _absorb_loop_stop(state, capture, guard)
 
 
 async def _run_lead_turn(
@@ -394,12 +398,10 @@ async def _run_lead_turn(
         and capture.pending_approval is None
         and capture.pending_durable_call is None
     ):
-        capture.response = LeadResponse(
-            prose=(
-                "I couldn't produce a response for this turn. Please "
-                "rephrase or provide more context and I'll try again."
-            ),
-            next_state="await_user",
+        capture.response = _stop_response(
+            "I couldn't produce a response for this turn. Please "
+            "rephrase or provide more context and I'll try again.",
+            changed=state.turn_markers.changed_strategy,
         )
 
     _emit_residual_prose(writer, capture, message_id=message_id)
