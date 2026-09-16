@@ -1,4 +1,4 @@
-"""run_experiment orchestration with the WDK seams mocked — verifies the
+"""run_experiment orchestration with the WDK seams mocked - verifies the
 lifecycle (running -> completed/error), the five phases it runs, that metrics
 are computed for real from the control-test result, progress events are
 emitted, and failures are surfaced. No live WDK: the control engine, strategy

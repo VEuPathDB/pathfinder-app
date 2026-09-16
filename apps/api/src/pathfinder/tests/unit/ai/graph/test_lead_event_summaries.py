@@ -22,7 +22,7 @@ def test_truncate_cuts_at_word_boundary_with_ascii_ellipsis() -> None:
     out = _truncate_summary(text, limit=18)
     assert out == "alpha beta..."
     assert out.endswith("...")
-    assert "\u2026" not in out
+    assert chr(0x2026) not in out
     assert len(out) <= 18
 
 
@@ -46,7 +46,7 @@ def test_summarize_started_args_truncates_long_reason_on_word_boundary() -> None
     out = _summarize_sub_agent_call_args({"reason": reason})
     assert len(out) <= 280
     assert out.endswith("...")
-    assert "\u2026" not in out
+    assert chr(0x2026) not in out
     assert not out[:-3].endswith(" ")
 
 
@@ -93,7 +93,7 @@ def test_summarize_verification_digest() -> None:
 def test_suppresses_dispatch_input_start_before_call_event_records_id() -> None:
     # The raw tool-input-start chunk for a sub-agent dispatch is emitted from
     # the model's part events, BEFORE the FunctionToolCallEvent that records
-    # the id — so the id-set is still empty. It must be classified and
+    # the id - so the id-set is still empty. It must be classified and
     # suppressed by tool_name, otherwise the raw "· Running" tool card leaks
     # alongside the data-sub-agent-call card.
     calls: dict[str, str] = {}

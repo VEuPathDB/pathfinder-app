@@ -60,7 +60,7 @@ function stateOf(label: string): string | null {
   return screen.getByLabelText(label).getAttribute("data-state");
 }
 
-describe("TreeBoxParam — multi-pick (shadcn checkboxes)", () => {
+describe("TreeBoxParam - multi-pick (shadcn checkboxes)", () => {
   it("renders checkboxes for all nodes", () => {
     render(
       <WidgetTestForm name="test_tree" defaultValue={[]}>
@@ -189,7 +189,7 @@ describe("TreeBoxParam — multi-pick (shadcn checkboxes)", () => {
   });
 });
 
-describe("TreeBoxParam — search filter", () => {
+describe("TreeBoxParam - search filter", () => {
   it("renders search input", () => {
     render(
       <WidgetTestForm name="test_tree" defaultValue={[]}>
@@ -229,14 +229,14 @@ describe("TreeBoxParam — search filter", () => {
   });
 });
 
-describe("TreeBoxParam — a value stored as a parent term", () => {
+describe("TreeBoxParam - a value stored as a parent term", () => {
   /**
    * FRAME binds organism scope as a species-level term, e.g.
    * `organism: ["Plasmodium falciparum"]`, and the backend expands parent
    * terms to leaves at the WDK boundary (`_expand_tree_params_to_leaves`,
    * because WDK silently returns 0 genes for a parent node). The tree only
    * ever matched leaves, so a correctly-scoped step opened showing
-   * "0 of 62 selected" on a REQUIRED field — and any interaction would have
+   * "0 of 62 selected" on a REQUIRED field - and any interaction would have
    * written the tree's own state over the real scope.
    */
 

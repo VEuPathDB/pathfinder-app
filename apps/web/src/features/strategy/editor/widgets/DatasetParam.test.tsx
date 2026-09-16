@@ -22,7 +22,7 @@ function makeSpec(overrides: Partial<ParamSpec> = {}): ParamSpec {
   };
 }
 
-describe("DatasetParam — empty value", () => {
+describe("DatasetParam - empty value", () => {
   it("renders without throwing for empty string value", () => {
     render(
       <WidgetTestForm name="test_dataset" defaultValue="">
@@ -76,7 +76,7 @@ describe("DatasetParam — empty value", () => {
   });
 });
 
-describe("DatasetParam — paste IDs", () => {
+describe("DatasetParam - paste IDs", () => {
   it("parses newline-separated IDs from the paste textarea", async () => {
     const user = userEvent.setup();
     render(
@@ -141,7 +141,7 @@ describe("DatasetParam — paste IDs", () => {
   });
 });
 
-describe("DatasetParam — basket / strategy tabs", () => {
+describe("DatasetParam - basket / strategy tabs", () => {
   it("switches to the Basket tab when clicked", async () => {
     const user = userEvent.setup();
     render(
@@ -185,7 +185,7 @@ describe("DatasetParam — basket / strategy tabs", () => {
   });
 });
 
-describe("DatasetParam — file upload", () => {
+describe("DatasetParam - file upload", () => {
   it("shows file upload tab and accepts a file", async () => {
     const user = userEvent.setup();
     render(
@@ -215,7 +215,7 @@ describe("DatasetParam — file upload", () => {
   });
 });
 
-describe("DatasetParam — default id list", () => {
+describe("DatasetParam - default id list", () => {
   it("does not render Default list tab when defaultIdList is absent", () => {
     render(
       <WidgetTestForm name="test_dataset" defaultValue="">

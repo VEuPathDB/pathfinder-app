@@ -1,4 +1,4 @@
-"""Export service — generates downloadable files, stores in Postgres with TTL."""
+"""Export service - generates downloadable files, stores in Postgres with TTL."""
 
 from __future__ import annotations
 

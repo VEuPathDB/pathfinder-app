@@ -135,8 +135,8 @@ def _build_strategy_misplaced_hint(
     return (
         f"build_strategy received {misplaced!r} at the top level of the "
         "tool arguments. These fields belong INSIDE `root`, not next to "
-        "it. The whole strategy tree — including every combine and every "
-        "leaf — must be nested under a single `root`. To add a new set "
+        "it. The whole strategy tree - including every combine and every "
+        "leaf - must be nested under a single `root`. To add a new set "
         "as a sibling of the existing tree, wrap the existing tree in a "
         "new combine: existing tree becomes `primaryInput`, new set "
         "becomes `secondaryInput`, the new combine replaces `root`. "
@@ -219,7 +219,7 @@ def _semantic_directive(
                 tool_args=args,
                 detail=str(error),
                 next_actions=_NEXT_ACTIONS_WDK_404_SEARCH,
-                do_not="Do not retry with the same search name — it does not exist on this site",
+                do_not="Do not retry with the same search name - it does not exist on this site",
             )
         if error.status == _WDK_STATUS_UNPROCESSABLE:
             return build_error_directive(
@@ -363,7 +363,7 @@ class ToolResilience(AbstractCapability[AgentDeps]):
                 tool_args=args,
                 detail=str(error),
                 next_actions=_NEXT_ACTIONS_PERMANENT,
-                do_not="Do not call this tool again — the service is permanently unavailable",
+                do_not="Do not call this tool again - the service is permanently unavailable",
             )
 
         logger.error(

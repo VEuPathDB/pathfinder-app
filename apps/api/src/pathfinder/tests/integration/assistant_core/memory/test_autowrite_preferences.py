@@ -88,7 +88,7 @@ async def test_preferences_not_written_with_fewer_than_three_successes(
     async with async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
-        # Only 2 prior successes — below the threshold.
+        # Only 2 prior successes - below the threshold.
         for i in range(2):
             cid = uuid4()
             session.add(

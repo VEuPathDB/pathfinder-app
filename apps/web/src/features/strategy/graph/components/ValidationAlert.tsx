@@ -62,7 +62,7 @@ export function ValidationAlert({
             onClick={() => onView(firstId)}
             className="h-7 px-2 text-warning hover:bg-warning/15 hover:text-warning"
           >
-            View →
+            View -&gt;
           </Button>
         )}
       </AlertTitle>

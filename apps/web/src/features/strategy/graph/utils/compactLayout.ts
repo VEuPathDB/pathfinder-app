@@ -1,5 +1,5 @@
 /**
- * compactLayout — turns a strategy into a tree for the compact step list.
+ * compactLayout - turns a strategy into a tree for the compact step list.
  *
  * A step's inputs are its children, so the root sits on top and indentation
  * means containment.

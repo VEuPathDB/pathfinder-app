@@ -133,7 +133,7 @@ async def test_control_tests_impl_emits_progress_and_returns_dict(
         conversation_id=conversation_id,
         session_factory=async_session_factory,
     )
-    context = object()  # impl uses only site_id via deps.context.site_id? No — fake
+    context = object()  # impl uses only site_id via deps.context.site_id? No - fake
 
     result = await run_control_tests_on_step_impl(
         context=job_context(),

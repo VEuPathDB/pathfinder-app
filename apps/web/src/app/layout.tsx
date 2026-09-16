@@ -6,7 +6,7 @@ import "streamdown/styles.css";
 import { TelemetryErrorBoundary } from "@/lib/telemetry/ErrorBoundary";
 import { Providers } from "./components/Providers";
 
-// Every page requires auth + API data — nothing should be statically prerendered.
+// Every page requires auth + API data - nothing should be statically prerendered.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {

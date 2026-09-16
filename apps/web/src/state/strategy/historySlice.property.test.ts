@@ -44,7 +44,7 @@ const actionArb: fc.Arbitrary<Action> = fc.oneof(
   fc.constant({ kind: "clearHistory" as const }),
 );
 
-describe("historySlice — properties", () => {
+describe("historySlice - properties", () => {
   beforeEach(() => {
     useStrategyStore.getState().clear();
   });

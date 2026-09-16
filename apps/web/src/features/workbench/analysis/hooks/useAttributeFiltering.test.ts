@@ -81,7 +81,7 @@ describe("useAttributeFiltering", () => {
       expect(result.current.selectedAttr).toBe("organism");
     });
 
-    // Switch entity — selectedAttr should reset before new attrs load
+    // Switch entity - selectedAttr should reset before new attrs load
     rerender({ entityRef: entity2 });
 
     // After second fetch completes, auto-selects first distributable attr

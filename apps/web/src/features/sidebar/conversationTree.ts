@@ -2,7 +2,7 @@ import type { ConversationItem } from "@/features/sidebar/components/conversatio
 
 /**
  * Conversation-fork tree node. ``subtreeLatest`` is the max ``updatedAt``
- * across the whole subtree — used to sort roots/children by freshness so the
+ * across the whole subtree - used to sort roots/children by freshness so the
  * most-recently-active threads bubble up even when their root is old.
  */
 export interface TreeNode {

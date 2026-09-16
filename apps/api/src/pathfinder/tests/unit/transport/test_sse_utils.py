@@ -30,7 +30,7 @@ async def _happy_producer() -> AsyncIterator[Point]:
 
 async def _empty_producer() -> AsyncIterator[Point]:
     if False:
-        yield Point(x=0.0, y=0.0)  # unreachable — makes this a generator
+        yield Point(x=0.0, y=0.0)  # unreachable - makes this a generator
 
 
 async def _raising_producer() -> AsyncIterator[Point]:
@@ -82,7 +82,7 @@ async def test_typed_event_stream_response_exception_mid_stream_flushes_done() -
 
     The producer yields one valid event and then raises. The helper's
     ``finally`` clause runs before the exception bubbles up, so the caller
-    sees the valid frame followed by the ``[DONE]`` sentinel — and then
+    sees the valid frame followed by the ``[DONE]`` sentinel - and then
     ``RuntimeError`` reaches them on the next iteration step.
     """
     resp = typed_event_stream_response(_raising_producer(), event_name="sweep_point")

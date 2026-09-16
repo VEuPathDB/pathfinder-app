@@ -29,7 +29,7 @@ function makeSpec(overrides: Partial<ParamSpec> = {}): ParamSpec {
   };
 }
 
-describe("TypeAheadParam (single-pick — shadcn Combobox)", () => {
+describe("TypeAheadParam (single-pick - shadcn Combobox)", () => {
   it("renders a combobox trigger", () => {
     render(
       <WidgetTestForm name="test_param" defaultValue="">
@@ -86,7 +86,7 @@ describe("TypeAheadParam (single-pick — shadcn Combobox)", () => {
   });
 });
 
-describe("TypeAheadParam (multi-pick — shadcn Combobox multi)", () => {
+describe("TypeAheadParam (multi-pick - shadcn Combobox multi)", () => {
   it("renders chips for selected values", () => {
     render(
       <WidgetTestForm name="test_param" defaultValue={["apple", "cherry"]}>

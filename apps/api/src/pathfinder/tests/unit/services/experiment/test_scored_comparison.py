@@ -1,6 +1,6 @@
 """run_scored_comparison runs a full experiment per variant against controls,
 ranks by the objective metric (MCC default), names a winner, and tolerates a
-failing variant. run_experiment is mocked — no live WDK.
+failing variant. run_experiment is mocked - no live WDK.
 """
 
 from __future__ import annotations

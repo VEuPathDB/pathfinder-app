@@ -71,7 +71,7 @@ function tryParseJsonLink(raw: string): { text: string; url: string } | null {
 }
 
 function AttributeValue({ value }: { value: unknown }) {
-  if (value == null) return <span className="text-muted-foreground">{"\u2014"}</span>;
+  if (value == null) return <span className="text-muted-foreground">{"-"}</span>;
 
   const str = typeof value === "object" ? JSON.stringify(value) : String(value);
 
@@ -127,7 +127,7 @@ export function buildColumns(
 }
 
 export function AttributeValueRich({ value }: { value: unknown }) {
-  if (value == null) return <span className="text-muted-foreground">{"\u2014"}</span>;
+  if (value == null) return <span className="text-muted-foreground">{"-"}</span>;
 
   const str = typeof value === "object" ? JSON.stringify(value) : String(value);
 

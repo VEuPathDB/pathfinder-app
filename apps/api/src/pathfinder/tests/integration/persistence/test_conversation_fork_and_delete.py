@@ -1419,7 +1419,7 @@ async def test_fork_preserves_blob_bytes_exactly(
             {"src_t": str(source_id), "dst_t": str(fork_id)},
         )
         rows = result.all()
-        assert len(rows) > 0, "source has no blobs to compare — fixture bug"
+        assert len(rows) > 0, "source has no blobs to compare - fixture bug"
         for channel, version, src_type, src_blob, dst_type, dst_blob in rows:
             assert dst_type is not None, (
                 f"blob missing in fork for channel={channel!r} version={version!r}"
@@ -1684,7 +1684,7 @@ async def test_fork_copies_ast_as_independent_deep_structure(
         parent = await ConversationRepository(session).get_strategy(source_id)
         parent_view = _AstView.model_validate(parent.strategy_ast)
         assert parent_view.root.operator == "INTERSECT", (
-            "fork mutation leaked into the parent strategy AST — shallow "
+            "fork mutation leaked into the parent strategy AST - shallow "
             "copy aliased the nested root subtree"
         )
         assert parent_view.root.primary_input.parameters["organism"] == (

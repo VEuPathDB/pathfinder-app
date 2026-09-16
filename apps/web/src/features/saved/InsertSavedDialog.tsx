@@ -126,7 +126,7 @@ function InsertSavedDialogBody({
       <div className="max-h-72 overflow-auto rounded-md border border-border">
         {filtered.length === 0 ? (
           <p className="p-4 text-center text-sm text-muted-foreground">
-            No saved strategies yet — save one from a step&apos;s &ldquo;Save as
+            No saved strategies yet - save one from a step&apos;s &ldquo;Save as
             reusable&rdquo; menu first.
           </p>
         ) : (

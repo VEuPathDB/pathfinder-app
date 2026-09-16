@@ -22,7 +22,7 @@ interface ApplyContext {
 
 class SyncPausedError extends Error {
   constructor() {
-    super("Sync paused — record-type mismatch");
+    super("Sync paused - record-type mismatch");
     this.name = "SyncPausedError";
   }
 }
@@ -40,7 +40,7 @@ export function useApplyOperation(conversationId: string) {
       const validationPaused =
         useStrategyStore.getState().graphValidationStatus[conversationId] === true;
       if (validationPaused) {
-        toast.warning("Sync paused — record-type mismatch");
+        toast.warning("Sync paused - record-type mismatch");
         throw new SyncPausedError();
       }
       const key = strategyQueryKey(conversationId);

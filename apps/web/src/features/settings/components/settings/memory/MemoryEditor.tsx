@@ -126,7 +126,7 @@ export function MemoryEditor({ open, item, onSave, onCancel }: MemoryEditorProps
             />
             {!parsed.ok && (
               <span className="text-xs text-destructive">
-                Invalid JSON — must be an object.
+                Invalid JSON - must be an object.
               </span>
             )}
           </label>

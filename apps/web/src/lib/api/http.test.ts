@@ -79,7 +79,7 @@ describe("lib/api/http", () => {
     expect(headers["Accept"]).toBe("application/json");
     expect(headers["Content-Type"]).toBe("application/json");
     expect(headers["x-test"]).toBe("1");
-    // Auth is handled via httpOnly cookies — no Authorization header
+    // Auth is handled via httpOnly cookies - no Authorization header
     expect(headers["Authorization"]).toBeUndefined();
   });
 

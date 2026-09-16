@@ -15,7 +15,7 @@ export function useChatHelpers(): ChatHelpers {
   const helpers = useContext(ChatHelpersContext);
   if (helpers === null) {
     throw new Error(
-      "useChatHelpers must be used inside a ChatHelpersProvider — wrap with the chat runtime",
+      "useChatHelpers must be used inside a ChatHelpersProvider - wrap with the chat runtime",
     );
   }
   return helpers;

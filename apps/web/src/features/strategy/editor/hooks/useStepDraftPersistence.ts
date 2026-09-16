@@ -28,7 +28,7 @@ function writeStorage(key: string, values: StepDraftValues): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(values));
   } catch {
-    /* quota exceeded — surface nothing */
+    /* quota exceeded - surface nothing */
   }
 }
 

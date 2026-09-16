@@ -19,7 +19,7 @@ describe("VennPicker", () => {
     expect(screen.getByLabelText("B only")).toBeTruthy();
   });
 
-  describe("click cycling (debounced — only the final operator reaches onChange)", () => {
+  describe("click cycling (debounced - only the final operator reaches onChange)", () => {
     beforeEach(() => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
     });
@@ -114,7 +114,7 @@ describe("VennPicker", () => {
     });
   });
 
-  describe("Colocate + Swap (deliberate single actions — bypass debounce)", () => {
+  describe("Colocate + Swap (deliberate single actions - bypass debounce)", () => {
     beforeEach(() => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
     });
@@ -131,7 +131,7 @@ describe("VennPicker", () => {
       expect(onChange).toHaveBeenCalledWith("COLOCATE");
     });
 
-    it("Swap fires immediately (no debounce — flushed by the swap handler)", async () => {
+    it("Swap fires immediately (no debounce - flushed by the swap handler)", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       const onChange = vi.fn();
       render(<VennPicker operator="MINUS" onChange={onChange} />);

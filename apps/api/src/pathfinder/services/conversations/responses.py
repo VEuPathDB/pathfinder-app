@@ -1,6 +1,6 @@
 """Conversation response DTOs + builders.
 
-Owns the ``Conversation`` ORM → response-DTO mapping so transport returns
+Owns the ``Conversation`` ORM -> response-DTO mapping so transport returns
 these without importing persistence or building them itself.
 """
 

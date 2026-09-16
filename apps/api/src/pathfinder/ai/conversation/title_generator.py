@@ -54,7 +54,7 @@ def _fallback_title(user_message: str) -> str:
         return "New conversation"
     if len(cleaned) <= MAX_TITLE_CHARS:
         return cleaned
-    return cleaned[: MAX_TITLE_CHARS - 1].rstrip() + "\u2026"
+    return cleaned[: MAX_TITLE_CHARS - 3].rstrip() + "..."
 
 
 def _trim_title(raw: str) -> str:
@@ -84,7 +84,7 @@ def _trim_title(raw: str) -> str:
     if len(words) > MAX_TITLE_WORDS:
         title = " ".join(words[:MAX_TITLE_WORDS])
     if len(title) > MAX_TITLE_CHARS:
-        title = title[: MAX_TITLE_CHARS - 1].rstrip() + "\u2026"
+        title = title[: MAX_TITLE_CHARS - 3].rstrip() + "..."
     return title
 
 

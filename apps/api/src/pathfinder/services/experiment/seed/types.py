@@ -80,7 +80,7 @@ class SeedItemError(CamelModel):
 
 class SeedComplete(CamelModel):
     """Terminal event. Either the whole run finished, or a top-level
-    failure occurred — in which case ``error`` is set and the counters
+    failure occurred - in which case ``error`` is set and the counters
     reflect whatever was achieved before the failure."""
 
     type: Literal["seed_complete"] = "seed_complete"

@@ -19,7 +19,7 @@ interface UseStepParametersArgs {
 }
 
 /**
- * Read-only param state — fetches `paramSpecs` and computes vocab + hidden
+ * Read-only param state - fetches `paramSpecs` and computes vocab + hidden
  * defaults. Form values are owned by `useParamForm`; dependent-param refresh
  * is owned by `useDependentParamRefresh`.
  *

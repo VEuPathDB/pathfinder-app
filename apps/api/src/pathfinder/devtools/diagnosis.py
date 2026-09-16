@@ -66,7 +66,7 @@ def _catch_22(calls: list[CapturedToolCall]) -> list[Anomaly]:
                 severity="critical",
                 message=(
                     f"Parameter {param!r}{where} is required by one validator but "
-                    f"rejected as unknown by another — unsatisfiable. The planner "
+                    f"rejected as unknown by another - unsatisfiable. The planner "
                     f"cannot produce any value that passes both."
                 ),
                 evidence=_evidence(evidence_calls),
@@ -111,7 +111,7 @@ def _loops(calls: list[CapturedToolCall]) -> list[Anomaly]:
                 message=(
                     f"{tool} failed {len(failed)} times "
                     f"({len(signatures) or 'unclassified'} distinct error signatures) "
-                    f"— the agent is stuck retrying.{refusal_note}"
+                    f"- the agent is stuck retrying.{refusal_note}"
                 ),
                 evidence=_evidence([seen[key] for key in sorted(seen)]),
                 details={
@@ -148,7 +148,7 @@ def _wdk_service_errors(calls: list[CapturedToolCall]) -> list[Anomaly]:
                 severity="warning",
                 message=(
                     f"{tool} hit a WDK server error (5xx){where} {len(hits)} times "
-                    f"— the agent retried an unavailable search instead of routing "
+                    f"- the agent retried an unavailable search instead of routing "
                     f"around it. Likely an upstream outage, not a PathFinder bug."
                 ),
                 evidence=_evidence(hits),
@@ -201,7 +201,7 @@ def _silent_constraint_violation(
                 message=(
                     f"{probe.unmet_count} user-explicit constraint(s) unmet "
                     f"({', '.join(labels) or 'unnamed'}) yet the turn did not pause "
-                    f"or flag it — the plan silently deviated from what the user asked."
+                    f"or flag it - the plan silently deviated from what the user asked."
                 ),
                 evidence=[f"state/{phase}.json"],
                 details={
@@ -231,7 +231,7 @@ def _silent_zero(
                     severity="warning",
                     message=(
                         f"{len(zero_steps)} step(s) returned 0 results in {phase} "
-                        f"({', '.join(map(str, zero_steps))}) — possible silent failure "
+                        f"({', '.join(map(str, zero_steps))}) - possible silent failure "
                         f"(e.g. missing JSESSIONID, wrong params)."
                     ),
                     evidence=[f"state/{phase}.json"],
@@ -251,7 +251,7 @@ def _budget(summary: RunSummary) -> list[Anomaly]:
             severity=severity,
             message=(
                 f"Turn consumed {summary.tokens} tokens (${summary.cost_usd:.2f}) "
-                f"with status={summary.status} — abnormally high."
+                f"with status={summary.status} - abnormally high."
             ),
             evidence=["summary.json"],
             details={"tokens": summary.tokens, "cost_usd": summary.cost_usd},

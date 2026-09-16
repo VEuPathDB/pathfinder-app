@@ -1,4 +1,4 @@
-"""Correctness tests for the classification-metrics engine — hand-computed
+"""Correctness tests for the classification-metrics engine - hand-computed
 expected values, not just shape checks. A confusion matrix of tp=8, fn=2,
 fp=2, tn=10-2=8 gives the round numbers used throughout.
 """
@@ -92,7 +92,7 @@ def test_anti_correlated_classifier_has_negative_mcc() -> None:
 def test_mcc_is_zero_not_nan_when_one_class_absent() -> None:
     # TP=5, FP=5, TN=FN=0. mcc denominator factor (tn+fp)*(tn+fn) collapses to
     # (0+5)*(0+0) = 0, so the whole sqrt is 0. MCC must be defined as 0.0, never
-    # NaN/inf — a NaN would silently poison downstream means/CIs.
+    # NaN/inf - a NaN would silently poison downstream means/CIs.
     cm = compute_confusion_matrix(
         positive_hits=5, total_positives=5, negative_hits=5, total_negatives=5
     )

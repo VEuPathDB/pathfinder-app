@@ -65,7 +65,7 @@ class RedactSensitiveKwargsFilter(logging.Filter):
 def install_procrastinate_redaction() -> None:
     """Attach ``RedactSensitiveKwargsFilter`` to every procrastinate logger.
 
-    ``logging.Filter`` does **not** propagate from parent to child loggers —
+    ``logging.Filter`` does **not** propagate from parent to child loggers -
     only handlers do. Procrastinate uses at least three logger names
     (``procrastinate``, ``procrastinate.worker``, ``procrastinate.worker.worker``);
     miss any and a secret leaks through. We attach the filter to every
@@ -73,7 +73,7 @@ def install_procrastinate_redaction() -> None:
     far, and register a root-level handler-side filter for any that come
     online later.
 
-    Idempotent — re-invocation does not add duplicate filters.
+    Idempotent - re-invocation does not add duplicate filters.
     """
     filt = RedactSensitiveKwargsFilter()
     manager = logging.Logger.manager

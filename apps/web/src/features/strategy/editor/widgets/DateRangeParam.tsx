@@ -44,7 +44,7 @@ export function DateRangeParam({ spec, name, field }: ParamWidgetProps) {
           aria-invalid={hasError ? "true" : undefined}
         />
         <span className="text-muted-foreground" aria-hidden>
-          —
+          -
         </span>
         <Input
           name={`${name}-max`}

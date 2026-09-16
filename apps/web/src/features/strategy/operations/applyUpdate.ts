@@ -143,7 +143,7 @@ export function applyWireInput(strategy: Strategy, op: WireInputOp): ApplyResult
         [slotKey]: op.sourceStepId,
       }),
     },
-    description: `Wired ${op.sourceStepId} → ${op.targetStepId}`,
+    description: `Wired ${op.sourceStepId} -> ${op.targetStepId}`,
   };
 }
 
@@ -167,7 +167,7 @@ export function applyDeleteEdge(
           colocationParams: null,
         }),
       },
-      description: `Detached edge ${op.sourceId} → ${op.targetId}`,
+      description: `Detached edge ${op.sourceId} -> ${op.targetId}`,
     };
   }
   return recurse(strategy, {

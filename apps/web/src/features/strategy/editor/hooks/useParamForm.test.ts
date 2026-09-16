@@ -146,7 +146,7 @@ describe("useParamForm", () => {
     ];
     const { result } = renderHook(() => useParamForm(specs));
     const values = result.current.form.state.values;
-    // Only the two visible params seed defaults — the hidden one is dropped,
+    // Only the two visible params seed defaults - the hidden one is dropped,
     // so its "secret" initial value never reaches the form.
     expect(Object.keys(values).sort()).toEqual(["min_weight", "organism"]);
     expect(values["organism"]).toBe("P. falciparum 3D7");
@@ -328,7 +328,7 @@ describe("extractDefaults override", () => {
   });
 });
 
-describe("useParamForm — no store writes during render", () => {
+describe("useParamForm - no store writes during render", () => {
   function StoreSubscriber({ form }: { form: ParamForm }): null {
     useStore(form.store, (s) => s.values);
     return null;
@@ -365,7 +365,7 @@ describe("useParamForm — no store writes during render", () => {
   });
 });
 
-describe("useParamForm — resets when override changes", () => {
+describe("useParamForm - resets when override changes", () => {
   it("resets form values when override identity changes", () => {
     const specs = [
       {

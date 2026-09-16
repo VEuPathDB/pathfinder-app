@@ -194,7 +194,7 @@ async def import_gene_set_for_conversation(
                 strategy.gene_set_id is not None
                 and strategy.wdk_strategy_id is not None
             ):
-                # Already linked → re-resolve from the (rebuilt) strategy so a
+                # Already linked -> re-resolve from the (rebuilt) strategy so a
                 # re-run that changed the result replaces the stale snapshot.
                 resynced = await gene_set_svc.resync_strategy(
                     strategy.gene_set_id,

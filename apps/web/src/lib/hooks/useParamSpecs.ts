@@ -39,7 +39,7 @@ type UseParamSpecsResult = {
  * Simple usage (positional args):
  *   useParamSpecs(siteId, recordType, searchName)
  *
- * Advanced usage (options object — adds debounce, contextValues, record-type
+ * Advanced usage (options object - adds debounce, contextValues, record-type
  * resolution, and an enabled guard):
  *   useParamSpecs({ siteId, recordType, searchName, selectedSearch, ... })
  */
@@ -81,7 +81,7 @@ export function useParamSpecs(
 }
 
 // ---------------------------------------------------------------------------
-// Simple variant — delegates to TanStack Query hook
+// Simple variant - delegates to TanStack Query hook
 // ---------------------------------------------------------------------------
 
 function useParamSpecsSimple(

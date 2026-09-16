@@ -62,7 +62,7 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = (
     ModelEntry.entry(
         id="openai:gpt-5.6-sol",
         name="GPT-5.6 Sol",
-        description="Flagship reasoning — 1.05M context",
+        description="Flagship reasoning - 1.05M context",
         supports_reasoning=True,
         context_size=1_050_000,
         input_price=5.00,
@@ -72,7 +72,7 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = (
     ModelEntry.entry(
         id="openai:gpt-5.6-terra",
         name="GPT-5.6 Terra",
-        description="Balanced 5.6 — 1.05M context",
+        description="Balanced 5.6 - 1.05M context",
         supports_reasoning=True,
         context_size=1_050_000,
         input_price=2.00,
@@ -82,7 +82,7 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = (
     ModelEntry.entry(
         id="openai:gpt-5.6-luna",
         name="GPT-5.6 Luna",
-        description="Cheapest OpenAI model — 1.05M context",
+        description="Cheapest OpenAI model - 1.05M context",
         supports_reasoning=True,
         context_size=1_050_000,
         input_price=0.20,
@@ -124,7 +124,7 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = (
     ModelEntry.entry(
         id="google:gemini-3.1-pro-preview",
         name="Gemini 3.1 Pro",
-        description="Google flagship — deep reasoning",
+        description="Google flagship - deep reasoning",
         supports_reasoning=True,
         context_size=1_000_000,
         input_price=2.00,
@@ -134,7 +134,7 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = (
     ModelEntry.entry(
         id="google:gemini-3.6-flash",
         name="Gemini 3.6 Flash",
-        description="Latest Flash — fast and capable",
+        description="Latest Flash - fast and capable",
         supports_reasoning=True,
         context_size=1_000_000,
         input_price=1.50,
@@ -155,7 +155,7 @@ _CLOUD_MODELS: tuple[ModelEntry, ...] = (
     ModelEntry.entry(
         id="mock:deterministic",
         name="Mock (deterministic)",
-        description="Deterministic mock for E2E testing — no LLM calls",
+        description="Deterministic mock for E2E testing - no LLM calls",
         context_size=128_000,
         is_provider_smallest=True,
     ),

@@ -1,8 +1,8 @@
 """Detect that a recorded build no longer describes the live strategy.
 
 The Lead answers questions from the Ledger, whose counts come from the last
-``BuildOutcome``. Edits made outside the conversation — the graph editor, the
-WDK web UI — change the strategy without touching that outcome, so cached
+``BuildOutcome``. Edits made outside the conversation - the graph editor, the
+WDK web UI - change the strategy without touching that outcome, so cached
 counts silently become wrong. Comparing recorded counts against a live read
 turns that silence into an explicit warning.
 """
@@ -49,7 +49,7 @@ def detect_build_staleness(
 ) -> StaleBuild | None:
     """Compare a recorded build against live per-node counts.
 
-    ``None`` counts on either side mean "unknown", never "changed" — a WDK
+    ``None`` counts on either side mean "unknown", never "changed" - a WDK
     read that failed must not masquerade as a user edit. Returns ``None``
     when nothing observable diverged.
     """

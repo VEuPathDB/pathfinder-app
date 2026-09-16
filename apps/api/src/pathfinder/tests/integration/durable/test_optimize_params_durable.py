@@ -33,7 +33,7 @@ async def _fake_run_single_trial(
     progress: Any,
     **_kwargs: Any,
 ) -> dict[str, Any]:
-    """Stand-in trial — emits two progress rows so the runner round-trip
+    """Stand-in trial - emits two progress rows so the runner round-trip
     persists progress under the variant scope."""
     await progress.update(
         percent=0.5,

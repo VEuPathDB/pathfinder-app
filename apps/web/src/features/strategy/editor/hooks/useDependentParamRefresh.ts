@@ -21,7 +21,7 @@ interface DependentRefreshState {
   dependentLoading: Record<string, boolean>;
   dependentErrors: Record<string, string | null>;
   /**
-   * Subscribed handler — call from the form's `listeners.onChange` (or any
+   * Subscribed handler - call from the form's `listeners.onChange` (or any
    * field's onChange) with the changed name, the new value, and the latest
    * snapshot of all values. Fires the refresh only if the changed param has
    * `dependentParams`.

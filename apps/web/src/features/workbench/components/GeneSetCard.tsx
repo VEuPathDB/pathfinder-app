@@ -96,7 +96,7 @@ export function GeneSetCard({
             <div
               className={cn(
                 "h-1 flex-1 overflow-hidden rounded-full bg-border",
-                // De-emphasize only the decorative bar on the active row —
+                // De-emphasize only the decorative bar on the active row -
                 // fading the % text too would drop it below contrast.
                 isActive && "opacity-40",
               )}

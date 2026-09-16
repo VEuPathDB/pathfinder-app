@@ -36,7 +36,7 @@ async def reconcile_sync_state_with_wdk(
 
     Self-heals from prior partial-failure corruption and out-of-band
     deletes. If the WDK GET fails (network, 404, etc.) the function logs
-    and returns — better to push with possibly-stale state than to fail
+    and returns - better to push with possibly-stale state than to fail
     the whole patch because reconciliation could not run.
     """
     if wdk_strategy_id is None or not sync_state.wdk_step_ids:

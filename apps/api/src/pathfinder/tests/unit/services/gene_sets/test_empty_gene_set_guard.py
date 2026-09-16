@@ -81,7 +81,7 @@ async def test_a_resolved_gene_set_is_still_created(
 async def test_a_set_operation_may_still_yield_an_empty_result(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """An empty intersection IS the answer the user asked for — never blocked."""
+    """An empty intersection IS the answer the user asked for - never blocked."""
     _stub_resolve(monkeypatch, ["PF3D7_0100100"])
     store = GeneSetStore()
     svc = GeneSetService(store)

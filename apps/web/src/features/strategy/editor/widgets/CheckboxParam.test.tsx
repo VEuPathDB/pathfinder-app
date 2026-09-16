@@ -29,7 +29,7 @@ function makeSpec(overrides: Partial<ParamSpec> = {}): ParamSpec {
   };
 }
 
-describe("CheckboxParam — single-pick (shadcn RadioGroup)", () => {
+describe("CheckboxParam - single-pick (shadcn RadioGroup)", () => {
   it("renders one RadioGroupItem per option", () => {
     const spec = makeSpec();
     render(
@@ -89,7 +89,7 @@ describe("CheckboxParam — single-pick (shadcn RadioGroup)", () => {
   });
 });
 
-describe("CheckboxParam — multi-pick (shadcn Checkbox stack)", () => {
+describe("CheckboxParam - multi-pick (shadcn Checkbox stack)", () => {
   const spec = makeSpec({ multiPick: true });
 
   it("renders one Checkbox per option (plus 'Select all' when count > 3)", () => {

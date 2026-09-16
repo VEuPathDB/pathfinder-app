@@ -46,7 +46,7 @@ export function SetVenn({
   const realData = computeVennData(sets);
   const data = logScaleVennData(realData);
 
-  // Lookup: joined key → real gene count
+  // Lookup: joined key -> real gene count
   const realCountMap = new Map<string, number>();
   for (const d of realData) {
     realCountMap.set(d.key.join("|"), d.data);

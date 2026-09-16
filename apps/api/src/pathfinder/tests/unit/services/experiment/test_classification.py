@@ -1,4 +1,4 @@
-"""Correctness tests for gene-record classification — hand-computed
+"""Correctness tests for gene-record classification - hand-computed
 expected partitions from explicit set membership.
 
 ``classify_records`` tags each WDK record with a ``classification`` label

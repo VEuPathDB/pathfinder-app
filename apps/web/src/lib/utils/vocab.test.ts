@@ -125,8 +125,8 @@ describe("extractVocabOptions", () => {
     };
     const result = extractVocabOptions(tree);
     expect(result[0]!.displayLabel).toBe("a");
-    expect(result[1]!.displayLabel).toBe("\u2014 b"); // "— b"
-    expect(result[2]!.displayLabel).toBe("\u2014 \u2014 c"); // "— — c"
+    expect(result[1]!.displayLabel).toBe("- b"); // "- b"
+    expect(result[2]!.displayLabel).toBe("- - c"); // "- - c"
   });
 
   // -- Deduplication --

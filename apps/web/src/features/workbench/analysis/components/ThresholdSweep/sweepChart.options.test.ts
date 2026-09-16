@@ -105,7 +105,7 @@ describe("buildSweepChartOption", () => {
       tokens: DISTINCT_CHART_TOKENS,
     });
 
-    expect(option.xAxis).toMatchObject({ data: ["protein kin…"] });
+    expect(option.xAxis).toMatchObject({ data: ["protein k..."] });
   });
 });
 

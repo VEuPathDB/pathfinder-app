@@ -202,7 +202,7 @@ function ModelRow({
   const isEnabled = model.enabled ?? true;
   const supportsReasoning = model.supportsReasoning ?? false;
   const description =
-    model.description != null && model.description !== "" ? model.description : "—";
+    model.description != null && model.description !== "" ? model.description : "-";
 
   function handleSelect() {
     if (onSelect == null || !isEnabled) return;

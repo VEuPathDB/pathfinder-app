@@ -162,7 +162,7 @@ FoldEvaluator = Callable[
     [list[str] | None, list[str] | None],
     Coroutine[Any, Any, ControlTestResult],
 ]
-"""Async callback(holdout_pos, holdout_neg) → control-test result."""
+"""Async callback(holdout_pos, holdout_neg) -> control-test result."""
 
 
 async def _run_kfold(

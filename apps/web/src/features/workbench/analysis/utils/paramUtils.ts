@@ -22,7 +22,7 @@ export function isOptimizable(spec: ParamSpec): boolean {
 
 export function isParamRequired(spec: ParamSpec): boolean {
   if (spec.allowEmptyValue === true) return false;
-  // isReadOnly / isVisible are WDK raw fields not in the generated schema —
+  // isReadOnly / isVisible are WDK raw fields not in the generated schema -
   // check them defensively via runtime property access.
   const raw = spec as Record<string, unknown>;
   if (raw["isReadOnly"] != null && raw["isReadOnly"] !== false) return false;

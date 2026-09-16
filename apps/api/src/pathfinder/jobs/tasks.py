@@ -32,7 +32,7 @@ ORPHAN_VECTOR_GRACE = timedelta(days=7)
 def ensure_registered() -> None:
     """No-op that keeps the module-import side effects live.
 
-    The real work is the ``@procrastinate_app.task`` decorators below — those
+    The real work is the ``@procrastinate_app.task`` decorators below - those
     run at import time. This function exists so callers that need to
     guarantee tasks are registered (the worker bootstrap path) can reference
     the module without relying on unused-import semantics.

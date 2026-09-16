@@ -22,12 +22,12 @@ def render_param_vocab(
         out.append(f"{detail_pad}{snap.help}")
     if snap.allowed_values:
         out.extend(
-            f"{detail_pad}• {v.value!r} — {v.display}" for v in snap.allowed_values
+            f"{detail_pad}• {v.value!r} - {v.display}" for v in snap.allowed_values
         )
     elif snap.allowed_values_tree:
         out.extend(
             f"{detail_pad}{line}" for line in snap.allowed_values_tree.splitlines()
         )
     else:
-        out.append(f"{detail_pad}(no enumerated vocab — free-form value)")
+        out.append(f"{detail_pad}(no enumerated vocab - free-form value)")
     return out

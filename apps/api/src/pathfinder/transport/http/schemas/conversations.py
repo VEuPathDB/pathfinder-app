@@ -1,4 +1,4 @@
-"""Conversation request/response DTOs — unified chat + strategy shape."""
+"""Conversation request/response DTOs - unified chat + strategy shape."""
 
 from uuid import UUID
 
@@ -67,7 +67,7 @@ class PushConversationRequest(CamelModel):
 
 
 class ConversationPatchBody(CamelModel):
-    """Sidebar patch payload — rename / toggle saved."""
+    """Sidebar patch payload - rename / toggle saved."""
 
     name: str | None = None
     is_saved: bool | None = Field(default=None)

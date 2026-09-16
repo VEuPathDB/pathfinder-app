@@ -3,7 +3,7 @@
  *
  * Generated once per browser, stored in localStorage, and attached to every
  * span as `session.id`. This lets SigNoz filter the full flow a single user
- * went through — click → fetch → backend pipeline — by one stable key.
+ * went through - click -> fetch -> backend pipeline - by one stable key.
  * No PII is stored; the id is a random v4 UUID.
  */
 
@@ -18,7 +18,7 @@ export function getOrCreateSessionId(): string {
     window.localStorage.setItem(STORAGE_KEY, fresh);
     return fresh;
   } catch {
-    // Private mode, quota exceeded, etc. — fall back to a per-tab id.
+    // Private mode, quota exceeded, etc. - fall back to a per-tab id.
     return crypto.randomUUID();
   }
 }

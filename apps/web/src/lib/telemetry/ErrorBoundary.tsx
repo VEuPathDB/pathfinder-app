@@ -5,12 +5,12 @@
  *
  * Catches render-phase + lifecycle errors anywhere in the app tree and
  * forwards them to `logError` with source `react.errorBoundary`. Renders a
- * minimal fallback UI with a reload button — we don't try to recover
+ * minimal fallback UI with a reload button - we don't try to recover
  * partial state because a thrown render error usually leaves the component
  * tree in an unknown state.
  *
  * We keep this as a class component because that's still the only way to
- * subscribe to React's `componentDidCatch` — there is no hook equivalent.
+ * subscribe to React's `componentDidCatch` - there is no hook equivalent.
  */
 
 import { Component, type ErrorInfo, type ReactNode } from "react";

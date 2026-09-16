@@ -102,7 +102,7 @@ export function StrategyGraphLayout() {
             : (event, node) => {
                 // Toolbar buttons and the kebab menu (portaled, but React
                 // events still bubble here) drive their own actions; don't also
-                // open the editor — its overlay would block their dialogs.
+                // open the editor - its overlay would block their dialogs.
                 if (isNodeToolbarOrMenuTarget(event.target)) return;
                 const data = node.data as { step?: Step } | undefined;
                 const step = data?.step;

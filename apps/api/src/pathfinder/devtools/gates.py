@@ -41,7 +41,7 @@ class GateDurableTask(CamelModel):
 
 
 class Gate(CamelModel):
-    """The single pending interaction a turn is blocked on — the CLI's mirror
+    """The single pending interaction a turn is blocked on - the CLI's mirror
     of whatever the UI would render (approval card, consult carousel, or a
     running durable task). ``kind == "none"`` means the turn completed."""
 
@@ -89,7 +89,7 @@ def detect_gate(
         kind="approval",
         tool=tool,
         tool_call_id=call_id,
-        message=f"approval: {tool} — approve or deny",
+        message=f"approval: {tool} - approve or deny",
     )
 
 
@@ -117,7 +117,7 @@ def _data_part(*, part_type: str, tool_call_id: str, answers: list[Any]) -> Data
 
 
 class BodyCtx(CamelModel):
-    """The conversation-scoped fields every resume body needs — bundled so the
+    """The conversation-scoped fields every resume body needs - bundled so the
     builders stay under the argument limit."""
 
     conversation_id: UUID

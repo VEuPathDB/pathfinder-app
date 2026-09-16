@@ -127,7 +127,7 @@ export function useStrategyGraphHandlers(options: UseStrategyGraphHandlersOption
     handleStartOrthologTransformFromSelection,
     handleOpenDetails,
     handleOrthologChoose,
-    /** Single-step patch — wraps useUpdateStepMutation. */
+    /** Single-step patch - wraps useUpdateStepMutation. */
     updateStep: (stepId: string, patch: Partial<Step>) =>
       updateStep.mutate({ stepId, patch }),
     requestDelete: deleteOp.requestDelete,

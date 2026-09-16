@@ -1,7 +1,7 @@
 """Per-gene composite confidence scoring.
 
 Combines classification, ensemble frequency, and enrichment support
-into a single ranked score. Pure computation — no I/O.
+into a single ranked score. Pure computation - no I/O.
 """
 
 from dataclasses import dataclass

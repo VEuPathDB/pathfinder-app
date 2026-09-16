@@ -33,7 +33,7 @@ describe("ConstraintsSection", () => {
     );
     expect(screen.getByText(/data type/i)).toBeInTheDocument();
     expect(screen.getByText(/substituted/i)).toBeInTheDocument();
-    expect(screen.getByText(/requested RNA-Seq → microarray/i)).toBeInTheDocument();
+    expect(screen.getByText(/requested RNA-Seq -> microarray/i)).toBeInTheDocument();
   });
 
   it("renders nothing notable when there are no constraints", () => {

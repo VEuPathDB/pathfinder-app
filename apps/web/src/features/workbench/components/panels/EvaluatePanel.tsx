@@ -125,7 +125,7 @@ export function EvaluatePanel() {
         } else if (event.type === "experiment_error") {
           setError(event.error);
         } else {
-          // experiment_end — terminal; loop exits after drain.
+          // experiment_end - terminal; loop exits after drain.
         }
       }
     } catch (err) {

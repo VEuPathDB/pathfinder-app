@@ -5,7 +5,7 @@ import { combineOpEnum, type Step, type Strategy } from "@pathfinder/shared";
 import { applyOperation } from "./apply";
 
 // Parity tests cover topology (which steps survive, how inputs rewire); these
-// pin the VALUE transformations parity doesn't — the operator flip and the
+// pin the VALUE transformations parity doesn't - the operator flip and the
 // param edit the drug-targets / workbench flows perform.
 
 function leaf(id: string, displayName: string): Step {
@@ -64,8 +64,8 @@ function stepById(s: Strategy, id: string): Step {
   return found;
 }
 
-describe("applyOperation — value updates", () => {
-  it("flips a combine step's operator UNION → INTERSECT, leaving everything else intact", () => {
+describe("applyOperation - value updates", () => {
+  it("flips a combine step's operator UNION -> INTERSECT, leaving everything else intact", () => {
     const result = applyOperation(strat(), {
       kind: "updateCombineOperator",
       stepId: "c",

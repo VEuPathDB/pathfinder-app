@@ -1,4 +1,4 @@
-"""Tests for Langfuse dataset management — graceful degradation only."""
+"""Tests for Langfuse dataset management - graceful degradation only."""
 
 from unittest.mock import patch
 

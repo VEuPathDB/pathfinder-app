@@ -96,7 +96,7 @@ def test_phase_agent_exposes_scratchpad_tools(
 def test_phase_toolset_does_not_embed_scratchpad(
     build: Callable[[], Agent[Any, Any]],
 ) -> None:
-    """Scratchpad tools come from the scratchpad toolset only — not duplicated
+    """Scratchpad tools come from the scratchpad toolset only - not duplicated
     into the phase toolset. Guards against DRY-violating re-imports.
     """
     agent = build()

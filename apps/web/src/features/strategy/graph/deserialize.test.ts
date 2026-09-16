@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { deserializeStrategyToGraph } from "@/features/strategy/graph/deserialize";
 import type { StepPositions } from "@/features/strategy/graph/layout";
 
-// Synthetic positions grid — each step gets a distinct (x,y) so tests can
+// Synthetic positions grid - each step gets a distinct (x,y) so tests can
 // assert on position preservation without depending on a real layout engine.
 function syntheticPositions(stepIds: string[]): StepPositions {
   const map: StepPositions = new Map();

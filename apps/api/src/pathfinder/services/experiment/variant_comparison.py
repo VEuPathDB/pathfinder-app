@@ -1,11 +1,11 @@
-"""Exploratory variant comparison — run N search-config variants and compare
+"""Exploratory variant comparison - run N search-config variants and compare
 their result gene sets WITHOUT control sets or scoring.
 
 This is the conversational, no-controls counterpart to the workbench's
 benchmark mode: the user wants to "try both" / sweep a parameter / ablate a
 step and SEE how the results differ (sizes, overlap, distinguishing genes),
 then judge for themselves. Each variant runs via WDK's anonymous report
-endpoint (``run_search_report``) — no step/strategy is created, so the user's
+endpoint (``run_search_report``) - no step/strategy is created, so the user's
 workspace is untouched and variants run in parallel.
 """
 

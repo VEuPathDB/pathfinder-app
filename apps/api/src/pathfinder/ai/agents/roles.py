@@ -1,4 +1,4 @@
-"""Pipeline phase roles — leaf module so it has no cycles with agent modules."""
+"""Pipeline phase roles - leaf module so it has no cycles with agent modules."""
 
 from __future__ import annotations
 

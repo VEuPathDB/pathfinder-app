@@ -32,7 +32,7 @@ function setup(selectedNodeIds: string[]) {
   );
 }
 
-describe("useStrategyGraphHandlers — ortholog transform", () => {
+describe("useStrategyGraphHandlers - ortholog transform", () => {
   it("captures the target step when opened", () => {
     const { result } = setup(["step_a"]);
     act(() => result.current.handleStartOrthologTransformFromSelection());
@@ -41,7 +41,7 @@ describe("useStrategyGraphHandlers — ortholog transform", () => {
 
   // The regression: clicking the toolbar button clears ReactFlow's node
   // selection, so a render gate reading live selection closed the sheet
-  // before it ever mounted — the button looked like a no-op.
+  // before it ever mounted - the button looked like a no-op.
   it("keeps the target after the selection is cleared", () => {
     const { result, rerender } = setup(["step_a"]);
     act(() => result.current.handleStartOrthologTransformFromSelection());

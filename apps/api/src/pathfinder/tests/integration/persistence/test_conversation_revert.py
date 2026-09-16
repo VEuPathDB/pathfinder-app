@@ -303,7 +303,7 @@ class TestRevertConversation:
 
     async def test_same_timestamp_siblings_cut_by_id_order(self) -> None:
         # Characterization: when messages genuinely share created_at, revert
-        # cuts on the stable (created_at, id) ordering — rows with an id below
+        # cuts on the stable (created_at, id) ordering - rows with an id below
         # the target survive, the target and larger-id rows are deleted. The id
         # tiebreak is uuid4, NOT insertion order, so this is the deterministic
         # behaviour, not a recovery of true conversation order (which cannot be
@@ -393,7 +393,7 @@ class TestRevertConversation:
         # parent_message_id FK to X. Reverting the source past X deletes X; the
         # FK is ondelete=SET NULL, so the child's parent_message_id becomes
         # NULL (no IntegrityError, no dangling pointer) while
-        # parent_conversation_id survives — the branch is still attached to the
+        # parent_conversation_id survives - the branch is still attached to the
         # source in the sidebar tree, it just loses its precise anchor row.
         user = await _seed_user()
         source = await _seed_conversation(user.id)
@@ -439,7 +439,7 @@ class TestRevertConversation:
         # created_at. A checkpoint stamped a hair BEFORE the target message
         # (clock skew, or a mid-turn checkpoint that preceded the message
         # write) survives the revert even though it belongs to the deleted
-        # turn — leaving a checkpoint with no surviving message. Documented gap.
+        # turn - leaving a checkpoint with no surviving message. Documented gap.
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
         keep = await _seed_message(conv.id, "user")
@@ -492,7 +492,7 @@ class TestRevertConversation:
 
     async def test_ghost_target_is_noop(self) -> None:
         # A target that was never persisted (e.g. a rejected/failed send) is a
-        # no-op, not a 404 — the server is already at the pre-message state.
+        # no-op, not a 404 - the server is already at the pre-message state.
         user = await _seed_user()
         conv = await _seed_conversation(user.id)
         kept = await _seed_message(conv.id, "user")

@@ -38,7 +38,7 @@ function GeneDetailPopover({
         <div>
           <dt className="font-medium text-muted-foreground">Product</dt>
           <dd className="text-foreground">
-            {gene.product !== "" && gene.product != null ? gene.product : "\u2014"}
+            {gene.product !== "" && gene.product != null ? gene.product : "-"}
           </dd>
         </div>
         <div>

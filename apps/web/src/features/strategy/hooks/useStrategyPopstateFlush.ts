@@ -13,7 +13,7 @@ import { useStrategyAutoFlush } from "./useStrategyAutoFlush";
  * navigation. The best we can do is fire the flush as soon as we hear the
  * event so any in-flight push completes before React mounts the next route's
  * components. If the page transition is faster than the network round-trip,
- * a pending push may still be in flight when the next page mounts — but the
+ * a pending push may still be in flight when the next page mounts - but the
  * mutation cache lives on the QueryClient (which is app-wide), so it
  * continues to settle in the background and `awaitFlush` keeps blocking until
  * it does.

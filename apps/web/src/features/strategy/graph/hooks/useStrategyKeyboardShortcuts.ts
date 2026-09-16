@@ -44,14 +44,14 @@ export function useStrategyKeyboardShortcuts({
 
     const meta = event.metaKey || event.ctrlKey;
 
-    // Cmd/Ctrl+K — quick switcher
+    // Cmd/Ctrl+K - quick switcher
     if (meta && event.key.toLowerCase() === "k") {
       event.preventDefault();
       onOpenQuickSwitcher();
       return;
     }
 
-    // Cmd/Ctrl+A — select all (delegate to browser-default by allowing it to bubble)
+    // Cmd/Ctrl+A - select all (delegate to browser-default by allowing it to bubble)
     // Cmd/Ctrl+Z handled by useStrategyGraphLayout (do not duplicate)
     if (meta) return;
 
@@ -134,7 +134,7 @@ export function useStrategyKeyboardShortcuts({
       }
       case "Escape": {
         // If a sheet/dialog (editor, quick switcher, ...) is open, let it
-        // handle Esc and close itself — never navigate out from under it.
+        // handle Esc and close itself - never navigate out from under it.
         if (document.querySelector('[role="dialog"][data-state="open"]') != null) {
           return;
         }
@@ -161,7 +161,7 @@ export function useStrategyKeyboardShortcuts({
   };
 
   // Capture phase so Esc is observed before an open Radix sheet/dialog
-  // tears itself down — otherwise we'd read stale "no editor open" state and
+  // tears itself down - otherwise we'd read stale "no editor open" state and
   // wrongly navigate away from the canvas.
   useEventListener("keydown", handleKeyDown, undefined, { capture: true });
 }

@@ -11,7 +11,7 @@ import {
 import type { GeneSet } from "@pathfinder/shared";
 
 // ---------------------------------------------------------------------------
-// Mock stores — must not reference outer variables from vi.mock factories
+// Mock stores - must not reference outer variables from vi.mock factories
 // ---------------------------------------------------------------------------
 
 const storeState: Record<string, unknown> = {
@@ -38,7 +38,7 @@ vi.mock("@/features/workbench/hooks/useGeneSetsQuery", () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Mock API — only the API layer, sub-components are REAL
+// Mock API - only the API layer, sub-components are REAL
 // ---------------------------------------------------------------------------
 
 const mockSearchGenes = vi.fn();
@@ -53,7 +53,7 @@ vi.mock("@pathfinder/shared/generated/hooks/useResolveGenes", () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// Import after mocks — all sub-components are real
+// Import after mocks - all sub-components are real
 // ---------------------------------------------------------------------------
 
 import { GeneChipInput } from "./GeneChipInput";
@@ -169,7 +169,7 @@ describe("GeneChipInput integration", () => {
     );
   });
 
-  it("autocomplete search → select → calls onChange with new gene", async () => {
+  it("autocomplete search -> select -> calls onChange with new gene", async () => {
     mockSearchGenes.mockResolvedValue({
       results: [
         {

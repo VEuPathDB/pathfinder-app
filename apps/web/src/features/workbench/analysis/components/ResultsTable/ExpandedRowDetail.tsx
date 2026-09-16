@@ -26,7 +26,7 @@ export function ExpandedRowDetail({
     <div className="border-t border-border bg-muted/30 px-6 py-4">
       <div className="mb-3 flex items-center justify-between">
         <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Record Detail — {pk}
+          Record Detail - {pk}
         </h4>
         <button
           type="button"

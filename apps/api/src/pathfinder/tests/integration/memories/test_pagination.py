@@ -43,7 +43,7 @@ async def test_limit_caps_page_and_has_more_flips(
     assert len(body1["knowledge"]) == 5
     assert body1["pageSize"] == 5
     assert body1["offset"] == 0
-    assert body1["hasMore"] is True, "5 of 6 rows returned — more available"
+    assert body1["hasMore"] is True, "5 of 6 rows returned - more available"
 
     second = await authed_client.get("/api/v1/memories?limit=5&offset=5")
     assert second.status_code == 200
@@ -61,7 +61,7 @@ async def test_offset_returns_different_items_than_page_zero(
     db_cleaner: None,
     patch_app_db_engine: None,
 ) -> None:
-    """Offset must actually skip — no overlap between offset=0 and offset=N."""
+    """Offset must actually skip - no overlap between offset=0 and offset=N."""
     del db_cleaner, patch_app_db_engine
     seeded_keys = set(await _seed(app_memory_store, authed_user_id, n=8))
 

@@ -65,13 +65,13 @@ describe("SiteAuth", () => {
 
   it("shows an em-dash when the signed-in user has no name", () => {
     renderAuth({ signedIn: true, name: null });
-    expect(screen.getByText(/^Logged in as/)).toHaveTextContent("Logged in as —");
+    expect(screen.getByText(/^Logged in as/)).toHaveTextContent("Logged in as -");
   });
 
-  it("offers the 'Sign in →' affordance when signed out", () => {
+  it("offers the 'Sign in ->' affordance when signed out", () => {
     renderAuth({ signedIn: false });
     const button = screen.getByRole("button", { name: /sign in/i });
-    expect(button).toHaveTextContent("Sign in →");
+    expect(button).toHaveTextContent("Sign in ->");
   });
 
   it("renders the inline sign-in form when signed out in inline mode", () => {

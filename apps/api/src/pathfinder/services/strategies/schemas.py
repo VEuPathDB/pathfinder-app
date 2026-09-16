@@ -17,7 +17,7 @@ from pathfinder.domain.strategy.step_status import StepStatus, step_status
 
 
 class StepResponse(CamelModel):
-    """Strategy step — WDK-aligned fields."""
+    """Strategy step - WDK-aligned fields."""
 
     id: str
     kind: str | None = None

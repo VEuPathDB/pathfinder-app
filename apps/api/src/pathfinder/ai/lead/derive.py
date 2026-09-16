@@ -63,7 +63,7 @@ def derive_ledger(
 ) -> InvestigationLedger:
     """Pure derivation of the Ledger from PipelineState + the latest intent.
 
-    No I/O. The Lead calls this on every turn. Sub-agents do NOT call it —
+    No I/O. The Lead calls this on every turn. Sub-agents do NOT call it -
     they receive scoped slices via typed work orders from the Lead.
 
     ``phase_stop`` is why the turn's last dispatch ended without a delta. It

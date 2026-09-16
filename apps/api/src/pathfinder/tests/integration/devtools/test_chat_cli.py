@@ -280,7 +280,7 @@ async def test_respond_finds_gate_from_checkpoint_not_run_dir(tmp_path: Path) ->
     assert gate["kind"] == "consult", gate
 
     # An operator running ``respond`` from a fresh run-dir knows nothing about
-    # the turn that produced the gate — the checkpoint must surface it.
+    # the turn that produced the gate - the checkpoint must surface it.
     settings = get_settings()
     derived = await _gate_from_checkpoint(conv, settings.database_url)
     assert derived.kind == "consult"

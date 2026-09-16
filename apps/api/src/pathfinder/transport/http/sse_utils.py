@@ -42,13 +42,13 @@ def typed_event_stream_response[T: BaseModel](
         SSE frame.
     :param event_name: Either a constant string (used as the ``event:`` field
         for every frame) or a callable that derives the event name from each
-        model — useful for heterogeneous streams where different yields carry
+        model - useful for heterogeneous streams where different yields carry
         different event types (e.g. ``sweep_point`` vs ``sweep_complete``).
 
     :returns: ``StreamingResponse`` with ``media_type="text/event-stream"``.
 
     The response body terminates with ``data: [DONE]\\n\\n`` even when the
-    producer raises — the ``finally`` block flushes the sentinel before the
+    producer raises - the ``finally`` block flushes the sentinel before the
     exception propagates.
     """
     resolve_name: Callable[[T], str] = (

@@ -21,7 +21,7 @@ const STATUS_TONE: Record<GroundedConstraint["status"], Tone> = {
 
 function ConstraintRow({ entry }: { entry: GroundedConstraint }) {
   const { constraint } = entry;
-  const realized = entry.realizedValue ?? "—";
+  const realized = entry.realizedValue ?? "-";
   return (
     <div className="ml-1 border-l border-border pl-2 text-[11px]">
       <div className="flex items-center justify-between gap-2">
@@ -32,7 +32,7 @@ function ConstraintRow({ entry }: { entry: GroundedConstraint }) {
         <StatusPill text={entry.status} tone={STATUS_TONE[entry.status]} />
       </div>
       <p className="text-muted-foreground">
-        requested {constraint.requestedValue} → {realized}
+        requested {constraint.requestedValue} -&gt; {realized}
       </p>
       {entry.note != null && entry.note !== "" && (
         <p className="italic text-muted-foreground">{entry.note}</p>

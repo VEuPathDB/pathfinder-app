@@ -65,7 +65,7 @@ describe("ConversationListItem duplicate action", () => {
       await screen.findByRole("menuitem", { name: /^duplicate$/i }),
     );
 
-    // The handler receives the exact item it should copy — id, title, site and
+    // The handler receives the exact item it should copy - id, title, site and
     // saved-state all flow through so the duplicate targets the right row.
     expect(onDuplicate.mock.calls).toEqual([[makeItem()]]);
   });

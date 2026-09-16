@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/v1/conversations", tags=["scratchpad"])
 
 
 class ScratchpadPatchRequest(CamelModel):
-    """User-driven PATCH — only the ``pinned`` flag is settable from the UI.
+    """User-driven PATCH - only the ``pinned`` flag is settable from the UI.
 
     ``extra="forbid"`` rejects ``title``/``body``/``summary`` edits with 422
     so scratchpad content stays agent-authored.

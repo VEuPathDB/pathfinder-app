@@ -1,5 +1,5 @@
 /**
- * Workbench state store — manages gene-set selection and analysis panel UI state.
+ * Workbench state store - manages gene-set selection and analysis panel UI state.
  *
  * Gene-set data itself lives in TanStack Query (useGeneSetsQuery).
  * This store only tracks selection/activation IDs and UI controls.
@@ -38,23 +38,23 @@ interface WorkbenchState {
   geneSearchOpen: boolean;
   leftSidebarOpen: boolean;
 
-  // Actions — gene set selection
+  // Actions - gene set selection
   setActiveSet: (id: string | null) => void;
   toggleSetSelection: (id: string) => void;
   clearSelection: () => void;
   selectAll: (ids: string[]) => void;
   deselectAll: () => void;
 
-  // Actions — panels
+  // Actions - panels
   togglePanel: (panelId: PanelId) => void;
   expandPanel: (panelId: PanelId) => void;
   collapsePanel: (panelId: PanelId) => void;
 
-  // Actions — sidebar visibility
+  // Actions - sidebar visibility
   toggleGeneSearch: () => void;
   toggleLeftSidebar: () => void;
 
-  // State + actions — evaluate controls
+  // State + actions - evaluate controls
   positiveControls: string[];
   negativeControls: string[];
   setPositiveControls: (ids: string[]) => void;
@@ -62,11 +62,11 @@ interface WorkbenchState {
   appendPositiveControls: (ids: string[]) => void;
   appendNegativeControls: (ids: string[]) => void;
 
-  // Actions — experiment
+  // Actions - experiment
   setLastExperiment: (experiment: Experiment | null, setId: string | null) => void;
   clearLastExperiment: () => void;
 
-  // Actions — global
+  // Actions - global
   reset: () => void;
 }
 

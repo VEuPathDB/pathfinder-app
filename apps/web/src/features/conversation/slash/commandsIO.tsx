@@ -158,7 +158,7 @@ export const importCommand: Command = {
       kind: "textarea",
       name: "rawText",
       label: "Gene IDs",
-      placeholder: "Paste gene IDs — newline, comma, tab, or space separated",
+      placeholder: "Paste gene IDs - newline, comma, tab, or space separated",
       rows: 6,
     },
   ],

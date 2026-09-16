@@ -47,7 +47,7 @@ function consumerCountsOptions(siteId: string) {
         url: `/api/v1/conversations/saved-strategy-consumers`,
         params: { siteId },
       });
-      // Pydantic camelCase serializes int keys as strings — coerce.
+      // Pydantic camelCase serializes int keys as strings - coerce.
       const out: Record<number, number> = {};
       for (const [k, v] of Object.entries(resp.data.counts)) {
         const id = Number(k);

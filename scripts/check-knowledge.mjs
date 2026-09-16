@@ -50,18 +50,22 @@ const SIBLING_DIRECTORIES = new Map([
 const CITATION_RE = /`{1,2}([a-z][a-z0-9-]*):(\s*)([^`\s]+)/g;
 // The directory the checkouts share, which is the one above this repository.
 const SIBLINGS_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-// Escapes, not literal glyphs: the file must obey the rule it enforces, and
-// U+2018 against U+2019 is not a difference anyone can review by eye.
+// Code points, not literal glyphs and not escapes: the file must obey the rule
+// it enforces, and one curly quote against the other is not a difference
+// anyone can review by eye.
 const SMART_PUNCTUATION = new Map([
-  ["\u2013", "en-dash"],
-  ["\u2014", "em-dash"],
-  ["\u2018", "curly quote"],
-  ["\u2019", "curly quote"],
-  ["\u201C", "curly quote"],
-  ["\u201D", "curly quote"],
-  ["\u2026", "unicode ellipsis"],
+  [String.fromCharCode(0x2013), "en-dash"],
+  [String.fromCharCode(0x2014), "em-dash"],
+  [String.fromCharCode(0x2018), "curly quote"],
+  [String.fromCharCode(0x2019), "curly quote"],
+  [String.fromCharCode(0x201c), "curly quote"],
+  [String.fromCharCode(0x201d), "curly quote"],
+  [String.fromCharCode(0x2026), "unicode ellipsis"],
 ]);
-const SMART_PUNCTUATION_RE = /[\u2013\u2014\u2018\u2019\u201C\u201D\u2026]/g;
+const SMART_PUNCTUATION_RE = new RegExp(
+  `[${[...SMART_PUNCTUATION.keys()].join("")}]`,
+  "g",
+);
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {

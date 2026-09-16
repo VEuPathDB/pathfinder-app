@@ -35,7 +35,7 @@ describe("IntentSection", () => {
     expect(screen.getByText(/not classified yet/i)).toBeInTheDocument();
   });
 
-  it("shows 'Not classified yet' for undefined (the exclude_none wire gap) — does not crash", () => {
+  it("shows 'Not classified yet' for undefined (the exclude_none wire gap) - does not crash", () => {
     render(<IntentSection intent={undefined} />);
     expect(screen.getByText(/not classified yet/i)).toBeInTheDocument();
   });

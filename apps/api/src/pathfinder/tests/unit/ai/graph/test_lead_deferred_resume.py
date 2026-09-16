@@ -1,7 +1,7 @@
 """The deferred-tool (consult_user) resume must replay the FULL run history.
 
 When the Lead's first action is the deferred tool, ``new_messages()`` holds
-only the assistant ``ToolCallPart`` with no leading ``ModelRequest`` — which
+only the assistant ``ToolCallPart`` with no leading ``ModelRequest`` - which
 pydantic-ai rejects on resume as 'message history is empty'. ``_absorb_run_result``
 must capture ``all_messages()`` (request + tool call) into ``prior_messages_json``.
 """

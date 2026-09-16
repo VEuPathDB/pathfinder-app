@@ -23,11 +23,11 @@ describe("pct", () => {
   });
 
   it("returns em-dash for null", () => {
-    expect(pct(null)).toBe("\u2014");
+    expect(pct(null)).toBe("-");
   });
 
   it("returns em-dash for undefined", () => {
-    expect(pct(undefined)).toBe("\u2014");
+    expect(pct(undefined)).toBe("-");
   });
 
   it("handles negative values", () => {
@@ -62,11 +62,11 @@ describe("fmtNum", () => {
   });
 
   it("returns em-dash for null", () => {
-    expect(fmtNum(null)).toBe("\u2014");
+    expect(fmtNum(null)).toBe("-");
   });
 
   it("returns em-dash for undefined", () => {
-    expect(fmtNum(undefined)).toBe("\u2014");
+    expect(fmtNum(undefined)).toBe("-");
   });
 
   it("respects custom decimal places", () => {

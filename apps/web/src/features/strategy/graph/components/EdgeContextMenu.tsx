@@ -34,7 +34,7 @@ interface EdgeContextMenuProps {
 }
 
 /**
- * Programmatic edge action menu — anchored at the click coordinates via a
+ * Programmatic edge action menu - anchored at the click coordinates via a
  * virtual `PopoverAnchor`. Combine edges expose an operator picker; other
  * edges just expose Delete.
  *

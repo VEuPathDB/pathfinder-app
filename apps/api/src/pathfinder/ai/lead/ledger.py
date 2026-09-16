@@ -155,7 +155,7 @@ class InvestigationLedger(CamelModel):
         """
         intent = self.user_intent
         intent_line = (
-            f"- intent: {intent.classification.value} — {intent.inferred_goal[:120]}"
+            f"- intent: {intent.classification.value} - {intent.inferred_goal[:120]}"
             if intent is not None
             else "- intent: not classified yet"
         )

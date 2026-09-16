@@ -123,7 +123,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
         onCancel={() => setConfirmAction(null)}
       />
 
-      {/* Clear ALL data + WDK — requires typing "delete my data" */}
+      {/* Clear ALL data + WDK - requires typing "delete my data" */}
       <div className="rounded-md border border-destructive/30 px-3 py-2.5">
         <div className="flex items-center justify-between gap-3">
           <div>

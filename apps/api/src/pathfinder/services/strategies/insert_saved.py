@@ -4,8 +4,8 @@ This is the non-agent equivalent of the
 ``ai.tools.standalone.strategy.insert_saved_strategy`` tool. The agent
 calls the tool inside an LLM turn; the HTTP endpoint calls this service
 directly when the user clicks "Insert saved here..." in the strategy rail.
-Both end up using the same building blocks (clone with fresh ids → push
-to WDK → record consumer reference).
+Both end up using the same building blocks (clone with fresh ids -> push
+to WDK -> record consumer reference).
 """
 
 from __future__ import annotations

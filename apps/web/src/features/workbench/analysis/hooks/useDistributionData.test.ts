@@ -49,7 +49,7 @@ describe("parseDistribution", () => {
       statistics: emptyStats,
     };
     const result = parseDistribution(raw);
-    // Numeric bins should NOT be re-sorted — preserve WDK order
+    // Numeric bins should NOT be re-sorted - preserve WDK order
     expect(result).toEqual([
       { value: "0-10", count: 5 },
       { value: "10-20", count: 20 },

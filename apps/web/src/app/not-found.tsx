@@ -26,7 +26,7 @@ export default function NotFound() {
         PathFinder
       </h1>
       <p className="mt-6 text-xl font-medium text-foreground">
-        Whoops — this page couldn&apos;t be found.
+        Whoops - this page couldn&apos;t be found.
       </p>
       <p className="mt-2 text-sm text-muted-foreground" aria-live="polite">
         Redirecting home in {count}...

@@ -4,7 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { UNRESOLVED_SERIES_COLOR } from "@/lib/components/charts/unresolved";
 import { SetVenn } from "./SetVenn";
 
-// Mock reaviz — D3/SVG doesn't work in jsdom
+// Mock reaviz - D3/SVG doesn't work in jsdom
 vi.mock("reaviz", () => ({
   VennDiagram: ({
     data,

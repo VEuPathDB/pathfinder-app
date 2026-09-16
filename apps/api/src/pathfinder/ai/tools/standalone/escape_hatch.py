@@ -2,14 +2,14 @@
 
 Most planning/execution/verification tool args are constrained to the
 universe discovery committed to. That keeps the model from hallucinating
-identifiers — but it also means the model is **trapped** if it realises
+identifiers - but it also means the model is **trapped** if it realises
 mid-phase that it needs a search/parameter discovery missed. This tool is
 the explicit out: an unconstrained ``search_name: str`` argument that
 inspects the catalog inline AND logs a "constraint deviation" event so we
 can see when downstream phases rely on it.
 
 Usage from the model's POV: "the planner needs ``GenesByMicroarray`` but
-discovery only selected ``GenesByGoTerm`` — call ``request_search_inspection
+discovery only selected ``GenesByGoTerm`` - call ``request_search_inspection
 ("GenesByMicroarray", "need microarray data for cross-condition check")``."
 
 The tool runs the same ``get_search_overview`` flow discovery uses, so on
@@ -42,7 +42,7 @@ async def request_search_inspection(
 ) -> ToolReturn[SearchOverviewResult | AlreadyReadNotice]:
     """Request inline inspection of a search outside discovery's commit set.
 
-    Use sparingly — discovery is meant to surface every search the
+    Use sparingly - discovery is meant to surface every search the
     investigation needs. If you find yourself reaching for this tool
     often during planning or execution, the discovery phase missed
     something and the supervisor should hand back to discovery.

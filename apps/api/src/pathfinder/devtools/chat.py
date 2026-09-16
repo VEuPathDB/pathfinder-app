@@ -490,7 +490,7 @@ async def _exec_via_worker(
     payload = await _worker_payload(args, capture, body, wdk_token=wdk_token)
     await _defer_chat_turn(payload)
     if not args.quiet:
-        print("deferred to worker; waiting…")
+        print("deferred to worker; waiting...")
 
     repo = BackgroundTaskRepository(session_factory=async_session_factory)
     deadline = time.monotonic() + _VIA_WORKER_TIMEOUT_S
@@ -662,7 +662,7 @@ def _build_respond_body(args: RespondArgs, gate: Gate) -> ChatRequestBody:
             approved=args.accept and not args.deny,
             reason=args.reason if args.deny else None,
         )
-    msg = "nothing to respond — pass --accept / --deny / --answer"
+    msg = "nothing to respond - pass --accept / --deny / --answer"
     raise GateResponseError(msg)
 
 

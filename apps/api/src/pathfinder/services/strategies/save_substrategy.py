@@ -5,7 +5,7 @@ Flow:
 2. Deep-clone the subtree, assigning fresh local ids (so the clones do not
    collide with the source graph if the user later inserts the saved
    strategy back into the same conversation).
-3. Push every cloned node to WDK with a fresh ``WDKSyncState`` — the
+3. Push every cloned node to WDK with a fresh ``WDKSyncState`` - the
    saved strategy must own its own steps, never share with the source.
 4. Build a ``WDKStepTree`` from the new wdk_step_ids and POST it as a new
    strategy with ``isSaved=True``.

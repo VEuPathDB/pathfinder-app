@@ -65,7 +65,7 @@ export function summarizeFilterValue(filter: FilterEntry): string {
   if (typeof value === "object") {
     const min = value.min ?? "−∞";
     const max = value.max ?? "+∞";
-    return `${String(min)} – ${String(max)}`;
+    return `${String(min)} - ${String(max)}`;
   }
   return String(value);
 }

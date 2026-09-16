@@ -16,7 +16,7 @@ vi.mock("@/lib/components/charts/echartsRegistry", () => ({
   }),
 }));
 
-// Confusion matrix tp=8 fp=2 tn=8 fn=2 → sensitivity=precision=F1=bal-acc=0.8,
+// Confusion matrix tp=8 fp=2 tn=8 fn=2 -> sensitivity=precision=F1=bal-acc=0.8,
 // MCC=(64-4)/sqrt(10*10*10*10)=0.6. Same hand-computed values the backend
 // metrics test asserts; here we verify the panel DISPLAYS them.
 const EXPERIMENT: Experiment = {

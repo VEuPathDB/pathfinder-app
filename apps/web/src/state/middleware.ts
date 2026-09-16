@@ -1,5 +1,5 @@
 /**
- * Store factory functions — enforce consistent middleware stacking.
+ * Store factory functions - enforce consistent middleware stacking.
  *
  * Every Zustand store in the app uses one of these two factories.
  * Adding future middleware (e.g. immer) means changing this one file.

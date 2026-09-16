@@ -158,7 +158,7 @@ describe("useGeneSetsQuery", () => {
     });
     expect(result.current.geneSets.data).toHaveLength(1);
 
-    // Invalidate — triggers second fetch (2 gene sets)
+    // Invalidate - triggers second fetch (2 gene sets)
     result.current.invalidate();
 
     await waitFor(() => {
@@ -169,10 +169,10 @@ describe("useGeneSetsQuery", () => {
   });
 
   // -------------------------------------------------------------------------
-  // 5. Cache is keyed by siteId — no cross-site leakage
+  // 5. Cache is keyed by siteId - no cross-site leakage
   // -------------------------------------------------------------------------
 
-  it("cache is keyed by siteId — no cross-site leakage", async () => {
+  it("cache is keyed by siteId - no cross-site leakage", async () => {
     mockListGeneSets.mockResolvedValue([plasmoSet1, plasmoSet2]);
 
     const { queryClient } = await renderGeneSetsQuery("plasmodb");
@@ -191,7 +191,7 @@ describe("useGeneSetsQuery", () => {
     ]);
     expect(plasmoData).toHaveLength(2);
 
-    // toxodb cache should be empty — different key, never fetched
+    // toxodb cache should be empty - different key, never fetched
     const toxoData = queryClient.getQueryData<GeneSet[]>([
       "gene-sets",
       "list",

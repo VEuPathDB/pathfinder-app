@@ -186,7 +186,7 @@ def _render_step_suffix(
         else:
             suffix_parts.append("INVALID")
     if suffix_parts:
-        return f"\u2192 {', '.join(suffix_parts)}"
+        return f"-> {', '.join(suffix_parts)}"
     return ""
 
 
@@ -233,7 +233,7 @@ def pinned_graph_state(ctx: RunContext[AgentDeps]) -> str | None:
 
 
 def pinned_ledger(ctx: RunContext[AgentDeps]) -> str | None:
-    """The Lead's investigation ledger (curated structured state) — what's
+    """The Lead's investigation ledger (curated structured state) - what's
     framed, discovered, planned, built, verified. Read-only shared context so
     a sub-agent knows what's already resolved and doesn't redo or re-ask it."""
     summary = ctx.deps.ledger_summary
@@ -264,7 +264,7 @@ def pinned_discovered_searches(ctx: RunContext[AgentDeps]) -> str | None:
 
 
 def _render_search(name: str, ov: SearchOverview) -> list[str]:
-    out = [f"- `{name}` ({ov.record_type}) — {ov.display_name}"]
+    out = [f"- `{name}` ({ov.record_type}) - {ov.display_name}"]
     if ov.required_params:
         out.append(f"    required params: {', '.join(ov.required_params)}")
     if ov.param_vocab:

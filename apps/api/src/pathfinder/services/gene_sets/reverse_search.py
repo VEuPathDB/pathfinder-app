@@ -1,4 +1,4 @@
-"""Reverse search — rank gene sets by how well they recover positive genes.
+"""Reverse search - rank gene sets by how well they recover positive genes.
 
 Given a set of known-positive gene IDs, score each candidate gene set on
 recall, precision, and F1 using pure set intersection.  No WDK calls needed

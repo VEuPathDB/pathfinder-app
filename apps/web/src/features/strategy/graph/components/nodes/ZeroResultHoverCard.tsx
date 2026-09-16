@@ -36,7 +36,7 @@ export function ZeroResultHoverCard({ step, count }: ZeroResultHoverCardProps) {
         side="top"
         className="w-64 border-warning/40 bg-card text-xs text-warning"
       >
-        <div className="mb-1.5 font-semibold">0 results — try:</div>
+        <div className="mb-1.5 font-semibold">0 results - try:</div>
         <ul className="list-disc space-y-1 pl-4">
           {suggestions.map((item) => (
             <li key={item}>{item}</li>

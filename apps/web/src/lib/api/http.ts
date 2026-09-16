@@ -47,7 +47,7 @@ function getApiBaseUrl(): string {
     // the Next.js rewrite proxy (configured in next.config.js).  This keeps
     // cookies on the same origin as the page, avoiding cross-origin cookie
     // issues that cause "different session" errors when the API runs on a
-    // different port (e.g. localhost:3000 → localhost:8000).
+    // different port (e.g. localhost:3000 -> localhost:8000).
     return window.location.origin;
   }
   // Server-side (SSR / route handlers): reach the API directly.
@@ -269,7 +269,7 @@ async function fetchJsonRaw(path: string, args?: RequestArgs): Promise<unknown> 
 /**
  * Fetch JSON from the API and validate the response against a Zod schema.
  *
- * Every JSON API call goes through this function — there is no unvalidated
+ * Every JSON API call goes through this function - there is no unvalidated
  * path. On validation failure a `SchemaValidationError` is thrown.
  */
 export async function requestJson<T>(

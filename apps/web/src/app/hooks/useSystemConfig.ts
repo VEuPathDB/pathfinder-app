@@ -5,7 +5,7 @@ import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/use
 
 /**
  * Checks whether the backend has at least one LLM provider configured.
- * Uses useSuspenseQuery — suspends until config loads.
+ * Uses useSuspenseQuery - suspends until config loads.
  * Errors caught by nearest ErrorBoundary (app shell).
  */
 export function useSystemConfig(): {

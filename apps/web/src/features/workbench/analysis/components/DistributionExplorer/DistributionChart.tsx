@@ -131,7 +131,7 @@ function DrillDownModal({
                   const rawId =
                     rec.id.find((k) => k.name === "gene_source_id")?.value ??
                     rec.id[0]?.value ??
-                    "\u2014";
+                    "-";
                   return (
                     <tr key={rawId} className="hover:bg-muted/40">
                       <td className="px-3 py-1.5 font-mono">{rawId}</td>
@@ -139,12 +139,10 @@ function DrillDownModal({
                         className="max-w-xs truncate px-3 py-1.5"
                         title={String(rec.attributes["gene_product"] ?? "")}
                       >
-                        {String(rec.attributes["gene_product"] ?? "\u2014")}
+                        {String(rec.attributes["gene_product"] ?? "-")}
                       </td>
                       {hasClassifications && (
-                        <td className="px-3 py-1.5">
-                          {rec.classification ?? "\u2014"}
-                        </td>
+                        <td className="px-3 py-1.5">{rec.classification ?? "-"}</td>
                       )}
                     </tr>
                   );

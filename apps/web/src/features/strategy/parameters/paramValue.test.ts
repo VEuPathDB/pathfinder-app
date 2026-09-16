@@ -6,7 +6,7 @@ import type { ParamValue } from "@/lib/parameters/paramValue";
 
 const spec = (type: string): ParamSpec => ({ type }) as unknown as ParamSpec;
 
-describe("paramValueToRaw — typed value → WDK raw", () => {
+describe("paramValueToRaw - typed value -> WDK raw", () => {
   it("stringifies a number (dN/dS cutoff)", () => {
     expect(paramValueToRaw({ type: "number", value: 1.3 })).toBe("1.3");
   });
@@ -33,7 +33,7 @@ describe("paramValueToRaw — typed value → WDK raw", () => {
   });
 });
 
-describe("rawToParamValue — WDK raw → typed value", () => {
+describe("rawToParamValue - WDK raw -> typed value", () => {
   it("coerces a numeric string to a number value", () => {
     expect(rawToParamValue(spec("number"), "1.3")).toEqual({
       type: "number",

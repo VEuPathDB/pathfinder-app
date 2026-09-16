@@ -1,5 +1,5 @@
 /**
- * ProviderIcon — renders a provider-specific SVG logo mark.
+ * ProviderIcon - renders a provider-specific SVG logo mark.
  *
  * Uses inline SVG components with `currentColor` for theme adaptation.
  * Falls back to null for unknown providers.

@@ -14,7 +14,7 @@ export interface ConversationItem {
   experimentId: string | null;
   parentConversationId: string | null;
   parentMessageId: string | null;
-  /** Full backend payload — kept so downstream handlers can inspect server state. */
+  /** Full backend payload - kept so downstream handlers can inspect server state. */
   chat: ConversationResponse;
 }
 

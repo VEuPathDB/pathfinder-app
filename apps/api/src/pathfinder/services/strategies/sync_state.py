@@ -1,7 +1,7 @@
-"""WDK synchronization state — companion to StrategyGraph.
+"""WDK synchronization state - companion to StrategyGraph.
 
 Holds all WDK-specific metadata that services populate during push/sync
-operations. The domain layer (StrategyGraph) never touches this — it
+operations. The domain layer (StrategyGraph) never touches this - it
 manages graph topology only.
 """
 

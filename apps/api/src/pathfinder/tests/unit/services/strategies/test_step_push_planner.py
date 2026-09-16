@@ -253,7 +253,7 @@ def test_added_step_creates_only_that_step() -> None:
     assert by_id["step_c"].action == SkipAction()
     assert by_id["step_d"].action == CreateAction()
     assert by_id["step_d"].reason == "no wdk id"
-    # Outer combine is brand-new (no wdk id) → CREATE
+    # Outer combine is brand-new (no wdk id) -> CREATE
     assert by_id["step_outer"].action == CreateAction()
 
 

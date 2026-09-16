@@ -90,7 +90,7 @@ async def optimize_search_parameters_impl(
     fans out via ``asyncio.gather`` bounded by a Semaphore, and tags
     every per-variant progress event with ``variantId`` so the UI can
     render one lane per variant. One variant raising does NOT abort the
-    others — each gated wrapper converts the exception into a
+    others - each gated wrapper converts the exception into a
     ``status="failed"`` :class:`SweepVariantResult`.
     """
     del task_id, memory_store
@@ -155,7 +155,7 @@ async def optimize_search_parameters_impl(
         percent=0.0,
         message=(
             f"Starting parallel sweep ({len(variants)} variants)"
-            + (f" — {settings_m.criterion}" if settings_m.criterion else "")
+            + (f" - {settings_m.criterion}" if settings_m.criterion else "")
         ),
         data=start_data,
     )

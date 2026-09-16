@@ -22,7 +22,7 @@ function makeSpec(overrides: Partial<ParamSpec> = {}): ParamSpec {
   };
 }
 
-describe("FilterParam — empty value", () => {
+describe("FilterParam - empty value", () => {
   it("renders without throwing for empty string value", () => {
     render(
       <WidgetTestForm name="test_filter" defaultValue="">
@@ -77,7 +77,7 @@ describe("FilterParam — empty value", () => {
   });
 });
 
-describe("FilterParam — populated value", () => {
+describe("FilterParam - populated value", () => {
   const memberFilterValue = JSON.stringify({
     filters: [
       {
@@ -180,7 +180,7 @@ describe("FilterParam — populated value", () => {
   });
 });
 
-describe("FilterParam — JSON editor mode", () => {
+describe("FilterParam - JSON editor mode", () => {
   it("opens an editable textarea with current JSON when 'Edit JSON' is clicked", async () => {
     const user = userEvent.setup();
     const value = JSON.stringify({
@@ -228,7 +228,7 @@ describe("FilterParam — JSON editor mode", () => {
   });
 });
 
-describe("FilterParam — error state", () => {
+describe("FilterParam - error state", () => {
   it("renders with destructive styling when field has an error", async () => {
     render(
       <WidgetTestFormWithValidation

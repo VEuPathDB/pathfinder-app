@@ -49,8 +49,8 @@ const PARAM_VALUE_TYPES: ReadonlySet<string> = new Set([
 /**
  * The persisted `step.parameters` map stores typed ``ParamValue`` objects
  * whose shape varies by ``type`` (``value`` / ``values`` / ``min``+``max`` /
- * ``filters`` / ``datasetId`` …), NOT a uniform ``{type, value}``. Detect a
- * typed value so we can hand it to the canonical :func:`paramValueToRaw` —
+ * ``filters`` / ``datasetId`` ...), NOT a uniform ``{type, value}``. Detect a
+ * typed value so we can hand it to the canonical :func:`paramValueToRaw` -
  * the same converter ``buildStepPatch`` (save) and ``useStepDraftChanges``
  * (change detection) use, so the form loads identical raw values and reports
  * zero phantom changes. Ad-hoc coercion here previously rendered every typed
@@ -78,12 +78,12 @@ function extractDefaults(
     const raw: unknown = overrideHas ? override[spec.name] : spec.initialDisplayValue;
     const typed = asTypedParamValue(raw);
     if (typed !== null) {
-      // Typed persisted value (any param type) → canonical raw form value.
+      // Typed persisted value (any param type) -> canonical raw form value.
       defaults[spec.name] = paramValueToRaw(typed);
       continue;
     }
     // Raw source (a WDK ``initialDisplayValue`` string, or an already-raw
-    // override) → the existing string/array coercion.
+    // override) -> the existing string/array coercion.
     defaults[spec.name] = isMultiParam(spec) ? coerceToMulti(raw) : coerceToSingle(raw);
   }
   return defaults;
@@ -126,7 +126,7 @@ export interface UseParamFormResult {
  * step's persisted `parameters` arrive), the form is REPLACED with a fresh
  * instance seeded from the new defaults, by rotating `formId` via the
  * render-time prevValue pattern. `useForm` swaps in a new `FormApi` when
- * `formId` changes, so no external store is written during render — a
+ * `formId` changes, so no external store is written during render - a
  * render-phase `form.reset()` here would notify subscribers mid-render
  * ("Cannot update a component while rendering a different component").
  */

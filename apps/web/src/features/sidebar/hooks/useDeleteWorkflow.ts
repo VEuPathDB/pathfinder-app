@@ -3,7 +3,7 @@
 /**
  * Delete / dismiss / restore workflows for the conversation sidebar.
  *
- * - Delete (default): dismisses every chat (soft-delete) — hidden from the
+ * - Delete (default): dismisses every chat (soft-delete) - hidden from the
  *   main list, shown in the dismissed list, recoverable. The linked WDK
  *   strategy is left untouched.
  * - Delete with `deleteLinkedStrategy`: hard-deletes the chat AND removes its
@@ -91,7 +91,7 @@ export function useDeleteWorkflow({
         return;
       }
 
-      // Default: dismiss (soft delete) — recoverable, WDK strategy untouched.
+      // Default: dismiss (soft delete) - recoverable, WDK strategy untouched.
       queryClient.setQueryData<ConversationResponse[]>(listKey, (old) =>
         (old ?? []).filter((c) => c.id !== target.id),
       );

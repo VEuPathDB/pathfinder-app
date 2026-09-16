@@ -23,11 +23,11 @@ def render_constraints_full(section: ConstraintSection) -> str:
     ]
     for g in section.grounded:
         c = g.constraint
-        realized = g.realized_value or "—"
-        note = f" — {g.note}" if g.note else ""
+        realized = g.realized_value or "-"
+        note = f" - {g.note}" if g.note else ""
         lines.append(
             f"- [{c.source}] {c.label} ({c.kind}): requested {c.requested_value!r} "
-            f"→ {g.status} (realized {realized}){note}"
+            f"-> {g.status} (realized {realized}){note}"
         )
     return "\n".join(lines)
 
@@ -55,19 +55,19 @@ def render_frame_full(section: FrameSection) -> str:
     if spec.open_slots:
         parts.append("\n### Open slots (user must answer)")
         parts.extend(
-            f"- {s.criterion_id or '—'}.{s.param_name}: {s.question}"
+            f"- {s.criterion_id or '-'}.{s.param_name}: {s.question}"
             for s in spec.open_slots
         )
     if spec.dropped:
         parts.append("\n### Dropped criteria")
-        parts.extend(f"- {d.text} — {d.reason}" for d in spec.dropped)
+        parts.extend(f"- {d.text} - {d.reason}" for d in spec.dropped)
     return "\n".join(parts)
 
 
 def _render_criterion(crit: Criterion) -> list[str]:
     out = [
         (
-            f"- `{crit.id}` [{crit.role}] {crit.text} → "
+            f"- `{crit.id}` [{crit.role}] {crit.text} -> "
             f"search={crit.search_name or '(unbound)'} (conf={crit.confidence:.2f})"
         ),
     ]

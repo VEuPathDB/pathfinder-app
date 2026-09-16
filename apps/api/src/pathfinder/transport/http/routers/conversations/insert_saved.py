@@ -1,4 +1,4 @@
-"""POST /conversations/{id}/insert-saved — user-driven insert of a saved sub-strategy."""
+"""POST /conversations/{id}/insert-saved - user-driven insert of a saved sub-strategy."""
 
 from typing import Literal
 from uuid import UUID

@@ -1,4 +1,4 @@
-"""Execution-phase toolset — declarative strategy build + atomic edits."""
+"""Execution-phase toolset - declarative strategy build + atomic edits."""
 
 from pydantic_ai.messages import ModelResponse, ToolCallPart
 from pydantic_ai.tools import RunContext, Tool, ToolDefinition

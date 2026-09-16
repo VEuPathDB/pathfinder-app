@@ -27,7 +27,7 @@ export function OrphanNotice({
       <Unlink className="size-4" aria-hidden />
       <AlertTitle className="flex items-center justify-between gap-3">
         <span>
-          {count} disconnected {count === 1 ? "step" : "steps"} — not pushed
+          {count} disconnected {count === 1 ? "step" : "steps"} - not pushed
         </span>
         <span className="flex items-center gap-1">
           {firstOrphanId !== null && onClickFirst !== undefined && (
@@ -38,7 +38,7 @@ export function OrphanNotice({
               onClick={() => onClickFirst(firstOrphanId)}
               className="h-7 px-2 text-warning hover:bg-warning/20 hover:text-warning"
             >
-              View →
+              View -&gt;
             </Button>
           )}
           {onRemoveAll !== undefined && (

@@ -43,7 +43,7 @@ function resetStore() {
   useStrategyStore.setState({ stepLifecycleById: {}, undoStack: [], redoStack: [] });
 }
 
-describe("lifecycleSlice — properties", () => {
+describe("lifecycleSlice - properties", () => {
   beforeEach(resetStore);
 
   it("every present step has a valid state name and getStepLifecycle is consistent with the map", () => {

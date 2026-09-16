@@ -79,8 +79,8 @@ describe("toTreeRoots", () => {
   });
 
   it("orders roots by most-recent-leaf in subtree DESC", () => {
-    // a (old) has child b (recent) → a's subtreeLatest = b.updatedAt
-    // x (medium) has no children → x's subtreeLatest = x.updatedAt
+    // a (old) has child b (recent) -> a's subtreeLatest = b.updatedAt
+    // x (medium) has no children -> x's subtreeLatest = x.updatedAt
     // a should rank above x because b is the newest anywhere in a's subtree.
     const a = makeItem({ id: "a", updatedAt: "2026-01-01T00:00:00Z" });
     const b = makeItem({

@@ -10,7 +10,7 @@ import {
 } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
-// Mock stores and API — vi.mock factories must not reference outer variables
+// Mock stores and API - vi.mock factories must not reference outer variables
 // ---------------------------------------------------------------------------
 
 const storeState: Record<string, unknown> = {
@@ -46,7 +46,7 @@ vi.mock("@/lib/api/http", () => ({
   requestJson: (...args: unknown[]) => mockRequestJson(...args),
 }));
 
-// Mock GeneChipInput — render a minimal stub that exposes label and lets
+// Mock GeneChipInput - render a minimal stub that exposes label and lets
 // tests drive onChange via a data-testid button.
 let capturedOnChange: Record<string, (ids: string[]) => void> = {};
 
@@ -149,7 +149,7 @@ describe("ReverseSearchPanel", () => {
 
     const row = await screen.findByText("Test Set");
     const tr = row.closest("tr") ?? row.parentElement!;
-    // recall 0.8 → 80.0%, precision 0.6 → 60.0%, overlap 4, size 100.
+    // recall 0.8 -> 80.0%, precision 0.6 -> 60.0%, overlap 4, size 100.
     expect(tr).toHaveTextContent("80.0%");
     expect(tr).toHaveTextContent("60.0%");
     expect(tr).toHaveTextContent("4");

@@ -20,7 +20,7 @@ function startInState(
   return actor;
 }
 
-describe("stepMachine — initial state", () => {
+describe("stepMachine - initial state", () => {
   it("starts in idle with null context", () => {
     const actor = createActor(stepMachine);
     actor.start();
@@ -32,21 +32,21 @@ describe("stepMachine — initial state", () => {
   });
 });
 
-describe("stepMachine — VALIDATE transitions", () => {
-  it("idle → validating on VALIDATE", () => {
+describe("stepMachine - VALIDATE transitions", () => {
+  it("idle -> validating on VALIDATE", () => {
     const actor = createActor(stepMachine);
     actor.start();
     actor.send({ type: "VALIDATE" });
     expect(actor.getSnapshot().value).toBe("validating");
   });
 
-  it("valid → validating on VALIDATE", () => {
+  it("valid -> validating on VALIDATE", () => {
     const actor = startInState("valid", { estimatedSize: 100 });
     actor.send({ type: "VALIDATE" });
     expect(actor.getSnapshot().value).toBe("validating");
   });
 
-  it("invalid → validating on VALIDATE", () => {
+  it("invalid -> validating on VALIDATE", () => {
     const actor = startInState("invalid", {
       validationErrors: { general: ["bad"], byKey: {} },
     });
@@ -54,21 +54,21 @@ describe("stepMachine — VALIDATE transitions", () => {
     expect(actor.getSnapshot().value).toBe("validating");
   });
 
-  it("complete → validating on VALIDATE", () => {
+  it("complete -> validating on VALIDATE", () => {
     const actor = startInState("complete", { estimatedSize: 42 });
     actor.send({ type: "VALIDATE" });
     expect(actor.getSnapshot().value).toBe("validating");
   });
 
-  it("failed → validating on VALIDATE", () => {
+  it("failed -> validating on VALIDATE", () => {
     const actor = startInState("failed", { lastError: "boom" });
     actor.send({ type: "VALIDATE" });
     expect(actor.getSnapshot().value).toBe("validating");
   });
 });
 
-describe("stepMachine — VALIDATION_SUCCESS transitions", () => {
-  it("validating → valid on VALIDATION_SUCCESS without estimatedSize", () => {
+describe("stepMachine - VALIDATION_SUCCESS transitions", () => {
+  it("validating -> valid on VALIDATION_SUCCESS without estimatedSize", () => {
     const actor = createActor(stepMachine);
     actor.start();
     actor.send({ type: "VALIDATE" });
@@ -78,7 +78,7 @@ describe("stepMachine — VALIDATION_SUCCESS transitions", () => {
     expect(snap.context.validationErrors).toBeNull();
   });
 
-  it("validating → valid on VALIDATION_SUCCESS, stores estimatedSize", () => {
+  it("validating -> valid on VALIDATION_SUCCESS, stores estimatedSize", () => {
     const actor = createActor(stepMachine);
     actor.start();
     actor.send({ type: "VALIDATE" });
@@ -101,8 +101,8 @@ describe("stepMachine — VALIDATION_SUCCESS transitions", () => {
   });
 });
 
-describe("stepMachine — VALIDATION_ERROR transitions", () => {
-  it("validating → invalid with error payload", () => {
+describe("stepMachine - VALIDATION_ERROR transitions", () => {
+  it("validating -> invalid with error payload", () => {
     const errors: ValidationErrors = {
       general: ["Missing required param"],
       byKey: { taxon: ["required"] },
@@ -117,33 +117,33 @@ describe("stepMachine — VALIDATION_ERROR transitions", () => {
   });
 });
 
-describe("stepMachine — RUN_COUNTS / COUNTS_READY transitions", () => {
-  it("valid → running on RUN_COUNTS", () => {
+describe("stepMachine - RUN_COUNTS / COUNTS_READY transitions", () => {
+  it("valid -> running on RUN_COUNTS", () => {
     const actor = startInState("valid", { estimatedSize: 10 });
     actor.send({ type: "RUN_COUNTS" });
     expect(actor.getSnapshot().value).toBe("running");
   });
 
-  it("complete → running on RUN_COUNTS", () => {
+  it("complete -> running on RUN_COUNTS", () => {
     const actor = startInState("complete", { estimatedSize: 10 });
     actor.send({ type: "RUN_COUNTS" });
     expect(actor.getSnapshot().value).toBe("running");
   });
 
-  it("failed → running on RUN_COUNTS so a failed count can be retried directly", () => {
+  it("failed -> running on RUN_COUNTS so a failed count can be retried directly", () => {
     const actor = startInState("failed", { lastError: "Network timeout" });
     actor.send({ type: "RUN_COUNTS" });
     expect(actor.getSnapshot().value).toBe("running");
   });
 
-  it("idle → RUN_COUNTS is ignored: counts require a validated step", () => {
+  it("idle -> RUN_COUNTS is ignored: counts require a validated step", () => {
     const actor = createActor(stepMachine);
     actor.start();
     actor.send({ type: "RUN_COUNTS" });
     expect(actor.getSnapshot().value).toBe("idle");
   });
 
-  it("running → complete on COUNTS_READY, stores count", () => {
+  it("running -> complete on COUNTS_READY, stores count", () => {
     const actor = startInState("valid", { estimatedSize: 5 });
     actor.send({ type: "RUN_COUNTS" });
     actor.send({ type: "COUNTS_READY", count: 123 });
@@ -162,8 +162,8 @@ describe("stepMachine — RUN_COUNTS / COUNTS_READY transitions", () => {
   });
 });
 
-describe("stepMachine — RUN_ERROR transitions", () => {
-  it("running → failed on RUN_ERROR, stores message", () => {
+describe("stepMachine - RUN_ERROR transitions", () => {
+  it("running -> failed on RUN_ERROR, stores message", () => {
     const actor = startInState("valid");
     actor.send({ type: "RUN_COUNTS" });
     actor.send({ type: "RUN_ERROR", message: "Network timeout" });
@@ -172,7 +172,7 @@ describe("stepMachine — RUN_ERROR transitions", () => {
     expect(snap.context.lastError).toBe("Network timeout");
   });
 
-  it("validating → failed on RUN_ERROR (server/network failure during validation)", () => {
+  it("validating -> failed on RUN_ERROR (server/network failure during validation)", () => {
     const actor = createActor(stepMachine);
     actor.start();
     actor.send({ type: "VALIDATE" });
@@ -183,7 +183,7 @@ describe("stepMachine — RUN_ERROR transitions", () => {
   });
 });
 
-describe("stepMachine — RESET transitions", () => {
+describe("stepMachine - RESET transitions", () => {
   it("RESET from any state returns to idle with cleared context", () => {
     const states: Array<"valid" | "invalid" | "complete" | "failed"> = [
       "valid",
@@ -207,7 +207,7 @@ describe("stepMachine — RESET transitions", () => {
   });
 });
 
-describe("stepMachine — seedStepMachine", () => {
+describe("stepMachine - seedStepMachine", () => {
   it("seeds state with provided context", () => {
     const actor = createActor(stepMachine, {
       snapshot: seedStepMachine("complete", { estimatedSize: 77 }),
@@ -229,7 +229,7 @@ describe("stepMachine — seedStepMachine", () => {
   });
 });
 
-describe("stepMachine — initialStepSnapshot", () => {
+describe("stepMachine - initialStepSnapshot", () => {
   it("returns a pristine idle snapshot when given no seed", () => {
     const snap = initialStepSnapshot();
     expect(snap.value).toBe("idle");
@@ -259,7 +259,7 @@ describe("stepMachine — initialStepSnapshot", () => {
   });
 });
 
-describe("stepMachine — matches helper behavior", () => {
+describe("stepMachine - matches helper behavior", () => {
   it("snapshot.matches returns true for the current state", () => {
     const actor = createActor(stepMachine);
     actor.start();
@@ -269,7 +269,7 @@ describe("stepMachine — matches helper behavior", () => {
   });
 });
 
-describe("stepMachine — the exported state names are the machine's own", () => {
+describe("stepMachine - the exported state names are the machine's own", () => {
   it("lists exactly the states the machine defines", () => {
     // useStepSnapshot narrows a raw StateValue against this list. A name that
     // drifts out of the machine would silently read back as "idle", so the

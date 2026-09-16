@@ -2,9 +2,9 @@
 
 This exercises the full delete-then-autowrite path the DELETE route triggers
 (``tombstones.tombstone(value=current.value)`` then ``store.delete(...)``) and
-the autowrite tombstone check — the seam where a content-hash mismatch between
+the autowrite tombstone check - the seam where a content-hash mismatch between
 the stored value and the freshly-built candidate would let a deleted memory
-resurrect. The hash must survive the ``model_dump(json)`` → ``model_validate``
+resurrect. The hash must survive the ``model_dump(json)`` -> ``model_validate``
 store round-trip for the dedup to hold.
 """
 
@@ -69,13 +69,13 @@ async def test_deleted_gene_set_memory_does_not_resurrect(
         assert len(stored) == 1
         deleted = stored[0]
 
-        # User deletes it — the DELETE route tombstones the stored value
+        # User deletes it - the DELETE route tombstones the stored value
         # (hashed from the round-tripped content) then removes it.
         await tombstones.tombstone(user_id=user_id, value=deleted.value)
         await store.delete(user_id=user_id, kind="gene_set_note", key=deleted.key)
         assert await store.list_all(user_id=user_id, kind="gene_set_note") == []
 
-        # Turn 2: the same successful artifact is offered again — and refused.
+        # Turn 2: the same successful artifact is offered again - and refused.
         written_second = await auto_write_memories(
             store=store,
             tombstones=tombstones,
@@ -92,7 +92,7 @@ async def test_tombstone_is_kind_scoped_not_global(
     patch_app_db_engine: None,
 ) -> None:
     """A tombstone on one kind must not block a different kind with the same
-    content hash. The dedup key is ``(kind, content_hash)`` — proving the kind
+    content hash. The dedup key is ``(kind, content_hash)`` - proving the kind
     is part of the key prevents an over-broad delete from suppressing unrelated
     memories.
     """
@@ -131,7 +131,7 @@ async def test_tombstone_is_kind_scoped_not_global(
         await store.delete(user_id=user_id, kind="gene_set_note", key=stored.key)
 
         # A preference memory (different kind) for the same site must still
-        # write — it shares neither kind nor content with the tombstone.
+        # write - it shares neither kind nor content with the tombstone.
         pref = MemoryValue(
             kind="preference",
             name="preferred_site:plasmodb",

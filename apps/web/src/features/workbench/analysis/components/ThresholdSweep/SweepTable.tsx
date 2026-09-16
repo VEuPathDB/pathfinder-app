@@ -46,7 +46,7 @@ export function SweepTable({
                 {pct(p.metrics?.balancedAccuracy)}
               </td>
               <td className="px-3 py-1.5 font-mono text-muted-foreground">
-                {p.metrics?.totalResults ?? "\u2014"}
+                {p.metrics?.totalResults ?? "-"}
               </td>
             </tr>
           ))}

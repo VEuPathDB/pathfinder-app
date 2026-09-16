@@ -74,6 +74,12 @@ repos:
         language: system
         pass_filenames: false
         files: ^(docs/knowledge/|scripts/(check-knowledge\.(mjs|test\.mjs)|__fixtures__/knowledge/))
+      - id: punctuation
+        name: plain ASCII punctuation (source)
+        entry: bash -c "node scripts/check-punctuation.mjs && node --test scripts/check-punctuation.test.mjs"
+        language: system
+        pass_filenames: false
+        files: ^(apps/(api/src|web/src)/|packages/shared-ts/src/|scripts/)
       - id: wdk-rules
         name: check WDK rules (anchors, citations, conformance)
         entry: bash -c "node scripts/check-wdk-rules.mjs && node --test scripts/check-wdk-rules.test.mjs"

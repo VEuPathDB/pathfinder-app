@@ -2,7 +2,7 @@
 
 Provides:
 
-- ``optimize_search_parameters`` — optimise search parameters against control
+- ``optimize_search_parameters`` - optimise search parameters against control
   gene lists. Durable: the real work runs on the verification worker via
   ``@durable_agent_tool``; the call is deferred while trials run and per-trial
   progress streams back through ``task_progress``.

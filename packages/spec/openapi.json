@@ -56,7 +56,7 @@
           "health"
         ],
         "summary": "System Ready",
-        "description": "Aggregate readiness for the UI startup gate: API subsystems + worker.\n\nAlways returns 200 so the frontend can poll a single endpoint and read\n``ready`` to decide whether to show the startup loader. Unlike\n``/health/ready`` (the API container's own healthcheck), worker liveness\nis included here \u2014 the worker is a sibling process, so its death must not\nflip the API's container health.",
+        "description": "Aggregate readiness for the UI startup gate: API subsystems + worker.\n\nAlways returns 200 so the frontend can poll a single endpoint and read\n``ready`` to decide whether to show the startup loader. Unlike\n``/health/ready`` (the API container's own healthcheck), worker liveness\nis included here - the worker is a sibling process, so its death must not\nflip the API's container health.",
         "operationId": "system_ready_health_system_get",
         "responses": {
           "200": {
@@ -13506,7 +13506,7 @@
           "modelName"
         ],
         "title": "ModelCatalogEntryResponse",
-        "description": "API response model \u2014 adds ``enabled`` status per provider configuration."
+        "description": "API response model - adds ``enabled`` status per provider configuration."
       },
       "ModelListResponse": {
         "properties": {
@@ -15091,7 +15091,7 @@
           "pinned"
         ],
         "title": "ScratchpadPatchRequest",
-        "description": "User-driven PATCH \u2014 only the ``pinned`` flag is settable from the UI.\n\n``extra=\"forbid\"`` rejects ``title``/``body``/``summary`` edits with 422\nso scratchpad content stays agent-authored."
+        "description": "User-driven PATCH - only the ``pinned`` flag is settable from the UI.\n\n``extra=\"forbid\"`` rejects ``title``/``body``/``summary`` edits with 422\nso scratchpad content stays agent-authored."
       },
       "SearchResponse": {
         "properties": {
@@ -15798,7 +15798,7 @@
           "id"
         ],
         "title": "StepResponse",
-        "description": "Strategy step \u2014 WDK-aligned fields."
+        "description": "Strategy step - WDK-aligned fields."
       },
       "StepStartUIPart": {
         "properties": {

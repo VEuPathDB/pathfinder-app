@@ -4,20 +4,20 @@
  * Five sinks run here (the React ErrorBoundary and AI SDK onError live next
  * to their consumers):
  *
- *   1. `window.onerror` — uncaught sync errors, script parse failures.
- *   2. `unhandledrejection` — promise rejections with no `.catch`.
- *   3. Capturing `error` listener — resource-load failures for img/script/
+ *   1. `window.onerror` - uncaught sync errors, script parse failures.
+ *   2. `unhandledrejection` - promise rejections with no `.catch`.
+ *   3. Capturing `error` listener - resource-load failures for img/script/
  *      link/css/font. These do NOT bubble so they're caught with
  *      `{capture: true}` at the window level.
- *   4. `PerformanceObserver({type: "longtask"})` — main-thread stalls >50ms.
+ *   4. `PerformanceObserver({type: "longtask"})` - main-thread stalls >50ms.
  *      Logged at `warn` severity rather than full errors.
- *   5. Console.error interception — library warnings (React render warnings,
+ *   5. Console.error interception - library warnings (React render warnings,
  *      third-party bugs logged without throwing) get forwarded once per
  *      unique message. Call sites that log real errors still get captured
  *      via their own throw path; this is just for the "screaming in the
  *      console, never thrown" category.
  *
- * Idempotent — safe to call multiple times.
+ * Idempotent - safe to call multiple times.
  */
 
 import { logError } from "./logError";
@@ -109,7 +109,7 @@ function installLongTaskObserver(): void {
     });
     observer.observe({ type: "longtask", buffered: false });
   } catch {
-    // Safari / Firefox may reject the entry type — silently skip.
+    // Safari / Firefox may reject the entry type - silently skip.
   }
 }
 
@@ -117,7 +117,7 @@ function installLongTaskObserver(): void {
  * Dedup the first ~200 unique messages logged via `console.error` so we
  * catch library warnings (React render warnings, deprecation notices) that
  * never raise. Call sites that log errors via logError() directly are NOT
- * affected — the hook calls the original console.error first so the
+ * affected - the hook calls the original console.error first so the
  * developer experience is unchanged.
  */
 function installConsoleErrorHook(): void {

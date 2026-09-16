@@ -83,7 +83,7 @@ def _as_text(value: object) -> str:
 
 def _clip(text: str) -> str:
     flat = " ".join(text.split())
-    return flat if len(flat) <= RESULT_CLIP else flat[: RESULT_CLIP - 1] + "…"
+    return flat if len(flat) <= RESULT_CLIP else flat[: RESULT_CLIP - 3] + "..."
 
 
 class _TracebackHandler(logging.Handler):
@@ -107,7 +107,7 @@ class _TracebackHandler(logging.Handler):
 @contextmanager
 def capture_tracebacks(run_dir: Path) -> Iterator[None]:
     """Capture every logged exception (records with ``exc_info``) into
-    ``<run_dir>/errors/`` for the duration of the block. In-process only —
+    ``<run_dir>/errors/`` for the duration of the block. In-process only -
     the HTTP path never sees these Python stacks."""
 
     handler = _TracebackHandler(run_dir / "errors")
@@ -484,7 +484,7 @@ class RunCapture:
     def _transcript(self) -> str:
         out = [f"# Turn {self.turn_id}", f"conversation: {self.conversation_id}", ""]
         for call in self.rendered_calls():
-            out.append(f"- [{call.phase or 'lead'}] {call.tool} → {call.status}")
+            out.append(f"- [{call.phase or 'lead'}] {call.tool} -> {call.status}")
             if call.result:
                 out.append(f"    {_clip(call.result)}")
         reply = self.assistant_text()

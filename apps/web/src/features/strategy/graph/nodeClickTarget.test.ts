@@ -26,7 +26,7 @@ describe("isNodeToolbarOrMenuTarget", () => {
 
   it("is true for a click on a portaled dropdown menu item", () => {
     // The kebab DropdownMenuContent portals to <body>, but React events still
-    // bubble to onNodeClick — the guard must catch the menuitem by role.
+    // bubble to onNodeClick - the guard must catch the menuitem by role.
     expect(
       isNodeToolbarOrMenuTarget(wrap({ role: "menu" }, leaf({ role: "menuitem" }))),
     ).toBe(true);

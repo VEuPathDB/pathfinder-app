@@ -27,7 +27,7 @@ function strategyWith(fold: string): Strategy {
 const wrapper = ({ children }: { children: ReactNode }) =>
   createElement(ReactFlowProvider, null, children);
 
-describe("useStrategyGraphNodes — selected step tracks the live strategy", () => {
+describe("useStrategyGraphNodes - selected step tracks the live strategy", () => {
   // The editor footer compares form values against the selected step. When
   // selection held a frozen copy, a saved edit left the footer showing
   // "Edited: 1 change" forever because the copy still had the old value.

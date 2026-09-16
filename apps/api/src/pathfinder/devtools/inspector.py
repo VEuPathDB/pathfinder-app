@@ -148,7 +148,7 @@ def render_llm(run_dir: Path, role: str | None) -> str:
         resp_path = llm_dir / f"{stem}-response.json"
         if resp_path.is_file():
             resp = json.loads(resp_path.read_text())
-            lines.append(f"  → response (finish={resp.get('finishReason')}):")
+            lines.append(f"  -> response (finish={resp.get('finishReason')}):")
             for part in resp.get("response", {}).get("parts", []):
                 line = _part_line(part)
                 if line is not None:

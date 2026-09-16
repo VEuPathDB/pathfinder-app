@@ -174,7 +174,7 @@ async def test_run_chat_turn_tolerates_missing_token(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An anonymous caller (no cookie) dispatches with token=None. The
-    worker still runs — WDK calls fall through to settings (service)."""
+    worker still runs - WDK calls fall through to settings (service)."""
     observer = _ObservingRunTurn()
     monkeypatch.setattr(chat_turn_impl, "run_turn", observer)
     monkeypatch.setattr(

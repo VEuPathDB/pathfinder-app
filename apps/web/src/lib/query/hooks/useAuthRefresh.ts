@@ -11,7 +11,7 @@ import { invalidateUserScopedQueries } from "@/lib/query/invalidateUserScoped";
 /**
  * One-shot internal-token refresh keyed by site. Returns whether the refresh
  * has settled (success or failure) so consumers can gate dependent queries.
- * Running this hook from multiple components is safe — TanStack Query
+ * Running this hook from multiple components is safe - TanStack Query
  * deduplicates by queryKey.
  */
 export function useAuthRefresh(siteId: string): { authRefreshed: boolean } {

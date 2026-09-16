@@ -5,7 +5,7 @@ import { streamTypedEvents } from "@/lib/sse/typedEventStream";
  * Shape of each decoded event from the `/api/v1/experiments/seed` SSE stream.
  *
  * The backend emits typed Pydantic models (``SeedProgress`` / ``SeedStrategyComplete``
- * / ``SeedItemError`` / ``SeedComplete``) — every variant includes a ``message``
+ * / ``SeedItemError`` / ``SeedComplete``) - every variant includes a ``message``
  * field, which is all this UI surface needs.
  */
 interface SeedStreamEvent {

@@ -55,7 +55,7 @@ export function SiteAuth({
                 : "text-muted-foreground"
             }
           >
-            Logged in as {displayName !== "" ? displayName : "—"}
+            Logged in as {displayName !== "" ? displayName : "-"}
           </span>
           <button
             type="button"
@@ -82,7 +82,7 @@ export function SiteAuth({
           onClick={() => setShowLoginModal(true)}
           className={cn("text-xs", actionClass)}
         >
-          Sign in →
+          Sign in -&gt;
         </button>
       )}
 

@@ -68,7 +68,7 @@ const COMBINE_STRATEGY: Strategy = {
       id: "step_c",
       kind: "combine",
       // combines arrive with the internal "__combine__" sentinel (backend
-      // falls back displayName -> searchName) — must never reach the UI.
+      // falls back displayName -> searchName) - must never reach the UI.
       displayName: "__combine__",
       searchName: "__combine__",
       recordType: "gene",

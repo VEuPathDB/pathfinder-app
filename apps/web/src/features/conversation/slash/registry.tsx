@@ -71,7 +71,7 @@ export const commands: Command[] = [
     icon: <HelpCircle className="size-3.5" aria-hidden />,
     params: [],
     run: () => {
-      const lines = commands.map((c) => `- /${c.name} — ${c.description}`);
+      const lines = commands.map((c) => `- /${c.name} - ${c.description}`);
       return {
         kind: "toast",
         type: "info",

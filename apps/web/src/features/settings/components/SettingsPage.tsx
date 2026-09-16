@@ -59,7 +59,7 @@ export function SettingsPage({
         ))}
       </div>
 
-      {/* Tab content — scrollable */}
+      {/* Tab content - scrollable */}
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {tab === "model" && <ModelSettings />}
         {tab === "data" && <DataSettings siteId={siteId} />}

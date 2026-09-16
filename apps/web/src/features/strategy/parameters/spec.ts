@@ -1,6 +1,6 @@
 export type { ParamSpec } from "@pathfinder/shared";
 
-/** Narrow input for isMultiParam — accepts both full ParamSpec and partial test fixtures. */
+/** Narrow input for isMultiParam - accepts both full ParamSpec and partial test fixtures. */
 interface MultiParamInput {
   allowMultipleValues?: boolean | null;
   multiPick?: boolean | null;

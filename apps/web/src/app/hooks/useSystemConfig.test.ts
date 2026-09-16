@@ -89,7 +89,7 @@ describe("useSystemConfig", () => {
       expect(result.current).not.toBeNull();
     });
 
-    // First response: llmConfigured=false → setupRequired=true
+    // First response: llmConfigured=false -> setupRequired=true
     expect(result.current.setupRequired).toBe(true);
     expect(mockGetSystemConfig).toHaveBeenCalledTimes(1);
 
@@ -101,7 +101,7 @@ describe("useSystemConfig", () => {
     });
 
     await waitFor(() => {
-      // Second response: llmConfigured=true → setupRequired=false
+      // Second response: llmConfigured=true -> setupRequired=false
       expect(result.current.setupRequired).toBe(false);
     });
   });

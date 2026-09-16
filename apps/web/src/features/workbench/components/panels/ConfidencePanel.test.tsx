@@ -186,7 +186,7 @@ describe("ConfidencePanel", () => {
     });
 
     // Each row renders its real scores: composite .toFixed(3), classification
-    // .toFixed(1) — G1 a confident TP (+1 → 0.333), G2 an FP (-1 → -0.333).
+    // .toFixed(1) - G1 a confident TP (+1 -> 0.333), G2 an FP (-1 -> -0.333).
     const g1Row = screen.getByText("G1").closest("tr");
     expect(g1Row).toHaveTextContent("0.333");
     expect(g1Row).toHaveTextContent("1.0");
@@ -405,7 +405,7 @@ describe("ConfidencePanel", () => {
   });
 
   it("shows loading state while API call is in progress", async () => {
-    // Never resolve the promise — keeps loading
+    // Never resolve the promise - keeps loading
     mockRequestJson.mockReturnValueOnce(new Promise(() => {}));
 
     storeState["lastExperiment"] = makeExperiment({

@@ -9,7 +9,7 @@ function resetStore() {
   });
 }
 
-describe("lifecycleSlice — initStepLifecycle", () => {
+describe("lifecycleSlice - initStepLifecycle", () => {
   beforeEach(resetStore);
 
   it("creates an idle lifecycle for a new step id", () => {
@@ -42,10 +42,10 @@ describe("lifecycleSlice — initStepLifecycle", () => {
   });
 });
 
-describe("lifecycleSlice — dispatchStepEvent", () => {
+describe("lifecycleSlice - dispatchStepEvent", () => {
   beforeEach(resetStore);
 
-  it("transitions a step through VALIDATE → VALIDATION_SUCCESS", () => {
+  it("transitions a step through VALIDATE -> VALIDATION_SUCCESS", () => {
     const api = useStrategyStore.getState();
     api.initStepLifecycle("s1");
     api.dispatchStepEvent("s1", { type: "VALIDATE" });
@@ -62,7 +62,7 @@ describe("lifecycleSlice — dispatchStepEvent", () => {
     expect(snap!.value).toBe("validating");
   });
 
-  it("transitions through RUN_COUNTS → COUNTS_READY", () => {
+  it("transitions through RUN_COUNTS -> COUNTS_READY", () => {
     const api = useStrategyStore.getState();
     api.initStepLifecycle("s1", { state: "valid" });
     api.dispatchStepEvent("s1", { type: "RUN_COUNTS" });
@@ -87,7 +87,7 @@ describe("lifecycleSlice — dispatchStepEvent", () => {
   });
 });
 
-describe("lifecycleSlice — removeStepLifecycle", () => {
+describe("lifecycleSlice - removeStepLifecycle", () => {
   beforeEach(resetStore);
 
   it("removes the lifecycle entry for a step id", () => {
@@ -99,7 +99,7 @@ describe("lifecycleSlice — removeStepLifecycle", () => {
   });
 });
 
-describe("lifecycleSlice — batch helpers", () => {
+describe("lifecycleSlice - batch helpers", () => {
   beforeEach(resetStore);
 
   it("applyStepValidationErrors dispatches VALIDATION_ERROR/VALIDATION_SUCCESS per step", () => {
@@ -133,7 +133,7 @@ describe("lifecycleSlice — batch helpers", () => {
   });
 });
 
-describe("lifecycleSlice — no-op updates never churn state identity", () => {
+describe("lifecycleSlice - no-op updates never churn state identity", () => {
   beforeEach(resetStore);
 
   it("an event the current state ignores leaves stepLifecycleById identical", () => {
@@ -224,7 +224,7 @@ describe("lifecycleSlice — no-op updates never churn state identity", () => {
   });
 });
 
-describe("lifecycleSlice — clear resets everything", () => {
+describe("lifecycleSlice - clear resets everything", () => {
   beforeEach(resetStore);
 
   it("clear() removes all lifecycles", () => {

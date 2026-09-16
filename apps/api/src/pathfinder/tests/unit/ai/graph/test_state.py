@@ -55,7 +55,7 @@ def test_state_minimum_construction(base_state: PipelineState) -> None:
     assert base_state.domain.last_build_outcome is None
     assert base_state.domain.user_intent is None
     # Cross-phase / cross-turn context now flows through typed fields, not
-    # a raw model trace — drop the field so checkpoints stay small.
+    # a raw model trace - drop the field so checkpoints stay small.
     assert not hasattr(base_state, "message_history")
     assert not hasattr(base_state, "current_phase")
     assert not hasattr(base_state, "supervisor_log")

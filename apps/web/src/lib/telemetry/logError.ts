@@ -1,5 +1,5 @@
 /**
- * Central error sink — every error path in the app (global onerror,
+ * Central error sink - every error path in the app (global onerror,
  * unhandledrejection, resource-load listeners, React ErrorBoundary, AI SDK
  * onError, try/catch call sites) funnels here.
  *
@@ -8,7 +8,7 @@
  * API (stack + type + message), and ends it. SigNoz's Exceptions view groups
  * these automatically by service + exception.type.
  *
- * No request / response bodies are ever captured — only stack, URL, route,
+ * No request / response bodies are ever captured - only stack, URL, route,
  * session.id, and whatever caller context the call site provides. A
  * best-effort scrub strips anything that looks like a bearer token.
  */

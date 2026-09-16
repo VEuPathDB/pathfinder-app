@@ -1,4 +1,4 @@
-"""HTTP CRUD roundtrip — catches the key-dropped bug."""
+"""HTTP CRUD roundtrip - catches the key-dropped bug."""
 
 from __future__ import annotations
 

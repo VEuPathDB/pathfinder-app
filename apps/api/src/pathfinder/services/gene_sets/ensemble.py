@@ -1,4 +1,4 @@
-"""Ensemble gene scoring — frequency across multiple gene sets."""
+"""Ensemble gene scoring - frequency across multiple gene sets."""
 
 from collections import Counter
 from typing import TypedDict

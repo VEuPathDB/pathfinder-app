@@ -1,5 +1,5 @@
 """``install_procrastinate_redaction`` must cover every procrastinate logger
-— filters do NOT propagate from parent to child, so attaching only to
+- filters do NOT propagate from parent to child, so attaching only to
 ``procrastinate`` leaves ``procrastinate.worker.worker`` unredacted."""
 
 from __future__ import annotations

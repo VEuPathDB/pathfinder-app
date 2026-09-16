@@ -48,7 +48,7 @@ describe("GeneIdAttachmentAdapter", () => {
     const text = complete.content[0];
     expect(text?.type).toBe("text");
     const body = text?.type === "text" ? text.text : "";
-    // No pseudo-XML tag (it trips the injection scanner) — plain framing.
+    // No pseudo-XML tag (it trips the injection scanner) - plain framing.
     expect(body).not.toContain("<");
     expect(body).toContain("Attached gene-ID list from controls.csv");
     expect(body).toContain("PF3D7_0100100");

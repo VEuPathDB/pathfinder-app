@@ -1,4 +1,4 @@
-"""User account service — wraps ``UserRepository`` for transport callers."""
+"""User account service - wraps ``UserRepository`` for transport callers."""
 
 from decimal import Decimal
 from uuid import UUID

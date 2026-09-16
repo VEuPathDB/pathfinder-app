@@ -62,7 +62,7 @@ async def list_memories(
         )
         buckets[kind] = [_to_item(s) for s in stored]
         # If any namespace returned a full page, more rows may exist at
-        # the next offset — the client should show "load more".
+        # the next offset - the client should show "load more".
         if len(stored) >= limit:
             any_full_page = True
     return MemoryListResponse(

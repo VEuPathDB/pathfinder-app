@@ -186,7 +186,7 @@ async def test_revert_ghost_message_is_noop(
     conv_with_messages: tuple[UUID, list[Message]],
 ) -> None:
     # A never-persisted target (e.g. a rejected/failed send) is a no-op (204),
-    # not a 404 — otherwise edit/retry on a failed message breaks.
+    # not a 404 - otherwise edit/retry on a failed message breaks.
     conv_id, _msgs = conv_with_messages
     res = await api_client.post(
         f"/api/v1/conversations/{conv_id}/revert-to-message",

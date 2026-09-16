@@ -34,7 +34,7 @@ class TestFallbackTitle:
         msg = "x" * (MAX_TITLE_CHARS + 50)
         out = _fallback_title(msg)
         assert len(out) == MAX_TITLE_CHARS
-        assert out.endswith("\u2026")
+        assert out.endswith("...")
 
 
 class TestTrimTitle:
@@ -63,7 +63,7 @@ class TestTrimTitle:
     def test_truncates_to_max_chars(self) -> None:
         out = _trim_title("a" * 100)
         assert len(out) == MAX_TITLE_CHARS
-        assert out.endswith("\u2026")
+        assert out.endswith("...")
 
 
 class TestGenerateConversationTitle:

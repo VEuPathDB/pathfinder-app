@@ -56,7 +56,7 @@ async def test_resume_stream_after_snapshot_cap_replays_tool_input_start(
     """Reproduces the prod failure: an in-flight assistant turn with an
     open tool call, plus a rogue user-message persisted mid-turn. The
     snapshot endpoint must cap such that the SSE replay served by
-    `/events?after=cursor` still begins before the tool-input-start —
+    `/events?after=cursor` still begins before the tool-input-start -
     otherwise the SDK errors with `tool-input-delta for missing tool call`.
     """
     user_a = uuid4()

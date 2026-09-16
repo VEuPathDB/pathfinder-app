@@ -250,7 +250,7 @@ function SyncStatusPill({ state, onRetry }: SyncStatusPillProps) {
         )}
       >
         <TriangleAlert className="size-3" aria-hidden />
-        Failed — Retry
+        Failed - Retry
       </button>
     );
   }

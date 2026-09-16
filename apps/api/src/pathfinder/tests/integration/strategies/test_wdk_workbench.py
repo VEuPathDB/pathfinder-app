@@ -100,7 +100,7 @@ async def test_gene_set_operations_match_ground_truth_on_real_sets(
         assert union == kinase_ids | go_kinase_ids
         assert minus == kinase_ids - go_kinase_ids
 
-        # Real overlap is substantial but partial — proves a meaningful join,
+        # Real overlap is substantial but partial - proves a meaningful join,
         # not a trivial subset or disjoint pair.
         assert len(intersect) >= 80
         assert len(intersect) < len(kinase_ids)

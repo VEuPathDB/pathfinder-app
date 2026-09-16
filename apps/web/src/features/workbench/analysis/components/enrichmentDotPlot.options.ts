@@ -81,9 +81,7 @@ export function buildEnrichmentDotPlot(
     .slice(0, MAX_CHART_TERMS)
     .reverse();
   const maxGeneCount = Math.max(...top.map((term) => term.geneCount), 1);
-  const labels = top.map((term) =>
-    truncateLabel(term.termName || term.termId || "\u2014"),
-  );
+  const labels = top.map((term) => truncateLabel(term.termName || term.termId || "-"));
 
   const data = top.flatMap((term, index) => {
     if (term.foldEnrichment === null) return [];

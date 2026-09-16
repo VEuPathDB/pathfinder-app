@@ -138,7 +138,7 @@ class TestBuildErrorDirectiveFormat:
         assert do_not in directive
 
     def test_detail_string_appears_in_output(self) -> None:
-        detail = "Search 'GenesByOrthologPattern' returned 0 results — check JSESSIONID"
+        detail = "Search 'GenesByOrthologPattern' returned 0 results - check JSESSIONID"
         directive = build_error_directive(
             error_type="WDKError (SEMANTIC)",
             tool_name="search_genes",

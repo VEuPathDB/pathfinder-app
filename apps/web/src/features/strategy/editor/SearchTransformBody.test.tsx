@@ -32,7 +32,7 @@ function makeState(overrides: Partial<StepEditorState>): StepEditorState {
   return { ...base, ...overrides };
 }
 
-describe("SearchTransformBody — paramSpecsError surfacing", () => {
+describe("SearchTransformBody - paramSpecsError surfacing", () => {
   it("renders the failure banner when paramSpecsError is set", () => {
     const state = makeState({
       paramSpecsError: new Error("validation failed: organism is not a leaf"),

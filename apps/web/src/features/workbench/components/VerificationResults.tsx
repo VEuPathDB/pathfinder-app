@@ -47,10 +47,10 @@ export function VerificationResults({
                 <tr key={g.geneId} className="text-foreground">
                   <td className="py-0.5 pr-2 font-mono">{g.geneId}</td>
                   <td className="truncate py-0.5 pr-2 max-w-[150px]">
-                    {g.product != null && g.product !== "" ? g.product : "\u2014"}
+                    {g.product != null && g.product !== "" ? g.product : "-"}
                   </td>
                   <td className="truncate py-0.5 italic max-w-[120px]">
-                    {g.organism != null && g.organism !== "" ? g.organism : "\u2014"}
+                    {g.organism != null && g.organism !== "" ? g.organism : "-"}
                   </td>
                 </tr>
               ))}
@@ -58,7 +58,7 @@ export function VerificationResults({
           </table>
           {resolvedGenes.length > 20 && (
             <p className="mt-1 text-muted-foreground">
-              \u2026 and {resolvedGenes.length - 20} more
+              ... and {resolvedGenes.length - 20} more
             </p>
           )}
         </div>
@@ -70,7 +70,7 @@ export function VerificationResults({
           <p className="text-xs font-medium text-destructive">Not found:</p>
           <p className="mt-0.5 font-mono text-xs text-muted-foreground">
             {unresolvedIds.slice(0, 10).join(", ")}
-            {unresolvedIds.length > 10 && ` \u2026 +${unresolvedIds.length - 10} more`}
+            {unresolvedIds.length > 10 && ` ... +${unresolvedIds.length - 10} more`}
           </p>
         </div>
       )}

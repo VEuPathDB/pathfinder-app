@@ -1,10 +1,10 @@
 /**
- * Widget registry — maps WDK displayType (and spec.type) to React components.
+ * Widget registry - maps WDK displayType (and spec.type) to React components.
  *
  * Dispatch order:
  * 1. Composite widgets claim groups of params (e.g., PhyleticProfile).
  * 2. Unclaimed visible params route by displayType first, then spec.type.
- * 3. Hidden unclaimed params → skip rendering, collect defaults.
+ * 3. Hidden unclaimed params -> skip rendering, collect defaults.
  */
 
 import type { ParamSpec } from "@/features/strategy/parameters/spec";
@@ -26,7 +26,7 @@ export function isAdvancedParam(spec: ParamSpec): boolean {
 
 /**
  * Canonical display type constants matching WDK's enum values (lowercased).
- * Empty string → fall through to spec.type dispatch.
+ * Empty string -> fall through to spec.type dispatch.
  */
 const DISPLAY_TYPES = {
   TREE_BOX: "treebox",

@@ -1,4 +1,4 @@
-"""Live WDK round-trip: organism multi-pick survives build → read → decode.
+"""Live WDK round-trip: organism multi-pick survives build -> read -> decode.
 
 Gated on WDK_TEST_EMAIL/WDK_TEST_PASSWORD (skipped when unset).
 """

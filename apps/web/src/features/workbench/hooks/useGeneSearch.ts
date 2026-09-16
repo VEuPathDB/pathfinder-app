@@ -30,7 +30,7 @@ interface GeneSearchState {
   setOrganismFilter: (f: string) => void;
   filteredOrganisms: string[];
 
-  // Selection reset hook — called when search criteria change
+  // Selection reset hook - called when search criteria change
   clearSelections: () => void;
 }
 

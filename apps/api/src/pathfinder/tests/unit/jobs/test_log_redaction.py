@@ -1,4 +1,4 @@
-"""Procrastinate INFO-logs job call_string including all kwargs — without
+"""Procrastinate INFO-logs job call_string including all kwargs - without
 this filter the VEuPathDB cookie would land on stdout on every job start."""
 
 from __future__ import annotations

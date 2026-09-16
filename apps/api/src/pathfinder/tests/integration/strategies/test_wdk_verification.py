@@ -33,7 +33,7 @@ def _text_leaf(expr: str) -> StrategyStepNode:
 
 
 def _go_kinase_leaf() -> StrategyStepNode:
-    """GO:0004672 protein kinase activity — the curated kinase truth set."""
+    """GO:0004672 protein kinase activity - the curated kinase truth set."""
     return StrategyStepNode(
         id="go_kinases",
         search_name="GenesByGoTerm",

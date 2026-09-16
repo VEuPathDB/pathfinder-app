@@ -1,5 +1,5 @@
 /**
- * Experiment API client — the evaluations a gene set has been through.
+ * Experiment API client - the evaluations a gene set has been through.
  */
 
 import { queryOptions } from "@tanstack/react-query";

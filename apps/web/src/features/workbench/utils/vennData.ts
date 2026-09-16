@@ -68,7 +68,7 @@ export function computeVennData(sets: VennInput[]): VennDatum[] {
 /**
  * Apply log scaling to Venn data so extremely large sets don't
  * make small sets invisible. Preserves zeros, ordering, and keys.
- * Use this for display sizing only — real counts stay in labels.
+ * Use this for display sizing only - real counts stay in labels.
  */
 export function logScaleVennData(data: VennDatum[]): VennDatum[] {
   return data.map((d) => ({

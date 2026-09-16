@@ -52,7 +52,7 @@ describe("useStepCounts", () => {
     rerender();
 
     // Writing to the store synchronously during render updates other mounted
-    // subscribers mid-render — the React error we are guarding against.
+    // subscribers mid-render - the React error we are guarding against.
     expect(applyStepCounts).not.toHaveBeenCalled();
 
     await Promise.resolve();

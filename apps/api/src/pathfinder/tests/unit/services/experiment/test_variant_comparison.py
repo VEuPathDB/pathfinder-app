@@ -1,5 +1,5 @@
 """run_variant_comparison runs each variant's search via the anonymous report
-endpoint and compares result gene sets — sizes, pairwise Jaccard, and the
+endpoint and compares result gene sets - sizes, pairwise Jaccard, and the
 genes unique to each variant. No control sets, no scoring: exploratory only.
 """
 
@@ -99,7 +99,7 @@ async def test_one_failing_variant_does_not_crash_the_comparison(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A WDK error on ONE variant (e.g. a missing required param) must not
-    blow up the whole comparison — the bad variant is reported with an
+    blow up the whole comparison - the bad variant is reported with an
     error and the others still compare."""
 
     async def _run_search_report(

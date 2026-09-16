@@ -135,7 +135,7 @@ export function MemorySettings() {
           {(data.hasMore || offset > 0) && (
             <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
               <span>
-                Showing rows {offset + 1}–{offset + PAGE_SIZE} per namespace
+                Showing rows {offset + 1}-{offset + PAGE_SIZE} per namespace
               </span>
               <div className="flex gap-2">
                 {offset > 0 && (

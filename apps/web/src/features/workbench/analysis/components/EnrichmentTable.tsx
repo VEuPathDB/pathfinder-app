@@ -134,7 +134,7 @@ export function EnrichmentTable({ terms }: EnrichmentTableProps) {
                         {t.termId}
                       </span>
                     )}
-                    {t.termName || t.termId || "\u2014"}
+                    {t.termName || t.termId || "-"}
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
                     {t.geneCount}

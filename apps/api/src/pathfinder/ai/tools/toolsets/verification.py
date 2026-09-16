@@ -88,7 +88,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
     """Build the verification-phase toolset.
 
     Phase exit is handled by ``output_type=VerificationDecision`` on the
-    verification agent — no ``finish_*`` tool is exposed.
+    verification agent - no ``finish_*`` tool is exposed.
 
     Every ``@durable_tool`` is also registered with ``sequential=True``.
     A durable call ends the run deferred, and one parked call is checkpointed

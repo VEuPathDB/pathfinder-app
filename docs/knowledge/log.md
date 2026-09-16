@@ -96,6 +96,17 @@
   `read_gene_ids_from_gene_set`. A gene set the turn saved is recorded on the turn's markers and
   not only on the node's own state, so the record survives a durable park and a truthful reply is
   not corrected after one.
+* **Source is held to the punctuation rule its documents already obey.** `check-knowledge.mjs`
+  refuses an em-dash, an en-dash, a curly quote or a unicode ellipsis in any knowledge document,
+  and its own comment records that em-dashes sat in `decisions/` until someone swept them by hand.
+  Nothing held source to the same rule, so 460 marks accumulated across 221 files, twenty-eight of
+  them in strings a researcher reads. `scripts/check-punctuation.mjs` now refuses them in
+  `apps/*/src`, `packages/shared-ts/src` and `scripts`, in pre-commit and in CI, and the tree is
+  swept. It reads an escape as well as a glyph, because an escape puts the same character on the
+  screen; it flags punctuation only, never other non-ASCII, because an accented proper noun is not
+  a mistake. Three truncations that appended a one-character ellipsis now append three and take
+  two fewer characters of text, so the width each was written to keep is unchanged. Both checkers
+  name the glyphs by code point rather than by escape, so each obeys the rule it enforces.
 * **An evaluation says whether it still describes the set.** Re-taking a set from its strategy
   replaced its membership and left the evaluation that scored the old one attached, with its date
   badge intact and three dependent panels unlocked by it, so a researcher read yesterday's metrics

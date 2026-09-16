@@ -1,4 +1,4 @@
-"""Bootstrap robustness — the verification step every journey runs. It's pure
+"""Bootstrap robustness - the verification step every journey runs. It's pure
 and seeded, so the confidence intervals are exactly reproducible. We pin
 hand-reasoned degenerate cases (perfect / zero recovery), the reproducibility
 guarantee the thesis depends on, and the CI invariants.
@@ -15,7 +15,7 @@ _FAST = BootstrapOptions(n_bootstrap=60, seed=42)
 
 
 def test_perfect_separation_yields_unit_confidence_intervals() -> None:
-    # All positives are in the result, no negatives are → every bootstrap
+    # All positives are in the result, no negatives are -> every bootstrap
     # resample scores sensitivity=specificity=precision=F1=1.0.
     result = ["PF3D7_0100100", "PF3D7_0200200", "PF3D7_0300300"]
     res = compute_robustness(
@@ -33,8 +33,8 @@ def test_perfect_separation_yields_unit_confidence_intervals() -> None:
 
 
 def test_zero_recovery_yields_zero_sensitivity() -> None:
-    # No positive is in the result → sensitivity is 0 across all resamples;
-    # no negative is in the result → specificity stays 1.0.
+    # No positive is in the result -> sensitivity is 0 across all resamples;
+    # no negative is in the result -> specificity stays 1.0.
     res = compute_robustness(
         result_ids=["PF3D7_9999999"],
         positive_ids=["PF3D7_0100100", "PF3D7_0200200"],

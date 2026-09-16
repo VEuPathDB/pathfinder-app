@@ -41,8 +41,8 @@ class TestAttachWdkAuth:
 
     @pytest.mark.asyncio
     async def test_none_token_clears_ctxvar(self) -> None:
-        """If the dispatcher had no cookie, the worker sees None — which
-        is what _http.py's fallback chain expects (None → settings)."""
+        """If the dispatcher had no cookie, the worker sees None - which
+        is what _http.py's fallback chain expects (None -> settings)."""
         sentinel = veupathdb_auth_token_ctx.set("pre-existing")
         try:
             async with attach_wdk_auth(None):
@@ -52,7 +52,7 @@ class TestAttachWdkAuth:
 
     @pytest.mark.asyncio
     async def test_concurrent_tasks_do_not_contaminate(self) -> None:
-        """asyncio.create_task copies the context at creation — so two
+        """asyncio.create_task copies the context at creation - so two
         concurrent turns with different tokens must stay isolated."""
         observed: dict[str, str | None] = {}
 

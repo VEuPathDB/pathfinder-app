@@ -8,7 +8,7 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe("strategy store — devtools registration", () => {
+describe("strategy store - devtools registration", () => {
   it("registers exactly one Redux DevTools connection named StrategyStore", async () => {
     const connect = vi.fn(() => ({
       init: vi.fn(),

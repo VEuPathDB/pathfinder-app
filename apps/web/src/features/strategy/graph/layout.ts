@@ -14,7 +14,7 @@ export type StepPositions = Map<string, { x: number; y: number }>;
  *
  * Uses FIXED_ORDER WEST ports on combine steps (primary port index 0, secondary
  * port index 1) so the primary-input source is placed visually above the
- * secondary-input source — the invariant dagre's `constraints` API previously
+ * secondary-input source - the invariant dagre's `constraints` API previously
  * enforced.
  */
 export async function layoutStrategyGraph(

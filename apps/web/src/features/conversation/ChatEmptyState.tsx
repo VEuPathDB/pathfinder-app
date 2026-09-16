@@ -96,7 +96,10 @@ export function ChatEmptyState({ assistantId }: { assistantId: string }) {
             <div className="flex-1">
               Running on the default provider + orchestrator. Tweak models, tiers, and
               the orchestrator in{" "}
-              <span className="font-medium text-foreground">Settings → AI Engine</span>.
+              <span className="font-medium text-foreground">
+                Settings -&gt; AI Engine
+              </span>
+              .
             </div>
             <button
               type="button"

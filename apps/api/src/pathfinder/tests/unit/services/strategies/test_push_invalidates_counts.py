@@ -6,7 +6,7 @@ bug where the agent reported 2,862 genes for a strategy that returned 587:
 the UI recomputes counts on its own endpoint and looked right, while the
 persisted count (which the agent reads) stayed at the pre-edit value.
 
-``None`` means "unknown, go recompute" — every consumer already handles it.
+``None`` means "unknown, go recompute" - every consumer already handles it.
 """
 
 from pathfinder.services.strategies.sync_state import WDKSyncState

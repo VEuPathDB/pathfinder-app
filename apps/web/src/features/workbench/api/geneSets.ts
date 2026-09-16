@@ -1,5 +1,5 @@
 /**
- * Gene set API client — CRUD and set-operation endpoints.
+ * Gene set API client - CRUD and set-operation endpoints.
  */
 
 import { queryOptions } from "@tanstack/react-query";

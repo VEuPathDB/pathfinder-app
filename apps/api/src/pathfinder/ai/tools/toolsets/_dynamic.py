@@ -82,7 +82,7 @@ class ValidatingEnumToolset(WrapperToolset[AgentDepsT]):
     schema is left untouched (no injected ``enum``) so the prompt-cache
     prefix stays constant across the whole run. A call whose constrained
     arg falls outside the allowed set raises ``ModelRetry`` naming the
-    valid values — a fast soft guardrail (no downstream I/O), bounded by
+    valid values - a fast soft guardrail (no downstream I/O), bounded by
     the agent's retry/circuit-breaker budget. Empty override set ⇒ the
     arg is unconstrained (cold start).
     """
@@ -110,7 +110,7 @@ class ValidatingEnumToolset(WrapperToolset[AgentDepsT]):
                 retry_message = (
                     f"{arg}={value!r} is not a known value for {name}. "
                     f"Choose one of: {', '.join(sorted(allowed))}. "
-                    "Copy it verbatim — do not paraphrase or invent."
+                    "Copy it verbatim - do not paraphrase or invent."
                 )
                 raise ModelRetry(retry_message)
         return await self.wrapped.call_tool(name, tool_args, ctx, tool)
@@ -125,7 +125,7 @@ def live_step_ids(deps: AgentDeps) -> list[str]:
 
 def live_wdk_step_ids(session: StrategySession) -> list[int]:
     # ``wdk_step_id`` is only assigned after the step has been pushed to
-    # WDK and built — local-only steps are excluded.
+    # WDK and built - local-only steps are excluded.
     sync_state = session.sync_state
     if sync_state is None:
         return []

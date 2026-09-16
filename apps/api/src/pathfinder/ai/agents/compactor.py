@@ -26,7 +26,7 @@ input note.
 one note that captures what was learned, not the iterative path.
 - Drop stale notes (e.g. "considering GenesByRNASeq" when a later note \
 says "using GenesByRNASeq with params X").
-- Keep dead-end notes — they prevent the agent re-trying known failures.
+- Keep dead-end notes - they prevent the agent re-trying known failures.
 - Tags: preserve informative tags; drop housekeeping tags.
 """
 

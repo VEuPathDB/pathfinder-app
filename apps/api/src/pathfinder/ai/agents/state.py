@@ -176,7 +176,7 @@ class AgentToolState:
     def frame_drop_criterion(self, criterion_id: str, reason: str) -> bool:
         """Remove a criterion from the draft (keyed by id, like
         ``frame_set_criterion``) and record it in ``dropped``. Returns False if
-        no criterion has that id — so a dropped criterion's open params can no
+        no criterion has that id - so a dropped criterion's open params can no
         longer keep ``ready_to_build`` False. Returns True when one was removed."""
         spec = self.operational_spec_draft
         match = next((c for c in spec.criteria if c.id == criterion_id), None)
@@ -270,7 +270,7 @@ class AgentToolState:
     def record_catalog_searches(self, names: list[str]) -> None:
         """Record search names returned by the catalog (search_for_searches /
         list_searches) so ``get_search_overview`` can be constrained to names
-        the model has actually seen — never invented ones."""
+        the model has actually seen - never invented ones."""
         self.catalog_search_names.update(n for n in names if n)
 
     def candidate_search_names(self) -> set[str]:

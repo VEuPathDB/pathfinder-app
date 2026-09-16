@@ -1,4 +1,4 @@
-"""POST /conversations/{id}/save-substrategy — clone a subtree to a new WDK saved strategy."""
+"""POST /conversations/{id}/save-substrategy - clone a subtree to a new WDK saved strategy."""
 
 from uuid import UUID
 

@@ -1,4 +1,4 @@
-"""Tests for Langfuse score emission — graceful degradation and resilience."""
+"""Tests for Langfuse score emission - graceful degradation and resilience."""
 
 from unittest.mock import MagicMock, patch
 

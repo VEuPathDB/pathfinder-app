@@ -1,4 +1,4 @@
-"""FRAME-phase toolset — retrieval-grounded operationalize + bind + resolve."""
+"""FRAME-phase toolset - retrieval-grounded operationalize + bind + resolve."""
 
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets.abstract import AbstractToolset

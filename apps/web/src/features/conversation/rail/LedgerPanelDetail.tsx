@@ -85,7 +85,7 @@ export function FrameDetail({ frame }: { frame: InvestigationLedger["frame"] }) 
         <div className="space-y-0.5">
           {dropped.map((d) => (
             <p key={d.text} className="break-words text-[10px] text-muted-foreground">
-              <span className="text-destructive">dropped</span> {d.text} — {d.reason}
+              <span className="text-destructive">dropped</span> {d.text} - {d.reason}
             </p>
           ))}
         </div>

@@ -37,7 +37,7 @@ export function useStrategyGraphNodes(options: UseStrategyGraphNodesOptions) {
   // Keep React Flow's per-node `selected` flag in sync with the
   // app-level `selectedStep` so programmatic selection (URL focus,
   // rail click, keyboard shortcut) lights up the visual selected ring
-  // — not just opens the editor sheet.
+  // - not just opens the editor sheet.
   const setSelectedStep = (step: Step | null): void => {
     setSelectedStepId(step?.id ?? null);
     const targetId = step?.id ?? null;

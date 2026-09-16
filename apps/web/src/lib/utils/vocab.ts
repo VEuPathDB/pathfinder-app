@@ -57,7 +57,7 @@ export function extractVocabOptions(vocabulary: unknown, limit = 200): VocabOpti
     }
     const rawLabel =
       trimmedValue === "@@fake@@" ? "All" : (label ?? trimmedValue).trim();
-    const displayLabel = depth > 0 ? `${"— ".repeat(depth)}${rawLabel}` : rawLabel;
+    const displayLabel = depth > 0 ? `${"- ".repeat(depth)}${rawLabel}` : rawLabel;
     options.push({
       value: trimmedValue,
       label: rawLabel,

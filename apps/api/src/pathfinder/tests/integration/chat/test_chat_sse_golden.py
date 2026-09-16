@@ -35,7 +35,7 @@ _PROMPT = "hi"
 
 # The full set of chunk ``type`` values the dispatcher is allowed to emit on
 # this turn. Any chunk type outside this set indicates new behavior the
-# golden must explicitly cover — re-record the fixture and update this set.
+# golden must explicitly cover - re-record the fixture and update this set.
 _ALLOWED_CHUNK_TYPES: frozenset[str] = frozenset(
     {
         "start",

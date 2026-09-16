@@ -11,7 +11,7 @@ export interface StepSnapshot {
   step: Step | null;
   /** Current XState v5 leaf state for the step. */
   lifecycleState: StepLifecycleStateName;
-  /** Cached estimatedSize — lifecycle context wins over wire field. */
+  /** Cached estimatedSize - lifecycle context wins over wire field. */
   estimatedSize: number | null;
   /** Validation errors from the lifecycle machine, falling back to wire. */
   validationErrors: ValidationErrors | null;

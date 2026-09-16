@@ -1,4 +1,4 @@
-"""The deterministic mock's Lead routing: the FRAME→BUILD→VERIFY build journey
+"""The deterministic mock's Lead routing: the FRAME->BUILD->VERIFY build journey
 plus the consult / variant / attachment branches. These drive the e2e chat
 flows, so a regression here silently reds the whole browser suite."""
 

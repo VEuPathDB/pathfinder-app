@@ -32,7 +32,7 @@ import {
 } from "./panels";
 
 // ---------------------------------------------------------------------------
-// Active set header — rich version
+// Active set header - rich version
 // ---------------------------------------------------------------------------
 
 function RetakeButton({ geneSetId }: { geneSetId: string }) {

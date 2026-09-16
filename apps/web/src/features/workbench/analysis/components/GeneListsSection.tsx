@@ -61,9 +61,7 @@ function GeneListRow({ label, genes }: { label: string; genes: GeneInfo[] }) {
                 {genes.slice(0, 100).map((g) => (
                   <tr key={g.id}>
                     <td className="py-1 pr-4 font-mono text-foreground">{g.id}</td>
-                    <td className="py-1 text-muted-foreground">
-                      {g.product ?? "\u2014"}
-                    </td>
+                    <td className="py-1 text-muted-foreground">{g.product ?? "-"}</td>
                   </tr>
                 ))}
               </tbody>

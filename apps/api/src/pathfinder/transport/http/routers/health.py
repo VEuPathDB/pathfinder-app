@@ -65,7 +65,7 @@ async def system_ready() -> SystemReadyResponse:
     Always returns 200 so the frontend can poll a single endpoint and read
     ``ready`` to decide whether to show the startup loader. Unlike
     ``/health/ready`` (the API container's own healthcheck), worker liveness
-    is included here — the worker is a sibling process, so its death must not
+    is included here - the worker is a sibling process, so its death must not
     flip the API's container health.
     """
     state = get_readiness()

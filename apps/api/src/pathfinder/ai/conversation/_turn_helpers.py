@@ -48,7 +48,7 @@ class _UserQuestionAnswersPayload(CamelModel):
 
     The frontend question carousel sends this on the assistant message
     carrying the ``approval-responded`` part for ``consult_user``, with
-    camelCase keys (``toolCallId``) — so this MUST be a CamelModel. Paired by
+    camelCase keys (``toolCallId``) - so this MUST be a CamelModel. Paired by
     ``tool_call_id``.
     """
 

@@ -101,9 +101,7 @@ export function GeneAutocomplete({
                   {gene.geneId}
                 </p>
                 <p className="truncate text-[10px] text-muted-foreground">
-                  {gene.product != null && gene.product !== ""
-                    ? gene.product
-                    : "\u2014"}
+                  {gene.product != null && gene.product !== "" ? gene.product : "-"}
                 </p>
                 <p className="truncate text-[10px] italic text-muted-foreground">
                   {gene.organism}

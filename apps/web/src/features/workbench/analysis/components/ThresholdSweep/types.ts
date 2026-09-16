@@ -12,5 +12,5 @@ export interface SweepableParam {
 export const MAX_CATEGORICAL_CHOICES = 50;
 
 export function truncateLabel(s: string, max: number): string {
-  return s.length > max ? s.slice(0, max - 1) + "\u2026" : s;
+  return s.length > max ? s.slice(0, max - 3) + "..." : s;
 }

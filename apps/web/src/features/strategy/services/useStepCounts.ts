@@ -40,7 +40,7 @@ export function useStepCounts(args: {
 
   // The local prev-key adjustments below are the React-sanctioned "derive during
   // render" pattern, but applyStepCounts writes an external Zustand store that
-  // other mounted nodes subscribe to — doing that synchronously updates them
+  // other mounted nodes subscribe to - doing that synchronously updates them
   // mid-render. Defer the store write to a microtask so it lands after commit.
   const [prevCountsKey, setPrevCountsKey] = useState(countsKey);
   if (countsKey !== prevCountsKey) {

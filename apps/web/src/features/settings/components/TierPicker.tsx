@@ -33,7 +33,7 @@ export function TierPicker({ presets, activeTier, onSelect }: TierPickerProps) {
         <span className="text-xs font-medium text-foreground">Preset</span>
         {activeTier === CUSTOM_TIER && (
           <span className="text-[10px] text-muted-foreground">
-            Custom — phases below don&apos;t match a preset
+            Custom - phases below don&apos;t match a preset
           </span>
         )}
       </div>

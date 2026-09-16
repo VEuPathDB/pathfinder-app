@@ -84,7 +84,7 @@ async def test_validate_parameters_autofills_hidden_document_type(
 ) -> None:
     # The model supplies only the VISIBLE required params (it can't see the
     # hidden document_type). validate_parameters must auto-fill document_type
-    # rather than reject — the contradiction that spiralled create_plan.
+    # rather than reject - the contradiction that spiralled create_plan.
     del wdk_session
     result = await validate_parameters(
         SearchContext("plasmodb", "transcript", "GenesByText"),

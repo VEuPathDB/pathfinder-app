@@ -224,7 +224,7 @@ describe("EnsemblePanel", () => {
     // Should call the API (no cross-site error)
     expect(mockRequestJson).toHaveBeenCalled();
 
-    // Wait for results — no error text about different sites
+    // Wait for results - no error text about different sites
     await screen.findByText("G2");
     expect(screen.queryByText(/different sites/i)).toBeNull();
   });

@@ -12,7 +12,7 @@ beforeEach(() => {
   useWorkbenchStore.getState().reset();
 });
 
-describe("useWorkbenchStore — gene set selection", () => {
+describe("useWorkbenchStore - gene set selection", () => {
   it("starts from a clean initial state", () => {
     const s = useWorkbenchStore.getState();
     expect(s.activeSetId).toBeNull();
@@ -25,11 +25,11 @@ describe("useWorkbenchStore — gene set selection", () => {
   it("setActiveSet sets the active id and clears a stale experiment", () => {
     const s = useWorkbenchStore.getState();
     s.setLastExperiment(makeExperiment("e1"), "setA");
-    s.setActiveSet("setA"); // same set → keeps experiment
+    s.setActiveSet("setA"); // same set -> keeps experiment
     expect(useWorkbenchStore.getState().activeSetId).toBe("setA");
     expect(useWorkbenchStore.getState().lastExperiment).not.toBeNull();
 
-    s.setActiveSet("setB"); // different set → clears experiment
+    s.setActiveSet("setB"); // different set -> clears experiment
     expect(useWorkbenchStore.getState().activeSetId).toBe("setB");
     expect(useWorkbenchStore.getState().lastExperiment).toBeNull();
     expect(useWorkbenchStore.getState().lastExperimentSetId).toBeNull();
@@ -56,7 +56,7 @@ describe("useWorkbenchStore — gene set selection", () => {
   });
 });
 
-describe("useWorkbenchStore — panels", () => {
+describe("useWorkbenchStore - panels", () => {
   it("togglePanel adds then removes a panel", () => {
     const s = useWorkbenchStore.getState();
     s.togglePanel("enrichment");
@@ -78,7 +78,7 @@ describe("useWorkbenchStore — panels", () => {
   });
 });
 
-describe("useWorkbenchStore — sidebar + controls + experiment", () => {
+describe("useWorkbenchStore - sidebar + controls + experiment", () => {
   it("toggleGeneSearch and toggleLeftSidebar flip their flags", () => {
     const s = useWorkbenchStore.getState();
     s.toggleGeneSearch();

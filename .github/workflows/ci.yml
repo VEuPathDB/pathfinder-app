@@ -63,6 +63,17 @@ jobs:
       - name: Check the checker
         run: node --test scripts/check-knowledge.test.mjs
 
+  check-punctuation:
+    name: Check punctuation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Zero dependencies by design, so the runner's node is enough.
+      - name: Check source punctuation
+        run: node scripts/check-punctuation.mjs
+      - name: Check the checker
+        run: node --test scripts/check-punctuation.test.mjs
+
   check-wdk-rules:
     name: Check WDK rules
     runs-on: ubuntu-latest

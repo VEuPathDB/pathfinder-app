@@ -4,12 +4,12 @@
  * Wires a `WebTracerProvider` with:
  *   - Resource: `service.name = pathfinder-web`, `deployment.environment`,
  *     `session.id` (persisted via session.ts).
- *   - OTLP/HTTP exporter → `/api/telemetry/v1/traces` (proxied to the SigNoz
+ *   - OTLP/HTTP exporter -> `/api/telemetry/v1/traces` (proxied to the SigNoz
  *     collector server-side; browser never speaks to the collector directly).
  *   - Batch span processor (1s schedule, up to 128 spans/export).
  *   - Zone.js context manager so async context survives microtasks in React
  *     19 + streaming fetch.
- *   - W3C Trace Context propagator (default) — `traceparent` headers are
+ *   - W3C Trace Context propagator (default) - `traceparent` headers are
  *     injected on fetches matching `propagateTraceHeaderCorsUrls`; backend
  *     already honors them.
  *
@@ -17,11 +17,11 @@
  *   - FetchInstrumentation: configured with `ignoreUrls` so we never trace
  *     our own `/api/telemetry/*` proxy (infinite loop), and
  *     `applyCustomAttributesOnSpan` which strips query strings from
- *     `http.url` — the idiomatic OTel hook for attribute scrubbing before
+ *     `http.url` - the idiomatic OTel hook for attribute scrubbing before
  *     export.
  *   - XHR instrumentation: same ignoreUrls treatment.
- *   - DocumentLoad — one span per initial page load with full timing.
- *   - UserInteraction — click / submit / keydown spans.
+ *   - DocumentLoad - one span per initial page load with full timing.
+ *   - UserInteraction - click / submit / keydown spans.
  *
  * Idempotent: safe to call multiple times (second call returns early).
  * Gated on `NEXT_PUBLIC_TELEMETRY_ENABLED !== "false"`.
@@ -115,7 +115,7 @@ export function initTelemetry(): void {
 
 /**
  * Runs right before the fetch span closes. Strips query strings from
- * `http.url` — we never want tokens / user ids / session keys to reach the
+ * `http.url` - we never want tokens / user ids / session keys to reach the
  * collector, and request bodies are never captured by fetch instrumentation
  * in the first place.
  */

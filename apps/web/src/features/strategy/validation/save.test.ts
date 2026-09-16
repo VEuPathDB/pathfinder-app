@@ -6,12 +6,12 @@ import { validateStepsForSave } from "./save";
 // Mock dependencies
 // ---------------------------------------------------------------------------
 
-// Mock validateSearchParams — the async API call
+// Mock validateSearchParams - the async API call
 vi.mock("@/lib/api/sites", () => ({
   validateSearchParams: vi.fn(),
 }));
 
-// Mock toUserMessage — error formatting
+// Mock toUserMessage - error formatting
 vi.mock("@/lib/api/errors", () => ({
   toUserMessage: vi.fn((err: unknown, fallback: string) =>
     err instanceof Error ? err.message : fallback,

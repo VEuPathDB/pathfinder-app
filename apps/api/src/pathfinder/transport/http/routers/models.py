@@ -1,4 +1,4 @@
-"""Models endpoint — exposes available LLM models and their status."""
+"""Models endpoint - exposes available LLM models and their status."""
 
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import ModelProvider, TierName
@@ -12,7 +12,7 @@ from pathfinder.platform.config import get_settings
 
 
 class ModelCatalogEntryResponse(ModelEntry):
-    """API response model — adds ``enabled`` status per provider configuration."""
+    """API response model - adds ``enabled`` status per provider configuration."""
 
     model_config = ConfigDict(frozen=False)
 
