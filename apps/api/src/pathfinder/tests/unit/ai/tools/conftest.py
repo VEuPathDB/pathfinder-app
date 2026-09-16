@@ -20,6 +20,7 @@ from veupathdb_mcp.catalog import search_inspection
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.database import detached_session
@@ -51,6 +52,7 @@ def agent_run_context(
         cancel_event=runtime.cancel_event,
         db_session_factory=db_session_factory,
         agent_state=agent_state if agent_state is not None else AgentToolState(),
+        turn_markers=TurnMarkers(),
     )
     return run_context_for(deps, tool_call_id)
 

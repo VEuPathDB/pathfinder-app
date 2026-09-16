@@ -82,7 +82,7 @@ async def test_the_strategy_summary_cites_the_same_root() -> None:
 
     chunk = summary_of(await strategy_graph.get_strategy(ctx))
 
-    assert chunk.data["summary"] == "2 steps, 1,282 genes"
+    assert chunk.data["summary"] == "2 steps, 1,282 transcripts"
 
 
 def test_a_split_graph_no_push_identifies_names_the_split_anyway() -> None:

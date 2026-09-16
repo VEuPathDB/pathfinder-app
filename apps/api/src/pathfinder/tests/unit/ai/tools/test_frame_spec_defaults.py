@@ -26,6 +26,7 @@ from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
+from pathfinder.tests.unit.ai.tools.test_frame_spec import no_count
 
 
 def _transcript_session() -> StrategySession:
@@ -95,6 +96,7 @@ async def _bind(
     monkeypatch.setattr(frame_spec, "resolve_params_with_intent", _resolve)
     monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
     monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)
+    no_count(monkeypatch)
     return returned(
         await frame_spec.set_criterion(
             _ctx(state),

@@ -182,3 +182,32 @@ def test_the_two_research_reads_answer_what_the_record_does_not() -> None:
         "a name, a claim or a current event neither the catalog nor the record"
         in instructions
     )
+
+
+def test_a_zero_result_is_answered_from_the_choices_the_ledger_carries() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert "call ``read_ledger_section`` on ``frame``" in instructions
+    assert "read that criterion's CHOICES lines" in instructions
+    assert "Offer the values those lines name" in instructions
+
+
+def test_a_zero_result_answer_invents_no_lever_and_ranks_no_choice() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert "never one you reason out from the search's subject" in instructions
+    assert "state them without ranking them" in instructions
+    assert "loosen a threshold" not in instructions
+
+
+def test_a_criterion_with_no_choices_line_is_reported_as_holding_none() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert "A criterion with no CHOICES line holds no other value" in instructions
+    assert "name the parameter and its size and ask which one" in instructions
+
+
+def test_the_ledger_read_tool_names_the_frame_section() -> None:
+    assert "``read_ledger_section`` (frame / build / verification)" in _flat(
+        LEAD_INSTRUCTIONS
+    )

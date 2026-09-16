@@ -21,7 +21,8 @@ from assistant_core.cost import cost_for_run
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
 from assistant_core.graph.turn_state import PendingApproval, PendingDurableCall
 from assistant_core.platform.logging import get_logger
-from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import AgentStreamEvent, ModelMessage, PartStartEvent
+from pydantic_ai.run import AgentRunResultEvent
 from pydantic_ai.ui.vercel_ai.response_types import (
     TextDeltaChunk,
     TextEndChunk,
@@ -75,6 +76,8 @@ class _LeadRunCapture:
     guard_stop: GuardStop | None = None
     # The text of the error chunk that ended the run, when one did.
     run_error: str | None = None
+    # Whether the model produced any part of an answer in this run.
+    model_answered: bool = False
 
     new_messages: list[ModelMessage] = field(default_factory=list)
     finish_reason: str = "stop"
@@ -100,6 +103,14 @@ class _LeadRunCapture:
     pending_durable_call: PendingDurableCall | None = None
     parked_call_answered: bool = False
     prose_already_streamed: bool = False
+
+    def note_model_output(
+        self,
+        event: AgentStreamEvent | AgentRunResultEvent[Any],
+    ) -> None:
+        """Take a part the model started as proof that the model answered."""
+        if isinstance(event, PartStartEvent):
+            self.model_answered = True
 
     @property
     def charged_tokens(self) -> int:

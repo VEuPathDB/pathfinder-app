@@ -10,6 +10,7 @@ from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
 from pathfinder.ai.tools.standalone.graph_helpers import (
     build_context_strategy_ast,
     build_step_response,
+    count_summary,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -115,3 +116,41 @@ def test_a_step_wdk_refused_reports_no_estimated_size() -> None:
 
     assert response.estimated_size is None
     assert response.wdk_push_error == "422 profileset_generic: Invalid value"
+
+
+class TestTheStrategyLineNamesWhatItCounted:
+    """``count_summary`` states a size in the records the strategy holds."""
+
+    def test_one_record_is_not_written_as_a_plural(self) -> None:
+        line, status = count_summary(1, 1, "transcript")
+
+        assert line == "1 steps, 1 transcript"
+        assert status == "ok"
+
+    def test_the_noun_is_the_record_type_the_strategy_holds(self) -> None:
+        line, status = count_summary(3, 16, "pathway")
+
+        assert line == "3 steps, 16 pathways"
+        assert status == "ok"
+
+    def test_a_large_count_is_written_for_a_reader(self) -> None:
+        line, _ = count_summary(2, 9_667, "transcript")
+
+        assert line == "2 steps, 9,667 transcripts"
+
+    def test_a_strategy_that_holds_nothing_reports_empty(self) -> None:
+        line, status = count_summary(2, 0, "transcript")
+
+        assert line == "2 steps, 0 transcripts"
+        assert status == "empty"
+
+    def test_a_count_nobody_measured_is_not_spent_as_a_zero(self) -> None:
+        line, status = count_summary(2, None, "transcript")
+
+        assert line == "2 steps, count not available"
+        assert status == "warn"
+
+    def test_a_graph_with_no_record_type_still_names_what_it_counted(self) -> None:
+        line, _ = count_summary(1, 5, None)
+
+        assert line == "1 steps, 5 records"

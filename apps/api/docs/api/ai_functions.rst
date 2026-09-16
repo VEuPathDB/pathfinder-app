@@ -49,8 +49,9 @@ that builds.
 - ``build_control_set`` -- Validate gene IDs against WDK and save them as a
   reusable control set.
 - ``list_control_sets`` -- The user's saved control sets for this site.
-- ``import_control_ids_from_gene_set`` / ``import_control_ids_from_strategy``
-  -- Take control IDs from a workbench gene set or another conversation.
+- ``read_gene_ids_from_gene_set`` / ``read_gene_ids_from_strategy``
+  -- Read the gene IDs of a workbench gene set or another conversation, to use
+  as positive or negative controls. Neither saves a control set.
 
 FRAME
 -----

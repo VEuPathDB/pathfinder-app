@@ -52,6 +52,17 @@ class AssumedValue(CamelModel):
     carried_from: str = ""
 
 
+class ParameterAlternatives(CamelModel):
+    """A vocabulary parameter of a binding, and the values it did not take."""
+
+    param_name: str
+    bound: list[str]
+    option_count: int
+    # Empty when the vocabulary is too large to list, or when a bound term
+    # stands for options it is not listed among.
+    other_options: list[str] = Field(default_factory=list)
+
+
 class DroppedCriterion(CamelModel):
     """A criterion with no realizable WDK search. It is surfaced, never dropped."""
 
@@ -123,6 +134,8 @@ class Criterion(CamelModel):
     open_params: list[OpenSlot] = Field(default_factory=list)
     confidence: float = 0.0
     assumptions: list[AssumedValue] = Field(default_factory=list)
+    # The choices inside a criterion that matches no record. Empty otherwise.
+    alternatives: list[ParameterAlternatives] = Field(default_factory=list)
 
     @property
     def bound(self) -> bool:

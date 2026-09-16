@@ -15,7 +15,7 @@ interface ModalState {
 
 export function useModalState(): ModalState {
   const [showSettings, setShowSettings] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("data");
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("model");
   const [graphEditing, setGraphEditing] = useState(false);
 
   const openSettings = (tab?: SettingsTab) => {

@@ -13,6 +13,10 @@ import {
   CHART_TOKEN_FALLBACKS,
   readChartTokens,
 } from "@/lib/components/charts/chartTheme";
+import {
+  duplicateSetGroups,
+  duplicateSetsSentence,
+} from "@/features/workbench/components/vennPlacement";
 
 type VennLayoutItem = {
   data: { key: string; sets: string[]; size: number };
@@ -92,6 +96,20 @@ export function SetVenn({
       <p className="text-[10px] text-muted-foreground">
         These gene sets store no gene IDs, so there is no overlap to draw.
       </p>
+    );
+  }
+
+  // A diagram that cannot tell two of the sets apart is not drawn.
+  const duplicates = duplicateSetGroups(sets);
+  if (duplicates.length > 0) {
+    return (
+      <div className="flex flex-col gap-1">
+        {duplicates.map((names) => (
+          <p key={names.join("|")} className="text-[10px] text-muted-foreground">
+            {duplicateSetsSentence(names)}
+          </p>
+        ))}
+      </div>
     );
   }
 

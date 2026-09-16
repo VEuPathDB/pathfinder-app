@@ -14,7 +14,8 @@ import { requestJson } from "@/lib/api/http";
 
 const GeneConfidenceScoreListSchema = z.array(geneConfidenceScoreResponseSchema);
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
-import { useActiveSetExperiment } from "@/features/workbench/hooks/useActiveSetExperiment";
+import { useActiveSetEvaluation } from "@/features/workbench/hooks/useActiveSetEvaluation";
+import { evaluationBlock } from "../setEvaluation";
 
 // ---------------------------------------------------------------------------
 // Enrichment data extraction (prepares input for the backend)
@@ -62,13 +63,18 @@ function hasClassifiedGenes(exp: Experiment): boolean {
   );
 }
 
-export function ConfidencePanel() {
-  const experiment = useActiveSetExperiment();
+const NEEDS_CLASSIFIED_GENES = "Requires an experiment with classified genes";
 
-  const isRelevant = experiment != null && hasClassifiedGenes(experiment) === true;
+export function ConfidencePanel() {
+  const evaluation = useActiveSetEvaluation();
+  const stale = evaluationBlock(evaluation);
+  const current = stale === null ? (evaluation?.experiment ?? null) : null;
+  const classified = current !== null && hasClassifiedGenes(current);
+  const blocked = stale ?? (classified ? null : NEEDS_CLASSIFIED_GENES);
+  const experiment = classified ? current : null;
 
   const requestBody = ((): GeneConfidenceRequest | null => {
-    if (!experiment || !hasClassifiedGenes(experiment)) return null;
+    if (experiment === null) return null;
     const { enrichmentGeneCounts, maxEnrichmentTerms } = extractEnrichmentCounts(
       experiment.enrichmentResults ?? [],
     );
@@ -94,7 +100,7 @@ export function ConfidencePanel() {
         method: "POST",
         body: requestBody!,
       }),
-    enabled: isRelevant && requestBody != null,
+    enabled: blocked === null && requestBody != null,
     retry: false,
   });
   const error = queryError instanceof Error ? queryError.message : null;
@@ -105,8 +111,8 @@ export function ConfidencePanel() {
       title="Gene Confidence"
       subtitle="Per-gene composite confidence ranking"
       icon={<ShieldCheck className="h-4 w-4" />}
-      disabled={!isRelevant}
-      disabledReason="Requires an experiment with classified genes"
+      disabled={blocked !== null}
+      disabledReason={blocked ?? ""}
     >
       {loading && (
         <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">

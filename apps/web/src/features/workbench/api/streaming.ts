@@ -1,49 +1,15 @@
 /**
- * Typed SSE streaming helpers for experiment execution.
+ * Typed SSE streaming for experiment execution.
  *
- * Replaces the old `operationSubscribe` + Redis-Streams flow. Each endpoint
- * now POSTs a JSON body and streams typed progress events directly back over
- * SSE (one long-running request), consumed via `streamTypedEvents`.
+ * Each endpoint takes the generated request type for its route, so a body that
+ * omits a field the API requires does not compile.
  */
 
 import type { Experiment } from "@pathfinder/shared";
-import type { CreateExperimentRequestControlsValueFormatEnumKey } from "@pathfinder/shared/generated/types/CreateExperimentRequest";
+import type { CreateBatchExperimentRequest } from "@pathfinder/shared/generated/types/CreateBatchExperimentRequest";
+import type { CreateBenchmarkRequest } from "@pathfinder/shared/generated/types/CreateBenchmarkRequest";
+import type { CreateExperimentRequest } from "@pathfinder/shared/generated/types/CreateExperimentRequest";
 import { streamTypedEvents } from "@/lib/sse/typedEventStream";
-import type { StepParameters } from "@/lib/types/stepParameters";
-
-export type ExperimentRunConfig = {
-  siteId: string;
-  recordType?: string | undefined;
-  mode?: "single" | "multi-step" | "import" | undefined;
-  searchName?: string | undefined;
-  parameters?: StepParameters | undefined;
-  positiveControls?: string[] | undefined;
-  negativeControls?: string[] | undefined;
-  controlsSearchName?: string | undefined;
-  controlsParamName?: string | undefined;
-  controlsValueFormat?: CreateExperimentRequestControlsValueFormatEnumKey | undefined;
-  enableCrossValidation?: boolean | undefined;
-  kFolds?: number | undefined;
-  targetGeneIds?: string[] | undefined;
-  enrichmentTypes?: string[] | undefined;
-  name?: string | undefined;
-  description?: string | undefined;
-  geneSetId?: string | undefined;
-};
-
-export interface BatchOrganismTarget {
-  organism: string;
-  positiveControls?: string[];
-  negativeControls?: string[];
-}
-
-export interface BenchmarkControlSetInput {
-  label: string;
-  positiveControls: string[];
-  negativeControls: string[];
-  controlSetId?: string | null;
-  isPrimary: boolean;
-}
 
 // ── Event shapes emitted by the backend (camelCase wire format) ────────────
 
@@ -106,84 +72,40 @@ type RunOptions = {
   signal?: AbortSignal;
 };
 
-function serializeConfig(config: ExperimentRunConfig): ExperimentRunConfig {
+function buildRunOptions(body: unknown, signal: AbortSignal | undefined) {
   return {
-    siteId: config.siteId,
-    recordType: config.recordType,
-    mode: config.mode ?? "single",
-    searchName: config.searchName,
-    parameters: config.parameters,
-    positiveControls: config.positiveControls,
-    negativeControls: config.negativeControls,
-    controlsSearchName: config.controlsSearchName,
-    controlsParamName: config.controlsParamName,
-    controlsValueFormat: config.controlsValueFormat,
-    enableCrossValidation: config.enableCrossValidation,
-    kFolds: config.kFolds,
-    targetGeneIds: config.targetGeneIds,
-    enrichmentTypes: config.enrichmentTypes,
-    name: config.name,
-    description: config.description,
-    geneSetId: config.geneSetId,
-  };
-}
-
-function buildRunOptions(
-  method: "POST",
-  body: unknown,
-  signal: AbortSignal | undefined,
-) {
-  return {
-    method,
+    method: "POST",
     body,
     ...(signal !== undefined ? { signal } : {}),
   } as const;
 }
 
 export async function* createExperimentStream(
-  config: ExperimentRunConfig,
+  request: CreateExperimentRequest,
   options: RunOptions = {},
 ): AsyncGenerator<ExperimentStreamEvent> {
   yield* streamTypedEvents<ExperimentStreamEvent>(
     "/api/v1/experiments",
-    buildRunOptions("POST", serializeConfig(config), options.signal),
+    buildRunOptions(request, options.signal),
   );
 }
 
 export async function* createBatchExperimentStream(
-  baseConfig: ExperimentRunConfig,
-  organismParamName: string,
-  targets: BatchOrganismTarget[],
+  request: CreateBatchExperimentRequest,
   options: RunOptions = {},
 ): AsyncGenerator<BatchStreamEvent> {
   yield* streamTypedEvents<BatchStreamEvent>(
     "/api/v1/experiments/batch",
-    buildRunOptions(
-      "POST",
-      {
-        base: serializeConfig(baseConfig),
-        organismParamName,
-        targetOrganisms: targets,
-      },
-      options.signal,
-    ),
+    buildRunOptions(request, options.signal),
   );
 }
 
 export async function* createBenchmarkStream(
-  baseConfig: ExperimentRunConfig,
-  controlSets: BenchmarkControlSetInput[],
+  request: CreateBenchmarkRequest,
   options: RunOptions = {},
 ): AsyncGenerator<BenchmarkStreamEvent> {
   yield* streamTypedEvents<BenchmarkStreamEvent>(
     "/api/v1/experiments/benchmark",
-    buildRunOptions(
-      "POST",
-      {
-        base: serializeConfig(baseConfig),
-        controlSets,
-      },
-      options.signal,
-    ),
+    buildRunOptions(request, options.signal),
   );
 }

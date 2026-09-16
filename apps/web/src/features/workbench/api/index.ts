@@ -7,7 +7,12 @@ export type {
   ExperimentStreamEvent,
   BatchStreamEvent,
   BenchmarkStreamEvent,
-  BatchOrganismTarget,
-  BenchmarkControlSetInput,
 } from "./streaming";
+export {
+  experimentBase,
+  experimentBasis,
+  experimentBlocked,
+  organismBlocked,
+} from "./experimentBase";
+export { organismParamOf } from "./organismParam";
 export { listGeneSetExperiments, geneSetExperimentsOptions } from "./experiments";

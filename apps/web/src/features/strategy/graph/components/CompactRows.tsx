@@ -3,6 +3,7 @@
 import { CompactRowKebab } from "@/features/strategy/graph/components/CompactRowKebab";
 import { VennIcon } from "@/features/strategy/graph/components/VennIcon";
 import type { CompactStep } from "@/features/strategy/graph/utils/compactLayout";
+import { operatorName } from "@/features/strategy/graph/utils/stepTitle";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { cn } from "@/lib/utils/cn";
 
@@ -96,20 +97,6 @@ function StepRowButton({ step, onStepClick, selectedStepId = null }: StepRowProp
       </span>
     </button>
   );
-}
-
-const OPERATOR_NAME: Record<string, string> = {
-  INTERSECT: "Intersect",
-  UNION: "Union",
-  MINUS: "Minus",
-  RMINUS: "Minus (reversed)",
-  LONLY: "Left only",
-  RONLY: "Right only",
-  COLOCATE: "Colocated",
-};
-
-function operatorName(operator: string): string {
-  return OPERATOR_NAME[operator] ?? operator;
 }
 
 function combineOperatorLabel(operator: string, operands?: [string, string]): string {

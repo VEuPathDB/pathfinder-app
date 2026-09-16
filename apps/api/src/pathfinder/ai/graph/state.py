@@ -140,6 +140,15 @@ class EnrichmentRun(CamelModel):
     succeeded: bool = False
 
 
+class CreatedControlSet(CamelModel):
+    """A control set one turn wrote, as a reply that names it must read."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    name: str
+
+
 class TurnMarkers(CamelModel):
     """What the Lead already did for one user message.
 
@@ -169,6 +178,12 @@ class TurnMarkers(CamelModel):
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
     # reply cites is checked against it.
     retrieved_sources: list[str] = Field(default_factory=list)
+    # The control sets this turn wrote. A reply that claims one is checked
+    # against it.
+    created_control_sets: list[CreatedControlSet] = Field(default_factory=list)
+    # The workbench gene sets this turn saved, checked the same way. The
+    # record belongs here, so a turn resumed after a park still holds it.
+    created_gene_sets: list[CreatedGeneSet] = Field(default_factory=list)
 
     @property
     def changed_strategy(self) -> bool:
@@ -189,6 +204,16 @@ class TurnMarkers(CamelModel):
         """Record one reference this turn retrieved, once."""
         if reference and reference not in self.retrieved_sources:
             self.retrieved_sources.append(reference)
+
+    def record_control_set(self, control_set: CreatedControlSet) -> None:
+        """Record one control set this turn wrote, once."""
+        if control_set.id not in {held.id for held in self.created_control_sets}:
+            self.created_control_sets.append(control_set)
+
+    def record_gene_set(self, gene_set: CreatedGeneSet) -> None:
+        """Record one workbench gene set this turn saved, once."""
+        if gene_set.id not in {held.id for held in self.created_gene_sets}:
+            self.created_gene_sets.append(gene_set)
 
     def record_enrichment_runs(self, runs: Iterable[EnrichmentRun]) -> None:
         """Add each answered enrichment once, keyed by its task."""

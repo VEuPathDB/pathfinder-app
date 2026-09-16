@@ -227,7 +227,7 @@ async def test_a_site_that_refuses_is_degraded_and_the_rest_load(
     readiness = get_readiness()
     assert readiness.degraded == ["veupathdb"]
     assert readiness.catalogs["plasmodb"].ready is True
-    assert readiness.catalogs["veupathdb"].error == "WDKError"
+    assert readiness.catalogs["veupathdb"].error == "the site answered with an error"
     reset_readiness()
 
 

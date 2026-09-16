@@ -14,6 +14,7 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from veupathdb.domain.strategy import StrategyStepNode
 
+from pathfinder.platform.errors import sanitize_error_for_client
 from pathfinder.services.experiment.helpers import ProgressCallback
 from pathfinder.services.experiment.service.context import (
     PhaseContext,
@@ -34,8 +35,27 @@ from pathfinder.services.experiment.types import (
     ExperimentConfig,
     ExperimentProgressPhase,
 )
+from pathfinder.services.gene_sets.store import get_gene_set_store
+from pathfinder.services.gene_sets.types import GeneSetMembership
 
 logger = get_logger(__name__)
+
+
+def new_experiment_id() -> str:
+    """Mint an id for one experiment run."""
+    return f"exp_{uuid4().hex[:12]}"
+
+
+async def _scored_membership(gene_set_id: str | None) -> GeneSetMembership | None:
+    """The membership of the gene set a run scores, read when the run starts.
+
+    A later reader compares it with what the set holds. A run that names no
+    set, and one whose set is gone, record none.
+    """
+    if gene_set_id is None:
+        return None
+    gene_set = await get_gene_set_store().aget(gene_set_id)
+    return None if gene_set is None else GeneSetMembership.of(gene_set.gene_ids)
 
 
 async def run_experiment(
@@ -43,15 +63,18 @@ async def run_experiment(
     *,
     user_id: str | None = None,
     progress_callback: ProgressCallback | None = None,
+    experiment_id: str | None = None,
 ) -> Experiment:
     """Execute a full experiment and persist the result.
 
     :param config: Experiment configuration.
     :param user_id: Owning user ID (for IDOR protection).
     :param progress_callback: Optional async callback for SSE progress events.
+    :param experiment_id: The id to store the run under. A caller that names it
+        can report the run it started even when the run raises.
     :returns: Completed experiment with all results.
     """
-    experiment_id = f"exp_{uuid4().hex[:12]}"
+    experiment_id = experiment_id or new_experiment_id()
     now = datetime.now(UTC).isoformat()
     store = get_experiment_store()
 
@@ -61,6 +84,7 @@ async def run_experiment(
         user_id=user_id,
         status="running",
         created_at=now,
+        gene_set_membership=await _scored_membership(config.gene_set_id),
     )
     store.save(experiment)
 
@@ -124,11 +148,14 @@ async def run_experiment(
         await _emit("completed", message="Experiment complete")
 
     except Exception as exc:
+        # The stored message is read back by the client, so it is the same
+        # sentence the stream sends.
+        detail = sanitize_error_for_client(exc)
         experiment.status = "error"
-        experiment.error = str(exc)
+        experiment.error = detail
         experiment.total_time_seconds = time.monotonic() - start
         store.save(experiment)
-        await _emit("error", error=str(exc))
+        await _emit("error", error=detail)
         raise
     else:
         return experiment

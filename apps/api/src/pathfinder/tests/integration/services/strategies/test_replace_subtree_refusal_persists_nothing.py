@@ -23,6 +23,7 @@ from veupathdb.domain.strategy import (
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.tools.standalone.strategy_edits import replace_subtree
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
@@ -155,6 +156,7 @@ def _deps(
         conversation_id=conv_id,
         db_session_factory=db_session_factory,
         agent_state=AgentToolState(operational_spec_draft=_spec(root)),
+        turn_markers=TurnMarkers(),
     )
 
 

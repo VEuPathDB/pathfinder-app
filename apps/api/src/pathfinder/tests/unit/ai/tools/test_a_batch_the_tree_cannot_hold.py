@@ -15,6 +15,7 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.tools.standalone.strategy import apply_operations
 from pathfinder.ai.tools.toolsets.execution import build_toolset
 from pathfinder.domain.strategy.operations import AddLeafOp
@@ -86,6 +87,7 @@ def _deps() -> AgentDeps:
         site_id="plasmodb",
         strategy_session=session_with(root, _WDK_STEP_IDS),
         conversation_id=uuid4(),
+        turn_markers=TurnMarkers(),
     )
 
 

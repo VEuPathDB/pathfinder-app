@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import type { RecordDetailRequest } from "@pathfinder/shared/generated/types/RecordDetailRequest";
 import { attributesResponseSchema } from "@pathfinder/shared/generated/zod/attributesResponseSchema";
 import { distributionResponseSchema } from "@pathfinder/shared/generated/zod/distributionResponseSchema";
 import { recordDetailResponseSchema } from "@pathfinder/shared/generated/zod/recordDetailResponseSchema";
@@ -48,11 +49,12 @@ export function getRecords(
 
 export function getRecordDetail(
   ref: EntityRef,
-  primaryKey: { name: string; value: string }[],
+  primaryKey: RecordDetailRequest["primaryKey"],
 ) {
+  const body: RecordDetailRequest = { primaryKey };
   return requestJson(recordDetailResponseSchema, `${basePath(ref)}/results/record`, {
     method: "POST",
-    body: { primaryKey },
+    body,
   });
 }
 

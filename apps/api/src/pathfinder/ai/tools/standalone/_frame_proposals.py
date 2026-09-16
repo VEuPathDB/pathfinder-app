@@ -26,6 +26,7 @@ from veupathdb_mcp.catalog import (
     RadioPairIssue,
     check_radio_pairs,
     derive_phyletic_overrides,
+    has_contrast_sibling,
     is_phyletic_sheet,
     radio_pairs,
 )
@@ -102,6 +103,42 @@ def _values_of(proposal: str | list[str] | None) -> list[str]:
     if proposal is None:
         return []
     return proposal if isinstance(proposal, list) else [proposal]
+
+
+def _refuse_bad_assumptions(
+    call: _CriterionCall,
+    assumed: list[DeclaredAssumption],
+    infos: list[ParameterInfo],
+) -> None:
+    """An assumption names a parameter this call gave a value to.
+
+    A half of a reference and comparison pair has no defensible assumption:
+    both halves guessed is a degenerate all-against-all contrast.
+    """
+    by_name = {info.name: info for info in infos if info.is_visible}
+    for entry in assumed:
+        info = by_name.get(entry.param_name)
+        if info is None:
+            msg = (
+                f"No such parameter on {call.search_name}: {entry.param_name}. "
+                f"Declare an assumption only for a parameter of this search. "
+                f"Valid names: {sorted(by_name)}."
+            )
+            raise ModelRetry(msg)
+        if has_contrast_sibling(info, infos):
+            msg = (
+                f"{entry.param_name} is one half of a contrast pair, so no value "
+                f"for it can be assumed. State the group the request names, or "
+                f"leave it null and ask the user."
+            )
+            raise ModelRetry(msg)
+        if call.params.get(entry.param_name) is None:
+            msg = (
+                f"{entry.param_name} carries no value in this call, so there is "
+                f"nothing to assume. Pass the value in `params`, or drop the "
+                f"assumption."
+            )
+            raise ModelRetry(msg)
 
 
 def _refuse_unknown_names(call: _CriterionCall, infos: list[ParameterInfo]) -> None:

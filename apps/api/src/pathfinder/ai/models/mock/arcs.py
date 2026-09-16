@@ -26,7 +26,7 @@ from pydantic import BaseModel, ConfigDict
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.arc_args import (
-    attachment_gene_ids,
+    attached_gene_list,
     consult_args,
     variant_args,
 )
@@ -221,13 +221,16 @@ def _lead_sequence(messages: list[ModelMessage]) -> list[ToolCallPart]:
         return _build_branch(messages, raw)
     if has_any(raw.lower(), _RECALL_MARKERS):
         return _recall_sequence(messages)
-    ids = attachment_gene_ids(joined_user_text(messages))
-    if ids:
+    attached = attached_gene_list(joined_user_text(messages))
+    if attached is not None:
         return [
             classify("new_strategy"),
             scripted_call(
                 "build_control_set",
-                {"name": "Uploaded controls", "positive_ids": ids},
+                {
+                    "name": attached.control_set_name,
+                    "positive_ids": attached.gene_ids,
+                },
             ),
             lead_final(_CONTROLS_PROSE, "await_user"),
         ]

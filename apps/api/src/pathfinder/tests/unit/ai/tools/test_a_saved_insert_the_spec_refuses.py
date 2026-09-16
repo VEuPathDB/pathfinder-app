@@ -10,6 +10,7 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.tools.standalone import strategy_edits
 from pathfinder.ai.tools.standalone.strategy_edits import insert_saved_strategy
 from pathfinder.domain.strategy.operations.apply import ApplyError
@@ -27,6 +28,7 @@ def _deps() -> AgentDeps:
         strategy_session=session_with(leaf(_TARGET), {_TARGET: 440_432_473}),
         conversation_id=uuid4(),
         db_session_factory=detached_session,
+        turn_markers=TurnMarkers(),
     )
 
 

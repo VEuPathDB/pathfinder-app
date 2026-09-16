@@ -124,7 +124,9 @@ async def get_strategy(
     )
     if not graph.steps:
         return with_summary(summary, "No strategy yet", ctx=ctx, status="empty")
-    line, status = count_summary(len(graph.steps), _root_count(graph, sync_state))
+    line, status = count_summary(
+        len(graph.steps), _root_count(graph, sync_state), graph.record_type
+    )
     return with_summary(summary, line, ctx=ctx, status=status)
 
 

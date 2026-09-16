@@ -2,11 +2,13 @@
 
 import { FlaskConical } from "lucide-react";
 import { CustomEnrichmentSection } from "@/features/workbench/analysis";
-import { useActiveSetExperiment } from "@/features/workbench/hooks/useActiveSetExperiment";
+import { useActiveSetEvaluation } from "@/features/workbench/hooks/useActiveSetEvaluation";
+import { evaluationBlock } from "../setEvaluation";
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 
 export function CustomEnrichmentPanel() {
-  const experiment = useActiveSetExperiment();
+  const evaluation = useActiveSetEvaluation();
+  const blocked = evaluationBlock(evaluation);
 
   return (
     <AnalysisPanelContainer
@@ -14,10 +16,12 @@ export function CustomEnrichmentPanel() {
       title="Custom Enrichment"
       subtitle="Test enrichment against your own gene sets using Fisher's exact test"
       icon={<FlaskConical className="h-4 w-4" />}
-      disabled={experiment === null}
-      disabledReason="Requires a completed evaluation first"
+      disabled={blocked !== null}
+      disabledReason={blocked ?? ""}
     >
-      {experiment && <CustomEnrichmentSection experimentId={experiment.id} />}
+      {blocked === null && evaluation !== null && (
+        <CustomEnrichmentSection experimentId={evaluation.experiment.id} />
+      )}
     </AnalysisPanelContainer>
   );
 }

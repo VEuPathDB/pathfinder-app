@@ -115,3 +115,36 @@ describe("CombineNode", () => {
     }
   });
 });
+
+describe("CombineNode names the operation, not the WDK question", () => {
+  beforeEach(reset);
+
+  it("names an imported combine by its operator", () => {
+    const step = makeStep({
+      searchName: "boolean_question_TranscriptRecordClasses_TranscriptRecordClass",
+      displayName: "boolean_question_TranscriptRecordClasses_TranscriptRecordClass",
+      operator: combineOpEnum.INTERSECT,
+    });
+    render(<CombineNode {...defaultProps(step)} />);
+    expect(screen.getByTestId("node-title").textContent).toBe("Intersect");
+  });
+
+  it("names a minus combine by its operator", () => {
+    const step = makeStep({
+      searchName: "boolean_question_GeneRecordClasses_GeneRecordClass",
+      displayName: "boolean_question_GeneRecordClasses_GeneRecordClass",
+      operator: combineOpEnum.RMINUS,
+    });
+    render(<CombineNode {...defaultProps(step)} />);
+    expect(screen.getByTestId("node-title").textContent).toBe("Minus (reversed)");
+  });
+
+  it("keeps a name the owner gave the combine", () => {
+    const step = makeStep({
+      searchName: "boolean_question_TranscriptRecordClasses_TranscriptRecordClass",
+      displayName: "Secreted and essential",
+    });
+    render(<CombineNode {...defaultProps(step)} />);
+    expect(screen.getByTestId("node-title").textContent).toBe("Secreted and essential");
+  });
+});

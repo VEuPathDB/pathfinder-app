@@ -11,6 +11,7 @@ from veupathdb.domain.strategy import CombineOp, StrategyStepNode, walk
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.tools.standalone.strategy_edits import delete_step, replace_subtree
 from pathfinder.ai.tools.toolsets.execution import build_toolset
 from pathfinder.domain.strategy.operational_spec import (
@@ -116,6 +117,7 @@ def _deps() -> AgentDeps:
         strategy_session=session_with(_kinase_strategy(), _WDK_STEP_IDS),
         conversation_id=uuid4(),
         agent_state=AgentToolState(operational_spec_draft=_spec()),
+        turn_markers=TurnMarkers(),
     )
 
 
@@ -321,6 +323,7 @@ def _exported_eda_deps() -> AgentDeps:
         strategy_session=session_with(_exported_eda_tree(), wdk_ids),
         conversation_id=uuid4(),
         agent_state=AgentToolState(operational_spec_draft=spec),
+        turn_markers=TurnMarkers(),
     )
 
 
@@ -413,6 +416,7 @@ def _deps_with_an_option_criterion() -> AgentDeps:
         strategy_session=session_with(_kinase_strategy(), _WDK_STEP_IDS),
         conversation_id=uuid4(),
         agent_state=AgentToolState(operational_spec_draft=spec),
+        turn_markers=TurnMarkers(),
     )
 
 

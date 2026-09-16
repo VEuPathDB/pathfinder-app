@@ -20,6 +20,7 @@ from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.tools.standalone.conversation import clear_strategy
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.models import (
@@ -109,6 +110,7 @@ def _ctx(
         strategy_session=session,
         conversation_id=conv_id,
         db_session_factory=db_session_factory,
+        turn_markers=TurnMarkers(),
     )
     return ctx
 

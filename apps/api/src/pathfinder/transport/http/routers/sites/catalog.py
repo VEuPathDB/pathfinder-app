@@ -17,11 +17,9 @@ router = APIRouter(prefix="/api/v1/sites", tags=["sites"])
 
 
 def _availability(site_id: str) -> tuple[bool, str | None]:
-    """Whether the site's catalog is loaded, and the error class if it is not."""
-    degraded = get_readiness().degraded_catalog(site_id)
-    if degraded is None:
-        return True, None
-    return False, degraded.error or "loading"
+    """Whether the site's catalog is loaded, and why it is not."""
+    reason = get_readiness().catalog_unavailable_reason(site_id)
+    return reason is None, reason
 
 
 @router.get("", response_model=list[SiteResponse])

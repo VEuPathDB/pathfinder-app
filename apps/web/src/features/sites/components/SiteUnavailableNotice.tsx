@@ -8,8 +8,8 @@ import { sitesOptions } from "@/lib/api/sites";
 import { chatRoot } from "@/lib/routes";
 
 /**
- * Says PathFinder cannot reach a site, names the error class the api last saw, and
- * links every site that does answer.
+ * Says PathFinder cannot reach a site, repeats the reason the api gives for it,
+ * and links every site that does answer.
  */
 export function SiteUnavailableNotice({ siteId }: { siteId: string }) {
   const { data: sites } = useQuery(sitesOptions());
@@ -31,8 +31,8 @@ export function SiteUnavailableNotice({ siteId }: { siteId: string }) {
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
         {reason !== null
-          ? `PathFinder could not connect to this site (${reason}). It keeps trying every minute, so this may clear on its own.`
-          : "PathFinder could not connect to this site. It keeps trying every minute, so this may clear on its own."}
+          ? `PathFinder cannot use this site right now: ${reason}. It keeps trying every minute, so this may clear on its own.`
+          : "PathFinder cannot use this site right now. It keeps trying every minute, so this may clear on its own."}
       </p>
       {alternatives.length > 0 && (
         <>

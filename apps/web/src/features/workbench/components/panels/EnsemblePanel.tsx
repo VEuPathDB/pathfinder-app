@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { requestJson } from "@/lib/api/http";
 import { ensembleScoreSchema } from "@pathfinder/shared/generated/zod/ensembleScoreSchema";
 import type { EnsembleScore } from "@pathfinder/shared/generated/types/EnsembleScore";
+import type { EnsembleScoringRequest } from "@pathfinder/shared/generated/types/EnsembleScoringRequest";
 import { z } from "zod";
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 import { GeneChipInput } from "../GeneChipInput";
@@ -49,18 +50,16 @@ export function EnsemblePanel() {
     setError(null);
     setResults(null);
 
+    const body: EnsembleScoringRequest = {
+      geneSetIds: selectedSetIds,
+      positiveControls: positiveControls.length > 0 ? positiveControls : null,
+    };
+
     try {
       const data = await requestJson(
         EnsembleScoreListSchema,
         "/api/v1/gene-sets/ensemble",
-        {
-          method: "POST",
-          body: {
-            geneSetIds: selectedSetIds,
-            positiveControls:
-              positiveControls.length > 0 ? positiveControls : undefined,
-          },
-        },
+        { method: "POST", body },
       );
       setResults(data);
     } catch (err) {

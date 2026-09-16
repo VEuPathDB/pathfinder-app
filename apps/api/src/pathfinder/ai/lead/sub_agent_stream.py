@@ -7,6 +7,7 @@ the run on a call the user or the worker must answer.
 from __future__ import annotations
 
 import contextlib
+from collections.abc import AsyncIterable, AsyncIterator, Iterator
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from typing import Any
@@ -30,9 +31,11 @@ from pydantic import BaseModel
 from pydantic_ai import Agent, AgentRunResultEvent
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.messages import (
+    AgentStreamEvent,
     FunctionToolResultEvent,
     ModelMessage,
     ModelMessagesTypeAdapter,
+    PartStartEvent,
     RetryPromptPart,
 )
 from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
@@ -57,6 +60,8 @@ from pathfinder.ai.lead.sub_agent_tools import (
     BUILD_SUB_AGENT_BY_ROLE,
     LeadDeps,
     SubAgentCallUsage,
+    UnansweredStage,
+    phase_model_id,
     phase_override_kwargs,
     phase_usage_limits,
 )
@@ -189,6 +194,49 @@ def _park_run(
     )
 
 
+type _RunEvent = AgentStreamEvent | AgentRunResultEvent[Any]
+
+
+@dataclass
+class _PassAnswer:
+    """Whether the model of one pass produced any part of an answer."""
+
+    answered: bool = False
+
+    async def watching(
+        self,
+        events: AsyncIterable[_RunEvent],
+    ) -> AsyncIterator[_RunEvent]:
+        """The same events, with a part the model started taken as an answer."""
+        async for event in events:
+            if isinstance(event, PartStartEvent):
+                self.answered = True
+            yield event
+
+
+@contextlib.contextmanager
+def _name_the_stage_that_did_not_answer(
+    deps: LeadDeps,
+    role: PhaseRole,
+) -> Iterator[_PassAnswer]:
+    """Record the stage of a pass that raises before its model answered.
+
+    The turn's reply reads the record, so a researcher learns which stage to
+    give another model.
+    """
+    deps.unanswered_stage = None
+    answer = _PassAnswer()
+    try:
+        yield answer
+    except Exception:
+        if not answer.answered:
+            deps.unanswered_stage = UnansweredStage(
+                role=role,
+                model_id=phase_model_id(deps.runtime, role),
+            )
+        raise
+
+
 def _phase_agent(
     deps: LeadDeps,
     role: PhaseRole,
@@ -274,7 +322,7 @@ async def stream_sub_agent[OutputT: BaseModel](
         ),
     )
     guard = agent_deps.tool_repetition_guard
-    with override_ctx:
+    with override_ctx, _name_the_stage_that_did_not_answer(deps, role) as answer:
         try:
             async with agent.run_stream_events(
                 run.work_order if resume is None else None,
@@ -285,7 +333,7 @@ async def stream_sub_agent[OutputT: BaseModel](
                 usage_limits=phase_usage_limits(run.declared_criteria),
                 usage=usage,
             ) as events:
-                async for event in events:
+                async for event in answer.watching(events):
                     if isinstance(event, AgentRunResultEvent):
                         output, wait = _absorb_result(
                             event,

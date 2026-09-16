@@ -181,6 +181,16 @@ def sub_agent_model_id(tool_name: str) -> str:
     return phase_default_model_id(role)
 
 
+def phase_model_id(runtime: Context, role: PhaseRole) -> str:
+    """The catalog model one phase runs on: the user pick, else its default.
+
+    The mock model belongs to no catalog entry, so a mock deployment names none.
+    """
+    if get_settings().pathfinder_chat_provider.strip().lower() == "mock":
+        return ""
+    return runtime.phase_models.get(role) or phase_default_model_id(role)
+
+
 def phase_override_kwargs(
     runtime: Context,
     role: PhaseRole,
@@ -190,9 +200,9 @@ def phase_override_kwargs(
     The model is the user pick, else the phase default. Settings always
     accompany it, because caching is provider specific.
     """
-    if get_settings().pathfinder_chat_provider.strip().lower() == "mock":
+    effective_model = phase_model_id(runtime, role)
+    if not effective_model:
         return {"model": get_mock_model()}
-    effective_model = runtime.phase_models.get(role) or phase_default_model_id(role)
     tier_cfg = _configured_tier_config(role)
     effort = runtime.phase_reasoning.get(role) or (
         tier_cfg.reasoning_effort if tier_cfg is not None else None
@@ -201,6 +211,14 @@ def phase_override_kwargs(
         "model": effective_model,
         "model_settings": build_model_settings(effective_model, thinking=effort),
     }
+
+
+@dataclass(frozen=True)
+class UnansweredStage:
+    """The stage whose model produced no part of an answer, and that model."""
+
+    role: PhaseRole
+    model_id: str
 
 
 @dataclass(frozen=True)
@@ -298,6 +316,9 @@ class LeadDeps:
     # Why the last dispatch ended without a delta, cleared when the next one
     # starts. The Lead reads it through the ledger.
     last_phase_stop: PhaseStop | None = None
+    # The stage whose model answered nothing before a dispatch raised. The
+    # turn's reply names it when the run ends without one.
+    unanswered_stage: UnansweredStage | None = None
     # A budget stop that bound something is dispatched again once per turn.
     frame_retried_after_stop: bool = False
     # The workbench gene sets this turn created. Every agent of the turn writes

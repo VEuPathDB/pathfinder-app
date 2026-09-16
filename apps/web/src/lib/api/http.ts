@@ -110,39 +110,120 @@ type RequestArgs = {
 
 /**
  * An error body the API can send: an RFC 7807 problem, a FastAPI validation
- * payload, or a problem that carries one entry per refused field.
+ * payload, or a problem that carries one entry per refused field. Every member
+ * is read on its own, so a member this reader cannot use costs only itself.
  */
-const errorBodySchema = z.object({
+const errorBodySchema = z.looseObject({
   detail: z.unknown().optional(),
-  title: z.string().optional(),
-  errors: z.array(z.object({ message: z.string() }).loose()).optional(),
+  title: z.unknown().optional(),
+  errors: z.unknown().optional(),
 });
 
-const fastApiIssueSchema = z.object({ msg: z.string() });
+/** One refused field, in either the FastAPI shape or the problem shape. */
+const fieldIssueSchema = z.looseObject({
+  msg: z.string().optional(),
+  message: z.string().optional(),
+  loc: z.array(z.unknown()).optional(),
+  path: z.string().optional(),
+});
 
-function detailMessage(detail: unknown): string | null {
-  if (typeof detail === "string") return detail.trim() === "" ? null : detail;
-  if (Array.isArray(detail)) {
-    const parts = detail.map((entry) => {
-      const parsed = fastApiIssueSchema.safeParse(entry);
-      return parsed.success ? parsed.data.msg : String(entry);
-    });
-    return parts.length > 0 ? parts.join("; ") : null;
-  }
-  if (detail === undefined || detail === null) return null;
-  return String(detail);
+type FieldIssue = z.infer<typeof fieldIssueSchema>;
+
+/** Parts of a FastAPI location that name where a value came from, not which one. */
+const REQUEST_PARTS = new Set(["body", "query", "path", "header", "cookie"]);
+
+/** The most the reader hands a caller, so a form with many refused fields fits. */
+const MESSAGE_LIMIT = 300;
+
+function nonEmpty(value: string | null | undefined): string | null {
+  return value == null || value.trim() === "" ? null : value;
 }
 
-/** The sentence the server offers about a refusal, or null when it offers none. */
+function issues(entries: unknown): FieldIssue[] {
+  if (!Array.isArray(entries)) return [];
+  const parsed = entries.map((entry) => fieldIssueSchema.safeParse(entry));
+  return parsed.filter((one) => one.success).map((one) => one.data);
+}
+
+function sentenceOf(issue: FieldIssue): string | null {
+  return nonEmpty(issue.msg ?? issue.message);
+}
+
+/** The field a located refusal is about: the name it declares, else its location. */
+function locatedField(issue: FieldIssue): string | null {
+  const declared = nonEmpty(issue.path);
+  if (declared !== null) return declared;
+  const named = (issue.loc ?? []).filter(
+    (part): part is string => typeof part === "string" && !REQUEST_PARTS.has(part),
+  );
+  return named.at(-1) ?? null;
+}
+
+function joinWithinLimit(sentences: string[]): string | null {
+  const first = sentences.at(0);
+  if (first === undefined) return null;
+  const whole = sentences.join("; ");
+  if (whole.length <= MESSAGE_LIMIT) return whole;
+  const kept: string[] = [];
+  let width = 0;
+  for (const sentence of sentences) {
+    if (width + sentence.length + 2 > MESSAGE_LIMIT) break;
+    kept.push(sentence);
+    width += sentence.length + 2;
+  }
+  const shown = kept.length === 0 ? [first.slice(0, MESSAGE_LIMIT)] : kept;
+  const hidden = sentences.length - shown.length;
+  return hidden === 0 ? shown.join("; ") : `${shown.join("; ")} (+${hidden} more)`;
+}
+
+/** Refusals that carry a location, whose field name is the only subject they have. */
+function locatedMessage(entries: unknown): string | null {
+  const located = issues(entries).filter((issue) => issue.loc !== undefined);
+  if (located.length === 0) return null;
+  const sentences: string[] = [];
+  for (const issue of located) {
+    const text = sentenceOf(issue);
+    if (text === null) continue;
+    const field = locatedField(issue);
+    sentences.push(field === null ? text : `${field}: ${text}`);
+  }
+  return joinWithinLimit(sentences);
+}
+
+/** Refusals that write their own sentence, which already names its subject. */
+function writtenMessage(entries: unknown): string | null {
+  const sentences: string[] = [];
+  for (const issue of issues(entries)) {
+    const text = sentenceOf(issue);
+    if (text !== null) sentences.push(text);
+  }
+  return joinWithinLimit(sentences);
+}
+
+/** A detail says something only when it is a sentence or a list of refusals. */
+function detailMessage(detail: unknown): string | null {
+  if (typeof detail === "string") return nonEmpty(detail);
+  if (Array.isArray(detail)) return locatedMessage(detail) ?? writtenMessage(detail);
+  return null;
+}
+
+/** The sentence the server offers about a refusal, or null when it offers none.
+ *
+ * A located refusal carries its subject only in that location, so it is read
+ * first; a refusal that writes its own sentence defers to the summary.
+ */
 export function extractErrorMessage(data: unknown): string | null {
   const parsed = errorBodySchema.safeParse(data);
   if (!parsed.success) return null;
+  const errors = parsed.data.errors;
+  const located = locatedMessage(errors);
+  if (located !== null) return located;
   const detail = detailMessage(parsed.data.detail);
   if (detail !== null) return detail;
-  const fields = parsed.data.errors?.map((entry) => entry.message) ?? [];
-  if (fields.length > 0) return fields.join("; ");
-  const title = parsed.data.title?.trim() ?? "";
-  return title === "" ? null : title;
+  const written = writtenMessage(errors);
+  if (written !== null) return written;
+  const title = parsed.data.title;
+  return typeof title === "string" ? nonEmpty(title) : null;
 }
 
 async function fetchJsonRaw(path: string, args?: RequestArgs): Promise<unknown> {

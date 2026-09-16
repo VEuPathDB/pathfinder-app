@@ -13,6 +13,7 @@ from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
 from pathfinder.services.strategies.context import StrategyMutationContext
@@ -100,6 +101,9 @@ class AgentDeps(AssistantDeps):
     # resolved. A sub-agent attaches it beside its own tools.
     tool_sources: SkipValidation[AbstractToolset[Any]] | None = None
     agent_state: AgentToolState = Field(default_factory=AgentToolState)
+    # What this turn has already written, as the turn's reply is held to it.
+    # A tool that writes a durable artifact records it here.
+    turn_markers: TurnMarkers
     ledger_summary: str = ""
     service_outage: ServiceOutageMemory = Field(default_factory=ServiceOutageMemory)
     experiment_id: str | None = None

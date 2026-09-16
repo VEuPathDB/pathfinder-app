@@ -6,9 +6,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 
+import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { createTestWrapper } from "@/lib/query/testing";
 
 import { QuotaPill } from "./QuotaPill";
+
+const SITE = "plasmodb";
 
 const QUOTA = {
   usedUsd: "1.25",
@@ -18,17 +21,27 @@ const QUOTA = {
   resetsAt: "2026-10-01T00:00:00Z",
 };
 
+const quotaReads: string[] = [];
 const server = setupServer(
-  http.get("http://localhost:3000/api/v1/me/quota", () => HttpResponse.json(QUOTA)),
+  http.get("http://localhost:3000/api/v1/me/quota", ({ request }) => {
+    quotaReads.push(request.url);
+    return HttpResponse.json(QUOTA);
+  }),
 );
 
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderPill() {
-  const { Wrapper } = createTestWrapper();
-  return render(<QuotaPill />, { wrapper: Wrapper });
+function renderPill(signedIn = true) {
+  quotaReads.length = 0;
+  const { queryClient, Wrapper } = createTestWrapper();
+  queryClient.setQueryData(authStatusOptions(SITE).queryKey, {
+    signedIn,
+    name: "Researcher",
+    email: "researcher@upenn.edu",
+  });
+  return render(<QuotaPill siteId={SITE} />, { wrapper: Wrapper });
 }
 
 describe("QuotaPill", () => {
@@ -51,5 +64,12 @@ describe("QuotaPill", () => {
       ).toBeGreaterThan(0),
     );
     expect(screen.getAllByText(/123\.5K tokens · resets/).length).toBeGreaterThan(0);
+  });
+
+  it("asks for no quota while the reader is signed out", async () => {
+    renderPill(false);
+
+    await waitFor(() => expect(screen.queryByLabelText("Monthly quota")).toBeNull());
+    expect(quotaReads).toEqual([]);
   });
 });

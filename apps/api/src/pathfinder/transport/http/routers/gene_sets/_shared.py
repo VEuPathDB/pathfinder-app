@@ -8,7 +8,7 @@ from veupathdb_mcp.wdk import SetOperation
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
-from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.gene_sets.types import GeneSet, GeneSetMembership
 from pathfinder.transport.http.deps import require_registered_wdk_identity
 from pathfinder.transport.http.schemas.gene_sets import GeneSetResponse
 
@@ -33,6 +33,7 @@ def to_response(gs: GeneSet) -> GeneSetResponse:
         gene_ids=gs.gene_ids,
         source=gs.source,
         gene_count=len(gs.gene_ids),
+        membership_digest=GeneSetMembership.of(gs.gene_ids).digest,
         wdk_strategy_id=gs.wdk_strategy_id,
         wdk_step_id=gs.wdk_step_id,
         search_name=gs.search_name,

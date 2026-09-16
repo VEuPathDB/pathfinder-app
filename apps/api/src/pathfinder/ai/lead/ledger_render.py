@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from assistant_core.graph.tool_summary import count_noun
+
 from pathfinder.ai.lead.ledger_sections import (
     BuildSection,
     ConstraintSection,
@@ -71,6 +73,12 @@ def _render_criterion(crit: Criterion) -> list[str]:
     ]
     out.extend(f"    {name}={value!r}" for name, value in crit.resolved_params.items())
     out.extend(f"    OPEN {s.param_name}: {s.question}" for s in crit.open_params)
+    out.extend(
+        f"    CHOICES {a.param_name}: holds {a.bound}, "
+        f"{count_noun(a.option_count, 'option')}"
+        + (f", others {a.other_options}" if a.other_options else "")
+        for a in crit.alternatives
+    )
     return out
 
 

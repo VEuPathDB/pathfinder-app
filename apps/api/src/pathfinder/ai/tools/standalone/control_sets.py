@@ -13,6 +13,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 
+from pathfinder.ai.graph.state import CreatedControlSet
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._id_arguments import parse_id_argument
 from pathfinder.services.workbench.control_sets import (
@@ -77,6 +78,9 @@ async def build_control_set(
         )
         await session.commit()
 
+    ctx.deps.state.turn_markers.record_control_set(
+        CreatedControlSet(id=created.id, name=created.name),
+    )
     return with_summary(
         BuiltControlSet(
             control_set_id=created.id,
@@ -123,11 +127,14 @@ async def list_control_sets(
     )
 
 
-async def import_control_ids_from_gene_set(
+async def read_gene_ids_from_gene_set(
     ctx: RunContext[LeadDeps],
     gene_set_id: str,
 ) -> ToolReturn[list[str]]:
-    """Return the gene IDs of a saved workbench gene set, to use as controls."""
+    """Return the gene IDs of a saved workbench gene set, to use as controls.
+
+    This saves nothing. Call build_control_set to save a control set.
+    """
     ids = await control_ids_from_saved_gene_set(ctx.deps.runtime.user_id, gene_set_id)
     return with_summary(
         ids,
@@ -137,12 +144,15 @@ async def import_control_ids_from_gene_set(
     )
 
 
-async def import_control_ids_from_strategy(
+async def read_gene_ids_from_strategy(
     ctx: RunContext[LeadDeps],
     strategy_id: str,
 ) -> ToolReturn[list[str]]:
     """Return the result gene IDs of another strategy (a conversation id), to
-    use as positive or negative controls."""
+    use as positive or negative controls.
+
+    This saves nothing. Call build_control_set to save a control set.
+    """
     runtime = ctx.deps.runtime
     parsed = parse_id_argument(
         strategy_id, argument="strategy_id", names="conversation"

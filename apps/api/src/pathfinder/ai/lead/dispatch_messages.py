@@ -11,7 +11,8 @@ from collections.abc import Sequence
 
 from veupathdb.domain.parameters import to_wire
 
-from pathfinder.ai.graph.state import EnrichmentRun
+from pathfinder.ai.agents.state import CreatedGeneSet
+from pathfinder.ai.graph.state import CreatedControlSet, EnrichmentRun
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -403,6 +404,46 @@ def unreported_change_message() -> str:
         "This turn changed the strategy (a build, edit, delete, clear or "
         "export ran). Set strategy_changed to true and state what changed "
         "and the new counts."
+    )
+
+
+def _mislabelled_save_message(claimed: str, saves_it: str, instead: str) -> str:
+    """Why a reply that reports an artifact this turn never saved is refused.
+
+    A control set and a gene set are reached from different controls in the
+    Evaluate panel, so the wrong noun sends the reader to the wrong place.
+    """
+    return (
+        f"Your reply says this turn saved {claimed}, and this turn saved none: "
+        f"{saves_it} is the only tool that saves one, and reading a result "
+        f"saves nothing.{instead} A control set and a gene set are reached from "
+        f"different controls in the Evaluate panel, so name what this turn "
+        f"actually saved, or call {saves_it} and answer again."
+    )
+
+
+def control_set_not_written_message(saved: Sequence[CreatedGeneSet]) -> str:
+    """Why a reply that reports a control set this turn never wrote is refused."""
+    return _mislabelled_save_message(
+        "a control set",
+        "build_control_set",
+        "".join(
+            f" This turn saved the workbench gene set {created.name!r}, "
+            f"{created.gene_count} genes."
+            for created in saved[:1]
+        ),
+    )
+
+
+def gene_set_not_saved_message(saved: Sequence[CreatedControlSet]) -> str:
+    """Why a reply that reports a gene set this turn never saved is refused."""
+    return _mislabelled_save_message(
+        "a gene set",
+        "create_workbench_gene_set",
+        "".join(
+            f" This turn saved the control set {created.name!r}."
+            for created in saved[:1]
+        ),
     )
 
 

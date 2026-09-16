@@ -1,21 +1,44 @@
-"""Per-step result counts from WDK, cached by plan hash.
+"""Result counts from WDK: one bound criterion, and a whole plan.
 
 The counting itself is the library's; this module holds the session
-bookkeeping around it and names the strategy a count writes.
+bookkeeping around it, the budget one criterion reads under, and the name a
+plan count writes.
 """
 
 import hashlib
 import json
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 from cachetools import LRUCache
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StrategyAst
-from veupathdb_mcp.wdk import compute_plan_step_counts
+from veupathdb_mcp.wdk import compute_plan_step_counts, count_search_answer
 
 from pathfinder.platform.identity import STEP_COUNTS_STRATEGY_NAME
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 _STEP_COUNTS_CACHE: LRUCache[str, dict[str, int | None]] = LRUCache(maxsize=20)
+
+# The count informs a binding and never gates one, so it expires rather than
+# hold the bind open. The budget sits above every measured read of this shape
+# and well under the client's own per-component timeout.
+COUNT_BUDGET_SECONDS = 5.0
+
+
+async def count_bound_criterion(
+    site_id: str,
+    record_type: str,
+    search_name: str,
+    params: Mapping[str, ParamValue],
+) -> int | None:
+    """The records the bound search answers, or None when no count arrives."""
+    return await count_search_answer(
+        site_id,
+        record_type,
+        search_name,
+        params,
+        timeout_seconds=COUNT_BUDGET_SECONDS,
+    )
 
 
 def invalidate_counts_for(sync_state: WDKSyncState, step_ids: Iterable[str]) -> None:

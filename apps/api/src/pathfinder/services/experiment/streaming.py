@@ -10,6 +10,7 @@ import asyncio
 import contextlib
 import copy
 from collections.abc import AsyncIterator, Callable, Coroutine
+from datetime import UTC, datetime
 from typing import Any, Literal
 
 from assistant_core.platform.logging import get_logger
@@ -19,7 +20,7 @@ from pydantic import Field
 from veupathdb.domain.parameters import SinglePickValue
 
 from pathfinder.platform.errors import sanitize_error_for_client
-from pathfinder.services.experiment.service import run_experiment
+from pathfinder.services.experiment.service import new_experiment_id, run_experiment
 from pathfinder.services.experiment.store import get_experiment_store
 from pathfinder.services.experiment.types import (
     BatchExperimentConfig,
@@ -181,6 +182,8 @@ def organism_varies_nothing(base: ExperimentConfig) -> str | None:
         return "the base evaluates a fixed gene list, which runs no search"
     if base.is_tree_mode:
         return "the base runs a step tree, which holds its own organism parameters"
+    if not base.search_name:
+        return "the base names no search, so it has no organism parameter to set"
     return None
 
 
@@ -215,19 +218,43 @@ def organism_config(
     )
 
 
+def _failed_run(
+    config: ExperimentConfig,
+    experiment_id: str,
+    user_id: str | None,
+    exc: Exception,
+) -> Experiment:
+    """The experiment a failed run reports, under the id the run was given.
+
+    The id is the one the run stored, so the report replaces that row rather
+    than adding a second one for the same attempt.
+    """
+    return Experiment(
+        id=experiment_id,
+        config=config,
+        user_id=user_id,
+        status="error",
+        error=sanitize_error_for_client(exc),
+        created_at=datetime.now(UTC).isoformat(),
+    )
+
+
 async def _run_one_organism(
     base: ExperimentConfig,
     org_param: str,
     target: BatchOrganismTarget,
     callback: _ProgressCallback,
     user_id: str | None,
-) -> Experiment | None:
-    """Run one organism's experiment. A failed organism does not end the batch."""
+) -> Experiment:
+    """Run one organism's experiment. A failed organism is reported, not dropped."""
+    config = organism_config(base, org_param, target)
+    experiment_id = new_experiment_id()
     try:
         return await run_experiment(
-            organism_config(base, org_param, target),
+            config,
             user_id=user_id,
             progress_callback=callback,
+            experiment_id=experiment_id,
         )
     except Exception as exc:
         logger.exception(
@@ -235,7 +262,7 @@ async def _run_one_organism(
             organism=target.organism,
             error=str(exc),
         )
-        return None
+        return _failed_run(config, experiment_id, user_id, exc)
 
 
 async def _run_batch(
@@ -261,8 +288,6 @@ async def _run_batch(
                 callback,
                 user_id,
             )
-            if exp is None:
-                continue
             exp.batch_id = batch_id
             store.save(exp)
             results.append(exp)
@@ -330,21 +355,27 @@ async def stream_benchmark(
         control_set_id: str | None,
         *,
         is_primary: bool,
-    ) -> Experiment | None:
+    ) -> Experiment:
         cfg = copy.deepcopy(base_config)
         cfg.positive_controls = positives
         cfg.negative_controls = negatives
         cfg.name = f"{base_config.name} [{label}]"
         cfg.control_set_id = control_set_id
+        experiment_id = new_experiment_id()
         try:
-            exp = await run_experiment(cfg, user_id=user_id, progress_callback=callback)
+            exp = await run_experiment(
+                cfg,
+                user_id=user_id,
+                progress_callback=callback,
+                experiment_id=experiment_id,
+            )
         except Exception as exc:
             logger.exception(
                 "Benchmark experiment failed",
                 label=label,
                 error=str(exc),
             )
-            return None
+            exp = _failed_run(cfg, experiment_id, user_id, exc)
         exp.benchmark_id = benchmark_id
         exp.control_set_label = label
         exp.is_primary_benchmark = is_primary
@@ -361,7 +392,7 @@ async def stream_benchmark(
         except Exception as exc:
             logger.exception("Benchmark suite failed", error=str(exc))
             return [], sanitize_error_for_client(exc)
-        return [r for r in results if r is not None], None
+        return list(results), None
 
     task = asyncio.create_task(_run())
     try:

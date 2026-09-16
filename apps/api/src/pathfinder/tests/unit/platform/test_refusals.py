@@ -26,6 +26,7 @@ from pathfinder.platform.errors import (
     NotFoundError,
     SiteUnavailableError,
     UnauthorizedError,
+    site_failure_reason,
 )
 from pathfinder.platform.refusals import (
     LISTS_THE_IDS,
@@ -39,7 +40,7 @@ from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.tests._support.sub_agents import agent_tool_names
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
-_TOOL = "import_control_ids_from_gene_set"
+_TOOL = "read_gene_ids_from_gene_set"
 _MISSING_GENE_SET = "d6edd975-f6d9-482e-bc50-3d666b55227f"
 _LIVE_CONTROL_SET = "3f2b1c04-0d55-4a19-9c6a-7c1f5f2a8b31"
 
@@ -145,9 +146,7 @@ def _lead_toolset_agent(respond: Callable[..., ModelResponse]) -> Agent[LeadDeps
         FunctionModel(respond),
         deps_type=LeadDeps,
         toolsets=[
-            FunctionToolset[LeadDeps](
-                tools=[control_sets.import_control_ids_from_gene_set]
-            )
+            FunctionToolset[LeadDeps](tools=[control_sets.read_gene_ids_from_gene_set])
         ],
         capabilities=[ServiceRefusalRetry[LeadDeps]()],
         retries=3,
@@ -270,3 +269,23 @@ def test_every_named_listing_tool_is_callable_by_the_lead() -> None:
     """Guidance that names a tool the Lead cannot call is guidance it cannot take."""
     reachable = agent_tool_names(build_lead_agent())
     assert set(LISTS_THE_IDS.values()) <= reachable
+
+
+def test_a_sign_in_the_site_did_not_answer_says_so_in_words() -> None:
+    """A refusal names what happened, never the exception class behind it."""
+    refusal = SiteUnavailableError("plasmodb", site_failure_reason(ConnectionError()))
+
+    assert (
+        refusal.detail
+        == "Could not connect to plasmodb (the site could not be reached)."
+    )
+
+
+def test_a_sign_in_that_timed_out_says_the_site_did_not_answer() -> None:
+    """A budget stop and a refused connection read differently."""
+    refusal = SiteUnavailableError("toxodb", site_failure_reason(TimeoutError()))
+
+    assert (
+        refusal.detail
+        == "Could not connect to toxodb (the site did not answer in time)."
+    )

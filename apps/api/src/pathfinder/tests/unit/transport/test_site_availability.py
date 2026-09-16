@@ -9,6 +9,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from veupathdb.errors import WDKError
 from veupathdb.wdk import SiteInfo
 from veupathdb_mcp import catalog
 
@@ -32,14 +33,16 @@ def _body(site_id: str) -> ChatRequestBody:
 
 
 async def test_a_failed_catalog_is_refused_by_its_error_class() -> None:
-    get_readiness().mark_catalog_failed("veupathdb", "ReadTimeout")
+    get_readiness().mark_catalog_failed("veupathdb", WDKError("refused", status=502))
 
     with pytest.raises(SiteUnavailableError) as refusal:
         await require_available_site("veupathdb")
 
     assert refusal.value.code == ErrorCode.SITE_UNAVAILABLE
     assert refusal.value.status == 503
-    assert refusal.value.detail == "Could not connect to veupathdb (ReadTimeout)."
+    assert refusal.value.detail == (
+        "Could not connect to veupathdb (the site answered with an error)."
+    )
 
 
 async def test_a_catalog_still_loading_is_refused() -> None:
@@ -63,12 +66,14 @@ async def test_a_site_this_process_never_registered_passes() -> None:
 
 
 async def test_a_turn_on_a_degraded_site_is_refused() -> None:
-    get_readiness().mark_catalog_failed("veupathdb", "ReadTimeout")
+    get_readiness().mark_catalog_failed("veupathdb", WDKError("refused", status=502))
 
     with pytest.raises(SiteUnavailableError) as refusal:
         await require_available_chat_site(_body("veupathdb"))
 
-    assert refusal.value.detail == "Could not connect to veupathdb (ReadTimeout)."
+    assert refusal.value.detail == (
+        "Could not connect to veupathdb (the site answered with an error)."
+    )
 
 
 async def test_a_turn_on_a_loaded_site_is_dispatched() -> None:
@@ -104,14 +109,14 @@ def two_sites(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_the_sites_list_reports_a_degraded_site(two_sites: None) -> None:
     del two_sites
     get_readiness().mark_catalog_ready("plasmodb")
-    get_readiness().mark_catalog_failed("veupathdb", "ReadTimeout")
+    get_readiness().mark_catalog_failed("veupathdb", WDKError("refused", status=502))
 
     sites = {site.id: site for site in await catalog_router.list_sites()}
 
     assert sites["plasmodb"].available is True
     assert sites["plasmodb"].unavailable_reason is None
     assert sites["veupathdb"].available is False
-    assert sites["veupathdb"].unavailable_reason == "ReadTimeout"
+    assert sites["veupathdb"].unavailable_reason == "the site answered with an error"
 
 
 async def test_a_site_still_loading_is_unavailable_without_an_error(
@@ -123,4 +128,25 @@ async def test_a_site_still_loading_is_unavailable_without_an_error(
     sites = {site.id: site for site in await catalog_router.list_sites()}
 
     assert sites["veupathdb"].available is False
-    assert sites["veupathdb"].unavailable_reason == "loading"
+    assert sites["veupathdb"].unavailable_reason == "its catalog is still loading"
+
+
+async def test_the_sites_list_names_the_failure_in_words(two_sites: None) -> None:
+    """The reason is a phrase the site notice prints, never a class name."""
+    del two_sites
+    get_readiness().mark_catalog_failed("veupathdb", TimeoutError("budget"))
+
+    sites = {site.id: site for site in await catalog_router.list_sites()}
+
+    assert sites["veupathdb"].unavailable_reason == "the site did not answer in time"
+
+
+async def test_a_site_still_loading_says_its_catalog_is_loading(
+    two_sites: None,
+) -> None:
+    del two_sites
+    get_readiness().register_catalog("veupathdb")
+
+    sites = {site.id: site for site in await catalog_router.list_sites()}
+
+    assert sites["veupathdb"].unavailable_reason == "its catalog is still loading"

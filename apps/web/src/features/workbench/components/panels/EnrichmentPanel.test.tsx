@@ -15,6 +15,7 @@ function makeGeneSet(overrides: Partial<GeneSet> = {}): GeneSet {
     siteId: "PlasmoDB",
     geneIds: ["PF3D7_0100100", "PF3D7_0100200"],
     geneCount: 2,
+    membershipDigest: "000000000000000e",
     source: "strategy",
     searchName: "GenesByTaxon",
     recordType: "gene",

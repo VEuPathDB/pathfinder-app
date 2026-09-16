@@ -5,14 +5,16 @@ import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Layers, RefreshCw } from "lucide-react";
+import { Layers, LogIn, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { useInvalidateGeneSets } from "@/features/workbench/hooks/useInvalidateGeneSets";
 import { retakeGeneSet } from "../api/geneSets";
 import { canRetakeGeneSet } from "./canRetakeGeneSet";
-import { evaluatedLabel } from "./evaluatedLabel";
-import { useActiveSetExperiment } from "@/features/workbench/hooks/useActiveSetExperiment";
+import { evaluatedLabel } from "./setEvaluation";
+import { useActiveSetEvaluation } from "@/features/workbench/hooks/useActiveSetEvaluation";
 import { PublishToVdiButton } from "./PublishToVdiButton";
 import { SOURCE_CONFIG } from "./geneSetSourceConfig";
 import {
@@ -65,7 +67,7 @@ function RetakeButton({ geneSetId }: { geneSetId: string }) {
 }
 
 function EvaluatedBadge() {
-  const label = evaluatedLabel(useActiveSetExperiment());
+  const label = evaluatedLabel(useActiveSetEvaluation());
 
   if (label === null) return null;
 
@@ -141,6 +143,18 @@ export const WORKBENCH_PANELS = [
 
 export function WorkbenchMain() {
   const activeSetId = useWorkbenchStore((s) => s.activeSetId);
+  const selectedSite = useSessionStore((s) => s.selectedSite);
+  const { data: authStatus } = useQuery(authStatusOptions(selectedSite));
+
+  if (authStatus?.signedIn !== true) {
+    return (
+      <EmptyState
+        icon={<LogIn className="h-10 w-10" />}
+        heading="Sign in to see your gene sets"
+        description="Gene sets belong to a VEuPathDB account. PathFinder reads them once you are signed in."
+      />
+    );
+  }
 
   if (activeSetId == null) {
     return (

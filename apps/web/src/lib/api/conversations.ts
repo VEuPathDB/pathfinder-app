@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
+import type { InsertSavedRequest } from "@pathfinder/shared/generated/types/InsertSavedRequest";
 
 import { client } from "./client";
 import { requestJson } from "./http";
@@ -30,7 +31,7 @@ interface InsertSavedStrategyArgs {
   targetStepId: string;
   savedWdkStrategyId: number;
   /** Absent when there is no step to combine with. */
-  operator?: string | undefined;
+  operator?: InsertSavedRequest["operator"];
 }
 
 interface InsertSavedStrategyResult {
@@ -44,15 +45,17 @@ interface InsertSavedStrategyResult {
 export async function insertSavedStrategy(
   args: InsertSavedStrategyArgs,
 ): Promise<InsertSavedStrategyResult> {
-  const base = {
+  const base: InsertSavedRequest = {
     targetStepId: args.targetStepId,
     savedWdkStrategyId: args.savedWdkStrategyId,
   };
+  const data: InsertSavedRequest =
+    args.operator === undefined ? base : { ...base, operator: args.operator };
   const resp = await client<InsertSavedStrategyResult>({
     method: "post",
     url: `/api/v1/conversations/${args.conversationId}/insert-saved`,
     params: { siteId: args.siteId },
-    data: args.operator === undefined ? base : { ...base, operator: args.operator },
+    data,
   });
   return resp.data;
 }

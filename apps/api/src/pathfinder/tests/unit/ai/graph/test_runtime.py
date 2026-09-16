@@ -5,11 +5,12 @@ import dataclasses
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError
 from pydantic_ai.toolsets.function import FunctionToolset
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps, Context
-from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
+from pathfinder.ai.graph.state import PipelineState, StrategyDomainState, TurnMarkers
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
@@ -52,6 +53,7 @@ def test_agent_deps_is_pydantic_and_lists_live_fields() -> None:
         "strategy_session",
         "tool_sources",
         "agent_state",
+        "turn_markers",
         "ledger_summary",
         "service_outage",
         "tool_repetition_guard",
@@ -72,8 +74,33 @@ def test_agent_deps_accepts_a_toolset_via_skip_validation() -> None:
         site_id="plasmodb",
         strategy_session=StrategySession(site_id="plasmodb"),
         tool_sources=sources,
+        turn_markers=TurnMarkers(),
     )
     assert deps.tool_sources is sources
+
+
+def test_agent_deps_refuses_a_build_with_no_turn_record() -> None:
+    """Every deps names the turn's record, so no write lands on a copy."""
+    with pytest.raises(ValidationError) as raised:
+        AgentDeps.model_validate(
+            {
+                "site_id": "plasmodb",
+                "strategy_session": StrategySession(site_id="plasmodb"),
+            }
+        )
+
+    assert [error["loc"] for error in raised.value.errors()] == [("turn_markers",)]
+
+
+def test_dispatch_deps_write_onto_the_turns_own_record() -> None:
+    state = _build_state()
+    deps = _deps(state, _build_context())
+
+    deps.turn_markers.built = True
+    deps.turn_markers.record_eda_dataset_opened("DS_1")
+
+    assert state.turn_markers.built is True
+    assert state.turn_markers.eda_datasets_opened == ["DS_1"]
 
 
 def test_dispatch_deps_copy_state_into_scratchpad() -> None:

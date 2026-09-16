@@ -15,21 +15,28 @@ import {
   MetricsOverview,
   RobustnessSection,
 } from "@/features/workbench/analysis";
-import { createExperimentStream } from "@/features/workbench/api";
-import type { ExperimentRunConfig } from "@/features/workbench/api/streaming";
+import {
+  createExperimentStream,
+  experimentBase,
+  experimentBasis,
+} from "@/features/workbench/api";
+import type { CreateExperimentRequest } from "@pathfinder/shared/generated/types/CreateExperimentRequest";
 import { Button } from "@/components/ui/button";
 import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
 import { queryKeyPrefixes } from "@/lib/query/keys";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useWorkbenchStore, type PanelId } from "@/state/useWorkbenchStore";
 
-import { CONTROLS_PARAM_NAME, CONTROLS_SEARCH_NAME } from "../../constants";
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 import { ControlSetQuickPick } from "../ControlSetQuickPick";
 import { GeneChipInput } from "../GeneChipInput";
 import { SaveControlSetForm } from "../SaveControlSetForm";
 
 const PANEL_ID: PanelId = "evaluate";
+
+// CreateExperimentRequest.kFolds accepts 2 to 10.
+const MIN_K_FOLDS = 2;
+const MAX_K_FOLDS = 10;
 
 /**
  * Run a full experiment evaluating the active gene set against positive and
@@ -71,13 +78,9 @@ export function EvaluatePanel() {
 
   useUnmount(() => abortRef.current?.abort());
 
-  const strategyBacked =
-    activeSet?.searchName != null &&
-    activeSet.searchName !== "" &&
-    activeSet.parameters != null;
-  const hasSearchContext = Boolean(
-    activeSet != null && (activeSet.geneIds.length > 0 || strategyBacked),
-  );
+  const hasSearchContext =
+    activeSet != null && experimentBasis(activeSet).kind !== "none";
+  const foldsOutOfRange = enableCV && (kFolds < MIN_K_FOLDS || kFolds > MAX_K_FOLDS);
 
   const handleRun = async () => {
     if (!activeSet) return;
@@ -93,22 +96,17 @@ export function EvaluatePanel() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    const config = {
-      siteId: activeSet.siteId,
-      recordType: activeSet.recordType ?? "gene",
-      searchName: activeSet.searchName ?? "",
-      parameters: activeSet.parameters ?? {},
-      positiveControls,
-      negativeControls,
-      controlsSearchName: CONTROLS_SEARCH_NAME,
-      controlsParamName: CONTROLS_PARAM_NAME,
+    const config: CreateExperimentRequest = {
+      ...experimentBase({
+        geneSet: activeSet,
+        positiveControls,
+        negativeControls,
+        run: "evaluation",
+      }),
       enableCrossValidation: enableCV,
       kFolds,
-      targetGeneIds: strategyBacked ? undefined : activeSet.geneIds,
       enrichmentTypes,
-      name: `${activeSet.name} (evaluation)`,
-      geneSetId: activeSet.id,
-    } satisfies ExperimentRunConfig;
+    };
 
     try {
       for await (const event of createExperimentStream(config, {
@@ -204,8 +202,8 @@ export function EvaluatePanel() {
               k folds:
               <input
                 type="number"
-                min={2}
-                max={10}
+                min={MIN_K_FOLDS}
+                max={MAX_K_FOLDS}
                 value={kFolds}
                 onChange={(e) => setKFolds(Number(e.target.value))}
                 className="w-16 rounded border border-input bg-background px-2 py-1"
@@ -215,9 +213,20 @@ export function EvaluatePanel() {
           <EnrichmentToggle value={enrichmentTypes} onChange={setEnrichmentTypes} />
         </div>
 
+        {foldsOutOfRange && (
+          <p data-testid="evaluate-folds-refusal" className="text-xs text-destructive">
+            Cross-validation needs between {MIN_K_FOLDS} and {MAX_K_FOLDS} folds.
+          </p>
+        )}
+
         <Button
           onClick={() => void handleRun()}
-          disabled={loading || !hasSearchContext || positiveControls.length === 0}
+          disabled={
+            loading ||
+            !hasSearchContext ||
+            foldsOutOfRange ||
+            positiveControls.length === 0
+          }
           className="gap-2"
         >
           {loading ? (

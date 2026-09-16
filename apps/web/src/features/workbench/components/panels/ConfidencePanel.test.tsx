@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import type { Experiment } from "@pathfinder/shared";
+import type { Experiment, GeneSet } from "@pathfinder/shared";
 import { geneConfidenceRequestSchema } from "@pathfinder/shared/generated/zod/geneConfidenceRequestSchema";
 
 // ---------------------------------------------------------------------------
@@ -31,6 +31,33 @@ vi.mock("@/features/workbench/api/experiments", () => ({
     enabled: geneSetId !== "",
   }),
 }));
+
+vi.mock("@/state/useSessionStore", () => ({
+  useSessionStore: (selector: (s: Record<string, unknown>) => unknown) =>
+    selector({ selectedSite: "plasmodb" }),
+}));
+
+const SCORED_DIGEST = "7f1c0e2a";
+const RETAKEN_DIGEST = "b40d9c11";
+
+const geneSets = vi.hoisted(() => ({ current: [] as GeneSet[] }));
+
+vi.mock("@/features/workbench/hooks/useGeneSetsQuery", () => ({
+  useGeneSetsQuery: () => ({ data: geneSets.current }),
+}));
+
+function activeSet(membershipDigest: string): GeneSet {
+  return {
+    id: "set-1",
+    name: "gametocyte secreted",
+    siteId: "plasmodb",
+    source: "strategy",
+    geneIds: [],
+    geneCount: 155,
+    membershipDigest,
+    createdAt: "2026-03-09T00:00:00Z",
+  };
+}
 
 // Mock the API call
 const mockRequestJson = vi.fn();
@@ -88,6 +115,7 @@ function makeExperiment(overrides: Partial<Experiment> = {}): Experiment {
     wdkStrategyId: null,
     wdkStepId: null,
     robustness: null,
+    geneSetMembership: { geneCount: 155, digest: SCORED_DIGEST },
     ...overrides,
   };
 }
@@ -107,6 +135,7 @@ describe("ConfidencePanel", () => {
     storeState["lastExperiment"] = null;
     storeState["lastExperimentSetId"] = null;
     storeState["expandedPanels"] = new Set(["confidence"]);
+    geneSets.current = [activeSet(SCORED_DIGEST)];
   });
 
   it("shows disabled state when no experiment is available", () => {
@@ -404,5 +433,42 @@ describe("ConfidencePanel", () => {
     await waitFor(() => {
       expect(screen.getByText("Network failure")).toBeTruthy();
     });
+  });
+  it("scores nothing once the set holds genes the evaluation never scored", () => {
+    storeState["lastExperiment"] = makeExperiment({
+      truePositiveGenes: [{ id: "G1" }],
+    });
+    storeState["lastExperimentSetId"] = "set-1";
+    geneSets.current = [{ ...activeSet(RETAKEN_DIGEST), geneCount: 168 }];
+
+    render(<ConfidencePanel />);
+
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(mockRequestJson).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        "The evaluation scored 155 genes and this set now holds 168. " +
+          "Re-evaluate to use this panel.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("scores nothing when the evaluation records no membership to check", () => {
+    storeState["lastExperiment"] = makeExperiment({
+      truePositiveGenes: [{ id: "G1" }],
+      geneSetMembership: null,
+    });
+    storeState["lastExperimentSetId"] = "set-1";
+
+    render(<ConfidencePanel />);
+
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(mockRequestJson).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        "The evaluation does not record which genes it scored. " +
+          "Re-evaluate to use this panel.",
+      ),
+    ).toBeTruthy();
   });
 });

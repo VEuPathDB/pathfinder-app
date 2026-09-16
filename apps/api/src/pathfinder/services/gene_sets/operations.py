@@ -38,6 +38,19 @@ class EmptyGeneSetError(ValidationError):
         )
 
 
+class EmptyResyncError(ValidationError):
+    """Raised when a re-sync resolves to zero genes."""
+
+    def __init__(self, name: str) -> None:
+        super().__init__(
+            title="Empty re-sync",
+            detail=(
+                f"'{name}' resolved to 0 genes, so the saved set is unchanged. "
+                "Check that the strategy still runs on the site, then try again."
+            ),
+        )
+
+
 def dedup_ordered(gene_ids: list[str]) -> list[str]:
     """Remove duplicate gene IDs and keep first-seen order."""
     seen: set[str] = set()
@@ -102,13 +115,8 @@ class GeneSetService:
             gene_ids=unique_gene_ids,
             source=source,
             user_id=user_id,
-            wdk_strategy_id=ctx.wdk_strategy_id,
-            wdk_step_id=ctx.wdk_step_id,
-            search_name=ctx.search_name,
-            record_type=ctx.record_type,
-            parameters=ctx.parameters,
-            step_count=step_count,
         )
+        gs.take_wdk_context(ctx, step_count=step_count)
         self._store.save(gs)
         logger.info(
             "Gene set created",
@@ -124,7 +132,11 @@ class GeneSetService:
         """Replace a gene set snapshot with the current WDK strategy result.
 
         No step ID is passed, so WDK resolves the current root step. A rebuild
-        can give the same strategy ID a new root step.
+        can give the same strategy ID a new root step, so the set takes the
+        whole resolved context and not only its genes. A resolution that reads
+        no genes has learnt nothing about the strategy, so it writes nothing.
+
+        :raises EmptyResyncError: If the strategy resolves to zero genes.
         """
         gs = await self._store.aget(gene_set_id)
         if gs is None:
@@ -136,10 +148,11 @@ class GeneSetService:
                 wdk_strategy_id=wdk_strategy_id, record_type=gs.record_type
             ),
         )
-        gs.gene_ids = dedup_ordered(gene_ids)
-        gs.wdk_strategy_id = ctx.wdk_strategy_id
-        gs.wdk_step_id = ctx.wdk_step_id
-        gs.step_count = step_count
+        fresh_gene_ids = dedup_ordered(gene_ids)
+        if not fresh_gene_ids:
+            raise EmptyResyncError(gs.name)
+        gs.gene_ids = fresh_gene_ids
+        gs.take_wdk_context(ctx, step_count=step_count)
         self._store.save(gs)
         logger.info(
             "Re-synced strategy gene set",
@@ -152,6 +165,7 @@ class GeneSetService:
         """Replace a set's membership with what its source strategy holds now.
 
         :raises ValidationError: If the set was not derived from a strategy.
+        :raises EmptyResyncError: If the strategy resolves to zero genes.
         """
         gs = await self.get_for_user(user_id, gene_set_id)
         if gs.wdk_strategy_id is None:

@@ -54,7 +54,7 @@ test.describe("Experiment chat flows", () => {
       name: string;
       positiveIds: string[];
     }>;
-    const uploaded = sets.find((s) => s.name === "Uploaded controls");
+    const uploaded = sets.find((s) => s.name === "Controls from controls.csv");
     expect(uploaded).toBeTruthy();
     expect(uploaded?.positiveIds).toContain("PF3D7_0709000");
   });

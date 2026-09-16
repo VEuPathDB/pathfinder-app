@@ -5,6 +5,7 @@ import type { Step } from "@pathfinder/shared";
 import { cn } from "@/lib/utils/cn";
 import { useEntrance } from "@/lib/motion";
 import { STAGGER_DELAY_MS } from "@/features/strategy/graph/motion";
+import { stepTitle } from "@/features/strategy/graph/utils/stepTitle";
 import { CornerDot } from "./CornerDot";
 import { HoverActions } from "./HoverActions";
 import { InlineRename } from "./InlineRename";
@@ -72,8 +73,8 @@ export function NodeShell({
   const hasError =
     snapshot.isInvalid || snapshot.isFailed || snapshot.wdkPushError != null;
   // A step whose search metadata never loaded has no name to show.
-  const title =
-    step.displayName != null && step.displayName !== "" ? step.displayName : "Error";
+  const name = stepTitle(step, kind);
+  const title = name === "" ? "Error" : name;
   const isSyncing = snapshot.isBusy;
   const variantSlug = KIND_VAR[kind];
   const surfaceStyle: React.CSSProperties = {
@@ -99,7 +100,7 @@ export function NodeShell({
   function handleRenameCommit(next: string) {
     if (onRename == null) return;
     const trimmed = next.trim();
-    if (trimmed === "" || trimmed === step.displayName) return;
+    if (trimmed === "" || trimmed === name) return;
     onRename(step.id, trimmed);
   }
 
@@ -161,7 +162,7 @@ export function NodeShell({
         <div className="relative z-10 flex h-full flex-col gap-1 px-3 py-2">
           {onRename != null ? (
             <InlineRename
-              value={step.displayName ?? ""}
+              value={name}
               onCommit={handleRenameCommit}
               onCancel={() => {}}
               className={cn(
@@ -176,7 +177,7 @@ export function NodeShell({
                 "truncate pr-12 text-sm font-medium leading-tight",
                 hasError ? "text-destructive" : "text-foreground",
               )}
-              title={step.displayName ?? ""}
+              title={name}
               data-testid="node-title"
             >
               {title}

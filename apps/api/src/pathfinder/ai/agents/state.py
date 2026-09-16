@@ -10,6 +10,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     DroppedCriterion,
     OperationalSpec,
+    ParameterAlternatives,
     SpecStructure,
 )
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
@@ -156,6 +157,18 @@ class AgentToolState:
         spec.criteria = [c for c in spec.criteria if c.id != criterion.id]
         spec.criteria.append(criterion)
         self.open_sheets.pop(criterion.id, None)
+
+    def frame_record_alternatives(
+        self, criterion_id: str, alternatives: list[ParameterAlternatives]
+    ) -> None:
+        """Record the choices inside a criterion, after it counts its records.
+
+        The count follows the binding, so the binding holds whatever the count
+        says. A criterion that matches records records no choice.
+        """
+        for criterion in self.operational_spec_draft.criteria:
+            if criterion.id == criterion_id:
+                criterion.alternatives = alternatives
 
     def frame_set_structure(self, structure: SpecStructure) -> None:
         self.operational_spec_draft.structure = structure

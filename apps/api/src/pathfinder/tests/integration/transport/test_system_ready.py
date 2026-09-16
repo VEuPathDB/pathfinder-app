@@ -157,7 +157,7 @@ async def test_readiness_is_ok_while_one_site_is_degraded(
 ) -> None:
     """One dead VEuPathDB site must not take the deployment down."""
     del api_ready
-    get_readiness().mark_catalog_failed("veupathdb", "ReadTimeout")
+    get_readiness().mark_catalog_failed("veupathdb", TimeoutError())
 
     resp = await client.get("/health/ready")
 
@@ -174,8 +174,8 @@ async def test_readiness_is_503_when_no_catalog_loaded(
 ) -> None:
     del api_ready
     state = get_readiness()
-    state.mark_catalog_failed("plasmodb", "ReadTimeout")
-    state.mark_catalog_failed("veupathdb", "ReadTimeout")
+    state.mark_catalog_failed("plasmodb", TimeoutError())
+    state.mark_catalog_failed("veupathdb", TimeoutError())
 
     resp = await client.get("/health/ready")
 
@@ -235,7 +235,7 @@ async def test_system_ready_names_the_degraded_sites(
     del api_ready
     await clear_workers()
     await insert_worker_heartbeat(age_seconds=2)
-    get_readiness().mark_catalog_failed("veupathdb", "ReadTimeout")
+    get_readiness().mark_catalog_failed("veupathdb", TimeoutError())
 
     resp = await client.get("/health/system")
 

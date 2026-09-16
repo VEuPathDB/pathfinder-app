@@ -159,7 +159,9 @@ async def build_strategy(
                 title=graph.name,
             ),
         )
-    summary, status = count_summary(len(graph.steps), outcome.root_count)
+    summary, status = count_summary(
+        len(graph.steps), outcome.root_count, graph.record_type
+    )
     return with_summary(payload, summary, ctx=ctx, status=status, extra=metadata)
 
 

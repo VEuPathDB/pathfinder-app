@@ -11,7 +11,7 @@ from veupathdb.domain.strategy import CombineOp, flatten_tree
 from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.graph.state import StrategyDomainState, TurnMarkers
 from pathfinder.ai.lead import edit_dispatch
 from pathfinder.ai.lead.deltas import EditDelta, FrameResult
 from pathfinder.ai.lead.edit_dispatch import run_edit
@@ -83,7 +83,9 @@ def emitted(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
     session = StrategySession(site_id="plasmodb")
     session.add_graph(StrategyGraph("graph-1", "Heat shock", "plasmodb"))
     edit_dispatch._emit_graph_snapshot(
-        AgentDeps(site_id="plasmodb", strategy_session=session)
+        AgentDeps(
+            site_id="plasmodb", strategy_session=session, turn_markers=TurnMarkers()
+        )
     )
     return calls
 

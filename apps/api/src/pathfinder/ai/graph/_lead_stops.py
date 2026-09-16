@@ -14,9 +14,12 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic_ai.messages import AgentStreamEvent, FunctionToolResultEvent
 from pydantic_ai.run import AgentRunResultEvent
 
+from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.graph._lead_capture import GuardStop, _LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.lead.sub_agent_tools import UnansweredStage
 from pathfinder.ai.lead.turn_contract import LeadResponse
+from pathfinder.ai.models.catalog import get_model_entry
 
 
 def guard_stopped_on(
@@ -109,23 +112,77 @@ class _FailureText(BaseModel):
 
 
 def _one_clause(text: str) -> str:
-    """The first line of an error, without its payload, its urls or its length."""
+    """The first line of an error, without its payload, its urls or its length.
+
+    The clause joins a sentence of the reply, so it ends without a stop.
+    """
     lines = text.strip().splitlines()
     first = lines[0] if lines else ""
     plain = _URL.sub("", _PAYLOAD.sub("", first))
     clause = " ".join(plain.split())
-    if len(clause) <= MAX_FAILURE_CLAUSE_CHARS:
-        return clause
-    return clause[:MAX_FAILURE_CLAUSE_CHARS].rsplit(" ", 1)[0]
+    if len(clause) > MAX_FAILURE_CLAUSE_CHARS:
+        clause = clause[:MAX_FAILURE_CLAUSE_CHARS].rsplit(" ", 1)[0]
+    return clause.rstrip(".")
 
 
-def fallback_prose(capture: _LeadRunCapture) -> str:
+_SEND_AGAIN = "Send the message again and I will start over from it."
+# The name the model settings show for each stage a researcher can set.
+_STAGE_LABELS: dict[PhaseRole, str] = {
+    "lead": "Assistant",
+    "frame": "Planning",
+    "execution": "Building",
+    "verification": "Checking",
+}
+
+
+def _stage_that_did_not_answer(
+    capture: _LeadRunCapture,
+    unanswered: UnansweredStage | None,
+) -> UnansweredStage | None:
+    """The stage of this turn whose model produced nothing, if there was one.
+
+    A dispatch records its own stage. The Lead's stage is left for the run that
+    reached no dispatch at all.
+    """
+    if unanswered is not None:
+        return unanswered
+    if capture.model_answered:
+        return None
+    return UnansweredStage(role="lead", model_id=capture.lead_model)
+
+
+def _what_to_do_next(
+    capture: _LeadRunCapture,
+    unanswered: UnansweredStage | None,
+) -> str:
+    """The action the reply offers, which names a model that never answered.
+
+    The catalog holds every model a researcher can pick, so an id outside it is
+    no choice to point at.
+    """
+    stage = _stage_that_did_not_answer(capture, unanswered)
+    if stage is None:
+        return _SEND_AGAIN
+    entry = get_model_entry(stage.model_id)
+    if entry is None:
+        return _SEND_AGAIN
+    return (
+        f"The {_STAGE_LABELS[stage.role]} stage of this turn runs {entry.name}, "
+        f"and it did not answer. Choose a different model for that stage in "
+        f"Settings, or send the message again and I will start over from it."
+    )
+
+
+def fallback_prose(
+    capture: _LeadRunCapture,
+    unanswered: UnansweredStage | None,
+) -> str:
     """What the user reads when the run ended with no reply of its own."""
     if capture.run_error:
         return (
             "I stopped this turn on an error I could not recover from: "
             f"{_FailureText.model_validate(capture.run_error).sentence()}. "
-            "Send the message again and I will start over from it."
+            f"{_what_to_do_next(capture, unanswered)}"
         )
     return (
         "I couldn't produce a response for this turn. Please rephrase or provide "
@@ -133,7 +190,12 @@ def fallback_prose(capture: _LeadRunCapture) -> str:
     )
 
 
-def final_reply(capture: _LeadRunCapture, *, changed: bool) -> LeadResponse | None:
+def final_reply(
+    capture: _LeadRunCapture,
+    unanswered: UnansweredStage | None,
+    *,
+    changed: bool,
+) -> LeadResponse | None:
     """The turn's reply: the run's own, or one that says why there is none.
 
     A run that answered keeps its answer, whatever chunks it wrote on the way.
@@ -143,4 +205,4 @@ def final_reply(capture: _LeadRunCapture, *, changed: bool) -> LeadResponse | No
         return capture.response
     if capture.pending_approval is not None or capture.pending_durable_call is not None:
         return None
-    return stop_response(fallback_prose(capture), changed=changed)
+    return stop_response(fallback_prose(capture, unanswered), changed=changed)

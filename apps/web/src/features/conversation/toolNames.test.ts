@@ -53,8 +53,6 @@ const REGISTERED = [
   "get_search_overview",
   "get_step_contributions",
   "get_strategy",
-  "import_control_ids_from_gene_set",
-  "import_control_ids_from_strategy",
   "insert_saved_strategy",
   "list_control_sets",
   "list_notes",
@@ -70,6 +68,8 @@ const REGISTERED = [
   "pin_note",
   "preview_eda_subset",
   "promote_to_memory",
+  "read_gene_ids_from_gene_set",
+  "read_gene_ids_from_strategy",
   "read_ledger_section",
   "read_note",
   "recover_failed_steps",
@@ -127,6 +127,15 @@ describe("humanizeToolName", () => {
   it("names the enrichment job by the tool name its task puts on the wire", () => {
     expect(humanizeToolName("geneset_enrichment")).toBe("Gene set enrichment");
     expect(humanizeToolName("run_gene_set_enrichment")).toBe("Gene-set enrichment");
+  });
+
+  it("names the two control reads by what they return", () => {
+    expect(humanizeToolName("read_gene_ids_from_gene_set")).toBe(
+      "Gene ids from gene set",
+    );
+    expect(humanizeToolName("read_gene_ids_from_strategy")).toBe(
+      "Gene ids from strategy",
+    );
   });
 
   it("never falls back for a name the backend registers", () => {

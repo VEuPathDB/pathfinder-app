@@ -4,6 +4,7 @@ other."""
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Sequence
 from typing import Literal
 
@@ -12,13 +13,16 @@ from pydantic import ConfigDict, Field
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
 
-from pathfinder.ai.graph.state import EnrichmentRun
+from pathfinder.ai.agents.state import CreatedGeneSet
+from pathfinder.ai.graph.state import CreatedControlSet, EnrichmentRun
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_messages import (
     analysis_ran_on_another_set_message,
     blamed_the_site_message,
     claimed_change_message,
+    control_set_not_written_message,
     eda_criterion_not_built_message,
+    gene_set_not_saved_message,
     off_topic_essay_message,
     unrecorded_question_message,
     unreported_change_message,
@@ -56,6 +60,26 @@ _REFERENCE_PREFIXES = (
     "pmid:",
     "pubmed.ncbi.nlm.nih.gov/",
 )
+
+
+# An artifact the reply reports as saved. An offer to save one is an
+# infinitive, and a listing says "saved control sets" with no words between.
+_SAVED = r"\b(?:created|saved|built|made|added|stored)\s+.{1,40}?\b"
+# A gene set that qualifies another noun names an analysis or a note.
+_THE_SET_ITSELF = r"(?!\s+(?:enrichment|note))"
+_SAVED_A_CONTROL_SET = re.compile(_SAVED + r"control sets?\b")
+_SAVED_A_GENE_SET = re.compile(_SAVED + r"gene sets?\b" + _THE_SET_ITSELF)
+_DENIED = re.compile(r"\b(?:not|never|no)\b|n't")
+_CLAUSE_END = re.compile(r"[.!?;\n]")
+
+
+def _claims_it_saved(prose: str, artifact: re.Pattern[str]) -> bool:
+    """Whether this reply tells the user it saved that artifact."""
+    return any(
+        artifact.search(clause)
+        for clause in _CLAUSE_END.split(prose.casefold())
+        if not _DENIED.search(clause)
+    )
 
 
 def normalized_reference(value: str) -> str:
@@ -161,11 +185,15 @@ class TurnRecord(CamelModel):
     last_phase_stop: PhaseStop | None
     build_section: BuildSection
     retrieved_sources: tuple[str, ...]
+    created_control_sets: tuple[CreatedControlSet, ...]
+    created_gene_sets: tuple[CreatedGeneSet, ...]
 
 
 MismatchKind = Literal[
     "unverified_build",
     "misreported_change",
+    "unwritten_control_set",
+    "unwritten_gene_set",
     "unbuilt_eda_criterion",
     "blamed_the_site",
     "unrecorded_question",
@@ -241,6 +269,8 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         last_phase_stop=deps.last_phase_stop,
         build_section=derive_ledger(deps.state, deps.intent).build,
         retrieved_sources=tuple(markers.retrieved_sources),
+        created_control_sets=tuple(markers.created_control_sets),
+        created_gene_sets=tuple(markers.created_gene_sets),
     )
 
 
@@ -259,6 +289,24 @@ def _misreported_change(report: LeadResponse, record: TurnRecord) -> str | None:
     if record.changed_strategy:
         return unreported_change_message()
     return claimed_change_message(record.build_outcome)
+
+
+def _unwritten_control_set(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A durable artifact the reply reports is one this turn wrote."""
+    if record.created_control_sets or not _claims_it_saved(
+        report.prose, _SAVED_A_CONTROL_SET
+    ):
+        return None
+    return control_set_not_written_message(record.created_gene_sets)
+
+
+def _unwritten_gene_set(report: LeadResponse, record: TurnRecord) -> str | None:
+    """The same rule for the other artifact a reply can put the wrong name on."""
+    if record.created_gene_sets or not _claims_it_saved(
+        report.prose, _SAVED_A_GENE_SET
+    ):
+        return None
+    return gene_set_not_saved_message(record.created_control_sets)
 
 
 def _unbuilt_eda_criterion(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -325,6 +373,8 @@ _RULES: tuple[
 ] = (
     ("unverified_build", _unverified_build),
     ("misreported_change", _misreported_change),
+    ("unwritten_control_set", _unwritten_control_set),
+    ("unwritten_gene_set", _unwritten_gene_set),
     ("unbuilt_eda_criterion", _unbuilt_eda_criterion),
     ("blamed_the_site", _blamed_the_site),
     ("unrecorded_question", _unrecorded_question),

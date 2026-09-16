@@ -20,9 +20,11 @@ from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     ANALYSED_RUN,
     ASKING_REPLY,
     CLEAN_REPLY,
+    CONTROL_SET_CLAIM,
     ENRICHMENT_REPLY,
     FAILED_RUN,
     WITH_CODE,
+    control_source_deps,
     enrichment_deps,
     framing_deps,
     off_topic_deps,
@@ -110,6 +112,21 @@ class TestTheOneCorrection:
         assert isinstance(result.output, LeadResponse)
         assert len(script.retries) == 1
         assert "gs-other" in script.retries[0]
+
+    def test_a_claimed_control_set_is_re_asked_once_and_the_turn_answers(self) -> None:
+        script = _scripted_answer(CONTROL_SET_CLAIM)
+
+        result = asyncio.run(
+            build_lead_agent().run(
+                "Build a positive control set from the rhoptry step.",
+                deps=control_source_deps(),
+                model=script.model(),
+            ),
+        )
+
+        assert isinstance(result.output, LeadResponse)
+        assert len(script.retries) == 1
+        assert "build_control_set" in script.retries[0]
 
     def test_an_out_of_scope_essay_is_re_asked_once_and_the_turn_answers(self) -> None:
         """The latch is the contract's, so every rule reaches the model once."""

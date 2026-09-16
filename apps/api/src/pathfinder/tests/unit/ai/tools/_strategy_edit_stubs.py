@@ -24,6 +24,7 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import (
     commit,
@@ -246,6 +247,7 @@ def seed(root: StrategyStepNode, wdk_step_ids: dict[str, int]) -> AgentDeps:
         site_id="plasmodb",
         strategy_session=session_with(root, wdk_step_ids),
         conversation_id=uuid4(),
+        turn_markers=TurnMarkers(),
     )
 
 

@@ -28,6 +28,7 @@ from pydantic_ai.exceptions import CallDeferred
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.tools.standalone.eda_compute import EDA_COMPUTE
 from pathfinder.ai.tools.standalone.experiment import CONTROL_TESTS
 from pathfinder.ai.tools.standalone.optimization import PARAMETER_SWEEP
@@ -72,6 +73,7 @@ def _deps() -> AgentDeps:
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         conversation_id=uuid4(),
+        turn_markers=TurnMarkers(),
     )
 
 

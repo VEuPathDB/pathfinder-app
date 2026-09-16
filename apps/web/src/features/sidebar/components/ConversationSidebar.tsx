@@ -26,6 +26,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ import { useConversationSidebarData } from "@/features/sidebar/hooks/useConversa
 import { useConversationSidebarActions } from "@/features/sidebar/hooks/useConversationSidebarActions";
 import { ConversationList } from "@/features/sidebar/components/ConversationList";
 import { DeleteConversationModal } from "@/features/sidebar/components/DeleteConversationModal";
+import { OpenWdkStrategyDialog } from "@/features/sidebar/components/OpenWdkStrategyDialog";
 
 interface ConversationSidebarProps {
   siteId: string;
@@ -44,6 +46,7 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
   const reportError = (message: string) => toast.error(message);
 
   const [showDismissed, setShowDismissed] = useState(false);
+  const [showOpenWdkStrategy, setShowOpenWdkStrategy] = useState(false);
 
   const data = useConversationSidebarData({ siteId });
   const actions = useConversationSidebarActions({
@@ -108,6 +111,13 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
                 {choice.label}
               </DropdownMenuItem>
             ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              data-testid="open-wdk-strategy-menu-item"
+              onSelect={() => setShowOpenWdkStrategy(true)}
+            >
+              Open a VEuPathDB strategy...
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -201,6 +211,12 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
           )}
         </div>
       )}
+
+      <OpenWdkStrategyDialog
+        open={showOpenWdkStrategy}
+        onOpenChange={setShowOpenWdkStrategy}
+        siteId={siteId}
+      />
 
       <DeleteConversationModal
         target={actions.deleteTarget}

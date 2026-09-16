@@ -255,7 +255,7 @@ class TestBuildStrategyNoLongerClobbersSilently:
             for chunk in returned.metadata
             if isinstance(chunk, DataChunk) and chunk.type == "data-tool-summary"
         ]
-        assert summaries == [("0 steps, 0 genes", "empty")]
+        assert summaries == [("0 steps, 0 records", "empty")]
 
     async def test_a_build_nobody_measured_says_the_count_is_not_available(
         self, monkeypatch: pytest.MonkeyPatch

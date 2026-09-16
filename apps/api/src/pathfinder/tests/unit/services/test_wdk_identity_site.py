@@ -82,13 +82,13 @@ class TestTheSiteAnIdentityCallReads:
 
     def test_a_degraded_site_hands_the_call_to_a_loaded_one(self) -> None:
         readiness = get_readiness()
-        readiness.mark_catalog_failed("veupathdb", "TimeoutError")
+        readiness.mark_catalog_failed("veupathdb", TimeoutError())
         readiness.mark_catalog_ready("plasmodb")
 
         assert wdk_identity.identity_site("veupathdb") == "plasmodb"
 
     def test_a_degraded_site_with_no_loaded_peer_answers_for_itself(self) -> None:
-        get_readiness().mark_catalog_failed("veupathdb", "TimeoutError")
+        get_readiness().mark_catalog_failed("veupathdb", TimeoutError())
 
         assert wdk_identity.identity_site("veupathdb") == "veupathdb"
 
@@ -122,7 +122,7 @@ class TestOneTokenNamesOneUserOnEverySite:
         seen = _fake_wdk(monkeypatch)
         _fake_user_row(monkeypatch)
         readiness = get_readiness()
-        readiness.mark_catalog_failed("veupathdb", "TimeoutError")
+        readiness.mark_catalog_failed("veupathdb", TimeoutError())
         readiness.mark_catalog_ready("plasmodb")
 
         assert (
@@ -153,7 +153,7 @@ class TestTheRouteGateRefusesADegradedSiteBeforeAnyIdentityCall:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         seen = _fake_wdk(monkeypatch)
-        get_readiness().mark_catalog_failed("veupathdb", "TimeoutError")
+        get_readiness().mark_catalog_failed("veupathdb", TimeoutError())
 
         with pytest.raises(SiteUnavailableError) as refusal:
             await require_registered_wdk_identity(

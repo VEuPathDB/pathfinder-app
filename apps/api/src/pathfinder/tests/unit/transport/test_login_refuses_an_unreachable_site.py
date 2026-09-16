@@ -58,11 +58,14 @@ def _client(app: FastAPI) -> httpx.AsyncClient:
 
 
 @pytest.mark.parametrize(
-    "failure",
-    [httpx.ReadTimeout("timed out"), httpx.ConnectError("refused")],
+    ("failure", "reason"),
+    [
+        (httpx.ReadTimeout("timed out"), "the site did not answer in time"),
+        (httpx.ConnectError("refused"), "the site could not be reached"),
+    ],
 )
 async def test_a_site_pathfinder_cannot_reach_is_a_503(
-    failure: Exception, monkeypatch: pytest.MonkeyPatch
+    failure: Exception, reason: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     app = _app(monkeypatch, failure)
     async with _client(app) as client:
@@ -75,6 +78,4 @@ async def test_a_site_pathfinder_cannot_reach_is_a_503(
     assert response.status_code == 503
     body = response.json()
     assert body["code"] == "SITE_UNAVAILABLE"
-    assert body["detail"] == (
-        f"Could not connect to veupathdb ({type(failure).__name__})."
-    )
+    assert body["detail"] == f"Could not connect to veupathdb ({reason})."

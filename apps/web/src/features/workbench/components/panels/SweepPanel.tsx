@@ -2,7 +2,8 @@
 
 import { TrendingUp } from "lucide-react";
 import { ThresholdSweepSection } from "@/features/workbench/analysis";
-import { useActiveSetExperiment } from "@/features/workbench/hooks/useActiveSetExperiment";
+import { useActiveSetEvaluation } from "@/features/workbench/hooks/useActiveSetEvaluation";
+import { evaluationBlock } from "../setEvaluation";
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
 
 /**
@@ -12,7 +13,8 @@ import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
  * to know which parameters are sweepable and what the baseline is.
  */
 export function SweepPanel() {
-  const experiment = useActiveSetExperiment();
+  const evaluation = useActiveSetEvaluation();
+  const blocked = evaluationBlock(evaluation);
 
   return (
     <AnalysisPanelContainer
@@ -20,10 +22,12 @@ export function SweepPanel() {
       title="Parameter Sweep"
       subtitle="Sweep a parameter to visualize sensitivity/specificity trade-offs"
       icon={<TrendingUp className="h-4 w-4" />}
-      disabled={experiment === null}
-      disabledReason="Requires a completed evaluation first"
+      disabled={blocked !== null}
+      disabledReason={blocked ?? ""}
     >
-      {experiment && <ThresholdSweepSection experiment={experiment} />}
+      {blocked === null && evaluation !== null && (
+        <ThresholdSweepSection experiment={evaluation.experiment} />
+      )}
     </AnalysisPanelContainer>
   );
 }

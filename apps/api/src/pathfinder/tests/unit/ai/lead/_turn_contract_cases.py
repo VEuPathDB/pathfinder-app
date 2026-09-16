@@ -7,7 +7,12 @@ from uuid import UUID, uuid4
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
-from pathfinder.ai.graph.state import EnrichmentRun, StrategyDomainState
+from pathfinder.ai.agents.state import CreatedGeneSet
+from pathfinder.ai.graph.state import (
+    CreatedControlSet,
+    EnrichmentRun,
+    StrategyDomainState,
+)
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
@@ -57,6 +62,41 @@ ENRICHMENT_REPLY = (
     "protein export and host cell remodeling."
 )
 EDA_PROSE = "The piggyBac score could not be mapped to a searchable gene field."
+CONTROL_SET_CLAIM = (
+    'Created the Workbench positive control set "rhoptry positives" from the '
+    "strategy's rhoptry-protein step. It contains 102 genes from Toxoplasma "
+    "gondii ME49."
+)
+GENE_SET_REPLY = (
+    'Saved the 102 rhoptry-protein genes as the gene set "rhoptry positives". '
+    "Do you want me to make a control set from it?"
+)
+LISTS_SAVED_CONTROL_SETS = (
+    "You have two saved control sets on this site: 'kinase positives' with 61 "
+    "genes and 'ribosomal negatives' with 84."
+)
+NAMES_A_CONTROL_SET_IN_A_SECOND_CLAUSE = (
+    "I saved the 102 genes as a gene set; the control set is yours to ask for "
+    "whenever you want one."
+)
+DENIES_A_CONTROL_SET = (
+    "I have not created a control set: the ids are read, and nothing is saved "
+    "until you name the set."
+)
+SAVED_GENE_SET = CreatedGeneSet(id="gs-1", name="rhoptry positives", gene_count=102)
+SAVED_CONTROL_SET = CreatedControlSet(id="cs-1", name="rhoptry controls")
+LISTS_SAVED_GENE_SETS = (
+    "You have two saved gene sets on this site: 'kinase hits' with 61 genes "
+    "and 'rhoptry positives' with 102."
+)
+DENIES_A_GENE_SET = (
+    "I have not saved a gene set: the genes are read from the step, and "
+    "nothing is stored until you name the set."
+)
+CLAIMS_A_GENE_SET_ENRICHMENT = (
+    "I created a gene set enrichment over the 102 rhoptry-protein genes. The "
+    "top terms are protein export and host cell remodeling."
+)
 REDIRECT = (
     "I build and check search strategies on the VEuPathDB databases, and run "
     "enrichment, EDA and exports on what they return. Ask me one of those and "
@@ -146,6 +186,29 @@ def enrichment_deps(*runs: EnrichmentRun) -> LeadDeps:
         ),
     )
     deps.state.turn_markers.enrichment_runs = list(runs)
+    return deps
+
+
+def control_source_deps(
+    *,
+    saved_gene_set: bool = True,
+    wrote_control_set: bool = False,
+) -> LeadDeps:
+    """A turn that read a step's ids and saved them as a workbench gene set."""
+    deps = lead_deps(
+        pipeline_state(
+            site_id="toxodb",
+            user_prompt=(
+                "Build a positive control set from the genes this strategy's "
+                "rhoptry step holds, and call it rhoptry positives."
+            ),
+            user_message_id=uuid4(),
+        ),
+    )
+    if saved_gene_set:
+        deps.state.turn_markers.record_gene_set(SAVED_GENE_SET)
+    if wrote_control_set:
+        deps.state.turn_markers.record_control_set(SAVED_CONTROL_SET)
     return deps
 
 

@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { client } from "@/lib/api/client";
+import type { SaveSubstrategyRequest } from "@pathfinder/shared/generated/types/SaveSubstrategyRequest";
 import { openStrategy } from "@pathfinder/shared/generated/hooks/useOpenStrategy";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
 import { toUserMessage } from "@/lib/api/errors";
@@ -44,7 +45,7 @@ export function useSaveSubstrategyMutation({
           stepId: vars.stepId,
           name: vars.name,
           description: vars.description ?? null,
-        },
+        } satisfies SaveSubstrategyRequest,
       });
       // Pull the new WDK strategy into the local conversations table so it
       // appears in the sidebar's Saved group + library page immediately.

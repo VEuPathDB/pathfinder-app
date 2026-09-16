@@ -49,7 +49,7 @@ async def test_every_site_that_loads_is_ready() -> None:
     assert sorted(loader.calls) == ["plasmodb", "toxodb"]
 
 
-async def test_a_refusing_site_is_degraded_by_its_error_class() -> None:
+async def test_a_refusing_site_is_degraded_and_says_the_site_answered() -> None:
     readiness = ReadinessState()
     loader = _Loader(
         failures={"veupathdb": WDKError("https://veupathdb.org refused", status=502)}
@@ -63,7 +63,7 @@ async def test_a_refusing_site_is_degraded_by_its_error_class() -> None:
     )
 
     assert readiness.degraded == ["veupathdb"]
-    assert readiness.catalogs["veupathdb"].error == "WDKError"
+    assert readiness.catalogs["veupathdb"].error == "the site answered with an error"
     assert readiness.catalogs["plasmodb"].ready is True
 
 
@@ -80,7 +80,7 @@ async def test_a_site_that_raises_an_app_error_is_degraded_on_its_own() -> None:
     )
 
     assert readiness.degraded == ["veupathdb"]
-    assert readiness.catalogs["veupathdb"].error == "SiteUnavailableError"
+    assert readiness.catalogs["veupathdb"].error == "the site answered with an error"
     assert readiness.catalogs["plasmodb"].ready is True
     assert readiness.catalogs["toxodb"].ready is True
 
@@ -107,7 +107,7 @@ async def test_a_site_over_its_budget_costs_only_its_budget() -> None:
 
     assert entered.is_set()
     assert readiness.degraded == ["veupathdb"]
-    assert readiness.catalogs["veupathdb"].error == "TimeoutError"
+    assert readiness.catalogs["veupathdb"].error == "the site did not answer in time"
     assert readiness.catalogs["plasmodb"].ready is True
     assert elapsed < 1.0
 
@@ -188,3 +188,31 @@ async def test_the_retry_loop_waits_the_interval_between_ticks() -> None:
     assert waits == [60, 60]
     assert loader.calls == ["veupathdb"]
     assert readiness.degraded == []
+
+
+async def test_a_site_that_cannot_be_reached_says_so() -> None:
+    readiness = ReadinessState()
+    loader = _Loader(failures={"veupathdb": ConnectionRefusedError("no route")})
+
+    await preload_catalogs(
+        loader=loader,
+        site_ids=["veupathdb"],
+        readiness=readiness,
+        budget_seconds=5,
+    )
+
+    assert readiness.catalogs["veupathdb"].error == "the site could not be reached"
+
+
+async def test_a_loader_that_breaks_reports_the_catalog_not_the_class() -> None:
+    readiness = ReadinessState()
+    loader = _Loader(failures={"veupathdb": RuntimeError("no event loop")})
+
+    await preload_catalogs(
+        loader=loader,
+        site_ids=["veupathdb"],
+        readiness=readiness,
+        budget_seconds=5,
+    )
+
+    assert readiness.catalogs["veupathdb"].error == "its catalog did not load"

@@ -138,9 +138,11 @@ describe("a body the transport rethrows as text", () => {
     );
   });
 
-  it("reads the detail out of a FastAPI validation body", () => {
+  it("names the field a FastAPI validation body refused", () => {
     const body = { detail: [{ loc: ["body", "siteId"], msg: "field required" }] };
-    expect(toUserMessage(new Error(JSON.stringify(body)))).toBe("field required");
+    expect(toUserMessage(new Error(JSON.stringify(body)))).toBe(
+      "siteId: field required",
+    );
   });
 
   it("leaves a plain message alone", () => {

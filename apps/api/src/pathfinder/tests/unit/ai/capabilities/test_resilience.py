@@ -24,6 +24,7 @@ from pathfinder.ai.graph.runtime import (
     AgentDeps,
     ServiceOutageMemory,
 )
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.domain.strategy.session import StrategySession
 
 
@@ -271,7 +272,9 @@ class TestTheRetryCeiling:
         result = await agent.run(
             "read the catalog",
             deps=AgentDeps(
-                site_id="plasmodb", strategy_session=StrategySession("plasmodb")
+                site_id="plasmodb",
+                strategy_session=StrategySession("plasmodb"),
+                turn_markers=TurnMarkers(),
             ),
         )
         assert result.output == "asked the user"

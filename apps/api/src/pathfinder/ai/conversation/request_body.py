@@ -110,13 +110,13 @@ class ChatRequestBody(CamelModel):
 
     @property
     def last_user_text(self) -> str:
-        """Extract the concatenated text of the last user message's parts."""
+        """The text of the last user message, one block per part."""
         if not self.messages:
             return ""
         last = self.messages[-1]
         if last.role != "user":
             return ""
-        return "".join(
+        return "\n\n".join(
             part.text
             for part in last.parts
             if isinstance(part, TextUIPart) and part.text

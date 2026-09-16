@@ -59,7 +59,7 @@ async def test_a_degraded_site_reads_the_account_on_a_loaded_one(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     readiness = get_readiness()
-    readiness.mark_catalog_failed("veupathdb", "TimeoutError")
+    readiness.mark_catalog_failed("veupathdb", TimeoutError())
     readiness.mark_catalog_ready("plasmodb")
     seen: list[str] = []
 

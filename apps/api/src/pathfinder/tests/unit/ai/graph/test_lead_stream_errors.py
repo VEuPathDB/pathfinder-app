@@ -7,6 +7,7 @@ langgraph control-flow signal, which it re-raises so the graph sees it.
 from __future__ import annotations
 
 import asyncio
+import itertools
 import logging
 from collections.abc import AsyncIterator, Sequence
 from typing import Any
@@ -15,7 +16,7 @@ from uuid import uuid4
 import pytest
 from langgraph.errors import GraphBubbleUp
 from pydantic_ai.exceptions import ModelHTTPError
-from pydantic_ai.messages import ModelMessage, ModelResponse
+from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -74,13 +75,46 @@ def _raising_model(error: Exception) -> FunctionModel:
     return FunctionModel(_fn, stream_function=_stream, model_name="scripted")
 
 
+def _answering_then_raising_model(error: Exception) -> FunctionModel:
+    """A model that answers one request, then fails the next one."""
+    answered = itertools.count()
+
+    def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del messages, info
+        if next(answered):
+            raise error
+        return ModelResponse(parts=[TextPart(content="Reading the thread.")])
+
+    async def _stream(
+        messages: list[ModelMessage],
+        info: AgentInfo,
+    ) -> AsyncIterator[str | dict[int, DeltaToolCall]]:
+        del messages, info
+        if next(answered) == 0:
+            yield "Reading the thread."
+            return
+        for _ in ():
+            yield ""
+        raise error
+
+    return FunctionModel(_fn, stream_function=_stream, model_name="scripted")
+
+
 def _drive(
     monkeypatch: pytest.MonkeyPatch,
     error: Exception,
     capture: _LeadRunCapture,
     writer: Collector,
 ) -> None:
-    model = _raising_model(error)
+    _drive_model(monkeypatch, _raising_model(error), capture, writer)
+
+
+def _drive_model(
+    monkeypatch: pytest.MonkeyPatch,
+    model: FunctionModel,
+    capture: _LeadRunCapture,
+    writer: Collector,
+) -> None:
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
     state = PipelineState(
         conversation_id=uuid4(),
@@ -156,7 +190,7 @@ def test_a_failed_run_is_named_to_the_user_and_asked_to_be_sent_again(
     _drive(monkeypatch, RuntimeError("peer closed connection"), capture, Collector())
 
     assert capture.run_error == "peer closed connection"
-    assert fallback_prose(capture) == (
+    assert fallback_prose(capture, None) == (
         "I stopped this turn on an error I could not recover from: peer closed "
         "connection. Send the message again and I will start over from it."
     )
@@ -173,7 +207,7 @@ def test_a_provider_failure_reaches_the_reply_without_its_response_body(
     _drive(monkeypatch, failure, capture, Collector())
 
     assert capture.run_error == str(failure)
-    assert fallback_prose(capture) == (
+    assert fallback_prose(capture, None) == (
         "I stopped this turn on an error I could not recover from: the model "
         "provider answered 429. Send the message again and I will start over "
         "from it."
@@ -181,7 +215,34 @@ def test_a_provider_failure_reaches_the_reply_without_its_response_body(
 
 
 def test_a_run_that_ended_without_a_reply_and_without_an_error_asks_for_more() -> None:
-    assert fallback_prose(_LeadRunCapture()) == (
+    assert fallback_prose(_LeadRunCapture(), None) == (
         "I couldn't produce a response for this turn. Please rephrase or provide "
         "more context and I'll try again."
     )
+
+
+def test_a_model_that_never_answered_is_recorded_as_unanswered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The reply blames the model only where the model produced nothing."""
+    capture = _LeadRunCapture()
+
+    _drive(monkeypatch, RuntimeError("Connection error."), capture, Collector())
+
+    assert capture.model_answered is False
+
+
+def test_a_model_that_answered_once_is_recorded_as_answered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture = _LeadRunCapture()
+
+    _drive_model(
+        monkeypatch,
+        _answering_then_raising_model(RuntimeError("peer closed connection")),
+        capture,
+        Collector(),
+    )
+
+    assert capture.model_answered is True
+    assert capture.run_error == "peer closed connection"

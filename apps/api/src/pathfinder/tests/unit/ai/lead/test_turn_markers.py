@@ -5,12 +5,19 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from assistant_core.conversation.serde import build_checkpoint_serde
 from pydantic_ai.exceptions import ModelRetry
 
-from pathfinder.ai.graph.state import TurnMarkers
+from pathfinder.ai.agents.state import CreatedGeneSet
+from pathfinder.ai.graph.state import (
+    CreatedControlSet,
+    StrategyDomainState,
+    TurnMarkers,
+)
 from pathfinder.ai.lead.lead_tools import clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import conversation
+from pathfinder.assistants.pathfinder_spec import PATHFINDER_CHECKPOINT_TYPES
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -97,3 +104,23 @@ async def test_an_unconfirmed_clear_marks_nothing() -> None:
     assert _step_ids(deps) == ["step_a"]
     assert deps.state.turn_markers.edited is False
     assert deps.state.turn_markers.changed_strategy is False
+
+
+def test_what_a_turn_saved_survives_the_checkpoint_serializer() -> None:
+    """A turn parked on a worker resumes with the record of what it wrote."""
+    markers = TurnMarkers(message_id=uuid4())
+    markers.record_control_set(CreatedControlSet(id="cs-1", name="rhoptry controls"))
+    markers.record_gene_set(
+        CreatedGeneSet(id="gs-2", name="rhoptry positives", gene_count=102),
+    )
+    serde = build_checkpoint_serde(PATHFINDER_CHECKPOINT_TYPES)
+    domain = StrategyDomainState(turn_markers=markers)
+
+    resumed = serde.loads_typed(serde.dumps_typed(domain)).turn_markers
+
+    assert [(c.id, c.name) for c in resumed.created_control_sets] == [
+        ("cs-1", "rhoptry controls"),
+    ]
+    assert [(g.id, g.name, g.gene_count) for g in resumed.created_gene_sets] == [
+        ("gs-2", "rhoptry positives", 102),
+    ]

@@ -15,6 +15,7 @@ import {
 } from "../../utils/paramUtils";
 import type { SweepableParam } from "./types";
 import { fmtParamValue } from "../../utils/formatters";
+import { formatParamValue } from "@/lib/parameters/paramValue";
 import { MAX_CATEGORICAL_CHOICES } from "./types";
 
 export function useSweepState(experiment: Experiment) {
@@ -49,7 +50,8 @@ export function useSweepState(experiment: Experiment) {
       if (isMultiPickParam(spec)) continue;
       if (!(spec.name in configParams)) continue;
 
-      const currentValue = String(configParams[spec.name] ?? "");
+      const raw = configParams[spec.name];
+      const currentValue = raw == null ? "" : formatParamValue(raw);
 
       if (isNumericParam(spec)) {
         result.push({

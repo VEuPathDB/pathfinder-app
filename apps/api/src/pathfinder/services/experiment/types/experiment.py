@@ -18,6 +18,7 @@ from pathfinder.services.experiment.types.metrics import (
     GeneInfo,
 )
 from pathfinder.services.experiment.types.robustness import BootstrapResult
+from pathfinder.services.gene_sets.types import GeneSetMembership
 
 
 class ExperimentConfig(CamelModel):
@@ -105,6 +106,9 @@ class Experiment(CamelModel):
     wdk_step_id: int | None = None
     notes: str | None = None
     robustness: BootstrapResult | None = None
+    # The membership of the gene set this run scored. A run that names no set,
+    # and one stored before the run recorded it, leave it unset.
+    gene_set_membership: GeneSetMembership | None = None
 
     def classification_id_sets(
         self,

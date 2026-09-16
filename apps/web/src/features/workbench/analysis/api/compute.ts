@@ -2,7 +2,9 @@
  * Shared analysis API types and functions -- used by both workbench and analysis features.
  */
 
+import type { CustomEnrichRequest } from "@pathfinder/shared/generated/types/CustomEnrichRequest";
 import type { CustomEnrichmentResult } from "@pathfinder/shared/generated/types/CustomEnrichmentResult";
+import type { ThresholdSweepRequest } from "@pathfinder/shared/generated/types/ThresholdSweepRequest";
 import { customEnrichmentResultSchema } from "@pathfinder/shared/generated/zod/customEnrichmentResultSchema";
 
 import { buildUrl, requestJson } from "@/lib/api/http";
@@ -17,10 +19,11 @@ export async function runCustomEnrichment(
   geneSetName: string,
   geneIds: string[],
 ): Promise<CustomEnrichmentResult> {
+  const body: CustomEnrichRequest = { geneSetName, geneIds };
   return requestJson(
     customEnrichmentResultSchema,
     `/api/v1/experiments/${experimentId}/custom-enrich`,
-    { method: "POST", body: { geneSetName, geneIds } },
+    { method: "POST", body },
   );
 }
 
@@ -49,17 +52,17 @@ export interface ThresholdSweepResult {
   points: ThresholdSweepPoint[];
 }
 
-interface NumericSweepRequest {
+// The route accepts min, max, steps and values as optional and pairs them at
+// run time. These two say which pairing each sweep sends.
+interface NumericSweepRequest extends ThresholdSweepRequest {
   sweepType: "numeric";
-  parameterName: string;
   min: number;
   max: number;
   steps: number;
 }
 
-interface CategoricalSweepRequest {
+interface CategoricalSweepRequest extends ThresholdSweepRequest {
   sweepType: "categorical";
-  parameterName: string;
   values: string[];
 }
 

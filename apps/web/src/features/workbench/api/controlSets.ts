@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { ControlSet } from "@pathfinder/shared";
+import type { CreateControlSetRequest } from "@pathfinder/shared/generated/types/CreateControlSetRequest";
 import { controlSetResponseSchema } from "@pathfinder/shared/generated/zod/controlSetResponseSchema";
 import { z } from "zod";
 
@@ -22,17 +23,9 @@ export function controlSetsOptions(siteId: string) {
   });
 }
 
-export async function createControlSet(body: {
-  name: string;
-  siteId: string;
-  recordType: string;
-  positiveIds: string[];
-  negativeIds: string[];
-  source?: string;
-  tags?: string[];
-  provenanceNotes?: string;
-  isPublic?: boolean;
-}): Promise<ControlSet> {
+export async function createControlSet(
+  body: CreateControlSetRequest,
+): Promise<ControlSet> {
   return await requestJson(controlSetResponseSchema, "/api/v1/control-sets", {
     method: "POST",
     body,

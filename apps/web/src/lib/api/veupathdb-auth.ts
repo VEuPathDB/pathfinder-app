@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import type { LoginPayload } from "@pathfinder/shared/generated/types/LoginPayload";
 import { authStatusResponseSchema } from "@pathfinder/shared/generated/zod/authStatusResponseSchema";
 import { authSuccessResponseSchema } from "@pathfinder/shared/generated/zod/authSuccessResponseSchema";
 
@@ -35,7 +36,7 @@ export async function loginVeupathdb(
   return await requestJson(authSuccessResponseSchema, `/api/v1/veupathdb/auth/login`, {
     method: "POST",
     query: { siteId },
-    body: { email, password },
+    body: { email, password } satisfies LoginPayload,
   });
 }
 

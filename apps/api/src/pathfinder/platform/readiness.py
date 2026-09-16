@@ -12,7 +12,14 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from pathfinder.platform.errors import site_failure_reason
+
 _CATALOGS = "catalogs"
+
+# The site notice prints this, so it is a sentence and not a class name.
+CATALOG_STILL_LOADING = "its catalog is still loading"
+CATALOG_DID_NOT_LOAD = "its catalog did not load"
+
 
 _FIXED_SUBSYSTEMS = (
     "database",
@@ -93,6 +100,13 @@ class ReadinessState(BaseModel):
         status = self.catalogs[site_id]
         return None if status.ready else status
 
+    def catalog_unavailable_reason(self, site_id: str) -> str | None:
+        """Why the site cannot be used, or None while its catalog is loaded."""
+        status = self.degraded_catalog(site_id)
+        if status is None:
+            return None
+        return status.error or CATALOG_STILL_LOADING
+
     def mark_ready(self, subsystem: str) -> None:
         if subsystem not in _FIXED_SUBSYSTEMS + _OPTIONAL_SUBSYSTEMS:
             msg = f"unknown subsystem: {subsystem}"
@@ -108,8 +122,8 @@ class ReadinessState(BaseModel):
     def fail_loading(self, error: BaseException) -> None:
         """Fail every subsystem that is neither ready nor already failed.
 
-        A catalog records the error class alone, because the sites response
-        reports it and a message can carry a URL or a token.
+        A catalog records a fixed phrase, because the sites response reports it
+        and an error message can carry a URL or a token.
         """
         detail = f"{type(error).__name__}: {error}"
         for name in _FIXED_SUBSYSTEMS:
@@ -119,7 +133,8 @@ class ReadinessState(BaseModel):
         for site_id, catalog in self.catalogs.items():
             if not catalog.ready and catalog.error is None:
                 self.catalogs[site_id] = SubsystemStatus(
-                    ready=False, error=type(error).__name__
+                    ready=False,
+                    error=site_failure_reason(error, fallback=CATALOG_DID_NOT_LOAD),
                 )
 
     def register_catalog(self, site_id: str) -> None:
@@ -128,8 +143,11 @@ class ReadinessState(BaseModel):
     def mark_catalog_ready(self, site_id: str) -> None:
         self.catalogs[site_id] = SubsystemStatus(ready=True)
 
-    def mark_catalog_failed(self, site_id: str, error: str) -> None:
-        self.catalogs[site_id] = SubsystemStatus(ready=False, error=error)
+    def mark_catalog_failed(self, site_id: str, error: BaseException) -> None:
+        self.catalogs[site_id] = SubsystemStatus(
+            ready=False,
+            error=site_failure_reason(error, fallback=CATALOG_DID_NOT_LOAD),
+        )
 
 
 _state_holder: dict[str, ReadinessState] = {}

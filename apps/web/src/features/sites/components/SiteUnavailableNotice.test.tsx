@@ -30,7 +30,7 @@ const PORTAL_DOWN = site({
   displayName: "VEuPathDB Portal (All organisms)",
   isPortal: true,
   available: false,
-  unavailableReason: "TimeoutError",
+  unavailableReason: "the site did not answer in time",
 });
 
 function draw(siteId: string, rows: SiteResponse[] | undefined) {
@@ -48,13 +48,17 @@ function draw(siteId: string, rows: SiteResponse[] | undefined) {
 afterEach(cleanup);
 
 describe("SiteUnavailableNotice", () => {
-  it("names the site, its error class, and links every site that is available", () => {
+  it("names the site, says what happened, and links every site that is available", () => {
     draw("veupathdb", [PORTAL_DOWN, site({ id: "toxodb", displayName: "ToxoDB" })]);
 
     expect(
       screen.getByText("Couldn't reach VEuPathDB Portal (All organisms)"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/TimeoutError/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "PathFinder cannot use this site right now: the site did not answer in time. It keeps trying every minute, so this may clear on its own.",
+      ),
+    ).toBeInTheDocument();
     const link = screen.getByRole("link", { name: "ToxoDB" });
     expect(link.getAttribute("href")).toBe(chatRoot("toxodb"));
   });

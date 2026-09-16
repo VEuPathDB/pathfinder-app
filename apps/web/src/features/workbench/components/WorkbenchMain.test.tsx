@@ -13,6 +13,7 @@ const GENE_SET: GeneSet = {
   source: "paste",
   geneIds: ["PF3D7_0102900"],
   geneCount: 1,
+  membershipDigest: "0000000000000011",
   createdAt: "2026-09-04T00:00:00Z",
 };
 
@@ -40,8 +41,28 @@ vi.mock("@/features/conversation/ChatView", () => ({
   },
 }));
 
+import { authStatusOptions } from "@/lib/api/veupathdb-auth";
+import { createTestWrapper } from "@/lib/query/testing";
+import { useSessionStore } from "@/state/useSessionStore";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { WorkbenchMain } from "./WorkbenchMain";
+
+const SITE = "plasmodb";
+
+function drawMain(signedIn: boolean) {
+  useSessionStore.setState({ selectedSite: SITE });
+  const { queryClient, Wrapper } = createTestWrapper();
+  queryClient.setQueryData(authStatusOptions(SITE).queryKey, {
+    signedIn,
+    name: "Researcher",
+    email: "researcher@upenn.edu",
+  });
+  return render(
+    <Wrapper>
+      <WorkbenchMain />
+    </Wrapper>,
+  );
+}
 
 function makeExperiment(): Experiment {
   return {
@@ -65,6 +86,9 @@ function makeExperiment(): Experiment {
     },
     status: "completed",
     truePositiveGenes: [{ id: "PF3D7_0102900" }],
+    createdAt: "2026-09-14T12:00:00Z",
+    completedAt: "2026-09-15T12:00:00Z",
+    geneSetMembership: { geneCount: 155, digest: GENE_SET.membershipDigest },
   };
 }
 
@@ -86,15 +110,30 @@ describe("WorkbenchMain", () => {
   });
 
   it("renders the panels for the active gene set", () => {
-    render(<WorkbenchMain />);
+    drawMain(true);
     expect(screen.getByText("Evaluate")).toBeInTheDocument();
     expect(screen.getByText("Gene Confidence")).toBeInTheDocument();
+  });
+
+  it("asks a signed-out reader to sign in instead of asking for a first gene set", () => {
+    drawMain(false);
+
+    expect(screen.getByText("Sign in to see your gene sets")).toBeInTheDocument();
+    expect(screen.queryByText("Welcome to the Workbench")).not.toBeInTheDocument();
+  });
+
+  it("welcomes a signed-in reader who has no active gene set", () => {
+    useWorkbenchStore.setState({ activeSetId: null });
+
+    drawMain(true);
+
+    expect(screen.getByText("Welcome to the Workbench")).toBeInTheDocument();
   });
 
   it("reads the search parameters of the active set as values", () => {
     geneSets = [SEARCH_BACKED_SET];
 
-    render(<WorkbenchMain />);
+    drawMain(true);
 
     const header = screen.getByText(/GenesByRNASeqTgonME49/);
     expect(header).toHaveTextContent("fold_change: 2");
@@ -102,8 +141,24 @@ describe("WorkbenchMain", () => {
     expect(header).not.toHaveTextContent("[object Object]");
   });
 
+  it("dates the evaluation the active set still matches", () => {
+    drawMain(true);
+
+    expect(screen.getByText("Evaluated Sep 15, 2026")).toBeInTheDocument();
+  });
+
+  it("says the evaluation is out of date once the set has been re-taken", () => {
+    geneSets = [{ ...GENE_SET, geneCount: 168, membershipDigest: "0000000000000099" }];
+
+    drawMain(true);
+
+    expect(
+      screen.getByText("Evaluated Sep 15, 2026 (scored 155 genes, out of date)"),
+    ).toBeInTheDocument();
+  });
+
   it("never uses an experiment id as a conversation id", () => {
-    render(<WorkbenchMain />);
+    drawMain(true);
     expect(chatViewProps.map((p) => p.conversationId)).not.toContain(EXPERIMENT_ID);
   });
 });

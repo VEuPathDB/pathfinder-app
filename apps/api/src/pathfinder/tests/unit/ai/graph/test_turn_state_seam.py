@@ -71,6 +71,7 @@ STRATEGY_RESOURCES = {
     "strategy_session",
     "tool_sources",
     "agent_state",
+    "turn_markers",
     "experiment_id",
     "ledger_summary",
     "service_outage",

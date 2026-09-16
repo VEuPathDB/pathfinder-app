@@ -14,11 +14,9 @@ import {
   enrichGeneSet,
   createGeneSetFromStrategy,
 } from "./geneSets";
-import type {
-  CreateGeneSetRequest,
-  SetOperationRequest,
-  CreateFromStrategyArgs,
-} from "./geneSets";
+import type { CreateFromStrategyArgs } from "./geneSets";
+import type { CreateGeneSetRequest } from "@pathfinder/shared/generated/types/CreateGeneSetRequest";
+import type { SetOperationRequest } from "@pathfinder/shared/generated/types/SetOperationRequest";
 import { requestJson, requestVoid } from "@/lib/api/http";
 import type { EnrichmentResult, GeneSet } from "@pathfinder/shared";
 
@@ -40,6 +38,7 @@ const geneSetFixture: GeneSet = {
   siteId: "plasmodb",
   geneIds: ["PF3D7_0100100", "PF3D7_0200200"],
   geneCount: 2,
+  membershipDigest: "000000000000000f",
   source: "paste",
   stepCount: 1,
   createdAt: "2026-01-01T00:00:00Z",
@@ -85,7 +84,7 @@ describe("createGeneSet", () => {
       wdkStepId: 7,
       searchName: "GeneByTextSearch",
       recordType: "gene",
-      parameters: { text_expression: "kinase" },
+      parameters: { text_expression: { type: "string", value: "kinase" } },
     };
 
     await createGeneSet(req);
@@ -353,7 +352,7 @@ describe("createGeneSetFromStrategy", () => {
       wdkStepId: 7,
       searchName: "GeneByTextSearch",
       recordType: "gene",
-      parameters: { text_expression: "kinase" },
+      parameters: { text_expression: { type: "string", value: "kinase" } },
       geneIds: ["G1", "G2"],
     };
 
@@ -373,7 +372,7 @@ describe("createGeneSetFromStrategy", () => {
           wdkStepId: 7,
           searchName: "GeneByTextSearch",
           recordType: "gene",
-          parameters: { text_expression: "kinase" },
+          parameters: { text_expression: { type: "string", value: "kinase" } },
         },
       },
     );

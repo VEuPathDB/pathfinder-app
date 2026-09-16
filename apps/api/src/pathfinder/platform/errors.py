@@ -2,6 +2,7 @@
 
 from enum import StrEnum
 
+import httpx
 from assistant_core.platform.types import JSONArray
 from pydantic import BaseModel
 from veupathdb.errors import VEuPathDBError
@@ -182,6 +183,29 @@ class ConversationFromEarlierBuildError(AppError):
         )
 
 
+# A site notice prints these, so they are sentences and not class names. The
+# order is narrowest first: a timeout is also a transport error.
+SITE_DID_NOT_ANSWER = "the site did not answer"
+_SITE_FAILURES: tuple[tuple[type[BaseException], str], ...] = (
+    (TimeoutError, "the site did not answer in time"),
+    (httpx.TimeoutException, "the site did not answer in time"),
+    (VEuPathDBError, "the site answered with an error"),
+    (httpx.HTTPStatusError, "the site answered with an error"),
+    (OSError, "the site could not be reached"),
+    (httpx.TransportError, "the site could not be reached"),
+)
+
+
+def site_failure_reason(
+    error: BaseException, *, fallback: str = SITE_DID_NOT_ANSWER
+) -> str:
+    """Say why a site did not answer, for the person who reads it."""
+    return next(
+        (reason for kind, reason in _SITE_FAILURES if isinstance(error, kind)),
+        fallback,
+    )
+
+
 class SiteUnavailableError(AppError):
     """A VEuPathDB site this process cannot reach.
 
@@ -190,8 +214,8 @@ class SiteUnavailableError(AppError):
     timeout.
     """
 
-    def __init__(self, site_id: str, error_class: str | None) -> None:
-        cause = error_class or "still loading"
+    def __init__(self, site_id: str, reason: str | None) -> None:
+        cause = reason or "still loading"
         super().__init__(
             code=ErrorCode.SITE_UNAVAILABLE,
             title="Cannot reach the site",

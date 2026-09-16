@@ -16,6 +16,7 @@ from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategySt
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.tools.standalone.strategy import apply_operations
 from pathfinder.ai.tools.toolsets.execution import build_toolset
 from pathfinder.domain.strategy.operational_spec import (
@@ -89,6 +90,7 @@ def _deps() -> AgentDeps:
                 ],
             )
         ),
+        turn_markers=TurnMarkers(),
     )
 
 

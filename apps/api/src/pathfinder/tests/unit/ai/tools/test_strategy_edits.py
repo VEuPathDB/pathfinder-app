@@ -19,6 +19,7 @@ from veupathdb_mcp import ToolErrorPayload
 from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.tools.standalone.strategy_edits import (
     delete_step,
     insert_saved_strategy,
@@ -317,6 +318,7 @@ class TestInsertSavedStrategy:
             strategy_session=session,
             conversation_id=None,
             db_session_factory=None,
+            turn_markers=TurnMarkers(),
         )
 
         res = returned(

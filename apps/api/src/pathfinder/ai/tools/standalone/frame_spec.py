@@ -15,7 +15,6 @@ from veupathdb_mcp.catalog import (
     ParamIntent,
     UnknownParameterError,
     fetch_search_details,
-    has_contrast_sibling,
     make_validation_callbacks,
     read_search_definition,
     resolve_params_with_intent,
@@ -29,6 +28,10 @@ from pathfinder.ai.tools.standalone._catalog_models import (
     ensure_search_registered,
     register_search,
 )
+from pathfinder.ai.tools.standalone._frame_count import (
+    criterion_line,
+    record_and_count_criterion,
+)
 from pathfinder.ai.tools.standalone._frame_eda import (
     refuse_a_search_the_criterion_cannot_use,
 )
@@ -38,6 +41,7 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     _CriterionCall,
     _phyletic_overrides,
     _radio_overrides,
+    _refuse_bad_assumptions,
     _refuse_undecided,
     _refuse_unknown_names,
     _refuse_unmatched_values,
@@ -59,6 +63,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
     OpenSlot,
+    ParameterAlternatives,
 )
 from pathfinder.services.strategies.saved_library import SavedStrategyListing
 
@@ -83,6 +88,11 @@ class SetCriterionResult(CamelModel):
     # Params the search defaulted. State these to the user with their values.
     defaulted_params: list[str] = Field(default_factory=list)
     open_slots: list[OpenSlot] = Field(default_factory=list)
+    # The records this binding matches, or null when no count was read.
+    result_count: int | None = None
+    # Filled only when the binding matches no record: one entry per vocabulary
+    # parameter that holds values this binding did not take.
+    alternatives: list[ParameterAlternatives] = Field(default_factory=list)
     # Dependent params whose vocabulary changed once the parents were bound.
     # A non-empty list means nothing was recorded; decide these and re-call.
     # The fresh vocabulary is on the pinned sheet.
@@ -94,42 +104,6 @@ class DropCriterionResult(CamelModel):
 
     criterion_id: str
     reason: str
-
-
-def _refuse_bad_assumptions(
-    call: _CriterionCall,
-    assumed: list[DeclaredAssumption],
-    infos: list[ParameterInfo],
-) -> None:
-    """An assumption names a parameter this call gave a value to.
-
-    A half of a reference and comparison pair has no defensible assumption:
-    both halves guessed is a degenerate all-against-all contrast.
-    """
-    by_name = {info.name: info for info in infos if info.is_visible}
-    for entry in assumed:
-        info = by_name.get(entry.param_name)
-        if info is None:
-            msg = (
-                f"No such parameter on {call.search_name}: {entry.param_name}. "
-                f"Declare an assumption only for a parameter of this search. "
-                f"Valid names: {sorted(by_name)}."
-            )
-            raise ModelRetry(msg)
-        if has_contrast_sibling(info, infos):
-            msg = (
-                f"{entry.param_name} is one half of a contrast pair, so no value "
-                f"for it can be assumed. State the group the request names, or "
-                f"leave it null and ask the user."
-            )
-            raise ModelRetry(msg)
-        if call.params.get(entry.param_name) is None:
-            msg = (
-                f"{entry.param_name} carries no value in this call, so there is "
-                f"nothing to assume. Pass the value in `params`, or drop the "
-                f"assumption."
-            )
-            raise ModelRetry(msg)
 
 
 async def _record_type(ctx: RunContext[AgentDeps], search_name: str) -> str:
@@ -220,6 +194,16 @@ async def set_criterion(
     value and the reason. Each becomes a constraint the user reads and can
     override. A half of a reference and comparison pair is never assumed.
 
+    ``result_count`` is how many records the binding you just made matches,
+    and is null for a search that runs on another step.
+
+    ``alternatives`` is present only when ``result_count`` is 0: one entry per
+    vocabulary parameter of this search, with the values the binding took and
+    the values it did not. A vocabulary larger than its listing bound reports
+    its size alone; read that one with ``get_parameter_options``. Any value you
+    take from it that the criterion text does not state is an ``assumed`` entry
+    like every other.
+
     ``redecide`` names the dependent parameters whose vocabulary changed once
     the parents were bound; the pin carries that fresh vocabulary and nothing is
     recorded then. Re-call with the same ``params`` and either a
@@ -268,6 +252,7 @@ async def set_criterion(
                 ),
                 sheet_pinned=True,
             ),
+            record_type,
         )
     search = SearchContext(ctx.deps.site_id, record_type, search_name)
     definition = await _search_definition(search)
@@ -320,6 +305,7 @@ async def set_criterion(
             SetCriterionResult(
                 criterion_id=criterion_id, search_name=search_name, redecide=redecide
             ),
+            record_type,
         )
     # A complete spec is validated here so a bad value returns a did-you-mean
     # retry. An open slot means a required param is still unresolved, which
@@ -351,7 +337,8 @@ async def set_criterion(
         )
         for slot in resolved.open_slots
     ]
-    state.frame_set_criterion(
+    count, alternatives = await record_and_count_criterion(
+        ctx,
         Criterion(
             id=criterion_id,
             text=text,
@@ -364,7 +351,11 @@ async def set_criterion(
                 AssumedValue(param_name=e.param_name, value=e.value, reason=e.reason)
                 for e in assumed or []
             ],
-        )
+        ),
+        record_type=record_type,
+        definition=definition,
+        resolved=resolved,
+        infos=infos,
     )
     return _criterion_return(
         ctx,
@@ -376,13 +367,17 @@ async def set_criterion(
             },
             defaulted_params=defaulted,
             open_slots=open_params,
+            result_count=count,
+            alternatives=alternatives,
         ),
+        record_type,
     )
 
 
 def _criterion_return(
     ctx: RunContext[AgentDeps],
     result: SetCriterionResult,
+    record_type: str,
 ) -> ToolReturn[SetCriterionResult]:
     """The bound criterion, or the parameters the call still leaves open."""
     if result.sheet_pinned:
@@ -401,11 +396,14 @@ def _criterion_return(
             ctx=ctx,
             status="warn",
         )
-    return with_summary(
-        result,
-        f"{result.criterion_id} set to {result.search_name}",
-        ctx=ctx,
+    line, status = criterion_line(
+        result.criterion_id,
+        result.search_name,
+        record_type,
+        result.result_count,
+        result.alternatives,
     )
+    return with_summary(result, line, ctx=ctx, status=status)
 
 
 def drop_criterion(

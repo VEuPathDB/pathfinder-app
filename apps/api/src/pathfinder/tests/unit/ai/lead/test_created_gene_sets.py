@@ -105,6 +105,42 @@ async def test_a_save_through_verifications_toolset_records_the_set(
     ]
 
 
+async def test_a_save_through_the_leads_wrapper_reaches_the_turn_record(
+    saved: list[GeneSet],
+) -> None:
+    """The turn contract reads this record, and it outlives a durable park."""
+    deps = _deps()
+
+    await lead_tools.create_workbench_gene_set(
+        run_context_for(deps, "call_save"),
+        name=SET_NAME,
+        gene_ids=GENE_IDS,
+    )
+
+    recorded = deps.state.turn_markers.created_gene_sets
+    assert [(c.id, c.name, c.gene_count) for c in recorded] == [
+        (saved[0].id, SET_NAME, len(GENE_IDS))
+    ]
+
+
+async def test_a_save_through_verifications_toolset_reaches_the_turn_record(
+    saved: list[GeneSet],
+) -> None:
+    deps = _deps()
+    inner: AgentDeps = agent_deps_for(deps)
+
+    await _verification_save()(
+        run_context_for(inner, "call_save"),
+        name=SET_NAME,
+        gene_ids=GENE_IDS,
+    )
+
+    recorded = deps.state.turn_markers.created_gene_sets
+    assert [(c.id, c.name, c.gene_count) for c in recorded] == [
+        (saved[0].id, SET_NAME, len(GENE_IDS))
+    ]
+
+
 async def _one_note(deps: LeadDeps) -> MemoryValue:
     await lead_tools.create_workbench_gene_set(
         run_context_for(deps, "call_save"),

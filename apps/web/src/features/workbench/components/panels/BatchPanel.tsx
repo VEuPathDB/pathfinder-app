@@ -1,22 +1,34 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useShallow } from "zustand/react/shallow";
 import { useUnmount } from "usehooks-ts";
-import { Layers, Loader2, Play } from "lucide-react";
+import { Layers, Loader2, Play, X } from "lucide-react";
 
-import type { Experiment } from "@pathfinder/shared";
+import type { Experiment, GeneSet } from "@pathfinder/shared";
+import { getOrganismsQueryOptions } from "@pathfinder/shared/generated/hooks/useGetOrganisms";
+import type { CreateBatchExperimentRequest } from "@pathfinder/shared/generated/types/CreateBatchExperimentRequest";
 import {
   createBatchExperimentStream,
-  type BatchOrganismTarget,
+  experimentBase,
+  experimentBasis,
+  organismBlocked,
+  organismParamOf,
 } from "@/features/workbench/api";
-import type { ExperimentRunConfig } from "@/features/workbench/api/streaming";
 import { Button } from "@/components/ui/button";
 import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
+import { toUserMessage } from "@/lib/api/errors";
+import { paramSpecsOptions } from "@/lib/api/sites";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useWorkbenchStore, type PanelId } from "@/state/useWorkbenchStore";
 
 import { AnalysisPanelContainer } from "../AnalysisPanelContainer";
+import { OrganismFilter } from "../OrganismFilter";
+import {
+  ExperimentComparisonTable,
+  type ExperimentRow,
+} from "./ExperimentComparisonTable";
 
 const PANEL_ID: PanelId = "batch";
 
@@ -31,69 +43,124 @@ export function BatchPanel() {
     })),
   );
   const activeSet = geneSets.find((gs) => gs.id === activeSetId);
+  if (!activeSet) return null;
 
-  const [organismsInput, setOrganismsInput] = useState("");
-  const [organismParamName, setOrganismParamName] = useState("organism");
+  return (
+    <AnalysisPanelContainer
+      panelId={PANEL_ID}
+      title="Batch (multi-organism)"
+      subtitle="Run this set's search once per organism"
+      icon={<Layers className="h-5 w-5" />}
+    >
+      <BatchRunner
+        geneSet={activeSet}
+        positiveControls={positiveControls}
+        negativeControls={negativeControls}
+      />
+    </AnalysisPanelContainer>
+  );
+}
+
+interface BatchRunnerProps {
+  geneSet: GeneSet;
+  positiveControls: string[];
+  negativeControls: string[];
+}
+
+function BatchRunner({
+  geneSet,
+  positiveControls,
+  negativeControls,
+}: BatchRunnerProps) {
+  const basis = experimentBasis(geneSet);
+  const blocked = organismBlocked(geneSet);
+  const recordType = geneSet.recordType ?? "gene";
+  const searchName = basis.kind === "search" ? basis.searchName : "";
+
+  const specs = useQuery(paramSpecsOptions(geneSet.siteId, recordType, searchName));
+  const organisms = useQuery({
+    ...getOrganismsQueryOptions(geneSet.siteId),
+    enabled: blocked === null,
+  });
+
+  const [chosen, setChosen] = useState<string[]>([]);
+  const [organismFilter, setOrganismFilter] = useState("");
   const [loading, setLoading] = useState(false);
-  const [progressText, setProgressText] = useState<string>("");
+  const [progressText, setProgressText] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [experiments, setExperiments] = useState<Experiment[] | null>(null);
+  const [rows, setRows] = useState<ExperimentRow[] | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useUnmount(() => abortRef.current?.abort());
 
-  const parsedTargets: BatchOrganismTarget[] = organismsInput
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .map((organism) => ({ organism }));
+  if (blocked !== null) {
+    return <PanelNotice>{blocked}</PanelNotice>;
+  }
+  if (specs.isPending || organisms.isPending) {
+    return <PanelNotice>Reading the parameters of {searchName}...</PanelNotice>;
+  }
 
-  const canRun =
-    activeSet != null &&
-    positiveControls.length > 0 &&
-    parsedTargets.length > 0 &&
-    organismParamName.length > 0;
+  const organismParam = organismParamOf(
+    specs.data ?? [],
+    organisms.data?.organisms ?? [],
+  );
+  if (organismParam === null) {
+    return (
+      <PanelNotice>
+        {searchName} declares no organism parameter, so it cannot be run one organism at
+        a time.
+      </PanelNotice>
+    );
+  }
+
+  const offered = organismParam.organisms.filter(
+    (org) =>
+      !chosen.includes(org) && org.toLowerCase().includes(organismFilter.toLowerCase()),
+  );
+  const missingControls = positiveControls.length === 0;
+  const canRun = chosen.length > 0 && !missingControls;
 
   const handleRun = async () => {
-    if (!activeSet) return;
     setLoading(true);
     setError(null);
-    setExperiments(null);
+    setRows(null);
     setProgressText("");
 
     const controller = new AbortController();
     abortRef.current = controller;
-
-    const base = {
-      siteId: activeSet.siteId,
-      recordType: activeSet.recordType ?? "gene",
-      searchName: activeSet.searchName ?? "",
-      parameters: activeSet.parameters ?? {},
-      positiveControls,
-      negativeControls,
-      name: `${activeSet.name} (batch)`,
-    } satisfies ExperimentRunConfig;
+    const request: CreateBatchExperimentRequest = {
+      base: experimentBase({
+        geneSet,
+        positiveControls,
+        negativeControls,
+        run: "batch",
+      }),
+      organismParamName: organismParam.name,
+      targetOrganisms: chosen.map((organism) => ({ organism })),
+    };
 
     try {
-      for await (const event of createBatchExperimentStream(
-        base,
-        organismParamName,
-        parsedTargets,
-        { signal: controller.signal },
-      )) {
+      for await (const event of createBatchExperimentStream(request, {
+        signal: controller.signal,
+      })) {
         if (event.type === "experiment_progress") {
           const raw = event.data;
           const phase = typeof raw["phase"] === "string" ? raw["phase"] : undefined;
           if (phase !== undefined) setProgressText(phase);
         } else if (event.type === "batch_complete") {
-          setExperiments(event.experiments);
+          setRows(
+            event.experiments.map((experiment) => ({
+              label: organismOf(experiment, organismParam.name),
+              experiment,
+            })),
+          );
         } else {
           setError(event.error);
         }
       }
     } catch (err) {
       if (!(err instanceof DOMException && err.name === "AbortError")) {
-        setError(err instanceof Error ? err.message : "Batch experiment failed");
+        setError(toUserMessage(err, "The batch did not run."));
       }
     } finally {
       setLoading(false);
@@ -101,74 +168,97 @@ export function BatchPanel() {
     }
   };
 
-  if (!activeSet) return null;
-
   return (
-    <AnalysisPanelContainer
-      panelId={PANEL_ID}
-      title="Batch (multi-organism)"
-      subtitle="Run the active experiment across multiple organisms"
-      icon={<Layers className="h-5 w-5" />}
-    >
-      <div className="space-y-3 text-sm">
-        <label className="block space-y-1">
-          <span className="text-xs font-medium uppercase text-muted-foreground">
-            Organism parameter name
-          </span>
-          <input
-            type="text"
-            value={organismParamName}
-            onChange={(e) => setOrganismParamName(e.target.value)}
-            className="w-full rounded border border-input bg-background px-2 py-1"
-          />
-        </label>
+    <div className="space-y-3 text-sm">
+      <p className="text-xs text-muted-foreground">
+        Each run repeats {searchName} with{" "}
+        <span className="font-mono">{organismParam.name}</span> set to one organism.
+      </p>
 
-        <label className="block space-y-1">
-          <span className="text-xs font-medium uppercase text-muted-foreground">
-            Organisms (one per line)
-          </span>
-          <textarea
-            value={organismsInput}
-            onChange={(e) => setOrganismsInput(e.target.value)}
-            className="h-32 w-full rounded border border-input bg-background px-2 py-1 font-mono text-xs"
-            placeholder="Plasmodium falciparum&#10;Plasmodium berghei&#10;Plasmodium vivax"
-          />
-        </label>
+      <OrganismFilter
+        organisms={organismParam.organisms}
+        selectedOrganism={null}
+        onSelect={(organism) => {
+          if (organism !== null) setChosen([...chosen, organism]);
+        }}
+        organismFilter={organismFilter}
+        onFilterChange={setOrganismFilter}
+        filteredOrganisms={offered}
+      />
 
-        <Button
-          onClick={() => void handleRun()}
-          disabled={loading || !canRun}
-          className="gap-2"
+      {chosen.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {chosen.map((organism) => (
+            <span
+              key={organism}
+              data-testid="batch-organism"
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] leading-tight"
+            >
+              <span className="italic">{organism}</span>
+              <button
+                type="button"
+                aria-label={`Remove ${organism}`}
+                onClick={() => setChosen(chosen.filter((o) => o !== organism))}
+                className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {missingControls && (
+        <p className="text-xs text-muted-foreground">
+          Pick positive controls in the Evaluate panel: every organism is scored against
+          them.
+        </p>
+      )}
+
+      <Button
+        onClick={() => void handleRun()}
+        disabled={loading || !canRun}
+        className="gap-2"
+      >
+        {loading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Play className="h-4 w-4" />
+        )}
+        {loading ? "Running..." : `Run ${chosen.length} experiments`}
+      </Button>
+
+      {loading && progressText !== "" && (
+        <div className="text-xs text-muted-foreground">Phase: {progressText}</div>
+      )}
+
+      {error !== null && error !== "" && (
+        <div
+          data-testid="batch-error"
+          className="rounded border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive"
         >
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-          {loading ? "Running..." : `Run ${parsedTargets.length} experiments`}
-        </Button>
+          {error}
+        </div>
+      )}
 
-        {loading && progressText !== "" && (
-          <div className="text-xs text-muted-foreground">Phase: {progressText}</div>
-        )}
-
-        {error !== null && error !== "" && (
-          <div className="rounded border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
-            {error}
-          </div>
-        )}
-
-        {experiments && (
-          <details className="rounded border border-border p-2 text-xs">
-            <summary className="cursor-pointer font-medium">
-              {experiments.length} experiments complete
-            </summary>
-            <pre className="mt-2 max-h-96 overflow-auto">
-              <code>{JSON.stringify(experiments, null, 2)}</code>
-            </pre>
-          </details>
-        )}
-      </div>
-    </AnalysisPanelContainer>
+      {rows !== null && (
+        <ExperimentComparisonTable
+          runHeader="Organism"
+          rows={rows}
+          testId="batch-results"
+        />
+      )}
+    </div>
   );
+}
+
+function PanelNotice({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs text-muted-foreground">{children}</p>;
+}
+
+/** The organism a finished run was scoped to, read from its own config. */
+function organismOf(experiment: Experiment, organismParamName: string): string {
+  const value = experiment.config.parameters[organismParamName];
+  if (value?.type === "single-pick-vocabulary") return value.value;
+  return experiment.config.name ?? experiment.id;
 }

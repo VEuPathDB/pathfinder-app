@@ -15,8 +15,9 @@ from pathfinder.ai.tools.standalone.control_sets import (
     BuiltControlSet,
     ControlSetSummary,
     build_control_set,
-    import_control_ids_from_strategy,
     list_control_sets,
+    read_gene_ids_from_gene_set,
+    read_gene_ids_from_strategy,
 )
 from pathfinder.services.control_sets import ControlSetResponse, NewControlSet
 from pathfinder.services.experiment.control_sourcing import ResolvedControls
@@ -24,6 +25,7 @@ from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import detached_lead_context
 
 _WDK_STRATEGY_ID = "330531493"
+_SAVES_NOTHING = "This saves nothing. Call build_control_set to save a control set."
 
 
 def _stored(
@@ -103,6 +105,50 @@ async def test_build_control_set_validates_persists_and_reports_unresolved(
     assert persisted[0].source == "chat"
 
 
+async def test_build_control_set_records_what_the_turn_wrote(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The turn contract reads this record to judge what the reply claims."""
+    _patch_validate(monkeypatch, {"g1": ResolvedControls(valid_ids=["g1"])})
+
+    async def _create(
+        _session: AsyncSession, spec: NewControlSet, *, user_id: UUID
+    ) -> ControlSetResponse:
+        del user_id
+        return _stored(control_set_id="cs_123", name=spec.name)
+
+    monkeypatch.setattr(control_sets, "create_control_set", _create)
+    ctx = detached_lead_context()
+
+    await build_control_set(ctx, name="my controls", positive_ids=["g1"])
+
+    recorded = ctx.deps.state.turn_markers.created_control_sets
+    assert [(c.id, c.name) for c in recorded] == [("cs_123", "my controls")]
+
+
+async def test_a_turn_that_only_read_ids_records_no_control_set() -> None:
+    """Reading ids is the source step; only the write is the control set."""
+    ctx = detached_lead_context()
+
+    with pytest.raises(ModelRetry):
+        await read_gene_ids_from_strategy(ctx, _WDK_STRATEGY_ID)
+
+    assert ctx.deps.state.turn_markers.created_control_sets == []
+
+
+def test_the_reading_tools_say_they_save_nothing() -> None:
+    """The name of each says "control", so the description says who writes."""
+    described = [
+        _SAVES_NOTHING in (tool.__doc__ or "")
+        for tool in (
+            read_gene_ids_from_gene_set,
+            read_gene_ids_from_strategy,
+        )
+    ]
+
+    assert described == [True, True]
+
+
 async def test_build_control_set_refuses_when_no_positive_resolves(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -163,22 +209,25 @@ class TestAWdkStrategyIdIsARetry:
 
     async def test_it_does_not_raise_value_error(self) -> None:
         with pytest.raises(ModelRetry):
-            await import_control_ids_from_strategy(
-                detached_lead_context(), _WDK_STRATEGY_ID
+            await read_gene_ids_from_strategy(
+                detached_lead_context(),
+                _WDK_STRATEGY_ID,
             )
 
     async def test_the_message_names_the_value_it_got(self) -> None:
         with pytest.raises(ModelRetry) as err:
-            await import_control_ids_from_strategy(
-                detached_lead_context(), _WDK_STRATEGY_ID
+            await read_gene_ids_from_strategy(
+                detached_lead_context(),
+                _WDK_STRATEGY_ID,
             )
 
         assert _WDK_STRATEGY_ID in str(err.value)
 
     async def test_the_message_says_which_id_is_wanted(self) -> None:
         with pytest.raises(ModelRetry) as err:
-            await import_control_ids_from_strategy(
-                detached_lead_context(), _WDK_STRATEGY_ID
+            await read_gene_ids_from_strategy(
+                detached_lead_context(),
+                _WDK_STRATEGY_ID,
             )
 
         assert "conversation" in str(err.value).lower()

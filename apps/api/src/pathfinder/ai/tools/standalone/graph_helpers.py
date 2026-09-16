@@ -5,6 +5,7 @@ responses and context payloads for AI tool results.
 """
 
 from assistant_core.graph.stream_events import ToolSummaryStatus
+from assistant_core.graph.tool_summary import count_noun
 from assistant_core.platform.types import JSONObject
 from veupathdb.domain.strategy import StepValidation, StrategyStep
 
@@ -130,14 +131,17 @@ def build_step_response(
     )
 
 
-def count_summary(step_count: int, genes: int | None) -> tuple[str, ToolSummaryStatus]:
+def count_summary(
+    step_count: int, records: int | None, record_type: str | None
+) -> tuple[str, ToolSummaryStatus]:
     """The one line every strategy surface reports its size with.
 
     A count nobody measured is reported as missing, never spent as a zero.
     """
-    if genes is None:
+    if records is None:
         return f"{step_count} steps, count not available", "warn"
-    return f"{step_count} steps, {genes:,} genes", "ok" if genes else "empty"
+    counted = count_noun(records, record_type or "record")
+    return f"{step_count} steps, {counted}", "ok" if records else "empty"
 
 
 def serialize_step(

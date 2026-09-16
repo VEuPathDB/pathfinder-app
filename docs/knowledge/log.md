@@ -51,6 +51,161 @@
   the fallback reply names the error and asks for the message again, instead of asking the
   user to rephrase. Measured: two turns ended on a provider disconnect inside FRAME and both
   told the user to rephrase a well-formed request.
+* **A gene set carries the parameters of the search that produced it.** A set taken from a
+  single-step WDK strategy recorded the search name and nothing beside it, because the step's wire
+  parameters were left undecoded; Parameter Sweep therefore found nothing to sweep on any set, and
+  a stored evaluation could not say what produced the genes it scored. The step's values are now
+  decoded against the search's own specification through one seam in the library
+  (`veupathdb_mcp.wdk.param_decoding`, released in 0.2.0a17), which the strategy snapshot uses too.
+  `None` means the search document could not be read, which a caller can tell from a decoded map.
+  An empty map is not a promise that the step set no parameters: a document that reads but whose
+  every value the decoder does not know gives the same empty map, so nothing may re-run a search
+  from one and expect the step back. A re-sync carries the whole resolved context rather than four of its fields,
+  through a single assignment site a test pins against the context's own fields, and refuses
+  outright when it resolves no genes: a read that returns nothing has learnt nothing about the
+  strategy, and the set it would have overwritten is a saved result.
+* **A criterion that matches nothing names the choices inside it, and the Lead reads them.** A build reported a
+  signal-peptide criterion as zero and offered to swap the annotation type, while the answer the
+  researcher wanted sat behind one other value of a parameter the criterion had already bound. A
+  binding whose count is a literal zero now carries each of its vocabulary parameters, the value it
+  took, how many the parameter has and, up to a listing bound, which others there are. The product
+  measures and reports; it states no rule about which alternative is better, and a non-zero binding
+  gains nothing. The options are already in hand when the binding happens, so the fact costs no
+  extra upstream read. It reaches the Lead through the criterion on the operational spec and the
+  ledger's criterion section, and the Lead is told to read it and state the choices without ranking
+  them, where it used to be told to offer a way to broaden and so invented one. The count runs after
+  the binding is recorded and never gates it: a refusal that is not about the one search leaves the
+  count by raising, so counting first would lose a binding that was already correct.
+* **A turn that could not reach its model says which model, and which stage chose it.** A run whose provider never answered
+  reached the thread as the provider's own bare clause, naming neither the model nor the stage that
+  chose it, so a researcher who had changed a model could not connect the two. The capture now
+  records whether the model produced any part of an answer, and the reply names the stage, the
+  model and where the choice lives, but only when the model produced nothing at all and the catalog
+  knows the id: after an answer, or for an id the catalog does not know, naming a stage would be a
+  guess. The sanitising is unchanged, because the added text is the product's own catalog name.
+  The same holds one layer down: a sub-agent pass that raises with no answer behind it records its
+  role and the model that ran, and the reply names the stage in the words Settings uses. The model
+  a stage runs is resolved in one place, so the model that ran and the model named cannot drift.
+* **A reply that claims a control set the turn did not write is corrected.** The turn contract
+  reconciles a reply against what the turn did; it did not cover the kind of artefact the prose
+  claims. `TurnMarkers` now records a written control set, and a claim without one comes back in
+  the same single correction, naming the mismatch and what the turn did save, and the same rule now
+  covers a claimed gene set. Two reading tools whose names suggested they persist are renamed:
+  `import_` is this product's verb for a read that keeps, so `import_control_ids_from_*` read as
+  "import controls" while persisting nothing, and they are now `read_gene_ids_from_strategy` and
+  `read_gene_ids_from_gene_set`. A gene set the turn saved is recorded on the turn's markers and
+  not only on the node's own state, so the record survives a durable park and a truthful reply is
+  not corrected after one.
+* **An evaluation says whether it still describes the set.** Re-taking a set from its strategy
+  replaced its membership and left the evaluation that scored the old one attached, with its date
+  badge intact and three dependent panels unlocked by it, so a researcher read yesterday's metrics
+  over today's genes. A run records the membership it scored as a digest of the set's sorted ids,
+  the gene set publishes the same digest at the read, and the workbench compares the two. A count
+  will not do: a subset of a set can have a different count and a subset of the same size is a
+  different set. An evaluation stored before this is a third state, neither current nor discarded:
+  it says its genes were not recorded, and the panels that depend on a current one stay shut.
+* **A pasted strategy link is opened on the site it names, or refused.** The import dialog read the
+  strategy id out of a link and ignored the host, so a link to one site pasted while the sidebar
+  was on another opened that other site's strategy of the same number. Ids are per-site sequences,
+  so that is a refusal most of the time and the wrong strategy on a collision. A link whose host is
+  not the current site's is refused by name, because resolving it would turn one paste into a
+  silent site switch and would still need a refusal for a neighbouring host that is a different WDK
+  instance. A bare id, which names no host, is unchanged.
+* **A record the turn keeps is passed, not defaulted.** `AgentDeps.turn_markers` defaulted to a
+  fresh record, so any construction site that forgot would write its saves into a detached object
+  and lose them with no error. It is required, and every site states what it shares.
+* **Settings opens where nothing is destroyed.** The modal opened on its Data tab, whose whole
+  content is four delete actions ending in one that removes a researcher's work from VEuPathDB and
+  cannot be undone. It opens on Model, the first tab, and Data is one deliberate click away.
+* **A saved parameter value is read as the typed value it is.** The sweep read
+  `experiment.config.parameters[name]` as if it were a string, so a typed wire value rendered as
+  `[object Object]` and its numeric form as `NaN`. It was unreachable while that object was always
+  empty and became reachable the moment a set recorded its search parameters. The existing
+  formatter reads all eleven value kinds.
+* **A panel that omits a required field cannot compile.** Beyond the two experiment panels, eleven
+  further body sites across the web app hand-declared a shape for a route whose request type is
+  generated. Four of them disagreed with the route: a parameter map typed as unknown values, a
+  source required on one side and optional on the other, an open string where a closed enum was
+  wanted, and an operator typed as any string against six. Three sites remain, all blocked behind
+  retyping the strategy editor's parameter map, which is its own change.
+* **The mock names its control set after the file it came from.** A mock-driven run left rows a
+  researcher could not tell apart, which read as a product defect and was not one; the product's
+  own paths all name what they save. Test scaffolding that lies about the product costs a reader
+  the same time a defect does.
+* **A site that did not answer is described, not classified.** A degraded site's notice and a
+  sign-in the site did not answer both printed the name of a Python exception class. One vocabulary
+  now maps a failure to a sentence a reader can act on, beside the error that prints it, and the
+  class stays in the log line. It spans both hierarchies a site failure arrives in, the standard
+  one and the transport client's, because the catalog and the sign-in raise different kinds for the
+  same event; a caller that has a better fallback than "the site did not answer" supplies it.
+  A site's own entry in `/health/ready` takes the sentence too. The three fixed subsystems there
+  still report a class name, which no researcher reads.
+* **A combine step is named by what it does.** A strategy imported from VEuPathDB drew its
+  combine as `boolean_question_TranscriptRecordClasses_TranscriptRecordClass` between two steps
+  that read as sentences. The canvas now follows the rule the compact rows already used and names
+  a combine by its operator.
+* **An overlap the diagram cannot draw is named instead of drawn.** Selecting sets with identical
+  membership made the euler layout emit non-finite values into its SVG arc flags, so the browser
+  discarded the paths and the region labels overprinted. Sets that are exactly equal are detected
+  before rendering and named, and the counts and the pairwise table are unchanged. Measured: the
+  trigger is duplication, not nesting; a small set inside a large one draws correctly.
+* **A researcher can open a strategy they already have.** `POST /api/v1/conversations/open` worked
+  and nothing reached it. The conversations header menu now offers it, taking a pasted strategy
+  link or an id, or a pick from the account's own strategies on that site. The listing hides
+  PathFinder's own helper strategies and deleted ones, and hides nothing else: a picker that omits
+  work the researcher can see on the site would be its own defect.
+* **A part of a user's message starts on its own line.** An attached gene list was joined to the
+  question with no separator, so the persisted message read "signal peptide?Attached gene-ID list".
+* **The workbench says which of the two empty states it means.** A signed-out workbench reported
+  that the researcher has no gene sets; it has not asked yet, and now says so. At phone width its
+  panel is capped to the viewport instead of being clipped by 74 pixels.
+* **A count names the records it counted.** `criterion_line` and the strategy's own
+  `count_summary` take the record type from the graph, so a plasmodb gene search reads
+  "3 transcripts" rather than "3 genes" and a pathway search does not read "genes" at all. The
+  noun is WDK's, the same one the strategy canvas prints beside a step; prose the Lead writes for
+  a researcher is its own.
+* **Batch and Benchmark carry the generated experiment request.** The workbench declared its own
+  experiment config by hand with the two controls fields optional, so both panels compiled while
+  the API refused every body they sent. One builder
+  (`features/workbench/api/experimentBase.ts`) now holds the controls search, the record type, the
+  name length and the gene-set link for all three panels, and each stream function takes its
+  route's generated request type, so a panel that omits a required field fails the typecheck. A
+  set runs its own search only when it records both the search and the parameters it ran with;
+  a set that records a search without them, a set saved from a combine step, and a fixed gene
+  list each get their own sentence, so the panel never tells a researcher their set records no
+  search when it records one. Batch derives the organism parameter from the base search's own
+  vocabulary instead of asking a researcher to type a WDK parameter name;
+  `organism_varies_nothing` refuses a base that names no search. Benchmark picks saved control
+  sets instead of hand-written JSON. Both draw one results table, with a row for every run they
+  started: an organism or a control set whose run failed is reported beside the ones that
+  finished rather than dropped from the answer.
+* **A problem body is read a member at a time.** The web client parsed the whole error body
+  against one schema whose entries wanted a `message`, so a FastAPI validation body, whose entries
+  carry `msg`, failed as a whole and cost the reader the `detail` as well: the request-validation
+  refusals degraded to their status line ("HTTP 422 Unprocessable Content"). Each member is now
+  read on its own. A located refusal carries its subject only in its location, so it is read first
+  and printed with the field it names ("controlsSearchName: Field required"), taking the name the
+  entry declares over the one its location implies, and never a request part or a list index; a
+  refusal that writes its own sentence already names its subject, so the summary wins and nothing
+  is prefixed.
+  The joined text stops at 300 characters with a "(+N more)" tail, and a `detail` that is neither
+  a sentence nor a list of refusals offers nothing.
+* **A criterion reports how many records it matches, at the moment it binds.** FRAME used to bind a
+  criterion knowing only that its parameters validated, so a search matching a single gene read the
+  same as one matching thousands, and a researcher could be told "1 gene" for a family with
+  hundreds without anything noticing. A search criterion now carries its own count, measured with
+  one anonymous read of the configuration it binds, under a five second budget and dropped when the
+  budget expires. There is no shape detection and no comparison: the count is a fact about the
+  binding, and the model decides what it means. The read is `count_search_answer`, published from
+  veupathdb-mcp 0.2.0a16, so the plan counter and this one are the same function. A count reports
+  no number only when the service answered about the one search it asked for; a refusal meaning
+  nothing answered at all reaches the caller, which a16 got wrong and 0.2.0a17 fixed. The pin moved
+  from 0.2.0a15 to 0.2.0a17 over the two releases. An earlier
+  attempt reported the count beside the same words wildcarded, and was removed after measurement: a
+  wildcard over several words matches any of them, so the companion equalled the whole genome
+  (9,667 of 9,747 genes on one site), and because an exact phrase is a subset of its own words the
+  comparison fired on correct bindings as readily as brittle ones.
+
 * **A gene set remembers the evaluation that scored it.** `experiments` carries a nullable
   `gene_set_id` (alembic `2026_09_15_0001`), the three create routes record it, and
   `GET /api/v1/gene-sets/{id}/experiments` reads it back newest first for the calling user, so

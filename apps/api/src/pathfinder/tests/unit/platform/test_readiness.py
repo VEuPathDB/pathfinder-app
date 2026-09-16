@@ -71,7 +71,7 @@ class TestReadinessState:
         state.register_catalog("plasmodb")
         state.register_catalog("veupathdb")
         state.mark_catalog_ready("plasmodb")
-        state.mark_catalog_failed("veupathdb", "ReadTimeout")
+        state.mark_catalog_failed("veupathdb", TimeoutError())
 
         assert state.degraded == ["veupathdb"]
         assert state.not_ready == []
@@ -87,7 +87,7 @@ class TestReadinessState:
     def test_no_ready_catalog_is_not_ready(self) -> None:
         state = _process_ready()
         state.register_catalog("plasmodb")
-        state.mark_catalog_failed("plasmodb", "ReadTimeout")
+        state.mark_catalog_failed("plasmodb", TimeoutError())
 
         assert state.all_ready is False
         assert state.not_ready == ["catalogs"]
@@ -110,11 +110,11 @@ class TestReadinessState:
     def test_degraded_catalog_carries_the_last_error(self) -> None:
         state = _process_ready()
         state.register_catalog("veupathdb")
-        state.mark_catalog_failed("veupathdb", "ReadTimeout")
+        state.mark_catalog_failed("veupathdb", TimeoutError())
 
         degraded = state.degraded_catalog("veupathdb")
         assert degraded is not None
-        assert degraded.error == "ReadTimeout"
+        assert degraded.error == "the site did not answer in time"
 
     def test_a_ready_catalog_is_not_degraded(self) -> None:
         state = _process_ready()
@@ -166,15 +166,15 @@ class TestReadinessState:
         state = ReadinessState()
         state.register_catalog("plasmodb")
         state.fail_loading(ZeroDivisionError("https://plasmodb.org refused"))
-        assert state.catalogs["plasmodb"].error == "ZeroDivisionError"
+        assert state.catalogs["plasmodb"].error == "its catalog did not load"
 
     def test_fail_loading_keeps_an_error_a_step_already_reported(self) -> None:
         state = ReadinessState()
         state.mark_failed("embedding_backend", "connection refused")
-        state.mark_catalog_failed("plasmodb", "404")
+        state.mark_catalog_failed("plasmodb", ConnectionResetError())
         state.fail_loading(ZeroDivisionError("warm-up died"))
         assert state.embedding_backend.error == "connection refused"
-        assert state.catalogs["plasmodb"].error == "404"
+        assert state.catalogs["plasmodb"].error == "the site could not be reached"
 
     def test_unknown_subsystem_raises(self) -> None:
         state = ReadinessState()

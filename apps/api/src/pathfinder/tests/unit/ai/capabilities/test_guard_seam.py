@@ -30,7 +30,7 @@ from pathfinder.ai.agents.tool_vocabulary import (
 from pathfinder.ai.capabilities import resilience
 from pathfinder.ai.capabilities.resilience import ToolResilience
 from pathfinder.ai.graph.runtime import AgentDeps, Context
-from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.graph.state import PipelineState, TurnMarkers
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import BUILD_SUB_AGENT_BY_ROLE, LeadDeps
@@ -175,6 +175,7 @@ def test_the_product_deps_default_to_the_pathfinder_guard() -> None:
     deps = AgentDeps(
         site_id="plasmodb",
         strategy_session=StrategySession(site_id="plasmodb"),
+        turn_markers=TurnMarkers(),
     )
     assert deps.tool_repetition_guard.read_only_tools == READ_ONLY_TOOLS
 

@@ -37,6 +37,7 @@ function geneSet(overrides: Partial<GeneSet> = {}): GeneSet {
     geneIds: ["PF3D7_1133400", "PF3D7_0709000"],
     source: "strategy",
     geneCount: 2,
+    membershipDigest: "0000000000000010",
     createdAt: "2026-09-05T00:00:00Z",
     stepCount: 1,
     ...overrides,

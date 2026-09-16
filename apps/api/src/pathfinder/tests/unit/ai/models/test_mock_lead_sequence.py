@@ -94,6 +94,23 @@ def test_an_attachment_classifies_before_it_seeds_a_control_set() -> None:
     ]
 
 
+def test_a_seeded_control_set_is_named_after_the_file_it_came_from() -> None:
+    """Two uploads must not produce two rows a reader cannot tell apart."""
+    msgs: list[ModelMessage] = [
+        _user("Use these genes as my positive controls."),
+        _user("Attached gene-ID list from msp-set.csv: PF3D7_0102200, PF3D7_0207600"),
+    ]
+
+    call = next(
+        c for c in arcs._lead_sequence(msgs) if c.tool_name == "build_control_set"
+    )
+
+    assert call.args == {
+        "name": "Controls from msp-set.csv",
+        "positive_ids": ["PF3D7_0102200", "PF3D7_0207600"],
+    }
+
+
 def test_a_save_request_creates_a_workbench_gene_set() -> None:
     """The save the user asks for is the workbench tool, never a memory note."""
     msgs: list[ModelMessage] = [

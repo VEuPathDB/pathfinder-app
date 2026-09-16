@@ -39,6 +39,8 @@ GATED: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/conversations/{conversation_id}/revert-to-message"),
         ("POST", "/api/v1/conversations/{conversation_id:uuid}/save-substrategy"),
         ("POST", "/api/v1/conversations/{conversation_id:uuid}/insert-saved"),
+        # The researcher's own strategies on one site.
+        ("GET", "/api/v1/sites/{siteId}/strategies"),
         # Gene sets: the routes that materialize or read a WDK dataset.
         ("POST", "/api/v1/gene-sets"),
         ("POST", "/api/v1/gene-sets/{gene_set_id}/retake"),

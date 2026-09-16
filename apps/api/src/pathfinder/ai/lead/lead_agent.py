@@ -58,9 +58,9 @@ from pathfinder.ai.lead.turn_contract import (
 from pathfinder.ai.lead.verify_dispatch import verify_strategy
 from pathfinder.ai.tools.standalone.control_sets import (
     build_control_set,
-    import_control_ids_from_gene_set,
-    import_control_ids_from_strategy,
     list_control_sets,
+    read_gene_ids_from_gene_set,
+    read_gene_ids_from_strategy,
 )
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
@@ -108,8 +108,8 @@ def build_lead_agent() -> LeadAgent:
             Tool(compare_search_variants),
             Tool(build_control_set),
             Tool(list_control_sets),
-            Tool(import_control_ids_from_gene_set),
-            Tool(import_control_ids_from_strategy),
+            Tool(read_gene_ids_from_gene_set),
+            Tool(read_gene_ids_from_strategy),
             Tool(compare_variants_scored),
             Tool(clear_strategy, requires_approval=True),
             Tool(delete_step, requires_approval=True),

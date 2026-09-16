@@ -147,3 +147,45 @@ describe("SetVenn promises no diagram it cannot draw", () => {
     expect(screen.getByTestId("reaviz-venn")).toBeTruthy();
   });
 });
+
+describe("SetVenn refuses a selection the layout cannot place", () => {
+  const sameGenes = ["PF3D7_0102200", "PF3D7_0207600", "PF3D7_0208900"];
+  const repeated = [
+    { key: "gam positives", geneIds: ["PF3D7_0102200", "PF3D7_1133400"] },
+    { key: "gametocyte secreted candidates", geneIds: sameGenes },
+    { key: "gametocyte secreted candidates v2", geneIds: [...sameGenes].reverse() },
+    { key: "gametocyte secreted candidates v3", geneIds: sameGenes },
+  ];
+
+  it("draws no diagram when three of the sets hold the same genes", () => {
+    render(<SetVenn sets={repeated} onRegionClick={vi.fn()} />);
+    expect(screen.queryAllByTestId("reaviz-venn")).toHaveLength(0);
+    expect(screen.queryAllByText("Click a region to create a gene set")).toHaveLength(
+      0,
+    );
+  });
+
+  it("names the sets it cannot separate", () => {
+    render(<SetVenn sets={repeated} />);
+    expect(
+      screen.getByText(
+        "gametocyte secreted candidates, gametocyte secreted candidates v2, and " +
+          "gametocyte secreted candidates v3 hold the same genes, so an overlap " +
+          "diagram cannot separate them.",
+      ),
+    ).toBeVisible();
+  });
+
+  it("still draws a selection whose sets differ", () => {
+    render(
+      <SetVenn
+        sets={[
+          { key: "Set A", geneIds: ["g1", "g2", "g3"] },
+          { key: "Set B", geneIds: ["g2", "g3", "g4"] },
+          { key: "Set C", geneIds: ["g4", "g5"] },
+        ]}
+      />,
+    );
+    expect(screen.getByTestId("reaviz-venn")).toBeTruthy();
+  });
+});

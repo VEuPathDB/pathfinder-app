@@ -26,21 +26,21 @@ export function TopBar({ selectedSite }: TopBarProps) {
         className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/25 to-transparent"
         aria-hidden
       />
-      <div className="relative flex items-center justify-between px-4 py-2">
-        <div className="flex items-center gap-2">
+      <div className="relative flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2">
+        <div className="flex min-w-0 items-center gap-2">
           <Image
             src="/pathfinder.svg"
             alt=""
             width={22}
             height={22}
-            className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+            className="shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
           />
-          <span className="text-sm font-semibold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+          <span className="truncate text-sm font-semibold tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
             PathFinder
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <QuotaPill />
+        <div className="flex min-w-0 items-center gap-3">
+          <QuotaPill siteId={selectedSite} />
           <SiteAuth siteId={selectedSite} headerTextVariant="light" />
         </div>
       </div>

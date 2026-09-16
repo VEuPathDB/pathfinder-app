@@ -281,6 +281,7 @@ async def _drive_lead_stream(
                 usage=usage_acc,
             ) as events:
                 async for event in events:
+                    capture.note_model_output(event)
                     if isinstance(event, AgentRunResultEvent):
                         _absorb_run_result(event, capture, deps)
                     else:
@@ -310,7 +311,7 @@ async def _drive_lead_stream(
             )
             capture.response = stop_response(
                 lead_turn_budget_message(),
-                changed=state.turn_markers.changed_strategy,
+                changed=deps.state.turn_markers.changed_strategy,
             )
 
     try:
@@ -329,7 +330,7 @@ async def _drive_lead_stream(
             user_id=str(state.user_id),
         )
         raise
-    absorb_loop_stop(state, capture, guard)
+    absorb_loop_stop(deps.state, capture, guard)
 
 
 async def _run_lead_turn(
@@ -376,7 +377,8 @@ async def _run_lead_turn(
 
     capture.response = final_reply(
         capture,
-        changed=state.turn_markers.changed_strategy,
+        deps.unanswered_stage,
+        changed=deps.state.turn_markers.changed_strategy,
     )
 
     _emit_residual_prose(writer, capture, message_id=message_id)

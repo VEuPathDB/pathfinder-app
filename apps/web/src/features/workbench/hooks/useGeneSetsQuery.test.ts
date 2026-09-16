@@ -40,6 +40,7 @@ function makeGeneSet(overrides: Partial<GeneSet> & { id: string }): GeneSet {
     geneIds: ["PF3D7_0100100"],
     source: "strategy",
     geneCount: 1,
+    membershipDigest: "0000000000000013",
     createdAt: "2026-04-06T12:00:00Z",
     stepCount: 1,
     ...overrides,

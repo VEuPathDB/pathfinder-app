@@ -13,6 +13,7 @@ import { SavedStrategiesPage } from "./SavedStrategiesPage";
 import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
 import { startChatFromSavedStrategy } from "@/lib/api/conversations";
 import { chatRoot, chatUrl } from "@/lib/routes";
+import { useRightRailStore } from "@/state/useRightRailStore";
 
 vi.mock("@pathfinder/shared/generated/hooks/useDeleteStrategy", () => ({
   deleteStrategy: vi.fn(() => Promise.resolve({})),
@@ -63,6 +64,7 @@ beforeEach(() => {
   mockDelete.mockClear();
   mockStartChat.mockClear();
   routerPushMock.mockClear();
+  useRightRailStore.setState({ openPanel: null });
 });
 
 const KINASES = conv({
@@ -168,5 +170,40 @@ describe("SavedStrategiesPage", () => {
     await waitFor(() =>
       expect(routerPushMock.mock.calls).toEqual([[chatUrl("plasmodb", "new-conv")]]),
     );
+  });
+
+  it("reports the insert while it runs", async () => {
+    let finish: (id: string) => void = () => undefined;
+    mockStartChat.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    renderPage([KINASES], { 101: 0 });
+    await screen.findByTestId("saved-strategy-k1");
+
+    await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
+
+    const button = screen.getByTestId("saved-strategy-use-k1");
+    expect(button).toHaveTextContent("Inserting...");
+    expect(button).toHaveAttribute("aria-busy", "true");
+
+    finish("new-conv");
+    await waitFor(() =>
+      expect(routerPushMock.mock.calls).toEqual([[chatUrl("plasmodb", "new-conv")]]),
+    );
+  });
+
+  it("opens the new conversation with its strategy on show", async () => {
+    renderPage([KINASES], { 101: 0 });
+    await screen.findByTestId("saved-strategy-k1");
+
+    await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
+
+    await waitFor(() =>
+      expect(useRightRailStore.getState().openPanel).toBe("strategy"),
+    );
+    expect(routerPushMock.mock.calls).toEqual([[chatUrl("plasmodb", "new-conv")]]);
   });
 });

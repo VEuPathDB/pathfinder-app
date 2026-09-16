@@ -11,6 +11,7 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategyStepNode
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.ai.tools.standalone.strategy import apply_operations
@@ -161,6 +162,7 @@ def _batch_deps() -> AgentDeps:
             _batch_strategy(), {**_BATCH_WDK_IDS, "step_u1": 201, "step_c1": 301}
         ),
         conversation_id=uuid4(),
+        turn_markers=TurnMarkers(),
     )
 
 

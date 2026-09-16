@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,8 +13,10 @@ import { performSetOperation, createGeneSet } from "../api/geneSets";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useGeneSetsQuery } from "@/features/workbench/hooks/useGeneSetsQuery";
 import { useInvalidateGeneSets } from "@/features/workbench/hooks/useInvalidateGeneSets";
+import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { GeneSetCard } from "./GeneSetCard";
 import { GeneSetFilter } from "./GeneSetFilter";
+import { geneSetLibraryState } from "./geneSetLibraryState";
 import { SetVenn } from "@/features/workbench/components/SetVenn";
 import { ComposeBar } from "./ComposeBar";
 import { SelectionToolbar } from "./SelectionToolbar";
@@ -28,7 +31,8 @@ interface WorkbenchSidebarProps {
 export function WorkbenchSidebar({ onCollapse }: WorkbenchSidebarProps) {
   const router = useRouter();
   const selectedSite = useSessionStore((s) => s.selectedSite);
-  const { data: geneSets = [] } = useGeneSetsQuery(selectedSite);
+  const { data: geneSets = [], isFetched } = useGeneSetsQuery(selectedSite);
+  const { data: authStatus } = useQuery(authStatusOptions(selectedSite));
   const invalidateGeneSets = useInvalidateGeneSets();
   const {
     activeSetId,
@@ -66,6 +70,11 @@ export function WorkbenchSidebar({ onCollapse }: WorkbenchSidebarProps) {
     ? geneSets.filter((gs) => gs.name.toLowerCase().includes(filterQuery))
     : geneSets;
 
+  const libraryState = geneSetLibraryState({
+    signedIn: authStatus?.signedIn === true,
+    isFetched,
+    count: geneSets.length,
+  });
   const showFilter = geneSets.length >= 5;
   const showVenn = selectedSets.length >= 2 && selectedSets.length <= 5;
   const showCompose = selectedSets.length === 2;
@@ -155,7 +164,15 @@ export function WorkbenchSidebar({ onCollapse }: WorkbenchSidebarProps) {
 
         {/* Zone 1: Library (scrollable list) */}
         <ScrollArea className="flex-1 px-3">
-          {geneSets.length === 0 ? (
+          {libraryState === "signed-out" ? (
+            <p className="px-1 py-4 text-xs text-muted-foreground">
+              Sign in to VEuPathDB to see your gene sets.
+            </p>
+          ) : libraryState === "loading" ? (
+            <p className="px-1 py-4 text-xs text-muted-foreground">
+              Loading your gene sets...
+            </p>
+          ) : libraryState === "empty" ? (
             <p className="px-1 py-4 text-xs text-muted-foreground">
               No gene sets yet. Click <strong>Add</strong> to get started.
             </p>

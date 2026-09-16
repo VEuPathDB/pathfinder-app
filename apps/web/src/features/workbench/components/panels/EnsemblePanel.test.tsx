@@ -15,6 +15,7 @@ function makeGeneSet(id: string, geneIds: string[], siteId = "PlasmoDB"): GeneSe
     geneIds,
     source: "paste",
     geneCount: geneIds.length,
+    membershipDigest: "000000000000000f",
     createdAt: "2026-03-09T00:00:00Z",
     stepCount: 1,
     parentSetIds: [],
@@ -178,7 +179,7 @@ describe("EnsemblePanel", () => {
       "/api/v1/gene-sets/ensemble",
       {
         method: "POST",
-        body: { geneSetIds: ["s1", "s3"], positiveControls: undefined },
+        body: { geneSetIds: ["s1", "s3"], positiveControls: null },
       },
     );
   });

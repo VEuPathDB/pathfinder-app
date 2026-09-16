@@ -13,6 +13,7 @@ from pathfinder.services.experiment import streaming
 from pathfinder.services.experiment.store import _row_from_experiment
 from pathfinder.services.experiment.streaming import (
     organism_config,
+    organism_varies_nothing,
     stream_batch_experiment,
 )
 from pathfinder.services.experiment.types import (
@@ -216,6 +217,114 @@ async def test_a_batch_over_a_fixed_gene_list_is_refused_before_any_run(
     assert final.type == "batch_error", final
     assert "gene list" in final.error
     assert ran == []
+
+
+async def test_a_batch_over_a_base_that_names_no_search_is_refused_before_any_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An empty search name runs no search, so no organism parameter varies one."""
+    ran = _record_runs(monkeypatch)
+    batch = BatchExperimentConfig(
+        base_config=_runnable_base().model_copy(update={"search_name": ""}),
+        organism_param_name=ORGANISM_PARAM,
+        target_organisms=[BatchOrganismTarget(organism=ORGANISM)],
+    )
+
+    events = [event async for event in stream_batch_experiment(batch, user_id=USER_ID)]
+
+    final = events[-1]
+    assert final.type == "batch_error", final
+    assert final.error == (
+        "This batch cannot vary by organism: the base names no search, so it "
+        "has no organism parameter to set."
+    )
+    assert ran == []
+
+
+def test_the_guard_names_one_reason_per_base_it_refuses() -> None:
+    """A single search with parameters is exactly what an organism can vary."""
+    runnable = _runnable_base()
+
+    reasons = [
+        organism_varies_nothing(runnable),
+        organism_varies_nothing(runnable.model_copy(update={"search_name": ""})),
+        organism_varies_nothing(
+            runnable.model_copy(update={"target_gene_ids": ["PF3D7_0304600"]}),
+        ),
+    ]
+
+    assert reasons == [
+        None,
+        "the base names no search, so it has no organism parameter to set",
+        "the base evaluates a fixed gene list, which runs no search",
+    ]
+
+
+def _record_runs_with_one_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    failing_organism: str,
+) -> list[str]:
+    """Stand in for a run that raises for one organism, and name every run."""
+    given_ids: list[str] = []
+
+    async def _run_experiment(
+        config: ExperimentConfig,
+        *,
+        experiment_id: str,
+        **kwargs: Any,
+    ) -> Experiment:
+        del kwargs
+        given_ids.append(experiment_id)
+        if _organism_of(config) == failing_organism:
+            msg = "WDK answered 500 for the organism"
+            raise RuntimeError(msg)
+        return Experiment(
+            id=experiment_id,
+            config=config,
+            user_id=USER_ID,
+            status="completed",
+        )
+
+    monkeypatch.setattr(streaming, "run_experiment", _run_experiment)
+    return given_ids
+
+
+def _organism_of(config: ExperimentConfig) -> str:
+    """The organism one derived config is pinned to."""
+    return SinglePickValue.model_validate(config.parameters[ORGANISM_PARAM]).value
+
+
+async def test_an_organism_that_fails_is_reported_beside_the_ones_that_ran(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A batch reports one result per organism, whether it ran or failed."""
+    given_ids = _record_runs_with_one_failure(monkeypatch, BASE_ORGANISM)
+    batch = BatchExperimentConfig(
+        base_config=_runnable_base(),
+        organism_param_name=ORGANISM_PARAM,
+        target_organisms=[
+            BatchOrganismTarget(organism=ORGANISM),
+            BatchOrganismTarget(organism=BASE_ORGANISM),
+            BatchOrganismTarget(organism=SECOND_ORGANISM),
+        ],
+    )
+
+    events = [event async for event in stream_batch_experiment(batch, user_id=USER_ID)]
+
+    final = events[-1]
+    assert final.type == "batch_complete", final
+    experiments = [Experiment.model_validate(raw) for raw in final.experiments]
+    assert [_organism_of(exp.config) for exp in experiments] == [
+        ORGANISM,
+        BASE_ORGANISM,
+        SECOND_ORGANISM,
+    ]
+    assert [exp.status for exp in experiments] == ["completed", "error", "completed"]
+    assert [exp.id for exp in experiments] == given_ids
+    assert experiments[1].error == "An internal error occurred"
+    assert experiments[1].user_id == USER_ID
+    assert {exp.batch_id for exp in experiments} == {final.batch_id}
+    assert experiments[1].config.gene_set_id == SET_ID
 
 
 async def test_a_batch_run_from_a_gene_set_stores_every_experiment_with_it(

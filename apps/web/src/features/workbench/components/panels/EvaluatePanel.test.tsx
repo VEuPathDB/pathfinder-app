@@ -94,12 +94,18 @@ vi.mock("@/state/useSessionStore", () => ({
   useSessionStore: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({ selectedSite: "plasmodb" }),
 }));
+// A set is search-backed only when it records the parameters the search ran
+// with, which is what the workbench stores beside the search name.
+const TAXON_PARAMETERS = {
+  organism: { type: "single-pick-vocabulary", value: "Plasmodium falciparum 3D7" },
+};
+
 const activeGeneSet: {
   id: string;
   siteId: string;
   recordType: string;
   searchName: string | null;
-  parameters: Record<string, never> | null;
+  parameters: typeof TAXON_PARAMETERS | null;
   name: string;
   geneIds: string[];
 } = {
@@ -107,7 +113,7 @@ const activeGeneSet: {
   siteId: "plasmodb",
   recordType: "transcript",
   searchName: "GenesByTaxon",
-  parameters: {},
+  parameters: TAXON_PARAMETERS,
   name: "My Set",
   geneIds: ["PF3D7_0100100", "PF3D7_0200200"],
 };
@@ -121,7 +127,8 @@ vi.mock("@tanstack/react-query", async (importActual) => ({
 }));
 
 const createExperimentStream = vi.fn();
-vi.mock("@/features/workbench/api", () => ({
+vi.mock("@/features/workbench/api", async (importActual) => ({
+  ...(await importActual<Record<string, unknown>>()),
   createExperimentStream: (...args: unknown[]) => createExperimentStream(...args),
 }));
 vi.mock("../ControlSetQuickPick", () => ({
@@ -201,11 +208,12 @@ describe("EvaluatePanel", () => {
     const sentConfig = createExperimentStream.mock.calls[0]?.[0] as {
       enableCrossValidation: boolean;
       kFolds: number;
-      targetGeneIds: string[] | undefined;
+      targetGeneIds: string[] | null;
     };
     expect(sentConfig.enableCrossValidation).toBe(false);
     expect(sentConfig.kFolds).toBe(5);
-    expect(sentConfig.targetGeneIds).toBeUndefined();
+    // A search-backed set re-runs its search, so it names no fixed gene list.
+    expect(sentConfig.targetGeneIds).toBeNull();
   });
 
   it("evaluates a pasted set by its gene ids instead of an empty search", async () => {
@@ -223,11 +231,11 @@ describe("EvaluatePanel", () => {
     // A pasted set has no search to re-run; the wire's gene-set mode takes
     // targetGeneIds and the backend makes no WDK step for it.
     const sentConfig = createExperimentStream.mock.calls[0]?.[0] as {
-      targetGeneIds: string[] | undefined;
+      targetGeneIds: string[] | null;
     };
     expect(sentConfig.targetGeneIds).toEqual(["PF3D7_0100100", "PF3D7_0200200"]);
     activeGeneSet.searchName = "GenesByTaxon";
-    activeGeneSet.parameters = {};
+    activeGeneSet.parameters = TAXON_PARAMETERS;
   });
 
   it("surfaces a streamed experiment error", async () => {

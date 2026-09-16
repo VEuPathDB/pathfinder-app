@@ -59,3 +59,21 @@ describe("useModalState", () => {
     });
   });
 });
+
+describe("the settings modal", () => {
+  it("opens on the model stages, not on the actions that delete data", () => {
+    const { result } = renderHook(() => useModalState());
+    act(() => {
+      result.current.openSettings();
+    });
+    expect(result.current.settingsTab).toBe("model");
+  });
+
+  it("opens on the tab a caller names", () => {
+    const { result } = renderHook(() => useModalState());
+    act(() => {
+      result.current.openSettings("memory");
+    });
+    expect(result.current.settingsTab).toBe("memory");
+  });
+});

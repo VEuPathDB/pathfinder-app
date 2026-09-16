@@ -20,7 +20,11 @@ from veupathdb.wdk import (
 )
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import SiteUnavailableError, UnauthorizedError
+from pathfinder.platform.errors import (
+    SiteUnavailableError,
+    UnauthorizedError,
+    site_failure_reason,
+)
 from pathfinder.platform.security import (
     create_user_token,
     decode_session_token,
@@ -145,7 +149,7 @@ async def login_with_password(
             redirect_url=_pick_redirect_url(redirect_to),
         )
     except httpx.HTTPError as e:
-        raise SiteUnavailableError(site_id, type(e).__name__) from e
+        raise SiteUnavailableError(site_id, site_failure_reason(e)) from e
 
     if not token:
         logger.warning(

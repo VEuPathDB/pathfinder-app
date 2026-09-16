@@ -17,16 +17,25 @@ import {
 import { insertSavedStrategy } from "@/lib/api/conversations";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
 import { strategyQueryKey } from "@/lib/api/strategy";
+import type { InsertSavedRequest } from "@pathfinder/shared/generated/types/InsertSavedRequest";
 import { toUserMessage } from "@/lib/api/errors";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { cn } from "@/lib/utils/cn";
 
-const OPERATORS: ReadonlyArray<{ value: string; label: string }> = [
+type Operator = NonNullable<InsertSavedRequest["operator"]>;
+
+const OPERATORS: ReadonlyArray<{ value: Operator; label: string }> = [
   { value: "INTERSECT", label: "INTERSECT (A ∩ B)" },
   { value: "UNION", label: "UNION (A ∪ B)" },
   { value: "MINUS", label: "MINUS (A − B)" },
   { value: "RMINUS", label: "RMINUS (B − A)" },
 ];
+
+/** The operator a select reports, or the default when it names none. */
+function operatorOf(value: string): Operator {
+  const known = OPERATORS.find((op) => op.value === value);
+  return known?.value ?? "INTERSECT";
+}
 
 interface InsertSavedDialogProps {
   open: boolean;
@@ -73,7 +82,7 @@ function InsertSavedDialogBody({
 
   const [filter, setFilter] = useState("");
   const [pickedId, setPickedId] = useState<number | null>(null);
-  const [operator, setOperator] = useState("INTERSECT");
+  const [operator, setOperator] = useState<Operator>("INTERSECT");
 
   const filtered =
     filter.trim() === ""
@@ -161,7 +170,7 @@ function InsertSavedDialogBody({
           <select
             id="insert-saved-operator"
             value={operator}
-            onChange={(e) => setOperator(e.target.value)}
+            onChange={(e) => setOperator(operatorOf(e.target.value))}
             className="h-8 flex-1 rounded-md border border-input bg-transparent px-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           >
             {OPERATORS.map((op) => (

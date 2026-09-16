@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import type { SiteResponse } from "@pathfinder/shared";
 
 vi.mock("next/navigation", () => ({
@@ -48,6 +48,8 @@ vi.mock("@/features/settings/components/EvalDataNotice", () => ({
 import { sitesOptions } from "@/lib/api/sites";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { createTestWrapper } from "@/lib/query/testing";
+import { WORKBENCH_SIDE_CHROME_PX } from "@/app/hooks/useWorkbenchSidebarLayout";
+import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import WorkbenchLayout from "./layout";
 
 /** React reads a thenable that already carries its settled value synchronously. */
@@ -121,5 +123,39 @@ describe("WorkbenchLayout on a site that does not answer", () => {
     expect(screen.queryByTestId("site-unavailable-notice")).not.toBeInTheDocument();
     expect(screen.getByTestId("routed-content")).toBeInTheDocument();
     expect(screen.getByTestId("sign-in-gate")).toBeInTheDocument();
+  });
+});
+
+const PHONE_WIDTH = 390;
+
+describe("WorkbenchLayout at phone width", () => {
+  beforeEach(() => {
+    window.innerWidth = PHONE_WIDTH;
+    useWorkbenchStore.setState({ leftSidebarOpen: true, geneSearchOpen: true });
+  });
+
+  afterEach(() => {
+    window.innerWidth = 1024;
+  });
+
+  it("gives the routed content the screen instead of a panel wider than it", () => {
+    draw("plasmodb");
+
+    expect(screen.getByTestId("routed-content")).toBeInTheDocument();
+    expect(screen.queryByTestId("workbench-sidebar")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("gene-search-sidebar")).not.toBeInTheDocument();
+  });
+
+  it("keeps the whole gene-set panel on screen when the reader opens it", () => {
+    draw("plasmodb");
+
+    act(() => {
+      useWorkbenchStore.setState({ leftSidebarOpen: true });
+    });
+
+    const panel = screen.getByTestId("workbench-sidebar-panel");
+    const width = Number.parseInt(panel.style.width, 10);
+    expect(width).toBe(PHONE_WIDTH - WORKBENCH_SIDE_CHROME_PX);
+    expect(width + WORKBENCH_SIDE_CHROME_PX).toBeLessThanOrEqual(PHONE_WIDTH);
   });
 });

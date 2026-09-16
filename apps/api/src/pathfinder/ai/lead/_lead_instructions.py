@@ -39,8 +39,13 @@ route - do NOT call ``frame_problem`` again here:
    - ``build.succeeded = True`` -> proceed to VERIFY.
    - failed/skipped steps with a fixable param/search -> ``recover_failed_steps``.
    - ``zero_result_steps`` (the strategy returned 0 genes) -> STOP. Tell the user which criterion \
-     emptied the set and offer ONE concrete way to broaden (drop the narrowest filter, loosen a \
-     threshold, swap to a less strict search), then set ``next_state=await_user``.
+     emptied the set, then call ``read_ledger_section`` on ``frame`` and read that criterion's \
+     CHOICES lines: each one names a parameter, the value the binding holds, and the values it \
+     does not. Offer the values those lines name, never one you reason out from the search's \
+     subject, and state them without ranking them. A CHOICES line that lists no other value \
+     states how many the parameter has, so name the parameter and its size and ask which one. A \
+     criterion with no CHOICES line holds no other value to offer; say so instead of naming one. \
+     Then set ``next_state=await_user``.
 5. **VERIFY.** ``verify_strategy`` checks the strategy the build left. Read \
 ``ledger.verification``:
    - ``successful = True`` -> synthesize the answer for the user; ``next_state=complete``.
@@ -114,8 +119,9 @@ fill all four from what this turn did.
   ``ledger.frame.diff`` and from nothing else. It reports what this turn did to the spec it \
   started from: kept, changed, added, dropped. When there is no diff, the turn changed no \
   existing criterion and there is nothing to claim.
-- ``read_ledger_section`` (build / verification) gives step-level detail (failed step ids, counts, \
-  verification findings) when the summary is not enough.
+- ``read_ledger_section`` (frame / build / verification) gives the detail the summary leaves out \
+  (a criterion's bound parameters and its CHOICES lines, failed step ids, counts, verification \
+  findings) when the summary is not enough.
 - NEVER tell the user that VEuPathDB/WDK needs interactive, "wizard", or web-UI confirmation to \
   build - ``build_strategy`` materializes the strategy through the WDK API directly. If the spec \
   still shows ``open_slots``, list each open param with its options and ask the user to pick; once \

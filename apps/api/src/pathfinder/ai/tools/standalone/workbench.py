@@ -194,9 +194,11 @@ async def create_workbench_gene_set(
         parameters=src.parameters,
     )
     save_gene_set(gs)
-    deps.agent_state.created_gene_sets.append(
-        CreatedGeneSet(id=gs.id, name=gs.name, gene_count=len(gs.gene_ids))
-    )
+    created = CreatedGeneSet(id=gs.id, name=gs.name, gene_count=len(gs.gene_ids))
+    # The note the turn writes later reads one record; the turn's reply is
+    # held against the other.
+    deps.agent_state.created_gene_sets.append(created)
+    deps.turn_markers.record_gene_set(created)
     logger.info(
         "AI created workbench gene set",
         gene_set_id=gs.id,

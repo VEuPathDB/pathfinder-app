@@ -12,6 +12,7 @@ function geneSet(over: Partial<GeneSet> = {}): GeneSet {
     geneIds: ["PF3D7_0100100"],
     source: "paste",
     geneCount: 1,
+    membershipDigest: "000000000000000a",
     createdAt: "2026-01-01T00:00:00.000Z",
     ...over,
   };

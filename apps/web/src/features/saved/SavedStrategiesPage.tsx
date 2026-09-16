@@ -24,6 +24,7 @@ import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStra
 import { toUserMessage } from "@/lib/api/errors";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { chatRoot, chatUrl } from "@/lib/routes";
+import { useRightRailStore } from "@/state/useRightRailStore";
 
 interface SavedStrategiesPageProps {
   siteId: string;
@@ -148,6 +149,7 @@ function SavedRow({
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const openRailPanel = useRightRailStore((s) => s.openPanelId);
   const del = useMutation({
     mutationFn: () => deleteStrategy(conv.id, { deleteFromWdk: true, cascade: true }),
     onSuccess: () => {
@@ -175,6 +177,10 @@ function SavedRow({
       void queryClient.invalidateQueries({
         queryKey: ["conversations", "list", siteId],
       });
+      // The new thread has no messages yet, so the strategy panel is the only
+      // place the inserted steps are visible on arrival.
+      openRailPanel(conversationId, "strategy", {});
+      toast.success("Inserted into a new chat", { description: conv.name });
       router.push(chatUrl(siteId, conversationId));
     },
     onError: (error) => {
@@ -223,11 +229,13 @@ function SavedRow({
           size="sm"
           className="gap-1 text-xs"
           onClick={() => useInNewChat.mutate()}
-          disabled={useInNewChat.isPending}
+          loading={useInNewChat.isPending}
           data-testid={`saved-strategy-use-${conv.id}`}
         >
-          <MessageSquarePlus className="h-4 w-4" aria-hidden />
-          Use in new chat
+          {!useInNewChat.isPending && (
+            <MessageSquarePlus className="h-4 w-4" aria-hidden />
+          )}
+          {useInNewChat.isPending ? "Inserting..." : "Use in new chat"}
         </Button>
       )}
       {conv.wdkUrl != null && conv.wdkUrl !== "" && (

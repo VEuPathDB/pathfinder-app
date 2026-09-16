@@ -5,6 +5,7 @@ import { Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requestJson } from "@/lib/api/http";
 import { reverseSearchResultItemSchema } from "@pathfinder/shared/generated/zod/reverseSearchResultItemSchema";
+import type { ReverseSearchRequest } from "@pathfinder/shared/generated/types/ReverseSearchRequest";
 import type { ReverseSearchResultItem } from "@pathfinder/shared/generated/types/ReverseSearchResultItem";
 import { z } from "zod";
 import { useSessionStore } from "@/state/useSessionStore";
@@ -51,18 +52,17 @@ export function ReverseSearchPanel() {
     setError(null);
     setResults([]);
 
+    const body: ReverseSearchRequest = {
+      positiveGeneIds: positiveInput,
+      negativeGeneIds: negativeInput.length > 0 ? negativeInput : null,
+      siteId,
+    };
+
     try {
       const data = await requestJson(
         ReverseSearchResultListSchema,
         "/api/v1/gene-sets/reverse-search",
-        {
-          method: "POST",
-          body: {
-            positiveGeneIds: positiveInput,
-            negativeGeneIds: negativeInput.length > 0 ? negativeInput : undefined,
-            siteId,
-          },
-        },
+        { method: "POST", body },
       );
       setResults(data);
     } catch (err) {

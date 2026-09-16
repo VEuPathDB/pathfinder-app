@@ -22,18 +22,27 @@ from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     ASKING_REPLY,
     BLAMING_REPLY,
     CLAIMS_A_CHANGE,
+    CLAIMS_A_GENE_SET_ENRICHMENT,
     CLEAN_REPLY,
+    CONTROL_SET_CLAIM,
     CRITERION,
     DATASET,
+    DENIES_A_CONTROL_SET,
+    DENIES_A_GENE_SET,
     EDA_PROSE,
     ENRICHMENT_REPLY,
     FAILED_RUN,
+    GENE_SET_REPLY,
+    LISTS_SAVED_CONTROL_SETS,
+    LISTS_SAVED_GENE_SETS,
+    NAMES_A_CONTROL_SET_IN_A_SECOND_CLAUSE,
     REAL_FAILURE_REPLY,
     REDIRECT,
     REPORTS_THE_STRATEGY,
     WITH_CODE,
     blame_deps,
     building_deps,
+    control_source_deps,
     eda_deps,
     enrichment_deps,
     framing_deps,
@@ -306,6 +315,82 @@ class TestTheSubstitutedAnalysisRule:
         prose = "The strategy searched Plasmodium falciparum 3D7."
 
         assert kinds(deps, reply(prose)) == []
+
+
+class TestTheControlSetAReplyClaims:
+    """A durable artifact the reply names is one the turn wrote."""
+
+    def test_a_control_set_the_turn_never_wrote_is_a_mismatch(self) -> None:
+        mismatches = reconcile(
+            reply(CONTROL_SET_CLAIM),
+            turn_record(run_context_for(control_source_deps())),
+        )
+
+        assert [m.kind for m in mismatches] == ["unwritten_control_set"]
+        sentence = mismatches[0].sentence
+        assert "build_control_set" in sentence
+        assert "rhoptry positives" in sentence
+        assert "102 genes" in sentence
+
+    def test_the_control_set_the_turn_wrote_stands(self) -> None:
+        deps = control_source_deps(wrote_control_set=True)
+
+        assert kinds(deps, reply(CONTROL_SET_CLAIM)) == []
+
+    def test_a_reply_that_names_what_the_turn_saved_stands(self) -> None:
+        assert kinds(control_source_deps(), reply(GENE_SET_REPLY)) == []
+
+    def test_listing_the_control_sets_a_user_already_has_stands(self) -> None:
+        assert kinds(control_source_deps(), reply(LISTS_SAVED_CONTROL_SETS)) == []
+
+    def test_a_control_set_named_in_a_later_clause_stands(self) -> None:
+        deps = control_source_deps()
+
+        assert kinds(deps, reply(NAMES_A_CONTROL_SET_IN_A_SECOND_CLAUSE)) == []
+
+    def test_saying_no_control_set_was_created_stands(self) -> None:
+        assert kinds(control_source_deps(), reply(DENIES_A_CONTROL_SET)) == []
+
+
+class TestTheGeneSetAReplyClaims:
+    """A saved gene set the reply names is one this turn saved."""
+
+    def test_a_gene_set_the_turn_never_saved_is_a_mismatch(self) -> None:
+        deps = control_source_deps(saved_gene_set=False, wrote_control_set=True)
+
+        mismatches = reconcile(
+            reply(GENE_SET_REPLY),
+            turn_record(run_context_for(deps)),
+        )
+
+        assert [m.kind for m in mismatches] == ["unwritten_gene_set"]
+        sentence = mismatches[0].sentence
+        assert "create_workbench_gene_set" in sentence
+        assert "rhoptry controls" in sentence
+
+    def test_the_gene_set_the_turn_saved_stands(self) -> None:
+        assert kinds(control_source_deps(), reply(GENE_SET_REPLY)) == []
+
+    def test_a_saved_set_called_a_control_set_is_corrected_once(self) -> None:
+        """The turn saved a gene set, so only the wrong noun is a mismatch."""
+        assert kinds(control_source_deps(), reply(CONTROL_SET_CLAIM)) == [
+            "unwritten_control_set",
+        ]
+
+    def test_listing_the_gene_sets_a_user_already_has_stands(self) -> None:
+        deps = control_source_deps(saved_gene_set=False)
+
+        assert kinds(deps, reply(LISTS_SAVED_GENE_SETS)) == []
+
+    def test_saying_no_gene_set_was_saved_stands(self) -> None:
+        deps = control_source_deps(saved_gene_set=False)
+
+        assert kinds(deps, reply(DENIES_A_GENE_SET)) == []
+
+    def test_an_enrichment_over_a_gene_set_saves_none_and_claims_none(self) -> None:
+        deps = control_source_deps(saved_gene_set=False)
+
+        assert kinds(deps, reply(CLAIMS_A_GENE_SET_ENRICHMENT)) == []
 
 
 class TestTheOffTopicEssayRule:

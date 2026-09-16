@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getMyQuotaQueryOptions } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
+import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { cn } from "@/lib/utils/cn";
 
 const currency = new Intl.NumberFormat("en-US", {
@@ -41,8 +42,13 @@ function formatResetsAt(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export function QuotaPill() {
-  const { data } = useQuery(getMyQuotaQueryOptions());
+export function QuotaPill({ siteId }: { siteId: string }) {
+  const { data: authStatus } = useQuery(authStatusOptions(siteId));
+  // The quota read needs a session. Asking without one is refused with 401.
+  const { data } = useQuery({
+    ...getMyQuotaQueryOptions(),
+    enabled: authStatus?.signedIn === true,
+  });
   if (data == null) return null;
 
   const used = Number(data.usedUsd);

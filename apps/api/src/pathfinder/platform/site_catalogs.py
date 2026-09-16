@@ -36,7 +36,7 @@ async def _load_one(
             site_id=site_id,
             error_class=type(e).__name__,
         )
-        readiness.mark_catalog_failed(site_id, type(e).__name__)
+        readiness.mark_catalog_failed(site_id, e)
     else:
         readiness.mark_catalog_ready(site_id)
 

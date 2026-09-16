@@ -222,3 +222,39 @@ def test_the_approval_example_resumes_a_deferred_call() -> None:
 
     assert body.is_approval_resume is True
     assert body.prior_assistant_message_id is not None
+
+
+def test_an_attachment_part_starts_on_its_own_line() -> None:
+    """Two text parts of one user message are two blocks, not one word."""
+    body = ChatRequestBody.model_validate(
+        {
+            "conversationId": str(uuid4()),
+            "siteId": "plasmodb",
+            "messages": [
+                {
+                    "id": str(uuid4()),
+                    "role": "user",
+                    "parts": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "Which of them encode proteins with a signal peptide?"
+                            ),
+                        },
+                        {
+                            "type": "text",
+                            "text": (
+                                "Attached gene-ID list from msp-set.csv: "
+                                "PF3D7_0102200, PF3D7_0207600"
+                            ),
+                        },
+                    ],
+                }
+            ],
+        }
+    )
+
+    assert body.last_user_text == (
+        "Which of them encode proteins with a signal peptide?\n\n"
+        "Attached gene-ID list from msp-set.csv: PF3D7_0102200, PF3D7_0207600"
+    )

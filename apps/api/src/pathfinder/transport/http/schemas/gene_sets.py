@@ -33,6 +33,8 @@ class GeneSetResponse(CamelModel):
     gene_ids: list[str]
     source: GeneSetSource
     gene_count: int
+    membership_digest: str
+    """Names the genes this set holds now."""
     wdk_strategy_id: int | None = Field(None)
     wdk_step_id: int | None = Field(None)
     search_name: str | None = Field(None)

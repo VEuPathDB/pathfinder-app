@@ -769,6 +769,81 @@
         }
       }
     },
+    "/api/v1/sites/{siteId}/strategies": {
+      "get": {
+        "tags": [
+          "sites"
+        ],
+        "summary": "List Account Strategies",
+        "description": "List the signed-in account's strategies on this site, newest first.\n\nA strategy the researcher deleted, and a helper strategy this deployment\nwrote into the same account, are not the researcher's to reopen.",
+        "operationId": "list_account_strategies_api_v1_sites__siteId__strategies_get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Siteid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WdkStrategyListItem"
+                  },
+                  "title": "Response List Account Strategies Api V1 Sites  Siteid  Strategies Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/models": {
       "get": {
         "tags": [
@@ -11855,6 +11930,16 @@
                 "type": "null"
               }
             ]
+          },
+          "geneSetMembership": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeneSetMembership"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -12708,6 +12793,25 @@
         ],
         "title": "GeneSetImportRequest"
       },
+      "GeneSetMembership": {
+        "properties": {
+          "geneCount": {
+            "type": "integer",
+            "title": "Genecount"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          }
+        },
+        "type": "object",
+        "required": [
+          "geneCount",
+          "digest"
+        ],
+        "title": "GeneSetMembership",
+        "description": "The gene ids a set holds, named by a digest of them.\n\nTwo sets of the same size are different sets, so the count alone does not\ntell one membership from another."
+      },
       "GeneSetResponse": {
         "properties": {
           "id": {
@@ -12743,6 +12847,10 @@
           "geneCount": {
             "type": "integer",
             "title": "Genecount"
+          },
+          "membershipDigest": {
+            "type": "string",
+            "title": "Membershipdigest"
           },
           "wdkStrategyId": {
             "anyOf": [
@@ -12911,6 +13019,7 @@
           "geneIds",
           "source",
           "geneCount",
+          "membershipDigest",
           "createdAt"
         ],
         "title": "GeneSetResponse",
@@ -18183,6 +18292,46 @@
         "title": "WDKVocabTerm",
         "description": "A standard enum vocabulary entry as a term, display, parent triple.\n\nThe third element is the term of the entry above this one, and is null for\nan entry at the top of the vocabulary."
       },
+      "WdkStrategyListItem": {
+        "properties": {
+          "wdkStrategyId": {
+            "type": "integer",
+            "title": "Wdkstrategyid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "estimatedSize": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimatedsize"
+          },
+          "isSaved": {
+            "type": "boolean",
+            "title": "Issaved",
+            "default": false
+          },
+          "lastModified": {
+            "type": "string",
+            "title": "Lastmodified",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "wdkStrategyId",
+          "name"
+        ],
+        "title": "WdkStrategyListItem",
+        "description": "One strategy a researcher can open, as a picker draws it."
+      },
       "WireInputOp": {
         "properties": {
           "kind": {
@@ -19075,6 +19224,13 @@
               "$ref": "#/components/schemas/AssumedValue"
             },
             "title": "Assumptions",
+            "type": "array"
+          },
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/ParameterAlternatives"
+            },
+            "title": "Alternatives",
             "type": "array"
           }
         },
@@ -20100,6 +20256,40 @@
           "jaccard"
         ],
         "title": "PairwiseOverlap",
+        "type": "object"
+      },
+      "ParameterAlternatives": {
+        "description": "A vocabulary parameter of a binding, and the values it did not take.",
+        "properties": {
+          "paramName": {
+            "title": "Paramname",
+            "type": "string"
+          },
+          "bound": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Bound",
+            "type": "array"
+          },
+          "optionCount": {
+            "title": "Optioncount",
+            "type": "integer"
+          },
+          "otherOptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Otheroptions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "paramName",
+          "bound",
+          "optionCount"
+        ],
+        "title": "ParameterAlternatives",
         "type": "object"
       },
       "PhaseDisposition": {

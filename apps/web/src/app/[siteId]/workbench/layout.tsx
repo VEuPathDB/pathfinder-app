@@ -15,6 +15,7 @@ import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import { useAuthRefresh } from "@/lib/query/hooks/useAuthRefresh";
 import { useSystemConfig } from "@/app/hooks/useSystemConfig";
 import { useModalState } from "@/app/hooks/useModalState";
+import { useWorkbenchSidebarLayout } from "@/app/hooks/useWorkbenchSidebarLayout";
 import { SetupRequiredScreen } from "@/app/components/SetupRequiredScreen";
 import { SiteAvailabilityGate } from "@/app/components/SiteAvailabilityGate";
 import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
@@ -71,6 +72,7 @@ function WorkbenchLayoutInner({
   };
 
   const modals = useModalState();
+  const sidebarWidth = useWorkbenchSidebarLayout();
   const { geneSearchOpen, toggleGeneSearch, leftSidebarOpen, toggleLeftSidebar } =
     useWorkbenchStore(
       useShallow((s) => ({
@@ -112,7 +114,11 @@ function WorkbenchLayoutInner({
           sidebarExpanded={leftSidebarOpen}
         />
         {leftSidebarOpen && (
-          <div className="w-96 shrink-0 border-r border-border bg-sidebar">
+          <div
+            data-testid="workbench-sidebar-panel"
+            style={{ width: sidebarWidth }}
+            className="shrink-0 border-r border-border bg-sidebar"
+          >
             <WorkbenchSidebar onCollapse={toggleLeftSidebar} />
           </div>
         )}
