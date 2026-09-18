@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 import httpx
 import pytest
 from assistant_core.conversation.ui_message_reducer import user_message_chunk
+from assistant_core.memory.store import MemoryStore
 from assistant_core.persistence.models import Conversation, ConversationEvent
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import JSONObject
@@ -142,7 +143,9 @@ async def test_the_purge_clears_staged_candidates(
     authed_client: httpx.AsyncClient,
     authed_user_id: UUID,
     session_maker: async_sessionmaker[AsyncSession],
+    app_memory_store: MemoryStore,
 ) -> None:
+    del app_memory_store
     await _stage_one_for(session_maker, authed_user_id)
     staging = EvalStagingRepository(session_factory=async_session_factory)
     assert len(await staging.list_staged()) == 1

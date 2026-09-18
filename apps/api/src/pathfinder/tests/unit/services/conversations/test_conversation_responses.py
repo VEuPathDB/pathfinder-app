@@ -38,7 +38,11 @@ def _ast(fold_change: str = "1", description: str | None = None) -> StrategyAst:
     )
 
 
-def _thread(ast: StrategyAst | None) -> tuple[Conversation, ConversationStrategyView]:
+def _thread(
+    ast: StrategyAst | None,
+    *,
+    created_here: bool = False,
+) -> tuple[Conversation, ConversationStrategyView]:
     now = datetime.now(UTC)
     conversation = Conversation(
         id=uuid4(),
@@ -50,6 +54,7 @@ def _thread(ast: StrategyAst | None) -> tuple[Conversation, ConversationStrategy
         updated_at=now,
     )
     strategy = ConversationStrategyView(
+        wdk_strategy_created_here=created_here,
         is_saved=True,
         step_count=1,
         gene_set_auto_imported=False,
@@ -93,3 +98,12 @@ def test_editing_a_parameter_moves_the_revision() -> None:
     before = build_conversation_response(*_thread(_ast("1"))).strategy_revision
     after = build_conversation_response(*_thread(_ast("2"))).strategy_revision
     assert before != after
+
+
+def test_the_response_says_who_created_the_veupathdb_strategy() -> None:
+    """The delete modal names whose strategy it removes, so the DTO carries it."""
+    built_here = build_conversation_response(*_thread(_ast(), created_here=True))
+    opened_here = build_conversation_response(*_thread(_ast(), created_here=False))
+
+    assert built_here.wdk_strategy_created_here is True
+    assert opened_here.wdk_strategy_created_here is False

@@ -2,8 +2,7 @@ import type { CombineOp, StrategyStepNode, StrategyAst } from "@pathfinder/share
 import { DEFAULT_STREAM_NAME } from "@pathfinder/shared";
 import type { Step, Strategy } from "@pathfinder/shared";
 import { walkSubtreeIds } from "@/features/strategy/operations";
-
-type ParamMap = NonNullable<Step["parameters"]>;
+import { statesAllTerm, type ParamValueMap } from "@/lib/parameters/paramValue";
 
 export type SerializedStrategyPlan = {
   plan: StrategyAst;
@@ -13,18 +12,10 @@ export type SerializedStrategyPlan = {
   orphanIds: string[];
 };
 
-function sanitizeParametersForPlan(params: ParamMap): ParamMap {
-  const next: ParamMap = {};
+function sanitizeParametersForPlan(params: ParamValueMap): ParamValueMap {
+  const next: ParamValueMap = {};
   for (const [key, value] of Object.entries(params)) {
-    if (
-      value.type === "multi-pick-vocabulary" &&
-      (value.values ?? []).includes("@@fake@@")
-    ) {
-      continue;
-    }
-    if (value.type === "single-pick-vocabulary" && value.value === "@@fake@@") {
-      continue;
-    }
+    if (statesAllTerm(value)) continue;
     next[key] = value;
   }
   return next;

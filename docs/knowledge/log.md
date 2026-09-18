@@ -1,5 +1,98 @@
 # Log
 
+## 2026-09-16
+
+* **A VEuPathDB strategy PathFinder minted is deleted the moment nothing names it.**
+  A sync whose update is refused mints a second strategy, and discarding or reverting the
+  turn moves the thread's id away from it. `services/strategies/abandoned_mint.py` runs
+  wherever that move happens (`restore_revision`, the discard that clears a thread which
+  held no strategy, and both writes in `services/conversations/revert.py`) and deletes the
+  strategy the thread leaves, but only when PathFinder minted it, the thread now holds a
+  different one, and no row still names it: no gene set of that user under that
+  application, no surviving snapshot of that thread, no strategy projection, and no other
+  thread of that user that holds it as a saved input. A gene set
+  taken from a strategy reads its source back from the site, and a snapshot a revert leaves
+  standing can be restored, so either one keeps the strategy. A saved input is the same
+  hold the HTTP delete of a thread honours, so an implicit move honours it too. A strategy
+  the user marked saved is kept whatever thread minted it: the mark makes it a saved
+  strategy of their VEuPathDB account, and no implicit move deletes one. The local mark is
+  not the only one. The user can save the strategy on the VEuPathDB website, which no local
+  column learns, so the delete reads the strategy from the site first and keeps it when the
+  site reports it saved; a site that does not answer that read keeps it too, because
+  PathFinder never deletes a strategy whose saved mark it could not verify. A site that
+  refuses the delete keeps the strategy and does not fail the restore.
+
+* **The saved mark names the strategy the row holds.** A PATCH pushes it to VEuPathDB for
+  the id the row names at that moment (`services/strategies/wdk_sync.py`), so a sync that
+  creates a strategy writes the mark of the new one, which is False: VEuPathDB creates a
+  strategy unsaved (`services/strategies/persist.py`). Without that write the mark of a
+  strategy the thread left would keep every strategy minted after it, and nothing would
+  reach those: no row names them, so the purge cannot find them either. A snapshot carries
+  the mark of the id it names (`strategy_revisions.is_saved`), so restoring one writes the
+  mark back with the id and the revert's own push writes False, the truth about a strategy
+  VEuPathDB has just created. Without it a restore left a saved strategy marked unsaved,
+  and the next move away from it released and deleted it.
+
+* **The VEuPathDB delete runs after the local writes are committed.** The move that
+  abandons a mint reads the rows and reports the strategy to release
+  (`services/strategies/abandoned_mint.py::abandoned_mint_to_release`); the caller commits
+  and then calls `delete_released_mint` (`ai/conversation/turn_stop.py`, the revert route).
+  A commit that fails therefore leaves the site as it was, rather than a surviving row that
+  names a strategy VEuPathDB no longer has. This is the rule the memory purge already
+  follows.
+
+* **A staged eval candidate is deleted within the reach of the purge that names it.** A
+  candidate carries the application and the site it came from
+  (`persistence/models.py::EvalStagedCase`), so `DELETE /api/v1/user/data` deletes only the
+  calling application's, and only the named site's when the request names one. A consent
+  opt-out still clears all of them, because that decision is the account's and not one
+  site's. The three tiers that reach the purge say so, and `stagedEvalCases` counts what
+  went.
+
+* **The purge route and the memories routes are fuzzed by the OpenAPI conformance lane.**
+  The store the four routes read is a FastAPI dependency
+  (`transport/http/deps.py::get_memory_store`), so the conformance app overrides it with a
+  dict-backed double
+  (`tests/_support/memory_store_double.py`). The schemathesis client drives the
+  application on a blocking portal of its own, which no store a fixture opens can serve, so
+  the exclusion list that held the three memories paths out is gone and the lane fuzzes 90
+  operations rather than 85.
+
+* **The record of who made a VEuPathDB strategy is written wherever the strategy id is
+  written, and it states the truth about that id.**
+  `conversation_strategies.wdk_strategy_created_here` carries it. A sync that calls
+  `create_strategy` claims the strategy (`services/strategies/sync.py` ->
+  `SyncResult.created_wdk_strategy` -> `services/strategies/persist.py`), and so do the two
+  writers that push a snapshot as a strategy of the thread's own
+  (`services/conversations/fork_strategy.py`, `services/strategies/revision_ops.py` through
+  `MaterializedStrategy.created_wdk_strategy`). Opening a strategy from the website states
+  the opposite on the row it creates, and states nothing on a row that already names that
+  id, because that row already holds its provenance
+  (`services/strategies/wdk_sync.py`). A caller that mints a strategy and then adopts it
+  says so: `sync_to_chat` takes `created_here` from the caller, True for the gold-strategy
+  builder and the seed runner, False for a website open. A PATCH that re-points a thread
+  records False: an id handed in over HTTP was not minted by that thread. A PATCH that
+  names the id the row already holds re-points nothing and leaves the record standing. A
+  snapshot carries the provenance of the id it names
+  (`strategy_revisions.wdk_strategy_created_here`), so restoring one writes that id back
+  with its own record and a stopped turn cannot relabel a website strategy as
+  PathFinder's. Clearing a strategy clears the record with it.
+
+* **A purge that cannot reach VEuPathDB leaves nothing irrecoverable.** `deleteWdk=true`
+  (`services/user_data.py`) reports which wanted strategies the site accepted the deletion
+  of and which it kept: a site that does not answer, a request with no registered VEuPathDB
+  user, and a refused delete all keep theirs. A conversation whose strategy is still there
+  is dismissed rather than deleted, and a stored run in the same position keeps its row in
+  the workbench, so a later purge can finish the job; everything else is hard-deleted. `wdkStrategiesKept` on the response counts what is still there, and
+  the settings panel states it. The strategy a run created to persist its result is
+  PathFinder's too, and the purge deletes it: no conversation names it, so the purge reads
+  it off the run's own row.
+
+* **Clearing all data clears the memories.** A memory names no site, so a purge that names
+  no site deletes every memory of the user's five kinds and the `memory_tombstones` rows
+  that hold them out; a purge of one site leaves them. The monthly spend counter and the
+  exports are kept by design, and the settings copy names both.
+
 ## 2026-09-15
 
 * **A fact about a gene is read from the gene's record.** `services/gene_records/read.py`
@@ -137,8 +230,18 @@
   further body sites across the web app hand-declared a shape for a route whose request type is
   generated. Four of them disagreed with the route: a parameter map typed as unknown values, a
   source required on one side and optional on the other, an open string where a closed enum was
-  wanted, and an operator typed as any string against six. Three sites remain, all blocked behind
-  retyping the strategy editor's parameter map, which is its own change.
+  wanted, and an operator typed as any string against six. The last three were blocked behind the
+  strategy editor's parameter map, which was a map of unknown values while the API takes a
+  discriminated value per kind; it is now the generated map, and all fifteen sites carry a
+  generated request type.
+
+  Retyping it exposed three defects the looseness had hidden. A researcher who picked "All" for a
+  vocabulary parameter sent the internal sentinel to WDK as a context value, because five filters
+  meant to strip it compared a typed object to a bare string and could never fire; the serialiser
+  already stripped it correctly, and the two now share one predicate. A dependent-parameter refresh
+  posted raw form values into a body that takes typed ones, which the API refused. And the cast
+  that let a raw value stand in for a typed one is the cause of the empty-object text a sweep panel
+  showed; the branch, its discriminator and the cast are gone.
 * **The mock names its control set after the file it came from.** A mock-driven run left rows a
   researcher could not tell apart, which read as a product defect and was not one; the product's
   own paths all name what they save. Test scaffolding that lies about the product costs a reader
@@ -160,6 +263,32 @@
   discarded the paths and the region labels overprinted. Sets that are exactly equal are detected
   before rendering and named, and the counts and the pairwise table are unchanged. Measured: the
   trigger is duplication, not nesting; a small set inside a large one draws correctly.
+* **A step the site can no longer run says so in a sentence.** Running an enrichment over a saved
+  strategy whose step named a dataset the site has since dropped put WDK's whole refusal on the
+  screen: three nested layers of escaped JSON, 821 characters, carrying a WDK user id, two internal
+  step ids and the parameter name. The refusal is structured, so it is now read rather than
+  stringified, and a researcher gets one sentence naming which input of which step holds the value
+  the site no longer offers. A shape the reader does not recognise gives a short honest sentence
+  instead of the blob, and the whole refusal still reaches the log for an operator. The value is
+  the one piece quoted back, so it is quoted only when it is a plain term.
+
+  The staleness itself is not a defect of this product: sites reload datasets, and a strategy saved
+  before a reload can name a value that has gone. The reader is in veupathdb-mcp 0.2.0a18 so every
+  caller of a step that will not run benefits, not only enrichment.
+
+  This walked past the gate that exists to stop it. `test_user_facing_vocabulary.py` refuses a
+  user-facing string that names an internal, and it scans source literals; this text was assembled
+  at runtime from an exception, so there was nothing to scan. The sentence is now asserted at
+  runtime against the real refusal.
+* **A step is a search because of what it is, not what it is called.** Inserting a saved strategy
+  that combines two searches was refused by WDK with "bq_operator: Cannot be empty", so the feature
+  worked only for a saved strategy of one step. A combine cloned from WDK keeps WDK's own
+  `boolean_question_*` name, and the write path asked "is this a search?" by testing that name,
+  which rejected only the internal sentinel. So the combine was parameter-validated against the
+  boolean question's own specification and refused before the combine branch was reached, which is
+  why nothing logged a combine at all. One function now answers the question, reading the kind
+  first as the frontend already did, and every WDK write that carries a search name refuses a
+  `boolean_question_*` name outright, so the same mistake cannot be made quietly again.
 * **A researcher can open a strategy they already have.** `POST /api/v1/conversations/open` worked
   and nothing reached it. The conversations header menu now offers it, taking a pasted strategy
   link or an id, or a pick from the account's own strategies on that site. The listing hides

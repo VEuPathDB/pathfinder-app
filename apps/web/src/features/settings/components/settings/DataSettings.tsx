@@ -1,25 +1,36 @@
 "use client";
 
-/**
- * DataSettings -- destructive data-clearing actions.
- *
- * Four tiers:
- * - Clear strategies (current site only)
- * - Clear site data (strategies + gene sets + Redis for current site)
- * - Clear ALL data (everything locally, remote strategies dismissed to prevent re-sync)
- * - Clear ALL data + VEuPathDB (everything locally + delete remotely, requires "delete my data")
- */
-
+/** The four tiers of data clearing a user can ask for, widest last. */
 import { useState } from "react";
+import { toast } from "sonner";
 import { requestVoid } from "@/lib/api/http";
 import { listStrategies } from "@pathfinder/shared/generated/hooks/useListStrategies";
 import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
+import { purgeUserDataEndpoint } from "@pathfinder/shared/generated/hooks/usePurgeUserDataEndpoint";
+import type { PurgeCounts } from "@pathfinder/shared/generated/types/PurgeCounts";
 import { useAsyncAction } from "@/features/settings/asyncAction";
 import { Loader2, Trash2, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface DataSettingsProps {
   siteId: string;
+}
+
+/** How long the outcome stays on screen before the page reloads. */
+const NOTICE_BEFORE_RELOAD_MS = 4000;
+
+function reportPurge(deleted: PurgeCounts): void {
+  const done = `VEuPathDB strategies deleted: ${String(deleted.wdkStrategies)}.`;
+  const memories = `Memories deleted: ${String(deleted.memories)}.`;
+  if (deleted.wdkStrategiesKept > 0) {
+    toast.error("Not everything was deleted", {
+      description: `${done} Could not delete: ${String(
+        deleted.wdkStrategiesKept,
+      )}. The chats and runs that used them were kept, so you can try again. ${memories}`,
+    });
+    return;
+  }
+  toast.success("Data cleared", { description: `${done} ${memories}` });
 }
 
 export function DataSettings({ siteId }: DataSettingsProps) {
@@ -68,11 +79,11 @@ export function DataSettings({ siteId }: DataSettingsProps) {
   const clearAllWithWdk = async () => {
     setClearing("all-wdk");
     await run(async () => {
-      await requestVoid("/api/v1/user/data", {
-        method: "DELETE",
-        query: { deleteWdk: "true" },
-      });
-      window.location.reload();
+      const result = await purgeUserDataEndpoint({ deleteWdk: true });
+      reportPurge(result.deleted);
+      window.setTimeout(() => {
+        window.location.reload();
+      }, NOTICE_BEFORE_RELOAD_MS);
     });
     setClearing(null);
     setConfirmAction(null);
@@ -89,7 +100,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
 
       <DangerAction
         label="Clear strategies"
-        description="Delete all draft strategies for the current site."
+        description={`Remove every chat for ${siteId} from PathFinder. A chat linked to a VEuPathDB strategy is dismissed instead, and the strategy itself stays. Gene sets, runs and control sets are untouched.`}
         loading={clearing === "strategies"}
         confirmed={confirmAction === "strategies"}
         onConfirm={() => setConfirmAction("strategies")}
@@ -101,7 +112,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
 
       <DangerAction
         label="Clear site data"
-        description={`Delete all strategies, gene sets, and chat history for ${siteId}.`}
+        description={`Delete the gene sets, runs and control sets for ${siteId}, and dismiss every chat on it. The investigations from ${siteId} still waiting for review go with them. A dismissed chat can be restored from the sidebar. VEuPathDB strategies and your memories stay.`}
         loading={clearing === "site"}
         confirmed={confirmAction === "site"}
         onConfirm={() => setConfirmAction("site")}
@@ -113,7 +124,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
 
       <DangerAction
         label="Clear ALL data"
-        description="Delete everything locally. VEuPathDB strategies are kept but hidden from sync."
+        description="Delete the gene sets, runs and control sets on every site, and your memories with them. The investigations still waiting for review go too. Every chat is dismissed rather than deleted, and can be restored from the sidebar. VEuPathDB strategies are kept but hidden from sync. Your monthly spend counter and exports stay."
         loading={clearing === "all-local"}
         confirmed={confirmAction === "all-local"}
         onConfirm={() => setConfirmAction("all-local")}
@@ -130,9 +141,15 @@ export function DataSettings({ siteId }: DataSettingsProps) {
             <div className="text-sm font-medium text-foreground">
               Clear ALL data + VEuPathDB
             </div>
-            <div className="text-xs text-muted-foreground">
-              Delete everything locally <strong>and</strong> from VEuPathDB. This cannot
-              be undone.
+            <div
+              data-testid="wdk-purge-description"
+              className="text-xs text-muted-foreground"
+            >
+              Delete everything locally, memories and the investigations still waiting
+              for review included, <strong>and</strong> the strategies PathFinder
+              created in VEuPathDB. A chat or a run whose strategy the site keeps is
+              kept too, so you can try again. Your monthly spend counter and exports
+              stay. This cannot be undone.
             </div>
           </div>
           {confirmAction === "all-wdk" ? (
@@ -181,8 +198,9 @@ export function DataSettings({ siteId }: DataSettingsProps) {
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
               <div className="space-y-2">
                 <p className="text-xs font-medium text-destructive">
-                  This will permanently delete all strategies from VEuPathDB across all
-                  sites.
+                  This permanently deletes the strategies PathFinder created in your
+                  VEuPathDB account, on every site. Strategies you made in VEuPathDB
+                  yourself are kept.
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Type{" "}

@@ -21,6 +21,7 @@ import { EditorFooter, type SyncState } from "./EditorFooter";
 import { DiscardConfirmDialog } from "./DiscardConfirmDialog";
 import { RecoveryBanner } from "./RecoveryBanner";
 import { useStepEditorState } from "./useStepEditorState";
+import type { ParamFormValues } from "./hooks/useParamForm";
 import { useStepDraftChanges } from "./hooks/useStepDraftChanges";
 import {
   useRecoveredDraft,
@@ -211,12 +212,8 @@ export function EditorContent({
     writeDraftSnapshot();
   };
 
-  const handleFieldChanged = (
-    name: string,
-    value: unknown,
-    allValues: Record<string, unknown>,
-  ): void => {
-    state.onDependentFieldChange(name, value, allValues);
+  const handleFieldChanged = (name: string, allValues: ParamFormValues): void => {
+    state.onDependentFieldChange(name, allValues);
     writeDraftSnapshot();
   };
 

@@ -3889,12 +3889,37 @@ paths:
         VEuPathDB but PathFinder ignores them. Nothing is hard-deleted.
 
 
-        When ``deleteWdk=true``: everything is hard-deleted locally AND all
+        When ``deleteWdk=true``: on VEuPathDB the strategies PathFinder created
 
-        WDK strategies are deleted from VEuPathDB.
+        there are deleted, and everything whose strategy is gone is hard-deleted
+
+        locally. A strategy the user made on the website stays. A chat whose
+
+        strategy PathFinder could not delete - the site did not answer, the
+
+        request names no registered VEuPathDB user, or the delete was refused -
+
+        is dismissed instead of deleted, and a run in the same position keeps its
+
+        row in the workbench, so a later purge can finish the job.
+
+        ``wdkStrategiesKept`` counts those strategies.
 
 
-        Always deletes: gene sets, experiments, control sets.
+        Always deletes: gene sets, control sets, the runs whose strategy is gone,
+
+        and the user''s investigations still waiting for curation. A staged
+
+        investigation names a site, so a purge of one site clears only that
+
+        site''s; ``stagedEvalCases`` counts them.
+
+
+        A memory names no site, so a purge of everything also deletes the user''s
+
+        memories and the tombstones that hold them out; a purge of one site
+
+        leaves them.
 
 
         Pass ``?siteId=X`` to limit to one site, or omit for everything.'
@@ -3927,7 +3952,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JSONObject'
+                $ref: '#/components/schemas/PurgeUserDataResponse'
         '422':
           description: Validation Error
           content:
@@ -5159,6 +5184,10 @@ components:
           - type: integer
           - type: 'null'
           title: Wdkstrategyid
+        wdkStrategyCreatedHere:
+          type: boolean
+          title: Wdkstrategycreatedhere
+          default: false
         isSaved:
           type: boolean
           title: Issaved
@@ -9135,6 +9164,57 @@ components:
       - ollama
       title: ProviderStatus
       description: Per-provider API-key availability.
+    PurgeCounts:
+      properties:
+        strategies:
+          type: integer
+          title: Strategies
+        wdkStrategies:
+          type: integer
+          title: Wdkstrategies
+        wdkStrategiesKept:
+          type: integer
+          title: Wdkstrategieskept
+        memories:
+          type: integer
+          title: Memories
+        geneSets:
+          type: integer
+          title: Genesets
+        experiments:
+          type: integer
+          title: Experiments
+        controlSets:
+          type: integer
+          title: Controlsets
+        stagedEvalCases:
+          type: integer
+          title: Stagedevalcases
+      type: object
+      required:
+      - strategies
+      - wdkStrategies
+      - wdkStrategiesKept
+      - memories
+      - geneSets
+      - experiments
+      - controlSets
+      - stagedEvalCases
+      title: PurgeCounts
+      description: What one purge destroyed, and what it could not.
+    PurgeUserDataResponse:
+      properties:
+        ok:
+          type: boolean
+          title: Ok
+        deleted:
+          $ref: '#/components/schemas/PurgeCounts'
+      type: object
+      required:
+      - ok
+      - deleted
+      title: PurgeUserDataResponse
+      description: The answer to a purge request.
     QuotaResponse:
       properties:
         usedUsd:

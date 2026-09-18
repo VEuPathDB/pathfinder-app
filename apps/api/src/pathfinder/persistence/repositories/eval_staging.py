@@ -99,17 +99,26 @@ class EvalStagingRepository:
             await session.commit()
 
 
-async def delete_staged_for_user(session: AsyncSession, *, user_id: UUID) -> int:
+async def delete_staged_for_user(
+    session: AsyncSession,
+    *,
+    user_id: UUID,
+    application_id: str | None = None,
+    site_id: str | None = None,
+) -> int:
     """Delete one user's staged candidates in the caller's transaction.
 
-    A promoted row carries no user, so it is out of reach here by construction.
+    An application and a site narrow the delete to the rows a caller of that
+    reach can read. A consent opt-out names neither, because the decision is
+    the account's. A promoted row carries no user, so it is out of reach here
+    by construction.
     """
-    result = cast(
-        "CursorResult[object]",
-        await session.execute(
-            delete(EvalStagedCase).where(EvalStagedCase.user_id == user_id),
-        ),
-    )
+    stmt = delete(EvalStagedCase).where(EvalStagedCase.user_id == user_id)
+    if application_id is not None:
+        stmt = stmt.where(EvalStagedCase.application_id == application_id)
+    if site_id is not None:
+        stmt = stmt.where(EvalStagedCase.site_id == site_id)
+    result = cast("CursorResult[object]", await session.execute(stmt))
     return result.rowcount or 0
 
 

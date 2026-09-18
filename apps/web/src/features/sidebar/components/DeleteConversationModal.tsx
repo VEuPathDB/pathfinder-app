@@ -39,6 +39,10 @@ export function DeleteConversationModal({
 
   const hasStrategy = target?.chat.wdkStrategyId != null;
   const dbName = target != null ? siteDisplayName(target.siteId) : "";
+  const whose =
+    target?.chat.wdkStrategyCreatedHere === true
+      ? `PathFinder created this strategy in ${dbName}.`
+      : `PathFinder has no record of creating this strategy in ${dbName}, so it may be one you made there yourself.`;
 
   return (
     <Dialog
@@ -69,9 +73,12 @@ export function DeleteConversationModal({
             />
             <div className="space-y-0.5">
               <div className="font-medium">Also delete strategy from {dbName}</div>
-              <p className="text-xs text-muted-foreground">
-                Permanently removes the linked strategy from {dbName}. This cannot be
-                undone, and the conversation will not be recoverable.
+              <p
+                data-testid="delete-linked-strategy-note"
+                className="text-xs text-muted-foreground"
+              >
+                {whose} Deleting it is permanent, and the conversation will not be
+                recoverable.
               </p>
             </div>
           </label>

@@ -18,15 +18,12 @@ import { FilterParam } from "../widgets/FilterParam";
 import { DatasetParam } from "../widgets/DatasetParam";
 import type { ParamWidgetProps } from "../widgets/types";
 import type { StepEditorState } from "../useStepEditorState";
+import type { ParamFormValues } from "../hooks/useParamForm";
 
 interface ParamFieldRendererProps {
   spec: ParamSpec;
   state: StepEditorState;
-  onFieldChanged: (
-    name: string,
-    value: unknown,
-    allValues: Record<string, unknown>,
-  ) => void;
+  onFieldChanged: (name: string, allValues: ParamFormValues) => void;
   onFieldBlurred: () => void;
 }
 
@@ -110,18 +107,14 @@ function wrapFieldWithCallbacks(
   field: ParamWidgetProps["field"],
   state: StepEditorState,
   name: string,
-  onFieldChanged: (
-    name: string,
-    value: unknown,
-    allValues: Record<string, unknown>,
-  ) => void,
+  onFieldChanged: (name: string, allValues: ParamFormValues) => void,
   onFieldBlurred: () => void,
 ): ParamWidgetProps["field"] {
   return {
     state: field.state,
     handleChange: (value: string | string[]) => {
       field.handleChange(value);
-      onFieldChanged(name, value, state.form.state.values);
+      onFieldChanged(name, state.form.state.values);
     },
     handleBlur: () => {
       field.handleBlur();

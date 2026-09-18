@@ -88,6 +88,7 @@ async def test_branch_at_turn_two_gets_the_three_step_tree_and_a_new_wdk_id(
         assert strategy is not None
         assert strategy.step_count == 3
         assert strategy.wdk_strategy_id == FIRST_PUSHED_WDK_STRATEGY_ID
+        assert strategy.wdk_strategy_created_here is True
         assert "orthologs" not in step_ids_of(strategy.strategy_ast)
 
 

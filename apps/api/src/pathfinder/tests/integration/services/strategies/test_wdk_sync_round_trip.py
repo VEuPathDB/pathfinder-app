@@ -13,6 +13,7 @@ from pathfinder.persistence.repositories.saved_strategy import (
 )
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.wdk_sync import (
+    ChatOwner,
     WdkChatSpec,
     plan_needs_detail_fetch,
     upsert_chat,
@@ -42,9 +43,12 @@ async def test_importing_a_wdk_strategy_creates_the_side_row(
         repo = ConversationRepository(session)
         conversation = await upsert_chat(
             conv_repo=repo,
-            user_id=authed_user_id,
+            owner=ChatOwner(
+                user_id=authed_user_id,
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+            ),
             site_id="plasmodb",
-            assistant_id=PATHFINDER_ASSISTANT_ID,
+            created_here=False,
             spec=_spec("imported"),
         )
         await session.commit()
@@ -71,9 +75,12 @@ async def test_a_second_import_updates_the_same_thread(authed_user_id: UUID) -> 
         repo = ConversationRepository(session)
         first = await upsert_chat(
             conv_repo=repo,
-            user_id=authed_user_id,
+            owner=ChatOwner(
+                user_id=authed_user_id,
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+            ),
             site_id="plasmodb",
-            assistant_id=PATHFINDER_ASSISTANT_ID,
+            created_here=False,
             spec=_spec("imported"),
         )
         await session.commit()
@@ -83,9 +90,12 @@ async def test_a_second_import_updates_the_same_thread(authed_user_id: UUID) -> 
         repo = ConversationRepository(session)
         second = await upsert_chat(
             conv_repo=repo,
-            user_id=authed_user_id,
+            owner=ChatOwner(
+                user_id=authed_user_id,
+                assistant_id=PATHFINDER_ASSISTANT_ID,
+            ),
             site_id="plasmodb",
-            assistant_id=PATHFINDER_ASSISTANT_ID,
+            created_here=False,
             spec=_spec("renamed upstream", step_count=6),
         )
         await session.commit()

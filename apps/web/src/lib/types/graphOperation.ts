@@ -4,6 +4,7 @@ import type {
   Step,
   StrategyStepNode,
 } from "@pathfinder/shared";
+import type { ParamValueMap } from "@/lib/parameters/paramValue";
 
 type AttachPoint =
   | { mode: "new-root" }
@@ -45,7 +46,7 @@ export type GraphOperation =
   | {
       kind: "updateStepParams";
       stepId: string;
-      parameters: NonNullable<Step["parameters"]>;
+      parameters: ParamValueMap;
     }
   | {
       kind: "updateCombineOperator";

@@ -50,7 +50,12 @@ describe("useParamSpecs (advanced)", () => {
       () =>
         useParamSpecs({
           ...baseOptions,
-          contextValues: { organism: ["Plasmodium falciparum 3D7"] },
+          contextValues: {
+            organism: {
+              type: "multi-pick-vocabulary",
+              values: ["Plasmodium falciparum 3D7"],
+            },
+          },
         }),
       { wrapper: Wrapper },
     );

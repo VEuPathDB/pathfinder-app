@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
+from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.db import async_session_factory
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -150,9 +151,13 @@ async def test_clearing_blanks_the_built_strategy_and_keeps_the_links(
                 step_count=1,
                 wdk_strategy_id=777002,
                 wdk_strategy_id_set=True,
+                wdk_strategy_created_here=True,
+                wdk_strategy_created_here_set=True,
                 gene_set_auto_imported=True,
             ),
         )
+        seeded = await repo.get_strategy(conversation_id)
+        assert seeded.wdk_strategy_created_here is True
         await repo.clear_strategy(conversation_id)
         await session.commit()
 
@@ -161,6 +166,7 @@ async def test_clearing_blanks_the_built_strategy_and_keeps_the_links(
 
     assert strategy.strategy_ast == {}
     assert strategy.wdk_strategy_id is None
+    assert strategy.wdk_strategy_created_here is False
     assert strategy.step_count == 0
     assert strategy.gene_set_auto_imported is True
 
@@ -219,7 +225,10 @@ async def test_two_threads_cannot_claim_the_same_wdk_strategy(
             )
 
 
-async def test_purging_a_user_takes_the_strategy_rows(authed_user_id: UUID) -> None:
+async def test_purging_a_user_takes_the_strategy_rows(
+    authed_user_id: UUID,
+    app_memory_store: MemoryStore,
+) -> None:
     conversation_id = await _thread(authed_user_id)
 
     async with async_session_factory() as session:
@@ -235,6 +244,7 @@ async def test_purging_a_user_takes_the_strategy_rows(authed_user_id: UUID) -> N
             user_id=authed_user_id,
             site_id=None,
             delete_wdk=True,
+            memory_store=app_memory_store,
         )
 
     assert await _side_row_count() == 0

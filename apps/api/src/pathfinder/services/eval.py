@@ -28,7 +28,7 @@ from pathfinder.services.experiment.materialization import (
     _materialize_step_tree,
 )
 from pathfinder.services.gene_sets.step_genes import fetch_all_gene_ids
-from pathfinder.services.strategies.wdk_sync import sync_to_chat
+from pathfinder.services.strategies.wdk_sync import ChatOwner, sync_to_chat
 
 logger = get_logger(__name__)
 
@@ -146,8 +146,11 @@ async def build_gold_strategy(
                 site_id=site_id,
                 api=api,
                 conv_repo=ConversationRepository(db),
-                user_id=user_id,
-                assistant_id=PATHFINDER_ASSISTANT_ID,
+                owner=ChatOwner(
+                    user_id=user_id,
+                    assistant_id=PATHFINDER_ASSISTANT_ID,
+                ),
+                created_here=True,
             )
             await db.commit()
             conversation_id = conversation.id

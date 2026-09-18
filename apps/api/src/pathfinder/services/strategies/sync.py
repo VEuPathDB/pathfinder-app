@@ -43,6 +43,8 @@ class SyncResult:
     root_count: int | None
     zero_step_ids: list[str]
     step_count: int
+    created_wdk_strategy: bool = False
+    """True when this sync minted the WDK strategy, rather than updating one."""
     detached_step_ids: list[str] = field(default_factory=list)
     """Steps the WDK strategy does not list after its step tree was put."""
 
@@ -125,24 +127,30 @@ async def _apply_decorations(
             )
 
 
+@dataclass(frozen=True)
+class _PushedStrategy:
+    """The WDK strategy the push landed in, and whether the push minted it."""
+
+    wdk_strategy_id: int
+    created: bool
+
+
 async def _create_or_update_wdk_strategy(
     api: StrategyAPI,
     step_tree: WDKStepTree,
     name: str,
     sync_state: WDKSyncState,
-) -> int:
+) -> _PushedStrategy:
     """Create a new WDK strategy, or update the existing one.
 
     A failed update creates a new strategy instead.
-
-    :returns: The WDK strategy ID.
     """
     wdk_strategy_id = sync_state.wdk_strategy_id
 
     if wdk_strategy_id is None:
         result = await api.create_strategy(step_tree, name)
         logger.info("Created WDK strategy", wdk_strategy_id=result.id)
-        return result.id
+        return _PushedStrategy(result.id, created=True)
 
     if step_tree != sync_state.wdk_step_tree:
         try:
@@ -158,19 +166,19 @@ async def _create_or_update_wdk_strategy(
                 error=str(update_err),
             )
             result = await api.create_strategy(step_tree, name)
-            return result.id
+            return _PushedStrategy(result.id, created=True)
         else:
             logger.info(
                 "Updated WDK strategy step tree",
                 wdk_strategy_id=wdk_strategy_id,
             )
-            return wdk_strategy_id
+            return _PushedStrategy(wdk_strategy_id, created=False)
 
     logger.debug(
         "Step tree unchanged, skipping WDK update",
         wdk_strategy_id=wdk_strategy_id,
     )
-    return wdk_strategy_id
+    return _PushedStrategy(wdk_strategy_id, created=False)
 
 
 @dataclass
@@ -257,9 +265,8 @@ async def sync_strategy_for_site(
     step_tree = build_step_tree_from_graph(root_step, sync_state.wdk_step_ids)
 
     name = strategy_name or graph.name or "Untitled Strategy"
-    wdk_strategy_id = await _create_or_update_wdk_strategy(
-        api, step_tree, name, sync_state
-    )
+    pushed = await _create_or_update_wdk_strategy(api, step_tree, name, sync_state)
+    wdk_strategy_id = pushed.wdk_strategy_id
 
     state = await _fetch_strategy_state(
         api, wdk_strategy_id, sync_state.wdk_step_ids, step_tree
@@ -289,6 +296,7 @@ async def sync_strategy_for_site(
         root_count=state.root_count,
         zero_step_ids=zeros,
         step_count=len(all_steps),
+        created_wdk_strategy=pushed.created,
         detached_step_ids=detached,
     )
 

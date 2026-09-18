@@ -68,6 +68,10 @@ async def persist_strategy_ast_to_conversation(
                     record_type=merged_ast.record_type or None,
                     wdk_strategy_id=wdk_strategy_id_to_write,
                     wdk_strategy_id_set=sync_result is not None,
+                    wdk_strategy_created_here=True,
+                    wdk_strategy_created_here_set=_minted(sync_result),
+                    is_saved=False,
+                    is_saved_set=_minted(sync_result),
                     step_count=_total_step_count(merged_ast),
                 ),
             )
@@ -77,6 +81,13 @@ async def persist_strategy_ast_to_conversation(
             conversation_id=str(deps.conversation_id),
             error=str(exc),
         )
+
+
+def _minted(sync_result: SyncResult | None) -> bool:
+    """A sync that created the strategy claims it and records it as unsaved,
+    because VEuPathDB creates it unsaved; every other sync leaves both as they
+    stand."""
+    return sync_result is not None and sync_result.created_wdk_strategy
 
 
 def _total_step_count(ast: StrategyAst) -> int:

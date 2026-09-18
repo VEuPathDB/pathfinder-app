@@ -33,97 +33,142 @@ describe("extractSpecVocabulary", () => {
 // ---------------------------------------------------------------------------
 describe("buildContextValues", () => {
   describe("filtering out sentinel and empty values", () => {
-    it("excludes @@fake@@ string values", () => {
-      const result = buildContextValues({ a: "@@fake@@", b: "real" });
-      expect(result).toEqual({ b: "real" });
-    });
-
-    it("excludes arrays containing @@fake@@", () => {
+    it("excludes a single-pick value that carries the All sentinel", () => {
       const result = buildContextValues({
-        a: ["@@fake@@"],
-        b: ["x", "y"],
+        a: { type: "single-pick-vocabulary", value: "@@fake@@" },
+        b: { type: "single-pick-vocabulary", value: "Pf3D7" },
       });
-      expect(result).toEqual({ b: ["x", "y"] });
+      expect(result).toEqual({
+        b: { type: "single-pick-vocabulary", value: "Pf3D7" },
+      });
     });
 
-    it("excludes array with @@fake@@ among other values", () => {
+    it("excludes a multi-pick value that carries the All sentinel", () => {
       const result = buildContextValues({
-        a: ["ok", "@@fake@@"],
+        a: { type: "multi-pick-vocabulary", values: ["@@fake@@"] },
+        b: { type: "multi-pick-vocabulary", values: ["x", "y"] },
+      });
+      expect(result).toEqual({
+        b: { type: "multi-pick-vocabulary", values: ["x", "y"] },
+      });
+    });
+
+    it("excludes a multi-pick value with the All sentinel among real terms", () => {
+      const result = buildContextValues({
+        a: { type: "multi-pick-vocabulary", values: ["ok", "@@fake@@"] },
       });
       expect(result).toEqual({});
     });
 
-    it("excludes null values", () => {
-      const result = buildContextValues({ a: null, b: "ok" });
-      expect(result).toEqual({ b: "ok" });
+    it("excludes an empty string value", () => {
+      const result = buildContextValues({
+        a: { type: "string", value: "" },
+        b: { type: "string", value: "ok" },
+      });
+      expect(result).toEqual({ b: { type: "string", value: "ok" } });
     });
 
-    it("excludes undefined values", () => {
-      const result = buildContextValues({ a: undefined, b: 42 });
-      expect(result).toEqual({ b: 42 });
+    it("excludes an empty multi-pick value", () => {
+      const result = buildContextValues({
+        a: { type: "multi-pick-vocabulary", values: [] },
+        b: { type: "multi-pick-vocabulary", values: ["PvP01"] },
+      });
+      expect(result).toEqual({
+        b: { type: "multi-pick-vocabulary", values: ["PvP01"] },
+      });
     });
 
-    it("excludes empty string values", () => {
-      const result = buildContextValues({ a: "", b: "ok" });
-      expect(result).toEqual({ b: "ok" });
+    it("excludes a range value with neither endpoint", () => {
+      const result = buildContextValues({
+        a: { type: "number-range", min: null, max: null },
+        b: { type: "number-range", min: 0, max: null },
+      });
+      expect(result).toEqual({ b: { type: "number-range", min: 0, max: null } });
     });
 
-    it("excludes empty array values", () => {
-      const result = buildContextValues({ a: [], b: [1] });
-      expect(result).toEqual({ b: [1] });
+    it("excludes a filter value with no clauses", () => {
+      const result = buildContextValues({
+        a: { type: "filter", filters: [] },
+      });
+      expect(result).toEqual({});
     });
   });
 
   describe("retaining valid values", () => {
-    it("keeps non-empty strings", () => {
-      const result = buildContextValues({ name: "hello" });
-      expect(result).toEqual({ name: "hello" });
+    it("keeps a non-empty string value", () => {
+      const result = buildContextValues({ name: { type: "string", value: "hello" } });
+      expect(result).toEqual({ name: { type: "string", value: "hello" } });
     });
 
-    it("keeps numbers (including 0)", () => {
-      const result = buildContextValues({ count: 0, size: 10 });
-      expect(result).toEqual({ count: 0, size: 10 });
+    it("keeps a zero number value", () => {
+      const result = buildContextValues({
+        count: { type: "number", value: 0 },
+        size: { type: "number", value: 10 },
+      });
+      expect(result).toEqual({
+        count: { type: "number", value: 0 },
+        size: { type: "number", value: 10 },
+      });
     });
 
-    it("keeps booleans", () => {
-      const result = buildContextValues({ flag: false, other: true });
-      expect(result).toEqual({ flag: false, other: true });
-    });
-
-    it("keeps non-empty arrays", () => {
-      const result = buildContextValues({ items: ["a", "b"] });
-      expect(result).toEqual({ items: ["a", "b"] });
-    });
-
-    it("keeps objects", () => {
-      const result = buildContextValues({ config: { x: 1 } });
-      expect(result).toEqual({ config: { x: 1 } });
+    it("keeps an input-step value", () => {
+      const result = buildContextValues({
+        prior: { type: "input-step", stepId: "s-1" },
+      });
+      expect(result).toEqual({ prior: { type: "input-step", stepId: "s-1" } });
     });
   });
 
   describe("allowedKeys filtering", () => {
     it("only includes keys in the allowedKeys list", () => {
-      const result = buildContextValues({ a: "yes", b: "no", c: "maybe" }, ["a", "c"]);
-      expect(result).toEqual({ a: "yes", c: "maybe" });
+      const result = buildContextValues(
+        {
+          a: { type: "string", value: "yes" },
+          b: { type: "string", value: "no" },
+          c: { type: "string", value: "maybe" },
+        },
+        ["a", "c"],
+      );
+      expect(result).toEqual({
+        a: { type: "string", value: "yes" },
+        c: { type: "string", value: "maybe" },
+      });
     });
 
-    it("still filters out sentinel values even when key is allowed", () => {
-      const result = buildContextValues({ a: "@@fake@@", b: "real" }, ["a", "b"]);
-      expect(result).toEqual({ b: "real" });
+    it("still filters out the All sentinel when the key is allowed", () => {
+      const result = buildContextValues(
+        {
+          a: { type: "single-pick-vocabulary", value: "@@fake@@" },
+          b: { type: "single-pick-vocabulary", value: "real" },
+        },
+        ["a", "b"],
+      );
+      expect(result).toEqual({
+        b: { type: "single-pick-vocabulary", value: "real" },
+      });
     });
 
     it("returns empty when no keys match", () => {
-      const result = buildContextValues({ a: "val" }, ["b", "c"]);
+      const result = buildContextValues({ a: { type: "string", value: "val" } }, [
+        "b",
+        "c",
+      ]);
       expect(result).toEqual({});
     });
 
     it("includes all valid values when allowedKeys is undefined", () => {
-      const result = buildContextValues({ a: "x", b: "y" });
-      expect(result).toEqual({ a: "x", b: "y" });
+      const result = buildContextValues({
+        a: { type: "string", value: "x" },
+        b: { type: "string", value: "y" },
+      });
+      expect(result).toEqual({
+        a: { type: "string", value: "x" },
+        b: { type: "string", value: "y" },
+      });
     });
 
     it("handles empty allowedKeys array (nothing passes)", () => {
-      const result = buildContextValues({ a: "x" }, []);
+      const result = buildContextValues({ a: { type: "string", value: "x" } }, []);
       expect(result).toEqual({});
     });
   });
@@ -131,12 +176,11 @@ describe("buildContextValues", () => {
   describe("combined edge cases", () => {
     it("handles all-filtered-out input", () => {
       const result = buildContextValues({
-        a: null,
-        b: undefined,
-        c: "",
-        d: [],
-        e: "@@fake@@",
-        f: ["@@fake@@"],
+        a: { type: "string", value: "" },
+        b: { type: "multi-pick-vocabulary", values: [] },
+        c: { type: "date-range", min: null, max: null },
+        d: { type: "single-pick-vocabulary", value: "@@fake@@" },
+        e: { type: "multi-pick-vocabulary", values: ["@@fake@@"] },
       });
       expect(result).toEqual({});
     });

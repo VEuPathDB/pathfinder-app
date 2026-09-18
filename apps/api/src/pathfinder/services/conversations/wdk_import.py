@@ -10,7 +10,7 @@ from veupathdb.wdk import get_strategy_api
 
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.errors import ErrorCode, NotFoundError
-from pathfinder.services.strategies.wdk_sync import sync_to_chat
+from pathfinder.services.strategies.wdk_sync import ChatOwner, sync_to_chat
 
 logger = get_logger(__name__)
 
@@ -77,8 +77,8 @@ async def open_strategy(
             site_id=resolved_site,
             api=api,
             conv_repo=conv_repo,
-            user_id=user_id,
-            assistant_id=assistant_id,
+            owner=ChatOwner(user_id=user_id, assistant_id=assistant_id),
+            created_here=False,
         )
     except VEuPathDBError:
         logger.exception("WDK fetch failed")

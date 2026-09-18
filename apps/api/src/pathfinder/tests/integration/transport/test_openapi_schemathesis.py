@@ -9,19 +9,15 @@ the resulting 404.
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncGenerator, Callable
-from contextlib import asynccontextmanager
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import httpx
-import procrastinate
 import pytest
 import schemathesis
-from assistant_core.conversation.checkpointer import to_psycopg_url
-from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.platform import db
 from fastapi import FastAPI
 from hypothesis import HealthCheck, settings
@@ -48,18 +44,12 @@ from schemathesis.specs.openapi.checks import (
     response_headers_conformance,
     response_schema_conformance,
 )
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
-from pathfinder.jobs.app import procrastinate_app
-from pathfinder.main import create_app
-from pathfinder.persistence.models import User
-from pathfinder.platform.config import get_settings
-from pathfinder.platform.readiness import _FIXED_SUBSYSTEMS, get_readiness
 from pathfinder.platform.security import create_user_token
+from pathfinder.tests._support.memory_store_double import LoopFreeMemoryStore
 from pathfinder.tests._support.openapi_negation import (
     labels_with_uncomplementable_union,
 )
-from pathfinder.transport.http.routers import veupathdb_auth
 
 load_all_checks()
 
@@ -72,17 +62,7 @@ _STREAMING_PATHS: frozenset[str] = frozenset(
     }
 )
 
-# The memory store pool binds to the event loop that opens it, and the sync
-# test client uses one loop per request.
-_LOOP_BOUND_PATHS: frozenset[str] = frozenset(
-    {
-        "/api/v1/memories",
-        "/api/v1/memories/search",
-        "/api/v1/memories/{key}",
-    }
-)
-
-_EXCLUDED_PATHS: frozenset[str] = _STREAMING_PATHS | _LOOP_BOUND_PATHS
+_EXCLUDED_PATHS: frozenset[str] = _STREAMING_PATHS
 
 _HTTP_METHODS = ("get", "post", "put", "patch", "delete", "options", "head", "trace")
 
@@ -155,77 +135,6 @@ def schemathesis_config(patched_app: tuple[FastAPI, UUID]) -> SchemathesisConfig
     )
 
 
-async def _reject_login(
-    site_id: str, email: str, password: str, *, redirect_url: str = "/"
-) -> str | None:
-    """Refuse the fuzzer's random credentials without a call to VEuPathDB.
-
-    The live sign-in would answer 5xx whenever a VEuPathDB site is down, and
-    the check cannot tell that from a fault of this server.
-    """
-    del site_id, email, password, redirect_url
-    return None
-
-
-@asynccontextmanager
-async def _noop_lifespan(_: FastAPI) -> AsyncGenerator[None]:
-    """Stand in for the app lifespan. The fixtures own the database and the
-    engine, so the startup chain stays out of every fuzz call.
-    """
-    yield
-
-
-@pytest.fixture(scope="session")
-async def patched_app(
-    db_engine: AsyncEngine,
-    session_maker: async_sessionmaker[Any],
-) -> AsyncGenerator[tuple[FastAPI, UUID]]:
-    """Build the app once per session against the test database, seed one
-    user, and attach the memory store.
-    """
-    db._engine = db_engine
-    db._session_factory_instance = session_maker
-
-    get_settings.cache_clear()
-    test_connector = procrastinate.PsycopgConnector(
-        conninfo=to_psycopg_url(get_settings().database_url),
-    )
-    procrastinate_app.connector = test_connector
-    procrastinate_app.job_manager.connector = test_connector
-
-    async with db_engine.begin() as conn:
-        await conn.exec_driver_sql(
-            "TRUNCATE TABLE "
-            "messages, conversations, exports, "
-            "experiments, gene_sets, control_sets, users "
-            "RESTART IDENTITY CASCADE",
-        )
-
-    app = create_app()
-    app.router.lifespan_context = _noop_lifespan
-
-    user_id = uuid4()
-    async with session_maker() as session:
-        session.add(User(id=user_id))
-        await session.commit()
-
-    readiness = get_readiness()
-    for subsystem in _FIXED_SUBSYSTEMS:
-        readiness.mark_ready(subsystem)
-    # Readiness also needs one loaded site catalog; this app loads none.
-    readiness.mark_catalog_ready("plasmodb")
-
-    with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(veupathdb_auth, "password_login", _reject_login)
-        async with (
-            # A cancel reads the job table, so the served app needs an open app.
-            procrastinate_app.open_async(),
-            lifespan_memory_store(get_settings().database_url) as memory_store,
-        ):
-            app.state.memory_store = memory_store
-            yield app, user_id
-
-
 @pytest.fixture(scope="session")
 def api_schema(
     patched_app: tuple[FastAPI, UUID],
@@ -277,8 +186,10 @@ _CHECKS: list[Callable[..., Any]] = [
 def test_openapi_conformance(
     case: Case[APIOperation[Any, Any, Any, Any]],
     api_schema: _SchemaArtifacts,
+    seeded_memories: LoopFreeMemoryStore,
 ) -> None:
     """Fuzz one operation and validate the response against its schema."""
+    del seeded_memories
     response: Response = case.call_and_validate(
         checks=_CHECKS,
         cookies={"pathfinder-auth": api_schema.auth_token},
@@ -339,28 +250,23 @@ def test_schema_loads_and_covers_documented_surface(
     assert db._engine is not None
 
 
-async def test_memory_endpoints_have_store_in_conformance_app(
-    patched_app: tuple[FastAPI, UUID],
+def test_the_memory_backed_operations_are_fuzzed(
+    api_schema: _SchemaArtifacts,
 ) -> None:
-    app, user_id = patched_app
-    transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(
-        transport=transport,
-        base_url="http://test",
-        headers={"X-Requested-With": "XMLHttpRequest"},
-    ) as client:
-        client.cookies.set("pathfinder-auth", create_user_token(user_id))
-        listed = await client.get(
-            "/api/v1/memories", params={"limit": "1", "offset": "0"}
-        )
-        searched = await client.get("/api/v1/memories/search", params={"q": "x"})
-        missing = await client.delete(
-            "/api/v1/memories/nope", params={"kind": "knowledge"}
-        )
-    assert listed.status_code == 200, listed.text
-    assert searched.status_code == 200, searched.text
-    assert missing.status_code == 404, missing.text
-    assert missing.headers["content-type"].startswith("application/problem+json")
+    """The purge and the three memories operations reach the conformance run."""
+    fuzzed = {
+        operation.label
+        for operation in _parsed_operations(api_schema.schema)
+        if operation.path not in _EXCLUDED_PATHS
+        and operation.label not in _STREAMING_LABELS
+    }
+    assert {
+        "DELETE /api/v1/user/data",
+        "GET /api/v1/memories",
+        "GET /api/v1/memories/search",
+        "PATCH /api/v1/memories/{key}",
+        "DELETE /api/v1/memories/{key}",
+    } <= fuzzed
 
 
 async def test_health_ready_is_200_in_conformance_app(

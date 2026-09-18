@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 import veupathdb
+from veupathdb_mcp.wdk import describe_step_refusal
 
 from pathfinder.ai.agents.execution import _EXECUTION_INSTRUCTIONS
 from pathfinder.ai.agents.frame import _FRAME_INSTRUCTIONS
@@ -275,3 +276,38 @@ def test_every_agent_that_writes_for_a_reader_carries_the_rule(
 ) -> None:
     """Recovery runs on the execution agent, so four surfaces cover five roles."""
     assert USER_FACING_VOCABULARY in instructions, role
+
+
+# A refusal a site sends, verbatim, as one reached a researcher's screen.
+STALE_DATASET_REFUSAL = (
+    r"""POST /users/1202189953/steps/440118373/reports/standard -> HTTP 422 """
+    r"""(UNSPECIFIED): This step is not runnable for the following reasons: """
+    r"""{"keyedErrors":{"bq_right_op_TranscriptRecordClasses_TranscriptRecordClass":"""
+    r"""["The step referenced by ID '440118363' is not runnable because: """
+    r"""{\n \"keyedErrors\": {\n \"samples_percentile_generic\": """
+    r"""[\"At least one parameter that 'samples_percentile_generic' depends on """
+    r"""is invalid or missing. Errors: \\n{\\n profileset_generic => Invalid """
+    r"""value 'P. falciparum Su Strand Specific RNA Seq data - - Sense'.\\n}\\n\"],"""
+    r"""\n \"profileset_generic\": [\"Invalid value """
+    r"""'P. falciparum Su Strand Specific RNA Seq data - - Sense'.\"]\n },\n """
+    r"""\"validationLevel\": \"RUNNABLE\", \"validationStatus\": \"FAILED\", """
+    r"""\"errors\": []\n}"]},"validationLevel":"RUNNABLE","""
+    r""""validationStatus":"FAILED","errors":[]}"""
+)
+
+
+def test_a_refusal_a_site_sends_is_read_before_a_researcher_sees_it() -> None:
+    """A message assembled at runtime obeys the rule the literal scan enforces.
+
+    The scan above reads source literals. This text is built from an exception,
+    so only a runtime assertion covers it.
+    """
+    read = describe_step_refusal(STALE_DATASET_REFUSAL)
+
+    assert read == (
+        "This strategy cannot run. The second input of the step you ran sets "
+        "'profileset_generic' to 'P. falciparum Su Strand Specific RNA Seq data "
+        "- - Sense', which the site no longer offers. Open that step and choose "
+        "a value the site offers now."
+    )
+    assert _INTERNAL.search(read) is None

@@ -36,7 +36,7 @@ from pathfinder.services.experiment.seed.types import (
     SeedProgress,
     SeedStrategyComplete,
 )
-from pathfinder.services.strategies.wdk_sync import sync_to_chat
+from pathfinder.services.strategies.wdk_sync import ChatOwner, sync_to_chat
 
 logger = get_logger(__name__)
 
@@ -132,8 +132,11 @@ async def _process_single_seed(
                 site_id=seed.site_id,
                 api=api,
                 conv_repo=ctx.conv_repo,
-                user_id=ctx.user_id,
-                assistant_id=PATHFINDER_ASSISTANT_ID,
+                owner=ChatOwner(
+                    user_id=ctx.user_id,
+                    assistant_id=PATHFINDER_ASSISTANT_ID,
+                ),
+                created_here=True,
             )
 
             elapsed_strategy = time.monotonic() - t0

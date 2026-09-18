@@ -49,6 +49,8 @@ class StrategyRevisionRepository:
             latest is not None
             and latest.revision == revision
             and latest.wdk_strategy_id == strategy.wdk_strategy_id
+            and latest.wdk_strategy_created_here == strategy.wdk_strategy_created_here
+            and latest.is_saved == strategy.is_saved
             and latest.step_count == strategy.step_count
         ):
             return latest
@@ -59,6 +61,8 @@ class StrategyRevisionRepository:
             strategy_ast=dict(strategy.strategy_ast),
             step_count=strategy.step_count,
             wdk_strategy_id=strategy.wdk_strategy_id,
+            wdk_strategy_created_here=strategy.wdk_strategy_created_here,
+            is_saved=strategy.is_saved,
             name=ast.name if ast is not None else None,
             message_id=message_id,
         )
@@ -219,6 +223,8 @@ class StrategyRevisionRepository:
                     strategy_ast=without_wdk_ids(src.strategy_ast),
                     step_count=src.step_count,
                     wdk_strategy_id=None,
+                    wdk_strategy_created_here=False,
+                    is_saved=False,
                     name=src.name,
                     message_id=UUID(mapped) if mapped is not None else None,
                     created_at=src.created_at,

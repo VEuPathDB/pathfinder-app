@@ -7,6 +7,7 @@ from assistant_core.conversation.cancellation import turn_is_cancelled
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 
+from pathfinder.services.strategies.abandoned_mint import delete_released_mint
 from pathfinder.services.strategies.revision_ops import discard_turn_strategy_writes
 
 CANCEL_POLL_INTERVAL_SECONDS = 1.0
@@ -52,14 +53,15 @@ async def restore_pre_turn_strategy(
     The epilogue that follows reports the revision the thread is back on.
     """
     async with async_session_factory() as session:
-        restored = await discard_turn_strategy_writes(
+        discarded = await discard_turn_strategy_writes(
             session,
             conversation_id=conversation_id,
             pre_turn_revision_id=pre_turn_revision_id,
         )
         await session.commit()
+    await delete_released_mint(discarded.release)
     logger.info(
         "stopped turn strategy restored",
         conversation_id=str(conversation_id),
-        restored=restored,
+        restored=discarded.undone,
     )

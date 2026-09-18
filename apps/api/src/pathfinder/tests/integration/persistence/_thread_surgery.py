@@ -102,9 +102,8 @@ class FakePush:
         del site_id, conversation_id, name, record_type, step_count
         self.seen.append(strategy_ast)
         pushed = len(self.pushed_strategy_ids)
-        base = 7000 + 100 * pushed
         fresh: JSONObject = {
-            key: base + offset
+            key: 7000 + 100 * pushed + offset
             for offset, key in enumerate(_plan_step_ids_of(strategy_ast))
         }
         strategy_id = FIRST_PUSHED_WDK_STRATEGY_ID + pushed
@@ -114,6 +113,7 @@ class FakePush:
             record_type="transcript",
             step_count=len(fresh),
             wdk_strategy_id=strategy_id,
+            created_wdk_strategy=True,
         )
 
 

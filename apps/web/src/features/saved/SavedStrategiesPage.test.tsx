@@ -11,22 +11,42 @@ import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/u
 
 import { SavedStrategiesPage } from "./SavedStrategiesPage";
 import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
-import { startChatFromSavedStrategy } from "@/lib/api/conversations";
+import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
+import { insertSavedStrategy } from "@/lib/api/conversations";
+import { toast } from "sonner";
 import { chatRoot, chatUrl } from "@/lib/routes";
 import { useRightRailStore } from "@/state/useRightRailStore";
 
 vi.mock("@pathfinder/shared/generated/hooks/useDeleteStrategy", () => ({
   deleteStrategy: vi.fn(() => Promise.resolve({})),
 }));
+vi.mock("@pathfinder/shared/generated/hooks/useBeginStrategy", () => ({
+  beginStrategy: vi.fn(() => Promise.resolve({})),
+}));
 vi.mock("@/lib/api/conversations", () => ({
-  startChatFromSavedStrategy: vi.fn(() => Promise.resolve("new-conv")),
+  insertSavedStrategy: vi.fn(() =>
+    Promise.resolve({
+      wdkStrategyId: 330659663,
+      insertedSavedWdkStrategyId: 101,
+      insertedSavedName: "Kinase sweep",
+      combineStepId: "step_aa2f81cc",
+    }),
+  ),
 }));
 const routerPushMock = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: routerPushMock }) }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const mockDelete = vi.mocked(deleteStrategy);
-const mockStartChat = vi.mocked(startChatFromSavedStrategy);
+const mockBegin = vi.mocked(beginStrategy);
+const mockInsert = vi.mocked(insertSavedStrategy);
+const mockToastError = vi.mocked(toast.error);
+
+function begunConversationId(): string {
+  const call = mockBegin.mock.calls[0];
+  if (call === undefined) throw new Error("begin was never called");
+  return call[0];
+}
 
 function conv(over: Partial<ConversationResponse>): ConversationResponse {
   return {
@@ -62,7 +82,9 @@ function renderPage(
 afterEach(cleanup);
 beforeEach(() => {
   mockDelete.mockClear();
-  mockStartChat.mockClear();
+  mockBegin.mockClear();
+  mockInsert.mockClear();
+  mockToastError.mockClear();
   routerPushMock.mockClear();
   useRightRailStore.setState({ openPanel: null });
 });
@@ -84,6 +106,14 @@ const PHOSPH = conv({
   stepCount: 1,
 });
 const DRAFT = conv({ id: "d1", name: "Unsaved draft", isSaved: false });
+const INSERT_REFUSAL =
+  "'Gametocyte combine block' was not inserted: the site refused the step 'Combine Gene results': bq_operator: Cannot be empty.";
+const INSERT_RESULT = {
+  wdkStrategyId: 330659663,
+  insertedSavedWdkStrategyId: 101,
+  insertedSavedName: "Kinase sweep",
+  combineStepId: "step_aa2f81cc",
+};
 
 describe("SavedStrategiesPage", () => {
   it("lists only saved strategies with their step count, size and record type", async () => {
@@ -162,22 +192,78 @@ describe("SavedStrategiesPage", () => {
 
     await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
 
+    await waitFor(() => expect(mockInsert).toHaveBeenCalledTimes(1));
+    const conversationId = begunConversationId();
+    expect(mockBegin.mock.calls).toEqual([
+      [conversationId, { siteId: "plasmodb", seedText: "Kinase sweep" }],
+    ]);
+    expect(mockInsert.mock.calls).toEqual([
+      [
+        {
+          conversationId,
+          siteId: "plasmodb",
+          targetStepId: "",
+          savedWdkStrategyId: 101,
+        },
+      ],
+    ]);
     await waitFor(() =>
-      expect(mockStartChat.mock.calls).toEqual([
-        [{ siteId: "plasmodb", name: "Kinase sweep", savedWdkStrategyId: 101 }],
+      expect(routerPushMock.mock.calls).toEqual([
+        [chatUrl("plasmodb", conversationId)],
       ]),
-    );
-    await waitFor(() =>
-      expect(routerPushMock.mock.calls).toEqual([[chatUrl("plasmodb", "new-conv")]]),
     );
   });
 
+  it("removes the chat it opened when the insert is refused", async () => {
+    mockInsert.mockRejectedValueOnce(new Error(INSERT_REFUSAL));
+    renderPage([KINASES], { 101: 0 });
+    await screen.findByTestId("saved-strategy-k1");
+
+    await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
+
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1));
+    expect(mockDelete.mock.calls).toEqual([[begunConversationId()]]);
+    expect(routerPushMock.mock.calls).toEqual([]);
+  });
+
+  it("names the saved strategy, the reason and what it removed", async () => {
+    mockInsert.mockRejectedValueOnce(new Error(INSERT_REFUSAL));
+    renderPage([KINASES], { 101: 0 });
+    await screen.findByTestId("saved-strategy-k1");
+
+    await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
+
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1));
+    expect(mockToastError.mock.calls).toEqual([
+      [
+        'Could not use "Kinase sweep" in a new chat',
+        {
+          description: `${INSERT_REFUSAL} The empty chat it opened was removed.`,
+        },
+      ],
+    ]);
+  });
+
+  it("says the chat is still there when it cannot be removed", async () => {
+    mockInsert.mockRejectedValueOnce(new Error(INSERT_REFUSAL));
+    mockDelete.mockRejectedValueOnce(new Error("HTTP 500"));
+    renderPage([KINASES], { 101: 0 });
+    await screen.findByTestId("saved-strategy-k1");
+
+    await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
+
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1));
+    expect(mockToastError.mock.calls[0]?.[1]).toEqual({
+      description: `${INSERT_REFUSAL} The empty chat it opened is still in the sidebar.`,
+    });
+  });
+
   it("reports the insert while it runs", async () => {
-    let finish: (id: string) => void = () => undefined;
-    mockStartChat.mockImplementationOnce(
+    let finish: () => void = () => undefined;
+    mockInsert.mockImplementationOnce(
       () =>
-        new Promise<string>((resolve) => {
-          finish = resolve;
+        new Promise((resolve) => {
+          finish = () => resolve(INSERT_RESULT);
         }),
     );
     renderPage([KINASES], { 101: 0 });
@@ -185,13 +271,16 @@ describe("SavedStrategiesPage", () => {
 
     await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
 
+    await waitFor(() => expect(mockInsert).toHaveBeenCalledTimes(1));
     const button = screen.getByTestId("saved-strategy-use-k1");
     expect(button).toHaveTextContent("Inserting...");
     expect(button).toHaveAttribute("aria-busy", "true");
 
-    finish("new-conv");
+    finish();
     await waitFor(() =>
-      expect(routerPushMock.mock.calls).toEqual([[chatUrl("plasmodb", "new-conv")]]),
+      expect(routerPushMock.mock.calls).toEqual([
+        [chatUrl("plasmodb", begunConversationId())],
+      ]),
     );
   });
 
@@ -204,6 +293,8 @@ describe("SavedStrategiesPage", () => {
     await waitFor(() =>
       expect(useRightRailStore.getState().openPanel).toBe("strategy"),
     );
-    expect(routerPushMock.mock.calls).toEqual([[chatUrl("plasmodb", "new-conv")]]);
+    expect(routerPushMock.mock.calls).toEqual([
+      [chatUrl("plasmodb", begunConversationId())],
+    ]);
   });
 });

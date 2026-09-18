@@ -44,6 +44,7 @@ function spec(overrides: Partial<ParamSpec>): ParamSpec {
 
 const ORGANISM_SPEC = spec({
   name: "organism",
+  type: "single-pick-vocabulary",
   dependentParams: ["gene_list"],
   vocabulary: [
     ["A", "A", null],
@@ -53,6 +54,8 @@ const ORGANISM_SPEC = spec({
 
 const GENE_LIST_SPEC = spec({
   name: "gene_list",
+  type: "multi-pick-vocabulary",
+  allowMultipleValues: true,
   vocabulary: [
     ["G1", "G1", null],
     ["G2", "G2", null],
@@ -78,7 +81,7 @@ describe("useDependentParamRefresh", () => {
     );
 
     act(() => {
-      result.current.handleFieldChange("free_text", "anything", {});
+      result.current.handleFieldChange("free_text", {});
     });
 
     await act(async () => {
@@ -108,7 +111,7 @@ describe("useDependentParamRefresh", () => {
     );
 
     act(() => {
-      result.current.handleFieldChange("organism", "A", { organism: "A" });
+      result.current.handleFieldChange("organism", { organism: "A" });
     });
 
     await waitFor(() => {
@@ -117,13 +120,40 @@ describe("useDependentParamRefresh", () => {
         "transcript",
         "GenesByTaxon",
         "organism",
-        { organism: "A" },
+        { organism: { type: "single-pick-vocabulary", value: "A" } },
       );
     });
 
     await waitFor(() => {
       expect(result.current.dependentOptions["gene_list"]).toBeDefined();
       expect(result.current.dependentOptions["gene_list"]?.[0]?.value).toBe("NEW1");
+    });
+  });
+
+  it("leaves a parameter with no value out of the context it sends", async () => {
+    refreshDependentParamsMock.mockResolvedValue([]);
+
+    const { result } = renderHook(() =>
+      useDependentParamRefresh({
+        siteId: "plasmodb",
+        recordType: "transcript",
+        searchName: "GenesByTaxon",
+        specs: [ORGANISM_SPEC, GENE_LIST_SPEC],
+      }),
+    );
+
+    act(() => {
+      result.current.handleFieldChange("organism", { organism: "A", gene_list: [] });
+    });
+
+    await waitFor(() => {
+      expect(refreshDependentParamsMock).toHaveBeenCalledWith(
+        "plasmodb",
+        "transcript",
+        "GenesByTaxon",
+        "organism",
+        { organism: { type: "single-pick-vocabulary", value: "A" } },
+      );
     });
   });
 
@@ -150,9 +180,9 @@ describe("useDependentParamRefresh", () => {
     );
 
     act(() => {
-      result.current.handleFieldChange("organism", "A", {
+      result.current.handleFieldChange("organism", {
         organism: "A",
-        gene_list: "G1",
+        gene_list: ["G1"],
       });
     });
 
@@ -177,7 +207,7 @@ describe("useDependentParamRefresh", () => {
     );
 
     act(() => {
-      result.current.handleFieldChange("organism", "A", { organism: "A" });
+      result.current.handleFieldChange("organism", { organism: "A" });
     });
 
     await waitFor(() => {

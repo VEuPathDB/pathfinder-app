@@ -5,22 +5,17 @@ import {
   rawToParamValue,
 } from "@/features/strategy/parameters/paramValue";
 import type { ParamValueMap } from "@/lib/parameters/paramValue";
+import type { ParamFormValues } from "./hooks/useParamForm";
 
 export interface BuildPatchArgs {
   step: Step;
-  formValues: Record<string, unknown>;
-  hiddenDefaults: Record<string, unknown>;
+  formValues: ParamFormValues;
+  hiddenDefaults: ParamFormValues;
   allowedParamKeys: ReadonlySet<string>;
   paramSpecs: ParamSpec[];
   operator: string;
   displayName: string;
   colocationParams: ColocationParams | null;
-}
-
-function normalizeRaw(val: unknown): string | string[] {
-  if (Array.isArray(val)) return val.map(String);
-  if (val == null) return "";
-  return String(val);
 }
 
 function rawEquals(a: string | string[], b: string | string[]): boolean {
@@ -48,11 +43,10 @@ export function buildStepPatch(args: BuildPatchArgs): Partial<Step> {
 
   for (const [key, val] of Object.entries(args.formValues)) {
     if (!args.allowedParamKeys.has(key)) continue;
-    collect(key, normalizeRaw(val));
+    collect(key, val);
   }
   for (const [key, val] of Object.entries(args.hiddenDefaults)) {
-    if (val == null) continue;
-    collect(key, normalizeRaw(val));
+    collect(key, val);
   }
 
   const patch: Partial<Step> = {};

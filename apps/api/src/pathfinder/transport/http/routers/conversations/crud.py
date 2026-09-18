@@ -12,10 +12,8 @@ from pathfinder.ai.conversation.title_generator import generate_conversation_tit
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.services.conversations.begin import start_title_generation
 from pathfinder.services.conversations.responses import ConversationResponse
-from pathfinder.services.conversations.service import (
-    ConversationService,
-    ConversationUpdateInput,
-)
+from pathfinder.services.conversations.service import ConversationService
+from pathfinder.services.conversations.update_input import ConversationUpdateInput
 from pathfinder.transport.http.deps import (
     CurrentUser,
     DBSession,

@@ -17,9 +17,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { client } from "@/lib/api/client";
-import { startChatFromSavedStrategy } from "@/lib/api/conversations";
+import { insertSavedStrategy } from "@/lib/api/conversations";
 import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
+import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
 import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
 import { toUserMessage } from "@/lib/api/errors";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
@@ -138,6 +139,16 @@ function EmptyState({ hasAny, siteId }: { hasAny: boolean; siteId: string }) {
   );
 }
 
+/** The reason an insert failed, plus the fate of the chat it opened for it. */
+async function discarded(conversationId: string, reason: string): Promise<string> {
+  try {
+    await deleteStrategy(conversationId);
+    return `${reason} The empty chat it opened was removed.`;
+  } catch {
+    return `${reason} The empty chat it opened is still in the sidebar.`;
+  }
+}
+
 function SavedRow({
   conv,
   siteId,
@@ -167,12 +178,21 @@ function SavedRow({
   });
 
   const useInNewChat = useMutation({
-    mutationFn: () =>
-      startChatFromSavedStrategy({
-        siteId,
-        name: conv.name,
-        savedWdkStrategyId: conv.wdkStrategyId ?? 0,
-      }),
+    mutationFn: async () => {
+      const conversationId = crypto.randomUUID();
+      await beginStrategy(conversationId, { siteId, seedText: conv.name });
+      try {
+        await insertSavedStrategy({
+          conversationId,
+          siteId,
+          targetStepId: "",
+          savedWdkStrategyId: conv.wdkStrategyId ?? 0,
+        });
+      } catch (error) {
+        throw new Error(await discarded(conversationId, toUserMessage(error)));
+      }
+      return conversationId;
+    },
     onSuccess: (conversationId) => {
       void queryClient.invalidateQueries({
         queryKey: ["conversations", "list", siteId],
@@ -184,7 +204,10 @@ function SavedRow({
       router.push(chatUrl(siteId, conversationId));
     },
     onError: (error) => {
-      toast.error("Could not open a new chat", {
+      void queryClient.invalidateQueries({
+        queryKey: ["conversations", "list", siteId],
+      });
+      toast.error(`Could not use "${conv.name}" in a new chat`, {
         description: toUserMessage(error),
       });
     },

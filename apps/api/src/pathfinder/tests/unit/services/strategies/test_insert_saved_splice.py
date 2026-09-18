@@ -7,7 +7,9 @@ from typing import Any
 import pytest
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree, walk
+from veupathdb.errors import ValidationError
 
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import insert_saved
@@ -147,3 +149,49 @@ async def test_a_build_the_spec_refuses_leaves_the_graph_as_it_was(
 
     assert sorted(graph.steps) == before
     assert sorted(graph.roots) == ["step_combine"]
+
+
+_WDK_REFUSAL = "422 go_term: Invalid value"
+
+
+async def test_a_refused_push_names_the_saved_strategy_and_the_step(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The refusal a partial push raises reads as a name, not a step id."""
+    graph = _graph(_leaf("step_a", "GO:0004672"))
+    session = StrategySession(site_id="plasmodb")
+    session.graph = graph
+    saved_root = _leaf("saved_leaf", "GO:0005515")
+    saved_root.display_name = "Binding genes leaf"
+
+    async def _clone(*_args: Any, **_kwargs: Any) -> _Cloned:
+        return _Cloned(saved_root)
+
+    async def _partial(**_kwargs: Any) -> BuildOutcome:
+        return BuildOutcome(
+            failed_steps=[
+                StepPushFailure(
+                    step_id="saved_leaf",
+                    search_name="GenesByGoTerm",
+                    error=_WDK_REFUSAL,
+                    wdk_status=422,
+                )
+            ]
+        )
+
+    monkeypatch.setattr(insert_saved, "clone_saved_strategy", _clone)
+    monkeypatch.setattr(insert_saved, "build_strategy_from_spec", _partial)
+
+    with pytest.raises(ValidationError) as caught:
+        await insert_saved_into_conversation(
+            deps=StrategyMutationContext(site_id="plasmodb", strategy_session=session),
+            target_step_id="step_a",
+            saved_wdk_strategy_id=7777,
+            operator=CombineOp.INTERSECT,
+        )
+
+    detail = caught.value.detail or ""
+    assert "Binding genes" in detail
+    assert "Binding genes leaf" in detail
+    assert _WDK_REFUSAL in detail
+    assert "saved_leaf" not in detail

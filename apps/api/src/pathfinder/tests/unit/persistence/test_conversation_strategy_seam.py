@@ -33,6 +33,7 @@ THREAD_COLUMNS = {
 STRATEGY_COLUMNS = {
     "record_type",
     "wdk_strategy_id",
+    "wdk_strategy_created_here",
     "is_saved",
     "step_count",
     "strategy_ast",
@@ -118,6 +119,7 @@ def test_an_absent_row_reads_as_a_strategy_that_was_never_built() -> None:
 
     assert view.record_type is None
     assert view.wdk_strategy_id is None
+    assert view.wdk_strategy_created_here is False
     assert view.is_saved is False
     assert view.step_count == 0
     assert view.strategy_ast == {}

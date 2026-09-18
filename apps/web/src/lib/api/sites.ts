@@ -13,6 +13,9 @@ import { siteResponseSchema } from "@pathfinder/shared/generated/zod/siteRespons
 import { validationResponseSchema } from "@pathfinder/shared/generated/zod/validationResponseSchema";
 import { z } from "zod";
 
+import type { DependentParamsRequest } from "@pathfinder/shared/generated/types/DependentParamsRequest";
+import type { ParamSpecsRequest } from "@pathfinder/shared/generated/types/ParamSpecsRequest";
+import type { SearchValidationRequest } from "@pathfinder/shared/generated/types/SearchValidationRequest";
 import type { StepParameters } from "@/lib/types/stepParameters";
 import { requestJson } from "./http";
 
@@ -54,7 +57,7 @@ export async function getParamSpecs(
     `/api/v1/sites/${encodeURIComponent(siteId)}/searches/${encodeURIComponent(
       recordType,
     )}/${encodeURIComponent(searchName)}/param-specs`,
-    { method: "POST", body: { contextValues } },
+    { method: "POST", body: { contextValues } satisfies ParamSpecsRequest },
   );
 }
 
@@ -70,7 +73,10 @@ export async function refreshDependentParams(
     `/api/v1/sites/${encodeURIComponent(siteId)}/searches/${encodeURIComponent(
       recordType,
     )}/${encodeURIComponent(searchName)}/refreshed-dependent-params`,
-    { method: "POST", body: { parameterName, contextValues } },
+    {
+      method: "POST",
+      body: { parameterName, contextValues } satisfies DependentParamsRequest,
+    },
   );
 }
 
@@ -85,7 +91,7 @@ export async function validateSearchParams(
     `/api/v1/sites/${encodeURIComponent(siteId)}/searches/${encodeURIComponent(
       recordType,
     )}/${encodeURIComponent(searchName)}/validate`,
-    { method: "POST", body: { contextValues } },
+    { method: "POST", body: { contextValues } satisfies SearchValidationRequest },
   );
 }
 

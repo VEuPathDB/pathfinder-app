@@ -70,16 +70,20 @@ principal.
 dismisses or deletes the conversations, gene sets, experiments and control sets
 of the calling application, and leaves the same user's data under every other
 application untouched, because a caller that cannot read a resource must not be
-able to destroy it. `deleteWdk=true` deletes on VEuPathDB only the strategies
-those conversations built (each thread's `wdk_strategy_id`, which now lives on
-its strategy attachment, see
-[the thread/strategy split](conversation-thread-and-strategy-split.md)),
-never a saved strategy a chat
-merely imported: nothing records whether such a strategy came from PathFinder
-or from the user's own work on the website, and another conversation may still
-consume it. A person who wants everything erased across every assistant
-needs a first-party action that names no application; that action does not
-exist yet, and adding it is not the same decision as this one.
+able to destroy it. It also clears the memories and the tombstones of that user
+and that application when it names no site. `deleteWdk=true` deletes on
+VEuPathDB the strategies PathFinder created there for those conversations and
+for their stored runs: the strategy attachment records who made the strategy it
+names (`conversation_strategies.wdk_strategy_created_here`, see
+[the thread/strategy split](conversation-thread-and-strategy-split.md)), and
+every writer of that id states it. A strategy the user made on the website and
+opened here, and a saved strategy a chat merely imported, both stay. A
+conversation whose strategy VEuPathDB did not delete is dismissed rather than
+deleted, and a stored run in the same position keeps its row, so the purge
+never destroys the only record that names a strategy it left behind. A
+person who wants everything erased across every assistant needs a first-party
+action that names no application; that action does not exist yet, and adding it
+is not the same decision as this one.
 
 There is no applications table, so an application id is whatever
 `PATHFINDER_SERVICE_TOKENS` declares, and revoking one is deleting its token.

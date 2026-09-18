@@ -34,6 +34,10 @@ from pathfinder.services.eda.thread_surgery import (
     logs_a_binding,
     restore_thread_binding,
 )
+from pathfinder.services.strategies.abandoned_mint import (
+    ReleasableMint,
+    abandoned_mint_to_release,
+)
 from pathfinder.services.strategies.revision_ops import (
     materialize_revision,
     revision_at_message,
@@ -74,7 +78,11 @@ async def revert_conversation_to_message(
     conversation_id: UUID,
     target_message_id: UUID,
     user_id: UUID,
-) -> None:
+) -> ReleasableMint | None:
+    """Cut the thread back to one message and report the mint it abandons.
+
+    The caller deletes that strategy on VEuPathDB once it has committed.
+    """
     conv = await session.scalar(
         select(Conversation).where(Conversation.id == conversation_id),
     )
@@ -118,7 +126,7 @@ async def revert_conversation_to_message(
             conversation_id=str(conversation_id),
             target_message_id=str(target_message_id),
         )
-        return
+        return None
     if target.role != "user":
         logger.warning(
             "revert: target is not user-authored",
@@ -133,6 +141,8 @@ async def revert_conversation_to_message(
     thread_id = str(conversation_id)
     # Read before the cut: the target message is one of the rows it deletes.
     revisions = StrategyRevisionRepository(session)
+    conversations = ConversationRepository(session)
+    abandoned = await conversations.get_strategy(conversation_id)
     snapshot = await revision_at_message(session, message=target)
     had_history = await revisions.has_any(conversation_id)
     logged_a_binding = await logs_a_binding(session, conversation_id=conversation_id)
@@ -209,7 +219,14 @@ async def revert_conversation_to_message(
     if restored == "snapshot" and snapshot is not None:
         await materialize_revision(session, conversation=conv, revision=snapshot)
     elif restored == "cleared":
-        await ConversationRepository(session).clear_strategy(conversation_id)
+        await conversations.clear_strategy(conversation_id)
+    held_now = await conversations.get_strategy(conversation_id)
+    release = await abandoned_mint_to_release(
+        session,
+        conversation_id=conversation_id,
+        abandoned=abandoned,
+        restored_wdk_strategy_id=held_now.wdk_strategy_id,
+    )
 
     # The surviving log names the binding the remaining transcript describes.
     await restore_thread_binding(
@@ -231,3 +248,4 @@ async def revert_conversation_to_message(
         deleted_strategy_revisions=deleted_revisions,
         strategy=restored,
     )
+    return release

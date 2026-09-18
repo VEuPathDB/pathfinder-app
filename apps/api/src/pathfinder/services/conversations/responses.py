@@ -44,6 +44,7 @@ class ConversationResponse(CamelModel):
     steps: list[StepResponse] = Field(default_factory=list)
     root_step_id: str | None = Field(default=None)
     wdk_strategy_id: int | None = Field(default=None)
+    wdk_strategy_created_here: bool = Field(default=False)
     is_saved: bool = Field(default=False)
     created_at: datetime
     updated_at: datetime
@@ -136,6 +137,7 @@ def build_conversation_response(
         steps=derive_steps_from_strategy_ast(payload),
         root_step_id=root_step_id,
         wdk_strategy_id=strategy.wdk_strategy_id,
+        wdk_strategy_created_here=strategy.wdk_strategy_created_here,
         wdk_url=wdk_url,
         gene_set_id=strategy.gene_set_id,
         experiment_id=strategy.experiment_id,
@@ -171,6 +173,7 @@ def build_conversation_summary(
         site_id=effective_site_id,
         record_type=strategy.record_type,
         wdk_strategy_id=strategy.wdk_strategy_id,
+        wdk_strategy_created_here=strategy.wdk_strategy_created_here,
         wdk_url=wdk_url,
         gene_set_id=strategy.gene_set_id,
         experiment_id=strategy.experiment_id,

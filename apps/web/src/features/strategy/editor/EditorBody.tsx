@@ -2,6 +2,7 @@
 
 import type { Step } from "@pathfinder/shared";
 import type { StepEditorState } from "./useStepEditorState";
+import type { ParamFormValues } from "./hooks/useParamForm";
 import { SearchTransformBody } from "./SearchTransformBody";
 import { CombineBody } from "./CombineBody";
 
@@ -11,11 +12,7 @@ interface EditorBodyProps {
   onSearchChange: (next: string | null) => void;
   onOperatorChange: (operator: string) => void;
   onColocationChange: (next: NonNullable<Step["colocationParams"]>) => void;
-  onFieldChanged: (
-    name: string,
-    value: unknown,
-    allValues: Record<string, unknown>,
-  ) => void;
+  onFieldChanged: (name: string, allValues: ParamFormValues) => void;
   onFieldBlurred: () => void;
 }
 

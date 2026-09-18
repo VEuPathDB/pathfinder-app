@@ -44,3 +44,39 @@ export function formatParamValue(value: ParamValue): string {
     }
   }
 }
+
+/** The vocabulary term the UI shows as "All". WDK refuses it as a submitted value. */
+const ALL_TERM = "@@fake@@";
+
+/** Whether a value carries the "All" vocabulary term. */
+export function statesAllTerm(value: ParamValue): boolean {
+  if (value.type === "single-pick-vocabulary") return value.value === ALL_TERM;
+  if (value.type === "multi-pick-vocabulary") {
+    return (value.values ?? []).includes(ALL_TERM);
+  }
+  return false;
+}
+
+/** Whether a value states no selection. A number of zero is a selection. */
+export function statesNothing(value: ParamValue): boolean {
+  switch (value.type) {
+    case "string":
+    case "date":
+    case "timestamp":
+    case "single-pick-vocabulary":
+      return value.value === "";
+    case "number":
+      return false;
+    case "multi-pick-vocabulary":
+      return (value.values ?? []).length === 0;
+    case "number-range":
+    case "date-range":
+      return value.min == null && value.max == null;
+    case "input-dataset":
+      return value.datasetId === "";
+    case "input-step":
+      return value.stepId === "";
+    case "filter":
+      return (value.filters ?? []).length === 0;
+  }
+}

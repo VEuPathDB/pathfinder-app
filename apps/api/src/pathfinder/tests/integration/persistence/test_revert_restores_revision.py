@@ -94,6 +94,7 @@ async def test_revert_past_a_build_puts_the_strategy_back(
         )
         assert strategy.wdk_strategy_id == push.pushed_strategy_ids[0]
         assert strategy.wdk_strategy_id != SOURCE_WDK_STRATEGY_ID
+        assert strategy.wdk_strategy_created_here is True
         assert "stepCounts" not in strategy.strategy_ast
         latest = await StrategyRevisionRepository(session).latest(conversation_id)
         assert latest is not None
@@ -127,6 +128,7 @@ async def test_revert_to_the_first_message_clears_a_strategy_built_after_it(
         assert strategy.step_count == 0
         assert strategy.record_type is None
         assert strategy.wdk_strategy_id is None
+        assert strategy.wdk_strategy_created_here is False
         assert strategy.strategy_ast == {}
 
 

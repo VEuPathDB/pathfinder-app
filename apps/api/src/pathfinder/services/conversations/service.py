@@ -43,6 +43,10 @@ from pathfinder.services.conversations.responses import (
     build_conversation_summaries,
     build_conversation_summary,
 )
+from pathfinder.services.conversations.update_input import (
+    ConversationUpdateInput,
+    strategy_write_of,
+)
 from pathfinder.services.strategies.insert_saved import (
     InsertSavedResult,
 )
@@ -69,16 +73,6 @@ class BegunConversation:
 class DuplicatedConversation:
     id: UUID
     name: str
-
-
-@dataclass(frozen=True)
-class ConversationUpdateInput:
-    name: str | None
-    strategy_ast: StrategyAst | None
-    wdk_strategy_id: int | None
-    wdk_strategy_id_set: bool
-    is_saved: bool | None
-    is_saved_set: bool
 
 
 class ConversationService:
@@ -164,25 +158,17 @@ class ConversationService:
     ) -> ConversationResponse:
         await get_owned_conversation(self._repo, conversation_id, user_id)
 
-        payload: StrategyAst | None = None
-        record_type: str | None = None
+        plan: StrategyAst | None = None
         if patch.strategy_ast:
-            payload = validate_plan_or_raise(
+            plan = validate_plan_or_raise(
                 patch.strategy_ast.model_dump(exclude_none=True),
             )
-            record_type = payload.record_type
-
         await self._repo.update_conversation(
             conversation_id,
-            ConversationUpdate(
-                name=patch.name,
-                strategy_ast=payload,
-                record_type=record_type,
-                wdk_strategy_id=patch.wdk_strategy_id,
-                wdk_strategy_id_set=patch.wdk_strategy_id_set,
-                is_saved=patch.is_saved,
-                is_saved_set=patch.is_saved_set,
-                step_count=len(walk(payload.root)) if payload else None,
+            strategy_write_of(
+                patch,
+                held=await self._repo.get_strategy(conversation_id),
+                plan=plan,
             ),
         )
         found = await self._repo.get_with_strategy(conversation_id)

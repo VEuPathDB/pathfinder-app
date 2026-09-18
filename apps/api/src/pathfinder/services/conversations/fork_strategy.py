@@ -86,6 +86,7 @@ async def write_forked_strategy(
             # The experiment is read, never written, so the branch keeps it.
             experiment_id=source_strategy.experiment_id,
             wdk_strategy_id=materialized.wdk_strategy_id,
+            wdk_strategy_created_here=materialized.created_wdk_strategy,
             # The fork still embeds the imported subtrees, so it keeps
             # the references.
             imported_saved_strategy_ids=list(

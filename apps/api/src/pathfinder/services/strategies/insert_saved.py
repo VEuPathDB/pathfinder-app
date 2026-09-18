@@ -30,6 +30,7 @@ from veupathdb_mcp.wdk import (
     canonicalize_synced_parameters,
 )
 
+from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.repositories.conversation import ConversationRepository
@@ -212,8 +213,8 @@ async def insert_saved_into_conversation(
         raise ValidationError(
             title="insert pushed partial state",
             detail=(
-                f"failed to push step {first.step_id!r} "
-                f"({first.search_name}): {first.error}"
+                f"{saved_label!r} was not inserted: the site refused the step "
+                f"{_refused_label(graph, first)!r}: {first.error}"
             ),
         )
 
@@ -225,6 +226,12 @@ async def insert_saved_into_conversation(
         inserted_saved_name=saved_label,
         combine_step_id=combine_step_id,
     )
+
+
+def _refused_label(graph: StrategyGraph, failure: StepPushFailure) -> str:
+    """The name the researcher reads for a step the site refused."""
+    step = graph.steps.get(failure.step_id)
+    return failure.search_name if step is None else step.display_label
 
 
 async def _record_consumer(

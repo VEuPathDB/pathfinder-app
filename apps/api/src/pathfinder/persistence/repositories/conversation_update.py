@@ -22,6 +22,8 @@ class ConversationUpdate:
     record_type: str | None = None
     wdk_strategy_id: int | None = None
     wdk_strategy_id_set: bool = False
+    wdk_strategy_created_here: bool | None = None
+    wdk_strategy_created_here_set: bool = False
     is_saved: bool | None = None
     is_saved_set: bool = False
     strategy_ast: StrategyAst | None = None
@@ -43,6 +45,7 @@ _SIMPLE_FIELDS: tuple[str, ...] = (
 
 _FLAGGED_FIELDS: tuple[tuple[str, str], ...] = (
     ("wdk_strategy_id_set", "wdk_strategy_id"),
+    ("wdk_strategy_created_here_set", "wdk_strategy_created_here"),
     ("estimated_size_set", "estimated_size"),
     ("gene_set_id_set", "gene_set_id"),
     ("is_saved_set", "is_saved"),

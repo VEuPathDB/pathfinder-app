@@ -124,8 +124,10 @@ function useParamSpecsAdvanced({
     return normalizeRecordType(preferred);
   })();
 
-  const contextSerialized = JSON.stringify(buildContextValues(contextValues ?? {}));
-  const [debouncedContext] = useDebounce(contextSerialized, 250);
+  const [debouncedContext] = useDebounce(buildContextValues(contextValues ?? {}), 250, {
+    equalityFn: (left, right) => JSON.stringify(left) === JSON.stringify(right),
+  });
+  const contextKey = JSON.stringify(debouncedContext);
 
   const queryEnabled =
     enabled &&
@@ -139,15 +141,10 @@ function useParamSpecsAdvanced({
       siteId,
       resolvedRecordType,
       searchName,
-      debouncedContext,
+      contextKey,
     ] as const,
     queryFn: () =>
-      getParamSpecs(
-        siteId,
-        resolvedRecordType!,
-        searchName,
-        JSON.parse(debouncedContext) as Record<string, string>,
-      ),
+      getParamSpecs(siteId, resolvedRecordType!, searchName, debouncedContext),
     enabled: queryEnabled,
     placeholderData: keepPreviousData,
     staleTime: 30_000,

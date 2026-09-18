@@ -11,7 +11,6 @@ from veupathdb.domain.strategy import (
     StrategyStep,
     StrategyStepNode,
     flatten_tree,
-    runs_a_wdk_search,
     subtree_ids,
     wdk_search_name,
 )
@@ -43,6 +42,7 @@ from pathfinder.services.strategies.stated_sides import (
     canonical_sides,
     canonicalize_stated_leaves,
 )
+from pathfinder.services.strategies.step_search import names_a_wdk_question
 from pathfinder.services.strategies.step_wdk_push import push_step_to_wdk
 from pathfinder.services.strategies.sync import sync_strategy_for_site
 from pathfinder.services.strategies.sync_state import WDKSyncState, ensure_sync_state
@@ -286,7 +286,7 @@ async def _push_tree_to_wdk(
             continue
         search_name = wdk_search_name(node)
         push_parameters: dict[str, ParamValue] = dict(node.parameters)
-        if runs_a_wdk_search(node):
+        if names_a_wdk_question(node):
             try:
                 push_parameters = (
                     await validate_parameters(

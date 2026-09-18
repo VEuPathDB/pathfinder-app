@@ -5,6 +5,7 @@ import { render, renderHook } from "@testing-library/react";
 import { useStore } from "@tanstack/react-form";
 import type { ParamSpec } from "@pathfinder/shared";
 import { extractDefaults, useParamForm, type ParamForm } from "./useParamForm";
+import type { StepParameters } from "@/lib/types/stepParameters";
 
 function makeSpecs(): ParamSpec[] {
   return [
@@ -170,7 +171,9 @@ describe("extractDefaults override", () => {
         initialDisplayValue: "[]",
       },
     ] as ParamSpec[];
-    const result = extractDefaults(specs, { organism: ["Pf3D7"] });
+    const result = extractDefaults(specs, {
+      organism: { type: "multi-pick-vocabulary", values: ["Pf3D7"] },
+    });
     expect(result["organism"]).toEqual(["Pf3D7"]);
   });
 
@@ -189,7 +192,9 @@ describe("extractDefaults override", () => {
         initialDisplayValue: '["PvP01"]',
       },
     ] as ParamSpec[];
-    const result = extractDefaults(specs, { other: "x" });
+    const result = extractDefaults(specs, {
+      other: { type: "string", value: "x" },
+    });
     expect(result["organism"]).toEqual(["PvP01"]);
   });
 
@@ -207,11 +212,13 @@ describe("extractDefaults override", () => {
         initialDisplayValue: "X",
       },
     ] as ParamSpec[];
-    const result = extractDefaults(specs, { name: "Y" });
+    const result = extractDefaults(specs, {
+      name: { type: "single-pick-vocabulary", value: "Y" },
+    });
     expect(result["name"]).toBe("Y");
   });
 
-  it("wraps override string into array for multi-pick param", () => {
+  it("wraps a persisted single term into an array for a multi-pick param", () => {
     const specs = [
       {
         name: "organism",
@@ -226,7 +233,9 @@ describe("extractDefaults override", () => {
         initialDisplayValue: "[]",
       },
     ] as ParamSpec[];
-    const result = extractDefaults(specs, { organism: "Pf3D7" });
+    const result = extractDefaults(specs, {
+      organism: { type: "multi-pick-vocabulary", values: ["Pf3D7"] },
+    });
     expect(result["organism"]).toEqual(["Pf3D7"]);
   });
 
@@ -314,17 +323,18 @@ describe("extractDefaults override", () => {
     expect(result["ds"]).toBe("d-123");
   });
 
-  it("still coerces a RAW (non-typed) override string", () => {
-    const result = extractDefaults([specWith({ name: "name" })], { name: "Y" });
-    expect(result["name"]).toBe("Y");
+  it("reads a typed timestamp value", () => {
+    const result = extractDefaults([specWith({ name: "seen", type: "timestamp" })], {
+      seen: { type: "timestamp", value: "1717200000000" },
+    });
+    expect(result["seen"]).toBe("1717200000000");
   });
 
-  it("still coerces a RAW (non-typed) override array for multi-pick", () => {
-    const result = extractDefaults(
-      [specWith({ name: "orgs", displayType: "checkbox", allowMultipleValues: true })],
-      { orgs: ["Pf3D7", "PvP01"] },
-    );
-    expect(result["orgs"]).toEqual(["Pf3D7", "PvP01"]);
+  it("reads a typed input-step value", () => {
+    const result = extractDefaults([specWith({ name: "prior", type: "input-step" })], {
+      prior: { type: "input-step", stepId: "s-42" },
+    });
+    expect(result["prior"]).toBe("s-42");
   });
 });
 
@@ -380,11 +390,14 @@ describe("useParamForm - resets when override changes", () => {
         initialDisplayValue: "default",
       },
     ] as ParamSpec[];
-    const overrideA = { organism: "A" };
-    const overrideB = { organism: "B" };
+    const overrideA: StepParameters = {
+      organism: { type: "single-pick-vocabulary", value: "A" },
+    };
+    const overrideB: StepParameters = {
+      organism: { type: "single-pick-vocabulary", value: "B" },
+    };
     const { result, rerender } = renderHook(
-      ({ override }: { override: Record<string, unknown> }) =>
-        useParamForm(specs, override),
+      ({ override }: { override: StepParameters }) => useParamForm(specs, override),
       { initialProps: { override: overrideA } },
     );
     expect(result.current.form.state.values["organism"]).toBe("A");

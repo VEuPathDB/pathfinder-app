@@ -40,7 +40,12 @@ async def _seed_thread() -> tuple[UUID, UUID]:
     return user_id, conversation_id
 
 
-async def _write_strategy(conversation_id: UUID, ast_step_ids: dict[str, int]) -> None:
+async def _write_strategy(
+    conversation_id: UUID,
+    ast_step_ids: dict[str, int],
+    *,
+    created_here: bool = False,
+) -> None:
     ast = (
         three_step_ast(dict(ast_step_ids))
         if len(ast_step_ids) == 3
@@ -55,6 +60,8 @@ async def _write_strategy(conversation_id: UUID, ast_step_ids: dict[str, int]) -
                 step_count=len(ast_step_ids),
                 wdk_strategy_id=330534153,
                 wdk_strategy_id_set=True,
+                wdk_strategy_created_here=created_here,
+                wdk_strategy_created_here_set=True,
             ),
         )
         await session.commit()
@@ -118,6 +125,29 @@ async def test_a_repeat_write_of_the_same_state_appends_nothing(
     assert first is not None
     assert second is not None
     assert second.id == first.id
+
+
+async def test_a_change_of_who_made_the_strategy_appends_a_snapshot(
+    patch_app_db_engine: None,
+    db_cleaner: None,
+) -> None:
+    """A snapshot states the provenance of the id it names, so a change is a new one."""
+    del patch_app_db_engine, db_cleaner
+    _, conversation_id = await _seed_thread()
+    ids = {"combine": 15, "protease": 13, "gameto": 14}
+
+    await _write_strategy(conversation_id, ids)
+    async with db.async_session_factory() as session:
+        first = await StrategyRevisionRepository(session).latest(conversation_id)
+    await _write_strategy(conversation_id, ids, created_here=True)
+    async with db.async_session_factory() as session:
+        second = await StrategyRevisionRepository(session).latest(conversation_id)
+
+    assert first is not None
+    assert first.wdk_strategy_created_here is False
+    assert second is not None
+    assert second.id != first.id
+    assert second.wdk_strategy_created_here is True
 
 
 async def test_a_message_resolves_to_the_snapshot_in_force_when_it_was_written(

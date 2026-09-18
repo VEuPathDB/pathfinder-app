@@ -6,6 +6,10 @@ import type { ParamSpec } from "@pathfinder/shared";
 import { refreshDependentParams } from "@/lib/api/sites";
 import { extractVocabOptions, type VocabOption } from "@/lib/utils/vocab";
 import { extractSpecVocabulary } from "@/features/strategy/editor/components/stepEditorUtils";
+import { rawToParamValue } from "@/features/strategy/parameters/paramValue";
+import { statesNothing } from "@/lib/parameters/paramValue";
+import type { StepParameters } from "@/lib/types/stepParameters";
+import type { ParamFormValues } from "./useParamForm";
 
 interface UseDependentParamRefreshArgs {
   siteId: string;
@@ -21,16 +25,10 @@ interface DependentRefreshState {
   dependentLoading: Record<string, boolean>;
   dependentErrors: Record<string, string | null>;
   /**
-   * Subscribed handler - call from the form's `listeners.onChange` (or any
-   * field's onChange) with the changed name, the new value, and the latest
-   * snapshot of all values. Fires the refresh only if the changed param has
-   * `dependentParams`.
+   * Call this with the changed parameter name and the latest form values. The
+   * refresh runs only if that parameter declares `dependentParams`.
    */
-  handleFieldChange: (
-    changedName: string,
-    _changedValue: unknown,
-    allValues: Record<string, unknown>,
-  ) => void;
+  handleFieldChange: (changedName: string, allValues: ParamFormValues) => void;
 }
 
 export function useDependentParamRefresh(
@@ -46,11 +44,7 @@ export function useDependentParamRefresh(
   );
   const refreshCounterRef = useRef(0);
 
-  const handleFieldChange = (
-    changedName: string,
-    _changedValue: unknown,
-    allValues: Record<string, unknown>,
-  ) => {
+  const handleFieldChange = (changedName: string, allValues: ParamFormValues) => {
     const changedSpec = specs.find((s) => s.name === changedName);
     const depParams = changedSpec?.dependentParams;
     if (depParams == null || depParams.length === 0) return;
@@ -67,13 +61,18 @@ export function useDependentParamRefresh(
       return next;
     });
 
-    refreshDependentParams(
-      siteId,
-      recordType,
-      searchName,
-      changedName,
-      allValues as Record<string, string>,
-    )
+    // WDK reads the context as typed values. A value that states nothing is
+    // left out, because the wire refuses an empty one.
+    const contextValues: StepParameters = {};
+    for (const spec of specs) {
+      const raw = allValues[spec.name];
+      if (raw === undefined) continue;
+      const value = rawToParamValue(spec, raw);
+      if (statesNothing(value)) continue;
+      contextValues[spec.name] = value;
+    }
+
+    refreshDependentParams(siteId, recordType, searchName, changedName, contextValues)
       .then((refreshedSpecs) => {
         if (refreshCounterRef.current !== counter) return;
         startTransition(() => {
@@ -99,13 +98,13 @@ export function useDependentParamRefresh(
         for (const refreshed of refreshedSpecs) {
           if (!refreshed.name || !depParams.includes(refreshed.name)) continue;
           const currentValue = allValues[refreshed.name];
-          if (currentValue == null || currentValue === "") continue;
+          if (currentValue === undefined || currentValue === "") continue;
           const vocab = extractSpecVocabulary(refreshed);
           const newOptions = vocab != null ? extractVocabOptions(vocab) : [];
           const validValues = new Set(newOptions.map((o) => o.value));
           const isValid = Array.isArray(currentValue)
-            ? currentValue.every((v) => validValues.has(String(v)))
-            : validValues.has(String(currentValue));
+            ? currentValue.every((v) => validValues.has(v))
+            : validValues.has(currentValue);
           if (!isValid) {
             onClearStaleValue(refreshed.name);
             toast.warning(

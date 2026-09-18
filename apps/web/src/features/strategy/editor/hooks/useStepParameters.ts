@@ -3,6 +3,7 @@
 import type { Search, StepKind } from "@pathfinder/shared";
 import type { StepParameters } from "@/lib/types/stepParameters";
 import { useParamSpecs } from "@/lib/hooks/useParamSpecs";
+import type { ParamFormValues } from "./useParamForm";
 import { extractVocabOptions, type VocabOption } from "@/lib/utils/vocab";
 import { extractSpecVocabulary } from "../components/stepEditorUtils";
 
@@ -59,7 +60,7 @@ export function useStepParameters({
     return acc;
   }, {});
 
-  const hiddenDefaults: StepParameters = {};
+  const hiddenDefaults: ParamFormValues = {};
   for (const spec of paramSpecs) {
     if (spec.isVisible === false && spec.name) {
       const defaultVal = spec.initialDisplayValue;

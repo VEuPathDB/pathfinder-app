@@ -8,63 +8,29 @@ import type { ParamValue } from "@/lib/parameters/paramValue";
 
 export type ParamFormValues = Record<string, string | string[]>;
 
-function coerceToMulti(raw: unknown): string[] {
-  if (Array.isArray(raw)) return raw.map(String);
+/** A WDK initial display value as the multi-pick widget reads it. */
+function coerceToMulti(raw: string | null | undefined): string[] {
   if (raw == null) return [];
-  if (typeof raw === "string") {
-    if (raw.startsWith("[")) {
-      try {
-        const parsed: unknown = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed.map(String);
-      } catch {
-        /* fall through to plain string handling */
-      }
+  if (raw.startsWith("[")) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.map(String);
+    } catch {
+      /* a value that is not JSON is one plain term */
     }
-    return raw.length > 0 ? [raw] : [];
   }
-  return [String(raw)];
+  return raw.length > 0 ? [raw] : [];
 }
 
-function coerceToSingle(raw: unknown): string {
-  if (raw == null) return "";
-  if (typeof raw === "string") return raw;
-  if (Array.isArray(raw)) return raw.length > 0 ? String(raw[0]) : "";
-  return String(raw);
+function coerceToSingle(raw: string | null | undefined): string {
+  return raw ?? "";
 }
-
-const PARAM_VALUE_TYPES: ReadonlySet<string> = new Set([
-  "string",
-  "date",
-  "timestamp",
-  "single-pick-vocabulary",
-  "number",
-  "multi-pick-vocabulary",
-  "number-range",
-  "date-range",
-  "input-dataset",
-  "input-step",
-  "filter",
-]);
 
 /**
- * The persisted `step.parameters` map stores typed ``ParamValue`` objects
- * whose shape varies by ``type`` (``value`` / ``values`` / ``min``+``max`` /
- * ``filters`` / ``datasetId`` ...), NOT a uniform ``{type, value}``. Detect a
- * typed value so we can hand it to the canonical :func:`paramValueToRaw` -
- * the same converter ``buildStepPatch`` (save) and ``useStepDraftChanges``
- * (change detection) use, so the form loads identical raw values and reports
- * zero phantom changes. Ad-hoc coercion here previously rendered every typed
- * value as ``"[object Object]"`` (and trees as "0 selected").
+ * Form values from the persisted parameters, and from the WDK initial display
+ * value for a parameter the step does not carry. A persisted value goes
+ * through the converter that save and change detection also use.
  */
-function asTypedParamValue(raw: unknown): ParamValue | null {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const type: unknown = (raw as { type?: unknown }).type;
-  if (typeof type === "string" && PARAM_VALUE_TYPES.has(type)) {
-    return raw as ParamValue;
-  }
-  return null;
-}
-
 function extractDefaults(
   specs: ParamSpec[],
   override?: StepParameters,
@@ -72,18 +38,12 @@ function extractDefaults(
   const defaults: ParamFormValues = {};
   for (const spec of specs) {
     if (spec.name === "" || spec.isVisible === false) continue;
-    const overrideHas =
-      override !== undefined &&
-      Object.prototype.hasOwnProperty.call(override, spec.name);
-    const raw: unknown = overrideHas ? override[spec.name] : spec.initialDisplayValue;
-    const typed = asTypedParamValue(raw);
-    if (typed !== null) {
-      // Typed persisted value (any param type) -> canonical raw form value.
-      defaults[spec.name] = paramValueToRaw(typed);
+    const persisted: ParamValue | undefined = override?.[spec.name];
+    if (persisted !== undefined) {
+      defaults[spec.name] = paramValueToRaw(persisted);
       continue;
     }
-    // Raw source (a WDK ``initialDisplayValue`` string, or an already-raw
-    // override) -> the existing string/array coercion.
+    const raw = spec.initialDisplayValue;
     defaults[spec.name] = isMultiParam(spec) ? coerceToMulti(raw) : coerceToSingle(raw);
   }
   return defaults;

@@ -15,6 +15,7 @@ import pytest
 from assistant_core.conversation.cancellation import turn_is_cancelled
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.graph.stream_events import turn_status_event
+from assistant_core.memory.store import MemoryStore
 from assistant_core.persistence.models import Conversation, ConversationEvent
 from assistant_core.platform.db import async_session_factory
 from procrastinate.testing import InMemoryConnector
@@ -92,13 +93,14 @@ async def _worker(conversation_id: UUID, turn_id: UUID) -> bool:
     return False
 
 
-async def _purge(user_id: UUID) -> None:
+async def _purge(user_id: UUID, memory_store: MemoryStore) -> None:
     async with async_session_factory() as session:
         await purge_user_data(
             session=session,
             user_id=user_id,
             site_id=None,
             delete_wdk=True,
+            memory_store=memory_store,
         )
 
 
@@ -110,12 +112,13 @@ async def _count(model: type[Conversation] | type[ConversationEvent]) -> int:
 async def test_the_worker_stops_before_the_purge_deletes_the_thread(
     db_session: AsyncSession,
     in_memory_jobs: InMemoryConnector,
+    app_memory_store: MemoryStore,
 ) -> None:
     del in_memory_jobs
     user_id, conversation_id, turn_id = await _thread_with_a_running_turn(db_session)
 
     worker = asyncio.create_task(_worker(conversation_id, turn_id))
-    await _purge(user_id)
+    await _purge(user_id, app_memory_store)
 
     assert await worker is True
     assert await _count(Conversation) == 0
@@ -125,6 +128,7 @@ async def test_the_worker_stops_before_the_purge_deletes_the_thread(
 async def test_the_purge_asks_the_running_turn_to_stop(
     db_session: AsyncSession,
     in_memory_jobs: InMemoryConnector,
+    app_memory_store: MemoryStore,
 ) -> None:
     del in_memory_jobs
     user_id, conversation_id, turn_id = await _thread_with_a_running_turn(db_session)
@@ -148,7 +152,7 @@ async def test_the_purge_asks_the_running_turn_to_stop(
             await asyncio.sleep(_WORKER_TICK_SECONDS)
 
     observer = asyncio.create_task(_observe())
-    await _purge(user_id)
+    await _purge(user_id, app_memory_store)
     await observer
 
     assert seen == [True]

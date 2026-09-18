@@ -12,7 +12,6 @@ from typing import NamedTuple
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue, to_wire
 from veupathdb.domain.strategy import (
-    COMBINE_SEARCH_NAME,
     StrategyStepNode,
     leaves,
     wdk_search_name,
@@ -33,6 +32,10 @@ from pathfinder.domain.strategy.operations import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_edit_guard import StatedCriterion
+from pathfinder.services.strategies.step_search import (
+    names_a_wdk_question,
+    states_a_question,
+)
 
 
 class WrittenStep(NamedTuple):
@@ -188,7 +191,7 @@ async def canonicalize_stated_leaves(
     """
     writes: list[WrittenStep] = []
     for node in leaves(root):
-        if node.id not in stated or node.search_name in ("", COMBINE_SEARCH_NAME):
+        if node.id not in stated or not states_a_question(node.search_name):
             continue
         # A leaf that carries no value has none to put in the catalog's form.
         if not node.parameters:
@@ -223,7 +226,7 @@ async def _canonical_params_op(
     callbacks: ValidationCallbacks,
 ) -> _CanonicalOp:
     step = graph.get_step(op.step_id)
-    if step is None or wdk_search_name(step) in ("", COMBINE_SEARCH_NAME):
+    if step is None or not names_a_wdk_question(step):
         return _CanonicalOp(op=op, writes=[])
     search = SearchContext(site_id, record_type, wdk_search_name(step))
     validated = await validate_parameters(

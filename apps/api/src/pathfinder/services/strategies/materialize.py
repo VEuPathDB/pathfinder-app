@@ -43,6 +43,10 @@ class MaterializedStrategy:
     record_type: str | None
     step_count: int
     wdk_strategy_id: int | None
+    created_wdk_strategy: bool = False
+    """True when this materialization minted the WDK strategy it names."""
+    is_saved: bool = False
+    """The saved mark of the strategy this state names. A mint is unsaved."""
 
 
 def snapshot_as_plan(
@@ -155,4 +159,5 @@ async def materialize_strategy_snapshot(
         record_type=pushed.record_type or None,
         step_count=_step_total(pushed),
         wdk_strategy_id=result.wdk_strategy_id,
+        created_wdk_strategy=result.created_wdk_strategy,
     )

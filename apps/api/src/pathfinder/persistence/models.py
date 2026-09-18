@@ -194,6 +194,14 @@ class ConversationStrategy(Base):
     )
     record_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     wdk_strategy_id: Mapped[int | None] = mapped_column(nullable=True)
+    # True when PathFinder created this strategy on VEuPathDB. A strategy the
+    # user made on the website and opened here is not PathFinder's to delete.
+    wdk_strategy_created_here: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+        default=False,
+    )
     is_saved: Mapped[bool] = mapped_column(Boolean, default=False)
     step_count: Mapped[int] = mapped_column(Integer, default=0)
     strategy_ast: Mapped[JSONObject] = mapped_column(
@@ -229,6 +237,7 @@ class ConversationStrategyView(BaseModel):
 
     record_type: str | None = None
     wdk_strategy_id: int | None = None
+    wdk_strategy_created_here: bool = False
     is_saved: bool = False
     step_count: int = 0
     strategy_ast: JSONObject = Field(default_factory=dict)
@@ -286,6 +295,22 @@ class StrategyRevision(Base):
     )
     step_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     wdk_strategy_id: Mapped[int | None] = mapped_column(nullable=True)
+    # The provenance of the strategy id this snapshot names, so a restore
+    # writes the id back with the record it had.
+    wdk_strategy_created_here: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+        default=False,
+    )
+    # The saved mark of the strategy this snapshot names. A restore writes it
+    # back, so the row never carries the mark of the strategy it left.
+    is_saved: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+        default=False,
+    )
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     message_id: Mapped[UUID | None] = mapped_column(
         PGUUID(as_uuid=True),
@@ -310,6 +335,8 @@ class StrategyRevisionView(BaseModel):
     strategy_ast: JSONObject = Field(default_factory=dict)
     step_count: int = 0
     wdk_strategy_id: int | None = None
+    wdk_strategy_created_here: bool = False
+    is_saved: bool = False
     name: str | None = None
     message_id: UUID | None = None
     created_at: datetime

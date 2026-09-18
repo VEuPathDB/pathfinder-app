@@ -4,8 +4,10 @@ from typing import Annotated
 from uuid import UUID
 
 from assistant_core import quota
+from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.db import get_db_session
-from fastapi import Depends, HTTPException, Query, status
+from fastapi import Depends, HTTPException, Query, Request, status
+from langgraph.store.postgres.aio import AsyncPostgresStore
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.platform.config import get_settings
@@ -28,6 +30,15 @@ from pathfinder.transport.http.schemas.site_id import SiteId
 
 # Type aliases for dependencies
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+def get_memory_store(request: Request) -> MemoryStore:
+    """The cross-thread memory store the application opened at startup."""
+    raw: AsyncPostgresStore = request.app.state.memory_store
+    return MemoryStore(store=raw)
+
+
+MemoryStoreDep = Annotated[MemoryStore, Depends(get_memory_store)]
 
 # Optional ``siteId`` query param shared by list endpoints.
 SiteIdQuery = Annotated[SiteId | None, Query(alias="siteId")]

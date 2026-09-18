@@ -29,6 +29,14 @@ from pathfinder.platform.errors import InternalError
 logger = get_logger(__name__)
 
 
+@dataclass(frozen=True)
+class ChatOwner:
+    """The account a synced WDK strategy lands under, and its assistant."""
+
+    user_id: UUID
+    assistant_id: str
+
+
 @dataclass
 class WdkChatSpec:
     """The strategy fields that an upsert needs."""
@@ -81,18 +89,22 @@ async def sync_to_chat(
     site_id: str,
     api: StrategyAPI,
     conv_repo: ConversationRepository,
-    user_id: UUID,
-    assistant_id: str,
+    owner: ChatOwner,
+    created_here: bool,
 ) -> Conversation:
-    """Fetches one WDK strategy and upserts it into the local records."""
+    """Fetches one WDK strategy and upserts it into the local records.
+
+    ``created_here`` states whether the caller minted this strategy on
+    VEuPathDB just before adopting it.
+    """
     payload, is_saved = await fetch_and_convert(api, wdk_id)
     name = payload.name or f"WDK Strategy {wdk_id}"
 
     return await upsert_chat(
         conv_repo=conv_repo,
-        user_id=user_id,
+        owner=owner,
         site_id=site_id,
-        assistant_id=assistant_id,
+        created_here=created_here,
         spec=WdkChatSpec(
             wdk_id=wdk_id,
             name=name,
@@ -107,14 +119,18 @@ async def sync_to_chat(
 async def upsert_chat(
     *,
     conv_repo: ConversationRepository,
-    user_id: UUID,
+    owner: ChatOwner,
     site_id: str,
-    assistant_id: str,
     spec: WdkChatSpec,
+    created_here: bool,
 ) -> Conversation:
-    """Creates or updates the local record for a WDK strategy."""
+    """Creates or updates the local record for a WDK strategy.
+
+    A row that already names this strategy holds its provenance, so only a
+    new row records ``created_here``.
+    """
     found = await SavedStrategyRepository(conv_repo.session).get_by_wdk_strategy_id(
-        user_id, spec.wdk_id
+        owner.user_id, spec.wdk_id
     )
     existing = None if found is None else found[0]
     if existing:
@@ -134,9 +150,9 @@ async def upsert_chat(
         conversation = await conv_repo.get_by_id(existing.id)
     else:
         created = await conv_repo.create(
-            user_id=user_id,
+            user_id=owner.user_id,
             site_id=site_id,
-            assistant_id=assistant_id,
+            assistant_id=owner.assistant_id,
             name=spec.name,
         )
         await conv_repo.update_conversation(
@@ -146,6 +162,8 @@ async def upsert_chat(
                 record_type=spec.record_type,
                 wdk_strategy_id=spec.wdk_id,
                 wdk_strategy_id_set=True,
+                wdk_strategy_created_here=created_here,
+                wdk_strategy_created_here_set=True,
                 is_saved=spec.is_saved,
                 is_saved_set=True,
                 step_count=spec.step_count,

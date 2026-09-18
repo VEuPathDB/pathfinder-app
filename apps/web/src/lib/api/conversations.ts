@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
 import type { InsertSavedRequest } from "@pathfinder/shared/generated/types/InsertSavedRequest";
 
 import { client } from "./client";
@@ -58,21 +57,4 @@ export async function insertSavedStrategy(
     data,
   });
   return resp.data;
-}
-
-/** Open a chat whose strategy starts from a saved one, and return its id. */
-export async function startChatFromSavedStrategy(args: {
-  siteId: string;
-  name: string;
-  savedWdkStrategyId: number;
-}): Promise<string> {
-  const conversationId = crypto.randomUUID();
-  await beginStrategy(conversationId, { siteId: args.siteId, seedText: args.name });
-  await insertSavedStrategy({
-    conversationId,
-    siteId: args.siteId,
-    targetStepId: "",
-    savedWdkStrategyId: args.savedWdkStrategyId,
-  });
-  return conversationId;
 }

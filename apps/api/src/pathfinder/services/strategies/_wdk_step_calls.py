@@ -15,6 +15,7 @@ from veupathdb.wdk import (
 )
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM
 
+from pathfinder.services.strategies.step_search import refuse_a_set_operation
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -49,6 +50,7 @@ async def _push_leaf_step(
     record_type: str,
 ) -> int:
     """Push a leaf step to WDK. Returns the WDK step ID."""
+    refuse_a_set_operation(step.id, search_name)
     _refuse_an_empty_eda_analysis(search_name, str_params)
     wdk_result = await api.create_step(
         NewStepSpec(
@@ -146,6 +148,7 @@ async def _push_transform_step(
 
     Returns the WDK step ID or None if input is missing.
     """
+    refuse_a_set_operation(step.id, search_name)
     input_wdk_id = (
         sync_state.wdk_step_ids.get(step.primary_input_id)
         if step.primary_input_id
@@ -185,6 +188,7 @@ async def _update_existing_step(
     # The params of a combine step are structural and never change.
     if kind == "combine":
         return
+    refuse_a_set_operation(step.id, wdk_search_name(step))
     str_params: dict[str, str] = encode_params(step.parameters)
     _refuse_an_empty_eda_analysis(wdk_search_name(step), str_params)
 

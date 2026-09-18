@@ -16,7 +16,6 @@ from veupathdb.domain.strategy import (
     StepValidation,
     StrategyStep,
     record_class_of,
-    runs_a_wdk_search,
     wdk_search_name,
 )
 from veupathdb.errors import ValidationError, VEuPathDBError
@@ -45,6 +44,7 @@ from pathfinder.services.strategies.step_push_planner import (
     SkipAction,
     StepPushPlan,
 )
+from pathfinder.services.strategies.step_search import names_a_wdk_question
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 
@@ -303,7 +303,7 @@ async def _validate_plan_params(
         step = steps_by_id.get(entry.step_id)
         if step is None or isinstance(entry.action, SkipAction):
             continue
-        if not runs_a_wdk_search(step):
+        if not names_a_wdk_question(step):
             continue
         try:
             validated = await validate_parameters(

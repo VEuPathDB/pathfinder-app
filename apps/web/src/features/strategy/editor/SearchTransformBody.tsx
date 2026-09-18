@@ -11,16 +11,13 @@ import {
 } from "./widgets/PhyleticProfileParam";
 import { AdvancedParamsGroup } from "./widgets/AdvancedParamsGroup";
 import type { StepEditorState } from "./useStepEditorState";
+import type { ParamFormValues } from "./hooks/useParamForm";
 
 interface SearchTransformBodyProps {
   state: StepEditorState;
   step: Step;
   onSearchChange: (next: string | null) => void;
-  onFieldChanged: (
-    name: string,
-    value: unknown,
-    allValues: Record<string, unknown>,
-  ) => void;
+  onFieldChanged: (name: string, allValues: ParamFormValues) => void;
   onFieldBlurred: () => void;
 }
 

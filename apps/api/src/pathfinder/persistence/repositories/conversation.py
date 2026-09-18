@@ -202,6 +202,8 @@ class ConversationRepository:
                 strategy_ast={},
                 record_type=None,
                 wdk_strategy_id=None,
+                wdk_strategy_created_here=False,
+                is_saved=False,
                 step_count=0,
                 estimated_size=None,
             )

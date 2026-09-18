@@ -88,7 +88,10 @@ re-consent behave differently from first consent for no stated reason.
 - Opting out is symmetric: consent off clears the queue, consent on lets the
   same threads be extracted again. The integration suite states both.
 - `DELETE /api/v1/user/data` reports `stagedEvalCases` beside the other counts,
-  so a purge says what it removed.
+  so a purge says what it removed. It removes only the calling application's
+  rows, and only the named site's when the request names a site; the consent
+  opt-out is the one that clears every one of the user's, because that decision
+  is the account's.
 - A curator can always answer "where did this case come from" with a site, an
   assistant and a date, and can never answer "who wrote it".
 - The corpus location is `apps/api/src/pathfinder/evals/corpus/`, inside the
