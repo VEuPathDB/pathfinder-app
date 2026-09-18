@@ -107,7 +107,12 @@ def _measured(monkeypatch: pytest.MonkeyPatch) -> None:
         del site_id, record_type, search_name
         return PublishedNames(label=LABEL, parameter_labels={"organism": "Organism"})
 
+    async def tunable(site_id: str, record_type: str, search_name: str) -> list[str]:
+        del site_id, record_type
+        return ["organism", "scope"] if search_name else []
+
     monkeypatch.setattr(control_tests_impl, "run_step_control_tests", run)
+    monkeypatch.setattr(control_tests_impl, "tunable_parameters_of_search", tunable)
     monkeypatch.setattr(control_tests_impl, "attach_control_downloads", no_export)
     monkeypatch.setattr(control_tests_impl, "published_names", published)
     monkeypatch.setattr(TaskProgressEmitter, "update", no_update)
@@ -132,6 +137,7 @@ async def test_the_result_names_the_search_the_step_runs(
     assert result["positiveIntersection"] == 2
     assert result["targetLabel"] == LABEL
     assert result["parameterLabels"] == {"organism": "Organism"}
+    assert result["tunableParameters"] == ["organism", "scope"]
 
 
 async def test_a_refused_step_lookup_leaves_the_name_empty(
@@ -155,6 +161,7 @@ async def test_a_refused_step_lookup_leaves_the_name_empty(
     assert result["searchName"] == ""
     assert result["targetLabel"] == ""
     assert result["parameterLabels"] == {}
+    assert result["tunableParameters"] == []
     assert result["positiveIntersection"] == 2
 
 

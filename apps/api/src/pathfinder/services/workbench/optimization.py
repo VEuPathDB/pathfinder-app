@@ -1,8 +1,12 @@
 """The parameter-sweep half of the workbench facade: the grid and one trial."""
 
-from veupathdb.domain.parameters import ParamValue
+from collections.abc import Mapping
 
-from pathfinder.services.parameter_optimization import sweep
+from veupathdb import get_logger
+from veupathdb.domain.parameters import ParamValue
+from veupathdb.errors import VEuPathDBError
+
+from pathfinder.services.parameter_optimization import sweep, tunable
 from pathfinder.services.parameter_optimization.config import (
     OptimizationConfig,
     ParameterSpec,
@@ -11,6 +15,9 @@ from pathfinder.services.parameter_optimization.config import (
     SweepVariantResult,
     SweepVariantSpec,
 )
+from pathfinder.services.parameter_optimization.tunable import SweepPlan
+
+logger = get_logger(__name__)
 
 
 def enumerate_variants(
@@ -37,3 +44,42 @@ async def run_trial(
         score_cfg=score_cfg,
         progress_callback=progress_callback,
     )
+
+
+async def sweep_plan_for_step(
+    site_id: str,
+    record_type: str,
+    search_name: str,
+    step_values: Mapping[str, str],
+    *,
+    names: list[str] | None = None,
+    budget: int,
+) -> SweepPlan:
+    """The grid a sweep of this step runs, capped at ``budget`` trials."""
+    return tunable.sweep_plan(
+        search_name,
+        await tunable.search_parameter_metadata(site_id, record_type, search_name),
+        step_values,
+        names=names,
+        budget=budget,
+    )
+
+
+async def tunable_parameters_of_search(
+    site_id: str,
+    record_type: str,
+    search_name: str,
+) -> list[str]:
+    """The parameters of this search a sweep can vary. Empty when WDK refuses."""
+    try:
+        published = await tunable.search_parameter_metadata(
+            site_id, record_type, search_name
+        )
+    except (VEuPathDBError, OSError) as exc:
+        logger.warning(
+            "The tunable parameters of a search could not be read",
+            search_name=search_name,
+            error=str(exc),
+        )
+        return []
+    return tunable.tunable_parameter_names(published)

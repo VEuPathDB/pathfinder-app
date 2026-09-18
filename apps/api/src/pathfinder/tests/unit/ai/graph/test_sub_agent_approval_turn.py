@@ -13,8 +13,9 @@ from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
 from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.lead import sub_agent_tools
 from pathfinder.tests.unit.ai.graph._approval_turn import (
-    OPTIMIZE_ARGS,
     RECOVERY_FINAL,
+    RETIRE_ARGS,
+    RETIRE_TOOL,
     VERIFICATION_FINAL,
     Collector,
     consult_and_dispatch_model,
@@ -43,8 +44,8 @@ async def test_the_turn_ends_deferred_on_the_sub_agents_approval(
         sub_agent_tools,
         "get_mock_model",
         lambda: one_call_model(
-            tool_name="optimize_search_parameters",
-            tool_args=OPTIMIZE_ARGS,
+            tool_name=RETIRE_TOOL,
+            tool_args=RETIRE_ARGS,
             final_args=VERIFICATION_FINAL,
         ),
     )
@@ -63,11 +64,11 @@ async def test_the_turn_ends_deferred_on_the_sub_agents_approval(
     assert pending.sub_agent is not None
     assert pending.sub_agent.role == "verification"
     inner = pending.sub_agent.approvals[0]
-    assert inner.tool_call_id == "call_optimize_search_parameters"
-    assert inner.tool_name == "optimize_search_parameters"
+    assert inner.tool_call_id == f"call_{RETIRE_TOOL}"
+    assert inner.tool_name == RETIRE_TOOL
 
     approvals = writer.chunks_of("tool-approval-request")
-    assert [c["toolCallId"] for c in approvals] == ["call_optimize_search_parameters"]
+    assert [c["toolCallId"] for c in approvals] == [f"call_{RETIRE_TOOL}"]
     # The Lead's own dispatch call stays plumbing: it never reaches the client.
     assert all(
         c["toolCallId"] != "call_verify_strategy"

@@ -19,14 +19,7 @@
   },
   {
     "data": {
-      "label": "Recalling earlier work",
-      "waitingOnLlm": false
-    },
-    "type": "data-turn-status"
-  },
-  {
-    "data": {
-      "label": "Reading the thread",
+      "label": "Recalling earlier work and reading the thread",
       "waitingOnLlm": false
     },
     "type": "data-turn-status"

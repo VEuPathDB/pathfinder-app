@@ -18,6 +18,7 @@ from veupathdb_mcp.tool_payloads import ControlOutcome
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.services.experiment.published_names import published_names
 from pathfinder.services.export.control_downloads import attach_control_downloads
+from pathfinder.services.workbench.optimization import tunable_parameters_of_search
 
 logger = get_logger(__name__)
 
@@ -26,6 +27,7 @@ class TestedStep(CamelModel):
     """How WDK names the tested step and the parameters it ran."""
 
     search_name: str = ""
+    record_type: str = ""
     label: str = ""
     parameter_labels: dict[str, str] = Field(default_factory=dict)
 
@@ -46,6 +48,7 @@ async def _tested_step(site_id: str, wdk_step_id: int) -> TestedStep:
     )
     return TestedStep(
         search_name=step.search_name,
+        record_type=step.record_class_name or "",
         label=step.custom_name or step.display_name or published.label,
         parameter_labels=published.parameter_labels,
     )
@@ -121,4 +124,11 @@ async def run_control_tests_on_step_impl(
     reported = exported.model_dump(by_alias=True, exclude_none=True, mode="json")
     reported["targetLabel"] = tested.label
     reported["parameterLabels"] = tested.parameter_labels
+    reported["tunableParameters"] = (
+        await tunable_parameters_of_search(
+            context.site_id, tested.record_type, tested.search_name
+        )
+        if tested.search_name
+        else []
+    )
     return reported

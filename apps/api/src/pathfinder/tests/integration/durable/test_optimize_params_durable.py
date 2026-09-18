@@ -12,6 +12,9 @@ from assistant_core.persistence.repositories.background_tasks import (
 from assistant_core.platform.db import async_session_factory
 from assistant_core.tasks.declaration import durable_impl
 from assistant_core.tasks.runner import run_durable_task
+from veupathdb.domain.parameters import VocabOption
+from veupathdb.wdk import WDKSearchConfig, WDKStep
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.jobs.impls import optimize_params_impl, register_all_tools
 from pathfinder.jobs.impls.optimize_params_impl import (
@@ -19,12 +22,47 @@ from pathfinder.jobs.impls.optimize_params_impl import (
 )
 from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.services.parameter_optimization import tunable
 from pathfinder.services.parameter_optimization.config import SweepVariantSpec
 
 
 async def _fake_attach_export(result_json: dict[str, Any], search_name: str) -> None:
     del search_name
     result_json["downloads"] = {"jsonUrl": "https://ex/sweep.json"}
+
+
+class _Api:
+    """A strategy API that answers the built step under test."""
+
+    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
+        del user_id
+        return WDKStep(
+            id=step_id,
+            search_name="GenesByExpression",
+            record_class_name="transcript",
+            search_config=WDKSearchConfig(),
+        )
+
+
+async def _two_term_knob(
+    site_id: str, record_type: str, search_name: str
+) -> list[ParameterInfo]:
+    del site_id, record_type, search_name
+    return [
+        ParameterInfo(
+            name="knob",
+            display_name="knob",
+            type="single-pick-vocabulary",
+            required=True,
+            is_visible=True,
+            help="",
+            value_format="",
+            allowed_values=[
+                VocabOption(value="a", display="a"),
+                VocabOption(value="b", display="b"),
+            ],
+        )
+    ]
 
 
 async def _fake_run_single_trial(
@@ -73,36 +111,9 @@ async def _seed_user_chat(user_id: UUID, conversation_id: UUID) -> None:
 def target_kwargs() -> dict[str, Any]:
     """Inputs sized to produce two variants in the Cartesian sweep."""
     return {
-        "target": {
-            "site_id": "plasmodb",
-            "record_type": "transcript",
-            "search_name": "GenesByExpression",
-            "fixed_parameters": {},
-            "parameter_space": [
-                {
-                    "name": "knob",
-                    "type": "categorical",
-                    "choices": ["a", "b"],
-                }
-            ],
-        },
-        "controls": {
-            "positive_controls": ["a", "b"],
-            "negative_controls": [],
-            "controls_search_name": "GeneByLocusTag",
-            "controls_param_name": "ds_gene_ids",
-            "controls_value_format": "newline",
-            "controls_extra_parameters": {},
-            "id_field": "primary_key",
-        },
-        "settings": {
-            "budget": 2,
-            "objective": "f1",
-            "beta": 1.0,
-            "method": "grid",
-            "estimated_size_penalty": 0.0,
-            "max_parallel": 2,
-        },
+        "wdk_step_id": 440299573,
+        "positive_controls": ["PF3D7_1133400", "PF3D7_0102600"],
+        "budget": 2,
     }
 
 
@@ -123,10 +134,14 @@ async def test_run_durable_task_wiring_optimize(
     """End-to-end: runner submits -> impl fans out -> result row matches sweep shape."""
     del db_cleaner, patch_app_db_engine, worker_seams
 
-    monkeypatch.setattr(optimize_params_impl, "attach_export", _fake_attach_export)
+    monkeypatch.setattr(
+        optimize_params_impl, "attach_sweep_download", _fake_attach_export
+    )
     monkeypatch.setattr(
         optimize_params_impl, "run_single_trial", _fake_run_single_trial
     )
+    monkeypatch.setattr(optimize_params_impl, "get_strategy_api", lambda _s: _Api())
+    monkeypatch.setattr(tunable, "search_parameter_metadata", _two_term_knob)
     register_all_tools()
 
     user_id = uuid4()

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, cast
+from typing import Any
 from uuid import UUID
 
 from assistant_core.memory.store import MemoryStore
@@ -9,20 +9,12 @@ from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from assistant_core.tasks.progress import TaskProgressEmitter
 from pydantic import JsonValue
-from veupathdb_mcp.controls import ControlValueFormat
+from veupathdb.wdk import get_strategy_api
 
 from pathfinder.ai.graph.runtime import Context
-from pathfinder.ai.tools.standalone.optimization_models import (
-    OptimizationControls,
-    OptimizationSettings,
-    OptimizationTarget,
-    attach_export,
-    parse_and_validate_inputs,
-)
-from pathfinder.services.experiment.types import (
-    OptimizationObjective,
-)
+from pathfinder.services.export.control_downloads import attach_sweep_download
 from pathfinder.services.parameter_optimization.config import (
+    SWEEP_BUDGET,
     OptimizationConfig,
     SweepControls,
     SweepResult,
@@ -30,14 +22,21 @@ from pathfinder.services.parameter_optimization.config import (
     SweepVariantResult,
     SweepVariantSpec,
 )
-from pathfinder.services.workbench.optimization import enumerate_variants, run_trial
+from pathfinder.services.workbench.optimization import (
+    enumerate_variants,
+    run_trial,
+    sweep_plan_for_step,
+)
 
 logger = get_logger(__name__)
 
-# Default fan-out cap when the caller does not pin ``max_parallel``. Five
-# matches the WDK-friendly batch size used elsewhere and keeps a sweep of
-# typical 5-15 variants from oversubscribing the upstream service.
-_DEFAULT_MAX_PARALLEL = 5
+# Default fan-out cap. Five matches the WDK-friendly batch size used elsewhere
+# and keeps a sweep of typical 5-15 variants from oversubscribing WDK.
+MAX_PARALLEL = 5
+
+# Controls are intersected the way the control-test tool intersects them.
+_CONTROLS_SEARCH = "GeneByLocusTag"
+_CONTROLS_PARAM = "ds_gene_ids"
 
 
 async def run_single_trial(
@@ -52,9 +51,7 @@ async def run_single_trial(
     """Run a single variant trial and return its serialised result.
 
     Module-level so tests can ``monkeypatch.setattr`` it without touching
-    the orchestrator. In production the body delegates to
-    :func:`run_trial` in the service layer; the impl wraps the typed
-    result back into a JSON-serialisable dict for the durable task row.
+    the orchestrator.
     """
     del context
 
@@ -79,89 +76,69 @@ async def optimize_search_parameters_impl(
     task_id: UUID,
     progress: TaskProgressEmitter,
     memory_store: MemoryStore | None,
-    target: dict[str, Any] | OptimizationTarget,
-    controls: dict[str, Any] | OptimizationControls,
-    settings: dict[str, Any] | OptimizationSettings | None = None,
+    wdk_step_id: int,
+    positive_controls: list[str] | None = None,
+    negative_controls: list[str] | None = None,
+    parameters: list[str] | None = None,
+    budget: int = SWEEP_BUDGET,
     **_extra: Any,
 ) -> dict[str, Any]:
-    """Run a parallel parameter sweep and return ``SweepResult`` as JSON.
+    """Sweep the parameters of a built step and return ``SweepResult`` as JSON.
 
-    Builds the Cartesian variant grid from ``target.parameter_space``,
-    fans out via ``asyncio.gather`` bounded by a Semaphore, and tags
-    every per-variant progress event with ``variantId`` so the UI can
-    render one lane per variant. One variant raising does NOT abort the
-    others - each gated wrapper converts the exception into a
-    ``status="failed"`` :class:`SweepVariantResult`.
+    The step names the search, its own values are what every variant holds
+    fixed, and the grid comes from the catalog's parameter metadata. One
+    variant raising does NOT abort the others - each gated wrapper converts
+    the exception into a ``status="failed"`` :class:`SweepVariantResult`.
     """
     del task_id, memory_store
 
+    if not positive_controls and not negative_controls:
+        msg = "At least one of positive_controls or negative_controls must be provided."
+        raise ValueError(msg)
+
     progress.batch_size = 8
 
-    target_m = (
-        target
-        if isinstance(target, OptimizationTarget)
-        else OptimizationTarget.model_validate(target)
-    )
-    controls_m = (
-        controls
-        if isinstance(controls, OptimizationControls)
-        else OptimizationControls.model_validate(controls)
-    )
-    settings_m = (
-        settings
-        if isinstance(settings, OptimizationSettings)
-        else OptimizationSettings.model_validate(settings or {})
-    )
-
-    specs, fixed_parameters, controls_extra_parameters = parse_and_validate_inputs(
-        target_m, controls_m
+    step = await get_strategy_api(context.site_id).find_step(wdk_step_id)
+    record_type = step.record_class_name or "transcript"
+    plan = await sweep_plan_for_step(
+        context.site_id,
+        record_type,
+        step.search_name,
+        step.search_config.parameters,
+        names=parameters,
+        budget=budget,
     )
 
     sweep_target = SweepTarget(
         site_id=context.site_id,
-        record_type=target_m.record_type,
-        search_name=target_m.search_name,
-        fixed_parameters=fixed_parameters,
+        record_type=record_type,
+        search_name=step.search_name,
+        fixed_parameters=plan.fixed_parameters,
     )
     sweep_controls = SweepControls(
-        controls_search_name=controls_m.controls_search_name,
-        controls_param_name=controls_m.controls_param_name,
-        controls_value_format=cast(
-            "ControlValueFormat", controls_m.controls_value_format
-        ),
-        controls_extra_parameters=controls_extra_parameters,
-        positive_controls=controls_m.positive_controls or None,
-        negative_controls=controls_m.negative_controls or None,
-        id_field=controls_m.id_field,
+        controls_search_name=_CONTROLS_SEARCH,
+        controls_param_name=_CONTROLS_PARAM,
+        controls_value_format="newline",
+        controls_extra_parameters={},
+        positive_controls=positive_controls or None,
+        negative_controls=negative_controls or None,
+        id_field="primary_key",
     )
-    score_cfg = OptimizationConfig(
-        objective=cast("OptimizationObjective", settings_m.objective),
-        beta=settings_m.beta,
-        estimated_size_penalty=max(0.0, settings_m.estimated_size_penalty),
-    )
+    score_cfg = OptimizationConfig()
 
-    variants = enumerate_variants(specs, fixed_parameters)
+    variants = enumerate_variants(plan.parameter_space, plan.fixed_parameters)
 
-    start_data: dict[str, JsonValue] = {
-        "search_name": target_m.search_name,
-        "variant_count": len(variants),
-        "objective": settings_m.objective,
-    }
-    if settings_m.criterion:
-        start_data["criterion"] = settings_m.criterion
-    if settings_m.model_id:
-        start_data["model_id"] = settings_m.model_id
     await progress.update(
         percent=0.0,
-        message=(
-            f"Starting parallel sweep ({len(variants)} variants)"
-            + (f" - {settings_m.criterion}" if settings_m.criterion else "")
-        ),
-        data=start_data,
+        message=f"Starting parallel sweep ({len(variants)} variants)",
+        data={
+            "search_name": step.search_name,
+            "variant_count": len(variants),
+            "swept_parameters": [spec.name for spec in plan.parameter_space],
+        },
     )
 
-    cap = settings_m.max_parallel or _DEFAULT_MAX_PARALLEL
-    sem = asyncio.Semaphore(cap)
+    sem = asyncio.Semaphore(MAX_PARALLEL)
 
     async def gated(v: SweepVariantSpec) -> dict[str, Any]:
         scoped = progress.scoped(variantId=v.id)
@@ -200,23 +177,11 @@ async def optimize_search_parameters_impl(
     raw_results = await asyncio.gather(*(gated(v) for v in variants))
 
     sweep = SweepResult.model_validate({"variants": raw_results, "best": None})
-    result_json: dict[str, Any] = sweep.model_dump(by_alias=True, mode="json")
-    result_json["objective"] = settings_m.objective
-    if settings_m.criterion:
-        result_json["criterion"] = settings_m.criterion
-    if settings_m.model_id:
-        result_json["modelId"] = settings_m.model_id
+    result_json: JSONObject = sweep.model_dump(by_alias=True, mode="json")
+    result_json["objective"] = score_cfg.objective
 
-    await progress.update(
-        percent=0.98,
-        message="Exporting sweep result",
-        data=None,
-    )
-    await attach_export(cast("JSONObject", result_json), target_m.search_name)
-    await progress.update(
-        percent=1.0,
-        message="Sweep complete",
-        data=None,
-    )
+    await progress.update(percent=0.98, message="Exporting sweep result", data=None)
+    await attach_sweep_download(result_json, step.search_name)
+    await progress.update(percent=1.0, message="Sweep complete", data=None)
     await progress.flush()
-    return result_json
+    return dict(result_json)

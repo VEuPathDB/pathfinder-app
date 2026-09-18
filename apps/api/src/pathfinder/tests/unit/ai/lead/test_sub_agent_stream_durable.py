@@ -338,8 +338,16 @@ async def test_the_last_result_resumes_the_run_with_every_answer(
         if data["toolCallId"] in {_CALL_A, _CALL_B} and data["state"] == "completed"
     ]
     assert [row["toolCallId"] for row in answered] == [_CALL_A, _CALL_B]
-    assert answered[0]["resultSummary"] == "3 of 3 positive controls recovered"
-    assert answered[1]["resultSummary"] == "1 of 2 positive controls recovered"
+    assert answered[0]["resultSummary"] == (
+        "3 of 3 positive controls recovered; "
+        "recall 1.00, no negative controls tested; "
+        "no tunable parameters"
+    )
+    assert answered[1]["resultSummary"] == (
+        "1 of 2 positive controls recovered; "
+        "recall 0.50, no negative controls tested; "
+        "no tunable parameters"
+    )
 
 
 @pytest.mark.usefixtures("scripted")

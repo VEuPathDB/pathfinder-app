@@ -11,6 +11,7 @@ selection in ``_lead_model``, and memory retrieval plus approval resolution in
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncGenerator, Awaitable
 from typing import Any, Literal, Protocol
 from uuid import UUID, uuid4
@@ -85,7 +86,7 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.stream_events import ledger_update_event
 from pathfinder.ai.graph.turn_status import (
     READING_THE_THREAD,
-    RECALLING_EARLIER_WORK,
+    RECALLING_AND_READING,
     turn_step_status,
 )
 from pathfinder.ai.lead.derive import derive_ledger
@@ -343,19 +344,22 @@ async def _run_lead_turn(
     writer = get_stream_writer()
     state = rebuilt_state(state)
     if state.resumes_parked_call:
+        emit_chunk(writer, turn_step_status(READING_THE_THREAD))
         memories = list(state.retrieved_memories)
+        working_state = await pre_turn(state, runtime.context)
     else:
-        emit_chunk(writer, turn_step_status(RECALLING_EARLIER_WORK))
-        stored = await retrieve_memories(state, runtime)
+        emit_chunk(writer, turn_step_status(RECALLING_AND_READING))
+        stored, working_state = await asyncio.gather(
+            retrieve_memories(state, runtime),
+            pre_turn(state, runtime.context),
+        )
         memories = [s.value for s in stored]
         if stored:
             emit_chunk(writer, memory_retrieved_event(memories=stored))
-    emit_chunk(writer, turn_step_status(READING_THE_THREAD))
     capture = _LeadRunCapture()
     message_id = uuid4()
 
     record_sub_agent_usage, record_tool_charge = usage_recorders(capture, state, writer)
-    working_state = await pre_turn(state, runtime.context)
     deps = LeadDeps(
         state=working_state,
         intent=state.domain.user_intent,

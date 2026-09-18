@@ -55,15 +55,7 @@ async def retrieve_memories(
     state: PipelineState,
     runtime: Runtime[Context],
 ) -> list[StoredMemory]:
-    """Fresh-turn cross-thread retrieval.
-
-    Returns ``[]`` on a turn that resumes a parked call: the turn's memories
-    are already persisted on ``state.retrieved_memories``, so the lead node
-    preserves them rather than re-querying (and does not re-emit the
-    recalled-memories chunk).
-    """
-    if state.resumes_parked_call:
-        return []
+    """Fresh-turn cross-thread retrieval."""
     if runtime.context is None or runtime.context.memory_store is None:
         return []
     if not state.user_prompt.strip():

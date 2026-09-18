@@ -5,6 +5,7 @@ from itertools import product
 
 from pydantic import JsonValue
 from veupathdb.domain.parameters import (
+    MultiPickValue,
     NumberValue,
     ParamValue,
     SinglePickValue,
@@ -39,11 +40,13 @@ _DEFAULT_NUMERIC_LEVELS = 5
 ProgressFn = Callable[[float, str, dict[str, JsonValue] | None], Awaitable[None]]
 
 
-def _enumerate_spec_values(spec: ParameterSpec) -> list[ParamValue]:
+def enumerate_spec_values(spec: ParameterSpec) -> list[ParamValue]:
     """Materialise a ParameterSpec into a list of concrete typed values."""
     if spec.param_type == "categorical":
-        choices = spec.choices or []
-        return [SinglePickValue(value=str(c)) for c in choices]
+        choices = [str(c) for c in spec.choices or []]
+        if spec.wdk_kind == "multi-pick-vocabulary":
+            return [MultiPickValue(values=[c]) for c in choices]
+        return [SinglePickValue(value=c) for c in choices]
 
     if spec.param_type == "integer":
         lo = int(spec.min if spec.min is not None else 0)
@@ -84,7 +87,7 @@ def enumerate_variants(
         raise ValueError(msg)
 
     names = [spec.name for spec in parameter_space]
-    value_lists = [_enumerate_spec_values(spec) for spec in parameter_space]
+    value_lists = [enumerate_spec_values(spec) for spec in parameter_space]
     variants: list[SweepVariantSpec] = []
     for idx, combo in enumerate(product(*value_lists)):
         sweep_values = dict(zip(names, combo, strict=True))

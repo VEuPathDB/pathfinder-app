@@ -304,7 +304,11 @@ async def test_the_last_task_resumes_the_run_with_every_answer(
     ]
     assert [s["toolCallId"] for s in summaries] == [CALL_A, CALL_B]
     assert {s["summary"] for s in summaries} == {
-        "1 of 1 positive controls recovered",
+        (
+            "1 of 1 positive controls recovered; "
+            "recall 1.00, no negative controls tested; "
+            "no tunable parameters"
+        ),
     }
     assert await _statuses(conversation_id) == [
         (CALL_A, "complete"),

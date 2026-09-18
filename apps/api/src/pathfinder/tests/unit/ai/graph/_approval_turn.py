@@ -31,26 +31,12 @@ from pathfinder.ai.lead import sub_agent_stream
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.toolsets import verification
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 
-OPTIMIZE_ARGS: dict[str, Any] = {
-    "target": {
-        "site_id": "plasmodb",
-        "record_type": "transcript",
-        "search_name": "GenesByRNASeqEvidence",
-        "parameter_space": [
-            {"name": "min_fold_change", "kind": "numeric", "low": 1.5, "high": 4.0},
-        ],
-    },
-    "controls": {
-        "positive_controls": ["PF3D7_1133400"],
-        "negative_controls": ["PF3D7_0930300"],
-    },
-    "settings": {"budget": 8, "objective": "f1"},
-}
+RETIRE_TOOL = "retire_control_set"
+RETIRE_ARGS: dict[str, Any] = {"control_set_id": "cs_kinases"}
 VERIFICATION_FINAL: dict[str, Any] = {
     "digest": {
         "disposition": "done",
@@ -257,13 +243,27 @@ async def drive_lead(
     return capture
 
 
+def approval_gated_toolset() -> FunctionToolset[AgentDeps]:
+    """One tool the runtime must ask about before it runs."""
+
+    async def retire_control_set(
+        ctx: RunContext[AgentDeps], control_set_id: str
+    ) -> str:
+        del ctx
+        return f"retired {control_set_id}"
+
+    return FunctionToolset[AgentDeps](
+        tools=[Tool(retire_control_set, requires_approval=True)],
+    )
+
+
 @contextmanager
 def pinned_verification_agent(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """The verification agent, mounting its real approval-gated toolset."""
+    """The verification agent, mounting one approval-gated tool."""
     with pinned_sub_agent(
         monkeypatch,
         "verification",
-        toolsets=[verification.build_toolset()],
+        toolsets=[approval_gated_toolset()],
         instructions=TEST_INSTRUCTIONS,
     ):
         yield

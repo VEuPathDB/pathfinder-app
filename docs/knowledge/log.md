@@ -1,5 +1,64 @@
 # Log
 
+## 2026-09-18
+
+* **The parameter sweep reaches the Lead, with inputs a model has and a reason to call it.**
+  `optimize_search_parameters` took an author-it-yourself `parameter_space` of
+  `ParameterSpec` dicts and pasted control gene lists, and it lived only in VERIFY's
+  toolset with nothing in the instructions that would make a turn reach for it, so the
+  whole event log holds zero calls of it. It now takes a built step (`wdk_step_id`),
+  controls in the shape `run_control_tests_on_step` takes them, an optional list of
+  parameter names and a trial budget. The grid comes from the catalog's own parameter
+  metadata for that step's search
+  (`services/parameter_optimization/tunable.py`): a vocabulary parameter of two terms or
+  more becomes a categorical spec over its terms, a numeric parameter becomes a numeric
+  spec when the catalog states both bounds, and a search that publishes neither is
+  refused by name, and the refusal says why: WDK states no bounds for the numerics, or
+  the vocabulary of a named parameter is tied to another parameter's value. WDK publishes
+  a numeric parameter as a string with `isNumber` and no bounds, so a parameter whose
+  range nothing states is not tunable; a grid over it would be the enumeration's 0.0-1.0
+  fallback rather than the parameter's range. A parameter that carries `vocab_depends_on`
+  or `controls_vocab_of` is not tunable either: the catalog serves a dependent vocabulary
+  under the default parent, so a grid over one of the pair states terms that do not
+  belong with the step's own value of the other. The
+  enumeration now reads the WDK kind off the spec, so a multi-pick parameter sweeps one
+  term in the multi-pick wire shape instead of a bare term WDK would refuse. The grid is
+  capped at the budget by thinning the broadest parameter first and dropping the last
+  parameter only when every one of them is down to two values; the terms the step already
+  holds are the first choices of their spec, so thinning never drops the baseline out of
+  the grid. A budget under two settings, and a request that names no parameter, are
+  refused by the search's name; the tool's own schema bounds the budget between
+  `SWEEP_BUDGET_MIN` and `SWEEP_BUDGET_MAX`, and its `wdk_step_id` is an enum of the
+  strategy's live step ids, so a stale id is refused before the user answers the card.
+  The worker resolves the step to its search and its current values, so nothing about the
+  sweep is typed by the model. `OptimizationTarget`, `OptimizationControls` and `OptimizationSettings` had no
+  other caller and are gone.
+* **A control test reports a number the Lead can act on, and says what could be tuned.**
+  `controls_summary` now carries recall from the one metrics engine
+  (`services/experiment/metrics.py::metrics_from_control_result`) beside the recovered
+  count, and ends with `tunable parameters: a, b` or `no tunable parameters`, read from
+  the same derivation as the grid. Precision and MCC need a negative set: with no
+  negatives the matrix has no true negatives, so precision reads 1.00 and MCC reads 0.00
+  for any test that recovered one positive. The summary therefore states those two only
+  when a negative set ran, and otherwise says the negatives were not tested. The Lead's
+  operating loop names both floors, `SWEEP_RECALL_FLOOR` and `SWEEP_MCC_FLOOR`, which the
+  instruction renders rather than restates: recall under its floor, or MCC under its
+  floor when the summary reports an MCC at all, with tunable parameters listed, and the
+  Lead offers the sweep in prose and calls it on the user's yes. The tool is registered on the Lead beside the
+  other approval-gated calls and is gone from the verification toolset and from VERIFY's
+  instructions, so one surface owns it.
+
+* **The turn's preamble is one step, and both halves of it run together.** Cross-thread
+  memory retrieval and the thread read were independent awaits taken one after the other
+  before the Lead's first request, so every turn paid the sum of the two. `_run_lead_turn`
+  now gathers them (`ai/graph/lead_node.py`) and reports the one step that names both,
+  "Recalling earlier work and reading the thread"; a turn that resumes a parked call recalls
+  nothing, so it still reports "Reading the thread" alone and awaits the read by itself.
+  `asyncio.gather` rather than a task group, because a task group would deliver a failed
+  thread read as an exception group. A retrieval that times out still returns nothing and
+  the turn goes on. Pinned by `test_the_turn_preamble_runs_concurrently.py` and
+  `test_turn_status_names_the_step.py`.
+
 ## 2026-09-16
 
 * **A VEuPathDB strategy PathFinder minted is deleted the moment nothing names it.**

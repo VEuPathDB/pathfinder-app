@@ -12,8 +12,8 @@ status: stable
 
 The tool that needs approval is the tool the user answers, wherever it runs.
 
-`optimize_search_parameters` (verification) and `delete_step` (execution) carry
-`requires_approval=True`, so a sub-agent run that calls one ends in
+`delete_step` (execution) carries
+`requires_approval=True`, so a sub-agent run that calls it ends in
 `DeferredToolRequests` instead of its typed delta. That run is now
 suspended rather than discarded:
 
@@ -75,19 +75,22 @@ passed through with the dispatch's result, so neither is lost.
 
 **Re-asking through the Lead's `consult_user`.** The sub-agent would stop, the
 Lead would ask a free-text question, and then re-dispatch. It loses the tool's
-own identity and arguments (the card would show a question, not the sweep's
-target and controls), it asks the user twice for one decision, and the tool call
-is re-decided by a model instead of resumed, so the thing that runs is not the
+own identity and arguments (the card would show a question, not the step the
+deletion names), it asks the user twice for one decision, and the tool call is
+re-decided by a model instead of resumed, so the thing that runs is not the
 thing that was approved.
 
 **Dropping `requires_approval` from the sub-agent tools.** Honest about the old
 capability and one line to write, but it moves the guard away from the call
-site: a ~15 minute parameter sweep would start unasked, and two destructive
-strategy edits would run with no confirmation at all.
+site: a step would be deleted from a built strategy with no confirmation at
+all. The execution role's `delete_step` is the one production tool this covers;
+a verification tool that asks exists only as a test stub, so the seam is held
+by the unit tests below rather than by a second production case.
 
 # What holds it
 
-Unit tests drive the real verification and execution toolsets with scripted
+Unit tests drive the real execution toolset and a verification toolset whose one
+tool asks, with scripted
 models: the approval chunks carry the inner call id and its arguments, the turn
 ends with `PendingApproval(phase="verification", sub_agent=...)`, an approval
 runs the inner tool exactly once and the Lead answers, a denial finishes the

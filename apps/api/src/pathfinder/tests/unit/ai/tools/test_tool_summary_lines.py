@@ -282,6 +282,10 @@ class TestThePinnedStrings:
         )
         assert summary_chunks(chunks)[0].data == {
             "toolCallId": "call_4",
-            "summary": "8 of 10 positive controls recovered",
+            "summary": (
+                "8 of 10 positive controls recovered; "
+                "recall 0.80, no negative controls tested; "
+                "no tunable parameters"
+            ),
             "status": "ok",
         }

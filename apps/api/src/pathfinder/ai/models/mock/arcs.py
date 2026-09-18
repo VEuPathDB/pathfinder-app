@@ -124,6 +124,15 @@ _SAVE_GENE_SET_IDS = ("PF3D7_0709000", "PF3D7_1133400")
 # An export of a set that is already saved: the file tool, on its id.
 _EXPORT_MARKERS = ("export the gene set",)
 _EXPORT_GENE_SET_ID = "gs_mock_export"
+# An outright request to tune a built step: the approval-gated durable sweep.
+_SWEEP_MARKERS = ("tune the parameters of",)
+_SWEEP_STEP_ID = 440230693
+_SWEEP_POSITIVES = ("PF3D7_0102600",)
+_SWEEP_BUDGET = 6
+_SWEEP_PROSE = (
+    "The sweep is running. I will report the winning setting and its score "
+    "when it reports."
+)
 # An enrichment of a set that is already saved: the durable tool, on its id.
 _ENRICHMENT_MARKERS = ("enrichment on the gene set",)
 _ENRICHMENT_GENE_SET_ID = "gs_mock_enrichment"
@@ -305,6 +314,19 @@ def _kept_sequence(
                 "await_user",
                 analysed_gene_set_ids=[_ENRICHMENT_GENE_SET_ID],
             ),
+        ]
+    if has_any(lowered, _SWEEP_MARKERS):
+        return [
+            classify("follow_up_question"),
+            scripted_call(
+                "optimize_search_parameters",
+                {
+                    "wdk_step_id": _SWEEP_STEP_ID,
+                    "positive_controls": list(_SWEEP_POSITIVES),
+                    "budget": _SWEEP_BUDGET,
+                },
+            ),
+            lead_final(_SWEEP_PROSE, "await_user"),
         ]
     if has_any(lowered, _SAVE_GENE_SET_MARKERS):
         return [

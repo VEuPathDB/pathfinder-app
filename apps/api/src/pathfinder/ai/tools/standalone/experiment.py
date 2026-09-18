@@ -14,7 +14,13 @@ from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp import ToolErrorPayload, tool_error
-from veupathdb_mcp.controls import IntersectionConfig, run_positive_negative_controls
+from veupathdb_mcp.controls import (
+    ControlSetData,
+    ControlTargetData,
+    ControlTestResult,
+    IntersectionConfig,
+    run_positive_negative_controls,
+)
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -27,8 +33,10 @@ from pathfinder.ai.stream_part_payloads import (
 from pathfinder.platform.durable_worker import durable_agent_tool
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
+from pathfinder.services.experiment.metrics import metrics_from_control_result
 from pathfinder.services.experiment.published_names import published_names
 from pathfinder.services.export.control_downloads import attach_control_downloads
+from pathfinder.services.workbench.optimization import tunable_parameters_of_search
 
 logger = get_logger(__name__)
 
@@ -68,6 +76,33 @@ class _ControlCounts(CamelModel):
     negative_controls_count: int | None = None
     negative_false_positive_rate: float | None = None
     negative_intersection_ids: list[str] = Field(default_factory=list)
+    tunable_parameters: list[str] = Field(default_factory=list)
+
+    def _set(
+        self, controls_count: int | None, hits: int | None
+    ) -> ControlSetData | None:
+        if controls_count is None:
+            return None
+        return ControlSetData(
+            controls_count=controls_count,
+            intersection_count=hits or 0,
+        )
+
+    def measured(self) -> ControlTestResult:
+        """The typed result the metrics engine scores."""
+        return ControlTestResult(
+            target=ControlTargetData(
+                search_name=self.search_name,
+                step_id=self.step_id,
+                estimated_size=self.estimated_size,
+            ),
+            positive=self._set(
+                self.positive_controls_count, self.positive_intersection
+            ),
+            negative=self._set(
+                self.negative_controls_count, self.negative_intersection
+            ),
+        )
 
     def positive_set(self) -> ControlSetSummary | None:
         """The positive set, or None when the test ran no positives."""
@@ -123,10 +158,26 @@ class _ControlCounts(CamelModel):
 
 
 def controls_summary(counts: _ControlCounts) -> str:
-    """How many known positives the tested result set returned."""
+    """What the test recovered, how well it scored, and what a sweep could vary.
+
+    Precision and MCC need a negative set. A test that ran none reports
+    recall alone.
+    """
+    metrics = metrics_from_control_result(counts.measured())
+    knobs = (
+        f"tunable parameters: {', '.join(counts.tunable_parameters)}"
+        if counts.tunable_parameters
+        else "no tunable parameters"
+    )
+    scored = (
+        f"precision {metrics.precision:.2f}, MCC {metrics.mcc:.2f}"
+        if counts.negative_controls_count is not None
+        else "no negative controls tested"
+    )
     return (
         f"{counts.positive_intersection or 0} of "
-        f"{counts.positive_controls_count or 0} positive controls recovered"
+        f"{counts.positive_controls_count or 0} positive controls recovered; "
+        f"recall {metrics.sensitivity:.2f}, {scored}; {knobs}"
     )
 
 
@@ -246,6 +297,9 @@ async def run_control_tests_on_search(
         | {
             "target_label": published.label,
             "parameter_labels": published.parameter_labels,
+            "tunable_parameters": await tunable_parameters_of_search(
+                ctx.deps.site_id, record_type, target_search_name
+            ),
         }
     )
     tool_call_id = ctx.tool_call_id or ""

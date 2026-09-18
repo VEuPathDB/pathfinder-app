@@ -41,11 +41,10 @@ describe("selectStatusLabel", () => {
         running(
           "Queued",
           "Starting the turn",
-          "Recalling earlier work",
-          "Reading the thread",
+          "Recalling earlier work and reading the thread",
         ),
       ),
-    ).toBe("Reading the thread");
+    ).toBe("Recalling earlier work and reading the thread");
   });
 
   it("falls back to Thinking... when the turn reported no status", () => {

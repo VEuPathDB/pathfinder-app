@@ -5,8 +5,8 @@ from __future__ import annotations
 from assistant_core.graph.stream_events import turn_status_event
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
-RECALLING_EARLIER_WORK = "Recalling earlier work"
 READING_THE_THREAD = "Reading the thread"
+RECALLING_AND_READING = "Recalling earlier work and reading the thread"
 
 
 def turn_step_status(label: str) -> DataChunk:

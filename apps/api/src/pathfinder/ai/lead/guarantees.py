@@ -14,6 +14,7 @@ from enum import StrEnum
 from pydantic_ai.tools import Tool
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
+from pydantic_ai.toolsets.wrapper import WrapperToolset
 
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
@@ -52,6 +53,7 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "read_gene_record": Reversibility.READ,
     "list_workbench_gene_sets": Reversibility.READ,
     "open_eda_analysis": Reversibility.UNREVISIONED_WRITE,
+    "optimize_search_parameters": Reversibility.DURABLE,
     "preview_eda_subset": Reversibility.READ,
     "read_ledger_section": Reversibility.READ,
     "recover_failed_steps": Reversibility.REVISIONED_WRITE,
@@ -69,7 +71,10 @@ def registered_tools(
 ) -> dict[str, Tool[LeadDeps]]:
     """Every tool the Lead can call, by name, carrying its registry markers."""
     found: dict[str, Tool[LeadDeps]] = {}
-    for toolset in toolsets:
+    for mounted in toolsets:
+        toolset: AbstractToolset[LeadDeps] = mounted
+        while isinstance(toolset, WrapperToolset):
+            toolset = toolset.wrapped
         if isinstance(toolset, FunctionToolset):
             found.update(toolset.tools)
     return found

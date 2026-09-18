@@ -52,14 +52,12 @@ one sentence per filter. Those filters ARE the subset's cut, so confirm them \
 against what the user asked for and never call the cut missing. Each \
 requested value comes back as a ``constraint_report`` entry.
 
-### Controls + optimization
+### Controls
 - ``run_control_tests_on_step(wdk_step_id, positive_controls?, \
 negative_controls?)`` - Test controls against a built strategy step.
 - ``run_control_tests_on_search(record_type, target_search_name, \
 target_parameters, positive_controls?, negative_controls?)`` - Test controls \
 against a standalone search.
-- ``optimize_search_parameters(target, controls, settings?)`` - Long-running \
-parameter optimization. Always confirm with the user first.
 
 ### Workbench / enrichment
 - ``run_gene_set_enrichment(gene_set_id, enrichment_types?)`` - GO / pathway \

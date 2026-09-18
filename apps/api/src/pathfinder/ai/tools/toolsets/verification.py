@@ -20,7 +20,6 @@ from pathfinder.ai.tools.standalone.gene import (
     resolve_gene_ids_to_records,
 )
 from pathfinder.ai.tools.standalone.memory_tools import remember, search_memory
-from pathfinder.ai.tools.standalone.optimization import optimize_search_parameters
 from pathfinder.ai.tools.standalone.results import (
     get_download_url,
     get_sample_records,
@@ -95,10 +94,6 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
     per turn, so a batch that fires two of them would leave the second
     unanswered.
 
-    ``optimize_search_parameters`` carries ``requires_approval=True``: the SDK
-    emits a ``ToolApprovalRequestChunk`` so the user confirms before a
-    ~15-minute parameter sweep launches on the worker.
-
     ``run_gene_set_enrichment`` is offered only when the turn's delta warrants
     it, so an edit of one step is verified by its counts.
     """
@@ -109,12 +104,6 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             get_sample_records,
             get_download_url,
             Tool(run_control_tests_on_step, sequential=True, max_retries=3),
-            Tool(
-                optimize_search_parameters,
-                sequential=True,
-                requires_approval=True,
-                max_retries=3,
-            ),
             run_control_tests_on_search,
             lookup_gene_records,
             get_ai_expression_summary,

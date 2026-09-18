@@ -114,7 +114,6 @@ VERIFICATION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "get_strategy",
     "list_workbench_gene_sets",
     "lookup_gene_records",
-    "optimize_search_parameters",
     "remember",
     "request_search_inspection",
     "resolve_gene_ids_to_records",

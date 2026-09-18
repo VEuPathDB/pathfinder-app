@@ -69,6 +69,11 @@ def _measured_service(monkeypatch: pytest.MonkeyPatch) -> None:
             parameter_labels={"organism": "Organism"},
         )
 
+    async def knobs(site_id: str, record_type: str, search_name: str) -> list[str]:
+        del site_id, record_type, search_name
+        return ["organism"]
+
+    monkeypatch.setattr(experiment, "tunable_parameters_of_search", knobs)
     monkeypatch.setattr(experiment, "run_positive_negative_controls", run)
     monkeypatch.setattr(experiment, "attach_control_downloads", no_export)
     monkeypatch.setattr(experiment, "published_names", published)
@@ -103,7 +108,9 @@ async def test_the_summary_names_the_positives_the_search_recovered() -> None:
     )
 
     assert summary_of(returned).data["summary"] == (
-        "2 of 3 positive controls recovered"
+        "2 of 3 positive controls recovered; "
+        "recall 0.67, precision 1.00, MCC 0.58; "
+        "tunable parameters: organism"
     )
 
 

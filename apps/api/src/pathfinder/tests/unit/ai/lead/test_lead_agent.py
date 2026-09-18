@@ -21,6 +21,7 @@ from pathfinder.ai.graph import lead_node
 from pathfinder.ai.graph.lead_node import make_lead_node
 from pathfinder.ai.lead import lead_agent
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
+from pathfinder.ai.lead.guarantees import registered_tools
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.lead_agent import LEAD_MODEL, build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -35,6 +36,8 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     user_intent,
 )
 
+# Every tool the Lead registers, across its own list and the toolsets it
+# mounts: the EDA seven and the sweep's own enum-constrained toolset.
 LEAD_TOOL_NAMES = frozenset(
     {
         "build_control_set",
@@ -52,6 +55,7 @@ LEAD_TOOL_NAMES = frozenset(
         "get_live_strategy_state",
         "list_control_sets",
         "list_workbench_gene_sets",
+        "optimize_search_parameters",
         "read_gene_ids_from_gene_set",
         "read_gene_ids_from_strategy",
         "read_gene_record",
@@ -60,6 +64,13 @@ LEAD_TOOL_NAMES = frozenset(
         "remember",
         "run_gene_set_enrichment",
         "verify_strategy",
+        "search_eda_studies",
+        "describe_eda_study",
+        "open_eda_analysis",
+        "set_eda_filters",
+        "preview_eda_subset",
+        "run_eda_compute",
+        "create_eda_step",
     }
 )
 
@@ -92,14 +103,19 @@ def test_each_build_returns_its_own_agent() -> None:
 
 
 def test_the_built_agent_carries_every_lead_tool() -> None:
-    assert set(build_lead_agent()._function_toolset.tools) == LEAD_TOOL_NAMES
+    assert set(registered_tools(build_lead_agent().toolsets)) == LEAD_TOOL_NAMES
 
 
 def test_the_tools_that_ask_for_approval() -> None:
-    """The three tools the user answers: a design fork and two deletions."""
-    tools = build_lead_agent()._function_toolset.tools
+    """The four the user answers: a design fork, two deletions and a long sweep."""
+    tools = registered_tools(build_lead_agent().toolsets)
     deferred = sorted(name for name, tool in tools.items() if tool.requires_approval)
-    assert deferred == ["clear_strategy", "consult_user", "delete_step"]
+    assert deferred == [
+        "clear_strategy",
+        "consult_user",
+        "delete_step",
+        "optimize_search_parameters",
+    ]
 
 
 def test_the_built_agent_keeps_its_model_and_identity() -> None:

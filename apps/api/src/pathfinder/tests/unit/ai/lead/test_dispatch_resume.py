@@ -30,7 +30,7 @@ from pathfinder.ai.lead.sub_agent_dispatch import run_recovery
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentRunUsage
 from pathfinder.ai.lead.verify_dispatch import run_verification
-from pathfinder.ai.tools.toolsets import execution, verification
+from pathfinder.ai.tools.toolsets import execution
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
@@ -41,21 +41,9 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     pipeline_state,
 )
 
-_OPTIMIZE_ARGS: dict[str, Any] = {
-    "target": {
-        "site_id": "plasmodb",
-        "record_type": "transcript",
-        "search_name": "GenesByRNASeqEvidence",
-        "parameter_space": [
-            {"name": "min_fold_change", "kind": "numeric", "low": 1.5, "high": 4.0},
-        ],
-    },
-    "controls": {
-        "positive_controls": ["PF3D7_1133400"],
-        "negative_controls": ["PF3D7_0930300"],
-    },
-    "settings": {"budget": 8, "objective": "f1"},
-}
+_RETIRE_TOOL = "retire_control_set"
+_RETIRE_CALL = f"call_{_RETIRE_TOOL}"
+_RETIRE_ARGS: dict[str, Any] = {"control_set_id": "cs_kinases"}
 _DELETE_ARGS: dict[str, Any] = {"step_id": "s2"}
 _VERIFICATION_FINAL: dict[str, Any] = {
     "digest": {
@@ -97,6 +85,18 @@ def scripted_delete(monkeypatch: pytest.MonkeyPatch) -> None:
         sub_agent_tools,
         "get_mock_model",
         lambda: call_then_final_model("delete_step", _DELETE_ARGS, _RECOVERY_FINAL),
+    )
+
+
+def _retire_control_set_toolset() -> FunctionToolset[AgentDeps]:
+    async def retire_control_set(
+        ctx: RunContext[AgentDeps], control_set_id: str
+    ) -> str:
+        del ctx
+        return f"retired {control_set_id}"
+
+    return FunctionToolset[AgentDeps](
+        tools=[Tool(retire_control_set, requires_approval=True)],
     )
 
 
@@ -154,47 +154,45 @@ async def test_verification_approval_reaches_the_client(
     monkeypatch.setattr(
         sub_agent_tools,
         "get_mock_model",
-        lambda: call_then_final_model(
-            "optimize_search_parameters", _OPTIMIZE_ARGS, _VERIFICATION_FINAL
-        ),
+        lambda: call_then_final_model(_RETIRE_TOOL, _RETIRE_ARGS, _VERIFICATION_FINAL),
     )
     deps = _deps()
 
     with pinned_sub_agent(
         monkeypatch,
         "verification",
-        toolsets=[verification.build_toolset()],
+        toolsets=[_retire_control_set_toolset()],
         instructions=_TEST_INSTRUCTIONS,
     ):
         result = await run_verification(
             deps=deps,
             parent_tool_call_id="lead_call_verify",
-            reason="optimize the RNA-Seq fold change against the controls",
+            reason="retire the control set this strategy no longer uses",
         )
 
     assert isinstance(result, SubAgentApprovalWait)
     assert result.pending.role == "verification"
     call = result.pending.approvals[0]
-    assert call.tool_name == "optimize_search_parameters"
-    assert call.tool_call_id == "call_optimize_search_parameters"
-    assert call.args["settings"] == {"budget": 8, "objective": "f1"}
+    assert call.tool_name == _RETIRE_TOOL
+    assert call.tool_call_id == _RETIRE_CALL
+    assert call.args == _RETIRE_ARGS
 
     started = collector.chunks_of("tool-input-start")
-    assert [c["toolCallId"] for c in started] == ["call_optimize_search_parameters"]
-    assert started[0]["toolName"] == "optimize_search_parameters"
+    assert [c["toolCallId"] for c in started] == [_RETIRE_CALL]
+    assert started[0]["toolName"] == _RETIRE_TOOL
     available = collector.chunks_of("tool-input-available")
-    assert available[0]["input"]["target"]["search_name"] == "GenesByRNASeqEvidence"
+    assert available[0]["input"]["control_set_id"] == "cs_kinases"
     assert collector.chunks_of("tool-approval-request") == [
         {
             "type": "tool-approval-request",
-            "approvalId": "call_optimize_search_parameters",
-            "toolCallId": "call_optimize_search_parameters",
+            "approvalId": _RETIRE_CALL,
+            "toolCallId": _RETIRE_CALL,
         },
     ]
 
     replay = ModelMessagesTypeAdapter.validate_json(result.pending.messages_json)
     assert any(
-        part.tool_name == "optimize_search_parameters"
+        part.tool_name == _RETIRE_TOOL
         for msg in replay
         if isinstance(msg, ModelResponse)
         for part in msg.parts

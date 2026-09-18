@@ -5,13 +5,26 @@ from typing import Literal, Self
 
 from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat
 from pydantic import ConfigDict, Field, model_validator
-from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.parameters import ParamKind, ParamValue
 from veupathdb_mcp.controls import ControlValueFormat
 
 from pathfinder.services.experiment.types import (
     OptimizationObjective,
     ParameterType,
 )
+
+# A control test under either floor is the signal that the step's parameters
+# are worth sweeping.
+SWEEP_RECALL_FLOOR = 0.7
+SWEEP_MCC_FLOOR = 0.3
+
+# How many trials a sweep runs when the caller names no budget.
+SWEEP_BUDGET = 30
+
+# A sweep compares settings, so it needs at least two trials; each trial is one
+# WDK strategy, so the ceiling bounds what one call can spend.
+SWEEP_BUDGET_MIN = 2
+SWEEP_BUDGET_MAX = 200
 
 
 class ParameterSpec(CamelModel):
@@ -26,6 +39,9 @@ class ParameterSpec(CamelModel):
     log_scale: bool = False
     step: float | None = None
     choices: list[str] | None = None
+    wdk_kind: ParamKind = "string"
+    """The WDK kind of the parameter, which decides the wire shape of a
+    swept value."""
 
     @model_validator(mode="after")
     def _validate_constraints(self) -> Self:

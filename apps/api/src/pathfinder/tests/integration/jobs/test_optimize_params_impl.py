@@ -15,12 +15,19 @@ from assistant_core.persistence.models import (
 from assistant_core.platform.db import async_session_factory
 from assistant_core.tasks.progress import TaskProgressEmitter
 from sqlalchemy import select
+from veupathdb.domain.parameters import VocabOption
+from veupathdb.wdk import WDKSearchConfig, WDKStep
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.jobs.impls import optimize_params_impl
 from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.services.parameter_optimization import tunable
 from pathfinder.services.parameter_optimization.config import SweepVariantSpec
 from pathfinder.tests._support.job_context import job_context
+
+STEP_ID = 440299573
+SEARCH = "GenesByExpression"
 
 
 @dataclass(frozen=True)
@@ -99,9 +106,35 @@ async def progress_sink(
 
 
 async def _fake_attach_export(result_json: dict[str, Any], search_name: str) -> None:
-    """Stand-in for attach_export, which needs a request user_id context."""
+    """Stand-in for the export, which needs a request user_id context."""
     del search_name
     result_json["downloads"] = {"jsonUrl": "https://ex/sweep.json"}
+
+
+class _Api:
+    """A strategy API that answers one built step."""
+
+    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
+        del user_id
+        return WDKStep(
+            id=step_id,
+            search_name=SEARCH,
+            record_class_name="transcript",
+            search_config=WDKSearchConfig(),
+        )
+
+
+def _knob(choices: list[str]) -> ParameterInfo:
+    return ParameterInfo(
+        name="knob",
+        display_name="knob",
+        type="single-pick-vocabulary",
+        required=True,
+        is_visible=True,
+        help="",
+        value_format="",
+        allowed_values=[VocabOption(value=c, display=c) for c in choices],
+    )
 
 
 @pytest.fixture
@@ -112,11 +145,12 @@ def run_impl(
     """Returns an awaitable that runs optimize_search_parameters_impl with
     a parameter_space sized to produce ``variants_count`` Cartesian variants.
     """
-    monkeypatch.setattr(optimize_params_impl, "attach_export", _fake_attach_export)
+    monkeypatch.setattr(
+        optimize_params_impl, "attach_sweep_download", _fake_attach_export
+    )
+    monkeypatch.setattr(optimize_params_impl, "get_strategy_api", lambda _s: _Api())
 
-    async def _run(
-        *, variants_count: int, max_parallel: int | None = None
-    ) -> dict[str, Any]:
+    async def _run(*, variants_count: int) -> dict[str, Any]:
         user_id = uuid4()
         conversation_id = uuid4()
         task_id = uuid4()
@@ -127,48 +161,25 @@ def run_impl(
             conversation_id=conversation_id,
             session_factory=async_session_factory,
         )
-        # A categorical with N choices yields N variants in the Cartesian grid.
-        choices = [f"c{i}" for i in range(variants_count)]
-        target = {
-            "site_id": "plasmodb",
-            "record_type": "transcript",
-            "search_name": "GenesByExpression",
-            "fixed_parameters": {},
-            "parameter_space": [
-                {
-                    "name": "knob",
-                    "type": "categorical",
-                    "choices": choices,
-                }
-            ],
-        }
-        controls = {
-            "positive_controls": ["a"],
-            "negative_controls": [],
-            "controls_search_name": "GeneByLocusTag",
-            "controls_param_name": "ds_gene_ids",
-            "controls_value_format": "newline",
-            "controls_extra_parameters": {},
-            "id_field": "primary_key",
-        }
-        settings: dict[str, Any] = {
-            "budget": variants_count,
-            "objective": "f1",
-            "beta": 1.0,
-            "method": "grid",
-            "estimated_size_penalty": 0.0,
-        }
-        if max_parallel is not None:
-            settings["max_parallel"] = max_parallel
+        # A vocabulary with N terms yields N variants in the Cartesian grid.
+        knob = _knob([f"c{i}" for i in range(variants_count)])
+
+        async def read(
+            site_id: str, record_type: str, search_name: str
+        ) -> list[ParameterInfo]:
+            del site_id, record_type, search_name
+            return [knob]
+
+        monkeypatch.setattr(tunable, "search_parameter_metadata", read)
 
         result = await optimize_params_impl.optimize_search_parameters_impl(
             context=job_context(),
             task_id=task_id,
             progress=progress,
             memory_store=None,
-            target=target,
-            controls=controls,
-            settings=settings,
+            wdk_step_id=STEP_ID,
+            positive_controls=["PF3D7_1133400"],
+            budget=variants_count,
         )
         await progress.aclose()
         progress_sink.rows.extend(await _read_progress_rows(task_id))
@@ -302,5 +313,5 @@ async def test_concurrency_cap_respected(
         "pathfinder.jobs.impls.optimize_params_impl.run_single_trial",
         tracker,
     )
-    await run_impl(variants_count=10, max_parallel=3)
-    assert max_active <= 3
+    await run_impl(variants_count=10)
+    assert max_active <= optimize_params_impl.MAX_PARALLEL

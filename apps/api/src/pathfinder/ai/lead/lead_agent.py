@@ -11,7 +11,7 @@ from typing import Any
 from assistant_core.conversation.history import HISTORY_PROCESSORS
 from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
 from pydantic_ai.capabilities import PrepareTools, ProcessHistory, Thinking
-from pydantic_ai.toolsets import AbstractToolset
+from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
 
 from pathfinder.ai.agents._instructions import (
     pinned_run_budget,
@@ -62,15 +62,50 @@ from pathfinder.ai.tools.standalone.control_sets import (
     read_gene_ids_from_gene_set,
     read_gene_ids_from_strategy,
 )
+from pathfinder.ai.tools.standalone.optimization import optimize_search_parameters
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
 from pathfinder.ai.tools.toolsets import eda
+from pathfinder.ai.tools.toolsets._dynamic import (
+    DynamicEnumToolset,
+    EnumOverrides,
+    live_wdk_step_ids,
+)
 from pathfinder.platform.refusals import agent_capabilities
 
 
 def turn_tool_sources(ctx: RunContext[LeadDeps]) -> AbstractToolset[Any] | None:
     """The servers this turn resolved, as the tools of this run, recording what they return."""
     return recording_retrievals(one_toolset(ctx.deps.runtime.tool_sources), ctx.deps)
+
+
+SWEEP_TOOL = "optimize_search_parameters"
+
+
+def _sweep_enum_overrides(ctx: RunContext[LeadDeps]) -> EnumOverrides:
+    """Constrain the sweep's ``wdk_step_id`` to the steps that exist in WDK.
+
+    A stale id is otherwise approved by the user and refused by the worker.
+    """
+    wdk_ids = live_wdk_step_ids(ctx.deps.runtime.strategy_session)
+    if not wdk_ids:
+        return {}
+    return {(SWEEP_TOOL, "wdk_step_id"): list(wdk_ids)}
+
+
+def build_sweep_toolset() -> AbstractToolset[LeadDeps]:
+    """The sweep, over an enum of the strategy's live step ids."""
+    base: FunctionToolset[LeadDeps] = FunctionToolset(
+        tools=[
+            Tool(
+                optimize_search_parameters,
+                sequential=True,
+                requires_approval=True,
+                max_retries=3,
+            ),
+        ],
+    )
+    return DynamicEnumToolset(wrapped=base, build_overrides=_sweep_enum_overrides)
 
 
 LeadAgent = Agent[LeadDeps, LeadResponse | DeferredToolRequests]
@@ -115,7 +150,7 @@ def build_lead_agent() -> LeadAgent:
             Tool(delete_step, requires_approval=True),
             Tool(consult_user, requires_approval=True),
         ],
-        toolsets=[eda.build_toolset(), turn_tool_sources],
+        toolsets=[eda.build_toolset(), build_sweep_toolset(), turn_tool_sources],
         capabilities=agent_capabilities(
             [
                 Thinking(effort="medium"),

@@ -1,16 +1,8 @@
-"""Standalone optimization tools for pydantic-ai agents.
-
-Provides:
-
-- ``optimize_search_parameters`` - optimise search parameters against control
-  gene lists. Durable: the real work runs on the verification worker via
-  ``@durable_agent_tool``; the call is deferred while trials run and per-trial
-  progress streams back through ``task_progress``.
-"""
+"""The parameter sweep: a durable, approval-gated search of a built step's settings."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from assistant_core.graph.tool_summary import summary_chunks
@@ -21,15 +13,13 @@ from pydantic import ConfigDict, Field, field_validator
 from pydantic_ai import RunContext
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 
-from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone.optimization_models import (
-    OptimizationControls,
-    OptimizationSettings,
-    OptimizationTarget,
-)
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.platform.durable_worker import durable_agent_tool
-
-_DEFAULT_SETTINGS = OptimizationSettings()
+from pathfinder.services.parameter_optimization.config import (
+    SWEEP_BUDGET,
+    SWEEP_BUDGET_MAX,
+    SWEEP_BUDGET_MIN,
+)
 
 
 class _SweepBest(CamelModel):
@@ -86,27 +76,43 @@ PARAMETER_SWEEP = declare_durable_tool(
 
 @durable_agent_tool(PARAMETER_SWEEP)
 async def optimize_search_parameters(
-    ctx: RunContext[AgentDeps],
-    target: OptimizationTarget,
-    controls: OptimizationControls,
-    settings: OptimizationSettings = _DEFAULT_SETTINGS,
+    ctx: RunContext[LeadDeps],
+    wdk_step_id: int,
+    positive_controls: list[str] | None = None,
+    negative_controls: list[str] | None = None,
+    parameters: list[str] | None = None,
+    budget: Annotated[
+        int, Field(ge=SWEEP_BUDGET_MIN, le=SWEEP_BUDGET_MAX)
+    ] = SWEEP_BUDGET,
 ) -> dict[str, Any]:
-    """Optimise search parameters against positive/negative control gene lists.
+    """Try other settings for one built step and score each against the controls.
 
-    Durable. Runs up to ``settings.budget`` trials on the verification
-    worker; each trial calls WDK. The turn ends while the optimiser runs, and
-    you are called again with the result dict (matching
-    :class:`OptimizationResult`'s ``model_dump(by_alias=True)`` shape).
+    This is what a weak control test earns: the step's search is run again
+    under each point of a grid, and every trial is scored by how many known
+    positives it returns and how many known negatives it lets through. The
+    grid comes from the catalog's own metadata for that search, so you never
+    state parameter values here; the step's current values are what every
+    trial holds fixed.
 
-    This is a long-running operation. Always confirm the plan with the user
-    before calling; the verification toolset carries ``requires_approval=True``
-    so the SDK emits a ``ToolApprovalRequestChunk`` first.
+    A search with nothing tunable is refused by name. Propose the sweep in
+    prose first - the parameters, the budget, about fifteen minutes - and
+    call this only once the user says yes.
+
+    Durable: the trials run on the worker, the turn ends while they run, and
+    you are called again with the result (``variants``, ``best``,
+    ``objective``, ``downloads``). Report the winning setting and its score.
 
     Args:
-        target: Target search to optimise.
-        controls: Control sets for scoring.
-        settings: Optimisation hyperparameters.
+        wdk_step_id: The built step to tune, by its WDK step id. Read it from
+            ``get_live_strategy_state``.
+        positive_controls: Known-positive gene ids the step should return.
+        negative_controls: Known-negative gene ids it should not return.
+        parameters: The parameters to vary, by name. Leave it out to vary
+            every tunable parameter of that step's search. The control-test
+            summary names them.
+        budget: The most trials to run. Each trial is one WDK call, so a
+            larger budget costs proportionally more time.
     """
-    del ctx, target, controls, settings
+    del ctx, wdk_step_id, positive_controls, negative_controls, parameters, budget
     msg = "optimize_search_parameters runs on the worker via @durable_agent_tool"
     raise NotImplementedError(msg)
