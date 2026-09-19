@@ -31,8 +31,16 @@ directories over with `rsync -e 'ssh -p 2112'` does the same job.
 
 ### Registry access
 
-The four images are public packages under `ghcr.io/veupathdb`, published by CI from a
-public repository, so the host pulls them without a login.
+The four images are published by CI to `ghcr.io/veupathdb`. A container package created
+by a workflow is private by default even when the repository is public, and an anonymous
+pull is refused with `unauthorized` until one of two things is done once:
+
+- Set each package to public in the organization's package settings (Packages ->
+  the package -> Package settings -> Change visibility). The host then pulls with no
+  login, and a reboot changes nothing. The images carry no secret. This is the way.
+- Or log the host in: `podman login ghcr.io -u <github-username>` with a personal access
+  token carrying `read:packages`. That login lives under `$XDG_RUNTIME_DIR`, which a reboot
+  clears, so the first pull after a reboot fails until it is repeated.
 
 Write the environment file. `deploy/cedar/env.example` names every variable the
 units read and nothing else; fill the values in on the host, and keep the file
