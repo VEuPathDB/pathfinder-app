@@ -15,6 +15,9 @@ UNIT_DIR="$CONFIG_HOME/containers/systemd"
 APP_DIR="$CONFIG_HOME/pathfinder"
 readonly TAG_PLACEHOLDER REPO_ROOT CONFIG_HOME UNIT_DIR APP_DIR
 
+# The persistent registry login the units read; a reboot keeps it.
+export REGISTRY_AUTH_FILE="${REGISTRY_AUTH_FILE:-$APP_DIR/ghcr-auth.json}"
+
 # The start order of the stack. The metasearch and the two tool servers are
 # required by no other unit, so the installer starts every one of them.
 SERVICES=(

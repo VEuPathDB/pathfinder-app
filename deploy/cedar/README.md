@@ -31,16 +31,22 @@ directories over with `rsync -e 'ssh -p 2112'` does the same job.
 
 ### Registry access
 
-The four images are published by CI to `ghcr.io/veupathdb`. A container package created
-by a workflow is private by default even when the repository is public, and an anonymous
-pull is refused with `unauthorized` until one of two things is done once:
+The four images are published by CI to `ghcr.io/veupathdb` as private packages: a container
+package a workflow creates is private by default, and the organization's policy does not
+allow a package to be made public. The host therefore logs in once, into a file that outlives
+a reboot (the default login lives under `$XDG_RUNTIME_DIR`, which a reboot clears):
 
-- Set each package to public in the organization's package settings (Packages ->
-  the package -> Package settings -> Change visibility). The host then pulls with no
-  login, and a reboot changes nothing. The images carry no secret. This is the way.
-- Or log the host in: `podman login ghcr.io -u <github-username>` with a personal access
-  token carrying `read:packages`. That login lives under `$XDG_RUNTIME_DIR`, which a reboot
-  clears, so the first pull after a reboot fails until it is repeated.
+```bash
+mkdir -p ~/.config/environment.d ~/.config/pathfinder
+printf 'REGISTRY_AUTH_FILE=%s/.config/pathfinder/ghcr-auth.json\n' "$HOME" > ~/.config/environment.d/pathfinder.conf
+systemctl --user set-environment "REGISTRY_AUTH_FILE=$HOME/.config/pathfinder/ghcr-auth.json"
+podman login --authfile ~/.config/pathfinder/ghcr-auth.json ghcr.io -u <github-username>
+```
+
+The password is a personal access token carrying only `read:packages`. `environment.d` hands
+the variable to the systemd user manager at every login, so every unit's pull reads that
+file; `set-environment` applies it to the session that is already running. `install.sh`
+exports the same variable for its own pulls.
 
 Write the environment file. `deploy/cedar/env.example` names every variable the
 units read and nothing else; fill the values in on the host, and keep the file
