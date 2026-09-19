@@ -5,10 +5,10 @@ Requires=pathfinder-db.service
 
 [Container]
 ContainerName=pathfinder-wdk-mcp
-Image=localhost/veupathdb-mcp:latest
+Image=ghcr.io/veupathdb/pathfinder-wdk-mcp:__PATHFINDER_TAG__
 Network=pathfinder.network
-# Change the host port (left side) to use a different port
-PublishPort=8100:8100
+# The api and the worker reach this server by container name, so it publishes
+# no host port.
 PodmanArgs=--memory=2g
 
 Volume=pathfinder-catalogs.volume:/app/data/catalogs

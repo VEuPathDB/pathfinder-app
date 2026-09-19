@@ -74,6 +74,17 @@ jobs:
       - name: Check the checker
         run: node --test scripts/check-punctuation.test.mjs
 
+  check-quadlets:
+    name: Check deployment units
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Zero dependencies by design, so the runner's node is enough.
+      - name: Check the quadlet units
+        run: node scripts/check-quadlets.mjs
+      - name: Check the checker
+        run: node --test scripts/check-quadlets.test.mjs
+
   check-wdk-rules:
     name: Check WDK rules
     runs-on: ubuntu-latest
@@ -375,6 +386,7 @@ jobs:
     needs:
       - changes
       - check-knowledge
+      - check-quadlets
       - check-wdk-rules
       - lint-api
       - build-docs

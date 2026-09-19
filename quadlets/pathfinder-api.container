@@ -5,10 +5,11 @@ Requires=pathfinder-db.service
 
 [Container]
 ContainerName=pathfinder-api
-Image=localhost/pathfinder-api:latest
+Image=ghcr.io/veupathdb/pathfinder-api:__PATHFINDER_TAG__
 Network=pathfinder.network
-# Change the host port (left side) to use a different port
-PublishPort=8000:8000
+# The reverse proxy and the SSH tunnel both reach this port on the loopback
+# interface.
+PublishPort=127.0.0.1:8010:8000
 
 # API keys and app settings loaded from .env
 EnvironmentFile=%h/.config/pathfinder/.env
@@ -19,8 +20,13 @@ Environment=CATALOG_CACHE_DIR=/app/data/catalogs
 
 # Infrastructure URLs, which must use container network hostnames, override .env
 Environment=DATABASE_URL=postgresql+asyncpg://postgres:postgres@pathfinder-db:5432/pathfinder
-# The research server this deployment admits, on the container network.
+# The two tool servers this deployment admits, on the container network. A
+# compose service name does not resolve here.
+Environment=PATHFINDER_WDK_MCP_URL=http://pathfinder-wdk-mcp:8100/mcp
 Environment=PATHFINDER_RESEARCH_MCP_URL=http://pathfinder-research-mcp:8110/mcp
+# The port is bound to the host's loopback, so only the proxy or a tunnel can
+# reach it: every forwarder is trusted.
+Environment=FORWARDED_ALLOW_IPS=*
 
 # Every process that writes or matches a helper strategy reads the same prefix.
 # A process on the library default recognises none of the strategies already in

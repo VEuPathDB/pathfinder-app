@@ -3,10 +3,10 @@ Description=Pathfinder veupathdb-research-mcp server
 
 [Container]
 ContainerName=pathfinder-research-mcp
-Image=localhost/veupathdb-mcp-research:latest
+Image=ghcr.io/veupathdb/pathfinder-research-mcp:__PATHFINDER_TAG__
 Network=pathfinder.network
-# Change the host port (left side) to use a different port
-PublishPort=8110:8110
+# The api and the worker reach this server by container name, so it publishes
+# no host port.
 PodmanArgs=--memory=512m
 
 # API keys and app settings loaded from .env

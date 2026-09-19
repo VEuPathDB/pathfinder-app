@@ -5,7 +5,7 @@ Requires=pathfinder-db.service
 
 [Container]
 ContainerName=pathfinder-worker
-Image=localhost/pathfinder-api:latest
+Image=ghcr.io/veupathdb/pathfinder-api:__PATHFINDER_TAG__
 Exec=.venv/bin/python -m pathfinder.jobs.worker
 Network=pathfinder.network
 PodmanArgs=--memory=2g
@@ -19,7 +19,9 @@ EnvironmentFile=%h/.config/pathfinder/.env
 
 # Infrastructure URLs, which must use container network hostnames, override .env
 Environment=DATABASE_URL=postgresql+asyncpg://postgres:postgres@pathfinder-db:5432/pathfinder
-# The research server this deployment admits, on the container network.
+# The two tool servers this deployment admits, on the container network. A
+# compose service name does not resolve here.
+Environment=PATHFINDER_WDK_MCP_URL=http://pathfinder-wdk-mcp:8100/mcp
 Environment=PATHFINDER_RESEARCH_MCP_URL=http://pathfinder-research-mcp:8110/mcp
 
 # Every process that writes or matches a helper strategy reads the same prefix.

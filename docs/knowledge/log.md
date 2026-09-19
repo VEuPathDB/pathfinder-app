@@ -2,6 +2,27 @@
 
 ## 2026-09-18
 
+* **PathFinder is deployed to cedar from the registry, and the host only pulls.**
+  `.github/workflows/publish-images.yml` runs on a `v*` tag of this repository and
+  publishes four images to `ghcr.io/veupathdb` on `linux/amd64`, each carrying the
+  release tag and `sha-<short sha>` and never `latest`: `pathfinder-api` (the worker
+  runs it with a command of its own), `pathfinder-web` at its `runner` target with
+  `NEXT_PUBLIC_API_URL=http://pathfinder-api:8000` baked in, and `pathfinder-wdk-mcp`
+  and `pathfinder-research-mcp` from the MCP repository at the release
+  `docker-compose.yml` names, which the workflow reads back out of that file and
+  refuses to publish when the two disagree. The quadlet units now name those images at
+  one tag placeholder instead of images built on the box: the web publishes
+  `127.0.0.1:3010:3000` and the api `127.0.0.1:8010:8000`, because 3000 and 8000 on
+  cedar belong to another user and a tester reaches the deployment through an SSH
+  tunnel or an EBRC vhost; the two MCP servers, the metasearch and the database publish
+  nothing and are reached by container name. The api and the worker name both tool
+  servers on the podman network, where a compose service name does not resolve, the api
+  trusts every forwarder's headers because its port is bound to the host's loopback, and the web unit's runtime
+  `NEXT_PUBLIC_API_URL` is gone: it is read at build time only. `deploy/cedar/` holds
+  the installer, the runbook and an `env.example` of names and meanings with no value in
+  it. `node scripts/check-quadlets.mjs` and its suite hold all of it, because podman's
+  own generator runs on Linux only.
+
 * **The parameter sweep reaches the Lead, with inputs a model has and a reason to call it.**
   `optimize_search_parameters` took an author-it-yourself `parameter_space` of
   `ParameterSpec` dicts and pasted control gene lists, and it lived only in VERIFY's

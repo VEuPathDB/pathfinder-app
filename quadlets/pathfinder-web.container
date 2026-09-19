@@ -5,11 +5,13 @@ Requires=pathfinder-api.service
 
 [Container]
 ContainerName=pathfinder-web
-Image=localhost/pathfinder-web:latest
+Image=ghcr.io/veupathdb/pathfinder-web:__PATHFINDER_TAG__
 Network=pathfinder.network
-# Change the host port (left side) to use a different port
-PublishPort=3000:3000
-Environment=NEXT_PUBLIC_API_URL=http://pathfinder-api:8000
+# The reverse proxy and the SSH tunnel both reach this port on the loopback
+# interface.
+PublishPort=127.0.0.1:3010:3000
+# The api address is baked into the image at build time and read on the server
+# only, so this unit states none.
 
 [Service]
 Restart=always

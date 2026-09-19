@@ -1,0 +1,81 @@
+name: Publish images
+
+# A release tag of this repository is what publishes images. `latest` is never
+# written: a deployment names the tag it runs.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The worker runs this image with a command of its own, as compose does.
+          - image: pathfinder-api
+            context: .
+            dockerfile: apps/api/Dockerfile
+          # NEXT_PUBLIC_API_URL is baked at `yarn build` and read on the server
+          # only: the browser calls the web origin and next.config.ts rewrites to
+          # this address on the container network. The `sources` stage of the
+          # Dockerfile generates the shared-ts types the build needs.
+          - image: pathfinder-web
+            context: .
+            dockerfile: apps/web/Dockerfile
+            target: runner
+            build_args: NEXT_PUBLIC_API_URL=http://pathfinder-api:8000
+          # The two MCP images build from their own repository at the release
+          # docker-compose.yml names. The two tags must stay equal.
+          - image: pathfinder-wdk-mcp
+            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a18
+          - image: pathfinder-research-mcp
+            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a18
+            target: research
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The api is built against the release it imports, so the served tools
+      # must come from the same one.
+      - name: Check the MCP release is the one docker-compose.yml names
+        if: contains(matrix.context, 'ai-wdk-mcp.git')
+        env:
+          CONTEXT: ${{ matrix.context }}
+        run: |
+          grep -qF "context: $CONTEXT" docker-compose.yml
+          grep -qF "tag = \"${CONTEXT##*#}\"" apps/api/pyproject.toml
+
+      - name: Read the short commit sha
+        id: commit
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # The registry path must be lowercase, so the organization is spelled
+      # veupathdb here. A single-manifest image keeps `podman pull` on the
+      # deployment host reading one entry, so provenance is off.
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          build-args: ${{ matrix.build_args }}
+          platforms: linux/amd64
+          provenance: false
+          push: true
+          tags: |
+            ghcr.io/veupathdb/${{ matrix.image }}:${{ github.ref_name }}
+            ghcr.io/veupathdb/${{ matrix.image }}:sha-${{ steps.commit.outputs.short }}

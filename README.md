@@ -395,9 +395,9 @@ CI and the pre-commit hooks check the result rather than writing it, so a stale 
 
 PathFinder is a research-driven prototype. These are the biggest gaps you should expect today:
 
-- **CD (deployment pipelines)**: CI (`.github/workflows/ci.yml`) and a security scan workflow exist, but there is no continuous deployment pipeline yet.
+- **CD (deployment pipelines)**: a `v*` tag publishes the four images to `ghcr.io/veupathdb` (`.github/workflows/publish-images.yml`), and the tester host installs them by hand (`deploy/cedar/`). Nothing deploys itself.
 - **Contribution docs**: no `CONTRIBUTING.md`, no governance/release process.
-- **Production hardening**: no documented deployment path (containers, reverse proxy, secrets management)
+- **Production hardening**: one deployment is documented, the internal tester host (`deploy/cedar/README.md`: rootless podman quadlets, a reverse proxy somebody else owns, secrets in a file on the host). There is no hardened production tier.
 - **Database migrations**: Alembic is the only path to the schema, and the API migrates to `head` at startup (`platform/migrations.py`). There is no rollback story and no data-migration convention.
 - **Evaluation** (thesis): an evaluation framework exists in `thesis/eval/` (gold strategies, prompts, analysis scripts), but reproducible experiment packaging and benchmarks are still in progress.
 
