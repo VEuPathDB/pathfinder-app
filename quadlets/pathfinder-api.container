@@ -38,7 +38,7 @@ Environment=VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX=__pathfinder_internal__:
 HealthCmd=curl -fsS http://localhost:8000/health || exit 1
 HealthInterval=30s
 HealthTimeout=10s
-HealthStartPeriod=10s
+HealthStartPeriod=600s
 HealthRetries=3
 
 [Service]
