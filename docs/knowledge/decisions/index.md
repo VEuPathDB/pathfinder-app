@@ -17,6 +17,7 @@ Choices with a real alternative, where the reasoning is not recoverable from the
 - [An EDA export begins the strategy when the thread has none](an-eda-export-begins-the-strategy-when-none-exists.md) - the blanket "Strategy AST missing" 404 is gone, so a first step from a study takes the same commit path the agent's first step takes
 - [A strategy has a revision history, and fork, revert and Stop read it](a-strategy-has-a-revision-history.md) - every strategy write appends a snapshot, so a branch point, a revert target and a stopped turn each read the state in force at their message instead of the thread's latest AST
 - [A strategy edit holds the thread's lock across its read](a-graph-operation-holds-the-thread-lock-across-its-read.md) - the read, the WDK round trip and the write of one JSON tree are one transaction on `/operations` and on `/insert-saved`, so two overlapping edits cannot each write a whole tree built from the same base
+- [A step count has one owner](a-step-count-has-one-owner.md) - the commit reads every count back from VEuPathDB before it emits or persists, and the client reads the wire rather than a cached count
 
 ## Agents
 

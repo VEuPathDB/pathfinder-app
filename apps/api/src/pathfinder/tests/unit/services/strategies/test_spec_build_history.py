@@ -17,6 +17,7 @@ from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.strategies import spec_build
+from pathfinder.services.strategies.sync_state import WDKSyncState
 
 
 def _leaf(step_id: str, organism: str) -> StrategyStepNode:
@@ -41,7 +42,11 @@ async def test_the_replaced_strategy_is_recoverable() -> None:
 
     before = len(graph.history)
     spec_build._replace_graph_contents(
-        graph, _leaf("step_new", "P. falciparum 3D7"), name=None, description=None
+        graph,
+        _leaf("step_new", "P. falciparum 3D7"),
+        sync_state=WDKSyncState(),
+        name=None,
+        description=None,
     )
 
     assert len(graph.history) == before + 1
@@ -51,7 +56,11 @@ async def test_the_history_entry_holds_the_pre_rebuild_shape() -> None:
     graph = _graph_with_hand_edit()
 
     spec_build._replace_graph_contents(
-        graph, _leaf("step_new", "P. falciparum 3D7"), name=None, description=None
+        graph,
+        _leaf("step_new", "P. falciparum 3D7"),
+        sync_state=WDKSyncState(),
+        name=None,
+        description=None,
     )
 
     restored = graph.history[-1].strategy_ast
@@ -66,7 +75,11 @@ async def test_the_new_spec_is_what_the_graph_holds_afterwards() -> None:
     graph = _graph_with_hand_edit()
 
     spec_build._replace_graph_contents(
-        graph, _leaf("step_new", "P. falciparum 3D7"), name=None, description=None
+        graph,
+        _leaf("step_new", "P. falciparum 3D7"),
+        sync_state=WDKSyncState(),
+        name=None,
+        description=None,
     )
 
     assert sorted(graph.steps) == ["step_new"]
@@ -77,7 +90,11 @@ async def test_building_into_an_empty_graph_records_nothing_to_undo() -> None:
     graph = StrategyGraph(graph_id="g1", name="g", site_id="plasmodb")
 
     spec_build._replace_graph_contents(
-        graph, _leaf("step_new", "P. falciparum 3D7"), name=None, description=None
+        graph,
+        _leaf("step_new", "P. falciparum 3D7"),
+        sync_state=WDKSyncState(),
+        name=None,
+        description=None,
     )
 
     assert graph.history == []

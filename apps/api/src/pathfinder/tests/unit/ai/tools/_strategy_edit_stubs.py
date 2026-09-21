@@ -20,6 +20,7 @@ from veupathdb.wdk import (
     WDKIdentifier,
     WDKSearchConfig,
     WDKStep,
+    WDKStrategyDetails,
 )
 from veupathdb_mcp.catalog import ValidatedParams
 
@@ -28,6 +29,7 @@ from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import (
     commit,
+    live_counts,
     spec_build,
     stated_sides,
     step_wdk_push,
@@ -154,6 +156,21 @@ class StubAPI:
             search_config=WDKSearchConfig(parameters={}),
         )
 
+    async def get_strategy(
+        self, strategy_id: int, user_id: str | None = None
+    ) -> WDKStrategyDetails:
+        """A strategy that lists no step, so every count reads as unknown."""
+        del user_id
+        return WDKStrategyDetails.model_validate(
+            {
+                "strategyId": strategy_id,
+                "name": "Test",
+                "rootStepId": 0,
+                "stepTree": {"stepId": 0},
+                "steps": {},
+            }
+        )
+
 
 async def _noop(*_args: Any, **_kwargs: Any) -> None:
     return None
@@ -190,7 +207,7 @@ def pin_validator(monkeypatch: pytest.MonkeyPatch, validator: Any) -> None:
 def install_stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     """Serve one StubAPI to every strategy write path and stub the side effects."""
     api = StubAPI()
-    for module in (commit, step_wdk_push, sync):
+    for module in (commit, step_wdk_push, sync, live_counts):
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
     for module in (commit, spec_build):
         monkeypatch.setattr(module, "reconcile_sync_state_with_wdk", _noop)

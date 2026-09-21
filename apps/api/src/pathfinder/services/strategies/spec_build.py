@@ -80,17 +80,19 @@ def _replace_graph_contents(
     graph: StrategyGraph,
     root: StrategyStepNode,
     *,
+    sync_state: WDKSyncState,
     name: str | None,
     description: str | None,
 ) -> None:
-    """Replace the graph with the spec tree.
+    """Replace the graph with the spec tree, and forget the counts it had.
 
-    The build is destructive, so the old graph goes to history first. A later
-    rebuild must not discard a hand-edited parameter without a way back.
+    The old graph goes to history first, so a hand-edited parameter has a way
+    back. A criterion id can name a step in both trees, so no count survives.
     """
     if graph.steps:
         graph.save_history("Replaced by the operational spec")
 
+    sync_state.step_counts.clear()
     graph.steps = flatten_tree(root)
     graph.recompute_roots()
     graph.last_step_id = root.id
@@ -189,9 +191,11 @@ async def build_strategy_from_spec(
 
     steps_by_id = flatten_tree(root)
     nodes = [steps_by_id[sid] for sid in subtree_ids(root.id, steps_by_id)]
-    _replace_graph_contents(graph, root, name=name, description=description)
-
     sync_state = ensure_sync_state(session)
+    _replace_graph_contents(
+        graph, root, sync_state=sync_state, name=name, description=description
+    )
+
     await reconcile_sync_state_with_wdk(
         sync_state,
         deps.site_id,

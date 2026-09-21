@@ -20,7 +20,12 @@ from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
 )
-from pathfinder.platform.errors import ErrorCode, NotFoundError
+from pathfinder.platform.errors import (
+    SITE_DID_NOT_ANSWER,
+    ErrorCode,
+    NotFoundError,
+    SiteUnavailableError,
+)
 from pathfinder.services.conversations.authz import get_owned_thread_or_404
 from pathfinder.services.conversations.responses import (
     ConversationResponse,
@@ -33,6 +38,10 @@ from pathfinder.services.strategies.insert_saved import (
     InsertSavedResult,
     insert_saved_into_conversation,
 )
+from pathfinder.services.strategies.live_counts import replace_counts_with_wdks
+from pathfinder.services.strategies.persist import (
+    persist_strategy_ast_to_conversation,
+)
 from pathfinder.services.strategies.save_substrategy import (
     SavedSubstrategyResult,
     save_subtree_as_strategy,
@@ -41,6 +50,7 @@ from pathfinder.services.strategies.session_factory import (
     build_strategy_session,
     persisted_graph,
 )
+from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.services.strategies.write_lock import strategy_write_lock
 
 
@@ -135,6 +145,66 @@ async def apply_operation(
             raise NotFoundError(
                 code=ErrorCode.STRATEGY_NOT_FOUND,
                 title="Strategy not found after commit",
+            )
+        return build_conversation_response(*refreshed)
+
+
+async def refresh_counts(
+    repo: ConversationRepository,
+    conversation_id: UUID,
+    user_id: UUID,
+    *,
+    site_id: str,
+) -> ConversationResponse:
+    """Store what the site answers for every step, and answer with the thread.
+
+    The strategy moves on the site itself as well as here, so this is what a
+    researcher reaches for when the numbers on screen stop describing it.
+    """
+    await get_owned_thread_or_404(repo, conversation_id, user_id)
+    async with strategy_write_lock(conversation_id, async_session_factory) as locked:
+        locked_repo = ConversationRepository(locked)
+        conversation, strategy = await get_owned_thread_or_404(
+            locked_repo, conversation_id, user_id
+        )
+        session = build_strategy_session(
+            site_id=site_id,
+            strategy_graph=persisted_graph(conversation, strategy),
+        )
+        graph = session.get_graph(None)
+        if graph is None or not graph.steps:
+            raise NotFoundError(
+                code=ErrorCode.STRATEGY_NOT_FOUND,
+                title="Strategy has no steps to count",
+            )
+        sync_state = ensure_sync_state(session)
+        if sync_state.wdk_strategy_id is None or not sync_state.wdk_step_ids:
+            raise NotFoundError(
+                code=ErrorCode.STRATEGY_NOT_FOUND,
+                title="The site does not hold this strategy",
+                detail="Build the strategy before asking for its counts.",
+            )
+        ctx = StrategyMutationContext(
+            site_id=site_id,
+            strategy_session=session,
+            conversation_id=conversation_id,
+            locked_session=locked,
+        )
+        # The refresh exists to settle a count the stored one may contradict,
+        # so a site that answers nothing is refused rather than confirmed.
+        answered = await replace_counts_with_wdks(
+            graph=graph, sync_state=sync_state, site_id=site_id
+        )
+        if not answered:
+            raise SiteUnavailableError(site_id, SITE_DID_NOT_ANSWER)
+        await persist_strategy_ast_to_conversation(
+            deps=ctx, graph=graph, sync_result=None
+        )
+        refreshed = await locked_repo.get_with_strategy(conversation_id)
+        if refreshed is None:
+            raise NotFoundError(
+                code=ErrorCode.STRATEGY_NOT_FOUND,
+                title="Strategy not found after the count refresh",
             )
         return build_conversation_response(*refreshed)
 

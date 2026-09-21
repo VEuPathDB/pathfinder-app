@@ -43,6 +43,15 @@ const COUNTED: Strategy = {
   isSaved: false,
 } as Strategy;
 
+function uncounted(): Strategy {
+  return {
+    ...COUNTED,
+    steps: COUNTED.steps.map((s) =>
+      s.id === "step_x" ? { ...s, estimatedSize: null } : s,
+    ),
+  };
+}
+
 function countIn(stepId: string): string | null {
   const row = screen.getByTestId(`compact-step-row-${stepId}`);
   return within(row).getByText(/^[\d,.]+$/).textContent;
@@ -74,21 +83,24 @@ describe("counts come straight from the wire", () => {
     expect(screen.queryByText("...")).toBe(null);
   });
 
-  it("lets a live count from the store win over the wire", () => {
+  it("keeps the wire count when the store cached another one", () => {
+    // The store holds what the canvas computed for itself. VEuPathDB owns the
+    // count, and the server writes it through on every change.
     useStrategyStore.getState().applyStepCounts({ step_x: 999 });
     render(<CompactStrategyView strategy={COUNTED} />);
+
+    expect(countIn("step_x")).toBe("373");
+  });
+
+  it("uses the store's count for a step the wire does not count", () => {
+    useStrategyStore.getState().applyStepCounts({ step_x: 999 });
+    render(<CompactStrategyView strategy={uncounted()} />);
 
     expect(countIn("step_x")).toBe("999");
   });
 
   it("still shows a placeholder for a step that has no count anywhere", () => {
-    const noCount = {
-      ...COUNTED,
-      steps: COUNTED.steps.map((s) =>
-        s.id === "step_x" ? { ...s, estimatedSize: null } : s,
-      ),
-    } as Strategy;
-    render(<CompactStrategyView strategy={noCount} />);
+    render(<CompactStrategyView strategy={uncounted()} />);
 
     expect(countIn("step_x")).toBe("...");
   });

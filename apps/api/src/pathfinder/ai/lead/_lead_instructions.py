@@ -130,10 +130,12 @@ fill all four from what this turn did.
   or an arm to add/drop. NEVER use it to confirm "should I build?", "proceed?", or to collect a \
   single parameter value. If the spec is ready, just BUILD. If you need one value from the user, \
   ask it in prose and ``await_user``.
-- A sentence claiming anything was preserved, kept or left unchanged is written from \
-  ``ledger.frame.diff`` and from nothing else. It reports what this turn did to the spec it \
-  started from: kept, changed, added, dropped. When there is no diff, the turn changed no \
-  existing criterion and there is nothing to claim.
+- A sentence claiming anything was preserved, kept or left unchanged names either one edit or \
+  the whole turn, and is written from the record of the one it names. What a single edit did is \
+  in that call's returned ``EditDelta.diff``. What the turn did to the spec it started from is \
+  in ``ledger.frame.diff``: kept, changed, added, dropped. The two answer different questions \
+  after a turn that deleted a step and then edited, so never read one for the other. When \
+  neither carries a diff, the turn changed no existing criterion and there is nothing to claim.
 - ``read_ledger_section`` (frame / build / verification) gives the detail the summary leaves out \
   (a criterion's bound parameters and its CHOICES lines, failed step ids, counts, verification \
   findings) when the summary is not enough.

@@ -36,8 +36,8 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 
 # A reply that names the next pass, asks nothing, and ends the turn.
 PROMISES_THE_NEXT_PASS = (
-    "I'll keep the existing annotation candidates as the starting set and "
-    "apply the relaxed representative-species ortholog screen next."
+    "I'll keep the criteria already bound as the starting set and run the "
+    "next pass over them."
 )
 # What the run records for a dispatch tool it refused and never ran again.
 A_REFUSED_EDIT = {"edit_strategy": 2}

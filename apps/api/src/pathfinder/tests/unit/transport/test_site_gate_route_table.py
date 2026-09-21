@@ -51,6 +51,7 @@ GATED: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/eda/viz"),
         # Strategy writes: every one of them runs a step on the site.
         ("POST", "/api/v1/conversations/{strategyId:uuid}/operations"),
+        ("POST", "/api/v1/conversations/{strategyId:uuid}/refresh-counts"),
         ("POST", "/api/v1/conversations/{conversation_id:uuid}/insert-saved"),
         ("POST", "/api/v1/conversations/{conversation_id:uuid}/save-substrategy"),
     }

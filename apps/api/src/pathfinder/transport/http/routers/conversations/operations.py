@@ -33,3 +33,21 @@ async def apply_operation_endpoint(
         site_id=site_id,
         op=request.op,
     )
+
+
+@router.post(
+    "/{strategyId:uuid}/refresh-counts",
+    response_model=ConversationResponse,
+)
+async def refresh_step_counts(
+    strategyId: UUID,
+    site_id: AvailableSite,
+    session: DBSession,
+    user_id: CurrentUser,
+) -> ConversationResponse:
+    """Read every step count from VEuPathDB and store what it answers."""
+    return await ConversationService(session).refresh_counts(
+        strategyId,
+        user_id,
+        site_id=site_id,
+    )

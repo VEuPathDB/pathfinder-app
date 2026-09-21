@@ -56,7 +56,6 @@ from pathfinder.services.strategies.commit import (
     apply_operations_and_commit,
 )
 from pathfinder.services.strategies.graph_outcome import outcome_for_graph
-from pathfinder.services.strategies.live_counts import read_wdk_step_counts
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 
 __all__ = ["edit_strategy", "run_edit"]
@@ -151,7 +150,7 @@ async def _push_the_edit(
         refuse_and_restore(deps, unsupported_edit_message(str(exc)))
     except ValidationError as exc:
         refuse_and_restore(deps, _refused_values_message(exc, diff=diff, after=after))
-    outcome = await _outcome_after_edit(agent_deps, commit)
+    outcome = _outcome_after_edit(agent_deps, commit)
     # The spec the thread carries states the option on the step that runs it,
     # exactly as the spec a build leaves behind does.
     deps.state.domain.operational_spec = after
@@ -210,21 +209,18 @@ def _refused_values_message(
     )
 
 
-async def _outcome_after_edit(
-    agent_deps: AgentDeps, commit: CommitResult
-) -> BuildOutcome:
-    """The build the edit leaves behind, with counts read from WDK.
+def _outcome_after_edit(agent_deps: AgentDeps, commit: CommitResult) -> BuildOutcome:
+    """The build the edit leaves behind, with the counts the commit wrote.
 
-    A pushed step's stored count describes the step before the edit, so the
-    numbers the Lead reports are read again rather than carried over.
+    The commit replaces every count with VEuPathDB's own before it returns, so
+    the Lead reports the numbers the snapshot and the stored strategy carry.
     """
     session = agent_deps.strategy_session
     sync_state = ensure_sync_state(session)
-    counts = await read_wdk_step_counts(sync_state, agent_deps.site_id)
     return outcome_for_graph(
         graph=session.get_graph(None),
         sync_state=sync_state,
-        counts=counts,
+        counts=sync_state.step_counts,
         failed_step_ids=commit.failed_step_ids,
         wdk_url=commit.sync_result.wdk_url if commit.sync_result else None,
     )
@@ -250,9 +246,10 @@ async def edit_strategy(ctx: RunContext[LeadDeps], reason: str) -> EditDelta:
 
     ``reason`` is what the request changes, in one sentence.
 
-    The returned ``EditDelta`` carries the computed ``diff``: every claim in
-    your reply that something was kept, changed, added or dropped is read from
-    it and from nothing else.
+    The returned ``EditDelta`` carries the computed ``diff`` for this edit
+    alone: every claim in your reply about what THIS edit kept, changed, added
+    or dropped is read from it. A claim about what the whole turn did to the
+    spec it started from is read from ``ledger.frame.diff`` instead.
     """
     tool_call_id = dispatch_call_id(ctx)
     result = await run_edit(

@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Bookmark, ExternalLink, Workflow } from "lucide-react";
+import { Bookmark, ExternalLink, RefreshCw, Workflow } from "lucide-react";
 
 import { siteShortName, type Strategy } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
 import { CompactStrategyView } from "@/features/strategy/graph/components/CompactStrategyView";
 import { InsertSavedDialog } from "@/features/saved/InsertSavedDialog";
 import { SaveSubstrategyDialog } from "@/features/strategy/editor/SaveSubstrategyDialog";
+import { useRefreshStepCountsMutation } from "@/features/strategy/mutations/useRefreshStepCountsMutation";
 import { useSaveSubstrategyMutation } from "@/features/strategy/mutations/useSaveSubstrategyMutation";
 import { strategyCanvasUrl, strategyStepUrl } from "@/lib/routes";
 
@@ -44,6 +45,11 @@ export function StrategyPanel({
     onSuccess: () => setSaveStepId(null),
   });
 
+  const refreshCounts = useRefreshStepCountsMutation({
+    conversationId: strategy?.id ?? "",
+    siteId,
+  });
+
   const openFullEditor = (): void => {
     if (strategy == null) return;
     router.push(strategyCanvasUrl(siteId, strategy.id));
@@ -65,6 +71,21 @@ export function StrategyPanel({
       headerActions={
         hasSteps ? (
           <div className="flex items-center gap-1">
+            <Button
+              data-testid="rail-strategy-refresh"
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              disabled={refreshCounts.isPending}
+              onClick={() => refreshCounts.mutate()}
+              aria-label="Refresh step counts"
+              title="Refresh step counts"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${refreshCounts.isPending ? "animate-spin" : ""}`}
+                aria-hidden
+              />
+            </Button>
             {wdkUrl != null && wdkUrl !== "" && (
               <Button
                 asChild

@@ -33,6 +33,7 @@ from pathfinder.services.strategies.batch_refusal import (
     refusal_after_the_batch,
 )
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.live_counts import replace_counts_with_wdks
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
@@ -252,6 +253,13 @@ async def apply_operations_and_commit(
         dropped_step_ids=result.dropped_step_ids,
     )
 
+    # VEuPathDB owns the counts. Reading them back here is what makes the
+    # session, the graph snapshot and the stored strategy carry one set of
+    # numbers for the tree this commit leaves behind.
+    await replace_counts_with_wdks(
+        graph=graph, sync_state=sync_state, site_id=deps.site_id
+    )
+
     await persist_strategy_ast_to_conversation(
         deps=deps,
         graph=graph,
@@ -374,7 +382,9 @@ async def _commit_to_wdk(
         # kept the previous search. Mark both unknown rather than let a stale
         # number be read back as current fact.
         invalidate_counts_for(
-            sync_state, [*succeeded, *(failure.step_id for failure in failures)]
+            sync_state,
+            [*succeeded, *(failure.step_id for failure in failures)],
+            graph=graph,
         )
 
     # The id mapping is kept until WDK confirms the delete. The strategy push

@@ -50,12 +50,21 @@ describe("useStepSnapshot", () => {
     expect(result.current.estimatedSize).toBe(99);
   });
 
-  it("lifecycle estimatedSize overrides wire when present", () => {
-    const step = makeStep({ estimatedSize: 10 });
+  it("the wire count wins over one the machine cached earlier", () => {
+    // The machine's cache is what let a count the canvas computed once mask
+    // every later value the server sent.
+    const step = makeStep({ estimatedSize: 71 });
+    useStrategyStore.getState().applyStepCounts({ s1: 0 });
+    const { result } = renderHook(() => useStepSnapshot(step));
+    expect(result.current.estimatedSize).toBe(71);
+    expect(result.current.lifecycleState).toBe("complete");
+  });
+
+  it("uses the machine count for a step the wire does not count", () => {
+    const step = makeStep({ estimatedSize: null });
     useStrategyStore.getState().applyStepCounts({ s1: 500 });
     const { result } = renderHook(() => useStepSnapshot(step));
     expect(result.current.estimatedSize).toBe(500);
-    expect(result.current.lifecycleState).toBe("complete");
   });
 
   it("surfaces invalid state and validation errors", () => {

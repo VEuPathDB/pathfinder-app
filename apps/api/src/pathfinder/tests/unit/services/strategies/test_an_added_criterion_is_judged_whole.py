@@ -26,7 +26,7 @@ from pathfinder.services.strategies import stated_sides
 from pathfinder.services.strategies.stated_sides import canonical_batch
 
 _SEARCH = "GenesByInterproDomain"
-_STEP = "step_d3838295"
+_STEP = "step_domain"
 
 
 class _Read(NamedTuple):

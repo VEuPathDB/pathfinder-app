@@ -281,6 +281,17 @@ class ConversationService:
             self._repo, conversation_id, user_id, site_id=site_id, op=op
         )
 
+    async def refresh_counts(
+        self,
+        conversation_id: UUID,
+        user_id: UUID,
+        *,
+        site_id: str,
+    ) -> ConversationResponse:
+        return await strategy_ops.refresh_counts(
+            self._repo, conversation_id, user_id, site_id=site_id
+        )
+
     async def save_substrategy(
         self,
         conversation_id: UUID,

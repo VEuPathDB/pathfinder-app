@@ -11,7 +11,7 @@ export interface StepSnapshot {
   step: Step | null;
   /** Current XState v5 leaf state for the step. */
   lifecycleState: StepLifecycleStateName;
-  /** Cached estimatedSize - lifecycle context wins over wire field. */
+  /** The count on the wire; the lifecycle cache fills in when it carries none. */
   estimatedSize: number | null;
   /** Validation errors from the lifecycle machine, falling back to wire. */
   validationErrors: ValidationErrors | null;
@@ -49,15 +49,17 @@ function pickLifecycleValue(
   return STEP_LIFECYCLE_STATE_NAMES.find((name) => name === value) ?? "idle";
 }
 
+/**
+ * The count the server sent, or the canvas's own for a step it does not count.
+ * VEuPathDB owns a step's size, so the wire outranks the lifecycle cache.
+ */
 function resolveEstimatedSize(
   snapshot: StepMachineSnapshot | undefined,
   wire: Step | null,
 ): number | null {
-  if (snapshot && snapshot.context.estimatedSize !== null) {
-    return snapshot.context.estimatedSize;
-  }
   const wireSize = wire?.estimatedSize;
-  return typeof wireSize === "number" ? wireSize : null;
+  if (typeof wireSize === "number") return wireSize;
+  return snapshot?.context.estimatedSize ?? null;
 }
 
 const wireErrorsCache = new WeakMap<object, ValidationErrors>();

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Pathfinder API
   description: VEuPathDB Strategy Builder Chatbot API
-  version: 0.2.0a2
+  version: 0.2.0a3
 paths:
   /health:
     get:
@@ -1633,6 +1633,55 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ApplyOperationRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/conversations/{strategyId}/refresh-counts:
+    post:
+      tags:
+      - conversations
+      summary: Refresh Step Counts
+      description: Read every step count from VEuPathDB and store what it answers.
+      operationId: refresh_step_counts_api_v1_conversations__strategyId__refresh_counts_post
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: strategyId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Strategyid
+      - name: siteId
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
+          title: Siteid
       responses:
         '200':
           description: Successful Response

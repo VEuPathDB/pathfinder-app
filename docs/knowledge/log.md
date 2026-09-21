@@ -1,5 +1,41 @@
 # Log
 
+## 2026-09-21
+
+* **A step count has one owner: VEuPathDB, read back at the commit.** One edit
+  used to leave three sets of numbers behind - the reply and the ledger read the
+  site live, the graph snapshot of the same edit carried nulls and pre-edit
+  integers, and the rail carried a third set, because the commit marked only the
+  pushed steps unknown and the live read reached nothing the client could see.
+  `replace_counts_with_wdks` (`services/strategies/live_counts.py`) now reads the
+  strategy back and replaces every local step's count, and
+  `apply_operations_and_commit` calls it once after the push and before the graph
+  snapshot and the persist, so the session, the emitted snapshot, the stored
+  strategy and the Lead's `BuildOutcome` carry the same integers;
+  `_outcome_after_edit` reads those written-through counts rather than making a
+  second round trip. `invalidate_counts_for` walks `graph.parent_of`, so a failed
+  read leaves the changed step and every combine above it unknown instead of
+  stale, and a build clears the counts as it replaces the tree. On the client the
+  wire is the authority - `resolveEstimatedSize` takes the server's count whenever
+  there is one and the step machine's cache fills in only where the wire counts
+  nothing - and `POST /api/v1/conversations/{strategyId}/refresh-counts` runs the
+  same read behind a refresh control in the strategy rail. That route never
+  confirms a number it could not read: `replace_counts_with_wdks` reports whether
+  the site answered, and the refresh raises 503 `SITE_UNAVAILABLE` when it did not
+  and 404 `STRATEGY_NOT_FOUND` for a strategy the site does not hold, leaving the
+  stored counts alone; the commit path ignores the report and stays lenient.
+  `sync_strategy_for_site` now applies a step's decorations before it reads the
+  counts, so a filtered step no longer records its pre-filter size. Recorded as
+  [a step count has one owner](decisions/a-step-count-has-one-owner.md). Proven by
+  `tests/unit/services/strategies/test_a_commit_leaves_wdks_counts.py`,
+  `test_push_invalidates_counts.py`,
+  `test_a_build_forgets_the_last_trees_counts.py`,
+  `tests/unit/services/conversations/test_refresh_counts.py`,
+  `tests/unit/services/strategies/test_a_filter_is_applied_before_the_count_is_read.py`,
+  `tests/unit/ai/lead/test_the_edit_reports_the_counts_the_commit_wrote.py`, and on
+  the web by `useStepSnapshot.test.ts`, `CompactStrategyView.counts.test.tsx`,
+  `useRefreshStepCountsMutation.test.tsx` and `StrategyPanel.refresh.test.tsx`.
+
 ## 2026-09-18
 
 * **PathFinder is deployed to cedar from the registry, and the host only pulls.**

@@ -7,13 +7,14 @@ plan count writes.
 
 import hashlib
 import json
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 
 from cachetools import LRUCache
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StrategyAst
 from veupathdb_mcp.wdk import compute_plan_step_counts, count_search_answer
 
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.platform.identity import STEP_COUNTS_STRATEGY_NAME
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -41,14 +42,33 @@ async def count_bound_criterion(
     )
 
 
-def invalidate_counts_for(sync_state: WDKSyncState, step_ids: Iterable[str]) -> None:
-    """Mark the cached counts of ``step_ids`` unknown.
+def _the_step_and_what_reads_it(graph: StrategyGraph, step_id: str) -> Iterator[str]:
+    """The step, and every combine that takes it as an input, up to the root."""
+    current: str | None = step_id
+    seen: set[str] = set()
+    while current is not None and current not in seen:
+        seen.add(current)
+        yield current
+        parent = graph.parent_of(current)
+        current = None if parent is None else parent[0].id
 
-    ``None`` means the count must be recomputed. A stale integer reads as fact.
+
+def invalidate_counts_for(
+    sync_state: WDKSyncState,
+    step_ids: Iterable[str],
+    *,
+    graph: StrategyGraph,
+) -> None:
+    """Mark the cached counts of ``step_ids`` and of their ancestors unknown.
+
+    A combine answers over its inputs, so a step whose search changed takes
+    every step above it with it. ``None`` means the count must be recomputed.
+    A stale integer reads as fact.
     """
     for step_id in step_ids:
-        if step_id in sync_state.step_counts:
-            sync_state.step_counts[step_id] = None
+        for affected in _the_step_and_what_reads_it(graph, step_id):
+            if affected in sync_state.step_counts:
+                sync_state.step_counts[affected] = None
 
 
 def plan_cache_key(site_id: str, payload: StrategyAst) -> str:

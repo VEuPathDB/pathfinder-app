@@ -22,7 +22,7 @@ from pathfinder.domain.strategy.operations import (
     UpdateStepMetaOp,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.services.strategies import commit, step_wdk_push, sync
+from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync import SyncResult
@@ -166,9 +166,8 @@ class _RecordingAPI:
 @pytest.fixture
 def api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     recording = _RecordingAPI()
-    monkeypatch.setattr(commit, "get_strategy_api", lambda _site_id: recording)
-    monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site_id: recording)
-    monkeypatch.setattr(sync, "get_strategy_api", lambda _site_id: recording)
+    for module in (commit, step_wdk_push, sync, live_counts):
+        monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: recording)
 
     async def _noop_validate(*_args: Any, **_kwargs: Any) -> set[str]:
         return set()

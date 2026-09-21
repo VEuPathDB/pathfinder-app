@@ -73,7 +73,7 @@ def _with_the_domain_leaf(before: OperationalSpec) -> OperationalSpec:
     after = before.model_copy(deep=True)
     after.criteria.append(
         Criterion(
-            id="step_ipr_obp",
+            id="step_domain",
             text="InterPro odorant binding domain",
             search_name=_DOMAIN,
             resolved_params={
@@ -90,7 +90,7 @@ def _with_the_domain_leaf(before: OperationalSpec) -> OperationalSpec:
             operator=CombineOp.INTERSECT,
             inputs=[
                 StructureNode(kind="leaf", criterion_id=before.criteria[0].id),
-                StructureNode(kind="leaf", criterion_id="step_ipr_obp"),
+                StructureNode(kind="leaf", criterion_id="step_domain"),
             ],
         )
     )
@@ -156,7 +156,7 @@ def test_the_refusal_names_the_search_of_the_step_wdk_turned_down(
 ) -> None:
     """The step the edit adds is the one named, not the strategy as a whole."""
     assert _DOMAIN in refused.message
-    assert "step_ipr_obp" in refused.message
+    assert "step_domain" in refused.message
 
 
 def test_the_refusal_names_the_parameters_and_quotes_wdk(refused: Refused) -> None:
@@ -190,7 +190,7 @@ async def test_a_step_the_push_lost_names_itself_and_spares_the_rest(
             description="added the domain step",
             failures=[
                 StepPushFailure(
-                    step_id="step_ipr_obp",
+                    step_id="step_domain",
                     search_name=_DOMAIN,
                     error="organism: Cannot be empty.",
                     wdk_status=422,

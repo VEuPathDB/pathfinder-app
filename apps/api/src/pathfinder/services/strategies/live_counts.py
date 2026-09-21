@@ -11,11 +11,13 @@ from assistant_core.platform.logging import get_logger
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import get_strategy_api
 
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.types import SyncStateProtocol
+from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
 
-__all__ = ["read_wdk_step_counts"]
+__all__ = ["read_wdk_step_counts", "replace_counts_with_wdks"]
 
 
 async def read_wdk_step_counts(
@@ -46,3 +48,22 @@ async def read_wdk_step_counts(
         local_id: sizes.get(wdk_id)
         for local_id, wdk_id in sync_state.wdk_step_ids.items()
     }
+
+
+async def replace_counts_with_wdks(
+    *,
+    graph: StrategyGraph,
+    sync_state: WDKSyncState,
+    site_id: str,
+) -> bool:
+    """Make the site's counts the only counts the session holds.
+
+    A local step the site answers no size for becomes unknown. A read that
+    answers nothing leaves the session as it stands and reports False, so a
+    caller that must not confirm the stored numbers can refuse.
+    """
+    live = await read_wdk_step_counts(sync_state, site_id)
+    if not live:
+        return False
+    sync_state.step_counts = {step_id: live.get(step_id) for step_id in graph.steps}
+    return True

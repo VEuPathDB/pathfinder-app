@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathfinder.ai.agents.frame import _FRAME_INSTRUCTIONS
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
+from pathfinder.ai.lead.edit_dispatch import edit_strategy
 
 
 def _flat(text: str) -> str:
@@ -82,9 +83,19 @@ def test_the_instructions_are_ascii_only() -> None:
     assert LEAD_INSTRUCTIONS.isascii()
 
 
-def test_the_lead_writes_a_preservation_claim_from_the_ledger_diff() -> None:
+def test_the_lead_writes_a_preservation_claim_from_the_record_it_names() -> None:
+    """One edit is the delta's to report; the whole turn is the ledger's."""
     assert "ledger.frame.diff" in LEAD_INSTRUCTIONS
+    assert "EditDelta.diff" in LEAD_INSTRUCTIONS
     assert "preserved" in LEAD_INSTRUCTIONS
+
+
+def test_the_edit_tool_sends_a_turn_wide_claim_to_the_ledger() -> None:
+    """The tool's own docstring must not claim the delta covers the turn."""
+    docstring = edit_strategy.__doc__
+    assert docstring is not None
+    assert "this edit" in docstring
+    assert "ledger.frame.diff" in docstring
 
 
 def test_frame_states_a_disposition_for_every_criterion_already_there() -> None:

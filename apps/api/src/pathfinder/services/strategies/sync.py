@@ -268,11 +268,13 @@ async def sync_strategy_for_site(
     pushed = await _create_or_update_wdk_strategy(api, step_tree, name, sync_state)
     wdk_strategy_id = pushed.wdk_strategy_id
 
+    # A filter narrows what its step answers, so the read follows it. Reading
+    # first records the size the step had without its decorations.
+    await _maybe_apply_decorations(root_step, sync_state.wdk_step_ids, api)
+
     state = await _fetch_strategy_state(
         api, wdk_strategy_id, sync_state.wdk_step_ids, step_tree
     )
-
-    await _maybe_apply_decorations(root_step, sync_state.wdk_step_ids, api)
 
     all_steps = walk(root_step)
     detached = _detached(all_steps, state)
