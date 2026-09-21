@@ -15,8 +15,7 @@ from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import CreatedControlSet, EnrichmentRun
-from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.dispatch_messages import (
+from pathfinder.ai.lead.contract_messages import (
     analysis_ran_on_another_set_message,
     blamed_the_site_message,
     claimed_change_message,
@@ -24,16 +23,18 @@ from pathfinder.ai.lead.dispatch_messages import (
     eda_criterion_not_built_message,
     gene_set_not_saved_message,
     off_topic_essay_message,
+    unfinished_work_message,
     unrecorded_question_message,
     unreported_change_message,
     unretrieved_source_message,
     unverified_build_message,
 )
+from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent_gate import turn_builds, turn_is_off_topic
 from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.ledger_sections import BuildSection
 from pathfinder.ai.lead.phase_stop import PhaseStop
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import (
@@ -48,6 +49,10 @@ OFF_TOPIC_REPLY_MAX_CHARS = 400
 _CODE_FENCE = "```"
 
 CONTRACT_HEADING = "This reply does not match what the turn did:"
+
+# The tools the Lead calls to do the turn's work. ``build_strategy`` runs no
+# sub-agent and is refused the same way the dispatches are.
+DISPATCH_TOOLS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {"build_strategy"}
 
 # What a written reference carries before the identifier itself.
 _REFERENCE_PREFIXES = (
@@ -183,6 +188,7 @@ class TurnRecord(CamelModel):
     analysed: EnrichmentRun | None
     substituted: list[EnrichmentRun]
     last_phase_stop: PhaseStop | None
+    refused_dispatches: tuple[str, ...]
     build_section: BuildSection
     retrieved_sources: tuple[str, ...]
     created_control_sets: tuple[CreatedControlSet, ...]
@@ -197,6 +203,7 @@ MismatchKind = Literal[
     "unbuilt_eda_criterion",
     "blamed_the_site",
     "unrecorded_question",
+    "unfinished_work",
     "substituted_analysis",
     "off_topic_essay",
     "unretrieved_source",
@@ -251,6 +258,15 @@ def _analysis_and_what_it_replaced(
     ]
 
 
+def _refused_dispatches(ctx: RunContext[LeadDeps]) -> tuple[str, ...]:
+    """The dispatch tools this run refused and never ran again.
+
+    The run drops a tool from its retry record as soon as one call of it
+    returns, so what is left is work the turn asked for and never did.
+    """
+    return tuple(sorted(name for name in ctx.retries if name in DISPATCH_TOOLS))
+
+
 def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
     """Everything the contract reads about the turn this reply answers."""
     deps = ctx.deps
@@ -267,6 +283,7 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         analysed=analysed,
         substituted=substituted,
         last_phase_stop=deps.last_phase_stop,
+        refused_dispatches=_refused_dispatches(ctx),
         build_section=derive_ledger(deps.state, deps.intent).build,
         retrieved_sources=tuple(markers.retrieved_sources),
         created_control_sets=tuple(markers.created_control_sets),
@@ -334,6 +351,17 @@ def _unrecorded_question(report: LeadResponse, record: TurnRecord) -> str | None
     return unrecorded_question_message()
 
 
+def _unfinished_work(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A turn whose work did not run ends by asking the user, not by promising."""
+    if record.changed_strategy or report.asked_questions:
+        return None
+    if report.next_state != "await_user":
+        return None
+    if not record.refused_dispatches and record.last_phase_stop is None:
+        return None
+    return unfinished_work_message(record.refused_dispatches, record.last_phase_stop)
+
+
 def _substituted_analysis(report: LeadResponse, record: TurnRecord) -> str | None:
     """An analysis reached around a failure is reported under its own set."""
     analysed = record.analysed
@@ -378,6 +406,7 @@ _RULES: tuple[
     ("unbuilt_eda_criterion", _unbuilt_eda_criterion),
     ("blamed_the_site", _blamed_the_site),
     ("unrecorded_question", _unrecorded_question),
+    ("unfinished_work", _unfinished_work),
     ("substituted_analysis", _substituted_analysis),
     ("off_topic_essay", _off_topic_essay),
     ("unretrieved_source", _unretrieved_source),

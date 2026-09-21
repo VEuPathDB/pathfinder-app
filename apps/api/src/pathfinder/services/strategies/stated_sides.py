@@ -109,11 +109,16 @@ async def _canonical_stated(
     held: Mapping[str, ParamValue],
     callbacks: ValidationCallbacks,
 ) -> StatedCriterion:
+    """The stated values in the catalog's form, read under the whole binding.
+
+    A step the batch adds holds nothing before it, so the binding the batch
+    writes is the only context a dependent parameter can be read under.
+    """
     if not _needs_a_second_look(criterion, held=held, names_sent=write.names_sent):
         return criterion
     overlay = await validate_parameters(
         write.search,
-        parameters={**held, **criterion.values},
+        parameters={**write.written, **criterion.values},
         callbacks=callbacks,
     )
     return StatedCriterion(

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
 from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import VocabOption
+from veupathdb.domain.parameters import ParamValue, VocabOption
 from veupathdb.domain.strategy import StepValidation
 from veupathdb.wdk import (
     WDKSearch,
@@ -200,8 +201,11 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
     monkeypatch.setattr(param_discovery, "fetch_search_details", _details)
     monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
 
-    async def _validate(*_a: object, **_k: object) -> ValidatedParams:
-        return ValidatedParams()
+    async def _validate(
+        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+    ) -> ValidatedParams:
+        del callbacks
+        return ValidatedParams(params=dict(parameters))
 
     monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
     return api

@@ -98,9 +98,15 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
         raise ModelRetry(msg) from exc
     # A criterion and the step it built become one address, so the next turn's
     # edit changes that step instead of rebuilding the strategy around it.
-    deps.state.domain.operational_spec = renumber_criteria(
-        spec, built.step_id_by_criterion
-    )
+    renumbered = renumber_criteria(spec, built.step_id_by_criterion)
+    deps.state.domain.operational_spec = renumbered
+    # The build re-keys the criteria without changing what they state, so the
+    # turn's entry record moves to the same addresses and the diff reads kept.
+    entry = deps.state.domain.spec_before_turn
+    if entry is not None:
+        deps.state.domain.spec_before_turn = renumber_criteria(
+            entry, built.step_id_by_criterion
+        )
     deps.state.record_build(outcome)
     graph = agent_deps.strategy_session.get_graph(None)
     if graph is not None:

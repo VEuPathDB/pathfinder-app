@@ -32,11 +32,17 @@ const TERRA = cfg("openai:gpt-5.6-terra", "medium");
 
 const DEFAULT_TIER = pathfinder(LUNA, LUNA);
 const QUALITY_TIER = pathfinder(SOL, TERRA);
+const BALANCED_TIER = pathfinder(TERRA, LUNA);
 const FAST_TIER = pathfinder(LUNA_LOW, LUNA_LOW);
 
 const PRESETS = {
   pathfinder: {
-    openai: { default: DEFAULT_TIER, quality: QUALITY_TIER, fast: FAST_TIER },
+    openai: {
+      default: DEFAULT_TIER,
+      quality: QUALITY_TIER,
+      balanced: BALANCED_TIER,
+      fast: FAST_TIER,
+    },
     anthropic: {
       default: pathfinder(
         cfg("anthropic:claude-sonnet-5", "medium"),
@@ -48,6 +54,7 @@ const PRESETS = {
     openai: {
       default: { roles: { site_help: LUNA } },
       quality: { roles: { site_help: TERRA } },
+      balanced: { roles: { site_help: LUNA } },
       fast: { roles: { site_help: LUNA_LOW } },
     },
   },
@@ -58,6 +65,7 @@ describe("presetsForProvider", () => {
     expect(Object.keys(presetsForProvider(PRESETS, "pathfinder", "openai"))).toEqual([
       "default",
       "quality",
+      "balanced",
       "fast",
     ]);
   });
@@ -122,6 +130,7 @@ describe("applyTierPreset", () => {
         "openai",
         applied.models,
         applied.reasoning,
+        "default",
       ),
     ).toBe("quality");
   });
@@ -137,6 +146,7 @@ describe("deriveActiveTier", () => {
         "openai",
         applied.models,
         applied.reasoning,
+        "default",
       ),
     ).toBe("default");
   });
@@ -152,6 +162,7 @@ describe("deriveActiveTier", () => {
         "openai",
         applied.models,
         applied.reasoning,
+        "default",
       ),
     ).toBe("fast");
   });
@@ -164,10 +175,24 @@ describe("deriveActiveTier", () => {
       ...applied.reasoning,
     };
     expect(
-      deriveActiveTier(PRESETS, "site_help", "openai", mixed, mixedReasoning),
+      deriveActiveTier(
+        PRESETS,
+        "site_help",
+        "openai",
+        mixed,
+        mixedReasoning,
+        "default",
+      ),
     ).toBe("quality");
     expect(
-      deriveActiveTier(PRESETS, "pathfinder", "openai", mixed, mixedReasoning),
+      deriveActiveTier(
+        PRESETS,
+        "pathfinder",
+        "openai",
+        mixed,
+        mixedReasoning,
+        "default",
+      ),
     ).toBe("fast");
   });
 
@@ -175,7 +200,14 @@ describe("deriveActiveTier", () => {
     const applied = applyTierPreset(QUALITY_TIER);
     const models = { ...applied.models, execution: "openai:gpt-5.6-sol" };
     expect(
-      deriveActiveTier(PRESETS, "pathfinder", "openai", models, applied.reasoning),
+      deriveActiveTier(
+        PRESETS,
+        "pathfinder",
+        "openai",
+        models,
+        applied.reasoning,
+        "default",
+      ),
     ).toBe(CUSTOM_TIER);
   });
 
@@ -183,19 +215,94 @@ describe("deriveActiveTier", () => {
     const applied = applyTierPreset(QUALITY_TIER);
     const reasoning = { ...applied.reasoning, frame: "low" as const };
     expect(
-      deriveActiveTier(PRESETS, "pathfinder", "openai", applied.models, reasoning),
+      deriveActiveTier(
+        PRESETS,
+        "pathfinder",
+        "openai",
+        applied.models,
+        reasoning,
+        "default",
+      ),
     ).toBe(CUSTOM_TIER);
   });
 
-  it("is custom when nothing is pinned, since defaults come from the server", () => {
-    expect(deriveActiveTier(PRESETS, "pathfinder", "openai", {}, {})).toBe(CUSTOM_TIER);
+  it("reports the deployment tier when nothing is pinned", () => {
+    expect(deriveActiveTier(PRESETS, "pathfinder", "openai", {}, {}, "balanced")).toBe(
+      "balanced",
+    );
+    expect(deriveActiveTier(PRESETS, "pathfinder", "openai", {}, {}, "default")).toBe(
+      "default",
+    );
   });
 
-  it("is custom when a role is missing from the selection", () => {
+  it("prefers the deployment tier when two presets carry the same config", () => {
+    // site_help runs the cheaper model on both default and balanced, so the
+    // picks alone cannot separate them.
+    expect(deriveActiveTier(PRESETS, "site_help", "openai", {}, {}, "balanced")).toBe(
+      "balanced",
+    );
+    expect(deriveActiveTier(PRESETS, "site_help", "openai", {}, {}, "default")).toBe(
+      "default",
+    );
+  });
+
+  it("is custom when one pin leaves the deployment tier", () => {
+    expect(
+      deriveActiveTier(
+        PRESETS,
+        "pathfinder",
+        "openai",
+        { execution: "openai:gpt-5.6-sol" },
+        { execution: "high" },
+        "balanced",
+      ),
+    ).toBe(CUSTOM_TIER);
+  });
+
+  it("reports the preset the pins reach, deployment tier or not", () => {
+    const applied = applyTierPreset(QUALITY_TIER);
+    expect(
+      deriveActiveTier(
+        PRESETS,
+        "pathfinder",
+        "openai",
+        applied.models,
+        applied.reasoning,
+        "balanced",
+      ),
+    ).toBe("quality");
+  });
+
+  it("fills a role no pin names from the deployment tier", () => {
+    // Pinning the three reasoning roles onto terra, on a deployment whose
+    // unpinned execution role already runs luna, is the balanced preset.
+    const models = {
+      lead: "openai:gpt-5.6-terra",
+      frame: "openai:gpt-5.6-terra",
+      verification: "openai:gpt-5.6-terra",
+    };
+    const reasoning = {
+      lead: "medium" as const,
+      frame: "medium" as const,
+      verification: "medium" as const,
+    };
+    expect(
+      deriveActiveTier(PRESETS, "pathfinder", "openai", models, reasoning, "default"),
+    ).toBe("balanced");
+  });
+
+  it("is custom when a role is missing and the deployment tier is unknown", () => {
     const applied = applyTierPreset(DEFAULT_TIER);
     const { lead: _lead, ...partial } = applied.models;
     expect(
-      deriveActiveTier(PRESETS, "pathfinder", "openai", partial, applied.reasoning),
+      deriveActiveTier(
+        PRESETS,
+        "pathfinder",
+        "openai",
+        partial,
+        applied.reasoning,
+        undefined,
+      ),
     ).toBe(CUSTOM_TIER);
   });
 
@@ -209,6 +316,7 @@ describe("deriveActiveTier", () => {
         "openai",
         applied.models,
         applied.reasoning,
+        "default",
       ),
     ).toBe(CUSTOM_TIER);
   });
@@ -222,7 +330,14 @@ describe("deriveActiveTier", () => {
         "openai",
         applied.models,
         applied.reasoning,
+        "default",
       ),
     ).toBe(CUSTOM_TIER);
+  });
+
+  it("is custom when the deployment names a tier the presets do not carry", () => {
+    expect(deriveActiveTier(PRESETS, "pathfinder", "openai", {}, {}, "custom")).toBe(
+      CUSTOM_TIER,
+    );
   });
 });

@@ -6,9 +6,10 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import {
   computeChatResolution,
-  draftRoute,
+  routeKey,
   isEdaRoute,
   isStrategyRoute,
+  needsNewDraftId,
 } from "./ChatShell";
 
 type ReactQueryExports = typeof ReactQueryModule;
@@ -289,15 +290,50 @@ describe("ChatShell integration: the rail reads the conversation the view holds"
   });
 });
 
-describe("ChatShell.draftRoute", () => {
+describe("ChatShell.routeKey", () => {
   it("names the path alone when the URL asks for no assistant", () => {
-    expect(draftRoute("/plasmodb/conversation", null)).toBe("/plasmodb/conversation");
+    expect(routeKey("/plasmodb/conversation", null)).toBe("/plasmodb/conversation");
   });
 
   it("tells two assistants on one path apart", () => {
-    expect(draftRoute("/plasmodb/conversation", "site_help")).not.toBe(
-      draftRoute("/plasmodb/conversation", null),
+    expect(routeKey("/plasmodb/conversation", "site_help")).not.toBe(
+      routeKey("/plasmodb/conversation", null),
     );
+  });
+});
+
+describe("ChatShell.needsNewDraftId", () => {
+  it("mints when the URL leaves a conversation for the draft route", () => {
+    expect(
+      needsNewDraftId("/plasmodb/conversation", "/plasmodb/conversation/abc"),
+    ).toBe(true);
+  });
+
+  it("mints when the draft route changes assistant", () => {
+    expect(
+      needsNewDraftId(
+        "/plasmodb/conversation?assistant=site_help",
+        "/plasmodb/conversation",
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps the id while the draft route stays put", () => {
+    expect(needsNewDraftId("/plasmodb/conversation", "/plasmodb/conversation")).toBe(
+      false,
+    );
+  });
+
+  it("keeps the id when the thread rewrites the URL to the draft id", () => {
+    expect(
+      needsNewDraftId("/plasmodb/conversation/gen-1", "/plasmodb/conversation"),
+    ).toBe(false);
+  });
+
+  it("keeps the id when the route moves between two conversations", () => {
+    expect(
+      needsNewDraftId("/plasmodb/conversation/b", "/plasmodb/conversation/a"),
+    ).toBe(false);
   });
 });
 
@@ -343,6 +379,56 @@ describe("ChatShell drafts", () => {
     expect(picked.conversationId).not.toBe(draft.conversationId);
   });
 
+  it("mints a fresh draft every time the URL leaves a conversation", async () => {
+    let pathname = "/plasmodb/conversation/abc";
+    const search = new URLSearchParams();
+    vi.doMock("next/navigation", () => ({
+      usePathname: () => pathname,
+      useSearchParams: () => search,
+    }));
+    const seen: { conversationId: string; resumable: boolean }[] = [];
+    vi.doMock("./ChatView", () => ({
+      ChatView: (props: { conversationId: string; resumable: boolean }) => {
+        seen.push({
+          conversationId: props.conversationId,
+          resumable: props.resumable,
+        });
+        return null;
+      },
+    }));
+
+    const { ChatShell } = await import("./ChatShell");
+    const { render } = await import("@testing-library/react");
+
+    const latest = (): { conversationId: string; resumable: boolean } => {
+      const call = seen.at(-1);
+      if (call === undefined) throw new Error("ChatView never rendered");
+      return call;
+    };
+
+    const view = render(<ChatShell />);
+    expect(latest().conversationId).toBe("abc");
+
+    pathname = "/plasmodb/conversation";
+    view.rerender(<ChatShell />);
+    const firstDraft = latest();
+    expect(firstDraft.conversationId).not.toBe("abc");
+    expect(firstDraft.resumable).toBe(false);
+
+    // The thread rewrites the URL to the draft id when the first turn starts.
+    pathname = `/plasmodb/conversation/${firstDraft.conversationId}`;
+    view.rerender(<ChatShell />);
+    expect(latest().conversationId).toBe(firstDraft.conversationId);
+    expect(latest().resumable).toBe(true);
+
+    pathname = "/plasmodb/conversation";
+    view.rerender(<ChatShell />);
+    const secondDraft = latest();
+    expect(secondDraft.conversationId).not.toBe(firstDraft.conversationId);
+    expect(secondDraft.conversationId).not.toBe("abc");
+    expect(secondDraft.resumable).toBe(false);
+  });
+
   it("keeps the draft thread while the assistant stays the same", async () => {
     const search = new URLSearchParams("assistant=site_help");
     vi.doMock("next/navigation", () => ({
@@ -365,5 +451,93 @@ describe("ChatShell drafts", () => {
 
     expect(seen.length).toBeGreaterThan(1);
     expect(new Set(seen).size).toBe(1);
+  });
+});
+
+describe("ChatShell while another route owns the main pane", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it("keeps the half-typed message while the reader inspects a step", async () => {
+    let pathname = "/plasmodb/conversation/abc";
+    const search = new URLSearchParams();
+    vi.doMock("next/navigation", () => ({
+      usePathname: () => pathname,
+      useSearchParams: () => search,
+    }));
+
+    const { AssistantRuntimeProvider, ComposerPrimitive, useLocalRuntime } =
+      await import("@assistant-ui/react");
+    // The composer text lives in the assistant-ui runtime, so the thread keeps
+    // it only while that runtime stays mounted.
+    vi.doMock("./ChatView", () => ({
+      ChatView: () => {
+        const runtime = useLocalRuntime({
+          async run() {
+            return { content: [] };
+          },
+        });
+        return (
+          <AssistantRuntimeProvider runtime={runtime}>
+            <ComposerPrimitive.Root>
+              <ComposerPrimitive.Input data-testid="message-input" />
+            </ComposerPrimitive.Root>
+          </AssistantRuntimeProvider>
+        );
+      },
+    }));
+
+    const { ChatShell } = await import("./ChatShell");
+    const { render, screen, fireEvent } = await import("@testing-library/react");
+
+    const composer = (): HTMLTextAreaElement =>
+      screen.getByTestId<HTMLTextAreaElement>("message-input");
+
+    const view = render(<ChatShell />);
+    fireEvent.change(composer(), { target: { value: "does this drop introns" } });
+    expect(composer().value).toBe("does this drop introns");
+
+    pathname = "/plasmodb/conversation/abc/strategy/step/s1";
+    view.rerender(<ChatShell />);
+    expect(screen.getByTestId("chat-pane")).not.toBeVisible();
+
+    pathname = "/plasmodb/conversation/abc";
+    view.rerender(<ChatShell />);
+    expect(screen.getByTestId("chat-pane")).toBeVisible();
+    expect(composer().value).toBe("does this drop introns");
+  });
+
+  it("keeps the thread mounted while the eda tab owns the pane", async () => {
+    let pathname = "/plasmodb/conversation/abc";
+    const search = new URLSearchParams();
+    vi.doMock("next/navigation", () => ({
+      usePathname: () => pathname,
+      useSearchParams: () => search,
+    }));
+    let mounts = 0;
+    const { useState } = await import("react");
+    vi.doMock("./ChatView", () => ({
+      ChatView: () => {
+        useState(() => {
+          mounts += 1;
+          return null;
+        });
+        return null;
+      },
+    }));
+
+    const { ChatShell } = await import("./ChatShell");
+    const { render } = await import("@testing-library/react");
+
+    const view = render(<ChatShell />);
+    expect(mounts).toBe(1);
+
+    pathname = "/plasmodb/conversation/abc/eda";
+    view.rerender(<ChatShell />);
+    pathname = "/plasmodb/conversation/abc";
+    view.rerender(<ChatShell />);
+
+    expect(mounts).toBe(1);
   });
 });

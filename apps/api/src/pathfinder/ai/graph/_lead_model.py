@@ -6,7 +6,8 @@ wins over the configured tier, which wins over the agent's baked model.
 
 from __future__ import annotations
 
-from typing import Any
+from contextlib import AbstractContextManager
+from dataclasses import dataclass
 
 from assistant_core.models.capture import maybe_wrap_model
 from assistant_core.models.settings import baked_model_id, build_model_settings
@@ -21,15 +22,30 @@ from pathfinder.platform.tiers import resolve_phase_tier_config
 _LEAD_ROLE = "lead"
 
 
+@dataclass(frozen=True)
+class LeadModelContext:
+    """What one Lead turn runs as: the agent override, the model it resolves
+    to, and the reasoning effort that model runs at."""
+
+    override: AbstractContextManager[None]
+    model_id: str
+    reasoning_effort: ReasoningEffort | None
+
+
 def resolve_lead_model_context(
     agent: LeadAgent,
     *,
     model_override: str | None = None,
     reasoning_effort: ReasoningEffort | None = None,
-) -> tuple[Any, str]:
-    """The agent override to run under, and the model id it resolves to."""
+) -> LeadModelContext:
+    """The agent override to run under, the model id it resolves to, and the
+    effort it runs at."""
     if get_settings().pathfinder_chat_provider.strip().lower() == "mock":
-        return agent.override(model=get_mock_model()), "mock:lead"
+        return LeadModelContext(
+            override=agent.override(model=get_mock_model()),
+            model_id="mock:lead",
+            reasoning_effort=None,
+        )
 
     settings = get_settings()
     tier_cfg = resolve_phase_tier_config(
@@ -43,13 +59,14 @@ def resolve_lead_model_context(
     effort = reasoning_effort or (
         tier_cfg.reasoning_effort if tier_cfg is not None else None
     )
-    return (
-        agent.override(
+    return LeadModelContext(
+        override=agent.override(
             model=maybe_wrap_model(effective_model, _LEAD_ROLE),
             model_settings=build_model_settings(effective_model, thinking=effort),
         ),
-        effective_model,
+        model_id=effective_model,
+        reasoning_effort=effort,
     )
 
 
-__all__ = ["resolve_lead_model_context"]
+__all__ = ["LeadModelContext", "resolve_lead_model_context"]

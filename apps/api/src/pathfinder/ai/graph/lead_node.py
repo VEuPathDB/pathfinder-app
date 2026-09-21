@@ -98,7 +98,6 @@ from pathfinder.ai.lead.turn_budget import (
     off_topic_budget_stop,
 )
 from pathfinder.ai.lead.turn_contract import LeadResponse
-from pathfinder.ai.models.catalog import context_window_for
 
 logger = get_logger(__name__)
 
@@ -251,12 +250,14 @@ async def _drive_lead_stream(
     resume_messages = approvals.resume_history(parked) if parked is not None else None
     usage_acc = RunUsage()
     limits = lead_usage_limits()
-    override_ctx, agent_model = resolve_lead_model_context(
+    lead_model = resolve_lead_model_context(
         agent,
         model_override=deps.runtime.phase_models.get("lead"),
         reasoning_effort=deps.runtime.phase_reasoning.get("lead"),
     )
+    agent_model = lead_model.model_id
     capture.lead_model = agent_model
+    capture.lead_reasoning_effort = lead_model.reasoning_effort
     sub_agent_tool_calls: dict[str, str] = {}
     emit_chunk(
         writer,
@@ -316,7 +317,7 @@ async def _drive_lead_stream(
             )
 
     try:
-        with override_ctx:
+        with lead_model.override:
             async for v6_chunk in emitter.chunks(_agent_events()):
                 _emit_unless_suppressed(writer, v6_chunk, sub_agent_tool_calls, capture)
     # The emitter re-raises the graph's control-flow signal and answers every
@@ -389,14 +390,7 @@ async def _run_lead_turn(
     residual_tokens, residual_cost = capture.residual_totals(state)
     await _persist_residual_quota(runtime.context, state, capture)
     emit_turn_usage(writer, residual_tokens, residual_cost)
-    emit_lead_usage(
-        writer,
-        capture.lead_model,
-        capture.tokens,
-        str(capture.cost_usd),
-        context_tokens=capture.last_request_input_tokens,
-        context_window=context_window_for(capture.lead_model),
-    )
+    emit_lead_usage(writer, capture, capture.tokens, str(capture.cost_usd))
     final_ledger = derive_ledger(deps.state, deps.intent)
     emit_chunk(writer, ledger_update_event(ledger=final_ledger))
     delta = _build_state_delta(

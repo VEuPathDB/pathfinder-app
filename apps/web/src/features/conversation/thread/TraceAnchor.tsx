@@ -10,6 +10,7 @@ import {
 } from "@veupathdb/assistant-client";
 import { toTraceParts } from "@veupathdb/assistant-client/ai-sdk";
 import type { DataSubAgentCallPayload } from "@pathfinder/shared";
+import { leadUsagePayloadSchema } from "@pathfinder/shared/generated/zod/leadUsagePayloadSchema";
 import { subAgentCallPayloadSchema } from "@pathfinder/shared/generated/zod/subAgentCallPayloadSchema";
 
 import { parseModelString } from "@/lib/models/providerMeta";
@@ -29,6 +30,8 @@ type Run = ReturnType<typeof buildTrace>[number];
 
 const LEAD = "lead";
 const SUB_AGENT_KIND = "data-sub-agent-call";
+const LEAD_USAGE_KIND = "data-lead-usage";
+const NO_EFFORT = "none";
 const LIVE: readonly ChatHelpers["status"][] = ["submitted", "streaming"];
 
 export interface TraceAnchorProps {
@@ -45,6 +48,20 @@ function readSubAgentCall(data: unknown): DataSubAgentCallPayload | null {
   return parsed.success ? parsed.data : null;
 }
 
+/** The reasoning effort the turn's last lead-usage part names, or null. */
+function leadEffortOf(parts: readonly MessagePart[]): string | null {
+  for (const part of [...parts].reverse()) {
+    if (part.type !== LEAD_USAGE_KIND) continue;
+    const parsed = leadUsagePayloadSchema.safeParse(part.data);
+    if (!parsed.success) return null;
+    const effort = parsed.data.reasoningEffort;
+    return effort === undefined || effort === null || effort === NO_EFFORT
+      ? null
+      : effort;
+  }
+  return null;
+}
+
 /**
  * The turn's model, tokens and cost: the Lead's own usage plus every
  * sub-agent it dispatched, which is what the wire reports as the turn total.
@@ -54,10 +71,12 @@ export function turnUsageOf(parts: readonly MessagePart[]): TraceUsageView | nul
   if (usage.lead === null) return null;
   const { model } = parseModelString(usage.modelId ?? "");
   if (model === "") return null;
+  const effort = leadEffortOf(parts);
   return {
     model,
     tokens: usage.total.tokens,
     costUsd: String(usage.total.costUsd),
+    ...(effort === null ? {} : { effort }),
   };
 }
 

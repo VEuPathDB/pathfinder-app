@@ -20014,7 +20014,7 @@
         "type": "object"
       },
       "LeadUsagePayload": {
-        "description": "Payload for the lead-usage chunk. The counts cover the lead agent only\nand exclude sub-agents. ``context_tokens`` is the input size of the latest\nrequest against ``context_window``, and 0 in either means unknown.",
+        "description": "Payload for the lead-usage chunk. The counts cover the lead agent only\nand exclude sub-agents. ``context_tokens`` is the input size of the latest\nrequest against ``context_window``, and 0 in either means unknown.\n``reasoning_effort`` is the effort the lead ran with, and None means the\nrun states none.",
         "properties": {
           "modelId": {
             "default": "",
@@ -20040,6 +20040,16 @@
             "default": 0,
             "title": "Contextwindow",
             "type": "integer"
+          },
+          "reasoningEffort": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReasoningEffort"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "title": "LeadUsagePayload",

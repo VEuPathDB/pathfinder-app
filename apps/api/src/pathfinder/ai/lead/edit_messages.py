@@ -6,6 +6,8 @@ pass that cannot see them re-derives them from a sentence.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from veupathdb.domain.parameters import to_wire
 
 from pathfinder.domain.strategy.operational_spec import (
@@ -21,6 +23,7 @@ __all__ = [
     "edit_work_order",
     "no_strategy_to_edit_message",
     "unsupported_edit_message",
+    "wdk_refused_the_written_step_message",
 ]
 
 
@@ -147,6 +150,29 @@ def unsupported_edit_message(detail: str) -> str:
         f"edit_strategy again with a structure over the criterion ids the "
         f"strategy holds, or tell the user what the request would cost and ask "
         f"before anything is replaced."
+    )
+
+
+def wdk_refused_the_written_step_message(
+    detail: str, *, steps: Sequence[str], params: Sequence[str]
+) -> str:
+    """VEuPathDB turned down the values this edit writes on a step.
+
+    The steps the strategy already held were not judged, so the refusal states
+    that and offers the two answers that keep them.
+    """
+    which = ", ".join(steps) or "the step this edit writes"
+    named = f", for {', '.join(params)}" if params else ""
+    return (
+        f"VEuPathDB refused the values this edit writes on {which}{named}. It "
+        f'said: "{detail}". Nothing was applied: the strategy still holds every '
+        f"step and every value it held before this edit, and the steps it "
+        f"already held are not what VEuPathDB turned down. Dispatch "
+        f"edit_strategy again and tell it to bind that criterion with "
+        f"set_criterion, using values VEuPathDB accepts for those parameters, "
+        f"or tell the user exactly what VEuPathDB refused and stop. Do not "
+        f"offer to rebuild the strategy from scratch, and do not drop the "
+        f"steps it holds."
     )
 
 

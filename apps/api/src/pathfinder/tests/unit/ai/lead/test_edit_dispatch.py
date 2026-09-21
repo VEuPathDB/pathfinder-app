@@ -185,12 +185,13 @@ def _edit_run(
     committed: list[GraphOperation] = []
     state = pipeline_state(
         user_prompt="use the sexual stage dataset",
-        domain=StrategyDomainState(operational_spec=after),
+        domain=StrategyDomainState(operational_spec=before.model_copy(deep=True)),
     )
     state.domain.spec_before_turn = before
     deps = lead_deps(state, strategy_session=session)
 
     async def _fake_frame(**_kwargs: Any) -> FrameResult:
+        state.domain.operational_spec = after
         return FrameResult(disposition="spec_ready", summary="reframed")
 
     async def _fake_commit(**kwargs: Any) -> CommitResult:

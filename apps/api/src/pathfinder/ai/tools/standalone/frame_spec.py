@@ -13,6 +13,7 @@ from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,
     ParamIntent,
+    ResolvedParams,
     UnknownParameterError,
     fetch_search_details,
     make_validation_callbacks,
@@ -146,6 +147,26 @@ async def _search_definition(search: SearchContext) -> WDKSearch:
     """
     response, _ = await fetch_search_details(search)
     return response.search_data
+
+
+async def _canonical_binding(
+    search: SearchContext, resolved: ResolvedParams
+) -> tuple[ResolvedParams, list[str]]:
+    """The binding WDK renders, and the values WDK supplied rather than accepted.
+    A tree parameter scores its leaves alone, so these are the values a count
+    and a build both send."""
+    try:
+        validated = await validate_parameters(
+            search,
+            parameters=dict(resolved.params),
+            callbacks=make_validation_callbacks(search.site_id),
+        )
+    except ValidationError as exc:
+        raise validation_model_retry(
+            exc, recordType=search.record_type, searchName=search.search_name
+        ) from exc
+    canonical = resolved.model_copy(update={"params": validated.params})
+    return canonical, validated.substituted
 
 
 async def set_criterion(
@@ -307,27 +328,18 @@ async def set_criterion(
             ),
             record_type,
         )
-    # A complete spec is validated here so a bad value returns a did-you-mean
-    # retry. An open slot means a required param is still unresolved, which
-    # WDK reports as missing.
     # A half switched off holds a value the request never stated, so it is
     # disclosed like a default.
     defaulted = sorted(set(resolved.defaulted()) | radio.keys())
+    canonical = resolved
+    # Only a binding with no open slot is validated: an unresolved required
+    # param reads as missing, while a bad value returns a did-you-mean retry.
     if not resolved.open_slots:
-        try:
-            validated = await validate_parameters(
-                search,
-                parameters=dict(resolved.params),
-                callbacks=make_validation_callbacks(ctx.deps.site_id),
-            )
-        except ValidationError as exc:
-            raise validation_model_retry(
-                exc, recordType=record_type, searchName=search_name
-            ) from exc
+        canonical, substituted = await _canonical_binding(search, resolved)
         # WDK renders the spec it would run, so it reports which values are its
         # own. That report is about the search being built and outranks the
         # local reading of the request.
-        defaulted = sorted(set(defaulted) | set(validated.substituted))
+        defaulted = sorted(set(defaulted) | set(substituted))
     open_params = [
         OpenSlot(
             criterion_id=criterion_id,
@@ -354,7 +366,7 @@ async def set_criterion(
         ),
         record_type=record_type,
         definition=definition,
-        resolved=resolved,
+        resolved=canonical,
         infos=infos,
     )
     return _criterion_return(

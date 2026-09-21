@@ -108,15 +108,10 @@ async def test_each_charged_delta_records_the_request_input(
 
 def test_lead_usage_event_carries_zero_when_nothing_was_charged() -> None:
     collector = _Collector()
+    capture = _LeadRunCapture()
+    capture.lead_model = "nosuchprovider:nosuchmodel"
 
-    emit_lead_usage(
-        collector,
-        "nosuchprovider:nosuchmodel",
-        0,
-        "0",
-        context_tokens=0,
-        context_window=0,
-    )
+    emit_lead_usage(collector, capture, 0, "0")
 
     payload = collector.lead_usage[0]
     assert payload["contextTokens"] == 0

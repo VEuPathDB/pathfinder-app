@@ -1,17 +1,18 @@
 """The Lead's edit dispatch: a delta over the strategy that already exists.
 
-FRAME runs over the spec the turn started from, the two are compared, and the
-difference is pushed as graph operations. A step the edit does not name keeps
-its WDK id and every value the researcher set on it.
+FRAME runs over the spec the dispatch found on the strategy, the two are
+compared, and the difference is pushed as graph operations. A step the edit
+does not name keeps its WDK id and every value the researcher set on it.
 """
 
 from __future__ import annotations
 
+import pydantic
 from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.errors import ValidationError
+from veupathdb.errors import ParamMessages, ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import EditDelta
@@ -19,6 +20,7 @@ from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
     defer_dispatch,
     dispatch_call_id,
+    record_the_spec_the_dispatch_found,
     refuse_and_restore,
 )
 from pathfinder.ai.lead.dispatch_messages import option_binds_no_step_message
@@ -28,6 +30,7 @@ from pathfinder.ai.lead.edit_messages import (
     edit_work_order,
     no_strategy_to_edit_message,
     unsupported_edit_message,
+    wdk_refused_the_written_step_message,
 )
 from pathfinder.ai.lead.frame_dispatch import run_frame
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
@@ -36,6 +39,7 @@ from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edi
 from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
     OperationalSpec,
     fold_option_criteria,
 )
@@ -66,7 +70,8 @@ async def run_edit(
     resume: SubAgentResume | None = None,
 ) -> EditDelta | SubAgentApprovalWait:
     """Run the edit and push it, on a fresh dispatch or a resumed one."""
-    before = deps.state.domain.spec_before_turn
+    record_the_spec_the_dispatch_found(deps, resume=resume)
+    before = deps.state.domain.spec_before_dispatch
     graph = deps.runtime.strategy_session.get_graph(None)
     if before is None or not before.criteria or graph is None or not graph.steps:
         # Nothing has been written yet, so the refusal restores nothing: a spec
@@ -141,9 +146,11 @@ async def _push_the_edit(
         commit = await apply_operations_and_commit(
             deps=agent_deps.to_strategy_context(), ops=ops
         )
-    except (ApplyError, ValidationError) as exc:
+    except ApplyError as exc:
         # The batch rolls back, so the strategy is exactly as it was.
         refuse_and_restore(deps, unsupported_edit_message(str(exc)))
+    except ValidationError as exc:
+        refuse_and_restore(deps, _refused_values_message(exc, diff=diff, after=after))
     outcome = await _outcome_after_edit(agent_deps, commit)
     # The spec the thread carries states the option on the step that runs it,
     # exactly as the spec a build leaves behind does.
@@ -160,6 +167,46 @@ async def _push_the_edit(
         preserved_step_ids=preserved,
         dropped_step_ids=list(commit.dropped_step_ids),
         failed_step_ids=list(commit.failed_step_ids),
+    )
+
+
+_REFUSED_PARAMS = pydantic.TypeAdapter(list[ParamMessages])
+
+
+def _params_wdk_named(exc: ValidationError) -> frozenset[str]:
+    """The parameter names the refusal rows carry, empty when it carries none."""
+    try:
+        rows = _REFUSED_PARAMS.validate_python(exc.errors or [])
+    except pydantic.ValidationError:
+        return frozenset()
+    return frozenset(row.param for row in rows)
+
+
+def _steps_the_edit_writes(diff: SpecDiff, after: OperationalSpec) -> list[Criterion]:
+    """The criteria whose values this edit sends to VEuPathDB."""
+    written = {
+        change.criterion_id
+        for change in diff.changes
+        if change.disposition in {"added", "changed"}
+    }
+    return [criterion for criterion in after.criteria if criterion.id in written]
+
+
+def _refused_values_message(
+    exc: ValidationError, *, diff: SpecDiff, after: OperationalSpec
+) -> str:
+    """The refusal for values VEuPathDB turned down while the edit was pushed.
+
+    The refused step is the one this edit writes that states a parameter the
+    answer names; every written step is named when the answer names none.
+    """
+    params = _params_wdk_named(exc)
+    written = _steps_the_edit_writes(diff, after)
+    named = [c for c in written if not params.isdisjoint(c.resolved_params)]
+    return wdk_refused_the_written_step_message(
+        exc.detail or str(exc),
+        steps=[f"[{c.id}] {c.search_name}" for c in (named or written)],
+        params=sorted(params),
     )
 
 

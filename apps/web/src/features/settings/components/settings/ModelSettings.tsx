@@ -39,6 +39,7 @@ export function ModelSettings() {
     provider,
     phaseModels,
     phaseReasoning,
+    data?.defaultTier,
   );
 
   return (

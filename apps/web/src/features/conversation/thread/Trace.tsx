@@ -20,6 +20,7 @@ export interface TraceUsageView {
   model: string;
   tokens: number;
   costUsd: string;
+  effort?: string;
 }
 
 export interface TraceProps {
@@ -42,7 +43,9 @@ function summaryOf(run: TraceRunView): string {
 }
 
 function usageLine(usage: TraceUsageView): string {
-  return `${usage.model} - ${formatUsage(usage.tokens, usage.costUsd)}`;
+  const model =
+    usage.effort === undefined ? usage.model : `${usage.model} (${usage.effort})`;
+  return `${model} - ${formatUsage(usage.tokens, usage.costUsd)}`;
 }
 
 /** A turn the Lead ran alone needs no heading over its one group. */

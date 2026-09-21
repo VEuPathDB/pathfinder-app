@@ -12855,7 +12855,11 @@ components:
 
         and exclude sub-agents. ``context_tokens`` is the input size of the latest
 
-        request against ``context_window``, and 0 in either means unknown.'
+        request against ``context_window``, and 0 in either means unknown.
+
+        ``reasoning_effort`` is the effort the lead ran with, and None means the
+
+        run states none.'
       properties:
         modelId:
           default: ''
@@ -12877,6 +12881,10 @@ components:
           default: 0
           title: Contextwindow
           type: integer
+        reasoningEffort:
+          anyOf:
+          - $ref: '#/components/schemas/ReasoningEffort'
+          - type: 'null'
       title: LeadUsagePayload
       type: object
     MemoryEntryDraft:

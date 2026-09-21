@@ -21,6 +21,7 @@ from assistant_core.cost import cost_for_run
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
 from assistant_core.graph.turn_state import PendingApproval, PendingDurableCall
 from assistant_core.platform.logging import get_logger
+from assistant_core.platform.types import ReasoningEffort
 from pydantic_ai.messages import AgentStreamEvent, ModelMessage, PartStartEvent
 from pydantic_ai.run import AgentRunResultEvent
 from pydantic_ai.ui.vercel_ai.response_types import (
@@ -98,6 +99,7 @@ class _LeadRunCapture:
     )
     sub_agent_usage_by_call: dict[str, SubAgentCallUsage] = field(default_factory=dict)
     lead_model: str = ""
+    lead_reasoning_effort: ReasoningEffort | None = None
     last_request_input_tokens: int = 0
     pending_approval: PendingApproval | None = None
     pending_durable_call: PendingDurableCall | None = None
@@ -200,21 +202,20 @@ def usage_recorders(
 
 def emit_lead_usage(
     writer: Any,
-    model_id: str,
+    capture: _LeadRunCapture,
     tokens: int,
     cost_usd: str,
-    *,
-    context_tokens: int,
-    context_window: int,
 ) -> None:
+    """Report the spend under the model and the effort the Lead runs at."""
     emit_chunk(
         writer,
         lead_usage_event(
-            model_id=model_id,
+            model_id=capture.lead_model,
             tokens=tokens,
             cost_usd=cost_usd,
-            context_tokens=context_tokens,
-            context_window=context_window,
+            context_tokens=capture.last_request_input_tokens,
+            context_window=context_window_for(capture.lead_model),
+            reasoning_effort=capture.lead_reasoning_effort,
         ),
     )
 
@@ -298,14 +299,7 @@ async def _charge_token_delta(
         capture.last_request_input_tokens = delta_input
     total_tokens, cost_usd = capture.live_totals(state)
     emit_turn_usage(writer, total_tokens, cost_usd)
-    emit_lead_usage(
-        writer,
-        capture.lead_model,
-        capture.charged_tokens,
-        str(capture.charged_cost),
-        context_tokens=capture.last_request_input_tokens,
-        context_window=context_window_for(capture.lead_model),
-    )
+    emit_lead_usage(writer, capture, capture.charged_tokens, str(capture.charged_cost))
 
 
 async def _persist_residual_quota(

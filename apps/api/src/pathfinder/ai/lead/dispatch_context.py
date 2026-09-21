@@ -16,7 +16,7 @@ from pathfinder.ai.graph.runtime import AgentDeps, one_toolset
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.retrieval_toolset import recording_retrievals
-from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait
+from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentDurablePark
 from pathfinder.domain.strategy.constraints import (
     combination_requirements_from,
@@ -116,14 +116,30 @@ def defer_dispatch(
     raise CallDeferred
 
 
+def record_the_spec_the_dispatch_found(
+    deps: LeadDeps, *, resume: SubAgentResume | None
+) -> None:
+    """Record the committed spec this dispatch plans and restores against.
+
+    A resumed dispatch keeps the record it parked with, so the answer to a
+    question is measured against the spec the parked pass started from.
+    """
+    if resume is not None:
+        return
+    found = deps.state.domain.operational_spec
+    deps.state.domain.spec_before_dispatch = (
+        None if found is None else found.model_copy(deep=True)
+    )
+
+
 def refuse_and_restore(deps: LeadDeps, message: str) -> NoReturn:
-    """Reject the pass and put back the spec the turn found.
+    """Reject the pass and put back the spec the dispatch found.
 
     The sub-agent writes into the shared spec as it goes, so a refusal that
     left the draft in place would show the retry a workspace missing the very
     criterion it has to preserve.
     """
-    before = deps.state.domain.spec_before_turn
+    before = deps.state.domain.spec_before_dispatch
     deps.state.domain.operational_spec = (
         None if before is None else before.model_copy(deep=True)
     )

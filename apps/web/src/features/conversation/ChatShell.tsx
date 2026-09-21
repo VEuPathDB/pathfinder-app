@@ -41,11 +41,11 @@ export function computeChatResolution({
 }
 
 /**
- * The draft a generated conversation id belongs to. The assistant is part of
- * it: two assistants on one path are two drafts, so the thread a first message
- * creates runs under the assistant the reader picked.
+ * The route a conversation id belongs to. The assistant is part of it: two
+ * assistants on one path are two drafts, so the thread a first message creates
+ * runs under the assistant the reader picked.
  */
-export function draftRoute(
+export function routeKey(
   pathname: string,
   requestedAssistantId: string | null,
 ): string {
@@ -53,39 +53,58 @@ export function draftRoute(
   return `${pathname}?${ASSISTANT_PARAM}=${requestedAssistantId}`;
 }
 
+/**
+ * True when the URL now names no conversation and the route moved. A draft id
+ * belongs to one visit of the draft route, so every arrival there is a new
+ * thread.
+ */
+export function needsNewDraftId(currentRoute: string, lastSeenRoute: string): boolean {
+  if (conversationIdFromPath(currentRoute) !== null) return false;
+  return currentRoute !== lastSeenRoute;
+}
+
 export function ChatShell() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const chatResetCounter = useSessionStore((s) => s.chatResetCounter);
-  const chatIdFromUrl = conversationIdFromPath(pathname);
   const requestedAssistantId = searchParams.get(ASSISTANT_PARAM);
-  const currentDraft = draftRoute(pathname, requestedAssistantId);
+  const currentRoute = routeKey(pathname, requestedAssistantId);
 
   const [generatedChatId, setGeneratedChatId] = useState<string>(() =>
     crypto.randomUUID(),
   );
-  const [lastSeenDraft, setLastSeenDraft] = useState<string>(currentDraft);
+  const [lastSeenRoute, setLastSeenRoute] = useState<string>(currentRoute);
 
-  if (chatIdFromUrl === null && lastSeenDraft !== currentDraft) {
-    setLastSeenDraft(currentDraft);
+  if (needsNewDraftId(currentRoute, lastSeenRoute)) {
     setGeneratedChatId(crypto.randomUUID());
   }
-
-  // A route that owns the main pane renders its own page instead of the thread.
-  if (isStrategyRoute(pathname) || isEdaRoute(pathname)) return null;
+  if (lastSeenRoute !== currentRoute) {
+    setLastSeenRoute(currentRoute);
+  }
 
   const { conversationId, resumable } = computeChatResolution({
     pathname,
     generatedChatId,
   });
 
+  // A route that owns the main pane takes the whole pane, so the thread is
+  // hidden and costs no layout. It stays mounted: the composer text and a
+  // running turn belong to the thread and outlive a visit to that route.
+  const covered = isStrategyRoute(pathname) || isEdaRoute(pathname);
+
   return (
-    // A revert opens the thread again, on a conversation that now has a row.
-    <ChatView
-      key={`${conversationId}:${chatResetCounter}`}
-      conversationId={conversationId}
-      resumable={resumable}
-      requestedAssistantId={requestedAssistantId}
-    />
+    <div
+      data-testid="chat-pane"
+      hidden={covered}
+      className={covered ? undefined : "flex min-h-0 min-w-0 flex-1"}
+    >
+      {/* A revert opens the thread again, on a conversation that now has a row. */}
+      <ChatView
+        key={`${conversationId}:${chatResetCounter}`}
+        conversationId={conversationId}
+        resumable={resumable}
+        requestedAssistantId={requestedAssistantId}
+      />
+    </div>
   );
 }

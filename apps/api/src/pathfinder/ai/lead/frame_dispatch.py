@@ -11,6 +11,7 @@ from pathfinder.ai.lead.dispatch_context import (
     defer_dispatch,
     dispatch_call_id,
     framing_goal,
+    record_the_spec_the_dispatch_found,
     refuse_and_restore,
 )
 from pathfinder.ai.lead.dispatch_messages import (
@@ -74,7 +75,7 @@ def _continuation_work_order(deps: LeadDeps) -> str:
     A turn that started from a strategy owes a disposition per criterion, so
     its continuation is an edit work order.
     """
-    before = deps.state.domain.spec_before_turn
+    before = deps.state.domain.spec_before_dispatch
     if before is not None and before.criteria:
         return edit_continuation_work_order(before, deps.state.user_prompt)
     return frame_continuation_work_order(
@@ -92,6 +93,7 @@ async def run_frame(
     resume: SubAgentResume | None = None,
 ) -> FrameResult | SubAgentApprovalWait:
     """Run FRAME and record the questions its result leaves for the user."""
+    record_the_spec_the_dispatch_found(deps, resume=resume)
     result = await _run_frame(
         deps=deps,
         parent_tool_call_id=parent_tool_call_id,
@@ -139,7 +141,9 @@ async def _run_frame(
             draft=agent_deps.agent_state.operational_spec_draft,
         ):
             deps.frame_retried_after_stop = True
-            return await run_frame(
+            # The continuation belongs to the dispatch that stopped, so the
+            # spec it found stays the one recorded at that dispatch's start.
+            return await _run_frame(
                 deps=deps,
                 parent_tool_call_id=parent_tool_call_id,
                 work_order=_continuation_work_order(deps),
@@ -152,7 +156,7 @@ async def _run_frame(
             return frame_bound_nothing_result()
         deps.empty_frame_reported = True
         refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.summary))
-    before = deps.state.domain.spec_before_turn
+    before = deps.state.domain.spec_before_dispatch
     if before is not None and before.criteria:
         problem = undeclared_spec_changes(
             diff_specs(before, draft), delta.changes, before

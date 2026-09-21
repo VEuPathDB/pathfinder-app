@@ -358,6 +358,9 @@ async def clear_strategy(
     inner = inner_context(ctx)
     cleared = await conversation.clear_strategy(inner, confirm=confirm)
     ctx.deps.state.turn_markers.edited = True
+    # The criteria address the steps the clear removed, so the thread states
+    # no spec after it and the next pass frames from the request alone.
+    ctx.deps.state.domain.operational_spec = None
     return cleared
 
 

@@ -51,6 +51,7 @@ DOMAIN_FIELDS = {
     "lead_next_state",
     "operational_spec",
     "spec_before_turn",
+    "spec_before_dispatch",
     "discovered_searches",
     "verification_digest",
     "last_build_outcome",

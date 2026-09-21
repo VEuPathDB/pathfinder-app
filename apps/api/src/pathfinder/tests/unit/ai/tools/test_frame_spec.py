@@ -148,8 +148,13 @@ def serve_catalog(
 
 
 def no_validation(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _validate(*_args: object, **_kwargs: object) -> ValidatedParams:
-        return ValidatedParams()
+    """WDK accepts every value and canonicalizes none of them."""
+
+    async def _validate(
+        _search: object, *, parameters: Mapping[str, ParamValue], callbacks: object
+    ) -> ValidatedParams:
+        del callbacks
+        return ValidatedParams(params=dict(parameters))
 
     monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
 

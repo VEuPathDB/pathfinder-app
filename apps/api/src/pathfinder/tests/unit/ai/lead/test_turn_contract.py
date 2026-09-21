@@ -210,7 +210,7 @@ class TestTheBlamedSiteRule:
             turn_record(run_context_for(deps)),
         )
 
-        assert [m.kind for m in mismatches] == ["blamed_the_site"]
+        assert [m.kind for m in mismatches] == ["blamed_the_site", "unfinished_work"]
         assert (
             "the framing pass stopped on its call budget after 60 calls"
             in mismatches[0].sentence

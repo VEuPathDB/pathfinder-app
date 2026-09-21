@@ -81,14 +81,21 @@ function openDispatch(): MessagePart[] {
   ];
 }
 
-const LEAD_USAGE: MessagePart = {
-  type: "data-lead-usage",
-  id: "lu_1",
-  data: { modelId: "openai:gpt-5.6-luna", tokens: 41800, costUsd: "0.0131" },
-};
+function leadUsage(extra: Record<string, unknown> = {}): MessagePart {
+  return {
+    type: "data-lead-usage",
+    id: "lu_1",
+    data: {
+      modelId: "openai:gpt-5.6-luna",
+      tokens: 41800,
+      costUsd: "0.0131",
+      ...extra,
+    },
+  };
+}
 
 /** Two stretches of work with the Lead's prose between them. */
-function twoRuns(): MessagePart[] {
+function twoRuns(usage: MessagePart = leadUsage()): MessagePart[] {
   return [
     {
       type: "tool-search_eda_studies",
@@ -105,7 +112,7 @@ function twoRuns(): MessagePart[] {
       input: {},
       output: {},
     },
-    LEAD_USAGE,
+    usage,
   ] as MessagePart[];
 }
 
@@ -198,6 +205,35 @@ describe("TraceAnchor", () => {
 
     const last = anchorFor("call_b", "set_criterion", twoRuns());
     expect(last.getByTestId("trace-usage")).toHaveTextContent(
+      "gpt-5.6-luna - 41.8K, $0.01",
+    );
+  });
+
+  it("names the reasoning effort the turn ran at beside the model", () => {
+    const view = anchorFor(
+      "call_b",
+      "set_criterion",
+      twoRuns(leadUsage({ reasoningEffort: "high" })),
+    );
+    expect(view.getByTestId("trace-usage")).toHaveTextContent(
+      "gpt-5.6-luna (high) - 41.8K, $0.01",
+    );
+  });
+
+  it("names no effort for a turn whose effort is none", () => {
+    const view = anchorFor(
+      "call_b",
+      "set_criterion",
+      twoRuns(leadUsage({ reasoningEffort: "none" })),
+    );
+    expect(view.getByTestId("trace-usage")).toHaveTextContent(
+      "gpt-5.6-luna - 41.8K, $0.01",
+    );
+  });
+
+  it("names no effort for a turn that reports none", () => {
+    const view = anchorFor("call_b", "set_criterion", twoRuns());
+    expect(view.getByTestId("trace-usage")).toHaveTextContent(
       "gpt-5.6-luna - 41.8K, $0.01",
     );
   });

@@ -198,6 +198,7 @@ async def test_a_fresh_build_declares_nothing_and_passes(
     """No spec before the turn means there is nothing to preserve."""
     _stub_frame(monkeypatch, _spec(_text_criterion()), [])
     deps = _deps(_three())
+    deps.state.domain.operational_spec = None
     deps.state.domain.spec_before_turn = None
 
     result = await _edit(deps, order="build")

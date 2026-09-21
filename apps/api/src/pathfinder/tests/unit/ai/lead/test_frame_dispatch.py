@@ -343,12 +343,14 @@ async def test_an_edit_continues_as_an_edit(
     stopping_dispatches: list[PhaseRun],
 ) -> None:
     deps = _deps()
-    deps.state.domain.spec_before_turn = OperationalSpec(
+    entered_with = OperationalSpec(
         goal="find the kinases",
         criteria=[
             Criterion(id="k1", text="kinase domain", search_name="GenesByText"),
         ],
     )
+    deps.state.domain.operational_spec = entered_with
+    deps.state.domain.spec_before_turn = entered_with.model_copy(deep=True)
 
     await run_frame(
         deps=deps,

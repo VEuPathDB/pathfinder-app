@@ -89,9 +89,13 @@ def wdk_refused_the_edit(result: CommitResult) -> ToolErrorPayload | None:
     step_ids = ", ".join(sorted(result.failed_step_ids))
     if all(failure.wdk_refused_the_values for failure in result.failures):
         msg = (
-            f"WDK_REJECTED: VEuPathDB refused this edit, so the strategy it "
-            f"holds still runs the previous search and values for {step_ids}. "
-            f"{answers}"
+            f"WDK_REJECTED: VEuPathDB refused the values written on {step_ids}, "
+            f"so those steps still run the search and values they held, and "
+            f"every other step of the strategy is untouched and was not "
+            f"refused. {answers}. Bind those criteria again with values "
+            f"VEuPathDB accepts, or tell the user exactly what VEuPathDB "
+            f"refused and stop. Do not offer to rebuild the strategy from "
+            f"scratch, and do not drop the steps it holds."
         )
         raise ModelRetry(msg)
     return tool_error(ErrorCode.WDK_ERROR, answers, stepIds=step_ids)

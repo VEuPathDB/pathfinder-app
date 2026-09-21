@@ -84,5 +84,7 @@ async def list_models() -> ModelListResponse:
         models=models,
         default_provider=settings.default_provider,
         default_tier=settings.default_tier,
-        phase_defaults=installed_phase_defaults(),
+        phase_defaults=installed_phase_defaults(
+            settings.default_provider, settings.default_tier
+        ),
     )

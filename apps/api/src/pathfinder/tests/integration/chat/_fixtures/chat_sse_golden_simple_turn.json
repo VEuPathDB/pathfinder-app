@@ -59,6 +59,7 @@
       "contextWindow": 0,
       "costUsd": "0",
       "modelId": "mock:lead",
+      "reasoningEffort": null,
       "tokens": 62
     },
     "id": "<REDACTED>",
@@ -119,6 +120,7 @@
       "contextWindow": 0,
       "costUsd": "0",
       "modelId": "mock:lead",
+      "reasoningEffort": null,
       "tokens": 62
     },
     "id": "<REDACTED>",

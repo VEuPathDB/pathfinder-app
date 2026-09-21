@@ -237,9 +237,12 @@ class StrategyDomainState(BaseModel):
     turn_markers: TurnMarkers = Field(default_factory=TurnMarkers)
     lead_next_state: Literal["await_user", "complete"] | None = None
     operational_spec: OperationalSpec | None = None
-    # The spec as the turn found it, written by the pre-turn hook. An edit's
-    # dispositions are checked against this and never against the model's memory.
+    # The spec the turn entered with, written by the pre-turn hook and re-keyed
+    # by a build onto the steps it made. The ledger diffs the turn against it.
     spec_before_turn: OperationalSpec | None = None
+    # The committed spec as the running dispatch found it. The pass states its
+    # dispositions against it, and a refusal puts it back.
+    spec_before_dispatch: OperationalSpec | None = None
     discovered_searches: dict[str, SearchOverview] = Field(default_factory=dict)
     verification_digest: VerificationDigest | None = None
     last_build_outcome: BuildOutcome | None = None

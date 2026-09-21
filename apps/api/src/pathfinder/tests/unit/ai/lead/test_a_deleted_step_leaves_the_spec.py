@@ -190,11 +190,13 @@ async def _restoring_edit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[EditDelta, list[GraphOperation]]:
     committed: list[GraphOperation] = []
-    state = _state(_reframed())
-    state.domain.spec_before_turn = await _entry_spec()
+    entry = await _entry_spec()
+    state = _state(entry.model_copy(deep=True))
+    state.domain.spec_before_turn = entry
     deps = lead_deps(state, strategy_session=_session_after_the_delete())
 
     async def _fake_frame(**_kwargs: Any) -> FrameResult:
+        state.domain.operational_spec = _reframed()
         return FrameResult(disposition="spec_ready", summary="reframed")
 
     async def _fake_commit(**kwargs: Any) -> CommitResult:

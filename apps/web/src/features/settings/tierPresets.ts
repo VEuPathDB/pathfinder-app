@@ -51,13 +51,9 @@ export function applyTierPreset(preset: TierPreset): AppliedTier {
 }
 
 /**
- * Which tier the current picks correspond to, or {@link CUSTOM_TIER}.
- *
- * Derived rather than stored, so the label can never drift from the pickers it
- * describes. A tier matches only when EVERY role of that preset agrees on both
- * model and effort -- some tiers differ from each other by effort alone, so
- * comparing models only would conflate them. A role of another assistant is
- * never read, so one assistant's picks do not decide another's label.
+ * Which tier this assistant's picks correspond to, or {@link CUSTOM_TIER}. A
+ * tier matches when every one of its roles agrees on model and effort; a role
+ * with no pin runs on `deploymentTier`, which is read before the other tiers.
  */
 export function deriveActiveTier(
   presets: TierPresetsByAssistant | undefined,
@@ -65,13 +61,26 @@ export function deriveActiveTier(
   provider: string,
   models: PhaseModelMap,
   reasoning: PhaseReasoningMap,
+  deploymentTier: string | undefined,
 ): string {
   const candidates = presetsForProvider(presets, assistantId, provider);
-  for (const [tier, preset] of Object.entries(candidates)) {
-    const matches = Object.entries(preset.roles).every(
-      ([role, config]) =>
-        models[role] === config.modelId && reasoning[role] === config.reasoningEffort,
-    );
+  const deployed =
+    deploymentTier === undefined ? undefined : candidates[deploymentTier];
+  const ordered =
+    deploymentTier === undefined || deployed === undefined
+      ? Object.entries(candidates)
+      : [
+          [deploymentTier, deployed] as const,
+          ...Object.entries(candidates).filter(([tier]) => tier !== deploymentTier),
+        ];
+  for (const [tier, preset] of ordered) {
+    const matches = Object.entries(preset.roles).every(([role, config]) => {
+      const unpinned = deployed?.roles[role];
+      return (
+        (models[role] ?? unpinned?.modelId) === config.modelId &&
+        (reasoning[role] ?? unpinned?.reasoningEffort) === config.reasoningEffort
+      );
+    });
     if (matches) return tier;
   }
   return CUSTOM_TIER;

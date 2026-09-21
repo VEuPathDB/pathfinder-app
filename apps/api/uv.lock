@@ -137,8 +137,8 @@ wheels = [
 
 [[package]]
 name = "assistant-core"
-version = "0.3.0a14"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a14#74df9314caa26cf3c4cc3ccf5111b6df65fbfa50" }
+version = "0.3.0a15"
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a15#113144d66dfa4953a979151d20123d4fa02969b3" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
@@ -2554,7 +2554,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.18.0" },
-    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a14" },
+    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a15" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "cachetools", specifier = ">=7.0.5" },
     { name = "fastapi", specifier = ">=0.141.0" },
@@ -2605,7 +2605,7 @@ dev = [
     { name = "ruff", specifier = ">=0.16.6" },
     { name = "schemathesis", specifier = ">=4.16.1" },
     { name = "testcontainers", specifier = ">=4.14.0" },
-    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a14" },
+    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a15" },
     { name = "vulture", specifier = ">=2.16" },
 ]
 docs = [
@@ -4135,7 +4135,7 @@ dependencies = [
 [[package]]
 name = "veupathdb-mcp-conformance"
 version = "0.1.3"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a14#74df9314caa26cf3c4cc3ccf5111b6df65fbfa50" }
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a15#113144d66dfa4953a979151d20123d4fa02969b3" }
 dependencies = [
     { name = "httpx" },
     { name = "mcp" },
