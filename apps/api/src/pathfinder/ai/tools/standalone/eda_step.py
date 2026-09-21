@@ -15,6 +15,7 @@ from veupathdb.eda import EdaAnalysisDetail
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload
 
+from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._eda_step_guard import (
     refuse_an_empty_gene_subset,
@@ -340,6 +341,9 @@ async def create_eda_step(
         ctx.deps.state.domain.operational_spec = stated
     if restate:
         restate_the_structure(ctx, graph)
+    the_strategy_now_answers_to(
+        ctx.deps.state, ctx.deps.state.domain.operational_spec, graph
+    )
     sync = result.sync_result
     metadata: list[DataChunk] = [graph_snapshot_chunk(session, graph)]
     if sync is not None and sync.wdk_url is not None:

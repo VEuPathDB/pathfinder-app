@@ -1,7 +1,10 @@
+"""Which deletes a step admits, and which deletes the graph cannot place."""
+
 from veupathdb.domain.strategy import StepKind, StrategyStep, subtree_ids
 
 from pathfinder.domain.strategy.operations.types import (
     DeleteResolution,
+    DeleteStepOp,
     OperationChoice,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
@@ -13,12 +16,43 @@ def compute_delete_choices(graph: StrategyGraph, step_id: str) -> list[Operation
         return []
     if len(graph.steps) == 1:
         return _sole_step_choices(step_id)
-    if target.kind is StepKind.TRANSFORM:
+    # A transform that reads nothing has no input to stand in its place, so the
+    # rules for a step without one place it.
+    if target.kind is StepKind.TRANSFORM and target.primary_input_id is not None:
         return _transform_choices(step_id)
     parent_info = graph.parent_of(step_id)
     if parent_info is None:
         return _root_choices(graph, target)
     return _child_choices(graph, target, parent_info)
+
+
+def why_the_graph_refuses_the_delete(
+    graph: StrategyGraph, op: DeleteStepOp
+) -> str | None:
+    """The reason no re-wiring of the graph performs this delete, or None.
+
+    Every delete surface reads this before it applies one, so a request the
+    algebra cannot carry out is answered and not raised.
+    """
+    target = graph.steps.get(op.step_id)
+    if target is None:
+        return f"{op.step_id} is not a step of this strategy"
+    has_parent = graph.parent_of(op.step_id) is not None
+    if op.resolution is DeleteResolution.ORPHAN_SIBLING and not has_parent:
+        return f"{op.step_id} is a root, so no step above it keeps another branch"
+    stands_in = _stands_the_input_in_its_place(op.resolution, has_parent=has_parent)
+    if stands_in and target.primary_input_id is None:
+        return f"{op.step_id} reads no step that can take its place"
+    return None
+
+
+def _stands_the_input_in_its_place(
+    resolution: DeleteResolution, *, has_parent: bool
+) -> bool:
+    """The deletes that leave the step's own input where the step stood."""
+    if resolution is DeleteResolution.PROMOTE_PRIMARY:
+        return True
+    return resolution is DeleteResolution.COLLAPSE_COMBINE and not has_parent
 
 
 def _sole_step_choices(step_id: str) -> list[OperationChoice]:
@@ -36,7 +70,7 @@ def _sole_step_choices(step_id: str) -> list[OperationChoice]:
 def _transform_choices(step_id: str) -> list[OperationChoice]:
     return [
         OperationChoice(
-            resolution=DeleteResolution.COLLAPSE_COMBINE,
+            resolution=DeleteResolution.PROMOTE_PRIMARY,
             title="Delete this transform",
             description=(
                 "The step it consumed becomes the input of the next step downstream."

@@ -245,13 +245,19 @@ async def apply_operations_and_commit(
         else None
     )
 
-    sync_result = await _commit_to_wdk(
-        deps=deps,
-        graph=graph,
-        old_ast=old_ast,
-        new_ast=wdk_ast,
-        dropped_step_ids=result.dropped_step_ids,
-    )
+    try:
+        sync_result = await _commit_to_wdk(
+            deps=deps,
+            graph=graph,
+            old_ast=old_ast,
+            new_ast=wdk_ast,
+            dropped_step_ids=result.dropped_step_ids,
+        )
+    except VEuPathDBError:
+        # The push raises for a step VEuPathDB already holds, so the batch is
+        # rolled back rather than left ahead of the strategy it edits.
+        restore_graph(graph, old_ast, entry_labels)
+        raise
 
     # VEuPathDB owns the counts. Reading them back here is what makes the
     # session, the graph snapshot and the stored strategy carry one set of

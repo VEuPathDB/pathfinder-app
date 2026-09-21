@@ -37,20 +37,13 @@ the researcher set on the canvas is the planner, not a copy: an edit sends only
 what the diff says moved (see
 [an edit is a delta](an-edit-is-a-delta-not-a-rebuild.md)).
 
-Two cases are still wrong, each pinned by a strict `xfail` in
-`tests/unit/ai/lead/test_the_live_value_refresh_keeps_the_turn_whole.py`:
-`test_a_value_set_on_the_canvas_reaches_the_spec` (the spec keeps stating the
-value the last frame bound, so the workspace and the reply describe a strategy
-the user no longer has) and
-`test_a_change_framed_beside_an_open_question_is_pushed_once_it_is_answered` (an
-edit that ends on the user commits its draft as the thread's spec, so a changed
-value on a built criterion becomes the next dispatch's baseline and is never
-pushed, so the value the researcher asked for is never written). Both are the
-same open question - whether a value belongs to the plan or to the strategy -
-and the backlog item `a-value-has-no-owner-between-the-plan-and-the-strategy`
-holds them. No path writes the spec's stale value over a canvas edit, but a
-dependent value picked under the spec's stale parent can validate under the
-live parent and take its meaning.
+What a value written OUTSIDE the thread means is settled separately: the thread
+records the spec the strategy answers to and the tree it held, and plays what
+moved since onto the spec, name by name, for the names the search's sheet shows
+(see [the strategy answers to a spec](the-strategy-answers-to-a-spec.md)). That
+is how a value the researcher sets on the canvas reaches the criterion without
+a form ever being copied: the two trees are compared to each other, never a
+tree to a spec.
 
 For an edit turn the persisted AST is the truth about what the strategy is, and
 the spec is a view derived from it. The spec keeps its role as the artifact

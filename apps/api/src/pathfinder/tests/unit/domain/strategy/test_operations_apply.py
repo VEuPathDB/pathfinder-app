@@ -185,6 +185,41 @@ class TestApplyDeleteStep:
 
         assert sorted(graph.steps) == ["a"]
 
+    def test_promote_primary_on_a_transform_keeps_the_step_it_read(self) -> None:
+        graph = graph_with([transform("t", combine("c", leaf("a"), leaf("b")))])
+
+        result = apply_operation(
+            graph,
+            DeleteStepOp(step_id="t", resolution=DeleteResolution.PROMOTE_PRIMARY),
+        )
+
+        assert sorted(graph.steps) == ["a", "b", "c"]
+        assert graph.primary_root_id() == "c"
+        assert result.dropped_step_ids == ["t"]
+
+    def test_a_delete_of_a_leaf_that_stands_alone_is_refused(self) -> None:
+        graph = graph_with([combine("c", leaf("a"), leaf("b"))])
+
+        with pytest.raises(ApplyError, match="reads no step"):
+            apply_operation(
+                graph,
+                DeleteStepOp(step_id="a", resolution=DeleteResolution.PROMOTE_PRIMARY),
+            )
+
+    def test_delete_subtree_under_a_combine_takes_the_combine(self) -> None:
+        """A combine with one branch gone combines nothing, so it leaves too."""
+        inner = combine("c1", leaf("a"), leaf("b"))
+        graph = graph_with([combine("c2", inner, leaf("d"))])
+
+        result = apply_operation(
+            graph,
+            DeleteStepOp(step_id="a", resolution=DeleteResolution.DELETE_SUBTREE),
+        )
+
+        assert sorted(graph.steps) == ["b", "c2", "d"]
+        assert graph.steps["c2"].primary_input_id == "b"
+        assert sorted(result.dropped_step_ids) == ["a", "c1"]
+
     def test_delete_subtree_through_transform_cascades(self) -> None:
         chain = transform("r", transform("t", leaf("a")), search_name="x")
         graph = graph_with([chain])

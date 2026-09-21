@@ -7,7 +7,7 @@ does not name keeps its WDK id and every value the researcher set on it.
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Mapping, Sequence
 
 import pydantic
 from assistant_core.graph.emit import emit_chunk
@@ -17,6 +17,7 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.errors import ParamMessages, ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
@@ -28,9 +29,11 @@ from pathfinder.ai.lead.dispatch_context import (
 from pathfinder.ai.lead.dispatch_messages import option_binds_no_step_message
 from pathfinder.ai.lead.edit_messages import (
     changed_revision_message,
+    delta_disagrees_with_the_strategy_message,
     edit_bound_nothing_message,
     edit_work_order,
     no_strategy_to_edit_message,
+    pending_changes_no_pass_accounted_for_message,
     unsupported_edit_message,
     wdk_refused_the_written_step_message,
 )
@@ -45,11 +48,17 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     fold_option_criteria,
+    stated_wire_values,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
+from pathfinder.domain.strategy.spec_diff import (
+    CriterionChange,
+    CriterionDisposition,
+    SpecDiff,
+    diff_specs,
+)
 from pathfinder.domain.strategy.spec_to_operations import (
     criteria_the_edit_introduces,
     operations_for,
@@ -73,18 +82,29 @@ async def run_edit(
 ) -> EditDelta | SubAgentApprovalWait:
     """Run the edit and push it, on a fresh dispatch or a resumed one."""
     record_the_spec_the_dispatch_found(deps, resume=resume)
-    before = deps.state.domain.spec_before_dispatch
+    found = deps.state.domain.spec_before_dispatch
     graph = deps.runtime.strategy_session.get_graph(None)
-    if before is None or not before.criteria or graph is None or not graph.steps:
+    if found is None or not found.criteria or graph is None or not graph.steps:
         # Nothing has been written yet, so the refusal restores nothing: a spec
         # this turn framed for a fresh thread must survive a misrouted call.
         raise ModelRetry(no_strategy_to_edit_message())
     base_revision = strategy_revision(graph.to_strategy_ast())
+    # The edit is the difference between the spec the strategy answers to and
+    # the one this pass leaves, so a criterion an earlier pass framed and never
+    # pushed is this edit's to build, and this pass is shown it.
+    answered = deps.state.domain.answered_spec or found
+    pending = diff_specs(answered, found)
     frame = await run_frame(
         deps=deps,
         parent_tool_call_id=parent_tool_call_id,
-        work_order=edit_work_order(reason, deps.state.user_prompt, before),
-        expected_criteria=len(before.criteria),
+        work_order=edit_work_order(
+            reason,
+            deps.state.user_prompt,
+            found,
+            pending=pending,
+            answered=answered,
+        ),
+        expected_criteria=len(found.criteria),
         resume=resume,
     )
     if isinstance(frame, SubAgentApprovalWait):
@@ -92,11 +112,18 @@ async def run_edit(
     after = deps.state.domain.operational_spec
     if after is None or not after.criteria:
         refuse_and_restore(deps, edit_bound_nothing_message())
+    # The draft before the fold is what this pass states: an option it absorbs
+    # is a criterion the pass wrote, whatever carries its values.
+    drafted = frozenset(criterion.id for criterion in after.criteria)
     # Both sides state an option as a value on the step that runs its search,
     # so the difference between them is a difference between steps. The stored
     # spec is what an earlier turn left, so only this turn's side is refused.
-    before = fold_option_criteria(before, live_step_ids=graph.steps).spec
-    folded_after = fold_option_criteria(after, live_step_ids=graph.steps)
+    before = fold_option_criteria(answered, live_step_ids=graph.steps).spec
+    folded_after = fold_option_criteria(
+        after,
+        live_step_ids=graph.steps,
+        answered_values=stated_wire_values(before),
+    )
     if folded_after.unplaced:
         refuse_and_restore(
             deps, option_binds_no_step_message(folded_after.spec, folded_after.unplaced)
@@ -110,6 +137,9 @@ async def run_edit(
             summary=frame.summary,
             open_questions=list(frame.open_questions),
         )
+    _refuse_a_pending_change_this_turn_did_not_account_for(
+        deps, pending, frame.changes, drafted
+    )
     return await _push_the_edit(
         deps=deps,
         after=after,
@@ -133,6 +163,7 @@ async def _push_the_edit(
         refuse_and_restore(deps, unsupported_edit_message(str(exc)))
     introduced = criteria_the_edit_introduces(after=after, graph=graph)
     added = [c.id for c in after.criteria if c.id in introduced]
+    _refuse_a_delta_the_strategy_disagrees_with(deps, diff, added)
     # A criterion the strategy held no step for is one this edit builds, so it
     # carries no id from the previous turn to preserve.
     preserved = [
@@ -141,6 +172,7 @@ async def _push_the_edit(
         if c.disposition == "kept" and c.criterion_id in graph.steps
     ]
     if not ops:
+        the_strategy_now_answers_to(deps.state, after, graph)
         return EditDelta(
             diff=diff,
             description="The strategy already states everything the edit asks for.",
@@ -165,6 +197,9 @@ async def _push_the_edit(
     # The spec the thread carries states the option on the step that runs it,
     # exactly as the spec a build leaves behind does.
     deps.state.domain.operational_spec = after
+    the_strategy_now_answers_to(
+        deps.state, after, agent_deps.strategy_session.get_graph(None)
+    )
     deps.state.record_build(outcome)
     _emit_graph_snapshot(agent_deps)
     # A push VEuPathDB did not take is the answer. The applied-operation line
@@ -179,6 +214,66 @@ async def _push_the_edit(
         dropped_step_ids=list(commit.dropped_step_ids),
         failed_step_ids=list(commit.failed_step_ids),
     )
+
+
+def _refuse_a_pending_change_this_turn_did_not_account_for(
+    deps: LeadDeps,
+    pending: SpecDiff,
+    declared: Sequence[CriterionChange],
+    drafted: Collection[str],
+) -> None:
+    """Every unpushed change of an earlier pass needs this pass's disposition.
+
+    A push carries them all, so one the pass never stated would reach the
+    strategy with no account of it in the delta the reply is read from.
+    """
+    stated: dict[str, CriterionDisposition] = {
+        change.criterion_id: change.disposition for change in declared
+    }
+    unaccounted = sorted(
+        change.criterion_id
+        for change in pending.changes
+        if change.disposition != "kept"
+        and not _accounts_for(change.criterion_id, stated, drafted)
+    )
+    if unaccounted:
+        refuse_and_restore(
+            deps, pending_changes_no_pass_accounted_for_message(unaccounted)
+        )
+
+
+def _accounts_for(
+    criterion_id: str,
+    stated: Mapping[str, CriterionDisposition],
+    drafted: Collection[str],
+) -> bool:
+    """Whether the pass's word for this criterion agrees with what it drafted.
+
+    A criterion the pass calls dropped is one its draft leaves out, and any
+    other word is one its draft states. A word the draft contradicts accounts
+    for nothing, because the two say different things about the same step.
+    """
+    disposition = stated.get(criterion_id)
+    if disposition is None:
+        return False
+    return (disposition == "dropped") is (criterion_id not in drafted)
+
+
+def _refuse_a_delta_the_strategy_disagrees_with(
+    deps: LeadDeps, diff: SpecDiff, added: Collection[str]
+) -> None:
+    """The steps this edit builds are the criteria the diff calls added.
+
+    The diff is the account the reply is read from, so a criterion the
+    strategy builds and the account leaves out is a claim the researcher
+    cannot check.
+    """
+    accounted = {c.criterion_id for c in diff.changes if c.disposition == "added"}
+    disagreed = accounted.symmetric_difference(added)
+    if disagreed:
+        refuse_and_restore(
+            deps, delta_disagrees_with_the_strategy_message(sorted(disagreed))
+        )
 
 
 _REFUSED_PARAMS = pydantic.TypeAdapter(list[ParamMessages])
@@ -269,13 +364,12 @@ async def edit_strategy(ctx: RunContext[LeadDeps], reason: str) -> EditDelta:
     ``reason`` is what the request changes, in one sentence.
 
     The returned ``EditDelta`` carries the computed ``diff`` for this edit
-    alone: every claim in your reply about what THIS edit kept, changed or
-    dropped is read from it, and every claim about what it ADDED is read from
-    ``added_step_ids``, which names the criteria this edit built a step for. A
-    criterion framed on an earlier turn is already in the spec the diff compares
-    against, so the diff calls it kept or changed while the strategy gains a
-    step for it. A claim about what the whole turn did to the spec it started
-    from is read from ``ledger.frame.diff`` instead.
+    alone, measured against the spec the strategy answers to: every claim in
+    your reply about what THIS edit kept, changed, added or dropped is read
+    from it, and ``added_step_ids`` names the criteria it built a step for. A
+    criterion framed on an earlier turn and built here reads as added in both.
+    A claim about what the whole turn did to the spec it started from is read
+    from ``ledger.frame.diff`` instead.
     """
     tool_call_id = dispatch_call_id(ctx)
     result = await run_edit(

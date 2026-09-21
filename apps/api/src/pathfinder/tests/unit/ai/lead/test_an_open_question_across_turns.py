@@ -134,25 +134,136 @@ async def _asked(
     assert thread.committed == []
 
 
-async def test_a_dropped_criterion_beside_an_open_question_leaves_the_follow_up_stuck(
+async def test_a_dropped_criterion_beside_an_open_question_is_pushed_by_the_answer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The drop was never pushed, and the answering turn is refused by the step it left."""
+    """The drop is a request the strategy has not taken, so the answering turn pushes it."""
     thread = _thread(monkeypatch)
     await _asked(thread, _dropping_the_stage_and_asking(), declared("dropped", STAGE))
     await thread.next_turn()
     assert thread.criteria == [SURFACE, PROTEOME]
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, PROTEOME))
+    # The work order lists the drop this thread has not pushed, and the pass
+    # states that it stands.
+    thread.frames(
+        with_the_proteome(2),
+        declared=[*kept(SURFACE, PROTEOME), *declared("dropped", STAGE)],
+    )
+
+    delta = await thread.edit()
+
+    assert isinstance(delta, EditDelta)
+    assert [(op.kind, op.step_id) for op in committed_facts(thread.committed)] == [
+        ("deleteStep", STAGE),
+        ("addLeaf", PROTEOME),
+        ("addCombine", _root_of(thread)),
+    ]
+    assert STAGE not in thread.graph.steps
+    assert (delta.diff.dropped_count, delta.diff.added_count) == (1, 1)
+    assert spec_facts(thread.spec) == {SURFACE: {}, PROTEOME: {PROTEOME_PARAM: "2"}}
+
+
+def _restating_the_stage_and_answering() -> Draft:
+    """The pass takes the drop back and answers the question in one pass."""
+
+    def _draft(found: OperationalSpec) -> OperationalSpec:
+        found = with_the_proteome(2)(found)
+        found.criteria = [c for c in found.criteria if c.id != STAGE]
+        found.criteria.append(
+            Criterion(
+                id=STAGE,
+                text="expressed in merozoites",
+                search_name="GenesByRNASeqEvidence",
+                resolved_params={
+                    STAGE_PERCENTILE: NumberValue(value=80),
+                    STAGE_TIMEPOINT: NumberValue(value=40),
+                },
+            )
+        )
+        assert found.structure is not None
+        found.structure = SpecStructure(
+            root=joined(
+                CombineOp.INTERSECT,
+                joined(CombineOp.INTERSECT, leaf(SURFACE), leaf(STAGE)),
+                leaf(PROTEOME),
+            )
+        )
+        return found
+
+    return _draft
+
+
+async def _asked_to_drop_the_stage(thread: DisagreementThread) -> None:
+    """The turn that drops the stage and asks a question, pushing nothing."""
+    await _asked(thread, _dropping_the_stage_and_asking(), declared("dropped", STAGE))
+    await thread.next_turn()
+
+
+async def test_a_pending_drop_the_pass_declares_dropped_while_it_keeps_it_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The draft holds the criterion again, so `dropped` accounts for nothing."""
+    thread = _thread(monkeypatch)
+    await _asked_to_drop_the_stage(thread)
+    thread.frames(
+        _restating_the_stage_and_answering(),
+        declared=[*kept(SURFACE, PROTEOME), *declared("dropped", STAGE)],
+    )
 
     refusal = await thread.edit()
 
-    assert isinstance(refusal, str)
-    assert f"the edit would take ['{STAGE}'] off the strategy" in refusal
-    assert "the edited spec states no drop for them" in refusal
+    assert isinstance(refusal, str), refusal
+    assert STAGE in refusal
+    assert thread.committed == []
+    assert sorted(thread.graph.steps) == sorted([SURFACE, STAGE, ROOT])
+
+
+async def test_a_pending_criterion_the_pass_calls_kept_while_it_drops_it_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The draft no longer states the criterion, so `kept` accounts for nothing."""
+    thread = _thread(monkeypatch)
+    await _asked(thread, with_the_proteome(None))
+    await thread.next_turn()
+    thread.frames(_without_the_proteome(), declared=kept(SURFACE, STAGE, PROTEOME))
+
+    refusal = await thread.edit()
+
+    assert isinstance(refusal, str), refusal
+    assert PROTEOME in refusal
+    assert thread.committed == []
+
+
+async def test_a_pending_value_the_pass_declares_dropped_while_it_keeps_it_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The draft still states the criterion, so `dropped` accounts for nothing."""
+    thread = _thread(monkeypatch)
+    await _asked(
+        thread, lambda found: with_the_proteome(None)(with_the_percentile(90)(found))
+    )
+    await thread.next_turn()
+    thread.frames(
+        with_the_proteome(2),
+        declared=[*kept(SURFACE, PROTEOME), *declared("dropped", STAGE)],
+    )
+
+    refusal = await thread.edit()
+
+    assert isinstance(refusal, str), refusal
+    assert STAGE in refusal
     assert thread.committed == []
     assert thread.graph.steps[STAGE].parameters[STAGE_PERCENTILE] == NumberValue(
         value=80
     )
+
+
+def _without_the_proteome() -> Draft:
+    def _draft(found: OperationalSpec) -> OperationalSpec:
+        found.criteria = [c for c in found.criteria if c.id != PROTEOME]
+        found.structure = built_spec().structure
+        return found
+
+    return _draft
 
 
 async def test_two_open_questions_answered_one_a_turn_build_on_the_third(
@@ -194,7 +305,7 @@ async def test_two_open_questions_answered_one_a_turn_build_on_the_third(
 async def test_a_different_request_instead_of_an_answer_abandons_the_open_criterion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The open criterion never reached a step, so dropping it costs no operation."""
+    """The open criterion never reached a step, so the strategy never held it."""
     thread = _thread(monkeypatch)
     await _asked(thread, with_the_proteome(None))
     await thread.next_turn()
@@ -221,7 +332,7 @@ async def test_a_different_request_instead_of_an_answer_abandons_the_open_criter
     assert thread.graph.steps[STAGE].parameters[STAGE_TIMEPOINT] == NumberValue(
         value=40
     )
-    assert delta.diff.dropped_count == 1
+    assert delta.diff.dropped_count == 0
     assert delta.diff.changed_count == 1
 
 

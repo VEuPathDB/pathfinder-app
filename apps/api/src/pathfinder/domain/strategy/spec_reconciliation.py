@@ -1,4 +1,4 @@
-"""Bring a framed spec back to the strategy the graph holds now.
+"""Take out of a framed spec the criteria whose steps the strategy lost.
 
 A criterion that reached a step is addressed by that step's id, so a step the
 graph lost takes its criterion out of the spec.
@@ -6,7 +6,6 @@ graph lost takes its criterion out of the spec.
 
 from __future__ import annotations
 
-import re
 from collections.abc import Collection
 
 from pathfinder.domain.strategy.operational_spec import (
@@ -15,39 +14,21 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
     structure_criteria,
 )
-from pathfinder.domain.strategy.session import StrategyGraph
 
-__all__ = ["reads_as_a_step_id", "spec_reconciled_with_graph", "spec_without_steps"]
-
-_MINTED_STEP_ID = re.compile(r"^step_[0-9a-f]{8}$")
+__all__ = ["spec_the_strategy_holds", "spec_without_steps"]
 
 
-def reads_as_a_step_id(criterion_id: str) -> bool:
-    """Whether this id is one the step minter produces."""
-    return _MINTED_STEP_ID.match(criterion_id) is not None
-
-
-def spec_reconciled_with_graph(
-    spec: OperationalSpec,
-    graph: StrategyGraph,
-    *,
-    recorded_step_ids: Collection[str],
+def spec_the_strategy_holds(
+    spec: OperationalSpec, live_step_ids: Collection[str]
 ) -> OperationalSpec:
-    """The spec without the criteria whose steps the graph no longer holds.
+    """The spec without the criteria its structure names and the strategy lacks.
 
-    ``recorded_step_ids`` are the steps the last recorded build held, which is
-    every id that answered to a step whatever minted it. A spec derived from a
-    strategy no build recorded has none, and there the minter's own id shape is
-    the address of a step. A criterion in neither set never reached a step, and
-    it stays.
+    A criterion the structure leaves out binds an option on another criterion's
+    step, so it answers to the strategy like any other.
     """
-    departed = {
-        criterion.id
-        for criterion in spec.criteria
-        if criterion.id not in graph.steps
-        and (criterion.id in recorded_step_ids or reads_as_a_step_id(criterion.id))
-    }
-    return spec_without_steps(spec, departed)
+    return spec_without_steps(
+        spec, structure_criteria(spec.structure) - set(live_step_ids)
+    )
 
 
 def spec_without_steps(

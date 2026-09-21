@@ -79,10 +79,10 @@ class EditDelta(CamelModel):
     added_step_ids: list[str] = Field(
         default_factory=list,
         description=(
-            "The criteria this edit built a step for. A criterion framed on an "
-            "earlier turn is in the spec the diff compares against, so the diff "
-            "calls it kept or changed and this list is the only account of the "
-            "step it gained."
+            "The criteria this edit built a step for, which is what the diff "
+            "counts as added: the diff is measured against the spec the "
+            "strategy answers to, so a criterion framed on an earlier turn and "
+            "built here reads as added in both."
         ),
     )
     preserved_step_ids: list[str] = Field(default_factory=list)

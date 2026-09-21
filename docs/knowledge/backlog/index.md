@@ -7,7 +7,7 @@ what left.
 
 ## Ranked
 
-1. [A value has no owner between the plan and the strategy](a-value-has-no-owner-between-the-plan-and-the-strategy.md) - a value set on the canvas never reaches the spec, and a change framed beside an open question is never pushed; both are pinned by strict xfail tests and wait on a regression net and a design.
+Nothing outstanding.
 
 ## Known and accepted
 

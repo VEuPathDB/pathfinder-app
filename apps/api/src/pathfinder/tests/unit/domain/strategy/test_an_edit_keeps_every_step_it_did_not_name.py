@@ -8,7 +8,6 @@ and re-stating the same edit asks for no operation at all.
 
 from __future__ import annotations
 
-import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 from veupathdb.domain.parameters import NumberValue, ParamValue, to_wire
@@ -198,17 +197,6 @@ def _planned(
     return applied(root, ops), list(ops)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "A resolution the delete algebra offers for a step must be one the "
-        "apply accepts for that step. compute_delete_choices offers "
-        "collapse-combine as the only resolution for any transform, and "
-        "_collapse_root_combine rejects it when the transform is the "
-        "strategy's root, so dropping a root transform criterion plans an "
-        "operation that raises ApplyError."
-    ),
-)
 def test_dropping_a_root_transform_keeps_the_step_it_consumed() -> None:
     """The transform goes and the branch it read becomes the strategy's root."""
     root = transform("t0", combine("c0", leaf("a"), leaf("b")))

@@ -26,10 +26,12 @@ export function computeDeleteChoices(
   const kind = inferStepKind(target);
   const parentInfo = findParent(steps, stepId);
 
-  if (kind === "transform") {
+  // A transform that reads nothing has no input to stand in its place, so the
+  // rules for a step without one place it.
+  if (kind === "transform" && target.primaryInputStepId != null) {
     return [
       {
-        resolution: "collapse-combine",
+        resolution: "promote-primary",
         title: "Delete this transform",
         description:
           "The step it consumed becomes the input of the next step downstream.",

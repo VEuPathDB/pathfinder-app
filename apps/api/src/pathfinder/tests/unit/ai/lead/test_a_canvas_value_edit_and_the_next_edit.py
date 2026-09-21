@@ -79,10 +79,10 @@ def _new_root(thread: DisagreementThread) -> str:
     return root
 
 
-async def test_a_value_set_on_the_canvas_is_untouched_by_an_edit_that_names_another(
+async def test_a_value_set_on_the_canvas_reaches_the_spec_and_is_not_written_back(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The whole account of the edit: two adds, and nothing else moved."""
+    """The whole account of the edit: two adds, and the canvas value stands."""
     thread = _thread(monkeypatch)
     canvas_sets(thread.graph, STAGE, timepoint=NumberValue(value=48))
     await thread.next_turn()
@@ -98,7 +98,7 @@ async def test_a_value_set_on_the_canvas_is_untouched_by_an_edit_that_names_anot
     assert facts_of(thread.facts(), SURFACE, STAGE, ROOT) == untouched
     assert spec_facts(thread.spec) == {
         SURFACE: {},
-        STAGE: {STAGE_PERCENTILE: "80", STAGE_TIMEPOINT: "40"},
+        STAGE: {STAGE_PERCENTILE: "80", STAGE_TIMEPOINT: "48"},
         PROTEOME: {PROTEOME_PARAM: "2"},
     }
     assert delta.preserved_step_ids == [SURFACE, STAGE]
@@ -110,10 +110,10 @@ async def test_a_value_set_on_the_canvas_is_untouched_by_an_edit_that_names_anot
     assert thread.ledger_diff().render() == delta.diff.render()
 
 
-async def test_a_combine_flipped_on_the_canvas_is_flipped_back_by_the_next_edit(
+async def test_a_combine_flipped_on_the_canvas_stands_through_the_next_edit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The spec never learned the flip, so the structure it states undoes it."""
+    """The graph owns the shape, so the spec takes the flip and no edit undoes it."""
     thread = _thread(monkeypatch)
     canvas_flips(thread.graph, ROOT, CombineOp.UNION)
     await thread.next_turn()
@@ -122,11 +122,10 @@ async def test_a_combine_flipped_on_the_canvas_is_flipped_back_by_the_next_edit(
     delta = await thread.edit()
 
     assert isinstance(delta, EditDelta)
-    assert committed_facts(thread.committed) == [
-        OpFacts(kind="updateCombineOperator", step_id=ROOT, operator="INTERSECT"),
-        *_added_proteome(_new_root(thread), joined_to=ROOT),
-    ]
-    assert thread.graph.steps[ROOT].operator is CombineOp.INTERSECT
+    assert committed_facts(thread.committed) == _added_proteome(
+        _new_root(thread), joined_to=ROOT
+    )
+    assert thread.graph.steps[ROOT].operator is CombineOp.UNION
     assert [c.criterion_id for c in delta.diff.changes if c.disposition != "kept"] == [
         PROTEOME
     ]

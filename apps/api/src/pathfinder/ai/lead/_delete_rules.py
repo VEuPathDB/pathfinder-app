@@ -63,9 +63,14 @@ def refuse_a_delete_the_graph_cannot_place(
     step_id: str,
     surface: DeleteSurface,
 ) -> None:
-    """Refuse the two deletes whose outcome the graph does not determine."""
+    """Refuse the delete whose outcome this thread does not determine.
+
+    A delete no re-wiring of the graph performs is the algebra's own refusal
+    and every surface reads it there. Which root the strategy is, on a thread
+    that holds several and pushed none, is this surface's to answer, because
+    it names the tools the caller holds.
+    """
     _refuse_an_ambiguous_root(graph, sync_state, step_id, surface)
-    _refuse_a_transform_with_no_heir(graph, sync_state, step_id, surface)
 
 
 def _refuse_an_ambiguous_root(
@@ -97,55 +102,42 @@ def _refuse_an_ambiguous_root(
     raise ModelRetry(msg)
 
 
-def _refuse_a_transform_with_no_heir(
-    graph: StrategyGraph,
-    sync_state: SyncStateProtocol | None,
-    step_id: str,
-    surface: DeleteSurface,
-) -> None:
-    """Refuse a delete of a transform nothing can take the place of.
-
-    A delete promotes a combine's input and never a transform's, so the
-    strategy's root transform, and a transform under another transform, would
-    take the tree under them with nothing standing where they stood.
-    """
-    step = graph.steps.get(step_id)
-    if step is None or step.kind is not StepKind.TRANSFORM:
-        return
-    parent = graph.parent_of(step_id)
-    if parent is None:
-        if step_id != strategy_root_id(graph, sync_state):
-            return
-        place = "the root"
-    elif parent[0].kind is StepKind.TRANSFORM:
-        place = f"its place under {parent[0].id}"
-    else:
-        return
-    msg = (
-        f"{step_id} is a transform, and no delete gives its input "
-        f"{step.primary_input_id} {place}. Delete a step under it, or "
-        f"{_the_way_to_clear(surface, 'strategy')}."
-    )
-    raise ModelRetry(msg)
-
-
 def delete_resolution(
     graph: StrategyGraph, sync_state: SyncStateProtocol | None, step_id: str
 ) -> DeleteResolution:
     """How the tree is re-wired once the step goes.
 
-    A combine under a transform leaves with its secondary branch. Any other
-    step with a combine above it collapses that combine onto its sibling. The
-    strategy's own root collapses onto its primary input when it is a combine,
-    and any other root leaves with whatever hangs under it.
+    A transform, and a combine under one, leave the step they read standing
+    where they stood. Any other step with a combine above it collapses that
+    combine onto its sibling. The strategy's own root collapses onto its
+    primary input when it is a combine, and any other root leaves with
+    whatever hangs under it.
     """
-    parent = graph.parent_of(step_id)
+    if _stands_its_input_in_its_place(graph, step_id):
+        return DeleteResolution.PROMOTE_PRIMARY
+    if graph.parent_of(step_id) is not None:
+        return DeleteResolution.COLLAPSE_COMBINE
     step = graph.steps.get(step_id)
     is_combine = step is not None and step.kind is StepKind.COMBINE
-    if parent is not None:
-        if is_combine and parent[0].kind is StepKind.TRANSFORM:
-            return DeleteResolution.PROMOTE_PRIMARY
-        return DeleteResolution.COLLAPSE_COMBINE
     if is_combine and step_id == strategy_root_id(graph, sync_state):
         return DeleteResolution.COLLAPSE_COMBINE
     return DeleteResolution.DELETE_SUBTREE
+
+
+def _stands_its_input_in_its_place(graph: StrategyGraph, step_id: str) -> bool:
+    """Whether the step the deleted one reads takes the place it held.
+
+    A transform carries one input, so nothing else can stand there; a combine
+    under a transform leaves its secondary branch for the same reason.
+    """
+    step = graph.steps.get(step_id)
+    if step is None or step.primary_input_id is None:
+        return False
+    if step.kind is StepKind.TRANSFORM:
+        return True
+    parent = graph.parent_of(step_id)
+    return (
+        step.kind is StepKind.COMBINE
+        and parent is not None
+        and parent[0].kind is StepKind.TRANSFORM
+    )

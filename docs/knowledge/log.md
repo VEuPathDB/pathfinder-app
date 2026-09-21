@@ -2,6 +2,52 @@
 
 ## 2026-09-21
 
+* **The strategy answers to a spec, and what was written outside is replayed onto
+  it.** The thread now records two facts and keeps them with one writer: the last
+  spec the strategy was made to answer to (`answered_spec`) and the tree it held at
+  that moment (`answered_graph`, the AST with no WDK id, count or validation on it).
+  Everything between that tree and the live one was written outside the thread; it is
+  read graph against graph (`domain/strategy/outside_changes.py`) and played onto every
+  spec the turn holds (`domain/strategy/spec_replay.py`), at turn entry, whatever opened
+  the turn. A value the researcher sets on the canvas reaches the criterion and retires
+  what the criterion said about that name - the open slot, the default, the assumption a
+  fold carried, the alternatives; a search changed outside re-binds the criterion whole;
+  a step lost takes its criterion out; a step gained is stated with the parameters its
+  sheet shows; and when the shape of the two trees differs the built part of the
+  structure is the strategy's own, so a combine flipped on the canvas is no longer
+  flipped back by the next edit. Only names the search's sheet shows are replayed,
+  because a step also carries WDK's own parameters. An edit is planned against
+  `answered_spec`, so a pass that ends on the user leaves a plan that runs ahead without
+  it becoming its own baseline: the follow-up that answers the question pushes the value
+  it moved and the drop it stated. The planning diff and the steps the edit builds must
+  agree, and a disagreement is refused with the repair rather than asserted. Recovery
+  writes the steps and never the spec, so its own writes are taken onto the plan and the
+  answer instead of reading as the researcher's edit next turn. A push that raises after
+  the batch applied puts the graph back, so no local tree is left ahead of the strategy.
+  Gone with it: `spec_reconciled_with_graph` and its two heuristics (the last build's
+  step ids and the minted-id regex), the refusal and the FRAME rule that kept a
+  criterion from being named like a step, and `_reconcile_the_parked_record` - a resumed
+  turn is refreshed like any other. Proven by
+  `tests/unit/ai/lead/test_the_strategy_answers_to_a_spec.py`, the 50-test regression
+  net over the pre-turn refresh and the edit dispatch (which now asserts the plan/answer
+  invariants after every scenario), and
+  `tests/unit/domain/strategy/test_{outside_changes,spec_replay}.py`. The two strict
+  xfails of the canvas value and the unpushed change are green and their markers are
+  gone, and the backlog item that held them is closed.
+  Verification then closed four more: a turn's own baselines take what was written
+  OUTSIDE them and nothing else, so a step the turn added is never absorbed into the
+  record the ledger measures it against; the edit work order names every change an
+  earlier pass left unpushed and refuses a push no pass of this turn accounted for; an
+  option moves a value the carrier only inherited from the strategy, instead of
+  vanishing; and a thread upgraded mid-draft answers to the spec its last dispatch
+  found whenever the plan is not ready to build.
+
+* **A transform is deleted like any other step.** `delete_resolution` returns
+  promote-primary for a transform at any position, which is WDK's own rule (a deleted
+  step's primary input stands where it stood), so the Lead's refusal of a root transform
+  and of a transform under a transform is gone and both delete surfaces read one
+  algebra. `delete_step`'s docstring states what the algebra offers.
+
 * **A spec and its strategy hold one value, and an edit says what it built.**
   Nine findings from the verification of the unbuilt-criterion work. A value the
   researcher set on the canvas is no longer overwritten when an edit moves a different

@@ -42,11 +42,10 @@ def _expression_ast(percentile: int, *, rnaseq: bool = True) -> StrategyAst:
 
 def test_an_editor_edit_pins_the_parameter_line() -> None:
     briefing = compose_turn_briefing(
-        ThreadActivity(
-            strategy_before=_expression_ast(90),
-            strategy_after=_expression_ast(75),
-        ),
+        ThreadActivity(),
         requirements=[],
+        answered=_expression_ast(90),
+        live=_expression_ast(75),
     )
 
     assert briefing.moved
@@ -91,11 +90,10 @@ def test_a_constraint_that_lost_its_grounding_is_named() -> None:
     )
 
     briefing = compose_turn_briefing(
-        ThreadActivity(
-            strategy_before=_expression_ast(90),
-            strategy_after=_expression_ast(90, rnaseq=False),
-        ),
+        ThreadActivity(),
         requirements=[requirement],
+        answered=_expression_ast(90),
+        live=_expression_ast(90, rnaseq=False),
     )
 
     rendered = briefing.render()
@@ -112,11 +110,10 @@ def test_a_quiet_turn_renders_the_empty_string() -> None:
 
 def test_a_strategy_that_did_not_move_renders_the_empty_string() -> None:
     briefing = compose_turn_briefing(
-        ThreadActivity(
-            strategy_before=_expression_ast(90),
-            strategy_after=_expression_ast(90),
-        ),
+        ThreadActivity(),
         requirements=[],
+        answered=_expression_ast(90),
+        live=_expression_ast(90),
     )
 
     assert briefing.render() == ""
@@ -140,11 +137,10 @@ def _many_steps(count: int, percentile: int) -> StrategyAst:
 
 def test_more_changes_than_fit_are_elided_with_a_count() -> None:
     briefing = compose_turn_briefing(
-        ThreadActivity(
-            strategy_before=_many_steps(12, 1),
-            strategy_after=_many_steps(12, 2),
-        ),
+        ThreadActivity(),
         requirements=[],
+        answered=_many_steps(12, 1),
+        live=_many_steps(12, 2),
     )
 
     lines = briefing.render().splitlines()
@@ -171,11 +167,10 @@ def _wordy_ast(text: str, extras: int) -> StrategyAst:
 
 def test_a_long_value_is_clipped_and_extra_params_are_counted() -> None:
     briefing = compose_turn_briefing(
-        ThreadActivity(
-            strategy_before=_wordy_ast("kinase " * 20, 5),
-            strategy_after=_wordy_ast("phosphatase " * 20, 5),
-        ),
+        ThreadActivity(),
         requirements=[],
+        answered=_wordy_ast("kinase " * 20, 5),
+        live=_wordy_ast("phosphatase " * 20, 5),
     )
 
     line = briefing.render().splitlines()[1]
@@ -205,11 +200,10 @@ def _many_wordy_steps(count: int, word: str) -> StrategyAst:
 
 def test_the_worst_case_briefing_stays_bounded() -> None:
     briefing = compose_turn_briefing(
-        ThreadActivity(
-            strategy_before=_many_wordy_steps(12, "kinase"),
-            strategy_after=_many_wordy_steps(12, "phosphatase"),
-        ),
+        ThreadActivity(),
         requirements=[],
+        answered=_many_wordy_steps(12, "kinase"),
+        live=_many_wordy_steps(12, "phosphatase"),
     )
 
     assert len(briefing.render()) < 1200

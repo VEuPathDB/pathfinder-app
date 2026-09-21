@@ -103,7 +103,7 @@ async def test_a_resumed_edit_does_not_rebuild_a_step_deleted_while_it_was_parke
 async def test_the_delta_accounts_for_the_step_it_built(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A criterion framed last turn reads changed in the diff, and a step was added."""
+    """The diff is measured against the strategy, so a step it builds reads added."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
     thread.frames(with_the_proteome(None), declared=[], disposition="needs_user")
@@ -114,9 +114,11 @@ async def test_the_delta_accounts_for_the_step_it_built(
     delta = await thread.edit()
 
     assert isinstance(delta, EditDelta)
-    assert delta.diff.added_count == 0
-    account = delta.model_dump(exclude={"diff", "preserved_step_ids"})
-    assert [name for name, value in account.items() if value == [PROTEOME]] != []
+    assert delta.added_step_ids == [PROTEOME]
+    assert delta.diff.added_count == len(delta.added_step_ids)
+    assert [c.criterion_id for c in delta.diff.changes if c.disposition == "added"] == [
+        PROTEOME
+    ]
 
 
 def _two_new(second: float | None) -> Draft:

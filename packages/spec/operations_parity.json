@@ -311,6 +311,156 @@
           "B"
         ]
       }
+    },
+    {
+      "name": "promote-primary-on-root-transform",
+      "initial": {
+        "steps": [
+          {
+            "id": "a",
+            "kind": "search"
+          },
+          {
+            "id": "b",
+            "kind": "search"
+          },
+          {
+            "id": "c",
+            "kind": "combine",
+            "primaryInputStepId": "a",
+            "secondaryInputStepId": "b"
+          },
+          {
+            "id": "t",
+            "kind": "transform",
+            "primaryInputStepId": "c"
+          }
+        ],
+        "rootStepId": "t"
+      },
+      "op": {
+        "kind": "deleteStep",
+        "stepId": "t",
+        "resolution": "promote-primary"
+      },
+      "expected": {
+        "stepIds": [
+          "a",
+          "b",
+          "c"
+        ],
+        "rootInputs": {
+          "c": {
+            "primary": "a",
+            "secondary": "b"
+          }
+        },
+        "droppedStepIds": [
+          "t"
+        ]
+      }
+    },
+    {
+      "name": "collapse-combine-on-root-transform-keeps-its-input",
+      "initial": {
+        "steps": [
+          {
+            "id": "a",
+            "kind": "search"
+          },
+          {
+            "id": "b",
+            "kind": "search"
+          },
+          {
+            "id": "c",
+            "kind": "combine",
+            "primaryInputStepId": "a",
+            "secondaryInputStepId": "b"
+          },
+          {
+            "id": "t",
+            "kind": "transform",
+            "primaryInputStepId": "c"
+          }
+        ],
+        "rootStepId": "t"
+      },
+      "op": {
+        "kind": "deleteStep",
+        "stepId": "t",
+        "resolution": "collapse-combine"
+      },
+      "expected": {
+        "stepIds": [
+          "a",
+          "b",
+          "c"
+        ],
+        "rootInputs": {
+          "c": {
+            "primary": "a",
+            "secondary": "b"
+          }
+        },
+        "droppedStepIds": [
+          "t"
+        ]
+      }
+    },
+    {
+      "name": "delete-subtree-under-a-combine-takes-the-combine",
+      "initial": {
+        "steps": [
+          {
+            "id": "a",
+            "kind": "search"
+          },
+          {
+            "id": "b",
+            "kind": "search"
+          },
+          {
+            "id": "d",
+            "kind": "search"
+          },
+          {
+            "id": "c1",
+            "kind": "combine",
+            "primaryInputStepId": "a",
+            "secondaryInputStepId": "b"
+          },
+          {
+            "id": "c2",
+            "kind": "combine",
+            "primaryInputStepId": "c1",
+            "secondaryInputStepId": "d"
+          }
+        ],
+        "rootStepId": "c2"
+      },
+      "op": {
+        "kind": "deleteStep",
+        "stepId": "a",
+        "resolution": "delete-subtree"
+      },
+      "expected": {
+        "stepIds": [
+          "b",
+          "c2",
+          "d"
+        ],
+        "rootInputs": {
+          "c2": {
+            "primary": "b",
+            "secondary": "d"
+          }
+        },
+        "droppedStepIds": [
+          "a",
+          "c1"
+        ]
+      }
     }
   ]
 }

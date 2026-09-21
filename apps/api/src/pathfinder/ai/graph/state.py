@@ -9,6 +9,7 @@ from assistant_core.graph.turn_state import TurnState
 from assistant_core.memory.schemas import MemoryEntryDraft
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field
+from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
 from pathfinder.ai.lead.intent import (
@@ -237,6 +238,11 @@ class StrategyDomainState(BaseModel):
     turn_markers: TurnMarkers = Field(default_factory=TurnMarkers)
     lead_next_state: Literal["await_user", "complete"] | None = None
     operational_spec: OperationalSpec | None = None
+    # The last spec the strategy was made to answer to, and the tree it held at
+    # that moment. An edit is planned against the first; everything between the
+    # second and the live tree was written outside this thread.
+    answered_spec: OperationalSpec | None = None
+    answered_graph: StrategyAst | None = None
     # The spec the turn entered with, written by the pre-turn hook and re-keyed
     # by a build onto the steps it made. The ledger diffs the turn against it.
     spec_before_turn: OperationalSpec | None = None

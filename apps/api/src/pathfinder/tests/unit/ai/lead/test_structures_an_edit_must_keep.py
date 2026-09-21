@@ -365,6 +365,8 @@ async def test_deleting_a_transforms_input_on_the_canvas_takes_the_whole_strateg
     assert thread.graph.steps == {}
     assert thread.criteria == []
     assert thread.spec.structure is None
+    assert thread.answered.criteria == []
+    assert thread.before_turn.criteria == []
 
 
 def _flat_restatement(extra: bool) -> Draft:

@@ -1,7 +1,7 @@
-"""The turn starts from the strategy the graph holds, not the one it framed.
+"""The turn plans against the strategy the graph holds, not the one it framed.
 
-The editor removes a step; the next turn's entry spec loses the criterion that
-addressed it, so re-asking for the step is an addition and not a no-op.
+The editor removes a step; the spec the strategy answers to loses the criterion
+that addressed it, so re-asking for the step is an addition and not a no-op.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from veupathdb.domain.strategy import (
 )
 
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead import edit_dispatch, pre_turn
+from pathfinder.ai.lead import answered_strategy, edit_dispatch, pre_turn
 from pathfinder.ai.lead.deltas import EditDelta, FrameResult
 from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
@@ -31,6 +31,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -119,28 +120,31 @@ def _state(spec: OperationalSpec | None = None) -> PipelineState:
     )
 
 
-async def _entry_spec() -> OperationalSpec:
-    refreshed = await refresh_live_strategy_state(
-        _state(), lead_runtime(strategy_session=_session_after_the_delete())
+async def _refreshed(spec: OperationalSpec | None = None) -> PipelineState:
+    return await refresh_live_strategy_state(
+        _state(spec), lead_runtime(strategy_session=_session_after_the_delete())
     )
-    spec = refreshed.domain.spec_before_turn
-    assert spec is not None
-    return spec
 
 
-async def test_the_turn_starts_from_the_one_criterion_the_graph_holds() -> None:
-    assert [c.id for c in (await _entry_spec()).criteria] == [_SIGNAL]
+async def _answered_spec(spec: OperationalSpec | None = None) -> OperationalSpec:
+    answered = (await _refreshed(spec)).domain.answered_spec
+    assert answered is not None
+    return answered
 
 
-async def test_the_entry_spec_states_the_shape_the_graph_states() -> None:
-    spec = await _entry_spec()
+async def test_the_strategy_answers_to_the_one_criterion_the_graph_holds() -> None:
+    assert [c.id for c in (await _answered_spec()).criteria] == [_SIGNAL]
+
+
+async def test_the_answered_spec_states_the_shape_the_graph_states() -> None:
+    spec = await _answered_spec()
 
     assert spec.structure is not None
     assert spec.structure.root == StructureNode(kind="leaf", criterion_id=_SIGNAL)
 
 
-async def test_a_turn_that_resumes_a_parked_call_keeps_the_spec_it_reached() -> None:
-    """The resumed turn's entry spec was recorded by the pass that parked."""
+async def test_a_turn_that_resumes_a_parked_call_is_refreshed_like_any_other() -> None:
+    """A parked call is answered against the strategy the researcher has now."""
     state = _state()
     state.pending_approval = PendingApproval(
         phase="lead", tool_call_id="call_1", tool_name="consult_user"
@@ -150,9 +154,9 @@ async def test_a_turn_that_resumes_a_parked_call_keeps_the_spec_it_reached() -> 
         state, lead_runtime(strategy_session=_session_after_the_delete())
     )
 
-    spec = refreshed.domain.operational_spec
-    assert spec is not None
-    assert [c.id for c in spec.criteria] == [_SIGNAL, _TRANSMEMBRANE]
+    answered = refreshed.domain.answered_spec
+    assert answered is not None
+    assert [c.id for c in answered.criteria] == [_SIGNAL]
 
 
 @pytest.fixture
@@ -161,24 +165,28 @@ def sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         return {_SIGNAL_SEARCH: frozenset()}
 
     monkeypatch.setattr(pre_turn, "sheet_params_for_searches", _sheets)
+    monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _sheets)
 
 
 @pytest.mark.usefixtures("sheet")
-async def test_a_spec_the_reconciliation_empties_is_derived_from_the_graph() -> None:
-    """Reconciling before hydration leaves the entry spec describing the graph."""
+async def test_a_plan_the_strategy_never_reached_is_answered_by_its_built_part() -> (
+    None
+):
+    """The answer states the live step; the plan keeps the criterion it owes."""
     emptied = _framed_spec()
     emptied.criteria = [c for c in emptied.criteria if c.id != _SIGNAL]
     emptied.structure = SpecStructure(
         root=StructureNode(kind="leaf", criterion_id=_TRANSMEMBRANE)
     )
 
-    refreshed = await refresh_live_strategy_state(
-        _state(emptied), lead_runtime(strategy_session=_session_after_the_delete())
-    )
+    refreshed = await _refreshed(emptied)
 
-    spec = refreshed.domain.spec_before_turn
-    assert spec is not None
-    assert [c.id for c in spec.criteria] == [_SIGNAL]
+    answered = refreshed.domain.answered_spec
+    plan = refreshed.domain.operational_spec
+    assert answered is not None
+    assert plan is not None
+    assert [c.id for c in answered.criteria] == [_SIGNAL]
+    assert [c.id for c in plan.criteria] == [_TRANSMEMBRANE]
 
 
 def _reframed() -> OperationalSpec:
@@ -190,14 +198,22 @@ async def _restoring_edit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[EditDelta, list[GraphOperation]]:
     committed: list[GraphOperation] = []
-    entry = await _entry_spec()
-    state = _state(entry.model_copy(deep=True))
-    state.domain.spec_before_turn = entry
-    deps = lead_deps(state, strategy_session=_session_after_the_delete())
+    state = await _refreshed()
+    session = _session_after_the_delete()
+    deps = lead_deps(state, strategy_session=session)
 
     async def _fake_frame(**_kwargs: Any) -> FrameResult:
         state.domain.operational_spec = _reframed()
-        return FrameResult(disposition="spec_ready", summary="reframed")
+        # The work order lists the criterion the strategy holds no step for,
+        # and the pass states that it stands.
+        return FrameResult(
+            disposition="spec_ready",
+            summary="reframed",
+            changes=[
+                CriterionChange(criterion_id=_SIGNAL, disposition="kept"),
+                CriterionChange(criterion_id=_TRANSMEMBRANE, disposition="kept"),
+            ],
+        )
 
     async def _fake_commit(**kwargs: Any) -> CommitResult:
         committed.extend(kwargs["ops"])

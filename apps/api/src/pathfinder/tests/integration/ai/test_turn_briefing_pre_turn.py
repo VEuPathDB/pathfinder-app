@@ -1,7 +1,9 @@
-"""The pre-turn hook briefs the Lead from what Postgres holds.
+"""The pre-turn hook briefs the Lead on what moved since it last answered.
 
-A parameter edited between two writes, a task the worker finished and an
-analysis mutated outside the thread all reach the turn that follows them.
+A parameter set on the strategy the thread answers to, a task the worker
+finished and an analysis mutated outside the thread all reach the turn that
+follows them. The tasks and the analysis are read from Postgres; the strategy
+is the tree the thread answered to against the one the session holds.
 """
 
 from __future__ import annotations
@@ -18,14 +20,14 @@ from assistant_core.persistence.models import (
 )
 from assistant_core.platform import db
 from veupathdb.domain.parameters import NumberValue
-from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.pre_turn import pathfinder_pre_turn
 from pathfinder.ai.tools.standalone.eda_stream_parts import eda_analysis_state_chunk
 from pathfinder.domain.eda_parts import EdaAnalysisState
-from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.persistence.models import ConversationAnalysis, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
@@ -157,24 +159,40 @@ async def _bind_analysis(conversation_id: UUID, *, revision: int, shown: int) ->
         await session.commit()
 
 
-def _context() -> Context:
+def _session_holding(percentile: int | None) -> StrategySession:
+    """The session the turn runs on, holding the strategy as it stands now."""
+    session = StrategySession(site_id="plasmodb")
+    if percentile is None:
+        return session
+    graph = StrategyGraph(graph_id="g1", name="briefing", site_id="plasmodb")
+    graph.record_type = "transcript"
+    graph.steps = flatten_tree(_ast(percentile).root)
+    graph.recompute_roots()
+    session.graph = graph
+    return session
+
+
+def _context(percentile: int | None = None) -> Context:
     return Context(
         site_id="plasmodb",
         user_id=uuid4(),
-        strategy_session=StrategySession(site_id="plasmodb"),
+        strategy_session=_session_holding(percentile),
         db_session_factory=db.async_session_factory,
         cancel_event=asyncio.Event(),
     )
 
 
-def _state(conversation_id: UUID) -> PipelineState:
+def _state(conversation_id: UUID, answered: int | None = None) -> PipelineState:
+    """A thread that answered to the strategy at ``answered``, or to none."""
     return PipelineState(
         conversation_id=conversation_id,
         user_id=uuid4(),
         site_id="plasmodb",
         mode="strategy",
         user_prompt="what does the strategy do now?",
-        domain=StrategyDomainState(),
+        domain=StrategyDomainState(
+            answered_graph=None if answered is None else _ast(answered),
+        ),
     )
 
 
@@ -195,7 +213,9 @@ async def test_the_hook_briefs_the_turn_on_an_edit_a_task_and_the_analysis(
     )
     await _bind_analysis(conversation_id, revision=3, shown=1)
 
-    briefed = await pathfinder_pre_turn(_state(conversation_id), _context())
+    briefed = await pathfinder_pre_turn(
+        _state(conversation_id, answered=90), _context(75)
+    )
 
     rendered = briefed.domain.turn_briefing
     assert "min_expression_percentile 90 -> 75" in rendered
@@ -218,7 +238,9 @@ async def test_a_task_that_finished_before_the_last_answer_is_not_briefed(
         completed_at=answered_at - timedelta(seconds=1),
     )
 
-    briefed = await pathfinder_pre_turn(_state(conversation_id), _context())
+    briefed = await pathfinder_pre_turn(
+        _state(conversation_id, answered=90), _context(90)
+    )
 
     assert briefed.domain.turn_briefing == ""
 
@@ -232,6 +254,8 @@ async def test_a_quiet_thread_is_briefed_with_nothing(
     await _write_strategy(conversation_id, 90)
     await _answer(conversation_id)
 
-    briefed = await pathfinder_pre_turn(_state(conversation_id), _context())
+    briefed = await pathfinder_pre_turn(
+        _state(conversation_id, answered=90), _context(90)
+    )
 
     assert briefed.domain.turn_briefing == ""

@@ -43,7 +43,9 @@ def collect_case_candidates(state: PipelineState) -> list[MemoryCandidate]:
         if exported is None:
             return []
         return [_eda_case(state, export, state.domain.eda_analysis, exported)]
-    spec = state.domain.operational_spec
+    # A case records what reached the count, which is the spec the strategy
+    # answers to and never a plan that runs ahead of it.
+    spec = state.domain.answered_spec
     candidates: list[MemoryCandidate] = []
     if spec is not None and spec.criteria and outcome.root_count is not None:
         candidates.append(_outcome_case(state, spec, outcome))

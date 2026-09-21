@@ -12,16 +12,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, walk
 
-from pathfinder.domain.strategy.ast_diff import (
-    StepChange,
-    StrategyAstDiff,
-    diff_strategy_asts,
-)
+from pathfinder.domain.strategy.ast_diff import StepChange
 from pathfinder.domain.strategy.constraint_grounding import ground_constraints
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintStatus,
 )
+from pathfinder.domain.strategy.outside_changes import OutsideChanges, outside_changes
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.services.conversations.thread_activity import (
     AnalysisDrift,
@@ -65,7 +62,7 @@ class TurnBriefing(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    strategy: StrategyAstDiff = Field(default_factory=StrategyAstDiff)
+    strategy: OutsideChanges = Field(default_factory=OutsideChanges)
     tasks: list[FinishedTask] = Field(default_factory=list)
     analysis: AnalysisDrift | None = None
     constraints: list[ConstraintShift] = Field(default_factory=list)
@@ -158,17 +155,19 @@ def compose_turn_briefing(
     activity: ThreadActivity,
     *,
     requirements: list[Constraint],
+    answered: StrategyAst | None = None,
+    live: StrategyAst | None = None,
 ) -> TurnBriefing:
-    """Turn one thread's activity into the briefing the Lead reads."""
+    """Turn one thread's activity into the briefing the Lead reads.
+
+    ``answered`` is the tree the thread's spec answered to and ``live`` the
+    tree the strategy holds now, so what moved is read graph against graph.
+    """
     return TurnBriefing(
-        strategy=diff_strategy_asts(activity.strategy_before, activity.strategy_after),
+        strategy=outside_changes(answered, live),
         tasks=list(activity.finished_tasks),
         analysis=activity.analysis,
-        constraints=_regrounded(
-            requirements,
-            before=activity.strategy_before,
-            after=activity.strategy_after,
-        ),
+        constraints=_regrounded(requirements, before=answered, after=live),
     )
 
 

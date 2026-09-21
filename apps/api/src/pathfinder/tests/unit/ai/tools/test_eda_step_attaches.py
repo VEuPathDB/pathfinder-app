@@ -108,6 +108,37 @@ async def test_an_export_into_a_free_slot_takes_that_slot_in_the_structure(
     assert [c.id for c in spec.criteria] == ["step_k1", exported]
 
 
+async def test_an_export_makes_the_strategy_answer_to_the_spec_that_states_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The export is the thread's own write, so the answer moves with it."""
+    install_stub_api(monkeypatch)
+    ctx = _lead_ctx_over(
+        StrategyStepNode(
+            id="step_c1",
+            search_name=COMBINE_SEARCH_NAME,
+            operator=CombineOp.INTERSECT,
+            primary_input=leaf("step_k1"),
+        ),
+    )
+    ctx.deps.state.domain.operational_spec = OperationalSpec(
+        goal=_GOAL,
+        criteria=[
+            Criterion(id="step_k1", text="kinase domain", search_name="GenesByTaxon")
+        ],
+        structure=SpecStructure(
+            root=StructureNode(kind="leaf", criterion_id="step_k1"),
+        ),
+    )
+    _wire(monkeypatch)
+
+    await eda_step.create_eda_step(ctx, attach_to_step_id="step_c1", slot="secondary")
+
+    domain = ctx.deps.state.domain
+    assert domain.answered_spec == domain.operational_spec
+    assert domain.answered_graph == _graph(ctx).to_strategy_ast()
+
+
 async def test_an_export_beside_the_strategy_is_stated_the_way_a_build_states_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -11,11 +11,17 @@ from pydantic_ai import RunContext, Tool
 from pydantic_ai.toolsets.function import FunctionToolset
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.lead import sub_agent_dispatch, sub_agent_tools
+from pathfinder.ai.lead import answered_strategy, sub_agent_dispatch, sub_agent_tools
 from pathfinder.ai.lead.deltas import RecoveryDelta
 from pathfinder.ai.lead.sub_agent_dispatch import run_recovery
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import ensure_sync_state
@@ -65,7 +71,11 @@ def quiet_sync(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _sync(**_kwargs: object) -> SyncResult:
         return _sync_result()
 
+    async def _sheets(**kwargs: Any) -> dict[str, frozenset[str]]:
+        return {name: frozenset() for name in kwargs["search_names"]}
+
     monkeypatch.setattr(sub_agent_dispatch, "sync_strategy_for_site", _sync)
+    monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _sheets)
 
 
 def _renaming_toolset() -> FunctionToolset[AgentDeps]:
@@ -151,6 +161,33 @@ async def test_a_recovery_that_wrote_nothing_still_takes_the_fresh_counts() -> N
 
 
 @pytest.mark.usefixtures("collector", "renaming_sub_agent", "quiet_sync")
+async def test_a_recovery_writes_what_it_changed_onto_the_spec() -> None:
+    """Recovery edits the steps, so the spec takes its writes rather than
+    reading them as the researcher's own edit on the next turn."""
+    session = session_with_one_step()
+    deps = _deps(session)
+    spec = OperationalSpec(
+        goal="recover it",
+        criteria=[Criterion(id="step_a", text="kinases", search_name="GenesByText")],
+        structure=SpecStructure(root=StructureNode(kind="leaf", criterion_id="step_a")),
+    )
+    deps.state.domain.operational_spec = spec
+    deps.state.domain.answered_spec = spec.model_copy(deep=True)
+    graph = session.get_graph(None)
+    assert graph is not None
+    deps.state.domain.answered_graph = graph.to_strategy_ast()
+
+    await _recover(deps)
+
+    domain = deps.state.domain
+    assert domain.answered_graph == graph.to_strategy_ast()
+    assert domain.answered_spec is not None
+    assert domain.answered_spec.criteria[0].search_name == "GenesByTaxon"
+    assert domain.operational_spec is not None
+    assert domain.operational_spec.criteria[0].search_name == "GenesByTaxon"
+
+
+@pytest.mark.usefixtures("collector", "renaming_sub_agent", "quiet_sync")
 async def test_a_recovery_that_changed_a_step_marks_the_turn() -> None:
     session = session_with_one_step()
     deps = _deps(session)
@@ -177,7 +214,11 @@ async def test_a_recovery_whose_resync_pushed_a_step_marks_the_turn(
         ensure_sync_state(session).wdk_step_ids["step_a"] = 5001
         return _sync_result()
 
+    async def _sheets(**kwargs: Any) -> dict[str, frozenset[str]]:
+        return {name: frozenset() for name in kwargs["search_names"]}
+
     monkeypatch.setattr(sub_agent_dispatch, "sync_strategy_for_site", _sync)
+    monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _sheets)
     deps = _deps(session)
 
     await _recover(deps)

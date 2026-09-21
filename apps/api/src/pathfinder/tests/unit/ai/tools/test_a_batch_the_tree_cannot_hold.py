@@ -13,6 +13,7 @@ from uuid import uuid4
 import pytest
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp
+from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import TurnMarkers
@@ -23,6 +24,7 @@ from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.operations.types import AttachNewRoot
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.services.strategies import commit as commit_module
 from pathfinder.services.strategies.commit import apply_operations_and_commit
 
 from ._strategy_edit_stubs import (
@@ -247,6 +249,34 @@ async def test_a_rebuild_that_recurses_puts_the_graph_back(
     assert "cannot be read back" in str(caught.value)
     assert sorted(graph.steps) == before
     assert stub_api.calls == []
+
+
+async def test_a_push_the_site_refuses_puts_the_graph_back(
+    stub_api: StubAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The push raises after the batch applied, so the graph is put back.
+
+    The next plan is measured against the strategy the researcher has, and a
+    graph left ahead of it would state a step no push ever landed.
+    """
+    deps = _deps()
+    graph = _graph(deps)
+    before = sorted(graph.steps)
+
+    async def _refuses(*_args: Any, **_kwargs: Any) -> Any:
+        raise ValidationError(title="Invalid", detail="min_pep: Cannot be empty.")
+
+    monkeypatch.setattr(commit_module, "push_steps_with_plan", _refuses)
+
+    with pytest.raises(ValidationError):
+        await apply_operations_and_commit(
+            deps=deps.to_strategy_context(),
+            ops=[AddLeafOp(step=leaf("step_new"), attach=AttachNewRoot())],
+        )
+
+    assert sorted(graph.steps) == before
+    assert "step_new" not in graph.steps
+    assert sorted(graph.roots) == ["step_c2"]
 
 
 async def test_a_rolled_back_batch_keeps_the_name_it_had(stub_api: StubAPI) -> None:

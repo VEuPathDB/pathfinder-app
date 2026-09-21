@@ -15,6 +15,11 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.lead.answered_strategy import (
+    live_tree,
+    the_strategy_now_answers_to,
+    the_thread_wrote_the_strategy,
+)
 from pathfinder.ai.lead.deltas import ExecuteDelta, RecoveryDelta
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
@@ -109,6 +114,9 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
         )
     deps.state.record_build(outcome)
     graph = agent_deps.strategy_session.get_graph(None)
+    # The whole local tree is persisted even when a push fails part way, so
+    # the renumbered spec is what the strategy answers to either way.
+    the_strategy_now_answers_to(deps.state, renumbered, graph)
     if graph is not None:
         emit_chunk(
             get_stream_writer(),
@@ -150,6 +158,7 @@ async def run_recovery(
     work_order = "\n".join(work_order_parts)
     session = deps.runtime.strategy_session
     before = _written_strategy(session)
+    tree_before = live_tree(session.get_graph(None))
     agent_deps = agent_deps_for(deps)
     streamed = await stream_sub_agent(
         run=PhaseRun("execution", work_order),
@@ -164,6 +173,14 @@ async def run_recovery(
     apply_agent_state(deps, agent_deps)
     delta = streamed if streamed is not None else RecoveryDelta()
     resynced = await _resync_outcome(agent_deps, outcome)
+    # Recovery writes the steps and never the spec, so the spec takes what it
+    # wrote rather than reading it as the researcher's own edit next turn.
+    await the_thread_wrote_the_strategy(
+        deps.state,
+        site_id=deps.runtime.site_id,
+        graph=session.get_graph(None),
+        before=tree_before,
+    )
     if _written_strategy(session) == before:
         deps.state.record_resync(resynced)
     else:

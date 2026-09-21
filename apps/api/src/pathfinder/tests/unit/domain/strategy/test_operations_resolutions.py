@@ -65,7 +65,7 @@ class TestComputeDeleteChoices:
         )
         assert sorted(promote.will_delete) == ["b", "c"]
 
-    def test_transform_in_middle(self) -> None:
+    def test_transform_keeps_the_step_it_consumed(self) -> None:
         a = leaf("a")
         t = StrategyStepNode(
             id="t",
@@ -74,8 +74,16 @@ class TestComputeDeleteChoices:
         )
         g = _graph_from_root(t)
         choices = compute_delete_choices(g, "t")
-        assert [c.resolution for c in choices] == [DeleteResolution.COLLAPSE_COMBINE]
+        assert [c.resolution for c in choices] == [DeleteResolution.PROMOTE_PRIMARY]
         assert choices[0].will_delete == ["t"]
+
+    def test_transform_with_no_input_is_placed_by_the_leaf_rules(self) -> None:
+        """A transform an earlier delete left with no input reads nothing."""
+        t = StrategyStepNode(id="t", search_name="orthologs", primary_input=leaf("a"))
+        g = _graph_from_root(t)
+        g.steps["t"].primary_input_id = None
+        choices = compute_delete_choices(g, "t")
+        assert [c.resolution for c in choices] == [DeleteResolution.DELETE_STRATEGY]
 
     def test_step_whose_parent_is_transform_cascades(self) -> None:
         a = leaf("a")

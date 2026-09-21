@@ -23,7 +23,6 @@ from pathfinder.domain.strategy.constraints import (
     organism_hints_from,
 )
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.domain.strategy.spec_reconciliation import spec_reconciled_with_graph
 
 
 def framing_goal(state: PipelineState) -> str:
@@ -123,38 +122,15 @@ def record_the_spec_the_dispatch_found(
     """Record the committed spec this dispatch plans and restores against.
 
     A resumed dispatch keeps the record it parked with, so the answer to a
-    question is measured against the spec the parked pass started from.
+    question is measured against the spec the parked pass started from. The
+    turn's own refresh has already brought that record to the live strategy.
     """
     if resume is not None:
-        _reconcile_the_parked_record(deps)
         return
     found = deps.state.domain.operational_spec
     deps.state.domain.spec_before_dispatch = (
         None if found is None else found.model_copy(deep=True)
     )
-
-
-def _reconcile_the_parked_record(deps: LeadDeps) -> None:
-    """Bring the record and the workspace of a parked dispatch to the live graph.
-
-    The pre-turn refresh leaves a resumed turn's spec alone, so a step deleted
-    while the call was parked is taken out here instead. A criterion the
-    strategy no longer holds a step for is not one the resumed pass can keep.
-    """
-    graph = deps.runtime.strategy_session.get_graph(None)
-    if graph is None:
-        return
-    outcome = deps.state.domain.last_build_outcome
-    recorded = frozenset() if outcome is None else outcome.recorded_step_ids
-    domain = deps.state.domain
-    if domain.spec_before_dispatch is not None:
-        domain.spec_before_dispatch = spec_reconciled_with_graph(
-            domain.spec_before_dispatch, graph, recorded_step_ids=recorded
-        )
-    if domain.operational_spec is not None:
-        domain.operational_spec = spec_reconciled_with_graph(
-            domain.operational_spec, graph, recorded_step_ids=recorded
-        )
 
 
 def refuse_and_restore(deps: LeadDeps, message: str) -> NoReturn:

@@ -6,7 +6,7 @@ pass that cannot see them re-derives them from a sentence.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from veupathdb.domain.parameters import to_wire
 
@@ -15,19 +15,89 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     StructureNode,
 )
+from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 
 __all__ = [
     "changed_revision_message",
+    "delta_disagrees_with_the_strategy_message",
     "edit_bound_nothing_message",
     "edit_continuation_work_order",
     "edit_work_order",
     "no_strategy_to_edit_message",
+    "pending_changes_no_pass_accounted_for_message",
     "unsupported_edit_message",
     "wdk_refused_the_written_step_message",
 ]
 
 
-def edit_work_order(reason: str, prompt: str, before: OperationalSpec) -> str:
+def pending_lines(
+    pending: SpecDiff, before: OperationalSpec, answered: OperationalSpec | None
+) -> list[str]:
+    """What an earlier pass of this thread stated and no push has applied.
+
+    Each line names one criterion the plan and the strategy disagree about, so
+    the pass that follows can let it stand or take it back.
+    """
+    if not pending.changes or answered is None:
+        return []
+    planned = {c.id: c for c in before.criteria}
+    held = {c.id: c for c in answered.criteria}
+    lines = [
+        found
+        for change in pending.changes
+        if (found := _pending_line(change, planned, held))
+    ]
+    if not lines:
+        return []
+    return [
+        "",
+        (
+            "NOT PUSHED YET. An earlier pass of this thread stated these and "
+            "the strategy does not hold them. State a disposition in `changes` "
+            "for each of them too: repeat it to let it stand, or take it back "
+            "by stating the criterion the strategy holds with set_criterion."
+        ),
+        *lines,
+    ]
+
+
+def _pending_line(
+    change: CriterionChange,
+    planned: Mapping[str, Criterion],
+    held: Mapping[str, Criterion],
+) -> str:
+    """One pending change, named by what the strategy would have to do."""
+    cid = change.criterion_id
+    if change.disposition == "dropped":
+        criterion = held[cid]
+        return (
+            f"- [{cid}] {criterion.text[:60]} is dropped in this spec and the "
+            f"strategy still runs it."
+        )
+    if change.disposition == "added":
+        return f"- [{cid}] {planned[cid].text[:60]} has no step on the strategy yet."
+    if change.disposition == "changed":
+        moved = ", ".join(
+            f"{name}={value}" for name, value in change.changed_params.items()
+        )
+        was = {
+            name: to_wire(value) for name, value in held[cid].resolved_params.items()
+        }
+        running = ", ".join(
+            f"{name}={was.get(name, '(unset)')}" for name in change.changed_params
+        )
+        return f"- [{cid}] states {moved}; the strategy runs {running}."
+    return ""
+
+
+def edit_work_order(
+    reason: str,
+    prompt: str,
+    before: OperationalSpec,
+    *,
+    pending: SpecDiff | None = None,
+    answered: OperationalSpec | None = None,
+) -> str:
     """The FRAME work order for an edit, carrying every bound value."""
     lines = [
         f"EDIT work order: {reason}",
@@ -61,6 +131,7 @@ def edit_work_order(reason: str, prompt: str, before: OperationalSpec) -> str:
             f"    {name}={to_wire(value)}"
             for name, value in criterion.resolved_params.items()
         )
+    lines.extend(pending_lines(pending, before, answered) if pending else [])
     lines.extend(
         [
             "",
@@ -80,7 +151,13 @@ def edit_work_order(reason: str, prompt: str, before: OperationalSpec) -> str:
     return "\n".join(lines)
 
 
-def edit_continuation_work_order(before: OperationalSpec, prompt: str) -> str:
+def edit_continuation_work_order(
+    before: OperationalSpec,
+    prompt: str,
+    *,
+    pending: SpecDiff | None = None,
+    answered: OperationalSpec | None = None,
+) -> str:
     """The work order for the pass that continues an edit stopped by its budget.
 
     An edit owes a disposition for every criterion the turn started with, so
@@ -90,6 +167,8 @@ def edit_continuation_work_order(before: OperationalSpec, prompt: str) -> str:
         "the previous pass ran out of its tool budget; continue that edit",
         prompt,
         before,
+        pending=pending,
+        answered=answered,
     )
 
 
@@ -173,6 +252,39 @@ def wdk_refused_the_written_step_message(
         f"or tell the user exactly what VEuPathDB refused and stop. Do not "
         f"offer to rebuild the strategy from scratch, and do not drop the "
         f"steps it holds."
+    )
+
+
+def delta_disagrees_with_the_strategy_message(criterion_ids: Sequence[str]) -> str:
+    """The account of this edit and the steps it would build disagree.
+
+    Nothing is applied, because the reply is read from the account and the
+    researcher cannot check a step the account leaves out.
+    """
+    named = ", ".join(criterion_ids)
+    return (
+        f"This edit and its account disagree about {named}: each of them is "
+        f"either a criterion the strategy already holds a step for, or one "
+        f"this edit would build and the account does not state. Nothing was "
+        f"applied. Dispatch edit_strategy again and, for each id named here, "
+        f"state a criterion under the step id the strategy holds, or drop it "
+        f"with drop_criterion."
+    )
+
+
+def pending_changes_no_pass_accounted_for_message(criterion_ids: Sequence[str]) -> str:
+    """Why an edit carrying an earlier pass's unpushed change is refused.
+
+    The reply is read from this edit's own account, so a change no pass of this
+    turn stated would reach the strategy with nothing to explain it.
+    """
+    named = ", ".join(criterion_ids)
+    return (
+        f"This edit would also carry what an earlier pass of this thread left "
+        f"unpushed, and no pass of this turn accounted for {named}. Nothing "
+        f"was applied. Dispatch edit_strategy again and, for each id named "
+        f"here, state its disposition in `changes` to let it stand, or state "
+        f"the criterion the strategy holds with set_criterion to take it back."
     )
 
 

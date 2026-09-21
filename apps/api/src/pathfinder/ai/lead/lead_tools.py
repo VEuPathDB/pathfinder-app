@@ -11,6 +11,7 @@ from veupathdb import JSONObject
 from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType
 
 from pathfinder.ai.lead._delete_rules import DeleteSurface
+from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.intent import UserIntent
@@ -361,6 +362,7 @@ async def clear_strategy(
     # The criteria address the steps the clear removed, so the thread states
     # no spec after it and the next pass frames from the request alone.
     ctx.deps.state.domain.operational_spec = None
+    the_strategy_now_answers_to(ctx.deps.state, None, None)
     return cleared
 
 
@@ -372,17 +374,18 @@ async def delete_step(
 
     This is how a step the user wants gone leaves: a step they say is wrong, a
     step left over from an earlier turn, or a step standing outside the
-    strategy. A step under a combine takes that combine with it and its
-    sibling takes their place, and a combine under a transform leaves with its
-    secondary branch so the transform reads its primary. The strategy's own
-    root collapses onto its primary input when it is a combine, and any other
-    root leaves with whatever hangs under it. Two calls are refused: a
-    transform nothing can take the place of (the strategy's root one, and one
-    under another transform), and any root of more than one step on a thread
-    that holds several roots and no push says which is the strategy - name a
-    step under the one you mean instead. A loose step of its own goes. The
-    write appends a revision, so a revert restores what it removed, and the
-    user approves the call before it runs, so do not also ask in prose.
+    strategy. What leaves with it is the graph's own answer, and the call
+    reports it: a step under a combine takes that combine with it and its
+    sibling takes their place; a step under a transform takes that transform
+    with it; a transform leaves alone and the step it consumed takes its
+    place; the strategy's root, when it is a combine, leaves with its
+    secondary branch and the primary branch becomes the root; any other root
+    leaves with every step under it. A delete no re-wiring of the graph
+    performs is refused with the reason, as is any root of more than one step
+    on a thread that holds several roots and no push says which is the
+    strategy - name a step under the one you mean instead. The write appends a
+    revision, so a revert restores what it removed, and the user approves the
+    call before it runs, so do not also ask in prose.
 
     Args:
         step_id: The step to remove, by the id the strategy graph shows.
@@ -396,6 +399,11 @@ async def delete_step(
         ctx.deps.state.domain.operational_spec = (
             inner.deps.agent_state.operational_spec_draft
         )
+    the_strategy_now_answers_to(
+        ctx.deps.state,
+        ctx.deps.state.domain.operational_spec,
+        ctx.deps.runtime.strategy_session.get_graph(None),
+    )
     return deleted
 
 

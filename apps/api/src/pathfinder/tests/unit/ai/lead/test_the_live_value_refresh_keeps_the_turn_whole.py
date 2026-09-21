@@ -2,7 +2,8 @@
 
 The spec and the graph are one address space and two value forms: the criterion
 states the term a user or the model named, the step holds the form VEuPathDB
-took. The two tests marked ``xfail`` pin the cases that are still wrong.
+took. A value written outside the thread is the researcher's statement, and the
+criterion takes it.
 
 The refresh, the dispatch checks, the diff and the planner are the production
 ones; only the FRAME pass, the sheet read and the commit are stand-ins.
@@ -65,14 +66,18 @@ def _bound_to_a_branch_term(monkeypatch: pytest.MonkeyPatch) -> DisagreementThre
                 **criterion.resolved_params,
                 _ORGANISM: _BRANCH,
             }
-    thread = DisagreementThread(
+    # The push wrote the submitted form, so the step already held the leaves
+    # when the thread last answered to this spec.
+    session = session_holding(built_tree())
+    graph = session.get_graph(None)
+    assert graph is not None
+    graph.steps[STAGE].parameters[_ORGANISM] = _LEAVES
+    return DisagreementThread(
         monkeypatch,
         spec=spec,
-        session=session_holding(built_tree()),
+        session=session,
         recorded_build=recorded(SURFACE, STAGE, ROOT),
     )
-    thread.graph.steps[STAGE].parameters[_ORGANISM] = _LEAVES
-    return thread
 
 
 def _stage_value(spec: OperationalSpec, name: str) -> object:
@@ -185,17 +190,6 @@ async def test_a_value_set_while_a_call_was_parked_costs_the_resumed_pass_nothin
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "An edit that ends needs_user commits its draft as the thread's spec, "
-        "so a changed value on a built criterion becomes the next dispatch's "
-        "baseline, the next diff calls it kept, and it is never pushed while "
-        "the spec claims it. A changed value on a built criterion in an edit "
-        "that ends needs_user must be pushed by the follow-up that answers the "
-        "question."
-    ),
-)
 async def test_a_change_framed_beside_an_open_question_is_pushed_once_it_is_answered(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -219,16 +213,6 @@ async def test_a_change_framed_beside_an_open_question_is_pushed_once_it_is_answ
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "A value the user sets on the canvas does not reach the thread's spec: "
-        "the spec states what the last frame bound while the strategy holds "
-        "what the user set, so the workspace, the ledger and the reply describe "
-        "a strategy the user no longer has. Nothing writes the stale value to "
-        "the step. A canvas edit must move the value it wrote into the spec."
-    ),
-)
 async def test_a_value_set_on_the_canvas_reaches_the_spec(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

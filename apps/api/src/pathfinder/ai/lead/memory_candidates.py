@@ -47,8 +47,8 @@ def collect_memory_candidates(state: PipelineState) -> list[MemoryCandidate]:
     domain = state.domain
     candidates: list[MemoryCandidate] = []
     if (
-        domain.operational_spec is not None
-        and domain.operational_spec.criteria
+        domain.answered_spec is not None
+        and domain.answered_spec.criteria
         and _asked_to_build(domain)
     ):
         candidates.append(
@@ -96,9 +96,9 @@ async def collect_turn_memory_candidates(
 
 
 def _build_strategy_value(state: PipelineState) -> MemoryValue:
-    spec = state.domain.operational_spec
+    spec = state.domain.answered_spec
     if spec is None:
-        msg = "_build_strategy_value requires state.domain.operational_spec to be set"
+        msg = "_build_strategy_value requires state.domain.answered_spec to be set"
         raise ValueError(msg)
     return MemoryValue(
         kind="strategy",
@@ -214,7 +214,7 @@ async def _check_verifications_threshold(
 
 
 def _summarize_spec(state: PipelineState) -> str:
-    spec = state.domain.operational_spec
+    spec = state.domain.answered_spec
     if spec and spec.interpreted_goal:
         return spec.interpreted_goal[:120]
     if spec and spec.goal:
@@ -224,7 +224,7 @@ def _summarize_spec(state: PipelineState) -> str:
 
 def _spec_tags(state: PipelineState) -> list[str]:
     tags = [state.site_id] if state.site_id else []
-    spec = state.domain.operational_spec
+    spec = state.domain.answered_spec
     if spec and spec.organism_scope:
         tags.append(spec.organism_scope)
     return tags

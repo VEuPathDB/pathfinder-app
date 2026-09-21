@@ -78,10 +78,22 @@ describe("computeDeleteChoices", () => {
     expect(promote.isDefault).toBe(true);
   });
 
-  test("transform in middle: bypass-only choice (token: collapse-combine)", () => {
+  test("transform in middle: bypass-only choice (token: promote-primary)", () => {
     const steps = [step("a"), step("t", "a", undefined, "transform"), step("r", "t")];
     const choices = computeDeleteChoices(steps, "t");
-    expect(choices.map((c) => c.resolution)).toEqual(["collapse-combine"]);
+    expect(choices.map((c) => c.resolution)).toEqual(["promote-primary"]);
+    expect(choices[0]!.willDelete).toEqual(["t"]);
+  });
+
+  test("root transform: the step it consumed takes its place", () => {
+    const steps = [
+      step("a"),
+      step("b"),
+      step("c", "a", "b", "combine"),
+      step("t", "c", undefined, "transform"),
+    ];
+    const choices = computeDeleteChoices(steps, "t");
+    expect(choices.map((c) => c.resolution)).toEqual(["promote-primary"]);
     expect(choices[0]!.willDelete).toEqual(["t"]);
   });
 

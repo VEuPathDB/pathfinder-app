@@ -240,10 +240,10 @@ async def test_the_roots_secondary_deleted_on_the_canvas_collapses_onto_its_prim
     }
 
 
-async def test_a_step_added_while_a_call_was_parked_is_refused_not_removed(
+async def test_a_step_added_while_a_call_was_parked_is_stated_by_the_resumed_turn(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The resumed turn states no criterion for it, so the edit refuses by name."""
+    """A resumed turn is refreshed like any other, so the edit plans over the step."""
     thread = DisagreementThread(
         monkeypatch,
         spec=built_spec(),
@@ -254,18 +254,17 @@ async def test_a_step_added_while_a_call_was_parked_is_refused_not_removed(
     record_the_spec_the_dispatch_found(thread.deps, resume=None)
     thread.session.graph = session_holding(tree_with_the_canvas_step()).graph
     await thread.next_turn(resumes_parked_call=True)
+    assert thread.criteria == [SURFACE, STAGE, CANVAS]
     thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
 
-    refusal = await thread.edit(
+    delta = await thread.edit(
         resume=SubAgentResume(messages=[], results=DeferredToolResults())
     )
 
-    assert isinstance(refusal, str)
-    assert CANVAS in refusal
-    assert thread.committed == []
-    assert sorted(thread.graph.steps) == sorted(
-        [SURFACE, STAGE, ROOT, CANVAS, "step_8e7d6c5b"]
-    )
+    assert isinstance(delta, EditDelta)
+    assert [op.kind for op in thread.committed] == ["addLeaf", "addCombine"]
+    assert CANVAS in thread.graph.steps
+    assert sorted(delta.preserved_step_ids) == sorted([SURFACE, STAGE, CANVAS])
 
 
 async def test_a_step_added_while_a_call_was_parked_is_stated_by_the_next_turn(

@@ -18,11 +18,13 @@ from veupathdb.domain.strategy import (
     CombineOp,
     StrategyStepNode,
     flatten_tree,
+    subtree_ids,
 )
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import (
+    answered_strategy,
     edit_dispatch,
     frame_dispatch,
     pre_turn,
@@ -44,6 +46,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
+    structure_criteria,
 )
 from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.operations.apply import apply_operation
@@ -53,6 +56,8 @@ from pathfinder.domain.strategy.spec_diff import (
     CriterionDisposition,
     SpecDiff,
 )
+from pathfinder.domain.strategy.spec_reconciliation import spec_the_strategy_holds
+from pathfinder.domain.strategy.stated_shape import criteria_with_steps, stated_shape
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._disagreement_facts import StepFacts, graph_facts
@@ -177,13 +182,29 @@ class DisagreementThread:
         self.monkeypatch = monkeypatch
         self.session = session
         self.committed: list[GraphOperation] = []
+        self.written_while_framing = False
+        """Whether a canvas commit landed between a dispatch's start and its push."""
         self.workspaces: list[OperationalSpec] = []
         """The workspace each FRAME pass found, newest last."""
+        graph = session.get_graph(None)
+        answered = (
+            None
+            if graph is None or not graph.steps
+            else spec_the_strategy_holds(spec.model_copy(deep=True), graph.steps)
+        )
         self.deps: LeadDeps = lead_deps(
             pipeline_state(
                 user_prompt="change the strategy",
                 domain=StrategyDomainState(
-                    operational_spec=spec, last_build_outcome=recorded_build
+                    operational_spec=spec,
+                    last_build_outcome=recorded_build,
+                    # The thread last answered with this spec over the strategy
+                    # as it stands; a test writes the graph after that to say
+                    # what was written outside it.
+                    answered_spec=answered,
+                    answered_graph=(
+                        graph.to_strategy_ast() if graph is not None else None
+                    ),
                 ),
             ),
             strategy_session=session,
@@ -220,6 +241,7 @@ class DisagreementThread:
         monkeypatch.setattr(edit_dispatch, "apply_operations_and_commit", _commit)
         monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _p: None)
         monkeypatch.setattr(pre_turn, "sheet_params_for_searches", _sheets)
+        monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _sheets)
         monkeypatch.setattr(strategy_edits, "apply_and_commit", _commit_one)
         monkeypatch.setattr(
             conversation, "persist_strategy_ast_to_conversation", _persisted
@@ -257,6 +279,59 @@ class DisagreementThread:
         """Every live step, in the form two turns are compared by."""
         return graph_facts(self.graph)
 
+    @property
+    def answered(self) -> OperationalSpec:
+        spec = self.deps.state.domain.answered_spec
+        assert spec is not None
+        return spec
+
+    def assert_invariants(self) -> None:
+        """What the plan and the strategy owe each other after every step.
+
+        The answered spec states the strategy the graph holds, the answered
+        tree is that graph, and a plan with nothing pending is the answer.
+        """
+        domain = self.deps.state.domain
+        answered = domain.answered_spec
+        if answered is None:
+            return
+        if not self.written_while_framing:
+            # A commit that lands mid-pass is not one this thread has answered
+            # to; the next turn plays it onto the spec.
+            assert domain.answered_graph == self.graph.to_strategy_ast()
+        held = set(self.graph.steps)
+        assert structure_criteria(answered.structure) <= held
+        root = self.graph.primary_root_id()
+        if root is not None:
+            reached = set(subtree_ids(root, self.graph.steps))
+            shape = stated_shape(
+                graph=self.graph,
+                root_id=root,
+                criteria=criteria_with_steps(
+                    [c.id for c in answered.criteria], self.graph.steps
+                ),
+                outside=held - reached,
+            )
+            assert (shape.unstated, shape.lost, shape.stranded) == ((), (), ())
+        plan = domain.operational_spec
+        if plan is not None and not self._pending(plan, answered, held):
+            assert plan == answered
+
+    @staticmethod
+    def _pending(
+        plan: OperationalSpec, answered: OperationalSpec, held: set[str]
+    ) -> bool:
+        """What the plan states and the strategy has not taken.
+
+        A criterion with no live step is one the strategy has not built; one
+        the answer holds and the plan does not is a drop it has not pushed;
+        one the plan holds and the answer does not is an option it has not
+        absorbed.
+        """
+        unbuilt = structure_criteria(plan.structure) - held
+        moved = {c.id for c in plan.criteria} ^ {c.id for c in answered.criteria}
+        return bool(unbuilt or moved)
+
     def ledger_diff(self) -> SpecDiff:
         """What the Lead's ledger says this turn did to the spec it entered on."""
         diff = derive_ledger(self.deps.state, None).frame.spec_diff()
@@ -266,9 +341,11 @@ class DisagreementThread:
     async def delete(self, step_id: str) -> None:
         """Run the Lead's delete over the live strategy, as a turn does."""
         await delete_step(run_context_for(self.deps, "t_delete"), step_id=step_id)
+        self.assert_invariants()
 
     async def clear(self) -> None:
         await clear_strategy(run_context_for(self.deps, "t_clear"), confirm=True)
+        self.assert_invariants()
 
     async def build(self) -> BuildOutcome:
         """Build the committed spec, with the WDK push standing in."""
@@ -286,6 +363,7 @@ class DisagreementThread:
             sub_agent_dispatch, "get_stream_writer", lambda: lambda _p: None
         )
         delta = await build_strategy(run_context_for(self.deps))
+        self.assert_invariants()
         return delta.outcome
 
     async def frame(self) -> FrameResult | str:
@@ -295,8 +373,10 @@ class DisagreementThread:
                 deps=self.deps, parent_tool_call_id="t1", work_order="frame it"
             )
         except ModelRetry as refusal:
+            self.assert_invariants()
             return refusal.message
         assert isinstance(result, FrameResult)
+        self.assert_invariants()
         return result
 
     async def next_turn(self, *, resumes_parked_call: bool = False) -> None:
@@ -310,6 +390,7 @@ class DisagreementThread:
         refreshed = await refresh_live_strategy_state(state, self.deps.runtime)
         refreshed.pending_approval = None
         self.deps = lead_deps(refreshed, strategy_session=self.session)
+        self.assert_invariants()
 
     def frames(
         self,
@@ -325,6 +406,8 @@ class DisagreementThread:
         canvas commit landing between the dispatch's start and its push.
         """
 
+        self.written_while_framing = False
+
         async def _pass(**kwargs: Any) -> FrameResult:
             agent_deps: AgentDeps = kwargs["agent_deps"]
             found = agent_deps.agent_state.operational_spec_draft
@@ -332,6 +415,7 @@ class DisagreementThread:
             self.workspaces.append(found.model_copy(deep=True))
             if while_framing is not None:
                 while_framing(self.graph)
+                self.written_while_framing = True
             agent_deps.agent_state.operational_spec_draft = draft(
                 found.model_copy(deep=True)
             )
@@ -351,6 +435,8 @@ class DisagreementThread:
                 resume=resume,
             )
         except ModelRetry as refusal:
+            self.assert_invariants()
             return refusal.message
         assert isinstance(delta, EditDelta)
+        self.assert_invariants()
         return delta

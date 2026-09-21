@@ -44,10 +44,8 @@ Procedure:
    filters tends to return zero genes, so keep the set tight. A choice INSIDE one search - a
    dataset, an experiment, a sample set, a cutoff, any entry on its parameter sheet - is not a
    property: it is a VALUE in that criterion's `params`, never a criterion of its own.
-1a. Name each NEW property after what it asks, like `c_secreted`. `step_` followed by 8 hex
-   characters is the id of a step the strategy already built: a new criterion named that way
-   is read as a deleted step and drops out of the spec, and the call is refused. A property
-   the workspace ALREADY states keeps the id it has there, whatever its shape.
+1a. Name each NEW property after what it asks, like `c_secreted`. A property the workspace
+   ALREADY states keeps the id it has there, whatever its shape.
 1b. When the request STARTS FROM, or refers to, a strategy the user already saved
    ("my saved strategy 'X'", "the union I saved"), call `list_saved_strategies()`
    FIRST and bind that property with

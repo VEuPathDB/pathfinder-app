@@ -6,10 +6,12 @@ import type { GraphOperation } from "@/lib/types/graphOperation";
 import type { ApplyResult } from "./types";
 
 type DeleteStepOp = Extract<GraphOperation, { kind: "deleteStep" }>;
+type ParentInfo = NonNullable<ReturnType<typeof findParent>>;
 
 export function applyDeleteStep(strategy: Strategy, op: DeleteStepOp): ApplyResult {
   const target = strategy.steps.find((s) => s.id === op.stepId);
   if (!target) return { kind: "rejected", reason: `Step ${op.stepId} not found` };
+  const parentInfo = findParent(strategy.steps, op.stepId);
 
   switch (op.resolution) {
     case "delete-strategy":
@@ -19,46 +21,69 @@ export function applyDeleteStep(strategy: Strategy, op: DeleteStepOp): ApplyResu
         description: "Deleted strategy",
       };
     case "delete-subtree":
-      return deleteSubtree(strategy, op.stepId);
+      return parentInfo === null
+        ? dropBranch(strategy, op.stepId)
+        : collapseIntoTheParent(strategy, op.stepId, parentInfo);
     case "collapse-combine":
-      return collapseCombine(strategy, op.stepId, target);
+      return parentInfo === null
+        ? promotePrimary(strategy, op.stepId, target, null)
+        : collapseIntoTheParent(strategy, op.stepId, parentInfo);
     case "orphan-sibling":
-      return orphanSibling(strategy, op.stepId);
+      return orphanSibling(strategy, op.stepId, parentInfo);
     case "promote-primary":
-      return promotePrimary(strategy, op.stepId, target);
+      return promotePrimary(strategy, op.stepId, target, parentInfo);
   }
 }
 
-function deleteSubtree(strategy: Strategy, stepId: string): ApplyResult {
+function dropBranch(strategy: Strategy, stepId: string): ApplyResult {
   const subtree = new Set(walkSubtreeIds(strategy.steps, stepId));
-  const parentInfo = findParent(strategy.steps, stepId);
-  let next = strategy.steps.filter((s) => !subtree.has(s.id));
-  if (parentInfo !== null && inferStepKind(parentInfo.parent) === "transform") {
-    next = next.filter((s) => s.id !== parentInfo.parent.id);
-    const grandparentInfo = findParent(strategy.steps, parentInfo.parent.id);
-    if (grandparentInfo !== null) {
-      const slotKey =
-        grandparentInfo.slot === "primary"
-          ? "primaryInputStepId"
-          : "secondaryInputStepId";
-      next = patchSteps(next, grandparentInfo.parent.id, { [slotKey]: null });
-    }
-  } else if (parentInfo !== null) {
-    const slotKey =
-      parentInfo.slot === "primary" ? "primaryInputStepId" : "secondaryInputStepId";
-    next = patchSteps(next, parentInfo.parent.id, { [slotKey]: null });
-  }
   return {
     kind: "applied",
-    next: { ...strategy, steps: next },
+    next: { ...strategy, steps: strategy.steps.filter((s) => !subtree.has(s.id)) },
     description: `Deleted ${stepId} and its subtree`,
   };
 }
 
-function orphanSibling(strategy: Strategy, stepId: string): ApplyResult {
-  const parentInfo = findParent(strategy.steps, stepId);
+// The branch goes, and the step that read it goes with it: a transform with no
+// input reads nothing and a combine with one branch combines nothing. A
+// combine's other branch takes the place the parent held.
+function collapseIntoTheParent(
+  strategy: Strategy,
+  stepId: string,
+  parentInfo: ParentInfo,
+): ApplyResult {
+  const { parent, slot } = parentInfo;
+  const siblingId =
+    inferStepKind(parent) === "combine"
+      ? slot === "primary"
+        ? parent.secondaryInputStepId
+        : parent.primaryInputStepId
+      : null;
+  const drop = new Set<string>([...walkSubtreeIds(strategy.steps, stepId), parent.id]);
+  let next = strategy.steps.filter((s) => !drop.has(s.id));
+  const grandparent = findParent(strategy.steps, parent.id);
+  if (grandparent !== null) {
+    const slotKey =
+      grandparent.slot === "primary" ? "primaryInputStepId" : "secondaryInputStepId";
+    next = patchSteps(next, grandparent.parent.id, { [slotKey]: siblingId ?? null });
+  }
+  return {
+    kind: "applied",
+    next: { ...strategy, steps: next },
+    description: `Collapsed ${parent.id}`,
+  };
+}
+
+function orphanSibling(
+  strategy: Strategy,
+  stepId: string,
+  parentInfo: ParentInfo | null,
+): ApplyResult {
   if (parentInfo === null)
-    return { kind: "rejected", reason: "orphan-sibling needs a combine parent" };
+    return {
+      kind: "rejected",
+      reason: `${stepId} is a root, so no step above it keeps another branch`,
+    };
   const { parent } = parentInfo;
   const subtree = new Set(walkSubtreeIds(strategy.steps, stepId));
   let next = strategy.steps.filter((s) => !subtree.has(s.id));
@@ -103,82 +128,29 @@ function orphanSibling(strategy: Strategy, stepId: string): ApplyResult {
   };
 }
 
-function collapseCombine(
-  strategy: Strategy,
-  stepId: string,
-  target: Strategy["steps"][number],
-): ApplyResult {
-  const parentInfo = findParent(strategy.steps, stepId);
-  if (parentInfo === null) {
-    if (inferStepKind(target) !== "combine")
-      return { kind: "rejected", reason: "collapse-combine on non-combine root" };
-    const dropIds = new Set<string>([stepId]);
-    const sec = target.secondaryInputStepId;
-    if (sec != null && sec !== "")
-      for (const id of walkSubtreeIds(strategy.steps, sec)) dropIds.add(id);
-    return {
-      kind: "applied",
-      next: {
-        ...strategy,
-        steps: strategy.steps.filter((s) => !dropIds.has(s.id)),
-      },
-      description: `Collapsed combine ${stepId}`,
-    };
-  }
-  const { parent, slot } = parentInfo;
-  if (inferStepKind(parent) === "transform") {
-    const subtree = new Set(walkSubtreeIds(strategy.steps, stepId));
-    let next = strategy.steps.filter((s) => !subtree.has(s.id) && s.id !== parent.id);
-    const gp = findParent(strategy.steps, parent.id);
-    if (gp !== null) {
-      const slotKey =
-        gp.slot === "primary" ? "primaryInputStepId" : "secondaryInputStepId";
-      next = patchSteps(next, gp.parent.id, { [slotKey]: null });
-    }
-    return {
-      kind: "applied",
-      next: { ...strategy, steps: next },
-      description: `Collapsed via transform ${stepId}`,
-    };
-  }
-  const siblingId =
-    slot === "primary" ? parent.secondaryInputStepId : parent.primaryInputStepId;
-  const drop = new Set<string>([...walkSubtreeIds(strategy.steps, stepId), parent.id]);
-  const grandparent = findParent(strategy.steps, parent.id);
-  let next = strategy.steps.filter((s) => !drop.has(s.id));
-  if (grandparent !== null) {
-    const slotKey =
-      grandparent.slot === "primary" ? "primaryInputStepId" : "secondaryInputStepId";
-    next = patchSteps(next, grandparent.parent.id, {
-      [slotKey]: siblingId ?? null,
-    });
-  }
-  return {
-    kind: "applied",
-    next: { ...strategy, steps: next },
-    description: `Collapsed combine ${parent.id}`,
-  };
-}
-
+// The step goes and the step it reads stands where it stood. This is the
+// re-wiring WDK performs when a strategy loses its root.
 function promotePrimary(
   strategy: Strategy,
   stepId: string,
   target: Strategy["steps"][number],
+  parentInfo: ParentInfo | null,
 ): ApplyResult {
-  if (inferStepKind(target) !== "combine")
-    return { kind: "rejected", reason: "promote-primary on non-combine" };
+  const primaryId = target.primaryInputStepId;
+  if (primaryId == null || primaryId === "")
+    return {
+      kind: "rejected",
+      reason: `${stepId} reads no step that can take its place`,
+    };
   const sec = target.secondaryInputStepId;
   const secondaryDrop =
     sec != null && sec !== "" ? walkSubtreeIds(strategy.steps, sec) : [];
   const drop = new Set<string>([stepId, ...secondaryDrop]);
-  const parentInfo = findParent(strategy.steps, stepId);
   let next = strategy.steps.filter((s) => !drop.has(s.id));
   if (parentInfo !== null) {
     const slotKey =
       parentInfo.slot === "primary" ? "primaryInputStepId" : "secondaryInputStepId";
-    next = patchSteps(next, parentInfo.parent.id, {
-      [slotKey]: target.primaryInputStepId ?? null,
-    });
+    next = patchSteps(next, parentInfo.parent.id, { [slotKey]: primaryId });
   }
   return {
     kind: "applied",

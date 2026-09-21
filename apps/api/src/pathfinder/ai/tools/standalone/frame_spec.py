@@ -36,7 +36,6 @@ from pathfinder.ai.tools.standalone._frame_count import (
 from pathfinder.ai.tools.standalone._frame_eda import (
     refuse_a_search_the_criterion_cannot_use,
 )
-from pathfinder.ai.tools.standalone._frame_ids import refuse_a_step_shaped_id
 from pathfinder.ai.tools.standalone._frame_proposals import (
     DeclaredAssumption,
     ParamProposals,
@@ -175,10 +174,8 @@ async def set_criterion(
 
     ``criterion_id`` names a criterion the strategy already holds a step for, or
     a NEW criterion you are adding. A new one takes a name that says what it
-    asks, like ``c_secreted``. Never invent an id of the form ``step_`` plus 8
-    hex characters: that is the shape of a step the strategy built, and a new
-    criterion named that way is read as a step that was deleted and drops out of
-    the spec. To re-bind a criterion that HAS a step, pass that step's own id.
+    asks, like ``c_secreted``. To re-bind a criterion that HAS a step, pass
+    that step's own id.
 
     Pass ``saved_strategy`` INSTEAD of ``search_name`` when the criterion's
     input is a strategy the user already saved: give the name (or the id) from
@@ -228,7 +225,6 @@ async def set_criterion(
     recorded then. Re-call with the same ``params`` and either a
     value from the fresh vocabulary or the same null for each listed parameter,
     and it closes. Re-call the same way once the user answers an open slot."""
-    refuse_a_step_shaped_id(ctx, criterion_id)
     state = ctx.deps.agent_state
     if saved_strategy:
         refuse_a_transform_on_a_saved_strategy(criterion_id, role)

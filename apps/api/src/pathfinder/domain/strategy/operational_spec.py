@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from typing import Literal, NamedTuple
 
 from pydantic import ConfigDict, Field
@@ -206,16 +206,34 @@ class FoldedSpec(CamelModel):
     unplaced: tuple[str, ...] = ()
 
 
+def stated_wire_values(spec: OperationalSpec | None) -> dict[str, dict[str, str]]:
+    """The wire values each criterion of a spec states, by criterion id."""
+    if spec is None:
+        return {}
+    return {
+        criterion.id: {
+            name: to_wire(value) for name, value in criterion.resolved_params.items()
+        }
+        for criterion in spec.criteria
+    }
+
+
 def fold_option_criteria(
-    spec: OperationalSpec, *, live_step_ids: Collection[str] = ()
+    spec: OperationalSpec,
+    *,
+    live_step_ids: Collection[str] = (),
+    answered_values: Mapping[str, Mapping[str, str]] | None = None,
 ) -> FoldedSpec:
     """Move an option onto the step that runs its search.
 
     A criterion the structure leaves out states its values on the criterion that
     names the same search; one no single criterion carries is reported unplaced.
     A criterion the strategy holds a step for runs that step, so it is never an
-    option however the structure reads.
+    option however the structure reads. ``answered_values`` are the values the
+    strategy already answers to, which is how a value the carrier only
+    inherited is told from one this pass stated for it.
     """
+    answered = answered_values or {}
     named = structure_criteria(spec.structure)
     answers_to_a_step = named | frozenset(live_step_ids)
     if all(c.id in answers_to_a_step for c in spec.criteria):
@@ -232,7 +250,9 @@ def fold_option_criteria(
         ):
             continue
         runs_it = [c for c in carriers if c.search_name == option.search_name]
-        if len(runs_it) != 1 or not _carry_the_option(runs_it[0], option):
+        if len(runs_it) != 1 or not _carry_the_option(
+            runs_it[0], option, answered.get(runs_it[0].id, {})
+        ):
             unplaced.append(option.id)
             continue
         absorbed.add(option.id)
@@ -247,11 +267,15 @@ def carried_values(carrier: Criterion) -> dict[str, str]:
     return {a.param_name: a.value for a in carrier.assumptions if a.carried_from}
 
 
-def _carry_the_option(carrier: Criterion, option: Criterion) -> bool:
+def _carry_the_option(
+    carrier: Criterion, option: Criterion, answered: Mapping[str, str]
+) -> bool:
     """Give the carrier the values the option states, and report that it can.
 
     A value the option defaulted or the carrier's own text states does not
     move, and a value contradicting one the fold carried moves nothing at all.
+    A value the carrier only holds because the strategy answers to it is the
+    strategy's, and the option is what the request says about it.
     """
     carried = carried_values(carrier)
     assumed = {a.param_name for a in carrier.assumptions if not a.carried_from}
@@ -266,7 +290,9 @@ def _carry_the_option(carrier: Criterion, option: Criterion) -> bool:
             continue
         held = name in carrier.resolved_params and name not in carrier.defaulted_params
         if held and name not in assumed:
-            continue
+            current = to_wire(carrier.resolved_params[name])
+            if current == to_wire(value) or answered.get(name) != current:
+                continue
         stated[name] = value
     carrier.resolved_params.update(stated)
     carrier.defaulted_params = sorted(set(carrier.defaulted_params) - set(stated))

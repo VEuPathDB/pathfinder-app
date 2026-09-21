@@ -119,11 +119,15 @@ class _Thread:
     def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
         before, session = _built()
         self.committed: list[GraphOperation] = []
+        graph = session.get_graph(None)
+        assert graph is not None
         self.deps: LeadDeps = lead_deps(
             pipeline_state(
                 user_prompt="add direct proteome evidence",
                 domain=StrategyDomainState(
-                    operational_spec=before.model_copy(deep=True)
+                    operational_spec=before.model_copy(deep=True),
+                    answered_spec=before.model_copy(deep=True),
+                    answered_graph=graph.to_strategy_ast(),
                 ),
             ),
             strategy_session=session,

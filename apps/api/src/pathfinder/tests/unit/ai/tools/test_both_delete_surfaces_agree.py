@@ -113,16 +113,18 @@ async def test_an_ambiguous_root_is_refused_on_both(
 
 
 @pytest.mark.parametrize("delete", SURFACES)
-async def test_a_root_transform_is_refused_on_both(
+async def test_a_root_transform_leaves_its_input_the_root_on_both(
     stub_api: StubAPI, delete: Delete
 ) -> None:
+    """A deleted step's primary input stands where it stood, the root included."""
     session = _transform_rooted_session()
 
-    with pytest.raises(ModelRetry) as raised:
-        await delete(session, "step_t1")
+    answer = await delete(session, "step_t1")
 
-    assert "no delete gives its input step_c1 the root" in str(raised.value)
-    assert stub_api.named("delete_step") == []
+    payload = returned(answer, dict[str, JsonValue])
+    assert payload["deleted"] == ["step_t1"]
+    assert sorted(_graph(session).steps) == ["step_c1", "step_k1", "step_k2"]
+    assert _graph(session).primary_root_id() == "step_c1"
 
 
 @pytest.mark.parametrize("delete", SURFACES)
@@ -189,24 +191,6 @@ async def test_an_ambiguous_root_names_the_way_out_this_caller_has(
 
     assert way_out in str(raised.value)
     assert stub_api.named("delete_step") == []
-
-
-@pytest.mark.parametrize(
-    ("delete", "way_out"),
-    [
-        (_through_the_lead, _THE_LEADS_WAY_OUT),
-        (_through_the_sub_agent, _THE_BUILD_WAY_OUT),
-    ],
-)
-async def test_a_root_transform_names_the_way_out_this_caller_has(
-    stub_api: StubAPI, delete: Delete, way_out: str
-) -> None:
-    session = _transform_rooted_session()
-
-    with pytest.raises(ModelRetry) as raised:
-        await delete(session, "step_t1")
-
-    assert way_out in str(raised.value)
 
 
 async def test_the_building_pass_is_never_told_to_clear_the_strategy(

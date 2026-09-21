@@ -26,6 +26,13 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
 
+def _criteria_rows(content: dict[str, object]) -> list[dict[str, object]]:
+    """The criteria a case recorded, as the case memory writes them."""
+    rows = content["criteria"]
+    assert isinstance(rows, list)
+    return [row for row in rows if isinstance(row, dict)]
+
+
 def _spec() -> OperationalSpec:
     return OperationalSpec(
         goal="kinases",
@@ -71,6 +78,7 @@ def _state(
         user_prompt="find the kinases",
         domain=StrategyDomainState(
             operational_spec=_spec(),
+            answered_spec=_spec(),
             original_request="find every kinase in P. falciparum",
             last_build_outcome=outcome,
             zero_result_history=list(history or []),
@@ -123,6 +131,22 @@ def test_a_different_count_is_a_different_case() -> None:
 
 def test_a_turn_with_no_build_leaves_no_case() -> None:
     assert collect_case_candidates(_state(outcome=None)) == []
+
+
+def test_the_case_records_the_spec_the_strategy_answers_to() -> None:
+    """A plan that runs ahead of the strategy never reached the count."""
+    state = _state(outcome=_outcome(142))
+    planned = _spec()
+    planned.criteria.append(
+        Criterion(id="c_planned", text="secreted", search_name="GenesBySignalPeptide")
+    )
+    state.domain.operational_spec = planned
+
+    candidates = collect_case_candidates(state)
+
+    assert len(candidates) == 1
+    rows = _criteria_rows(candidates[0][0].content)
+    assert [row["search_name"] for row in rows] == ["GenesByGoTerm"]
 
 
 def test_a_recovered_zero_step_leaves_a_recovery_case() -> None:

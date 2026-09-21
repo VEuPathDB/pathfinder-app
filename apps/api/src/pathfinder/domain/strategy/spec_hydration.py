@@ -9,19 +9,26 @@ from __future__ import annotations
 
 from collections.abc import Collection, Mapping
 
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
+from pathfinder.domain.strategy.ast_diff import nodes_of
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    criteria_under,
     structure_criteria,
 )
+from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
 
-__all__ = ["hidden_params_dropped", "spec_from_ast", "spec_stating_every_step"]
+__all__ = [
+    "hidden_params_dropped",
+    "sheet_bound",
+    "spec_from_ast",
+    "spec_stating_the_live_tree",
+]
 
 
 def spec_from_ast(ast: StrategyAst, *, goal: str) -> OperationalSpec:
@@ -43,84 +50,80 @@ def spec_from_ast(ast: StrategyAst, *, goal: str) -> OperationalSpec:
     )
 
 
-def spec_stating_every_step(spec: OperationalSpec, ast: StrategyAst) -> OperationalSpec:
-    """The spec with a criterion for every step of the strategy it leaves out.
+def spec_stating_the_live_tree(
+    spec: OperationalSpec,
+    ast: StrategyAst,
+    *,
+    sheet_params: Mapping[str, Collection[str]],
+    shape_moved: bool = False,
+    may_leave_out: Collection[str] = (),
+) -> OperationalSpec:
+    """The spec restated over the strategy the graph holds now.
 
-    An edit is planned against the structure, so a live step the spec does not
-    state is one the next edit removes without being asked to. The structure
-    the spec holds is a plan: it gains the steps it leaves out, joined the way
-    the strategy joins them, and keeps the operators and the nesting it
-    states. A structure that names a criterion the strategy has not built is a
-    plan the strategy has not reached, and it is left alone.
+    Every live step is a criterion, because an edit is planned against the
+    structure and a step it leaves out is one the next edit removes without
+    being asked to. ``may_leave_out`` names the steps this spec is entitled to
+    leave out, which is how a plan carries a drop it has not pushed. The built
+    part of the structure is the strategy's own whenever the spec leaves a step
+    out or the tree's shape moved. A criterion the plan states and no step
+    answers is re-joined at the plan's root combine when that is where the plan
+    put it; any other plan is left alone.
     """
     derived = spec_from_ast(ast, goal=spec.goal)
-    built = {criterion.id for criterion in derived.criteria}
-    if derived.structure is None or not structure_criteria(spec.structure) <= built:
+    if derived.structure is None:
         return spec
+    nodes = nodes_of(ast)
     stated = {criterion.id for criterion in spec.criteria}
-    missing = [c for c in derived.criteria if c.id not in stated]
-    if not missing:
+    if any(
+        node.infer_kind() == "combine" for cid in stated if (node := nodes.get(cid))
+    ):
+        # One criterion stands for the whole subtree under a combine, which is
+        # how an expanded saved strategy answers for the criterion that names
+        # it, so the tree does not say how many criteria the spec has.
         return spec
-    framed: dict[frozenset[str], StructureNode] = {}
-    if spec.structure is not None:
-        _by_the_criteria_named(spec.structure.root, framed)
-    reconciled = spec.model_copy(deep=True)
-    reconciled.criteria = [*reconciled.criteria, *missing]
-    reconciled.structure = SpecStructure(
-        root=_holding_the_steps_left_out(
-            derived.structure.root, framed, frozenset(c.id for c in missing)
-        ),
-    )
-    return reconciled
+    left_out = {c.id for c in derived.criteria if c.id in may_leave_out} - stated
+    missing = [c for c in derived.criteria if c.id not in stated | left_out]
+    if not missing and not shape_moved:
+        return spec
+    pending = structure_criteria(spec.structure) - set(nodes)
+    root = derived.structure.root
+    if pending:
+        joined = _pending_joined_at_the_root(spec.structure, pending, root)
+        if joined is None:
+            return spec
+        root = joined
+    restated = spec.model_copy(deep=True)
+    restated.criteria = [
+        *restated.criteria,
+        *(_sheet_stated(criterion, sheet_params) for criterion in missing),
+    ]
+    restated.structure = SpecStructure(root=root)
+    return spec_without_steps(restated, left_out)
 
 
-def _by_the_criteria_named(
-    node: StructureNode, found: dict[frozenset[str], StructureNode]
-) -> None:
-    """Index every node of a structure by the criteria it names, widest first."""
-    found.setdefault(criteria_under(node), node)
-    for child in node.inputs:
-        _by_the_criteria_named(child, found)
+def _pending_joined_at_the_root(
+    structure: SpecStructure | None,
+    pending: frozenset[str],
+    built_root: StructureNode,
+) -> StructureNode | None:
+    """The live tree joined to the criteria the plan hangs off its root combine.
 
-
-def _holding_the_steps_left_out(
-    node: StructureNode,
-    framed: Mapping[frozenset[str], StructureNode],
-    missing: frozenset[str],
-) -> StructureNode:
-    """The strategy's node, holding the framed shape wherever the spec states one.
-
-    A subtree the spec states in full is the spec's own. A subtree that holds
-    a step the spec leaves out follows the strategy, and keeps the strategy's
-    operator unless the spec states a join over the same two sides.
+    Nothing when the plan puts one of them anywhere else, which is a plan the
+    strategy has not reached and the edit refuses with a way forward.
     """
-    under = criteria_under(node)
-    left_out = under & missing
-    if not left_out:
-        return framed.get(under, node)
-    inputs = [_holding_the_steps_left_out(c, framed, missing) for c in node.inputs]
-    stated = framed.get(under - left_out)
-    operator = (
-        stated.operator
-        if stated is not None and _joins_the_same_sides(stated, node, missing)
-        else node.operator
-    )
-    return node.model_copy(update={"inputs": inputs, "operator": operator})
-
-
-def _joins_the_same_sides(
-    stated: StructureNode, node: StructureNode, missing: frozenset[str]
-) -> bool:
-    """The spec joins the sides this node of the strategy joins.
-
-    A node above the framed join names the same criteria once the left-out
-    steps are taken away, so the sides are compared as well as the set.
-    """
-    if stated.kind != "combine" or len(stated.inputs) != len(node.inputs):
-        return False
-    return all(
-        criteria_under(side) == criteria_under(branch) - missing
-        for side, branch in zip(stated.inputs, node.inputs, strict=True)
+    if structure is None or structure.root.kind != "combine":
+        return None
+    hanging = [
+        node
+        for node in structure.root.inputs
+        if node.kind == "leaf" and node.criterion_id in pending
+    ]
+    if {node.criterion_id for node in hanging} != set(pending):
+        return None
+    return StructureNode(
+        kind="combine",
+        operator=structure.root.operator,
+        inputs=[built_root, *hanging],
     )
 
 
@@ -172,18 +175,29 @@ def hidden_params_dropped(
     mapping does not name keeps its values, because nothing says which of
     them the sheet shows.
     """
-    criteria = [
-        criterion
-        if criterion.search_name not in sheet_params
-        else criterion.model_copy(
-            update={
-                "resolved_params": {
-                    name: value
-                    for name, value in criterion.resolved_params.items()
-                    if name in sheet_params[criterion.search_name]
-                }
-            }
-        )
-        for criterion in spec.criteria
-    ]
+    criteria = [_sheet_stated(criterion, sheet_params) for criterion in spec.criteria]
     return spec.model_copy(update={"criteria": criteria})
+
+
+def _sheet_stated(
+    criterion: Criterion, sheet_params: Mapping[str, Collection[str]]
+) -> Criterion:
+    """The criterion stating only the parameters its search's sheet shows."""
+    if criterion.search_name not in sheet_params:
+        return criterion
+    return criterion.model_copy(
+        update={
+            "resolved_params": sheet_bound(
+                criterion.resolved_params, sheet_params[criterion.search_name]
+            )
+        }
+    )
+
+
+def sheet_bound(
+    params: Mapping[str, ParamValue], sheet: Collection[str] | None
+) -> dict[str, ParamValue]:
+    """The values a search's sheet shows. An unread sheet keeps them all."""
+    if sheet is None:
+        return dict(params)
+    return {name: value for name, value in params.items() if name in sheet}

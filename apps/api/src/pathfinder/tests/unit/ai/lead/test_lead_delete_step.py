@@ -214,25 +214,19 @@ def _rooted_transform_ctx() -> RunContext[LeadDeps]:
     )
 
 
-async def test_the_strategy_root_transform_is_refused(stub_api: StubAPI) -> None:
-    """No delete gives a transform's input the root, so the call is refused."""
+async def test_the_strategy_root_transform_leaves_its_input_the_root(
+    stub_api: StubAPI,
+) -> None:
+    """A deleted step's primary input stands where it stood, the root included."""
     ctx = _rooted_transform_ctx()
 
-    with pytest.raises(ModelRetry) as raised:
-        await delete_step(ctx, step_id="step_t1")
+    answer = await delete_step(ctx, step_id="step_t1")
 
-    message = str(raised.value)
-    assert "step_t1" in message
-    assert "step_c1" in message
-    assert "clear_strategy" in message
-    assert stub_api.named("delete_step") == []
-    assert sorted(_graph(ctx).steps) == [
-        "step_c1",
-        "step_k1",
-        "step_k2",
-        "step_t1",
-    ]
-    assert ctx.deps.state.turn_markers.edited is False
+    payload = returned(answer, dict[str, JsonValue])
+    assert payload["deleted"] == ["step_t1"]
+    assert sorted(_graph(ctx).steps) == ["step_c1", "step_k1", "step_k2"]
+    assert _graph(ctx).primary_root_id() == "step_c1"
+    assert ctx.deps.state.turn_markers.edited is True
 
 
 async def test_a_step_under_a_root_transform_takes_the_transform_with_it(
@@ -381,8 +375,10 @@ async def test_a_combine_under_a_root_transform_leaves_its_secondary_branch(
     assert _graph(ctx).steps["step_t1"].primary_input_id == "step_k1"
 
 
-async def test_a_transform_under_a_transform_is_refused(stub_api: StubAPI) -> None:
-    """Its input cannot take its place either, so the stack is not emptied."""
+async def test_a_transform_under_a_transform_leaves_its_input_in_its_place(
+    stub_api: StubAPI,
+) -> None:
+    """The stack keeps the step the inner transform read, under the outer one."""
     stacked = StrategyStepNode(
         id="step_t2",
         search_name="GenesByOrthologs",
@@ -394,14 +390,12 @@ async def test_a_transform_under_a_transform_is_refused(stub_api: StubAPI) -> No
         tool_call_id="call_delete",
     )
 
-    with pytest.raises(ModelRetry) as raised:
-        await delete_step(ctx, step_id="step_t1")
+    answer = await delete_step(ctx, step_id="step_t1")
 
-    message = str(raised.value)
-    assert "step_k1" in message
-    assert "its place under step_t2" in message
-    assert sorted(_graph(ctx).steps) == ["step_k1", "step_t1", "step_t2"]
-    assert ctx.deps.state.turn_markers.edited is False
+    payload = returned(answer, dict[str, JsonValue])
+    assert payload["deleted"] == ["step_t1"]
+    assert sorted(_graph(ctx).steps) == ["step_k1", "step_t2"]
+    assert _graph(ctx).steps["step_t2"].primary_input_id == "step_k1"
 
 
 async def test_the_cited_root_decides_when_it_is_not_the_largest(

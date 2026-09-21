@@ -32,17 +32,17 @@ def _intent_state(classification: IntentClassification | None) -> PipelineState:
             inferred_goal="store a default organism",
         )
     )
+    spec = OperationalSpec(
+        goal=_PREFERENCE,
+        interpreted_goal=_PREFERENCE,
+        criteria=[Criterion(id="c1", text="organism", search_name="GenesByTaxon")],
+    )
     return pipeline_state(
         user_prompt=_PREFERENCE,
         domain=StrategyDomainState(
             user_intent=intent,
-            operational_spec=OperationalSpec(
-                goal=_PREFERENCE,
-                interpreted_goal=_PREFERENCE,
-                criteria=[
-                    Criterion(id="c1", text="organism", search_name="GenesByTaxon"),
-                ],
-            ),
+            operational_spec=spec,
+            answered_spec=spec.model_copy(deep=True),
         ),
     )
 

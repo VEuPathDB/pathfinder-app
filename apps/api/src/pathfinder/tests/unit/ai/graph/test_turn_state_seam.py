@@ -50,6 +50,8 @@ DOMAIN_FIELDS = {
     "turn_markers",
     "lead_next_state",
     "operational_spec",
+    "answered_spec",
+    "answered_graph",
     "spec_before_turn",
     "spec_before_dispatch",
     "discovered_searches",

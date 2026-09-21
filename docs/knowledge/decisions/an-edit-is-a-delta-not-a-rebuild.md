@@ -191,12 +191,20 @@ through the HTTP route, and the commit path still replaces a strategy to
 restore one; both read the wider union. The
 third path, a spec edit, still resolves its own delete through
 `operations/resolutions.py::compute_delete_choices`, and it answers two
-reachable shapes differently from `delete_step`: a transform under a
-transform, which `delete_step` refuses and the spec edit deletes with the tree
-under it, and a detached leaf root, which `delete_step` removes on its own and
-the spec edit turns into a delete of the whole strategy. The stated-shape
-guard stops both before a write. Which of the two answers is right is the open
-decision.
+reachable shapes differently from `delete_step`: a transform `delete_step`
+refuses for want of an heir, which is the strategy's root or one under another
+transform, and which the spec edit deletes on its own with the step it read
+standing in its place, and a detached leaf root, which `delete_step` removes on
+its own and the spec edit turns into a delete of the whole strategy. The
+stated-shape guard stops both before a write. Which of the two answers is right
+is the open decision.
+
+A resolution the menu offers is one the apply performs: every surface reads
+`compute_delete_choices` for what to offer and
+`resolutions.py::why_the_graph_refuses_the_delete` for what the graph cannot
+place, and the second states the rule that both the HTTP graph route and
+`apply_operation` answer with. The re-wiring follows WDK's own `removeStep`:
+the step goes and its primary input stands where it stood.
 
 The delta the Lead reads carries its own account of what it built:
 `EditDelta.added_step_ids` names the criteria the edit minted a step for,

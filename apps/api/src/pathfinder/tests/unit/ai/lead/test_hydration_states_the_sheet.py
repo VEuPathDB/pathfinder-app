@@ -22,7 +22,7 @@ from veupathdb.domain.strategy import (
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead import pre_turn
+from pathfinder.ai.lead import answered_strategy, pre_turn
 from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -84,6 +84,7 @@ def sheet(monkeypatch: pytest.MonkeyPatch) -> None:
         return {_SEARCH: frozenset({"profileset_generic"})}
 
     monkeypatch.setattr(pre_turn, "sheet_params_for_searches", _sheets)
+    monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _sheets)
 
 
 @pytest.mark.usefixtures("sheet")
@@ -207,14 +208,20 @@ async def test_the_stated_step_carries_the_sheet_parameters_only() -> None:
     }
 
 
+def _planned(criterion_id: str) -> Criterion:
+    return Criterion(
+        id=criterion_id, text="secreted", search_name="GenesBySignalPeptide"
+    )
+
+
 @pytest.mark.usefixtures("sheet")
-async def test_a_structure_the_strategy_has_not_built_is_left_alone() -> None:
-    """A framed criterion with no step is a plan, not a step left out."""
+async def test_a_pending_criterion_at_the_plans_root_is_re_joined_over_the_tree() -> (
+    None
+):
+    """The strategy states the built part; the plan keeps the criterion it owes."""
     state = _state()
     spec = _spec_without_the_export()
-    spec.criteria.append(
-        Criterion(id="c_planned", text="secreted", search_name="GenesBySignalPeptide")
-    )
+    spec.criteria.append(_planned("c_planned"))
     spec.structure = SpecStructure(
         root=StructureNode(
             kind="combine",
@@ -233,12 +240,55 @@ async def test_a_structure_the_strategy_has_not_built_is_left_alone() -> None:
 
     stated = refreshed.domain.operational_spec
     assert stated is not None
-    assert structure_criteria(stated.structure) == {"step_kinase", "c_planned"}
+    assert structure_criteria(stated.structure) == {
+        "step_kinase",
+        "step_export",
+        "step_ortholog",
+        "c_planned",
+    }
 
 
 @pytest.mark.usefixtures("sheet")
-async def test_a_turn_that_resumes_a_parked_call_keeps_the_parked_spec() -> None:
-    """The parked delete is removing that criterion, so the turn never restates it."""
+async def test_a_plan_that_nested_its_pending_criterion_is_left_alone() -> None:
+    """Only a plan that hangs what it owes off its root combine is re-joined."""
+    state = _state()
+    spec = _spec_without_the_export()
+    spec.criteria.append(_planned("c_planned"))
+    spec.structure = SpecStructure(
+        root=StructureNode(
+            kind="combine",
+            operator=CombineOp.INTERSECT,
+            inputs=[
+                StructureNode(
+                    kind="combine",
+                    operator=CombineOp.UNION,
+                    inputs=[
+                        StructureNode(kind="leaf", criterion_id="step_kinase"),
+                        StructureNode(kind="leaf", criterion_id="c_planned"),
+                    ],
+                ),
+                StructureNode(kind="leaf", criterion_id="step_ortholog"),
+            ],
+        ),
+    )
+    state.domain.operational_spec = spec
+
+    refreshed = await refresh_live_strategy_state(
+        state, _context(_split_spec_session())
+    )
+
+    stated = refreshed.domain.operational_spec
+    assert stated is not None
+    assert structure_criteria(stated.structure) == {
+        "step_kinase",
+        "c_planned",
+        "step_ortholog",
+    }
+
+
+@pytest.mark.usefixtures("sheet")
+async def test_a_turn_that_resumes_a_parked_call_states_every_live_step() -> None:
+    """A parked call changes nothing until it returns, and the steps are live."""
     state = _state()
     parked = _spec_without_the_export()
     parked.criteria = [c for c in parked.criteria if c.id != "step_ortholog"]
@@ -257,5 +307,13 @@ async def test_a_turn_that_resumes_a_parked_call_keeps_the_parked_spec() -> None
 
     spec = refreshed.domain.operational_spec
     assert spec is not None
-    assert [c.id for c in spec.criteria] == ["step_kinase"]
-    assert structure_criteria(spec.structure) == {"step_kinase"}
+    assert sorted(c.id for c in spec.criteria) == [
+        "step_export",
+        "step_kinase",
+        "step_ortholog",
+    ]
+    assert structure_criteria(spec.structure) == {
+        "step_kinase",
+        "step_export",
+        "step_ortholog",
+    }

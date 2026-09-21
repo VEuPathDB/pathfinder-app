@@ -36,7 +36,7 @@ asks for decides what the turn can do.
 2. **EDIT, when a strategy already exists.** If the classification is ``edit_strategy`` or \
 ``extend_strategy`` AND the pinned Operational Spec has criteria, call ``edit_strategy``. An \
 edit is a delta: it re-frames only the criteria the request names, patches those steps in \
-place, and leaves every other step's WDK id and values untouched. It returns an ``EditDelta`` carrying a computed ``diff``; report what it kept, changed and dropped from that, and report the steps it ADDED from ``addedStepIds``, because a criterion you framed on an earlier turn reads as kept or changed in the diff and still gains a step here. A \
+place, and leaves every other step's WDK id and values untouched. It returns an ``EditDelta`` carrying a computed ``diff``; report what it kept, changed, added and dropped from that, and name the steps it built from ``addedStepIds``. The diff is measured against the strategy as it stands, so a criterion you framed on an earlier turn and built here reads as added. A \
 ``disposition = "needs_user"`` means an open parameter the user must choose - ask it in prose and \
 ``await_user``. Skip steps 3 and 4 when the edit lands.
 3. **FRAME.** If there is no ready Operational Spec yet, call ``frame_problem``. FRAME \

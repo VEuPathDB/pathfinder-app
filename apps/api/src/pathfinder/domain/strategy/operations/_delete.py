@@ -11,6 +11,9 @@ from pathfinder.domain.strategy.operations._graph_edit import (
     _set_input_slot,
     _settle,
 )
+from pathfinder.domain.strategy.operations.resolutions import (
+    why_the_graph_refuses_the_delete,
+)
 from pathfinder.domain.strategy.operations.types import (
     DeleteEdgeOp,
     DeleteEdgeResolution,
@@ -21,7 +24,10 @@ from pathfinder.domain.strategy.session import StrategyGraph
 
 
 def _apply_delete_step(graph: StrategyGraph, op: DeleteStepOp) -> ApplyResult:
-    target = _require(graph, op.step_id, "step")
+    refusal = why_the_graph_refuses_the_delete(graph, op)
+    if refusal is not None:
+        raise ApplyError(refusal)
+    target = graph.steps[op.step_id]
 
     if op.resolution == DeleteResolution.DELETE_STRATEGY:
         dropped = sorted(graph.steps)
@@ -36,8 +42,8 @@ def _apply_delete_step(graph: StrategyGraph, op: DeleteStepOp) -> ApplyResult:
         return _delete_subtree(graph, target, parent_info)
     if op.resolution == DeleteResolution.COLLAPSE_COMBINE:
         return _collapse_combine(graph, target, parent_info)
-    if op.resolution == DeleteResolution.ORPHAN_SIBLING:
-        return _orphan_sibling(graph, target, parent_info)
+    if op.resolution == DeleteResolution.ORPHAN_SIBLING and parent_info is not None:
+        return _orphan_sibling(graph, target, *parent_info)
     if op.resolution == DeleteResolution.PROMOTE_PRIMARY:
         return _promote_primary(graph, target, parent_info)
 
@@ -50,18 +56,10 @@ def _delete_subtree(
     target: StrategyStep,
     parent_info: tuple[StrategyStep, str] | None,
 ) -> ApplyResult:
-    to_delete = set(subtree_ids(target.id, graph.steps))
+    """Remove the branch, and with it the step that consumed the branch."""
     if parent_info is not None:
-        parent, slot = parent_info
-        if parent.kind is StepKind.TRANSFORM:
-            # A transform needs an input, so it goes with the deleted subtree.
-            to_delete.add(parent.id)
-            grandparent_info = graph.parent_of(parent.id)
-            if grandparent_info is not None:
-                grandparent, gp_slot = grandparent_info
-                _set_input_slot(grandparent, gp_slot, None)
-        else:
-            _set_input_slot(parent, slot, None)
+        return _collapse_into_the_parent(graph, target, parent_info)
+    to_delete = set(subtree_ids(target.id, graph.steps))
     _drop(graph, to_delete)
     _settle(graph)
     return ApplyResult(
@@ -76,57 +74,27 @@ def _collapse_combine(
     parent_info: tuple[StrategyStep, str] | None,
 ) -> ApplyResult:
     if parent_info is None:
-        return _collapse_root_combine(graph, target)
+        return _promote_primary(graph, target, None)
+    return _collapse_into_the_parent(graph, target, parent_info)
+
+
+def _collapse_into_the_parent(
+    graph: StrategyGraph,
+    target: StrategyStep,
+    parent_info: tuple[StrategyStep, str],
+) -> ApplyResult:
+    """The branch goes, and the step that read it goes with it.
+
+    A transform with no input reads nothing and a combine with one branch
+    combines nothing, so the parent leaves too. A combine's other branch takes
+    the place the parent held.
+    """
     parent, slot = parent_info
-    if parent.kind is StepKind.TRANSFORM:
-        return _collapse_through_transform_parent(graph, target, parent)
-    return _collapse_combine_parent(graph, target, parent, slot)
-
-
-def _collapse_root_combine(graph: StrategyGraph, target: StrategyStep) -> ApplyResult:
-    if target.kind is not StepKind.COMBINE:
-        msg = "collapse-combine on non-combine root"
-        raise ApplyError(msg)
-    secondary_id = target.secondary_input_id
-    to_delete = {target.id}
-    if secondary_id is not None:
-        to_delete |= set(subtree_ids(secondary_id, graph.steps))
-    primary_id = target.primary_input_id
-    _drop(graph, to_delete)
-    _settle(graph, primary_id)
-    return ApplyResult(
-        description=f"Collapsed combine {target.id}",
-        dropped_step_ids=sorted(to_delete),
-    )
-
-
-def _collapse_through_transform_parent(
-    graph: StrategyGraph,
-    target: StrategyStep,
-    parent: StrategyStep,
-) -> ApplyResult:
-    to_delete = set(subtree_ids(target.id, graph.steps)) | {parent.id}
-    grandparent_info = graph.parent_of(parent.id)
-    if grandparent_info is not None:
-        grandparent, gp_slot = grandparent_info
-        _set_input_slot(grandparent, gp_slot, None)
-    _drop(graph, to_delete)
-    _settle(graph)
-    return ApplyResult(
-        description=f"Collapsed via transform {target.id}",
-        dropped_step_ids=sorted(to_delete),
-    )
-
-
-def _collapse_combine_parent(
-    graph: StrategyGraph,
-    target: StrategyStep,
-    parent: StrategyStep,
-    slot: str,
-) -> ApplyResult:
-    sibling_id = (
-        parent.secondary_input_id if slot == "primary" else parent.primary_input_id
-    )
+    sibling_id = None
+    if parent.kind is StepKind.COMBINE:
+        sibling_id = (
+            parent.secondary_input_id if slot == "primary" else parent.primary_input_id
+        )
     to_delete = set(subtree_ids(target.id, graph.steps)) | {parent.id}
     grandparent_info = graph.parent_of(parent.id)
     if grandparent_info is not None:
@@ -135,7 +103,7 @@ def _collapse_combine_parent(
     _drop(graph, to_delete)
     _settle(graph)
     return ApplyResult(
-        description=f"Collapsed combine {parent.id}",
+        description=f"Collapsed {parent.id}",
         dropped_step_ids=sorted(to_delete),
     )
 
@@ -143,18 +111,14 @@ def _collapse_combine_parent(
 def _orphan_sibling(
     graph: StrategyGraph,
     target: StrategyStep,
-    parent_info: tuple[StrategyStep, str] | None,
+    parent: StrategyStep,
+    slot: str,
 ) -> ApplyResult:
     """Delete this branch and detach the combine and its other input.
 
     The survivors form their own component. WDK rejects a step that has inputs
     but no strategy, so a detached component stays local.
     """
-    if parent_info is None:
-        msg = "orphan-sibling requires a combine parent"
-        raise ApplyError(msg)
-
-    parent, slot = parent_info
     to_delete = set(subtree_ids(target.id, graph.steps))
     _drop(graph, to_delete)
     _demote_to_single_input(parent, slot)
@@ -176,9 +140,11 @@ def _promote_primary(
     target: StrategyStep,
     parent_info: tuple[StrategyStep, str] | None,
 ) -> ApplyResult:
-    if target.kind is not StepKind.COMBINE:
-        msg = "promote-primary on non-combine"
-        raise ApplyError(msg)
+    """The step goes and the step it reads stands where it stood.
+
+    A secondary branch feeds only the step that is going, so it leaves with
+    it. This is the re-wiring WDK performs when a strategy loses its root.
+    """
     secondary_id = target.secondary_input_id
     to_delete = {target.id}
     if secondary_id is not None:

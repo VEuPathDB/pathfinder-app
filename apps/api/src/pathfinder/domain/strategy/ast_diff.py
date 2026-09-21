@@ -17,6 +17,7 @@ __all__ = [
     "StepSummary",
     "StrategyAstDiff",
     "diff_strategy_asts",
+    "nodes_of",
 ]
 
 
@@ -63,7 +64,8 @@ class StrategyAstDiff(BaseModel):
         return bool(self.changed or self.added or self.removed)
 
 
-def _nodes(ast: StrategyAst | None) -> dict[str, StrategyStepNode]:
+def nodes_of(ast: StrategyAst | None) -> dict[str, StrategyStepNode]:
+    """Every step of a tree by id, the detached components included."""
     if ast is None:
         return {}
     walked = list(walk(ast.root))
@@ -117,8 +119,8 @@ def diff_strategy_asts(
     """Compare two states of one strategy. A missing side moved nothing."""
     if before is None or after is None:
         return StrategyAstDiff()
-    old = _nodes(before)
-    new = _nodes(after)
+    old = nodes_of(before)
+    new = nodes_of(after)
     changes = [
         change
         for step_id, node in new.items()

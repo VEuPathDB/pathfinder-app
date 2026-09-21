@@ -95,21 +95,22 @@ async def test_a_step_added_in_the_editor_is_stated_and_survives_an_edit(
     assert CANVAS in thread.graph.steps
 
 
-async def test_an_editor_step_beside_an_unbuilt_criterion_is_refused_not_removed(
+async def test_an_editor_step_beside_an_unbuilt_criterion_is_stated_and_kept(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The refresh leaves a plan alone, so the edit meets a step nothing states."""
+    """The refresh states the editor's step and re-joins the criterion the plan owes."""
     thread = _thread(monkeypatch)
     await _left_with_an_open_criterion(thread)
     thread.session.graph = session_holding(tree_with_the_canvas_step()).graph
     await thread.next_turn()
+    assert thread.criteria == [SURFACE, STAGE, PROTEOME, CANVAS]
     thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE, PROTEOME))
 
-    refusal = await thread.edit()
+    delta = await thread.edit()
 
-    assert isinstance(refusal, str)
-    assert CANVAS in refusal
-    assert thread.committed == []
+    assert isinstance(delta, EditDelta)
+    assert [op.kind for op in thread.committed] == ["addLeaf", "addCombine"]
+    assert delta.added_step_ids == [PROTEOME]
     assert CANVAS in thread.graph.steps
 
 

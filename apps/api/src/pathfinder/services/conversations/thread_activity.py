@@ -1,7 +1,8 @@
 """What a thread did between its last answer and the turn now opening.
 
-The strategy the two newest snapshots hold, the durable tasks that finished,
-and how far the open analysis has moved past the card the thread shows.
+The durable tasks that finished, and how far the open analysis has moved past
+the card the thread shows. What moved on the strategy is read from the tree
+the thread's spec answers to, not from a snapshot.
 """
 
 from __future__ import annotations
@@ -12,13 +13,8 @@ from assistant_core.persistence.models import BackgroundTask, ConversationEvent,
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy import StrategyAst
 
-from pathfinder.domain.strategy.revision import parse_strategy_ast
 from pathfinder.persistence.repositories.conversation_analysis import read_analysis_row
-from pathfinder.persistence.repositories.strategy_revision import (
-    StrategyRevisionRepository,
-)
 
 __all__ = [
     "AnalysisDrift",
@@ -54,8 +50,6 @@ class ThreadActivity(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    strategy_before: StrategyAst | None = None
-    strategy_after: StrategyAst | None = None
     finished_tasks: list[FinishedTask] = Field(default_factory=list)
     analysis: AnalysisDrift | None = None
 
@@ -82,15 +76,8 @@ async def read_thread_activity(
     *,
     conversation_id: UUID,
 ) -> ThreadActivity:
-    """Read what moved on this thread since it last answered."""
-    snapshots = await StrategyRevisionRepository(session).newest(
-        conversation_id,
-        limit=2,
-    )
-    asts = [parse_strategy_ast(snapshot.strategy_ast) for snapshot in snapshots]
+    """Read the tasks and the analysis drift this thread has to catch up on."""
     return ThreadActivity(
-        strategy_after=asts[0] if asts else None,
-        strategy_before=asts[1] if len(asts) > 1 else None,
         finished_tasks=await _finished_tasks(session, conversation_id),
         analysis=await _analysis_drift(session, conversation_id),
     )

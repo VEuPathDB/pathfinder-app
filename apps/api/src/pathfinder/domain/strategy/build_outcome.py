@@ -79,8 +79,3 @@ class BuildOutcome:
     @property
     def fully_succeeded(self) -> bool:
         return not self.failed_steps and not self.skipped_step_ids
-
-    @property
-    def recorded_step_ids(self) -> frozenset[str]:
-        """Every step this build left the strategy holding, whatever minted it."""
-        return frozenset(node.node_id for node in self.node_results)

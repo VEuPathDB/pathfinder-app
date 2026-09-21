@@ -15,7 +15,11 @@ from assistant_core.platform.types import JSONObject
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.errors import ValidationError
 
-from pathfinder.domain.strategy.operations import GraphOperation
+from pathfinder.domain.strategy.operations import DeleteStepOp, GraphOperation
+from pathfinder.domain.strategy.operations.resolutions import (
+    why_the_graph_refuses_the_delete,
+)
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
@@ -114,6 +118,29 @@ async def restore(
     return build_conversation_summary(*updated)
 
 
+def refuse_a_delete_the_graph_cannot_place(
+    graph: StrategyGraph | None, op: GraphOperation
+) -> None:
+    """Answer a delete no re-wiring performs, before the commit writes.
+
+    The canvas addresses the graph it read when it drew the menu, so a
+    resolution that does not fit the step it names is answered as a bad
+    request. The algebra states the rule; this states the status code.
+    """
+    if graph is None:
+        return
+    match op:
+        case DeleteStepOp():
+            refusal = why_the_graph_refuses_the_delete(graph, op)
+        case _:
+            return
+    if refusal is not None:
+        raise ValidationError(
+            title="the strategy cannot place this delete",
+            detail=refusal,
+        )
+
+
 async def apply_operation(
     repo: ConversationRepository,
     conversation_id: UUID,
@@ -130,12 +157,14 @@ async def apply_operation(
         conversation, strategy = await get_owned_thread_or_404(
             locked_repo, conversation_id, user_id
         )
+        session = build_strategy_session(
+            site_id=site_id,
+            strategy_graph=persisted_graph(conversation, strategy),
+        )
+        refuse_a_delete_the_graph_cannot_place(session.get_graph(None), op)
         ctx = StrategyMutationContext(
             site_id=site_id,
-            strategy_session=build_strategy_session(
-                site_id=site_id,
-                strategy_graph=persisted_graph(conversation, strategy),
-            ),
+            strategy_session=session,
             conversation_id=conversation_id,
             locked_session=locked,
         )
