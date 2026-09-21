@@ -23,6 +23,10 @@ from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     with_the_percentile,
     with_the_proteome,
 )
+from pathfinder.tests.unit.ai.lead._disagreement_facts import (
+    OpFacts,
+    committed_facts,
+)
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     ROOT,
     STAGE,
@@ -32,6 +36,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
     built_spec,
     built_tree,
+    declared,
     kept,
     recorded,
     session_holding,
@@ -106,6 +111,57 @@ async def test_restating_the_branch_term_on_a_kept_criterion_is_no_movement(
 
     assert isinstance(delta, EditDelta)
     assert [op.kind for op in thread.committed] == ["addLeaf", "addCombine"]
+
+
+async def test_an_edit_of_another_parameter_sends_only_that_parameter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The branch term is not this edit's to restate, so no operation carries it."""
+    thread = _bound_to_a_branch_term(monkeypatch)
+    await thread.next_turn()
+    thread.frames(
+        with_the_percentile(90),
+        declared=[*kept(SURFACE), *declared("changed", STAGE)],
+    )
+
+    delta = await thread.edit()
+
+    assert isinstance(delta, EditDelta)
+    assert committed_facts(thread.committed) == [
+        OpFacts(
+            kind="updateStepParams",
+            step_id=STAGE,
+            parameters={STAGE_PERCENTILE: "90"},
+        )
+    ]
+    assert _stage_value(thread.spec, _ORGANISM) == _BRANCH
+    assert thread.graph.steps[STAGE].parameters[_ORGANISM] == _LEAVES
+
+
+async def test_restating_the_branch_term_alone_asks_for_no_operation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A criterion re-bound to the term it already states has not moved."""
+    thread = _bound_to_a_branch_term(monkeypatch)
+    await thread.next_turn()
+
+    def _draft(found: OperationalSpec) -> OperationalSpec:
+        for criterion in found.criteria:
+            if criterion.id == STAGE:
+                criterion.resolved_params = {
+                    **criterion.resolved_params,
+                    _ORGANISM: _BRANCH,
+                }
+        return found
+
+    thread.frames(_draft, declared=kept(SURFACE, STAGE))
+
+    delta = await thread.edit()
+
+    assert isinstance(delta, EditDelta)
+    assert thread.committed == []
+    assert delta.diff.render() == "kept 2, changed 0, added 0, dropped 0"
+    assert thread.graph.steps[STAGE].parameters[_ORGANISM] == _LEAVES
 
 
 async def test_a_value_set_while_a_call_was_parked_costs_the_resumed_pass_nothing(

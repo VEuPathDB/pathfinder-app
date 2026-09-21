@@ -22,12 +22,22 @@ from veupathdb.domain.strategy import (
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead import edit_dispatch, frame_dispatch, pre_turn
+from pathfinder.ai.lead import (
+    edit_dispatch,
+    frame_dispatch,
+    pre_turn,
+    sub_agent_dispatch,
+)
 from pathfinder.ai.lead.deltas import EditDelta, FrameResult
+from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.edit_dispatch import run_edit
+from pathfinder.ai.lead.frame_dispatch import run_frame
+from pathfinder.ai.lead.lead_tools import clear_strategy, delete_step
 from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
+from pathfinder.ai.lead.sub_agent_dispatch import build_strategy
 from pathfinder.ai.lead.sub_agent_stream import SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone import conversation, strategy_edits
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -38,8 +48,14 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.spec_diff import CriterionChange
+from pathfinder.domain.strategy.spec_diff import (
+    CriterionChange,
+    CriterionDisposition,
+    SpecDiff,
+)
 from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.tests._support.run_context import run_context_for
+from pathfinder.tests.unit.ai.lead._disagreement_facts import StepFacts, graph_facts
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 SURFACE = "step_0a1b2c3d"
@@ -133,10 +149,18 @@ def recorded(*step_ids: str) -> BuildOutcome:
     )
 
 
-def kept(*criterion_ids: str) -> list[CriterionChange]:
+def declared(
+    disposition: CriterionDisposition, *criterion_ids: str
+) -> list[CriterionChange]:
+    """What a FRAME pass says it did to the criteria it started with."""
     return [
-        CriterionChange(criterion_id=cid, disposition="kept") for cid in criterion_ids
+        CriterionChange(criterion_id=cid, disposition=disposition)
+        for cid in criterion_ids
     ]
+
+
+def kept(*criterion_ids: str) -> list[CriterionChange]:
+    return declared("kept", *criterion_ids)
 
 
 class DisagreementThread:
@@ -153,6 +177,8 @@ class DisagreementThread:
         self.monkeypatch = monkeypatch
         self.session = session
         self.committed: list[GraphOperation] = []
+        self.workspaces: list[OperationalSpec] = []
+        """The workspace each FRAME pass found, newest last."""
         self.deps: LeadDeps = lead_deps(
             pipeline_state(
                 user_prompt="change the strategy",
@@ -165,17 +191,39 @@ class DisagreementThread:
 
         async def _commit(**kwargs: Any) -> CommitResult:
             graph = self.graph
+            dropped: list[str] = []
             for op in kwargs["ops"]:
-                apply_operation(graph, op)
+                dropped.extend(apply_operation(graph, op).dropped_step_ids)
             self.committed.extend(kwargs["ops"])
-            return CommitResult(description="edited")
+            return CommitResult(
+                description="edited", dropped_step_ids=sorted(set(dropped))
+            )
+
+        async def _commit_one(**kwargs: Any) -> CommitResult:
+            return await _commit(ops=[kwargs["op"]])
 
         async def _sheets(**kwargs: Any) -> dict[str, frozenset[str]]:
-            return {name: frozenset() for name in kwargs["search_names"]}
+            """The sheet of a search, taken from the steps that run it."""
+            return {
+                name: frozenset(
+                    param
+                    for step in self.graph.steps.values()
+                    if step.search_name == name
+                    for param in step.parameters
+                )
+                for name in kwargs["search_names"]
+            }
+
+        async def _persisted(**_kwargs: object) -> None:
+            return None
 
         monkeypatch.setattr(edit_dispatch, "apply_operations_and_commit", _commit)
         monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _p: None)
         monkeypatch.setattr(pre_turn, "sheet_params_for_searches", _sheets)
+        monkeypatch.setattr(strategy_edits, "apply_and_commit", _commit_one)
+        monkeypatch.setattr(
+            conversation, "persist_strategy_ast_to_conversation", _persisted
+        )
 
     @property
     def graph(self) -> StrategyGraph:
@@ -192,6 +240,64 @@ class DisagreementThread:
     @property
     def criteria(self) -> list[str]:
         return [c.id for c in self.spec.criteria]
+
+    @property
+    def before_turn(self) -> OperationalSpec:
+        spec = self.deps.state.domain.spec_before_turn
+        assert spec is not None
+        return spec
+
+    @property
+    def before_dispatch(self) -> OperationalSpec:
+        spec = self.deps.state.domain.spec_before_dispatch
+        assert spec is not None
+        return spec
+
+    def facts(self) -> dict[str, StepFacts]:
+        """Every live step, in the form two turns are compared by."""
+        return graph_facts(self.graph)
+
+    def ledger_diff(self) -> SpecDiff:
+        """What the Lead's ledger says this turn did to the spec it entered on."""
+        diff = derive_ledger(self.deps.state, None).frame.spec_diff()
+        assert diff is not None
+        return diff
+
+    async def delete(self, step_id: str) -> None:
+        """Run the Lead's delete over the live strategy, as a turn does."""
+        await delete_step(run_context_for(self.deps, "t_delete"), step_id=step_id)
+
+    async def clear(self) -> None:
+        await clear_strategy(run_context_for(self.deps, "t_clear"), confirm=True)
+
+    async def build(self) -> BuildOutcome:
+        """Build the committed spec, with the WDK push standing in."""
+
+        async def _build(**kwargs: Any) -> BuildOutcome:
+            root: StrategyStepNode = kwargs["root"]
+            graph = self.graph
+            graph.steps = flatten_tree(root)
+            graph.recompute_roots()
+            graph.last_step_id = root.id
+            return BuildOutcome(pushed_step_ids=list(graph.steps))
+
+        self.monkeypatch.setattr(sub_agent_dispatch, "build_strategy_from_spec", _build)
+        self.monkeypatch.setattr(
+            sub_agent_dispatch, "get_stream_writer", lambda: lambda _p: None
+        )
+        delta = await build_strategy(run_context_for(self.deps))
+        return delta.outcome
+
+    async def frame(self) -> FrameResult | str:
+        """The result of one FRAME dispatch, or the words of its refusal."""
+        try:
+            result = await run_frame(
+                deps=self.deps, parent_tool_call_id="t1", work_order="frame it"
+            )
+        except ModelRetry as refusal:
+            return refusal.message
+        assert isinstance(result, FrameResult)
+        return result
 
     async def next_turn(self, *, resumes_parked_call: bool = False) -> None:
         """Run the refresh every turn starts with, over the state as it stands."""
@@ -211,13 +317,21 @@ class DisagreementThread:
         *,
         declared: list[CriterionChange],
         disposition: FrameDisposition = "spec_ready",
+        while_framing: Callable[[StrategyGraph], None] | None = None,
     ) -> None:
-        """Make the next FRAME pass turn the workspace it finds into ``draft``."""
+        """Make the next FRAME pass turn the workspace it finds into ``draft``.
+
+        ``while_framing`` writes the graph while the pass runs, which is a
+        canvas commit landing between the dispatch's start and its push.
+        """
 
         async def _pass(**kwargs: Any) -> FrameResult:
             agent_deps: AgentDeps = kwargs["agent_deps"]
             found = agent_deps.agent_state.operational_spec_draft
             assert found is not None
+            self.workspaces.append(found.model_copy(deep=True))
+            if while_framing is not None:
+                while_framing(self.graph)
             agent_deps.agent_state.operational_spec_draft = draft(
                 found.model_copy(deep=True)
             )
