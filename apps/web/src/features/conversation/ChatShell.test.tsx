@@ -506,6 +506,8 @@ describe("ChatShell while another route owns the main pane", () => {
     view.rerender(<ChatShell />);
     expect(screen.getByTestId("chat-pane")).toBeVisible();
     expect(composer().value).toBe("does this drop introns");
+    // The pane adds no box, so the thread is laid out by the column around it.
+    expect(screen.getByTestId("chat-pane").className).toBe("contents");
   });
 
   it("keeps the thread mounted while the eda tab owns the pane", async () => {

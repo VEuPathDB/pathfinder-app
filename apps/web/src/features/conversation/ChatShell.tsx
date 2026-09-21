@@ -96,7 +96,7 @@ export function ChatShell() {
     <div
       data-testid="chat-pane"
       hidden={covered}
-      className={covered ? undefined : "flex min-h-0 min-w-0 flex-1"}
+      className={covered ? undefined : "contents"}
     >
       {/* A revert opens the thread again, on a conversation that now has a row. */}
       <ChatView
