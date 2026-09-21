@@ -10,6 +10,7 @@ import pytest
 from veupathdb.domain.parameters import MultiPickValue, NumberValue
 from veupathdb.domain.strategy import CombineOp
 
+from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -26,7 +27,6 @@ from pathfinder.domain.strategy.operations import (
     UpdateCombineOperatorOp,
     UpdateStepParamsOp,
 )
-from pathfinder.domain.strategy.spec_to_operations import UnsupportedEditError
 
 from ._builders import (
     applied,
@@ -122,6 +122,44 @@ def test_a_dropped_param_replaces_the_subtree_rather_than_merging() -> None:
     op = ops[0]
     assert isinstance(op, ReplaceSubtreeOp)
     assert op.subtree.parameters == {}
+
+
+def test_a_restated_subtree_keeps_a_value_the_step_holds_and_the_spec_does_not() -> (
+    None
+):
+    """A removed value restates the node, and the step's other values stay."""
+    root = three_step_root()
+    graph = graph_of(root)
+    graph.steps["step_expr"].parameters["timepoint"] = NumberValue(value=48)
+    before = spec_of(root)
+    after = _edited(before, "step_expr", resolved_params={})
+
+    ops = plan(before, after, graph)
+
+    assert len(ops) == 1
+    op = ops[0]
+    assert isinstance(op, ReplaceSubtreeOp)
+    assert op.subtree.parameters == {"timepoint": NumberValue(value=48)}
+
+
+def test_an_update_carries_only_the_values_the_edit_moved() -> None:
+    """An update merges, so a value the edit does not name stays as it is."""
+    root = three_step_root()
+    graph = graph_of(root)
+    graph.steps["step_expr"].parameters["timepoint"] = NumberValue(value=48)
+    before = spec_of(root)
+    after = _edited(
+        before,
+        "step_expr",
+        resolved_params={"min_expression_percentile": NumberValue(value=75)},
+    )
+
+    ops = plan(before, after, graph)
+
+    assert len(ops) == 1
+    op = ops[0]
+    assert isinstance(op, UpdateStepParamsOp)
+    assert op.parameters == {"min_expression_percentile": NumberValue(value=75)}
 
 
 def test_dropped_criterion_emits_delete_step_with_collapse() -> None:

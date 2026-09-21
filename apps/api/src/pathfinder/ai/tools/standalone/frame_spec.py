@@ -36,6 +36,7 @@ from pathfinder.ai.tools.standalone._frame_count import (
 from pathfinder.ai.tools.standalone._frame_eda import (
     refuse_a_search_the_criterion_cannot_use,
 )
+from pathfinder.ai.tools.standalone._frame_ids import refuse_a_step_shaped_id
 from pathfinder.ai.tools.standalone._frame_proposals import (
     DeclaredAssumption,
     ParamProposals,
@@ -50,10 +51,7 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
 from pathfinder.ai.tools.standalone._frame_roles import (
     refuse_a_transform_on_a_saved_strategy,
 )
-from pathfinder.ai.tools.standalone._frame_saved import (
-    bind_saved_criterion,
-    holds_open_saved_slot,
-)
+from pathfinder.ai.tools.standalone._frame_saved import bind_saved_criterion
 from pathfinder.ai.tools.standalone._frame_sheet import (
     _open_sheet,
     _reconcile_dependents,
@@ -98,13 +96,6 @@ class SetCriterionResult(CamelModel):
     # A non-empty list means nothing was recorded; decide these and re-call.
     # The fresh vocabulary is on the pinned sheet.
     redecide: list[str] = Field(default_factory=list)
-
-
-class DropCriterionResult(CamelModel):
-    """Result of dropping a criterion from the spec."""
-
-    criterion_id: str
-    reason: str
 
 
 async def _record_type(ctx: RunContext[AgentDeps], search_name: str) -> str:
@@ -182,6 +173,13 @@ async def set_criterion(
 ) -> ToolReturn[SetCriterionResult]:
     """Bind a criterion to a WDK search, in two calls.
 
+    ``criterion_id`` names a criterion the strategy already holds a step for, or
+    a NEW criterion you are adding. A new one takes a name that says what it
+    asks, like ``c_secreted``. Never invent an id of the form ``step_`` plus 8
+    hex characters: that is the shape of a step the strategy built, and a new
+    criterion named that way is read as a step that was deleted and drops out of
+    the spec. To re-bind a criterion that HAS a step, pass that step's own id.
+
     Pass ``saved_strategy`` INSTEAD of ``search_name`` when the criterion's
     input is a strategy the user already saved: give the name (or the id) from
     ``list_saved_strategies``, and the saved strategy becomes that criterion's
@@ -230,6 +228,7 @@ async def set_criterion(
     recorded then. Re-call with the same ``params`` and either a
     value from the fresh vocabulary or the same null for each listed parameter,
     and it closes. Re-call the same way once the user answers an open slot."""
+    refuse_a_step_shaped_id(ctx, criterion_id)
     state = ctx.deps.agent_state
     if saved_strategy:
         refuse_a_transform_on_a_saved_strategy(criterion_id, role)
@@ -416,41 +415,3 @@ def _criterion_return(
         result.alternatives,
     )
     return with_summary(result, line, ctx=ctx, status=status)
-
-
-def drop_criterion(
-    ctx: RunContext[AgentDeps], *, criterion_id: str, reason: str
-) -> ToolReturn[DropCriterionResult]:
-    """Remove a criterion (by the ``criterion_id`` you set in ``set_criterion``)
-    from the spec, e.g. when its WDK search is unavailable or has no realizable
-    binding. The criterion and its open params are removed (so it no longer
-    blocks the build) and recorded in ``dropped`` to surface to the user."""
-    state = ctx.deps.agent_state
-    open_saved = next(
-        (
-            c
-            for c in state.operational_spec_draft.criteria
-            if c.id == criterion_id and holds_open_saved_slot(c)
-        ),
-        None,
-    )
-    if open_saved is not None:
-        msg = (
-            f"{criterion_id} is the strategy the request starts from, and it is "
-            f"still unresolved. Ask the user which one they mean and re-call "
-            f"set_criterion with it; do not drop it."
-        )
-        raise ModelRetry(msg)
-    dropped = state.frame_drop_criterion(criterion_id, reason)
-    if not dropped:
-        ids = [c.id for c in state.operational_spec_draft.criteria]
-        msg = (
-            f"No criterion with id {criterion_id!r} to drop. Use the exact "
-            f"criterion_id from set_criterion. Current criteria: {ids}."
-        )
-        raise ModelRetry(msg)
-    return with_summary(
-        DropCriterionResult(criterion_id=criterion_id, reason=reason),
-        f"Dropped {criterion_id}",
-        ctx=ctx,
-    )

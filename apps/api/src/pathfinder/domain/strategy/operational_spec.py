@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import Literal, NamedTuple
 
 from pydantic import ConfigDict, Field
@@ -15,7 +16,7 @@ from veupathdb.model import CamelModel
 from pathfinder.domain.strategy.constraints import Constraint
 
 CriterionRole = Literal["seed", "filter", "transform", "exclude"]
-_MIN_COMBINE_INPUTS = 2
+MIN_COMBINE_INPUTS = 2
 
 # Swapping a combine's operands mirrors the operator that is not symmetric.
 _MIRRORED_OPERATORS = {
@@ -205,21 +206,30 @@ class FoldedSpec(CamelModel):
     unplaced: tuple[str, ...] = ()
 
 
-def fold_option_criteria(spec: OperationalSpec) -> FoldedSpec:
+def fold_option_criteria(
+    spec: OperationalSpec, *, live_step_ids: Collection[str] = ()
+) -> FoldedSpec:
     """Move an option onto the step that runs its search.
 
     A criterion the structure leaves out states its values on the criterion that
     names the same search; one no single criterion carries is reported unplaced.
+    A criterion the strategy holds a step for runs that step, so it is never an
+    option however the structure reads.
     """
     named = structure_criteria(spec.structure)
-    if all(c.id in named for c in spec.criteria):
+    answers_to_a_step = named | frozenset(live_step_ids)
+    if all(c.id in answers_to_a_step for c in spec.criteria):
         return FoldedSpec(spec=spec)
     folded = spec.model_copy(deep=True)
     carriers = [c for c in folded.criteria if c.id in named]
     absorbed: set[str] = set()
     unplaced: list[str] = []
     for option in folded.criteria:
-        if option.id in named or not option.search_name or option.open_params:
+        if (
+            option.id in answers_to_a_step
+            or not option.search_name
+            or option.open_params
+        ):
             continue
         runs_it = [c for c in carriers if c.search_name == option.search_name]
         if len(runs_it) != 1 or not _carry_the_option(runs_it[0], option):
@@ -361,7 +371,7 @@ def _node_to_step(
     # operand.
     if len(node.inputs) == 1:
         return _node_to_step(node.inputs[0], by_id, minted)
-    if node.operator is None or len(node.inputs) < _MIN_COMBINE_INPUTS:
+    if node.operator is None or len(node.inputs) < MIN_COMBINE_INPUTS:
         msg = "combine node needs an operator and at least two inputs"
         raise ValueError(msg)
     combined = _combine(

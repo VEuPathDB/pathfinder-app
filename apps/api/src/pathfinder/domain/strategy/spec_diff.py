@@ -24,12 +24,17 @@ class CriterionChange(CamelModel):
     """One criterion's fate across a turn.
 
     ``changed_params`` names every parameter whose value the turn moved, in
-    wire form. It is a report; the values to push come from the spec itself.
+    wire form, ``removed_params`` every one it took away, and
+    ``rebound_search`` says whether it put the criterion on another search.
+    Together they are the whole account of a change; the values to push come
+    from the spec itself.
     """
 
     criterion_id: str
     disposition: CriterionDisposition
     changed_params: dict[str, str] = Field(default_factory=dict)
+    removed_params: list[str] = Field(default_factory=list)
+    rebound_search: bool = False
     reason: str = ""
 
 
@@ -105,16 +110,21 @@ def _change_for(before: Criterion, after: Criterion | None) -> CriterionChange:
         )
     before_params = _wire(before)
     after_params = _wire(after)
-    if before_params == after_params and before.search_name == after.search_name:
+    rebound = before.search_name != after.search_name
+    removed = sorted(set(before_params) - set(after_params))
+    changed = {
+        name: value
+        for name, value in after_params.items()
+        if before_params.get(name) != value
+    }
+    if not changed and not removed and not rebound:
         return CriterionChange(criterion_id=before.id, disposition="kept")
     return CriterionChange(
         criterion_id=before.id,
         disposition="changed",
-        changed_params={
-            name: value
-            for name, value in after_params.items()
-            if before_params.get(name) != value
-        },
+        changed_params=changed,
+        removed_params=removed,
+        rebound_search=rebound,
     )
 
 

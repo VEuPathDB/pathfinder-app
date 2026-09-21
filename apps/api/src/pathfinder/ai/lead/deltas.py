@@ -76,6 +76,15 @@ class EditDelta(CamelModel):
     open_questions: list[OpenQuestion] = Field(default_factory=list)
     description: str = ""
     operations_applied: int = 0
+    added_step_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "The criteria this edit built a step for. A criterion framed on an "
+            "earlier turn is in the spec the diff compares against, so the diff "
+            "calls it kept or changed and this list is the only account of the "
+            "step it gained."
+        ),
+    )
     preserved_step_ids: list[str] = Field(default_factory=list)
     dropped_step_ids: list[str] = Field(default_factory=list)
     failed_step_ids: list[str] = Field(default_factory=list)

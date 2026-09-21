@@ -15,6 +15,7 @@ from pathfinder.ai.lead import edit_dispatch
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.domain.strategy.build_outcome import StepPushFailure
+from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -24,7 +25,6 @@ from pathfinder.domain.strategy.operational_spec import (
     renumber_criteria,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.spec_to_operations import UnsupportedEditError
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 

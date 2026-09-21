@@ -14,14 +14,29 @@ An edit does not produce a tree. It produces the smallest batch of operations
 that turns the strategy the turn started from into the one the request asks for.
 
 - `domain/strategy/spec_to_operations.py::operations_for` takes the computed
-  `SpecDiff`, the two specs and the live graph, and returns
-  `list[GraphOperation]`. A `kept` criterion emits nothing. A `changed` one
-  emits `UpdateStepParamsOp` on its own step id, or `ReplaceSubtreeOp` when the
-  search name changed or a value was removed, because an update merges. A
-  `dropped` one emits `DeleteStepOp` with the resolution
-  `operations/resolutions.py` computes. An `added` one emits `AddLeafOp` plus
-  `AddCombineOp`, or `AddTransformOp`, anchored on the step the after-structure
-  puts it above.
+  `SpecDiff`, the edited spec and the live graph, and returns
+  `list[GraphOperation]`. The diff is the whole account of what moved - the
+  values, the ones taken away (`removed_params`) and whether the criterion was
+  put on another search (`rebound_search`) - so the spec the turn started from
+  is not read a second time here. A criterion on a live step emits nothing when
+  it is `kept`; when it is `changed` it emits `UpdateStepParamsOp` on its own
+  step id, or `ReplaceSubtreeOp` when the diff reports a rebound search or a
+  removed value, because an update merges. A `dropped` one emits `DeleteStepOp`
+  with the resolution `operations/resolutions.py` computes.
+- An operation carries ONLY what the diff says moved. The update sends the
+  moved parameters and nothing else, so a value the researcher set on the
+  canvas is not overwritten by the value the spec happens to state for another
+  parameter of the same step. A restatement of the same search starts from the
+  LIVE step's parameters, less the names the edit removed and plus the ones it
+  moved; only a rebound search takes the spec's whole binding, because a
+  different search shares no values with the one it replaces.
+- The strategy decides which criteria the edit introduces, not the diff: a
+  criterion the edited structure names that `graph.steps` holds no step for
+  emits `AddLeafOp` plus `AddCombineOp`, or `AddTransformOp`, anchored on the
+  step the after-structure puts it above, whatever disposition the diff gives
+  it. A criterion an earlier dispatch framed and left for the user is in the
+  baseline, so the diff calls it kept or changed and only the graph can say
+  that the strategy has yet to build it.
 - A structure the live wiring does not hold - a re-nesting of the steps that
   stay, or a transform moved onto another input - is planned again as one
   `ReplaceSubtreeOp` at the strategy's root. The restated tree reuses the step
@@ -69,10 +84,19 @@ what changed, and the algebra is derived from it rather than typed.
 # What it costs
 
 The mapping is not total. Four shapes are refused, and the refusal names which
-one: a shape that leaves out a criterion the spec keeps, one that names a step
-the strategy does not hold, one that adopts a step from outside the strategy
-under edit, and one that leaves a step disconnected. The measurement is
-`domain/strategy/stated_shape.py::stated_shape`. The edit path is one call site;
+one: a shape that leaves out a criterion the spec keeps, one that adopts a step
+from outside the strategy under edit, one that leaves a step disconnected, and
+one that takes a step running a search off the strategy while the edited spec
+states no drop for it. A dropped criterion accounts for the step it names AND
+the subtree under it, which is how one criterion stands for a saved strategy
+the build expanded, so dropping that criterion is not a removal the edit failed
+to state. The measurement of the first three is
+`domain/strategy/stated_shape.py::stated_shape`, read twice: a wiring plan that
+departs from the stated shape is planned again as a restructure, and the
+restated plan is refused when it departs as well. The fourth compares the
+planned graph against the steps the strategy reached when the turn began, which
+is what tells a spec describing another strategy from an edit that adds to this
+one. The edit path is one call site;
 the `replace_subtree` tool is the second, measuring the same shape on a copy of
 the graph and refusing the write with a `ModelRetry` naming the criteria it
 would drop; `apply_operations_and_commit` is the third and the one no caller can
@@ -96,7 +120,11 @@ and combines it applies instead of being refused for a step no criterion states.
 A criterion in neither set binds an option on another criterion's search, so the
 step carrying that search states it and it has no step of its own; it is never
 planned as a change or a delete, never reported lost, and never named in a
-refusal. `operational_spec.py::fold_option_criteria` is what puts its stated
+refusal. A criterion the graph holds a step FOR is never an option, whatever the
+structure says: `fold_option_criteria` takes the live step ids, so a step the
+structure has not caught up with is refused by the shape rule rather than
+described to the model as a value to fold and drop.
+`operational_spec.py::fold_option_criteria` is what puts its stated
 values on that step: the build folds the spec before it mints the tree, and the
 edit folds both sides before it measures the difference, because WDK holds an
 option as a value in the search's own parameters. A value the carrier's own text
@@ -170,7 +198,15 @@ the spec edit turns into a delete of the whole strategy. The stated-shape
 guard stops both before a write. Which of the two answers is right is the open
 decision.
 
+The delta the Lead reads carries its own account of what it built:
+`EditDelta.added_step_ids` names the criteria the edit minted a step for,
+computed by `spec_to_operations::criteria_the_edit_introduces`, and the same set
+decides which steps a refusal of the values is blamed on. The diff cannot serve
+for that: a criterion framed on an earlier turn is in the spec the diff compares
+against, so it reads kept or changed while the strategy gains a step.
+
 # Anchors
 
-`domain/strategy/spec_to_operations.py`, `domain/strategy/stated_shape.py`,
-`ai/lead/edit_dispatch.py`, `services/strategies/commit.py`.
+`domain/strategy/spec_to_operations.py`, `domain/strategy/edit_plan.py`,
+`domain/strategy/stated_shape.py`, `ai/lead/edit_dispatch.py`,
+`services/strategies/commit.py`.

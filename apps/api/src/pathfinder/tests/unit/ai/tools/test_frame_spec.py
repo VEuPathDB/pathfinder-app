@@ -32,9 +32,9 @@ from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import _frame_count, frame_spec
 from pathfinder.ai.tools.standalone._frame_proposals import DeclaredAssumption
+from pathfinder.ai.tools.standalone.frame_drop import drop_criterion
 from pathfinder.ai.tools.standalone.frame_spec import (
     SetCriterionResult,
-    drop_criterion,
     set_criterion,
 )
 from pathfinder.domain.strategy.operational_spec import (

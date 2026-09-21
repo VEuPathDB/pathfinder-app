@@ -13,10 +13,12 @@ from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.strategy_instructions import pinned_frame_workspace
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import _frame_saved
-from pathfinder.ai.tools.standalone.frame_spec import (
+from pathfinder.ai.tools.standalone.frame_drop import (
     DropCriterionResult,
-    SetCriterionResult,
     drop_criterion,
+)
+from pathfinder.ai.tools.standalone.frame_spec import (
+    SetCriterionResult,
     set_criterion,
 )
 from pathfinder.ai.tools.standalone.saved_strategies import (

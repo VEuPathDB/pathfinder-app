@@ -126,9 +126,9 @@ def _drop_the_criteria_the_strategy_lost(
     state.domain.operational_spec = spec_reconciled_with_graph(
         spec,
         graph,
-        recorded_step_ids=frozenset()
-        if outcome is None
-        else {node.node_id for node in outcome.node_results},
+        recorded_step_ids=(
+            frozenset() if outcome is None else outcome.recorded_step_ids
+        ),
     )
 
 

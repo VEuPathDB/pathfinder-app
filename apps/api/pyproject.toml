@@ -1,6 +1,6 @@
 [project]
 name = "pathfinder-api"
-version = "0.2.0a4"
+version = "0.2.0a5"
 description = "VEuPathDB Strategy Builder Chatbot API"
 requires-python = ">=3.14"
 dependencies = [

@@ -198,7 +198,7 @@ def _what_did_not_run(refused: Sequence[str], stop: PhaseStop | None) -> str:
 def unfinished_work_message(refused: Sequence[str], stop: PhaseStop | None) -> str:
     """Why a reply that ends a turn with the work undone and asks nothing is refused."""
     return (
-        f"This turn ends waiting on the user with the work undone "
+        f"This turn ends with the work undone "
         f"({_what_did_not_run(refused, stop)}), and your reply records no "
         f"question, so nothing carries the work on and the user is given no way "
         f"to unblock it. Rewrite it: ask the choice that unblocks that pass and "

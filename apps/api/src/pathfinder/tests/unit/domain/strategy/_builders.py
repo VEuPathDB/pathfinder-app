@@ -307,11 +307,7 @@ def spec_of(root: StrategyStepNode) -> OperationalSpec:
 def plan(
     before: OperationalSpec, after: OperationalSpec, graph: StrategyGraph
 ) -> list[GraphOperation]:
-    return list(
-        operations_for(
-            diff_specs(before, after), before=before, after=after, graph=graph
-        )
-    )
+    return list(operations_for(diff_specs(before, after), after=after, graph=graph))
 
 
 def applied(root: StrategyStepNode, ops: list[GraphOperation]) -> StrategyGraph:

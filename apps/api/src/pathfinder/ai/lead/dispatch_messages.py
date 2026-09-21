@@ -122,6 +122,35 @@ def frame_bound_nothing_result() -> FrameResult:
     )
 
 
+def _answered_slots(before: Criterion | None) -> set[str]:
+    """The parameters the baseline left open with no value of their own."""
+    if before is None:
+        return set()
+    open_names = {slot.param_name for slot in before.open_params}
+    return open_names - set(before.resolved_params)
+
+
+def _movement_beyond_the_open_slots(
+    change: CriterionChange, before: Criterion | None
+) -> str:
+    """What this change did besides answering the parameters left open.
+
+    A parameter the baseline left open holds no value to re-bind, so answering
+    it is the work the turn asked for. Every other movement - another value, a
+    value taken away, another search - re-binds a criterion declared kept.
+    """
+    answered = _answered_slots(before)
+    moved = [
+        f"{name}={value}"
+        for name, value in sorted(change.changed_params.items())
+        if name not in answered
+    ]
+    moved.extend(f"{name} removed" for name in change.removed_params)
+    if change.rebound_search:
+        moved.append("its search name changed")
+    return ", ".join(moved)
+
+
 def undeclared_spec_changes(
     computed: SpecDiff,
     declared: Sequence[CriterionChange],
@@ -134,24 +163,21 @@ def undeclared_spec_changes(
     that reach the user as a strategy they did not ask for.
     """
     stated = {c.criterion_id: c.disposition for c in declared}
-    texts = {c.id: c.text for c in before.criteria}
+    held = {c.id: c for c in before.criteria}
     problems: list[str] = []
     for change in computed.changes:
         cid = change.criterion_id
         if change.disposition == "dropped" and stated.get(cid) != "dropped":
+            text = held[cid].text[:80] if cid in held else ""
             problems.append(
-                f"{cid} ({texts.get(cid, '')[:80]}) is gone from the spec and "
+                f"{cid} ({text}) is gone from the spec and "
                 f"you declared it {stated.get(cid) or 'nothing'}"
             )
         elif change.disposition == "changed" and stated.get(cid) == "kept":
-            moved = ", ".join(
-                f"{name}={value}"
-                for name, value in sorted(change.changed_params.items())
-            )
-            problems.append(
-                f"{cid} is declared kept but its binding moved "
-                f"({moved or 'its search name changed'})"
-            )
+            moved = _movement_beyond_the_open_slots(change, held.get(cid))
+            if not moved:
+                continue
+            problems.append(f"{cid} is declared kept but its binding moved ({moved})")
     if not problems:
         return ""
     return (

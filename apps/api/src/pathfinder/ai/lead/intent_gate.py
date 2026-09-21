@@ -8,6 +8,8 @@ this turn's own record either meet or do not.
 
 from __future__ import annotations
 
+from collections.abc import Collection
+
 from pydantic_ai import RunContext
 from pydantic_ai.tools import ToolDefinition
 
@@ -159,20 +161,25 @@ def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
     return frozenset(unmet)
 
 
+def tools_the_turn_offers(deps: LeadDeps, names: Collection[str]) -> frozenset[str]:
+    """Which of ``names`` this turn's state lets the Lead reach."""
+    if not turn_is_classified(deps):
+        return frozenset(name for name in names if name in UNCLASSIFIED_TOOLS)
+    if turn_is_off_topic(deps):
+        return frozenset(name for name in names if name in OFF_TOPIC_TOOLS)
+    if not turn_builds(deps):
+        return frozenset(name for name in names if name not in BUILDING_TOOLS)
+    unmet = unmet_preconditions(deps)
+    return frozenset(name for name in names if name not in unmet)
+
+
 def apply_tool_preconditions(
     ctx: RunContext[LeadDeps],
     tool_defs: list[ToolDefinition],
 ) -> list[ToolDefinition]:
     """Drop every tool this turn's state does not allow."""
-    deps = ctx.deps
-    if not turn_is_classified(deps):
-        return [td for td in tool_defs if td.name in UNCLASSIFIED_TOOLS]
-    if turn_is_off_topic(deps):
-        return [td for td in tool_defs if td.name in OFF_TOPIC_TOOLS]
-    if not turn_builds(deps):
-        return [td for td in tool_defs if td.name not in BUILDING_TOOLS]
-    unmet = unmet_preconditions(deps)
-    return [td for td in tool_defs if td.name not in unmet]
+    offered = tools_the_turn_offers(ctx.deps, [td.name for td in tool_defs])
+    return [td for td in tool_defs if td.name in offered]
 
 
 __all__ = [
@@ -180,6 +187,7 @@ __all__ = [
     "OFF_TOPIC_TOOLS",
     "UNCLASSIFIED_TOOLS",
     "apply_tool_preconditions",
+    "tools_the_turn_offers",
     "turn_builds",
     "turn_is_classified",
     "turn_is_off_topic",

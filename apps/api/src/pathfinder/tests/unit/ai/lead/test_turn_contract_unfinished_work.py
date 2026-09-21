@@ -31,6 +31,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     call_then_final_model,
     lead_deps,
     pipeline_state,
+    session_with_one_step,
     user_intent,
 )
 
@@ -76,16 +77,55 @@ def kinds_after(
     return [kind for kind, _ in mismatches_after(deps, report, refused=refused)]
 
 
+def _asking_a_question() -> LeadDeps:
+    """A question turn over a strategy: nothing that writes is offered."""
+    deps = lead_deps(
+        pipeline_state(
+            user_prompt="What does the second step ask?",
+            user_message_id=uuid4(),
+        ),
+        intent=user_intent(IntentClassification.FOLLOW_UP_QUESTION),
+        strategy_session=session_with_one_step(),
+    )
+    deps.state.turn_markers.intent_classified = True
+    return deps
+
+
+def _editing_deps() -> LeadDeps:
+    """A classified edit turn over a strategy, where ``edit_strategy`` is offered."""
+    deps = lead_deps(
+        pipeline_state(
+            user_prompt="Swap the organism on the ortholog screen.",
+            user_message_id=uuid4(),
+        ),
+        intent=user_intent(IntentClassification.EDIT_STRATEGY),
+        strategy_session=session_with_one_step(),
+    )
+    deps.state.turn_markers.intent_classified = True
+    return deps
+
+
 class TestTheRecordOfARefusedDispatch:
     def test_the_record_names_the_dispatch_the_run_refused(self) -> None:
-        ctx = replace(run_context_for(reading_deps()), retries=A_REFUSED_EDIT)
+        ctx = replace(run_context_for(_editing_deps()), retries=A_REFUSED_EDIT)
 
         assert turn_record(ctx).refused_dispatches == ("edit_strategy",)
 
     def test_a_tool_that_is_not_a_dispatch_is_not_one(self) -> None:
         ctx = replace(
-            run_context_for(reading_deps()),
+            run_context_for(_editing_deps()),
             retries={"read_gene_record": 1},
+        )
+
+        assert turn_record(ctx).refused_dispatches == ()
+
+    def test_a_dispatch_this_turn_never_offered_is_not_one(self) -> None:
+        """A question turn offers no check, so a call to one asks for no work."""
+        ctx = replace(
+            run_context_for(
+                _asking_a_question(),
+            ),
+            retries={"verify_strategy": 1},
         )
 
         assert turn_record(ctx).refused_dispatches == ()
@@ -94,7 +134,7 @@ class TestTheRecordOfARefusedDispatch:
 class TestTheUnfinishedWorkRule:
     def test_a_reply_that_announces_the_refused_pass_is_a_mismatch(self) -> None:
         found = mismatches_after(
-            reading_deps(),
+            _editing_deps(),
             reply(PROMISES_THE_NEXT_PASS),
             refused=A_REFUSED_EDIT,
         )
@@ -107,10 +147,10 @@ class TestTheUnfinishedWorkRule:
     def test_a_reply_that_records_the_choice_stands(self) -> None:
         report = reply(PROMISES_THE_NEXT_PASS, questions=[THE_CHOICE])
 
-        assert kinds_after(reading_deps(), report, refused=A_REFUSED_EDIT) == []
+        assert kinds_after(_editing_deps(), report, refused=A_REFUSED_EDIT) == []
 
     def test_a_turn_whose_dispatches_all_ran_stands(self) -> None:
-        assert kinds_after(reading_deps(), reply(PROMISES_THE_NEXT_PASS)) == []
+        assert kinds_after(_editing_deps(), reply(PROMISES_THE_NEXT_PASS)) == []
 
     def test_a_turn_that_built_stands(self) -> None:
         report = reply(PROMISES_THE_NEXT_PASS, changed=True)
@@ -126,10 +166,26 @@ class TestTheUnfinishedWorkRule:
         assert [kind for kind, _ in found] == ["unfinished_work"]
         assert "the framing pass stopped on its call budget" in found[0][1]
 
-    def test_a_resolved_turn_stands(self) -> None:
+    def test_a_turn_that_calls_itself_resolved_is_the_same_mismatch(self) -> None:
+        """Work that did not run is undone whichever state the reply claims."""
         report = reply(PROMISES_THE_NEXT_PASS, next_state="complete")
 
-        assert kinds_after(reading_deps(), report, refused=A_REFUSED_EDIT) == []
+        found = mismatches_after(_editing_deps(), report, refused=A_REFUSED_EDIT)
+
+        assert [kind for kind, _ in found] == ["unfinished_work"]
+        assert "edit_strategy" in found[0][1]
+
+    def test_a_resolved_turn_that_records_the_choice_stands(self) -> None:
+        report = reply(
+            PROMISES_THE_NEXT_PASS, next_state="complete", questions=[THE_CHOICE]
+        )
+
+        assert kinds_after(_editing_deps(), report, refused=A_REFUSED_EDIT) == []
+
+    def test_a_resolved_turn_that_changed_the_strategy_stands(self) -> None:
+        report = reply(PROMISES_THE_NEXT_PASS, next_state="complete", changed=True)
+
+        assert kinds_after(building_deps(), report, refused=A_REFUSED_EDIT) == []
 
 
 def _asking_for_a_strategy() -> LeadDeps:

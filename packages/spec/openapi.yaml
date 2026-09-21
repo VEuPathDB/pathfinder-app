@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Pathfinder API
   description: VEuPathDB Strategy Builder Chatbot API
-  version: 0.2.0a4
+  version: 0.2.0a5
 paths:
   /health:
     get:
@@ -12413,7 +12413,13 @@ components:
 
         ``changed_params`` names every parameter whose value the turn moved, in
 
-        wire form. It is a report; the values to push come from the spec itself.'
+        wire form, ``removed_params`` every one it took away, and
+
+        ``rebound_search`` says whether it put the criterion on another search.
+
+        Together they are the whole account of a change; the values to push come
+
+        from the spec itself.'
       properties:
         criterionId:
           title: Criterionid
@@ -12431,6 +12437,15 @@ components:
             type: string
           title: Changedparams
           type: object
+        removedParams:
+          items:
+            type: string
+          title: Removedparams
+          type: array
+        reboundSearch:
+          default: false
+          title: Reboundsearch
+          type: boolean
         reason:
           default: ''
           title: Reason

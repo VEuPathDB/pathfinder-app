@@ -7,6 +7,8 @@ does not name keeps its WDK id and every value the researcher set on it.
 
 from __future__ import annotations
 
+from collections.abc import Collection
+
 import pydantic
 from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
@@ -38,6 +40,7 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
 from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -48,7 +51,7 @@ from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.spec_to_operations import (
-    UnsupportedEditError,
+    criteria_the_edit_introduces,
     operations_for,
 )
 from pathfinder.services.strategies.commit import (
@@ -92,8 +95,8 @@ async def run_edit(
     # Both sides state an option as a value on the step that runs its search,
     # so the difference between them is a difference between steps. The stored
     # spec is what an earlier turn left, so only this turn's side is refused.
-    before = fold_option_criteria(before).spec
-    folded_after = fold_option_criteria(after)
+    before = fold_option_criteria(before, live_step_ids=graph.steps).spec
+    folded_after = fold_option_criteria(after, live_step_ids=graph.steps)
     if folded_after.unplaced:
         refuse_and_restore(
             deps, option_binds_no_step_message(folded_after.spec, folded_after.unplaced)
@@ -109,7 +112,6 @@ async def run_edit(
         )
     return await _push_the_edit(
         deps=deps,
-        before=before,
         after=after,
         diff=diff,
         graph=graph,
@@ -120,17 +122,24 @@ async def run_edit(
 async def _push_the_edit(
     *,
     deps: LeadDeps,
-    before: OperationalSpec,
     after: OperationalSpec,
     diff: SpecDiff,
     graph: StrategyGraph,
     base_revision: str,
 ) -> EditDelta:
     try:
-        ops = operations_for(diff, before=before, after=after, graph=graph)
+        ops = operations_for(diff, after=after, graph=graph)
     except (UnsupportedEditError, ApplyError) as exc:
         refuse_and_restore(deps, unsupported_edit_message(str(exc)))
-    preserved = [c.criterion_id for c in diff.changes if c.disposition == "kept"]
+    introduced = criteria_the_edit_introduces(after=after, graph=graph)
+    added = [c.id for c in after.criteria if c.id in introduced]
+    # A criterion the strategy held no step for is one this edit builds, so it
+    # carries no id from the previous turn to preserve.
+    preserved = [
+        c.criterion_id
+        for c in diff.changes
+        if c.disposition == "kept" and c.criterion_id in graph.steps
+    ]
     if not ops:
         return EditDelta(
             diff=diff,
@@ -149,7 +158,9 @@ async def _push_the_edit(
         # The batch rolls back, so the strategy is exactly as it was.
         refuse_and_restore(deps, unsupported_edit_message(str(exc)))
     except ValidationError as exc:
-        refuse_and_restore(deps, _refused_values_message(exc, diff=diff, after=after))
+        refuse_and_restore(
+            deps, _refused_values_message(exc, diff=diff, after=after, added=introduced)
+        )
     outcome = _outcome_after_edit(agent_deps, commit)
     # The spec the thread carries states the option on the step that runs it,
     # exactly as the spec a build leaves behind does.
@@ -163,6 +174,7 @@ async def _push_the_edit(
         diff=diff,
         description=commit.description if refusal is None else refusal.message,
         operations_applied=len(ops),
+        added_step_ids=added,
         preserved_step_ids=preserved,
         dropped_step_ids=list(commit.dropped_step_ids),
         failed_step_ids=list(commit.failed_step_ids),
@@ -181,18 +193,28 @@ def _params_wdk_named(exc: ValidationError) -> frozenset[str]:
     return frozenset(row.param for row in rows)
 
 
-def _steps_the_edit_writes(diff: SpecDiff, after: OperationalSpec) -> list[Criterion]:
-    """The criteria whose values this edit sends to VEuPathDB."""
+def _steps_the_edit_writes(
+    diff: SpecDiff, after: OperationalSpec, added: Collection[str]
+) -> list[Criterion]:
+    """The criteria whose values this edit sends to VEuPathDB.
+
+    A criterion the edit builds a step for is written whatever the diff calls
+    it, because the spec it is compared against already held it.
+    """
     written = {
         change.criterion_id
         for change in diff.changes
         if change.disposition in {"added", "changed"}
-    }
+    } | set(added)
     return [criterion for criterion in after.criteria if criterion.id in written]
 
 
 def _refused_values_message(
-    exc: ValidationError, *, diff: SpecDiff, after: OperationalSpec
+    exc: ValidationError,
+    *,
+    diff: SpecDiff,
+    after: OperationalSpec,
+    added: Collection[str],
 ) -> str:
     """The refusal for values VEuPathDB turned down while the edit was pushed.
 
@@ -200,7 +222,7 @@ def _refused_values_message(
     answer names; every written step is named when the answer names none.
     """
     params = _params_wdk_named(exc)
-    written = _steps_the_edit_writes(diff, after)
+    written = _steps_the_edit_writes(diff, after, added)
     named = [c for c in written if not params.isdisjoint(c.resolved_params)]
     return wdk_refused_the_written_step_message(
         exc.detail or str(exc),
@@ -247,9 +269,13 @@ async def edit_strategy(ctx: RunContext[LeadDeps], reason: str) -> EditDelta:
     ``reason`` is what the request changes, in one sentence.
 
     The returned ``EditDelta`` carries the computed ``diff`` for this edit
-    alone: every claim in your reply about what THIS edit kept, changed, added
-    or dropped is read from it. A claim about what the whole turn did to the
-    spec it started from is read from ``ledger.frame.diff`` instead.
+    alone: every claim in your reply about what THIS edit kept, changed or
+    dropped is read from it, and every claim about what it ADDED is read from
+    ``added_step_ids``, which names the criteria this edit built a step for. A
+    criterion framed on an earlier turn is already in the spec the diff compares
+    against, so the diff calls it kept or changed while the strategy gains a
+    step for it. A claim about what the whole turn did to the spec it started
+    from is read from ``ledger.frame.diff`` instead.
     """
     tool_call_id = dispatch_call_id(ctx)
     result = await run_edit(

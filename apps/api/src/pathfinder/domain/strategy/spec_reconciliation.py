@@ -17,9 +17,14 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 
-__all__ = ["spec_reconciled_with_graph", "spec_without_steps"]
+__all__ = ["reads_as_a_step_id", "spec_reconciled_with_graph", "spec_without_steps"]
 
 _MINTED_STEP_ID = re.compile(r"^step_[0-9a-f]{8}$")
+
+
+def reads_as_a_step_id(criterion_id: str) -> bool:
+    """Whether this id is one the step minter produces."""
+    return _MINTED_STEP_ID.match(criterion_id) is not None
 
 
 def spec_reconciled_with_graph(
@@ -40,10 +45,7 @@ def spec_reconciled_with_graph(
         criterion.id
         for criterion in spec.criteria
         if criterion.id not in graph.steps
-        and (
-            criterion.id in recorded_step_ids
-            or _MINTED_STEP_ID.match(criterion.id) is not None
-        )
+        and (criterion.id in recorded_step_ids or reads_as_a_step_id(criterion.id))
     }
     return spec_without_steps(spec, departed)
 

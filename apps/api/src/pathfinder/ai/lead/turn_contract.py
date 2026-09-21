@@ -30,7 +30,11 @@ from pathfinder.ai.lead.contract_messages import (
     unverified_build_message,
 )
 from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.intent_gate import turn_builds, turn_is_off_topic
+from pathfinder.ai.lead.intent_gate import (
+    tools_the_turn_offers,
+    turn_builds,
+    turn_is_off_topic,
+)
 from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.ledger_sections import BuildSection
 from pathfinder.ai.lead.phase_stop import PhaseStop
@@ -262,9 +266,11 @@ def _refused_dispatches(ctx: RunContext[LeadDeps]) -> tuple[str, ...]:
     """The dispatch tools this run refused and never ran again.
 
     The run drops a tool from its retry record as soon as one call of it
-    returns, so what is left is work the turn asked for and never did.
+    returns, so what is left is work the turn asked for and never did. A tool
+    this turn never offered is a name the run did not know, not work it owes.
     """
-    return tuple(sorted(name for name in ctx.retries if name in DISPATCH_TOOLS))
+    offered = tools_the_turn_offers(ctx.deps, DISPATCH_TOOLS)
+    return tuple(sorted(name for name in ctx.retries if name in offered))
 
 
 def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
@@ -352,10 +358,12 @@ def _unrecorded_question(report: LeadResponse, record: TurnRecord) -> str | None
 
 
 def _unfinished_work(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A turn whose work did not run ends by asking the user, not by promising."""
+    """A turn whose work did not run ends by asking the user, not by promising.
+
+    The state the reply claims decides nothing: work that did not run is undone
+    whether the reply waits on the user or calls the turn resolved.
+    """
     if record.changed_strategy or report.asked_questions:
-        return None
-    if report.next_state != "await_user":
         return None
     if not record.refused_dispatches and record.last_phase_stop is None:
         return None

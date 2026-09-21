@@ -209,7 +209,11 @@ def _edit_run(
 async def test_a_restated_option_is_pushed_as_a_step_change(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The edit states the option on the step that runs its search."""
+    """The edit states the option on the step that runs its search.
+
+    The update carries the value the option moved and nothing else; the step
+    keeps every other value it holds, because an update merges.
+    """
     before, session = _built()
     after = before.model_copy(deep=True)
     after.criteria.append(_option())
@@ -222,10 +226,7 @@ async def test_a_restated_option_is_pushed_as_a_step_change(
         {
             "kind": "updateStepParams",
             "stepId": step_id,
-            "parameters": {
-                "organism": {"type": "multi-pick-vocabulary", "values": ["Pf3D7"]},
-                "dataset": {"type": "string", "value": _SEXUAL_STAGE},
-            },
+            "parameters": {"dataset": {"type": "string", "value": _SEXUAL_STAGE}},
         }
     ]
 
@@ -320,10 +321,7 @@ async def test_two_options_that_state_one_value_push_one_step_change(
         {
             "kind": "updateStepParams",
             "stepId": before.criteria[0].id,
-            "parameters": {
-                "organism": {"type": "multi-pick-vocabulary", "values": ["Pf3D7"]},
-                "dataset": {"type": "string", "value": _SEXUAL_STAGE},
-            },
+            "parameters": {"dataset": {"type": "string", "value": _SEXUAL_STAGE}},
         }
     ]
 

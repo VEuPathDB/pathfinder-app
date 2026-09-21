@@ -14,6 +14,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
 )
 
+from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -26,7 +27,6 @@ from pathfinder.domain.strategy.operations import (
     ReplaceSubtreeOp,
     WireInputOp,
 )
-from pathfinder.domain.strategy.spec_to_operations import UnsupportedEditError
 
 from ._builders import (
     applied,
@@ -173,20 +173,22 @@ def _nested_over(first_criterion: str) -> SpecStructure:
     )
 
 
-def test_a_rearrangement_that_names_a_step_the_graph_lacks_is_refused() -> None:
-    """A rewire mints no step for a criterion the strategy never held."""
+def test_a_rearrangement_builds_the_criterion_the_strategy_never_held() -> None:
+    """A criterion the baseline states with no step is one the rewire adds."""
     root = three_step_root()
     before = spec_of(root)
     before.criteria.append(
-        Criterion(id="step_ghost", text="never built", search_name="GenesByTaxon")
+        Criterion(id="c_unbuilt", text="never built", search_name="GenesByTaxon")
     )
     after = before.model_copy(deep=True)
-    after.structure = _nested_over("step_ghost")
+    after.structure = _nested_over("c_unbuilt")
 
-    with pytest.raises(UnsupportedEditError) as excinfo:
-        plan(before, after, graph_of(root))
+    graph = applied(root, plan(before, after, graph_of(root)))
 
-    assert "step_ghost" in str(excinfo.value)
+    assert graph.steps["c_unbuilt"].search_name == "GenesByTaxon"
+    assert shape(graph) == (
+        "(c_unbuilt INTERSECT (step_text INTERSECT (step_go INTERSECT step_expr)))"
+    )
 
 
 def test_a_rearrangement_that_adopts_a_step_from_outside_is_refused() -> None:

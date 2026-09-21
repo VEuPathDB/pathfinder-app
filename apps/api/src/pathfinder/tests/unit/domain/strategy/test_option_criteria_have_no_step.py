@@ -12,6 +12,7 @@ import pytest
 from veupathdb.domain.parameters import MultiPickValue, StringValue
 from veupathdb.domain.strategy import CombineOp, flatten_tree
 
+from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
 from pathfinder.domain.strategy.operational_spec import (
     AssumedValue,
     Criterion,
@@ -25,10 +26,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_diff import diff_specs
-from pathfinder.domain.strategy.spec_to_operations import (
-    UnsupportedEditError,
-    operations_for,
-)
+from pathfinder.domain.strategy.spec_to_operations import operations_for
 from pathfinder.domain.strategy.stated_shape import (
     criteria_with_steps,
     stated_shape,
@@ -121,9 +119,7 @@ def _built() -> tuple[OperationalSpec, StrategyGraph]:
 def _plan(
     before: OperationalSpec, after: OperationalSpec, graph: StrategyGraph
 ) -> list[str]:
-    ops = operations_for(
-        diff_specs(before, after), before=before, after=after, graph=graph
-    )
+    ops = operations_for(diff_specs(before, after), after=after, graph=graph)
     return [op.kind for op in ops]
 
 

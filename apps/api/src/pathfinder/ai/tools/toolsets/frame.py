@@ -18,10 +18,8 @@ from pathfinder.ai.tools.standalone.catalog_discovery import (
     get_parameter_options,
     get_search_overview,
 )
-from pathfinder.ai.tools.standalone.frame_spec import (
-    drop_criterion,
-    set_criterion,
-)
+from pathfinder.ai.tools.standalone.frame_drop import drop_criterion
+from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.ai.tools.standalone.frame_structure import set_structure
 from pathfinder.ai.tools.standalone.gene import (
     get_ai_expression_summary,

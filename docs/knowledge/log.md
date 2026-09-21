@@ -2,6 +2,85 @@
 
 ## 2026-09-21
 
+* **A spec and its strategy hold one value, and an edit says what it built.**
+  Nine findings from the verification of the unbuilt-criterion work. A value the
+  researcher set on the canvas is no longer overwritten when an edit moves a different
+  parameter of the same step: the operation carries only what the diff says moved,
+  which needs no copy from the graph into the spec. Copying was tried and withdrawn -
+  the graph holds the canonical form of a value the assistant wrote (a branch term is
+  submitted as its leaves), so a copy read that form as a change and pushed it. A
+  dispatch that resumes a parked call reconciles the record it parked with, and the
+  workspace, against the live graph (`dispatch_context::_reconcile_the_parked_record`),
+  because the refresh leaves a resumed turn's spec alone and a step deleted while the
+  call was parked would otherwise be rebuilt. The removal refusal counts the subtree
+  under a dropped criterion as accounted for, so dropping the one criterion that stands
+  for an inserted saved strategy is not read as an unstated removal, and it now names
+  the way forward. `CriterionChange` carries `removed_params` and `rebound_search`, so
+  the diff is the whole account of a change: the open-slot excuse applies per parameter
+  and no longer hides a changed search or a value taken away, and
+  `spec_to_operations::_change_op` reads that account rather than recomputing it
+  (`operations_for` no longer takes the spec the turn started from). `EditDelta` gains
+  `added_step_ids` from `criteria_the_edit_introduces`, which the Lead's instructions
+  and the `edit_strategy` docstring make the source of every addition claim, and which
+  the refusal of a value blames the right step from. `fold_option_criteria` takes the
+  live step ids, so a live step the structure has not caught up with is never described
+  as an option to drop. An operation carries only what the diff says moved, so a value
+  the researcher set on the canvas survives an edit that names another parameter of the
+  same step; a restatement of the same search starts from the live step's parameters,
+  and only a rebound search takes the spec's whole binding. The turn contract counts only dispatch tools the turn actually
+  offered (`intent_gate::tools_the_turn_offers`), so a call to a tool the gate hid is a
+  name the run did not know rather than unfinished work. `set_criterion` and the FRAME
+  instructions state the criterion-id rule before a call is refused for it.
+  `spec_to_operations` split: `domain/strategy/edit_plan.py` owns the plan, the refusal
+  type and the restatement, and `frame_drop.py` owns `drop_criterion`. Recorded in
+  [an edit is a delta](decisions/an-edit-is-a-delta-not-a-rebuild.md),
+  [one address](decisions/a-criterion-and-its-step-are-one-address.md) and
+  [preserved is computed](decisions/preserved-is-computed-never-written.md). Proven by
+  `tests/unit/ai/lead/test_disagreements_that_end_wrong.py`,
+  `test_the_spec_and_the_strategy_disagree.py`,
+  `test_an_answered_slot_hides_no_other_change.py`,
+  `test_unfinished_work_spares_a_finished_turn.py`,
+  `test_turn_contract_unfinished_work.py`,
+  `tests/unit/ai/tools/test_frame_is_told_how_to_name_a_criterion.py` and
+  `tests/unit/domain/strategy/test_a_dropped_subtree_criterion_leaves_with_its_steps.py`.
+
+* **A criterion framed in one dispatch and built in the next.** A criterion the
+  user still owes a value for is committed with the spec, so the next dispatch
+  finds it in its baseline and the diff calls it kept or changed; the planner
+  read `plan.added` off that diff, found the criterion in neither `graph.steps`
+  nor `plan.added`, and refused every edit that named it with "names no step in
+  the strategy" - and `build_strategy` refuses a thread that has a strategy, so
+  nothing could ever build it. `spec_to_operations::_plan_the_named_changes` now
+  reads the set off the strategy: a criterion the edited structure names that
+  `graph.steps` holds no step for is one the edit introduces, whatever the diff
+  calls it, and `criteria_with_steps(minted=)` takes the same set. The guard that
+  the old rule carried by accident - a spec describing some other strategy - is
+  stated on its own: `_refuse_a_removal_the_edit_did_not_state` refuses a plan
+  that takes a search step off the strategy while the edited spec states no drop
+  for it. The restructure pass is entered whenever the wiring plan departs from
+  the stated shape, not only when it re-roots, so an added leaf under a re-nested
+  structure is restated instead of leaving the old root dangling. `preserved_step_ids`
+  now names only criteria the graph held a step for, because the edit builds the
+  rest. `set_criterion` refuses a new criterion id of the built-step shape
+  (`step_<8 hex>`) that no live step answers to: `spec_reconciled_with_graph`
+  reads such an id as a step the strategy lost, so the criterion would leave the
+  spec between turns by the second route. `undeclared_spec_changes` no longer
+  reads a filled open slot as a silent re-binding: a parameter the baseline
+  listed in `open_params` with no resolved value holds nothing to re-bind, so a
+  criterion declared kept whose only moved values were open is not refused. The
+  turn contract's `unfinished_work` rule drops its `next_state == "await_user"`
+  precondition, so a reply that ends a turn as `complete` after a refused
+  dispatch, with no change and no recorded question, is refused once like any
+  other. Recorded in [an edit is a delta](decisions/an-edit-is-a-delta-not-a-rebuild.md)
+  and [preserved is computed](decisions/preserved-is-computed-never-written.md).
+  Proven by
+  `tests/unit/domain/strategy/test_an_unbuilt_criterion_reaches_a_step.py`,
+  `tests/unit/domain/strategy/test_spec_to_operations_rearrange.py`,
+  `tests/unit/ai/lead/test_an_open_criterion_is_built_next_turn.py`,
+  `tests/unit/ai/lead/test_dispatch_messages.py`,
+  `tests/unit/ai/lead/test_turn_contract_unfinished_work.py` and
+  `tests/unit/ai/tools/test_a_criterion_id_is_not_a_step_address.py`.
+
 * **A step count has one owner: VEuPathDB, read back at the commit.** One edit
   used to leave three sets of numbers behind - the reply and the ledger read the
   site live, the graph snapshot of the same edit carried nulls and pre-edit

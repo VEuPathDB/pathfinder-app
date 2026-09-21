@@ -13,9 +13,11 @@ status: stable
 `StrategyDomainState` carries `spec_before_turn`, a deep copy of the spec as
 the pre-turn hook found it, once that spec is reconciled with the live graph
 (`domain/strategy/spec_reconciliation.py`): a criterion whose step the strategy
-no longer holds is not one this turn can keep.
+no longer holds is not one this turn can keep. It also carries
+`spec_before_dispatch`, the committed spec as the running dispatch found it,
+which is what a dispatch plans and restores against when one turn writes twice.
 `domain/strategy/spec_diff.py::diff_specs` compares
-it against the spec the turn produced and reports one `CriterionChange` per
+either against the spec the pass produced and reports one `CriterionChange` per
 criterion: `kept`, `changed`, `added` or `dropped`.
 
 Two consequences follow, and both are enforced in code rather than in a prompt:
@@ -23,7 +25,14 @@ Two consequences follow, and both are enforced in code rather than in a prompt:
 1. `FrameResult` carries `changes`, the pass's own account of an edit. In
    `run_frame`, a criterion the computed diff reports `dropped` that the
    account does not declare `dropped`, and a criterion the account declares
-   `kept` whose bound values moved, are both a `ModelRetry`.
+   `kept` whose bound values moved, are both a `ModelRetry`. The exception is
+   per PARAMETER, not per criterion: a parameter the baseline listed in
+   `open_params` with no resolved value holds nothing to re-bind, so filling it
+   is the work the user's answer asked for. Every other movement on the same
+   criterion is still refused - another value moved, a value taken away
+   (`removed_params`), or the criterion put on another search
+   (`rebound_search`) - because an answered slot is not a licence to re-bind the
+   rest of the binding while declaring it kept.
 2. The ledger's `FrameSection` exposes the diff as a computed field, derived
    from the same two specs. The Lead's instructions say a preservation claim is
    written from `ledger.frame.diff` and from nothing else.
