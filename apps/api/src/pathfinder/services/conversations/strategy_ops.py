@@ -5,6 +5,7 @@ conversation's ``PersistedStrategyGraph`` and run a strategy-session
 mutation, distinct from plain conversation CRUD.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -15,6 +16,7 @@ from assistant_core.platform.types import JSONObject
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.errors import ValidationError
 
+from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.operations import DeleteStepOp, GraphOperation
 from pathfinder.domain.strategy.operations.resolutions import (
     why_the_graph_refuses_the_delete,
@@ -26,6 +28,7 @@ from pathfinder.persistence.repositories.saved_strategy import (
 )
 from pathfinder.platform.errors import (
     SITE_DID_NOT_ANSWER,
+    AppError,
     ErrorCode,
     NotFoundError,
     SiteUnavailableError,
@@ -141,6 +144,20 @@ def refuse_a_delete_the_graph_cannot_place(
         )
 
 
+def refuse_a_push_the_site_turned_down(failures: Sequence[StepPushFailure]) -> None:
+    """A step VEuPathDB refused is not a success. The raise leaves the write
+    lock before its commit, so the stored strategy stays as it was."""
+    if not failures:
+        return
+    named = "; ".join(f"{f.search_name}: {f.error}" for f in failures)
+    raise AppError(
+        code=ErrorCode.WDK_ERROR,
+        title="VEuPathDB refused the change",
+        status=502,
+        detail=f"The site did not accept the edit, so it was not applied: {named}",
+    )
+
+
 async def apply_operation(
     repo: ConversationRepository,
     conversation_id: UUID,
@@ -168,7 +185,8 @@ async def apply_operation(
             conversation_id=conversation_id,
             locked_session=locked,
         )
-        await apply_and_commit(deps=ctx, op=op)
+        commit = await apply_and_commit(deps=ctx, op=op)
+        refuse_a_push_the_site_turned_down(commit.failures)
         refreshed = await locked_repo.get_with_strategy(conversation_id)
         if refreshed is None:
             raise NotFoundError(

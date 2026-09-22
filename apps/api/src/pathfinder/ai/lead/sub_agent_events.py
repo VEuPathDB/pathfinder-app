@@ -17,7 +17,7 @@ from assistant_core.conversation.stream_parts.agent_topology import (
 from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.turn_state import SubAgentApprovalCall
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, JsonValue
 from pydantic_ai.messages import (
     AgentStreamEvent,
     FunctionToolCallEvent,
@@ -28,6 +28,7 @@ from pydantic_ai.messages import (
     ThinkingPart,
     ToolCallPart,
     ToolReturnPart,
+    tool_return_ta,
 )
 from pydantic_ai.ui.vercel_ai.response_types import (
     DataChunk,
@@ -40,6 +41,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
     ToolOutputAvailableChunk,
     ToolOutputDeniedChunk,
 )
+from pydantic_core import PydanticSerializationError
 
 from pathfinder.ai.capabilities.error_classification import is_error_directive
 
@@ -56,6 +58,24 @@ def _emit_step(writer: Any, payload: SubAgentStepPayload) -> None:
 
 def _short(s: str, *, limit: int = 280) -> str:
     return s if len(s) <= limit else s[:limit] + "..."
+
+
+# A step's full return goes on the wire for the raw trace view, under this cap.
+_RESULT_JSON_LIMIT = 16_000
+
+
+def _result_json(result: ToolReturnPart | RetryPromptPart) -> JsonValue | None:
+    """The completed step's return in JSON form, or None when it cannot be serialised."""
+    if not isinstance(result, ToolReturnPart):
+        return None
+    try:
+        value: JsonValue = tool_return_ta.dump_python(result.content, mode="json")
+    except PydanticSerializationError:
+        return None
+    text = json.dumps(value)
+    if len(text) <= _RESULT_JSON_LIMIT:
+        return value
+    return text[:_RESULT_JSON_LIMIT] + "... (truncated)"
 
 
 def _summarize_tool_result(content: object) -> str:
@@ -170,6 +190,7 @@ def _forward_inner_event(
                 tool_call_id=event.tool_call_id,
                 tool_name=tool_name,
                 result_summary=inner.summary or _result_summary(result),
+                result=_result_json(result),
             ),
         )
         for chunk in inner.forwarded:

@@ -264,3 +264,44 @@ def test_the_json_dump_is_the_fallback_when_the_tool_wrote_no_line() -> None:
     completed = _completed(_with_metadata([]))
 
     assert completed[0]["resultSummary"] == '{"total": 12}'
+
+
+def _completed_step(content: object) -> dict[str, object]:
+    collector = _forward(
+        _call("get_search_overview"),
+        FunctionToolResultEvent(
+            part=ToolReturnPart(
+                tool_name="get_search_overview", content=content, tool_call_id=_INNER
+            ),
+        ),
+    )
+    return _completed(collector)[0]
+
+
+def _result_of(content: object) -> object:
+    return _completed_step(content)["result"]
+
+
+def test_a_completed_step_carries_its_return_as_json() -> None:
+    """The raw trace shows a sub-agent step's return the way it shows the Lead's."""
+    assert _result_of({"search_name": "GenesByText", "count": 3}) == {
+        "search_name": "GenesByText",
+        "count": 3,
+    }
+
+
+def test_a_return_over_the_cap_is_cut_with_a_marker() -> None:
+    result = _result_of({"ids": "x" * 20_000})
+    assert isinstance(result, str)
+    assert result.endswith("... (truncated)")
+    assert len(result) < 20_000
+
+
+def test_a_return_that_cannot_be_serialised_carries_no_result() -> None:
+    step = _completed_step(object())
+
+    assert {key: step[key] for key in ("state", "toolName", "result")} == {
+        "state": "completed",
+        "toolName": "get_search_overview",
+        "result": None,
+    }

@@ -2,6 +2,19 @@
 
 ## 2026-09-22
 
+* **A transform's own parameter can be edited, a refused push is a 502, and the
+  raw trace carries every sub-agent step's result.** `veupathdb-py` v0.1.0a11:
+  a search-config update reads the step back and carries its input-step values,
+  because WDK refuses a changed input and the client sent none, so a change to a
+  transform's own parameter reached the site as a 500. `veupathdb-mcp` v0.2.0a19
+  pins it. A canvas operation whose push the site refused no longer answers 200
+  with a failure only the banner shows: `refuse_a_push_the_site_turned_down`
+  answers 502 `WDK_ERROR` and names each refused step and the site's sentence.
+  `assistant-core` v0.3.0a16 (client 0.3.0-alpha.5): the completed sub-agent
+  step payload carries `result` (JSON, capped at 16000 characters), so the raw
+  trace shows the output of every step and not only its parameters; the raw
+  panel's padding sits inside the collapsing box. PathFinder is 0.2.0a8.
+
 * **A refusal names what refused, and the reply that follows is plain.** A refusal
   the Lead reads is the only account it has of a failure, so a message that blamed
   the wrong thing reached the user as a wrong offer. Every refusal in the dispatch

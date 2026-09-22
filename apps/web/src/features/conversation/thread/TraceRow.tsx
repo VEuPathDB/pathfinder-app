@@ -87,9 +87,11 @@ export function TraceRow({
           className="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
           style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
         >
-          <div className="overflow-hidden py-1 pl-5">
-            <ToolInput input={row.input} className="p-0" />
-            <ToolOutput output={row.output} errorText={row.errorText ?? undefined} />
+          <div className="overflow-hidden">
+            <div className="py-1 pl-5">
+              <ToolInput input={row.input} className="p-0" />
+              <ToolOutput output={row.output} errorText={row.errorText ?? undefined} />
+            </div>
           </div>
         </div>
       )}
