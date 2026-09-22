@@ -15,7 +15,11 @@ from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_stream import PhaseRun
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OpenSlot,
+    OperationalSpec,
+)
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -41,12 +45,20 @@ def _stub_stream(
     result: FrameResult,
     *,
     binds: bool = False,
+    open_param: str = "",
 ) -> None:
     async def _fake(**kwargs: Any) -> FrameResult:
         if binds:
             agent_deps: AgentDeps = kwargs["agent_deps"]
             agent_deps.agent_state.operational_spec_draft.criteria.append(
-                Criterion(id="c1", text="kinases", search_name="GenesByText")
+                Criterion(
+                    id="c1",
+                    text="kinases",
+                    search_name="GenesByText",
+                    open_params=[OpenSlot(criterion_id="c1", param_name=open_param)]
+                    if open_param
+                    else [],
+                )
             )
         return result
 
@@ -93,6 +105,8 @@ async def test_the_questions_frame_cannot_answer_are_recorded(
                 ),
             ],
         ),
+        binds=True,
+        open_param="dataset",
     )
     deps = _deps()
 
@@ -162,6 +176,34 @@ async def test_second_empty_result_becomes_needs_user(
     assert isinstance(result, FrameResult)
     assert result.disposition == "needs_user"
     assert "no bound criterion" in result.summary
+
+
+async def test_a_pass_that_asks_about_nothing_it_bound_is_a_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A question over a draft with no open slot is refused once."""
+    _stub_stream(
+        monkeypatch,
+        FrameResult(
+            disposition="needs_user",
+            summary="which threshold?",
+            open_questions=[
+                OpenQuestion(question="Which percentile?", recommended_value="10"),
+            ],
+        ),
+        binds=True,
+    )
+    deps = _deps()
+
+    with pytest.raises(ModelRetry) as excinfo:
+        await run_frame(
+            deps=deps,
+            parent_tool_call_id="t1",
+            work_order=frame_work_order("frame it", deps.state),
+        )
+
+    assert "set_criterion" in str(excinfo.value)
+    assert deps.state.domain.open_questions == []
 
 
 async def test_a_needs_user_result_over_an_empty_draft_is_not_a_retry(

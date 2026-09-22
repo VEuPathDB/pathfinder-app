@@ -4,7 +4,6 @@ other."""
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable, Sequence
 from typing import Literal
 
@@ -19,9 +18,11 @@ from pathfinder.ai.lead.contract_messages import (
     analysis_ran_on_another_set_message,
     blamed_the_site_message,
     claimed_change_message,
+    claimed_frame_message,
     control_set_not_written_message,
     eda_criterion_not_built_message,
     gene_set_not_saved_message,
+    machine_words_message,
     off_topic_essay_message,
     unfinished_work_message,
     unrecorded_question_message,
@@ -38,6 +39,13 @@ from pathfinder.ai.lead.intent_gate import (
 from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.ledger_sections import BuildSection
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.ai.lead.reply_claims import (
+    CLAIMED_A_FRAME,
+    SAVED_A_CONTROL_SET,
+    SAVED_A_GENE_SET,
+    claims,
+    machine_words,
+)
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import OpenQuestion
@@ -45,6 +53,7 @@ from pathfinder.domain.strategy.operational_spec import (
     DroppedCriterion,
     eda_backed_drops,
 )
+from pathfinder.domain.strategy.spec_diff import SpecDiff
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -69,26 +78,6 @@ _REFERENCE_PREFIXES = (
     "pmid:",
     "pubmed.ncbi.nlm.nih.gov/",
 )
-
-
-# An artifact the reply reports as saved. An offer to save one is an
-# infinitive, and a listing says "saved control sets" with no words between.
-_SAVED = r"\b(?:created|saved|built|made|added|stored)\s+.{1,40}?\b"
-# A gene set that qualifies another noun names an analysis or a note.
-_THE_SET_ITSELF = r"(?!\s+(?:enrichment|note))"
-_SAVED_A_CONTROL_SET = re.compile(_SAVED + r"control sets?\b")
-_SAVED_A_GENE_SET = re.compile(_SAVED + r"gene sets?\b" + _THE_SET_ITSELF)
-_DENIED = re.compile(r"\b(?:not|never|no)\b|n't")
-_CLAUSE_END = re.compile(r"[.!?;\n]")
-
-
-def _claims_it_saved(prose: str, artifact: re.Pattern[str]) -> bool:
-    """Whether this reply tells the user it saved that artifact."""
-    return any(
-        artifact.search(clause)
-        for clause in _CLAUSE_END.split(prose.casefold())
-        if not _DENIED.search(clause)
-    )
 
 
 def normalized_reference(value: str) -> str:
@@ -194,6 +183,7 @@ class TurnRecord(CamelModel):
     last_phase_stop: PhaseStop | None
     refused_dispatches: tuple[str, ...]
     build_section: BuildSection
+    frame_diff: SpecDiff | None
     retrieved_sources: tuple[str, ...]
     created_control_sets: tuple[CreatedControlSet, ...]
     created_gene_sets: tuple[CreatedGeneSet, ...]
@@ -202,12 +192,14 @@ class TurnRecord(CamelModel):
 MismatchKind = Literal[
     "unverified_build",
     "misreported_change",
+    "claimed_frame",
     "unwritten_control_set",
     "unwritten_gene_set",
     "unbuilt_eda_criterion",
     "blamed_the_site",
     "unrecorded_question",
     "unfinished_work",
+    "machine_words",
     "substituted_analysis",
     "off_topic_essay",
     "unretrieved_source",
@@ -278,6 +270,7 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
     deps = ctx.deps
     markers = deps.state.turn_markers
     analysed, substituted = _analysis_and_what_it_replaced(markers.enrichment_runs)
+    ledger = derive_ledger(deps.state, deps.intent)
     return TurnRecord(
         changed_strategy=markers.changed_strategy,
         build_unverified=markers.build_unverified,
@@ -290,7 +283,8 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         substituted=substituted,
         last_phase_stop=deps.last_phase_stop,
         refused_dispatches=_refused_dispatches(ctx),
-        build_section=derive_ledger(deps.state, deps.intent).build,
+        build_section=ledger.build,
+        frame_diff=ledger.frame.spec_diff(),
         retrieved_sources=tuple(markers.retrieved_sources),
         created_control_sets=tuple(markers.created_control_sets),
         created_gene_sets=tuple(markers.created_gene_sets),
@@ -314,20 +308,26 @@ def _misreported_change(report: LeadResponse, record: TurnRecord) -> str | None:
     return claimed_change_message(record.build_outcome)
 
 
+def _claimed_frame(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A criterion the reply reports as framed is one the spec diff states."""
+    diff = record.frame_diff
+    if diff is None or diff.added_count or diff.changed_count:
+        return None
+    if not claims(report.prose, CLAIMED_A_FRAME):
+        return None
+    return claimed_frame_message(diff)
+
+
 def _unwritten_control_set(report: LeadResponse, record: TurnRecord) -> str | None:
     """A durable artifact the reply reports is one this turn wrote."""
-    if record.created_control_sets or not _claims_it_saved(
-        report.prose, _SAVED_A_CONTROL_SET
-    ):
+    if record.created_control_sets or not claims(report.prose, SAVED_A_CONTROL_SET):
         return None
     return control_set_not_written_message(record.created_gene_sets)
 
 
 def _unwritten_gene_set(report: LeadResponse, record: TurnRecord) -> str | None:
     """The same rule for the other artifact a reply can put the wrong name on."""
-    if record.created_gene_sets or not _claims_it_saved(
-        report.prose, _SAVED_A_GENE_SET
-    ):
+    if record.created_gene_sets or not claims(report.prose, SAVED_A_GENE_SET):
         return None
     return gene_set_not_saved_message(record.created_control_sets)
 
@@ -370,6 +370,29 @@ def _unfinished_work(report: LeadResponse, record: TurnRecord) -> str | None:
     return unfinished_work_message(record.refused_dispatches, record.last_phase_stop)
 
 
+def _machine_words(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A reply about work that did not run says so in the user's own words.
+
+    A tool name, a minted step id and an error code name nothing the
+    researcher holds, so the reply that reports a failure carries none of them.
+    """
+    if not _work_did_not_run(record):
+        return None
+    found = machine_words(report.prose)
+    if not found:
+        return None
+    return machine_words_message(found)
+
+
+def _work_did_not_run(record: TurnRecord) -> bool:
+    """Whether a pass of this turn was refused, stopped, or lost a step."""
+    return bool(
+        record.refused_dispatches
+        or record.last_phase_stop is not None
+        or record.build_section.failed_count
+    )
+
+
 def _substituted_analysis(report: LeadResponse, record: TurnRecord) -> str | None:
     """An analysis reached around a failure is reported under its own set."""
     analysed = record.analysed
@@ -409,12 +432,14 @@ _RULES: tuple[
 ] = (
     ("unverified_build", _unverified_build),
     ("misreported_change", _misreported_change),
+    ("claimed_frame", _claimed_frame),
     ("unwritten_control_set", _unwritten_control_set),
     ("unwritten_gene_set", _unwritten_gene_set),
     ("unbuilt_eda_criterion", _unbuilt_eda_criterion),
     ("blamed_the_site", _blamed_the_site),
     ("unrecorded_question", _unrecorded_question),
     ("unfinished_work", _unfinished_work),
+    ("machine_words", _machine_words),
     ("substituted_analysis", _substituted_analysis),
     ("off_topic_essay", _off_topic_essay),
     ("unretrieved_source", _unretrieved_source),

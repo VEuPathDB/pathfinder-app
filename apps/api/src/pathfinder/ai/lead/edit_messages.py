@@ -22,6 +22,7 @@ __all__ = [
     "delta_disagrees_with_the_strategy_message",
     "edit_bound_nothing_message",
     "edit_continuation_work_order",
+    "edit_operation_refused_message",
     "edit_work_order",
     "no_strategy_to_edit_message",
     "pending_changes_no_pass_accounted_for_message",
@@ -216,19 +217,38 @@ def no_strategy_to_edit_message() -> str:
 def edit_bound_nothing_message() -> str:
     return (
         "The edit pass left no spec behind, so there is nothing to compare "
-        "against the strategy. Dispatch edit_strategy again and tell it to "
+        "against the strategy. Nothing was applied: the strategy is exactly as "
+        "this turn found it. Dispatch edit_strategy again and tell it to "
         "record its work with set_criterion and drop_criterion."
     )
 
 
 def unsupported_edit_message(detail: str) -> str:
+    """The shape this edit states does not map onto the steps the strategy holds."""
     return (
-        f"This edit does not map onto the strategy's steps: {detail}. A new "
-        f"shape states every criterion the spec keeps, states no step from "
-        f"outside this strategy, and leaves no step disconnected. Call "
-        f"edit_strategy again with a structure over the criterion ids the "
-        f"strategy holds, or tell the user what the request would cost and ask "
-        f"before anything is replaced."
+        f"This edit does not map onto the strategy's steps: {detail}. Nothing "
+        f"was applied: the strategy still holds every step and every value it "
+        f"held before this edit. A new shape states every criterion the spec "
+        f"keeps, states no step from outside this strategy, and leaves no step "
+        f"disconnected. Dispatch edit_strategy again with a structure over the "
+        f"criterion ids the strategy holds, or tell the user which part of the "
+        f"request the strategy's shape cannot take and stop."
+    )
+
+
+def edit_operation_refused_message(detail: str) -> str:
+    """One graph operation this edit writes was refused before the push.
+
+    The refusal is about that operation. VEuPathDB is not asked, and the steps
+    the strategy already holds are not judged.
+    """
+    return (
+        f'One operation this edit writes was refused: "{detail}". Nothing was '
+        f"applied: the strategy still holds every step and every value it held "
+        f"before this edit. Dispatch edit_strategy again and state that "
+        f"criterion with set_criterion under a step id the strategy holds, "
+        f"drop it with drop_criterion, or tell the user what could not be "
+        f"changed and stop. Do not offer to rebuild the strategy from scratch."
     )
 
 

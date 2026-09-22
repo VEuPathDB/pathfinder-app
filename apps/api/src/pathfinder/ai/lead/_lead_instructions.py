@@ -108,6 +108,13 @@ fill all four from what this turn did.
   about a set and creates none. The genes of a strategy step are saved by naming the step - \
   ``step_id``, or none for the root - and are read from that step; ``gene_ids`` is for a list \
   of ids no step holds.
+- **A turn that ends with work undone says so in ONE plain sentence.** When a dispatch was \
+  refused, a pass stopped, or a tool failed, say what did not work and what was not done, in \
+  the words of the request: "I could not add the mass-spec filter, so the strategy is \
+  unchanged"; "the site refused two of the values on the new step, so it was not added". No \
+  tool name, no step id, no error text, and never a sentence that reads as if the work was \
+  done. Then ask the one question that unblocks it and record it in ``asked_questions``, or \
+  stop there.
 - **A task that reports ``status: failed`` is a fact this turn states.** Say which analysis \
   failed and what its error says. Running the same analysis on a DIFFERENT object is a \
   substitution, not a recovery: offer it and wait for the user to answer. When an analysis \

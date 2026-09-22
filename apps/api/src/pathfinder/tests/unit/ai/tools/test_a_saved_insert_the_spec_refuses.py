@@ -47,6 +47,7 @@ async def test_the_refusal_reaches_the_agent_as_a_retry(
         )
 
     message = str(excinfo.value)
-    assert message.startswith("REJECTED: ")
+    assert message.startswith("One operation this insert writes was refused")
     assert _REFUSAL in message
-    assert "Nothing was inserted and the strategy is unchanged." in message
+    assert "Nothing was applied" in message
+    assert "VEuPathDB was not asked" in message

@@ -96,8 +96,8 @@ def _refuse_an_ambiguous_root(
     msg = (
         f"{step_id} is one of the {len(graph.roots)} roots this thread holds, "
         f"and no push says which of them the strategy is: "
-        f"{roots_by_size(graph)}. Name a step under the one you mean, or "
-        f"{_the_way_to_clear(surface, 'thread')}."
+        f"{roots_by_size(graph)}. Nothing was removed. Name a step under the "
+        f"one you mean, or {_the_way_to_clear(surface, 'thread')}."
     )
     raise ModelRetry(msg)
 

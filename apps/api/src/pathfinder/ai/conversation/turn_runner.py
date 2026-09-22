@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import dataclasses
-from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
@@ -43,8 +42,11 @@ from pathfinder.ai.conversation._turn_helpers import (
 )
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.conversation.title_generator import generate_conversation_title
+from pathfinder.ai.conversation.turn_failure import (
+    turn_closed_on_failure,
+    turn_failure_text,
+)
 from pathfinder.ai.conversation.turn_stop import watch_for_cancel
-from pathfinder.platform.errors import AppError
 from pathfinder.platform.tool_sources import source_credential
 from pathfinder.services.conversations.turns import (
     load_conversation,
@@ -105,30 +107,6 @@ class TurnRequest:
     user_id: UUID
     durable_result: DurableTaskResult | None = None
     durable_results: tuple[DurableTaskResult, ...] = ()
-
-
-async def write_turn_failure(writer: ChatWriter, exc: Exception) -> None:
-    """Close a turn that failed before its graph ran, the way a graph failure closes."""
-    error_text = _turn_failure_text(exc)
-    for chunk in (
-        ErrorChunk(error_text=error_text),
-        turn_failed_event(error_text=error_text),
-        FinishChunk(finish_reason="error"),
-        DoneChunk(),
-    ):
-        await writer.write(
-            chunk.model_dump(by_alias=True, mode="json", exclude_none=True)
-        )
-
-
-@contextlib.asynccontextmanager
-async def turn_closed_on_failure(writer: ChatWriter) -> AsyncIterator[None]:
-    """A setup step that raises inside still ends the turn on the wire."""
-    try:
-        yield
-    except Exception as exc:
-        await write_turn_failure(writer, exc)
-        raise
 
 
 async def run_turn(
@@ -365,8 +343,9 @@ async def _drive_graph(
             conversation_id=str(body.conversation_id),
             user_id=str(graph_input.get("user_id")),
             error_type=type(exc).__name__,
+            error_detail=str(exc),
         )
-        error_text = _turn_failure_text(exc)
+        error_text = turn_failure_text(exc, graph_ran=True)
         await write_tool_call_errors(tracked, open_calls.ids(), error_text)
         for chunk in (
             ErrorChunk(error_text=error_text),
@@ -425,10 +404,3 @@ async def _write_title(
             exclude_none=True,
         ),
     )
-
-
-def _turn_failure_text(exc: Exception) -> str:
-    """A refusal reads as its own sentence; a defect keeps its type."""
-    if isinstance(exc, AppError):
-        return exc.detail or exc.title
-    return f"{type(exc).__name__}: {exc}"

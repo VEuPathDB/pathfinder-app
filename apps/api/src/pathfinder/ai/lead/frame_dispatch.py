@@ -19,6 +19,7 @@ from pathfinder.ai.lead.dispatch_messages import (
     frame_claimed_more_than_it_bound,
     frame_continuation_work_order,
     frame_result_from_draft,
+    questions_that_bind_to_nothing,
     undeclared_spec_changes,
 )
 from pathfinder.ai.lead.edit_messages import edit_continuation_work_order
@@ -92,7 +93,11 @@ async def run_frame(
     expected_criteria: int = 3,
     resume: SubAgentResume | None = None,
 ) -> FrameResult | SubAgentApprovalWait:
-    """Run FRAME and record the questions its result leaves for the user."""
+    """Run FRAME and record the questions its result leaves for the user.
+
+    A refused pass raises before the record, so every question the thread holds
+    is one the result the Lead is given asks.
+    """
     record_the_spec_the_dispatch_found(deps, resume=resume)
     result = await _run_frame(
         deps=deps,
@@ -156,6 +161,7 @@ async def _run_frame(
             return frame_bound_nothing_result()
         deps.empty_frame_reported = True
         refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.summary))
+    _refuse_questions_that_bind_to_nothing(deps, delta, draft)
     before = deps.state.domain.spec_before_dispatch
     if before is not None and before.criteria:
         problem = undeclared_spec_changes(
@@ -164,6 +170,24 @@ async def _run_frame(
         if problem:
             refuse_and_restore(deps, problem)
     return delta
+
+
+def _refuse_questions_that_bind_to_nothing(
+    deps: LeadDeps, delta: FrameResult, draft: OperationalSpec
+) -> None:
+    """Refuse once a pass that asks about a criterion its draft does not hold.
+
+    The answer to such a question lands nowhere, so the turn that follows has
+    nothing to build from it.
+    """
+    if delta.disposition != "needs_user" or deps.unbound_questions_reported:
+        return
+    unbound = questions_that_bind_to_nothing(
+        delta.open_questions, draft, deps.state.domain.spec_before_dispatch
+    )
+    if unbound:
+        deps.unbound_questions_reported = True
+        refuse_and_restore(deps, unbound)
 
 
 async def frame_problem(

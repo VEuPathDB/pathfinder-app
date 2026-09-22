@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a6"
+    "version": "0.2.0a7"
   },
   "paths": {
     "/health": {

@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from pathfinder.ai.conversation import turn_runner
+from pathfinder.ai.conversation import turn_failure, turn_runner
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.tests._support.chunk_log import reduce_chunks_to_messages
 
@@ -373,9 +373,8 @@ async def test_a_turn_that_fails_before_its_graph_ends_visibly(
 
     kinds = [chunk["type"] for chunk in writer.chunks]
     assert kinds == ["error", "data-turn-failed", "finish", "done"]
-    assert writer.chunks[0]["errorText"] == (
-        "RuntimeError: the conversations table did not answer"
-    )
+    assert writer.chunks[0]["errorText"] == turn_failure.STOPPED_BEFORE_IT_RAN
+    assert "the conversations table did not answer" not in writer.chunks[0]["errorText"]
     assert writer.chunks[2]["finishReason"] == "error"
 
 

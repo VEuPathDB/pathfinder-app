@@ -31,7 +31,10 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     get_graph,
     validation_model_retry,
 )
-from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
+from pathfinder.ai.tools.standalone.strategy_refusals import (
+    operation_refused_message,
+    wdk_refused_the_edit,
+)
 from pathfinder.ai.tools.standalone.stream_parts import (
     graph_snapshot_chunk,
     strategy_link_chunk,
@@ -333,7 +336,7 @@ async def create_eda_step(
     except ValidationError as exc:
         raise validation_model_retry(exc, searchName=node.search_name) from exc
     except ApplyError as exc:
-        msg = f"REJECTED: {exc}. Nothing was added and the strategy is unchanged."
+        msg = operation_refused_message(str(exc), wrote="export")
         raise ModelRetry(msg) from exc
     if replace_step_id is None:
         state_the_exported_step(ctx, graph, node)

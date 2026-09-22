@@ -27,6 +27,8 @@ from pathfinder.ai.tools.standalone.graph_helpers import count_summary
 from pathfinder.ai.tools.standalone.strategy_refusals import (
     _no_graph,
     _refused,
+    build_departs_from_the_plan_message,
+    operation_refused_message,
     wdk_refused_the_edit,
 )
 from pathfinder.ai.tools.standalone.stream_parts import (
@@ -147,8 +149,7 @@ async def build_strategy(
             description=description,
         )
     except ApplyError as exc:
-        msg = f"REJECTED: {exc}. Nothing was built and the strategy is unchanged."
-        raise ModelRetry(msg) from exc
+        raise ModelRetry(build_departs_from_the_plan_message(str(exc))) from exc
     payload = _build_outcome_payload(outcome, graph)
     metadata = [graph_snapshot_chunk(session, graph)]
     if outcome.wdk_url is not None:
@@ -227,11 +228,10 @@ async def apply_operations(
             ops=operations,
         )
     except ApplyError as exc:
-        # A rejected batch rolls back, so the base revision stays valid.
+        # A refused batch rolls back, so the base revision stays valid.
         msg = (
-            f"REJECTED: {exc}. Nothing was applied and the strategy is "
-            f"unchanged, so base_revision={current!r} is still valid. Fix the "
-            f"offending operation and send the batch again."
+            f"{operation_refused_message(str(exc), wrote='batch')} "
+            f"base_revision={current!r} is still valid."
         )
         raise ModelRetry(msg) from exc
     except ValidationError as exc:

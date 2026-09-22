@@ -130,7 +130,8 @@ async def test_the_graph_is_what_it_was_before_the_batch(
 
     assert "cannot be read back" in str(caught.value)
     assert reason in str(caught.value)
-    assert "Nothing was applied and the strategy is unchanged" in str(caught.value)
+    assert "Nothing was applied" in str(caught.value)
+    assert "VEuPathDB was not asked" in str(caught.value)
     assert sorted(graph.steps) == before
     assert before == ["step_c1", "step_c2", "step_k1", "step_k2", "step_k3"]
     assert stub_api.calls == []
@@ -196,7 +197,8 @@ async def test_a_wire_that_loops_is_refused_before_it_is_written(
         await _sent(deps, payload)
 
     assert reason in str(caught.value)
-    assert "Nothing was applied and the strategy is unchanged" in str(caught.value)
+    assert "Nothing was applied" in str(caught.value)
+    assert "VEuPathDB was not asked" in str(caught.value)
     assert graph.steps["step_k1"].primary_input_id is None
     assert graph.steps["step_k2"].primary_input_id is None
     assert sorted(graph.roots) == ["step_c2"]

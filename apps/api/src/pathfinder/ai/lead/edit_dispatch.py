@@ -31,6 +31,7 @@ from pathfinder.ai.lead.edit_messages import (
     changed_revision_message,
     delta_disagrees_with_the_strategy_message,
     edit_bound_nothing_message,
+    edit_operation_refused_message,
     edit_work_order,
     no_strategy_to_edit_message,
     pending_changes_no_pass_accounted_for_message,
@@ -159,8 +160,10 @@ async def _push_the_edit(
 ) -> EditDelta:
     try:
         ops = operations_for(diff, after=after, graph=graph)
-    except (UnsupportedEditError, ApplyError) as exc:
+    except UnsupportedEditError as exc:
         refuse_and_restore(deps, unsupported_edit_message(str(exc)))
+    except ApplyError as exc:
+        refuse_and_restore(deps, edit_operation_refused_message(str(exc)))
     introduced = criteria_the_edit_introduces(after=after, graph=graph)
     added = [c.id for c in after.criteria if c.id in introduced]
     _refuse_a_delta_the_strategy_disagrees_with(deps, diff, added)
@@ -188,7 +191,7 @@ async def _push_the_edit(
         )
     except ApplyError as exc:
         # The batch rolls back, so the strategy is exactly as it was.
-        refuse_and_restore(deps, unsupported_edit_message(str(exc)))
+        refuse_and_restore(deps, edit_operation_refused_message(str(exc)))
     except ValidationError as exc:
         refuse_and_restore(
             deps, _refused_values_message(exc, diff=diff, after=after, added=introduced)

@@ -27,6 +27,31 @@ either direction, an unbuilt EDA-backed criterion, prose that blames VEuPathDB f
 stop, a question the reply asks and does not record, an analysis reported without the set it
 ran on, and an out-of-scope reply that answers anyway.
 
+Rules added since are rows in the same table. `claimed_frame` is the misreported-change rule's
+sibling for the plan: a reply whose prose says the turn framed a criterion, or added one to the
+plan, is refused when `ledger.frame.diff` reports nothing added and nothing changed. The diff is
+the record and the prose is the claim. This one reads the prose because the plan has no typed
+flag the way `strategy_changed` is one, so a small regex family matches the act ("framed",
+"planned", "added ... criterion", "added ... to the plan") over the reply's undenied clauses,
+and the diff guard is what keeps a reply that merely describes the plan from tripping it. A turn
+whose spec started empty has no diff to read and is not checked.
+
+Its upstream half is a dispatch refusal, not a contract rule: `run_frame` refuses a `needs_user`
+pass once when its questions reach no criterion - the draft is exactly what the dispatch found,
+or no criterion of it holds an open slot - and tells FRAME to record the criterion with
+`set_criterion` (the values it has, null for each value the user must decide) before it asks.
+The two answer one failure from opposite ends: the pass that asks about nothing, and the reply
+that reports what the pass never wrote.
+
+`machine_words` is the rule for how a failure is told. A turn whose dispatch was refused, whose
+pass stopped, or whose push lost a step is a turn that owes the user one plain sentence: what did
+not work, and what was not done. The rule refuses the reply when its prose prints a dispatch tool
+name, a minted step id, or an error string, because the researcher holds none of those and none of
+them says what went wrong. It reads the prose in `ai/lead/reply_claims.py`, beside the claim
+patterns, and its correction and `unfinished_work`'s carry the same sentence to write instead. A
+status code is read only next to the word that makes it one: a bare number in that range is a gene
+count.
+
 The one latch is also what the precondition gate reads: `intent_gate.verification_pending` is
 `contract_refused and built and not verified`, the condition the deleted `verification_nudged`
 carried, so a turn corrected before a check passed reaches `verify_strategy` and no other tool
@@ -52,10 +77,17 @@ a field on `TurnRecord` or a row in the rule table.
 - **Keeping a validator per failure class.** It is where the code was. The cost is the serial
   retries, and the latch-per-rule bookkeeping that made "which refusal fired" a question with
   seven answers.
+- **A typed "framed" flag on `LeadResponse` instead of the regex family.** A flag states that the
+  turn framed something; it does not state which criterion, so it cannot be checked against the
+  diff that names them. The diff already holds the fact, and the only thing missing was whether
+  the prose claims it.
 - **Matching the prose for the gene set's name.** The old substituted-analysis rule scanned the
   reply for the set's id or its name. A reply that names the set in passing passed the check
   without reporting under it, and a reply that reports correctly but paraphrases the name
   failed. A typed field is the claim, and prose is not.
+- **Instructing the plain sentence and not checking it.** The instruction is there, and a turn
+  under pressure still reaches for the tool name it just read in a refusal. The three shapes are
+  mechanical, so the check is mechanical.
 - **A UI-only marker instead of a refusal.** A card saying "this reply does not match the turn"
   leaves the wrong sentence in the transcript; the correction removes it before the user reads
   it.

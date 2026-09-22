@@ -222,8 +222,9 @@ async def test_a_batch_the_graph_refuses_comes_back_as_a_retry(
         await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
 
     message = str(excinfo.value)
-    assert message.startswith("REJECTED: a replaced subtree would leave")
-    assert "the strategy is unchanged" in message
+    assert message.startswith("One operation this export writes was refused")
+    assert "a replaced subtree would leave" in message
+    assert "Nothing was applied" in message
     assert ctx.deps.state.domain.operational_spec is spec
     assert [c.id for c in spec.criteria] == ["step_k1", "step_k2"]
 

@@ -176,9 +176,12 @@ async def test_a_build_the_spec_refuses_reaches_the_agent_as_a_retry(
         await build_strategy(_ctx(with_strategy=False))
 
     message = str(excinfo.value)
-    assert message.startswith("REJECTED: ")
+    assert message.startswith(
+        "This build would leave a tree that departs from the plan"
+    )
     assert "protease text" in message
-    assert "Nothing was built and the strategy is unchanged." in message
+    assert "Nothing was built and the strategy is unchanged" in message
+    assert "VEuPathDB was not asked" in message
 
 
 async def test_the_built_spec_is_re_keyed_on_the_step_ids(

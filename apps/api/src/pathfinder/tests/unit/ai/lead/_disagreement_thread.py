@@ -41,6 +41,7 @@ from pathfinder.ai.lead.sub_agent_stream import SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import conversation, strategy_edits
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
+from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -398,12 +399,14 @@ class DisagreementThread:
         *,
         declared: list[CriterionChange],
         disposition: FrameDisposition = "spec_ready",
+        asks: list[OpenQuestion] | None = None,
         while_framing: Callable[[StrategyGraph], None] | None = None,
     ) -> None:
         """Make the next FRAME pass turn the workspace it finds into ``draft``.
 
-        ``while_framing`` writes the graph while the pass runs, which is a
-        canvas commit landing between the dispatch's start and its push.
+        ``asks`` are the questions the pass ends on, and ``while_framing``
+        writes the graph while the pass runs, which is a canvas commit landing
+        between the dispatch's start and its push.
         """
 
         self.written_while_framing = False
@@ -420,7 +423,10 @@ class DisagreementThread:
                 found.model_copy(deep=True)
             )
             return FrameResult(
-                disposition=disposition, summary="framed", changes=declared
+                disposition=disposition,
+                summary="framed",
+                changes=declared,
+                open_questions=list(asks or []),
             )
 
         self.monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _pass)

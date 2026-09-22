@@ -1,4 +1,8 @@
-"""The refusals the strategy tools return instead of raising."""
+"""What the strategy tools say when a write does not happen.
+
+Each refusal names what refused the write, so a caller never reports a local
+check as an answer from VEuPathDB.
+"""
 
 from __future__ import annotations
 
@@ -71,6 +75,35 @@ def _step_edit_refused(
         f"VEuPathDB refused the edit of {step_id}",
         ctx=ctx,
         status="warn",
+    )
+
+
+def build_departs_from_the_plan_message(detail: str) -> str:
+    """Why a build whose tree would answer another question is refused.
+
+    The check reads the local tree, so VEuPathDB is never asked and the site
+    refuses nothing.
+    """
+    stated = detail if detail.rstrip().endswith((".", "!", "?")) else f"{detail}."
+    return (
+        f"This build would leave a tree that departs from the plan: {stated} "
+        f"Nothing was built and the strategy is unchanged, and VEuPathDB was "
+        f"not asked."
+    )
+
+
+def operation_refused_message(detail: str, *, wrote: str) -> str:
+    """Why a write was refused before it reached VEuPathDB.
+
+    The write rolls back whole, so the strategy holds what it held. ``wrote``
+    names what the call would have done, in the caller's own words.
+    """
+    return (
+        f'One operation this {wrote} writes was refused: "{detail}". Nothing '
+        f"was applied: the strategy still holds every step and every value it "
+        f"held, and VEuPathDB was not asked. Change the operation the message "
+        f"names and send it again, or report what could not be written and "
+        f"stop. Do not offer to rebuild the strategy from scratch."
     )
 
 

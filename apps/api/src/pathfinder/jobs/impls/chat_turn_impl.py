@@ -14,11 +14,8 @@ from assistant_core.tasks.scope import (
     attach_user_id,
 )
 
-from pathfinder.ai.conversation.turn_runner import (
-    TurnRequest,
-    run_turn,
-    turn_closed_on_failure,
-)
+from pathfinder.ai.conversation.turn_failure import turn_closed_on_failure
+from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.auth_context import attach_wdk_auth
 from pathfinder.jobs.payloads import ChatTurnPayload

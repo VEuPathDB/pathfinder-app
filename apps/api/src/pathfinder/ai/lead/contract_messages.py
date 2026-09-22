@@ -12,6 +12,7 @@ from pathfinder.ai.graph.state import CreatedControlSet, EnrichmentRun
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import DroppedCriterion
+from pathfinder.domain.strategy.spec_diff import SpecDiff
 
 
 def unrecorded_question_message() -> str:
@@ -107,6 +108,23 @@ def claimed_change_message(outcome: BuildOutcome | None) -> str:
     )
 
 
+def claimed_frame_message(diff: SpecDiff) -> str:
+    """Why a reply that reports a criterion this turn never framed is refused.
+
+    The plan is what the next turn builds, so a criterion only the prose holds
+    leaves the user answering questions about nothing.
+    """
+    return (
+        f"This reply says the turn framed a criterion or added one to the plan, "
+        f"and the plan is as the turn found it ({diff.render()}): nothing was "
+        f"added and nothing changed. A question about a criterion the plan does "
+        f"not hold is answered into nothing. Dispatch the pass that records it "
+        f"- edit_strategy over a strategy, frame_problem without one - or "
+        f"rewrite the reply to state what the plan holds and what you would "
+        f"add. When that pass was refused or did not run, {THE_PLAIN_SENTENCE}"
+    )
+
+
 def eda_criterion_not_built_message(dropped: DroppedCriterion) -> str:
     """Refuse an answer that leaves an EDA-backed criterion for the user.
 
@@ -195,14 +213,32 @@ def _what_did_not_run(refused: Sequence[str], stop: PhaseStop | None) -> str:
     return stop.render() if stop is not None else "no pass of this turn finished"
 
 
+THE_PLAIN_SENTENCE = (
+    "Tell the user in one plain sentence what did not work and what was not "
+    'done ("I could not add the mass-spec filter, so the strategy is '
+    'unchanged"), with no tool name, no step id and no error text.'
+)
+
+
 def unfinished_work_message(refused: Sequence[str], stop: PhaseStop | None) -> str:
     """Why a reply that ends a turn with the work undone and asks nothing is refused."""
     return (
         f"This turn ends with the work undone "
         f"({_what_did_not_run(refused, stop)}), and your reply records no "
         f"question, so nothing carries the work on and the user is given no way "
-        f"to unblock it. Rewrite it: ask the choice that unblocks that pass and "
-        f"record it in ``asked_questions`` with the value you recommend, or say "
-        f"what did not run and stop there. Never name a pass as the next thing "
-        f"you will do - this reply ends the turn."
+        f"to unblock it. Rewrite it: {THE_PLAIN_SENTENCE} Then ask the choice "
+        f"that unblocks that pass and record it in ``asked_questions`` with the "
+        f"value you recommend, or stop there. Never name a pass as the next "
+        f"thing you will do - this reply ends the turn."
+    )
+
+
+def machine_words_message(found: Sequence[str]) -> str:
+    """Why a reply about a failed turn that prints an internal name is refused."""
+    named = ", ".join(found)
+    return (
+        f"This turn ends with work undone and your reply prints {named}. The "
+        f"user holds no tool name, no step id and no error code, so none of "
+        f"them says what went wrong. {THE_PLAIN_SENTENCE} Then ask the one "
+        f"question that unblocks it, or stop."
     )

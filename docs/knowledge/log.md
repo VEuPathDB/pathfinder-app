@@ -1,5 +1,67 @@
 # Log
 
+## 2026-09-22
+
+* **A refusal names what refused, and the reply that follows is plain.** A refusal
+  the Lead reads is the only account it has of a failure, so a message that blamed
+  the wrong thing reached the user as a wrong offer. Every refusal in the dispatch
+  and tool paths now states what happened, names the thing at fault, says whether
+  the strategy moved, and gives the model a way forward that is never a rebuild.
+  `unsupported_edit_message` covers the shape alone; a graph operation the edit
+  writes and the graph refuses has its own message
+  (`edit_operation_refused_message`), because a rolled-back operation is not an
+  edit that maps onto no step. The `REJECTED:` prefix is gone from the build, the
+  batch and the EDA export: a tree that departs from the plan says so and says
+  VEuPathDB was not asked, and a refused batch names the operation it wrote. The
+  build, the delete and the account refusals now say what did not move ("Nothing
+  was built", "Nothing was removed", "Nothing was applied"). The turn contract
+  gains `machine_words`: a turn whose dispatch was refused, whose pass stopped, or
+  whose push lost a step is refused when the reply's prose prints a dispatch tool
+  name, a minted step id or an error string, and both that correction and
+  `unfinished_work`'s ask for the one plain sentence the Lead's instructions now
+  require. The prose patterns live in `ai/lead/reply_claims.py`. The last path
+  that put a raw exception in front of the researcher closes with it: a turn whose
+  graph dies before any reply now reads "This turn stopped before it could answer.
+  Open the strategy to see what it holds now, then ask again", and a turn that dies
+  in its setup reads "nothing was changed", which is the only write claim the runner
+  can make - it drives whatever graph an assistant's spec returns, so it knows the
+  turn ran and nothing more. The exception's type and message go to the log alone.
+  A typed `AppError` still reads as its own sentence. The failure-closing family is
+  `ai/conversation/turn_failure.py`, and its sentences name no strategy, because it
+  closes the turn of every assistant and one of them has none. Release verification
+  then tightened the two prose rules: a denial takes its claim back however it is
+  written (nothing, none, cannot, and a clause that reports the act as refused), a
+  status code is read only beside the word that makes it one so a gene count in the
+  400s is prose, the reading is case-insensitive, and the four approval tools the
+  Lead calls itself are identifiers the reply may not print. A FRAME pass that asks
+  which saved strategy the user means records the choice first: `set_criterion` with
+  the name the user gave writes the saved_strategy slot, which is the address the
+  answer lands in, and both the prompt and the refusal now name that path. Proven by
+  `tests/unit/ai/lead/test_refusals_name_the_fault.py`,
+  `tests/unit/ai/lead/test_the_reply_after_a_failure_is_plain.py`,
+  `tests/unit/ai/lead/test_frame_asks_which_saved_strategy.py`,
+  `tests/unit/ai/lead/test_verify_a7_contract_rules.py` and
+  `tests/unit/ai/conversation/test_a_failed_turn_speaks_plainly.py`.
+
+* **A question is asked about a criterion the plan holds.** A FRAME pass that read a
+  search's parameter sheet and stopped on the user asked four questions about a
+  criterion it never wrote, so the answers had nowhere to land and the turn that
+  answered them built nothing. Two refusals close it. `run_frame` refuses a
+  `needs_user` result once when its questions reach no criterion - the draft is
+  exactly what the dispatch found, or no criterion of the draft holds an open slot -
+  and names the repair: call `set_criterion` for the criterion each question is
+  about, with the values the pass has and null for every value the user must decide,
+  which records that parameter as an open slot. A pass that binds with open slots
+  and then asks is the shape the refusal asks for and stands. The Lead's turn
+  contract gains the matching rule, `claimed_frame`: a reply whose prose says the
+  turn framed a criterion or added one to the plan is refused when
+  `ledger.frame.diff` reports nothing added and nothing changed, which is the
+  misreported-change rule's sibling for the plan. The sheet-only call of
+  `set_criterion` is unchanged: the first call is a read and the second one records.
+  Proven by `tests/unit/ai/lead/test_frame_asks_about_what_it_bound.py` (the stall
+  end to end: refused, retried with the criterion open, the next turn commits addLeaf
+  and addCombine) and `tests/unit/ai/lead/test_turn_contract_claimed_frame.py`.
+
 ## 2026-09-21
 
 * **The strategy answers to a spec, and what was written outside is replayed onto

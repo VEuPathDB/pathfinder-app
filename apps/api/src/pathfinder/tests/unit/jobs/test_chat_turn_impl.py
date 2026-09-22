@@ -14,6 +14,7 @@ from assistant_core.spec import AssistantSpec
 from assistant_core.tasks import scope
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 
+from pathfinder.ai.conversation import turn_failure
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
 from pathfinder.assistants.registry import get_assistant_registry
@@ -252,7 +253,6 @@ async def test_a_turn_that_cannot_open_its_checkpointer_ends_visibly(
 
     kinds = [chunk["type"] for chunk in writers[0].chunks]
     assert kinds == ["error", "data-turn-failed", "finish", "done"]
-    assert writers[0].chunks[0]["errorText"] == (
-        "CheckpointTimeoutError: The checkpointer did not answer setup within 30.0 seconds."
-    )
+    assert writers[0].chunks[0]["errorText"] == turn_failure.STOPPED_BEFORE_IT_RAN
+    assert "CheckpointTimeoutError" not in writers[0].chunks[0]["errorText"]
     assert writers[0].chunks[2]["finishReason"] == "error"

@@ -45,9 +45,8 @@ BLAMING_REPLY = (
     "materialize and verify it without changing these requirements."
 )
 REAL_FAILURE_REPLY = (
-    "VEuPathDB refused one step with a 422 on the organism parameter, so the "
-    "build pushed two steps of three. Try again later once I re-bind that "
-    "criterion."
+    "VEuPathDB refused the organism value on one step, so the build pushed two "
+    "steps of three. Try again later once I re-bind that criterion."
 )
 CLEAN_REPLY = (
     "The planning pass stopped on its call budget with three of eight criteria "

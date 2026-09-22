@@ -30,6 +30,7 @@ from pathfinder.ai.lead.dispatch_messages import (
     build_not_ready_message,
     build_would_replace_the_strategy,
     option_binds_no_step_message,
+    structure_does_not_convert_message,
 )
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
@@ -38,6 +39,9 @@ from pathfinder.ai.lead.sub_agent_stream import (
     stream_sub_agent,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
+from pathfinder.ai.tools.standalone.strategy_refusals import (
+    build_departs_from_the_plan_message,
+)
 from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import (
@@ -80,17 +84,10 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
     if folded.unplaced:
         raise ModelRetry(option_binds_no_step_message(folded.spec, folded.unplaced))
     spec = folded.spec
-    # Readiness says every criterion is bound and a structure exists. Only the
-    # conversion knows whether that structure is a tree WDK can hold.
     try:
         built = build_step_tree(spec)
     except ValueError as exc:
-        msg = (
-            f"The spec is bound but its structure does not convert: {exc}. "
-            "Call set_structure with a tree whose every combine names an "
-            "operator and joins two inputs."
-        )
-        raise ModelRetry(msg) from exc
+        raise ModelRetry(structure_does_not_convert_message(str(exc))) from exc
     agent_deps = agent_deps_for(deps)
     try:
         outcome: BuildOutcome = await build_strategy_from_spec(
@@ -99,8 +96,7 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
             name=spec.title or None,
         )
     except ApplyError as exc:
-        msg = f"REJECTED: {exc}. Nothing was built and the strategy is unchanged."
-        raise ModelRetry(msg) from exc
+        raise ModelRetry(build_departs_from_the_plan_message(str(exc))) from exc
     # A criterion and the step it built become one address, so the next turn's
     # edit changes that step instead of rebuilding the strategy around it.
     renumbered = renumber_criteria(spec, built.step_id_by_criterion)

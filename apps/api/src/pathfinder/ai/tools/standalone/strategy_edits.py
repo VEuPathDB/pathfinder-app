@@ -40,6 +40,7 @@ from pathfinder.ai.tools.standalone.strategy_refusals import (
     _refused,
     _step_edit_refused,
     _step_not_found,
+    operation_refused_message,
     wdk_refused_the_edit,
 )
 from pathfinder.ai.tools.standalone.stream_parts import (
@@ -71,7 +72,7 @@ async def _commit_or_retry(deps: AgentDeps, op: GraphOperation) -> CommitResult:
     try:
         return await apply_and_commit(deps=deps.to_strategy_context(), op=op)
     except ApplyError as exc:
-        msg = f"REJECTED: {exc}. Nothing was applied and the strategy is unchanged."
+        msg = operation_refused_message(str(exc), wrote="edit")
         raise ModelRetry(msg) from exc
     except ValidationError as exc:
         raise validation_model_retry(exc, **_refusal_context(deps, op)) from exc
@@ -378,7 +379,7 @@ async def insert_saved_strategy(
             operator=operator,
         )
     except ApplyError as exc:
-        msg = f"REJECTED: {exc}. Nothing was inserted and the strategy is unchanged."
+        msg = operation_refused_message(str(exc), wrote="insert")
         raise ModelRetry(msg) from exc
 
     payload: JSONObject = {

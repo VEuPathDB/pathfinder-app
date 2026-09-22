@@ -12,6 +12,7 @@ from collections.abc import Sequence
 from veupathdb.domain.parameters import to_wire
 
 from pathfinder.ai.lead.deltas import FrameResult
+from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -109,6 +110,48 @@ def frame_claimed_more_than_it_bound(summary: str) -> str:
     )
 
 
+# How many of the pass's questions the refusal prints back to it.
+_ASKED_WINDOW = 4
+
+
+def _holds_an_open_slot(spec: OperationalSpec) -> bool:
+    return bool(spec.open_slots) or any(c.open_params for c in spec.criteria)
+
+
+def questions_that_bind_to_nothing(
+    questions: Sequence[OpenQuestion],
+    draft: OperationalSpec,
+    found: OperationalSpec | None,
+) -> str:
+    """Why a pass that stops on the user asks about nothing it recorded.
+
+    An answer lands in an open slot, so a pass that leaves no slot gives the
+    next turn nothing to bind the answer into. Returns an empty string when the
+    draft holds a slot the questions can be about.
+    """
+    if not questions:
+        return ""
+    if found is not None and draft == found:
+        reason = "the spec is exactly as this dispatch found it"
+    elif not _holds_an_open_slot(draft):
+        reason = "no criterion of the spec holds an open slot"
+    else:
+        return ""
+    asked = "; ".join(q.question for q in questions[:_ASKED_WINDOW])
+    return (
+        f"FRAME ended needs_user with {len(questions)} question(s) ({asked}) and "
+        f"{reason}, so an answer has nowhere to land and the next turn reads no "
+        f"criterion to bind it into. Call set_criterion for the criterion each "
+        f"question is about, with its search, the values you already have, and "
+        f"null for every parameter the user must decide, which records that "
+        f"parameter as an open slot. A question about which strategy the user "
+        f"saved is recorded the same way: call set_criterion with "
+        f"saved_strategy set to the name the user gave, which records the "
+        f"saved_strategy slot with the names the listing holds. Then end "
+        f"needs_user with the same questions."
+    )
+
+
 def frame_bound_nothing_result() -> FrameResult:
     """Report a second pass that claimed a ready spec and bound nothing."""
     return FrameResult(
@@ -183,10 +226,11 @@ def undeclared_spec_changes(
     return (
         "This turn edits a spec that already had "
         f"{len(before.criteria)} criteria, and the account of it does not match "
-        f"what happened: {'; '.join(problems)}. A criterion the request does "
-        "not mention is kept and must keep the values the workspace shows; "
-        "re-bind it with set_criterion using those values, or drop it with "
-        "drop_criterion and say why."
+        f"what happened: {'; '.join(problems)}. Nothing was applied: the "
+        "strategy is exactly as this turn found it. A criterion the request "
+        "does not mention is kept and must keep the values the workspace "
+        "shows; re-bind it with set_criterion using those values, or drop it "
+        "with drop_criterion and say why."
     )
 
 
@@ -226,11 +270,12 @@ def option_binds_no_step_message(spec: OperationalSpec, unplaced: Sequence[str])
     ]
     return (
         f"The build cannot place the value(s) these criteria state: "
-        f"{'; '.join(problems)}. A choice inside a search is a value in that "
-        f"search's own parameters: call set_criterion on the criterion that "
-        f"runs the search, with the value in its params, and drop_criterion on "
-        f"the one that states it alone. A criterion that runs a search of its "
-        f"own belongs in set_structure instead."
+        f"{'; '.join(problems)}. Nothing was built and the strategy is "
+        f"unchanged. A choice inside a search is a value in that search's own "
+        f"parameters: call set_criterion on the criterion that runs the "
+        f"search, with the value in its params, and drop_criterion on the one "
+        f"that states it alone. A criterion that runs a search of its own "
+        f"belongs in set_structure instead."
     )
 
 
@@ -264,6 +309,20 @@ def _contradicted_option(option: Criterion, carrier: Criterion) -> str:
     return (
         f"{option.id} ({option.text[:80]}) states "
         f"{'; '.join(clashes)} on {option.search_name}"
+    )
+
+
+def structure_does_not_convert_message(detail: str) -> str:
+    """Why a bound spec whose structure is not a WDK tree is refused.
+
+    Readiness says every criterion is bound. Only the conversion knows whether
+    the shape over them is a tree VEuPathDB can hold.
+    """
+    return (
+        f"The plan is bound and its structure does not convert into a WDK "
+        f"tree: {detail}. Nothing was built and the strategy is unchanged. "
+        f"Call set_structure with a tree whose every combine names an operator "
+        f"and joins two inputs."
     )
 
 

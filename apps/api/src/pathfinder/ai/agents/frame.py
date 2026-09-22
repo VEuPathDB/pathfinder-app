@@ -53,9 +53,12 @@ Procedure:
    listing>")` - no `search_name`, no `params`. The saved strategy becomes that
    criterion's input and the rest of the spec combines with it. If the listing holds
    nothing that matches what the user named, do NOT drop the criterion and do NOT
-   build the remaining properties alone: set disposition="needs_user" and ask which
-   saved strategy they mean, listing the names the lookup returned. A strategy id is
-   not an answer you can consume; the name from the listing is.
+   build the remaining properties alone. Call `set_criterion` with `saved_strategy`
+   set to the name the USER gave: that call records the criterion with the
+   saved_strategy slot open, carrying the names the listing holds, so the answer has
+   an address. THEN set disposition="needs_user" and ask which saved strategy they
+   mean, listing those names. A pass that asks before it records that slot is refused.
+   A strategy id is not an answer you can consume; the name from the listing is.
 2. For EACH other property, in this order:
    a. `search_for_searches(query)` to find the real WDK search.
    b. `set_criterion(criterion_id, text, search_name, role)` with no `params`. That call
