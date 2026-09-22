@@ -20,7 +20,7 @@ import { resumeDurableThread } from "@veupathdb/assistant-client/ai-sdk";
 
 import { getAuthHeaders } from "@/lib/api/http";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import { strategyQueryKey, strategyQueryOptions } from "@/lib/api/strategy";
+import { refetchStrategy, strategyQueryOptions } from "@/lib/api/strategy";
 import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
 import { listScratchpadNotesQueryOptions } from "@pathfinder/shared/generated/hooks/useListScratchpadNotes";
 import { handleWdkAuthRefusal } from "@/state/useAuthGateStore";
@@ -128,9 +128,7 @@ export function useChatRuntime({
           break;
         case "data-graph-snapshot": {
           const snapshot = graphSnapshotSchema.parse(dataPart.data);
-          void queryClient.invalidateQueries({
-            queryKey: strategyQueryOptions(conversationId).queryKey,
-          });
+          void refetchStrategy(queryClient, conversationId);
           // Surface the freshly built strategy: switch the rail to the
           // Strategy panel so the user sees the result of the auto-build.
           if (snapshot.nodes.length > 0) {
@@ -146,9 +144,7 @@ export function useChatRuntime({
         case "data-graph-cleared":
           graphClearedSchema.parse(dataPart.data);
           useStrategyStore.getState().clear();
-          void queryClient.invalidateQueries({
-            queryKey: strategyQueryOptions(conversationId).queryKey,
-          });
+          void refetchStrategy(queryClient, conversationId);
           break;
         case "data-turn-usage": {
           const usage = turnUsageSchema.parse(dataPart.data);
@@ -176,9 +172,7 @@ export function useChatRuntime({
       }
     },
     onFinish: () => {
-      void queryClient.invalidateQueries({
-        queryKey: strategyQueryKey(conversationId),
-      });
+      void refetchStrategy(queryClient, conversationId);
       invalidateConversationList();
       void queryClient.invalidateQueries({ queryKey: getMyQuotaQueryKey() });
     },

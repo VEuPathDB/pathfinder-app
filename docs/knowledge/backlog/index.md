@@ -7,7 +7,7 @@ what left.
 
 ## Ranked
 
-Nothing outstanding.
+1. [A search report pages transcripts under a gene cap](a-search-report-pages-transcripts-under-a-gene-cap.md) - `run_search_report` takes no view filter, so `variant_comparison` can flag a transcript search truncated early.
 
 ## Known and accepted
 

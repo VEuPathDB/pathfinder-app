@@ -1,7 +1,13 @@
 "use client";
 
-import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import type { ConversationResponse, Strategy } from "@pathfinder/shared";
+import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
 import { getStrategy } from "@pathfinder/shared/generated/hooks/useGetStrategy";
 
 import { APIError } from "./http";
@@ -18,6 +24,33 @@ export function toStrategy(response: ConversationResponse): Strategy {
 
 export function strategyQueryKey(conversationId: string) {
   return ["conversations", conversationId, "detail"] as const;
+}
+
+/** The key prefix every step answer page of one conversation shares. */
+function stepRecordsKeyPrefix(conversationId: string) {
+  const [route] = getStepRecordsQueryKey(conversationId, undefined, { siteId: "" });
+  return [{ url: route.url, params: { conversation_id: conversationId } }] as const;
+}
+
+/** Store a strategy the server answered. Every step answer read before it is stale. */
+export function writeStrategy(
+  client: QueryClient,
+  conversationId: string,
+  strategy: Strategy,
+): void {
+  client.setQueryData<Strategy>(strategyQueryKey(conversationId), strategy);
+  void client.invalidateQueries({ queryKey: stepRecordsKeyPrefix(conversationId) });
+}
+
+/** Read the strategy again, and every step answer with it. */
+export async function refetchStrategy(
+  client: QueryClient,
+  conversationId: string,
+): Promise<void> {
+  await Promise.all([
+    client.invalidateQueries({ queryKey: strategyQueryKey(conversationId) }),
+    client.invalidateQueries({ queryKey: stepRecordsKeyPrefix(conversationId) }),
+  ]);
 }
 
 async function fetchStrategy(conversationId: string): Promise<Strategy | null> {

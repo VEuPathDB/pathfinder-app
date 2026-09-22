@@ -83,3 +83,18 @@ export function siteUnavailableRefusal(err: unknown): SiteUnavailableRefusal | n
   const problem = siteUnavailableSchema.safeParse(body);
   return problem.success ? problem.data : null;
 }
+
+const notOnSiteSchema = z.object({
+  code: z.literal("INVALID_STRATEGY"),
+  detail: z.string().min(1),
+});
+
+/** A refusal that says a step has no WDK step on its site yet. */
+type NotOnSiteRefusal = z.infer<typeof notOnSiteSchema>;
+
+/** The server's 409 when a step is not on its site yet, or null for every other error. */
+export function notOnSiteRefusal(err: unknown): NotOnSiteRefusal | null {
+  if (!(err instanceof APIError) || err.status !== 409) return null;
+  const problem = notOnSiteSchema.safeParse(err.data);
+  return problem.success ? problem.data : null;
+}

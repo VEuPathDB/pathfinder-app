@@ -33,6 +33,28 @@ from pathfinder.services.strategies.schemas import (
 logger = get_logger(__name__)
 
 
+class StepRecord(CamelModel):
+    """One gene a step answers, and the page where the site shows it."""
+
+    gene_id: str
+    organism: str | None
+    product: str | None
+    record_url: str
+
+
+class StepRecordsResponse(CamelModel):
+    """One page of the genes a pushed step answers on its site."""
+
+    step_id: str
+    wdk_step_id: int
+    total: int
+    offset: int
+    limit: int
+    record_type: str
+    step_url: str
+    records: list[StepRecord]
+
+
 class ConversationResponse(CamelModel):
     id: UUID
     name: str

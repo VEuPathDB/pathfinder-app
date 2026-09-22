@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
+import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
 
 import { InsertSavedDialog } from "./InsertSavedDialog";
 import { client } from "@/lib/api/client";
@@ -48,7 +49,7 @@ const ELIGIBLE = [
   conv({ id: "u", name: "Unsaved", isSaved: false, wdkStrategyId: 33 }),
 ];
 
-function renderDialog(convs = ELIGIBLE, targetStepId = "step-x"): void {
+function renderDialog(convs = ELIGIBLE, targetStepId = "step-x"): QueryClient {
   const qc = new QueryClient({
     defaultOptions: {
       queries: { retry: false, staleTime: Infinity, gcTime: Infinity },
@@ -67,6 +68,7 @@ function renderDialog(convs = ELIGIBLE, targetStepId = "step-x"): void {
     </QueryClientProvider>
   );
   render(ui);
+  return qc;
 }
 
 afterEach(cleanup);
@@ -111,6 +113,25 @@ describe("InsertSavedDialog", () => {
         savedWdkStrategyId: 22,
         operator: "UNION",
       },
+    });
+  });
+
+  it("marks the thread's step answers stale after the insert", async () => {
+    const qc = renderDialog();
+    const pageKey = [
+      ...getStepRecordsQueryKey("current", "step-x", {
+        siteId: "plasmodb",
+        offset: 0,
+        limit: 50,
+      }),
+      { wdkStepId: 22 },
+    ];
+    qc.setQueryData(pageKey, { records: [] });
+    await userEvent.click(await screen.findByTestId("insert-saved-pick-22"));
+    await userEvent.click(screen.getByTestId("insert-saved-confirm"));
+
+    await waitFor(() => {
+      expect(qc.getQueryState(pageKey)?.isInvalidated).toBe(true);
     });
   });
 

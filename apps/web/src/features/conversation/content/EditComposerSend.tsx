@@ -10,7 +10,7 @@ import { forkStrategy } from "@pathfinder/shared/generated/hooks/useForkStrategy
 import { revertToMessage } from "@pathfinder/shared/generated/hooks/useRevertToMessage";
 import { submitProductAction } from "@pathfinder/shared/generated/hooks/useSubmitProductAction";
 import { conversationSnapshotOptions } from "@/features/conversation/api/conversationSnapshot";
-import { strategyQueryKey } from "@/lib/api/strategy";
+import { refetchStrategy } from "@/lib/api/strategy";
 import { toUserMessage } from "@/lib/api/errors";
 import { chatUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
@@ -76,9 +76,7 @@ export function EditComposerBranchOrRevert() {
         queryClient.invalidateQueries({
           queryKey: conversationSnapshotOptions(conversationId).queryKey,
         }),
-        queryClient.invalidateQueries({
-          queryKey: strategyQueryKey(conversationId),
-        }),
+        refetchStrategy(queryClient, conversationId),
         queryClient.invalidateQueries({
           queryKey: ["conversations", conversationId, "scratchpad"],
         }),

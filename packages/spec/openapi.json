@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a9"
+    "version": "0.2.0a10"
   },
   "paths": {
     "/health": {
@@ -2720,6 +2720,119 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ConversationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/strategy/steps/{step_id}/records": {
+      "get": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Get Step Records",
+        "description": "One page of the genes a pushed step answers on its site.",
+        "operationId": "get_step_records_api_v1_conversations__conversation_id__strategy_steps__step_id__records_get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "step_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Step Id"
+            }
+          },
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Siteid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StepRecordsResponse"
                 }
               }
             }
@@ -15656,6 +15769,101 @@
         ],
         "title": "StepFilter",
         "description": "One element of a WDK filter value array on a step."
+      },
+      "StepRecord": {
+        "properties": {
+          "geneId": {
+            "type": "string",
+            "title": "Geneid"
+          },
+          "organism": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organism"
+          },
+          "product": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product"
+          },
+          "recordUrl": {
+            "type": "string",
+            "title": "Recordurl"
+          }
+        },
+        "type": "object",
+        "required": [
+          "geneId",
+          "organism",
+          "product",
+          "recordUrl"
+        ],
+        "title": "StepRecord",
+        "description": "One gene a step answers, and the page where the site shows it."
+      },
+      "StepRecordsResponse": {
+        "properties": {
+          "stepId": {
+            "type": "string",
+            "title": "Stepid"
+          },
+          "wdkStepId": {
+            "type": "integer",
+            "title": "Wdkstepid"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "recordType": {
+            "type": "string",
+            "title": "Recordtype"
+          },
+          "stepUrl": {
+            "type": "string",
+            "title": "Stepurl"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/StepRecord"
+            },
+            "type": "array",
+            "title": "Records"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stepId",
+          "wdkStepId",
+          "total",
+          "offset",
+          "limit",
+          "recordType",
+          "stepUrl",
+          "records"
+        ],
+        "title": "StepRecordsResponse",
+        "description": "One page of the genes a pushed step answers on its site."
       },
       "StepReport": {
         "properties": {

@@ -18,6 +18,7 @@ import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { EditorHeader } from "./EditorHeader";
 import { EditorBody } from "./EditorBody";
 import { EditorFooter, type SyncState } from "./EditorFooter";
+import { StepResults } from "./StepResults";
 import { DiscardConfirmDialog } from "./DiscardConfirmDialog";
 import { RecoveryBanner } from "./RecoveryBanner";
 import { useStepEditorState } from "./useStepEditorState";
@@ -273,6 +274,14 @@ export function EditorContent({
           onColocationChange={handleColocationChange}
           onFieldChanged={handleFieldChanged}
           onFieldBlurred={handleFieldBlurred}
+        />
+        <StepResults
+          conversationId={conversationId}
+          stepId={step.id}
+          wdkStepId={step.wdkStepId}
+          siteId={siteId}
+          estimatedSize={footerProps.count}
+          hasUnsavedEdits={footerProps.changeCount > 0}
         />
       </div>
       <EditorFooter {...footerProps} />

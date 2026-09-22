@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, override
 
 import pytest
@@ -15,6 +16,7 @@ from veupathdb.wdk import (
     VEuPathDBClient,
     WDKAnswer,
     WDKAnswerMeta,
+    WDKFilterValue,
     WDKIdentifier,
     WDKRecordInstance,
     WDKStepTree,
@@ -139,6 +141,7 @@ class _EvalAPI(StrategyAPI):
     def __init__(self, found: list[str], counts: list[int]) -> None:
         super().__init__(VEuPathDBClient("https://plasmodb.example.org/plasmo"))
         self.pages_read: list[int] = []
+        self.views: list[list[WDKFilterValue] | None] = []
         self._found = found
         self._counts = counts
         self._next = 100
@@ -187,13 +190,15 @@ class _EvalAPI(StrategyAPI):
         step_id: int,
         attributes: list[str] | None = None,
         pagination: dict[str, int] | None = None,
-        user_id: str | None = None,
+        *,
+        view_filters: Sequence[WDKFilterValue] | None = None,
     ) -> WDKAnswer:
-        del step_id, attributes, user_id
+        del step_id, attributes
         if pagination is None:
             msg = "the evaluation reads one page at a time"
             raise AssertionError(msg)
         self.pages_read.append(pagination["numRecords"])
+        self.views.append(None if view_filters is None else list(view_filters))
         return WDKAnswer(
             meta=WDKAnswerMeta(),
             records=[
@@ -256,3 +261,19 @@ async def test_a_control_set_under_the_answer_limit_reads_its_identifiers(
     assert payload["intersectionIds"] == ["PF3D7_0200200"]
     assert payload["intersectionCount"] == 1
     assert api.pages_read == [2]
+
+
+@pytest.mark.asyncio
+async def test_the_identifiers_of_a_transcript_tree_are_read_one_row_per_gene(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The page holds as many rows as controls, so each row must be a gene."""
+    _install(monkeypatch)
+    api = _EvalAPI(found=["PF3D7_0200200"], counts=[400, 1])
+    controls = ["PF3D7_0200100", "PF3D7_0200200"]
+
+    await _eval_control_set(api, _context([], controls), _tree(), controls, "negative")
+
+    assert api.views == [
+        [WDKFilterValue(name="representativeTranscriptOnly", value={})]
+    ]

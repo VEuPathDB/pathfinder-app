@@ -3,6 +3,7 @@
 from veupathdb.domain.search import SearchContext
 from veupathdb.wdk import StrategyAPI, WDKRecordInstance, get_strategy_api
 from veupathdb_mcp.catalog import get_search_parameters
+from veupathdb_mcp.wdk import step_view_filters
 
 from pathfinder.services.gene_sets.operations import dedup_ordered
 
@@ -23,12 +24,14 @@ async def fetch_all_gene_ids(
     """Fetch all gene IDs from a WDK step using paginated standard report."""
     all_ids: list[str] = []
     offset = 0
+    view_filters = await step_view_filters(api, step_id)
 
     while True:
         answer = await api.get_step_answer(
             step_id,
             attributes=["primary_key"],
             pagination={"offset": offset, "numRecords": batch_size},
+            view_filters=view_filters,
         )
 
         records = answer.records

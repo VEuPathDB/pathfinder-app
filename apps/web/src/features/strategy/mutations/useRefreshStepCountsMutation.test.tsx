@@ -13,6 +13,7 @@ vi.mock("@pathfinder/shared/generated/hooks/useRefreshStepCounts", () => ({
 const toastError = vi.hoisted(() => vi.fn());
 vi.mock("sonner", () => ({ toast: { error: toastError } }));
 
+import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
 import { strategyQueryKey } from "@/lib/api/strategy";
 import { useRefreshStepCountsMutation } from "./useRefreshStepCountsMutation";
 
@@ -116,5 +117,29 @@ describe("useRefreshStepCountsMutation", () => {
     expect(toastError.mock.calls).toEqual([["vectorbase is not answering"]]);
     const cached = client.getQueryData<Strategy>(strategyQueryKey(CONVERSATION));
     expect(cached?.steps.map((step) => step.estimatedSize)).toEqual([0]);
+  });
+
+  it("marks the step answers stale when the counts come back", async () => {
+    refreshStepCounts.mockResolvedValue(fresh());
+    const { client, wrapper } = harness();
+    const pageKey = [
+      ...getStepRecordsQueryKey(CONVERSATION, "step_text", {
+        siteId: SITE,
+        offset: 0,
+        limit: 50,
+      }),
+      { wdkStepId: 22 },
+    ];
+    client.setQueryData(pageKey, { records: [] });
+    const { result } = renderHook(
+      () =>
+        useRefreshStepCountsMutation({ conversationId: CONVERSATION, siteId: SITE }),
+      { wrapper },
+    );
+
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(client.getQueryState(pageKey)?.isInvalidated).toBe(true);
   });
 });

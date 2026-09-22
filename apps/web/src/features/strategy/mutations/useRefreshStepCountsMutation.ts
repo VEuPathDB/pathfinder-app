@@ -2,10 +2,10 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ConversationResponse, Strategy } from "@pathfinder/shared";
+import type { ConversationResponse } from "@pathfinder/shared";
 import { refreshStepCounts } from "@pathfinder/shared/generated/hooks/useRefreshStepCounts";
 
-import { strategyQueryKey, toStrategy } from "@/lib/api/strategy";
+import { toStrategy, writeStrategy } from "@/lib/api/strategy";
 import { toUserMessage } from "@/lib/api/errors";
 
 interface UseRefreshStepCountsArgs {
@@ -27,10 +27,7 @@ export function useRefreshStepCountsMutation({
   return useMutation<ConversationResponse, Error, void>({
     mutationFn: () => refreshStepCounts(conversationId, { siteId }),
     onSuccess: (response) => {
-      queryClient.setQueryData<Strategy>(
-        strategyQueryKey(conversationId),
-        toStrategy(response),
-      );
+      writeStrategy(queryClient, conversationId, toStrategy(response));
     },
     onError: (error) => {
       toast.error(toUserMessage(error, "Could not refresh the step counts."));

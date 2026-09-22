@@ -192,9 +192,13 @@ async def _update_existing_step(
     str_params: dict[str, str] = encode_params(step.parameters)
     _refuse_an_empty_eda_analysis(wdk_search_name(step), str_params)
 
+    # A weight the graph does not hold stays whatever the site holds.
+    config = WDKSearchConfig(parameters=str_params)
+    if step.wdk_weight is not None:
+        config = WDKSearchConfig(parameters=str_params, wdk_weight=step.wdk_weight)
     await api.update_step_search_config(
         step_id=wdk_step_id,
-        search_config=WDKSearchConfig(parameters=str_params),
+        search_config=config,
         record_type=record_type,
         search_name=wdk_search_name(step),
     )

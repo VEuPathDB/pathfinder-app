@@ -54,6 +54,11 @@ GATED: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/conversations/{strategyId:uuid}/refresh-counts"),
         ("POST", "/api/v1/conversations/{conversation_id:uuid}/insert-saved"),
         ("POST", "/api/v1/conversations/{conversation_id:uuid}/save-substrategy"),
+        # A step's genes are read on the site that runs it.
+        (
+            "GET",
+            "/api/v1/conversations/{conversation_id:uuid}/strategy/steps/{step_id}/records",
+        ),
     }
 )
 

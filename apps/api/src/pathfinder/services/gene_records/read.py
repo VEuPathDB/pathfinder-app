@@ -43,6 +43,11 @@ WANTED_ATTRIBUTES = (
 )
 
 
+def gene_record_url(site_id: str, gene_id: str) -> str:
+    """The page where ``site_id`` shows the record of ``gene_id``."""
+    return f"{get_site(site_id).web_base_url}/app/record/{GENE_RECORD_TYPE}/{gene_id}"
+
+
 class UnknownGeneRecordError(NotFoundError):
     """A gene id the site holds no record for."""
 
@@ -253,7 +258,7 @@ async def read_the_gene_record(
     return GeneRecordSummary(
         site_id=site_id,
         gene_id=gene_id,
-        record_url=f"{site.web_base_url}/app/record/{GENE_RECORD_TYPE}/{gene_id}",
+        record_url=gene_record_url(site_id, gene_id),
         organism=stated.organism,
         product=stated.product,
         gene_name=stated.name,

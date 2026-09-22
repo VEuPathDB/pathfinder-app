@@ -15,6 +15,7 @@ from . import (
     save_substrategy,
     scratchpad,
     sidebar,
+    step_records,
     wdk_import,
 )
 
@@ -24,6 +25,7 @@ from . import (
 _WDK_BACKED = (
     counts.router,
     operations.router,
+    step_records.router,
     wdk_import.router,
     insert_saved.router,
 )

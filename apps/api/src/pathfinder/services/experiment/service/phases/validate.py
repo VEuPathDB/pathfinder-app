@@ -10,7 +10,11 @@ from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StrategyStepNode
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import get_strategy_api
-from veupathdb_mcp.wdk import build_enrichment_params_from_gene_ids, extract_record_ids
+from veupathdb_mcp.wdk import (
+    build_enrichment_params_from_gene_ids,
+    extract_record_ids,
+    view_filters_for,
+)
 from veupathdb_mcp.wdk.enrichment import EnrichmentService, upsert_enrichment_result
 
 from pathfinder.platform.identity import ENRICHMENT_STRATEGY_NAME
@@ -31,13 +35,14 @@ logger = get_logger(__name__)
 _MAX_RESULT_IDS = 5000
 
 
-async def _fetch_result_ids(site_id: str, step_id: int) -> list[str]:
+async def _fetch_result_ids(site_id: str, step_id: int, record_type: str) -> list[str]:
     """Fetch result IDs from a persisted WDK strategy step in default order."""
     api = get_strategy_api(site_id)
     answer = await api.get_step_answer(
         step_id=step_id,
         attributes=[],
         pagination={"offset": 0, "numRecords": _MAX_RESULT_IDS},
+        view_filters=view_filters_for(record_type),
     )
     return extract_record_ids(answer.records)
 
@@ -51,7 +56,9 @@ async def phase_robustness(pctx: PhaseContext) -> None:
     try:
         await pctx.emit("evaluating", message="Computing robustness estimates...")
 
-        result_ids = await _fetch_result_ids(config.site_id, experiment.wdk_step_id)
+        result_ids = await _fetch_result_ids(
+            config.site_id, experiment.wdk_step_id, config.record_type
+        )
 
         if result_ids:
             experiment.robustness = compute_robustness(

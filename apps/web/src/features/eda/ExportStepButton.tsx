@@ -7,7 +7,7 @@ import type { Strategy } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
 import { patchConversationEda } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
-import { strategyQueryKey } from "@/lib/api/strategy";
+import { writeStrategy } from "@/lib/api/strategy";
 import { strategyCanvasUrl } from "@/lib/routes";
 import { isEdaJobComplete, useEdaStore } from "@/state/eda";
 
@@ -50,7 +50,7 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
       return { strategy, placement: exportedStepPlacement(strategy) };
     },
     onSuccess: ({ strategy }) => {
-      queryClient.setQueryData<Strategy>(strategyQueryKey(conversationId), strategy);
+      writeStrategy(queryClient, conversationId, strategy);
     },
     onError: (error) => toast.error(toUserMessage(error, EXPORT_FAILED)),
   });

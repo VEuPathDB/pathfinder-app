@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { insertSavedStrategy } from "@/lib/api/conversations";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-import { strategyQueryKey } from "@/lib/api/strategy";
+import { refetchStrategy } from "@/lib/api/strategy";
 import type { InsertSavedRequest } from "@pathfinder/shared/generated/types/InsertSavedRequest";
 import { toUserMessage } from "@/lib/api/errors";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
@@ -100,9 +100,7 @@ function InsertSavedDialogBody({
         operator: isRoot ? undefined : operator,
       }),
     onSuccess: (data) => {
-      void queryClient.invalidateQueries({
-        queryKey: strategyQueryKey(conversationId),
-      });
+      void refetchStrategy(queryClient, conversationId);
       void queryClient.invalidateQueries({
         queryKey: ["conversations", "list", siteId],
       });

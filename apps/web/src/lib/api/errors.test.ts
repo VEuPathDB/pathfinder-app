@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { APIError } from "./http";
-import { siteUnavailableRefusal, toUserMessage, wdkAuthRefusal } from "./errors";
+import {
+  notOnSiteRefusal,
+  siteUnavailableRefusal,
+  toUserMessage,
+  wdkAuthRefusal,
+} from "./errors";
 
 describe("lib/api/errors", () => {
   it("reads the title when the problem body carries no detail", () => {
@@ -205,5 +210,48 @@ describe("siteUnavailableRefusal", () => {
     expect(siteUnavailableRefusal(wrongStatus)).toBe(null);
     expect(siteUnavailableRefusal(new Error("Failed to fetch"))).toBe(null);
     expect(siteUnavailableRefusal(null)).toBe(null);
+  });
+});
+
+describe("notOnSiteRefusal", () => {
+  const body = {
+    type: "/errors/INVALID_STRATEGY",
+    title: "Invalid strategy",
+    status: 409,
+    detail: "Step step_1 is not on the site yet.",
+    code: "INVALID_STRATEGY",
+  };
+
+  it("names the detail for a 409 that says the step is not on the site", () => {
+    const err = new APIError(body.detail, {
+      status: 409,
+      statusText: "Conflict",
+      url: "http://localhost:3000/api/v1/conversations/c/strategy/steps/step_1/records",
+      data: body,
+    });
+    expect(notOnSiteRefusal(err)).toEqual({
+      code: "INVALID_STRATEGY",
+      detail: "Step step_1 is not on the site yet.",
+    });
+  });
+
+  it("returns null for a 409 with another code", () => {
+    const err = new APIError("locked", {
+      status: 409,
+      statusText: "Conflict",
+      url: "http://localhost:3000/api",
+      data: { ...body, code: "CONFLICT" },
+    });
+    expect(notOnSiteRefusal(err)).toBe(null);
+  });
+
+  it("returns null for the same code on another status", () => {
+    const err = new APIError(body.detail, {
+      status: 400,
+      statusText: "Bad Request",
+      url: "http://localhost:3000/api",
+      data: body,
+    });
+    expect(notOnSiteRefusal(err)).toBe(null);
   });
 });

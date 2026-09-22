@@ -22,7 +22,7 @@ from veupathdb_mcp.controls import (
     resolve_controls_param_type,
     summarize_intersection,
 )
-from veupathdb_mcp.wdk import extract_record_ids
+from veupathdb_mcp.wdk import extract_record_ids, view_filters_for
 
 from pathfinder.services.experiment.materialization import (
     _materialize_step_tree,
@@ -112,6 +112,7 @@ async def _eval_control_set(
                     "offset": 0,
                     "numRecords": min(len(control_ids), _MAX_CONTROL_IDS_FOR_ANSWER),
                 },
+                view_filters=view_filters_for(ctx.record_type),
             )
             intersection_ids = extract_record_ids(answer.records)
 

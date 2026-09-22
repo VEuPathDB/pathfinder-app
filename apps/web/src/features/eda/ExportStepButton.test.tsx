@@ -21,6 +21,7 @@ const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 
 import { createTestQueryClient } from "@/lib/query/testing";
+import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
 import { strategyQueryKey } from "@/lib/api/strategy";
 import { useEdaStore } from "@/state/eda";
 import { ExportStepButton } from "./ExportStepButton";
@@ -190,6 +191,34 @@ describe("ExportStepButton", () => {
         steps: { id: string }[];
       };
       expect(cached.steps.map((s) => s.id)).toEqual(["step_eda"]);
+    });
+  });
+
+  it("marks the step answers of the thread stale when it writes the strategy", async () => {
+    answersWith({
+      analysis: analysis({ revision: 1 }),
+      job: null,
+      step: strategyPayload(),
+    });
+    const queryClient = createTestQueryClient();
+    const pageKey = [
+      ...getStepRecordsQueryKey("conv-1", "step_a", {
+        siteId: "plasmodb",
+        offset: 0,
+        limit: 50,
+      }),
+      { wdkStepId: 22 },
+    ];
+    queryClient.setQueryData(pageKey, { records: [] });
+    readyToExport();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ExportStepButton conversationId="conv-1" />
+      </QueryClientProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Export as step" }));
+    await waitFor(() => {
+      expect(queryClient.getQueryState(pageKey)?.isInvalidated).toBe(true);
     });
   });
 

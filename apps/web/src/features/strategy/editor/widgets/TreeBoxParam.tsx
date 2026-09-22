@@ -6,71 +6,45 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils/cn";
 import { isMultiParam } from "@/features/strategy/parameters/spec";
+import {
+  ancestorsOfSelected,
+  derivedExpansion,
+  nodeStates,
+  summarizeSelection,
+  summaryLabel,
+  toLeaves,
+} from "@/lib/parameters/treeSelection";
 import type { VocabNode } from "@/lib/utils/vocab";
 import type { ParamWidgetProps, ParamFieldApi } from "./types";
 import { CheckboxParam } from "./CheckboxParam";
 
-function collectLeaves(node: VocabNode): string[] {
-  if (node.children == null || node.children.length === 0) return [node.value];
-  return node.children.flatMap(collectLeaves);
-}
-
-/**
- * Expand any parent term in `values` to the leaves beneath it.
- *
- * FRAME binds organism scope as a species-level term (`"Plasmodium
- * falciparum"`), and the backend expands parent terms to leaves before
- * pushing, because WDK silently returns 0 genes for a parent node. The tree
- * only ever matched leaves, so a correctly-scoped step opened reading
- * "0 of 62 selected" on a required field -- and any interaction would have
- * written the tree's state over the real scope. Expanding here keeps one
- * representation: what the tree shows is what will be queried.
- */
-function expandToLeaves(values: string[], nodes: VocabNode[]): string[] {
-  const byValue = new Map<string, VocabNode>();
-  const index = (node: VocabNode): void => {
-    byValue.set(node.value, node);
-    node.children?.forEach(index);
-  };
-  nodes.forEach(index);
-
-  const out = new Set<string>();
-  for (const value of values) {
-    const node = byValue.get(value);
-    if (node === undefined) {
-      out.add(value);
-      continue;
-    }
-    for (const leaf of collectLeaves(node)) out.add(leaf);
-  }
-  return [...out];
-}
-
-function collectAllLeaves(nodes: VocabNode[]): string[] {
-  return nodes.flatMap(collectLeaves);
-}
-
 function nodeMatchesSearch(node: VocabNode, term: string): boolean {
   if (node.label.toLowerCase().includes(term)) return true;
-  if (node.children) {
-    return node.children.some((child) => nodeMatchesSearch(child, term));
-  }
-  return false;
+  return node.children?.some((child) => nodeMatchesSearch(child, term)) ?? false;
 }
 
-function buildDefaultExpanded(nodes: VocabNode[], depth = 0): Set<string> {
-  const result = new Set<string>();
-  if (depth >= 2) return result;
-  for (const node of nodes) {
-    if (node.children != null && node.children.length > 0) {
-      result.add(node.value);
-      for (const v of buildDefaultExpanded(node.children, depth + 1)) {
-        result.add(v);
-      }
+/** Every branch with a search match below it; a search shows each match. */
+function searchExpansion(nodes: VocabNode[], term: string): Set<string> {
+  const out = new Set<string>();
+  const visit = (node: VocabNode): void => {
+    if (node.children?.some((child) => nodeMatchesSearch(child, term)) === true) {
+      out.add(node.value);
     }
-  }
-  return result;
+    node.children?.forEach(visit);
+  };
+  nodes.forEach(visit);
+  return out;
 }
+
+function branchValues(nodes: VocabNode[]): string[] {
+  return nodes.flatMap((node) =>
+    node.children != null && node.children.length > 0
+      ? [node.value, ...branchValues(node.children)]
+      : [],
+  );
+}
+
+const MAX_CHIPS = 12;
 
 export function TreeBoxParam({
   spec,
@@ -107,52 +81,66 @@ function TreeBoxInner({
 }) {
   const multi = isMultiParam(spec);
 
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() =>
-    buildDefaultExpanded(vocabTree),
-  );
+  const [overrides, setOverrides] = useState<Map<string, boolean>>(() => new Map());
   const [searchTerm, setSearchTerm] = useState("");
-
-  const allLeaves = collectAllLeaves(vocabTree);
-
-  const toggleExpand = (nodeValue: string) => {
-    setExpandedNodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(nodeValue)) {
-        next.delete(nodeValue);
-      } else {
-        next.add(nodeValue);
-      }
-      return next;
-    });
-  };
-
   const lowerSearch = searchTerm.toLowerCase();
 
   const errors = field.state.meta.errors;
   const hasError = errors.length > 0;
   const errorMessage = hasError ? String(errors[0]) : null;
 
+  const singleValue =
+    !multi && typeof field.state.value === "string" ? field.state.value : "";
   const currentValue: string[] = multi
     ? Array.isArray(field.state.value)
       ? (field.state.value as unknown[]).filter(
           (v): v is string => typeof v === "string",
         )
       : []
-    : [];
-  const selectedLeaves = expandToLeaves(currentValue, vocabTree);
+    : singleValue === ""
+      ? []
+      : [singleValue];
+  const selectedLeaves = toLeaves(currentValue, vocabTree);
   const selectedSet = new Set(selectedLeaves);
+  const states = nodeStates(vocabTree, selectedSet);
+  const allLeaves = vocabTree.flatMap((node) => states.get(node.value)?.leaves ?? []);
 
-  const toggleBranch = (node: VocabNode) => {
-    const leaves = collectLeaves(node);
-    const allChecked = leaves.every((l) => selectedSet.has(l));
+  const derived = derivedExpansion(vocabTree, states, selectedLeaves, {
+    multiPick: multi,
+  });
+  const searched = lowerSearch
+    ? searchExpansion(vocabTree, lowerSearch)
+    : new Set<string>();
+  const isExpanded = (value: string): boolean =>
+    searched.has(value) || (overrides.get(value) ?? derived.has(value));
+
+  const toggleExpand = (value: string) => {
+    if (lowerSearch) return;
+    setOverrides(new Map(overrides).set(value, !isExpanded(value)));
+  };
+  // A checkbox click keeps the open state of the branches around it.
+  const pinOpenState = (values: string[]) => {
+    const next = new Map(overrides);
+    for (const value of values) next.set(value, isExpanded(value));
+    setOverrides(next);
+  };
+  const setEveryBranch = (open: boolean) => {
+    setOverrides(new Map(branchValues(vocabTree).map((v) => [v, open])));
+  };
+  const expandSelected = () => {
+    const path = ancestorsOfSelected(vocabTree, selectedLeaves);
+    setOverrides(new Map([...path].map((v) => [v, true])));
+  };
+
+  const toggleBranch = (leaves: string[], allChecked: boolean) => {
+    const branchLeaves = new Set(leaves);
     if (allChecked) {
-      field.handleChange(selectedLeaves.filter((v) => !leaves.includes(v)));
+      field.handleChange(selectedLeaves.filter((v) => !branchLeaves.has(v)));
     } else {
-      const next = [...selectedLeaves];
-      for (const l of leaves) {
-        if (!next.includes(l)) next.push(l);
-      }
-      field.handleChange(next);
+      field.handleChange([
+        ...selectedLeaves,
+        ...leaves.filter((l) => !selectedSet.has(l)),
+      ]);
     }
   };
 
@@ -164,19 +152,15 @@ function TreeBoxInner({
     }
   };
 
-  const singleValue =
-    !multi && typeof field.state.value === "string" ? field.state.value : "";
-
-  function renderNode(node: VocabNode, depth: number) {
+  function renderNode(node: VocabNode, depth: number, path: string[]) {
     if (lowerSearch && !nodeMatchesSearch(node, lowerSearch)) {
       return null;
     }
 
     const isBranch = Boolean(node.children != null && node.children.length > 0);
-    const isExpanded = expandedNodes.has(node.value);
-    const leaves = collectLeaves(node);
-    const allChecked = leaves.every((l) => selectedSet.has(l));
-    const someChecked = !allChecked && leaves.some((l) => selectedSet.has(l));
+    const expanded = isExpanded(node.value);
+    const state = states.get(node.value);
+    const checked = state?.checked ?? false;
 
     return (
       <div key={node.value}>
@@ -190,7 +174,7 @@ function TreeBoxInner({
               type="button"
               onClick={() => toggleExpand(node.value)}
               className="w-4 h-4 flex items-center justify-center text-muted-foreground"
-              aria-label={isExpanded ? "Collapse" : "Expand"}
+              aria-label={expanded ? "Collapse" : "Expand"}
             >
               <svg
                 width="12"
@@ -202,7 +186,7 @@ function TreeBoxInner({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 style={{
-                  transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                  transform: expanded ? "rotate(90deg)" : "rotate(0deg)",
                   transition: "transform 0.15s",
                 }}
               >
@@ -215,10 +199,12 @@ function TreeBoxInner({
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             {multi ? (
               <Checkbox
-                checked={allChecked ? true : someChecked ? "indeterminate" : false}
-                onCheckedChange={() =>
-                  isBranch ? toggleBranch(node) : toggleLeaf(node.value)
-                }
+                checked={checked}
+                onCheckedChange={() => {
+                  pinOpenState(isBranch ? [...path, node.value] : path);
+                  if (isBranch) toggleBranch(state?.leaves ?? [], checked === true);
+                  else toggleLeaf(node.value);
+                }}
                 onBlur={field.handleBlur}
                 aria-label={node.label}
               />
@@ -229,13 +215,16 @@ function TreeBoxInner({
           </label>
         </div>
         {isBranch &&
-          isExpanded &&
-          node.children?.map((child) => renderNode(child, depth + 1))}
+          expanded &&
+          node.children?.map((child) =>
+            renderNode(child, depth + 1, [...path, node.value]),
+          )}
       </div>
     );
   }
 
-  const selectedCount = selectedLeaves.filter((v) => allLeaves.includes(v)).length;
+  const selectedCount = allLeaves.filter((v) => selectedSet.has(v)).length;
+  const summary = summarizeSelection(vocabTree, states, selectedLeaves);
 
   const treeBody = (
     <div
@@ -253,13 +242,32 @@ function TreeBoxInner({
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
         />
+        <div className="mt-1.5 flex gap-3 text-xs">
+          <TreeLink onClick={expandSelected}>Expand selected</TreeLink>
+          <TreeLink onClick={() => setEveryBranch(false)}>Collapse all</TreeLink>
+          <TreeLink onClick={() => setEveryBranch(true)}>Expand all</TreeLink>
+        </div>
       </div>
       <div className="max-h-64 overflow-y-auto p-2">
-        {vocabTree.map((node) => renderNode(node, 0))}
+        {vocabTree.map((node) => renderNode(node, 0, []))}
       </div>
       {multi && (
-        <div className="px-2 py-1.5 border-t border-border text-xs text-muted-foreground">
-          {selectedCount} of {allLeaves.length} selected
+        <div className="flex flex-wrap items-center gap-1 px-2 py-1.5 border-t border-border text-xs text-muted-foreground">
+          <span>
+            {selectedCount} of {allLeaves.length} selected
+          </span>
+          {summary.slice(0, MAX_CHIPS).map((item) => (
+            <span
+              key={item.value}
+              data-testid="treebox-summary-chip"
+              className="rounded-sm bg-muted px-1.5 py-0.5 text-foreground"
+            >
+              {summaryLabel(item)}
+            </span>
+          ))}
+          {summary.length > MAX_CHIPS && (
+            <span>+{summary.length - MAX_CHIPS} more</span>
+          )}
         </div>
       )}
     </div>
@@ -283,5 +291,17 @@ function TreeBoxInner({
         </p>
       )}
     </div>
+  );
+}
+
+function TreeLink({ onClick, children }: { onClick: () => void; children: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-primary underline-offset-2 hover:underline"
+    >
+      {children}
+    </button>
   );
 }

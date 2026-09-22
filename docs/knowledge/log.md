@@ -1,5 +1,66 @@
 # Log
 
+## 2026-09-23
+
+* **A strategy step answers its genes.** `GET /api/v1/conversations/{id}/strategy/steps/{step_id}/records`
+  (`getStepRecords`) takes the graph step id and `siteId`, `offset` and `limit`
+  (1 to 500, default 50), and answers `StepRecordsResponse`: the WDK step id, the
+  gene total, the step's result page on the site (`strategy_url` with the step id)
+  and one row per gene with its organism, its product and its record page. A step
+  with no WDK id is a 409 `INVALID_STRATEGY`. The read is
+  `StrategyAPI.get_step_answer` on the step, as the session's user. A transcript
+  answer has one row per transcript but counts genes (toxodb `GenesByExonCount`:
+  6475 rows, total 6414), so a transcript step is read under the
+  `representativeTranscriptOnly` view filter (WDK-FILTER-003), which makes the
+  rows count genes. Its product
+  column is `gene_product`; a gene step's is `product`. `gene_record_url` is the
+  one builder of a gene's record page.
+
+* **veupathdb-py v0.1.0a13 and veupathdb-mcp v0.2.0a21.** A pager over a
+  transcript step's records sends the `representativeTranscriptOnly` view
+  filter, because the answer holds one row per transcript and
+  `records_returned()` counts genes: an offset loop up to the gene total repeats
+  genes and never reaches the last rows. `get_step_answer` and
+  `get_step_records` take `view_filters` (top-level `viewFilters` in the report
+  body) and no longer take `user_id`. `veupathdb_mcp.wdk` chooses the filter:
+  `view_filters_for(record_type)` with no WDK call, `step_view_filters(api,
+  step_id)` from the step's own record class. The rule applies here in
+  `read_step_records` (the thread's record type), `fetch_all_gene_ids` (one
+  `find_step` before the loop), the control intersection page of
+  `_eval_control_set` and the robustness read `_fetch_result_ids` (the
+  experiment's record type). Count-only reads are unchanged. In the tool
+  server, `StepResultsService.get_records` pages gene-set and experiment
+  records one row per gene, and the control tests read through
+  `get_step_answer`. `update_step_search_config` now starts from the step's own
+  search config, so a parameter patch keeps its filters and, when the graph
+  holds no weight, the site's weight (`_update_existing_step` states the graph's
+  weight when it holds one, 0 included), and it
+  refuses the write (`DataParsingError`, 500) when the catalog read fails or
+  the step lacks a value for an input parameter; creation still tolerates a
+  failed catalog read. `variant_comparison` reads an anonymous search report,
+  not a step, and `run_search_report` takes no view filter; its overlap sets
+  are built from deduplicated ids.
+
+* **The step sheet lists the genes a step returns.** `StepResults` sits under
+  the parameters in the step sheet: a "Results" section with the gene total, a
+  link to the step's result page on the site, and one row per gene that links
+  to its record page, 50 rows a page with "Show more". A step with no WDK id,
+  or a 409 `INVALID_STRATEGY` from the read (`notOnSiteRefusal`), shows "Not on
+  the site yet". A parameter save patches the same WDK step, so the WDK id does
+  not mark a new answer: every strategy write goes through `writeStrategy` or
+  `refetchStrategy` (`lib/api/strategy.ts`), and both invalidate every step
+  answer page of the conversation. Unsaved edits add the note "Results are for
+  the saved step".
+
+* **A checkbox tree opens to the least depth that shows every selected box.**
+  The tree-box widget follows the web-monorepo `CheckboxTree` (coreui): a
+  partly selected branch opens, a fully selected branch shows checked and
+  closed, and a branch the user opens or closes keeps that state over later
+  selection changes. A search opens each branch above a match. "Expand
+  selected", "Collapse all" and "Expand all" reset the open state. The footer
+  names the selection by its smallest cover ("B (all 2)"), from
+  `lib/parameters/treeSelection.ts`. The stored value stays leaves only.
+
 ## 2026-09-22
 
 * **One step read per search-config update, and a clean docs build.**

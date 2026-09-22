@@ -14,6 +14,7 @@ vi.mock("sonner", () => ({
   toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() },
 }));
 
+import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
 import { useStrategyStore } from "@/state/strategy/store";
 import { useApplyOperation } from "./useApplyOperation";
 import { makeQueryHarness } from "./__tests__/strategyTestUtils";
@@ -115,5 +116,33 @@ describe("useApplyOperation", () => {
       });
     });
     expect(useStrategyStore.getState().undoStack.length).toBe(1);
+  });
+
+  it("marks the step answers stale once the server answers the edit", async () => {
+    const initial = makeStrategy([
+      step({ id: "a", displayName: "A", searchName: "geneById", recordType: "gene" }),
+    ]);
+    const harness = makeQueryHarness(initial);
+    const pageKey = [
+      ...getStepRecordsQueryKey("strategy-1", "a", {
+        siteId: "plasmodb",
+        offset: 0,
+        limit: 50,
+      }),
+      { wdkStepId: 22 },
+    ];
+    harness.client.setQueryData(pageKey, { records: [] });
+    applyOperationEndpointMock.mockResolvedValueOnce(initial);
+
+    const { result } = renderHook(() => useApplyOperation("strategy-1"), {
+      wrapper: harness.wrapper,
+    });
+    await act(async () => {
+      await result.current.mutateAsync({
+        op: { kind: "updateStepParams", stepId: "a", parameters: {} },
+      });
+    });
+
+    expect(harness.client.getQueryState(pageKey)?.isInvalidated).toBe(true);
   });
 });

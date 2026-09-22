@@ -60,8 +60,12 @@ function stateOf(label: string): string | null {
   return screen.getByLabelText(label).getAttribute("data-state");
 }
 
+function expandAll(): void {
+  fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+}
+
 describe("TreeBoxParam - multi-pick (shadcn checkboxes)", () => {
-  it("renders checkboxes for all nodes", () => {
+  it("renders a checkbox for every node once expanded", () => {
     render(
       <WidgetTestForm name="test_tree" defaultValue={[]}>
         {(field) => (
@@ -75,6 +79,7 @@ describe("TreeBoxParam - multi-pick (shadcn checkboxes)", () => {
         )}
       </WidgetTestForm>,
     );
+    expandAll();
     expect(screen.getAllByRole("checkbox").length).toBe(7);
   });
 
@@ -110,6 +115,7 @@ describe("TreeBoxParam - multi-pick (shadcn checkboxes)", () => {
         )}
       </WidgetTestForm>,
     );
+    expandAll();
     await user.click(screen.getByLabelText("Leaf 1"));
     expect(stateOf("Leaf 1")).toBe("checked");
   });
@@ -129,6 +135,7 @@ describe("TreeBoxParam - multi-pick (shadcn checkboxes)", () => {
         )}
       </WidgetTestForm>,
     );
+    expandAll();
     await user.click(screen.getByLabelText("Leaf 1"));
     expect(stateOf("Leaf 1")).toBe("unchecked");
     expect(stateOf("Leaf 2")).toBe("checked");
@@ -149,6 +156,7 @@ describe("TreeBoxParam - multi-pick (shadcn checkboxes)", () => {
         )}
       </WidgetTestForm>,
     );
+    expandAll();
     await user.click(screen.getByLabelText("Branch A"));
     expect(stateOf("Leaf 1")).toBe("checked");
     expect(stateOf("Leaf 2")).toBe("checked");
@@ -273,6 +281,7 @@ describe("TreeBoxParam - a value stored as a parent term", () => {
       </WidgetTestForm>,
     );
 
+    expandAll();
     expect(stateOf("Branch A")).toBe("checked");
     expect(stateOf("Leaf 1")).toBe("checked");
     expect(stateOf("Leaf 2")).toBe("checked");
@@ -293,6 +302,7 @@ describe("TreeBoxParam - a value stored as a parent term", () => {
       </WidgetTestForm>,
     );
 
+    expandAll();
     expect(stateOf("Branch B")).toBe("unchecked");
     expect(stateOf("Leaf 3")).toBe("unchecked");
   });
@@ -334,6 +344,7 @@ describe("TreeBoxParam - a value stored as a parent term", () => {
       </WidgetTestForm>,
     );
 
+    expandAll();
     await user.click(screen.getByLabelText("Leaf 1"));
 
     expect(stateOf("Leaf 1")).toBe("unchecked");
@@ -357,6 +368,7 @@ describe("TreeBoxParam - a value stored as a parent term", () => {
       </WidgetTestForm>,
     );
 
+    expandAll();
     await user.click(screen.getByLabelText("Leaf 3"));
 
     expect(screen.getByText(/of 4 selected/)).toHaveTextContent("3 of 4 selected");

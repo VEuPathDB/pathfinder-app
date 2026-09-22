@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { ConversationResponse, Strategy } from "@pathfinder/shared";
 import { applyOperationEndpoint } from "@pathfinder/shared/generated/hooks/useApplyOperationEndpoint";
-import { strategyQueryKey, toStrategy } from "@/lib/api/strategy";
+import { strategyQueryKey, toStrategy, writeStrategy } from "@/lib/api/strategy";
 import { toUserMessage } from "@/lib/api/errors";
 import { applyOperation, type GraphOperation } from "@/features/strategy/operations";
 import { toWireOperation } from "@/features/strategy/operations/toWire";
@@ -65,8 +65,8 @@ export function useApplyOperation(conversationId: string) {
         { siteId },
       );
     },
-    onSuccess: (response, _vars, context) => {
-      queryClient.setQueryData<Strategy>(context.key, toStrategy(response));
+    onSuccess: (response) => {
+      writeStrategy(queryClient, conversationId, toStrategy(response));
       useStrategyStore.getState().setLastFailedOperation(null);
     },
     onError: (err, vars, context) => {
