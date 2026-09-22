@@ -2,6 +2,12 @@
 
 ## 2026-09-22
 
+* **One step read per search-config update, and a clean docs build.**
+  `veupathdb-py` v0.1.0a12 reads a step once for its filters and its input-step
+  values; `veupathdb-mcp` v0.2.0a20 pins it. The docs build suppresses
+  `ref.python`: Sphinx renders `Annotated` metadata as types, so every
+  `Discriminator("kind")` read as a reference to `kind`. PathFinder is 0.2.0a9.
+
 * **A transform's own parameter can be edited, a refused push is a 502, and the
   raw trace carries every sub-agent step's result.** `veupathdb-py` v0.1.0a11:
   a search-config update reads the step back and carries its input-step values,

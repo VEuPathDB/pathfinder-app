@@ -35,9 +35,9 @@ jobs:
           # The two MCP images build from their own repository at the release
           # docker-compose.yml names. The two tags must stay equal.
           - image: pathfinder-wdk-mcp
-            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a19
+            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a20
           - image: pathfinder-research-mcp
-            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a19
+            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a20
             target: research
     steps:
       - uses: actions/checkout@v4

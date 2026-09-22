@@ -54,6 +54,11 @@ autodoc_inherit_docstrings = False
 autodoc_typehints = "description"
 autodoc_typehints_description_target = "documented_params"
 
+# Sphinx renders Annotated metadata field by field as types, so a
+# Discriminator("kind") reads as a reference to "kind", which many models
+# declare. The build is not nitpicky, so this class holds only that warning.
+suppress_warnings = ["ref.python"]
+
 templates_path = ["_templates"]
 exclude_patterns = []
 
