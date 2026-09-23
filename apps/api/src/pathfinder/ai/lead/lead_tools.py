@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
+from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb import JSONObject
 from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType
@@ -14,7 +15,11 @@ from pathfinder.ai.lead._delete_rules import DeleteSurface
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import inner_context
-from pathfinder.ai.lead.intent import UserIntent
+from pathfinder.ai.lead.intent import (
+    UserIntent,
+    already_classified_message,
+    unstated_operator_refusal,
+)
 from pathfinder.ai.lead.live_state import LiveStrategyState, read_live_state
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import (
@@ -44,7 +49,8 @@ def classify_user_intent(
     intent: UserIntent,
 ) -> ToolReturn[UserIntent]:
     """Classify the user's intent for this turn. Call this exactly once,
-    before any other sub-agent call.
+    before any other sub-agent call. A second call on the same turn is
+    only to change the classification; one that repeats it is refused.
 
     The message classified is this turn's own, which is pinned in your
     instructions; it is never passed here. Construct a ``UserIntent``
@@ -68,15 +74,22 @@ def classify_user_intent(
     "either mass spec or DeRisi expression", "combine the two domain
     searches with a union", "both filters must hold" - add one constraint
     of kind "combination". Its requested value is that combination in the
-    canonical form "<term> OR <term>" (or AND), with one term per line of
-    evidence, written in the user's own words for it. Two terms minimum,
-    one operator only: a request that mixes OR and AND is two
-    constraints, one per group. Three or more terms state one flat group:
-    every term joins at that operator, so evidence the user joins with the
-    other operator belongs in a constraint of its own. This is the only
-    machine-checkable record of the boolean shape they asked for, so a
-    stated combination that never lands here is a strategy that can
-    silently answer the other question.
+    canonical form "<term> OR <term>" (or AND), with one term per
+    requirement, written in the user's own words for it. The operator is
+    the researcher's own connective between the requirements, never one you
+    infer. An "or" inside one requirement stays inside it: "expressed in
+    schizonts or merozoites, with a signal peptide or GPI anchor" is two
+    requirements joined by AND, each with an alternative of its own. A list
+    joined by commas and "and" is AND; a list whose last connective is "or"
+    is OR. Never hoist an inner "or" to the top level: a combination whose
+    operator the message does not state is refused. Two terms minimum, one
+    operator only: a request that mixes OR and AND is two constraints, one
+    per group. Three or more terms state one flat group: every term joins
+    at that operator, so evidence the user joins with the other operator
+    belongs in a constraint of its own. This is the only machine-checkable
+    record of the boolean shape they asked for, so a stated combination
+    that never lands here is a strategy that can silently answer the other
+    question.
 
     Set ``hard=True`` for non-negotiable requirements ("only", "must",
     "required", "do not use X"); set ``hard=False`` when the user states a
@@ -137,6 +150,16 @@ def classify_user_intent(
     and answers in two sentences, so a message the tools can answer is never
     one.
     """
+    held = ctx.deps.intent
+    if (
+        ctx.deps.state.turn_markers.intent_classified
+        and held is not None
+        and held.classification is intent.classification
+    ):
+        raise ModelRetry(already_classified_message(held.classification))
+    refusal = unstated_operator_refusal(intent, ctx.deps.state.user_prompt)
+    if refusal is not None:
+        raise ModelRetry(refusal)
     ctx.deps.intent = intent
     ctx.deps.state.turn_markers.intent_classified = True
     ctx.deps.state.domain.record_intent(

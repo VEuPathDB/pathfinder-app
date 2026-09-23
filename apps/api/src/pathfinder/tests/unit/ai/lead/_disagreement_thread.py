@@ -33,7 +33,7 @@ from pathfinder.ai.lead import (
 from pathfinder.ai.lead.deltas import EditDelta, FrameResult
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.edit_dispatch import run_edit
-from pathfinder.ai.lead.frame_dispatch import run_frame
+from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.lead_tools import clear_strategy, delete_step
 from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
 from pathfinder.ai.lead.sub_agent_dispatch import build_strategy
@@ -187,6 +187,8 @@ class DisagreementThread:
         """Whether a canvas commit landed between a dispatch's start and its push."""
         self.workspaces: list[OperationalSpec] = []
         """The workspace each FRAME pass found, newest last."""
+        self.work_orders: list[str] = []
+        """The work order each FRAME pass received, newest last."""
         graph = session.get_graph(None)
         answered = (
             None
@@ -371,7 +373,9 @@ class DisagreementThread:
         """The result of one FRAME dispatch, or the words of its refusal."""
         try:
             result = await run_frame(
-                deps=self.deps, parent_tool_call_id="t1", work_order="frame it"
+                deps=self.deps,
+                parent_tool_call_id="t1",
+                work_order=frame_work_order("frame it", self.deps.state),
             )
         except ModelRetry as refusal:
             self.assert_invariants()
@@ -416,6 +420,7 @@ class DisagreementThread:
             found = agent_deps.agent_state.operational_spec_draft
             assert found is not None
             self.workspaces.append(found.model_copy(deep=True))
+            self.work_orders.append(kwargs["run"].work_order)
             if while_framing is not None:
                 while_framing(self.graph)
                 self.written_while_framing = True

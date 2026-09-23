@@ -21,6 +21,7 @@ from veupathdb.eda import (
     EdaVolcanoDescriptor,
 )
 
+from pathfinder.services.eda.authoring import EmptyAnalysisError
 from pathfinder.services.eda.compute import NoComputationError
 from pathfinder.services.eda.export import eda_step_request
 
@@ -94,12 +95,13 @@ def test_a_subset_export_carries_the_filters_and_names_the_dataset() -> None:
     assert request.eda_dataset_id == _DATASET
 
 
-def test_an_analysis_with_no_filters_serializes_to_the_empty_spec() -> None:
-    """The plugin synthesizes an empty descriptor; a literal {} is not it."""
+def test_an_analysis_with_no_filter_and_no_computation_exports_no_step() -> None:
+    """The step would carry an empty spec, which selects nothing."""
     detail = _detail()
     empty = detail.model_copy(update={"descriptor": EdaAnalysisDescriptor()})
-    request = eda_step_request(empty, dataset_id=_DATASET)
-    assert request.eda_analysis_spec == ""
+    with pytest.raises(EmptyAnalysisError) as refusal:
+        eda_step_request(empty, dataset_id=_DATASET)
+    assert _DATASET in str(refusal.value.detail)
 
 
 def test_a_compute_export_writes_the_requested_thresholds_into_the_volcano() -> None:

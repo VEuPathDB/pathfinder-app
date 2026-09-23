@@ -248,14 +248,3 @@ def validation_model_retry(
         exclude_none=True,
     )
     return ModelRetry(json.dumps(payload))
-
-
-def is_placeholder_name(name: str | None) -> bool:
-    if not name:
-        return True
-    return name.strip().lower() in {
-        "draft graph",
-        "draft strategy",
-        "draft",
-        "new conversation",
-    }

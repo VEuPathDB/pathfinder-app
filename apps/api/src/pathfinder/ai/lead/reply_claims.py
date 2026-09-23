@@ -1,4 +1,5 @@
-"""What a reply's prose claims, and the internal names it must not print.
+"""What a reply's prose claims, the references it cites, and the internal
+names it must not print.
 
 Pure text reading. The turn contract joins these readings to the record of the
 turn; nothing here knows what the turn did.
@@ -7,7 +8,12 @@ turn; nothing here knows what the turn did.
 from __future__ import annotations
 
 import re
+from typing import Literal
 
+from assistant_core.platform.pydantic_base import CamelModel
+from pydantic import ConfigDict, Field
+
+from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE
 
 # An artifact the reply reports as saved. An offer to save one is an
@@ -43,6 +49,7 @@ TOOL_IDENTIFIERS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {
     "consult_user",
     "create_workbench_gene_set",
     "delete_step",
+    PROPOSAL_TOOL,
 }
 
 # A step id the graph mints, and the error strings a reply can copy out of a
@@ -93,6 +100,28 @@ _REFERENCE_PREFIXES = (
 )
 
 
+class CitedSource(CamelModel):
+    """One reference a reply names, and where this turn read it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["record", "literature", "web"]
+    label: str = Field(
+        max_length=200,
+        description=(
+            "What the reader sees: the gene id and the site for a record, the "
+            "title for a paper or a page."
+        ),
+    )
+    url: str | None = None
+    doi: str | None = None
+    pmid: str | None = None
+
+    def references(self) -> list[str]:
+        """Every identifier this source is checked by."""
+        return [value for value in (self.url, self.doi, self.pmid) if value]
+
+
 def normalized_reference(value: str) -> str:
     """One comparable form of a url, a DOI or a PMID."""
     text = value.strip().casefold()
@@ -105,3 +134,17 @@ def names_the_phrase(prose: str, phrase: str) -> bool:
     """Whether the prose holds the phrase whole, in any case."""
     pattern = rf"(?<!\w){re.escape(phrase)}(?!\w)"
     return re.search(pattern, prose, flags=re.IGNORECASE) is not None
+
+
+# What may close a question after its mark: whitespace, emphasis, code, a
+# bracket or a quote.
+_CLOSING_MARKS = " \t\r\n*_`)]\"'"
+
+
+def ends_with_a_question(prose: str) -> bool:
+    """Whether the last non-empty paragraph of the prose ends with ``?``.
+
+    Marks that close the sentence after its question mark are read through, so
+    a bold or quoted question still ends the reply.
+    """
+    return prose.rstrip(_CLOSING_MARKS).endswith("?")

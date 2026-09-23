@@ -259,7 +259,7 @@ async def _resync_outcome(agent_deps: AgentDeps, prior: BuildOutcome) -> BuildOu
             graph=graph,
             sync_state=sync_state,
             site_id=agent_deps.site_id,
-            strategy_name=graph.name,
+            user_prompt=agent_deps.user_prompt,
         )
     except VEuPathDBError:
         return prior

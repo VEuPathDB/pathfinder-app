@@ -71,6 +71,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
         retrieved_memories=deps.retrieved_memories,
         conversation_id=state.conversation_id,
         db_session_factory=runtime.db_session_factory,
+        user_prompt=state.user_prompt,
     )
 
 

@@ -1,5 +1,6 @@
 """Stream parts PathFinder emits: graph, strategy, gene sets, experiments,
-the ledger, the recalled memories and this assistant's agent topology."""
+the ledger, the recalled memories and this assistant's agent topology, and the
+proposal a card carries as its tool input."""
 
 from assistant_core.conversation.stream_parts.agent_topology import (
     register_agent_topology_stream_parts,
@@ -11,6 +12,7 @@ from assistant_core.graph.stream_events import MemoryRetrievedPayload
 
 from pathfinder.ai.graph.stream_events import StrategyRevisionPayload
 from pathfinder.ai.lead.ledger import InvestigationLedger
+from pathfinder.ai.lead.proposal import Proposal
 from pathfinder.ai.stream_part_payloads import (
     ControlTestResults,
     EnrichmentResultsChunk,
@@ -37,4 +39,5 @@ def register_strategy_stream_parts(registry: StreamPartRegistry) -> None:
     registry.register("data-scored-comparison", ScoredComparison)
     registry.register("data-ledger-update", InvestigationLedger)
     registry.register("data-memory-retrieved", MemoryRetrievedPayload)
+    registry.register_schema_only("proposal", Proposal)
     register_agent_topology_stream_parts(registry)

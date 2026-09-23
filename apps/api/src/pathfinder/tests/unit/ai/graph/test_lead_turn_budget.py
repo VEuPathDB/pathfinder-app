@@ -14,10 +14,11 @@ from uuid import uuid4
 import pytest
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
+from pydantic_ai.usage import UsageLimits
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.ai.graph import _lead_model
+from pathfinder.ai.graph import _lead_model, lead_node
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import Context
@@ -25,8 +26,18 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead import turn_budget
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests.unit.ai.graph._approval_turn import Collector, scripted_model
+from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
+    BUDGET,
+    OBJECTION,
+    QUESTION,
+    STRATEGY_LINE,
+    built_outcome,
+    built_session,
+    objection,
+)
 from pathfinder.tests.unit.ai.lead.conftest import called_tool_names
 
 _PROMPT = "Write me a Python script that reverses a linked list."
@@ -51,14 +62,14 @@ def _state() -> PipelineState:
     )
 
 
-def _deps(state: PipelineState) -> LeadDeps:
+def _deps(state: PipelineState, session: StrategySession | None = None) -> LeadDeps:
     return LeadDeps(
         state=state,
         intent=None,
         runtime=Context(
             site_id="plasmodb",
             user_id=state.user_id,
-            strategy_session=StrategySession(site_id="plasmodb"),
+            strategy_session=session or StrategySession(site_id="plasmodb"),
             db_session_factory=_quota_offline,
             cancel_event=asyncio.Event(),
         ),
@@ -148,3 +159,35 @@ def test_a_question_about_the_data_keeps_the_whole_turn_budget(
 
     assert capture.response is not None
     assert capture.response.prose == _ANSWER
+
+
+def test_a_turn_at_its_whole_budget_reports_what_it_built(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The stop names the built step, the check's verdict and FRAME's question."""
+    monkeypatch.setattr(
+        lead_node, "lead_usage_limits", lambda: UsageLimits(request_limit=0)
+    )
+    model = _classify_then_answer("new_strategy")
+    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
+    state = _state()
+    state.domain.last_build_outcome = built_outcome()
+    state.domain.verification_digest = objection()
+    state.domain.open_questions = [OpenQuestion(question=QUESTION)]
+    capture = _LeadRunCapture()
+    emitted: Any = Collector()
+    asyncio.run(
+        _drive_lead_stream(
+            state=state,
+            agent=build_lead_agent(),
+            deps=_deps(state, built_session()),
+            capture=capture,
+            writer=emitted,
+            message_id=uuid4(),
+        ),
+    )
+
+    assert capture.response is not None
+    assert capture.response.prose == "\n\n".join(
+        [STRATEGY_LINE, f"Verification objected: {OBJECTION}", QUESTION, BUDGET]
+    )

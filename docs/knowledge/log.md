@@ -2,6 +2,115 @@
 
 ## 2026-09-23
 
+* **A budget stop reports what the turn built.** On vectorbase a turn built the
+  EDA DESeq2 step for 24 h against 18 h and 36 h (`upOnly`, 70 genes, WDK step
+  440545693), looped on a verification objection until 80 model calls, and
+  ended with the budget sentence alone, so the researcher never read that the
+  step exists. The `UsageLimitExceeded` handler in `lead_node` now replies with
+  `turn_budget.budget_stop_report`: the strategy's step count, the final step's
+  title, count and site link from the ledger, the verification verdict, any
+  open question FRAME recorded, then the unchanged budget sentence, or "Nothing
+  was built." when the graph holds no step. See
+  [an-off-topic-turn-reaches-no-tool](decisions/an-off-topic-turn-reaches-no-tool.md).
+
+* **An EDA step holds a compute or a gene subset.** On vectorbase a request for
+  genes up at 24 h post blood meal filtered 44 samples, previewed "Genes this
+  subset selects: 535,832 of 1,266,512" (rows of the gene-by-sample counts
+  entity), and exported a step that answered 0 genes; the next turn exported an
+  analysis with no filter, and the step with an empty `eda_analysis_spec` stayed
+  in the graph after the push refused it. `create_eda_step` now refuses a subset
+  export whose filters name no gene entity and a direction with no computation or
+  no thresholds, before any step exists (`ai/tools/standalone/_eda_step_guard.py`,
+  `services/eda/gene_subset.py`), and the tab's export answers the same subset
+  with a 422 that carries the same sentence; `serialize_spec` raises `EmptyAnalysisError`
+  for an analysis with no filter and no computation; `preview_eda_subset` states
+  the counted entity and prints no gene count for a subset that filters no gene.
+  See [an-eda-step-holds-a-compute-or-a-gene-subset](decisions/an-eda-step-holds-a-compute-or-a-gene-subset.md).
+
+* **A strategy is pushed under the request until the title lands.** On vectorbase
+  a first turn ran 4 min 44 s, and its first push created the WDK strategy as
+  "New Conversation", so the canvas and the site showed that name until the turn
+  ended. `sync_strategy_for_site` now names a graph that has no name yet through
+  `naming.name_for_the_push`: `provisional_strategy_name` cuts the turn's
+  `user_prompt` (carried on `StrategyMutationContext`) on a word at 60 characters,
+  the rule the web's `provisionalName` applies. The name is generated, so
+  `name_if_unnamed` replaces it with the title on the thread, the AST, WDK and the
+  imported set, and a commit renames the thread only when an operation renamed
+  the graph. `build_context_strategy_ast` no longer swaps a placeholder for a name
+  derived from the root step. See
+  [one-name-for-a-strategy](decisions/one-name-for-a-strategy.md).
+
+* **A thread shows its first message until its title arrives.** On vectorbase a
+  first turn ran 4 min 44 s, and the sidebar row showed no name for all of it,
+  because the title is the last chunk before `finish`. The web client now keeps
+  each thread's first user message (`state/useFirstMessageStore.ts`, written when
+  the message is sent and when a snapshot loads) and shows it through
+  `provisionalName` in the sidebar row and the strategy canvas name field and
+  delete confirmation; a thread the tab creates is put into the list when its
+  row is created. The EDA analysis spec parameter (`eda_analysis_spec`) now
+  renders a summary of the study, its subset filters and its computations above
+  a validated JSON editor (`EdaSpecParam.tsx`), and `filterSummary` moved to
+  `lib/eda/`. See
+  [the-thread-title-is-the-last-chunk-before-finish](decisions/the-thread-title-is-the-last-chunk-before-finish.md).
+
+* **The operator of a combination is the researcher's.** On plasmodb the
+  classifier recorded a four-term OR for a request whose requirements were
+  joined by ", ", ", " and ", and", hoisting the "or" inside two of them; the
+  build intersected them (2 genes), VERIFY flagged it against the OR, an edit
+  unioned every filter (4,732 genes) and VERIFY passed it.
+  `message_states_constraint` checked only the terms. `read_combination` now
+  reads the connective between consecutive terms in message order, and
+  `classify_user_intent` refuses a combination whose operator the message does
+  not state, quoting that connective. The classifier's docstring says an inner
+  "or" stays inside its requirement, and VERIFY states the count arithmetic of
+  a combine. VERIFY reads the intent as the request plus the user-explicit
+  constraints: a dropped criterion is not part of it, and a request that
+  names no organism cannot fail on species. A second `classify_user_intent`
+  on one turn that repeats the classification is refused; one that changes
+  it is taken. An eval case now reads two facts from the final strategy,
+  `rootOperator` and `finalCountBelowEveryInput` (the root's count strictly
+  below every search step's count, null when a count is missing), and case
+  `requirements-joined-by-commas-intersect` expects INTERSECT and true. See
+  [the-strategy-answers-to-a-spec](decisions/the-strategy-answers-to-a-spec.md).
+
+* **An offer is a card, not prose.** A built turn on vectorbase whose check
+  found two limitations ended "Would you like me to refine the strategy ...?"
+  with `next_state=complete`
+  and nothing recorded; the researcher's "Yes" was classified an approval and the
+  Lead restated the same four genes in 14 s, dispatching nothing. The Lead now
+  offers work through `propose_changes` (`ai/lead/lead_proposal.py`, a
+  `Proposal` of one question and its `proposedChanges`), which parks the turn on
+  an approval like `consult_user`. A yes runs `run_edit` with the card's changes
+  and the note as the brief, draws the edit's dispatch card, and the Lead answers
+  once; a no closes the card as denied and ends the turn with no model call
+  (`_lead_turn.turn_ends_before_the_run`), recording
+  `StrategyDomainState.declined_proposal` on the ledger. A typed approval phrase
+  is a yes and any other typed message declines the card. `_unrecorded_question`
+  now refuses any reply that ends with a question and records neither
+  `asked_questions` nor an answered card (`TurnMarkers.consulted`,
+  `accepted_proposal`). The web draws `ProposalCard` (question, changes, Yes, No,
+  a note field always shown); a yes posts the note as a
+  `data-user-question-answers` answer, a no as the denial's reason. `CitedSource`
+  moved to `reply_claims`. The text written beside a card is reconciled before
+  the card is shown: `card_contract.hold_the_contract_on_a_card`, a
+  `HandleDeferredToolCalls` handler, denies the card with the correction once per
+  turn, and `_lead_card_hold.CardHold` drops the refused text and card from the
+  stream. See
+  [an-offer-is-a-card-not-prose](decisions/an-offer-is-a-card-not-prose.md).
+
+* **An answered question continues the frame.** A FRAME pass dispatched after
+  the researcher answered a `needs_user` question got the Lead's fresh brief and
+  re-bound every criterion the draft already held (8 `search_for_searches` and
+  8 `set_criterion` on plasmodb, about 60 s of a 76 s turn).
+  `classify_user_intent` now moves the thread's open questions into
+  `TurnMarkers.answered_questions`, and `frame_work_order` briefs a pass over a
+  spec with a bound criterion and no build as a continuation
+  (`ContinuationReason.ANSWERED_QUESTION`, or `EARLIER_TURN` with no question):
+  the bound criteria under "Do NOT call search_for_searches or set_criterion",
+  the question, the answer and the Lead's brief. A built strategy is still
+  briefed fresh. See
+  [a-budget-stop-is-retried-by-the-system](decisions/a-budget-stop-is-retried-by-the-system.md).
+
 * **A step says what runs.** A request for a property no site search states
   was bound to the nearest search, titled with the request's words and reported
   in them. `set_criterion` returns `whatRuns` (the search's name, and its summary

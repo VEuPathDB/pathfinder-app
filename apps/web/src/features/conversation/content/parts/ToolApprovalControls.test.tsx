@@ -212,6 +212,12 @@ describe("ToolApprovalControls", () => {
     expect(screen.queryByTestId("tool-approval-decision")).not.toBeInTheDocument();
   });
 
+  it("renders nothing for propose_changes, which the proposal card owns", () => {
+    renderControls([pendingPart("tool-propose_changes")]);
+    expect(screen.queryByTestId("tool-approval-controls")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("tool-approval-decision")).not.toBeInTheDocument();
+  });
+
   it("replaces the buttons with the recorded decision once answered", () => {
     renderControls([
       {

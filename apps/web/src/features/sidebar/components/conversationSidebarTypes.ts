@@ -1,6 +1,7 @@
 import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
 
 import { resolveAssistantId } from "@/lib/assistants";
+import { provisionalName } from "@/lib/conversations/provisionalName";
 
 export interface ConversationItem {
   id: string;
@@ -18,10 +19,13 @@ export interface ConversationItem {
   chat: ConversationResponse;
 }
 
-export function chatToConversationItem(chat: ConversationResponse): ConversationItem {
+export function chatToConversationItem(
+  chat: ConversationResponse,
+  firstUserMessage: string | null,
+): ConversationItem {
   return {
     id: chat.id,
-    title: chat.name.trim() === "" ? "New conversation" : chat.name,
+    title: provisionalName(chat.name, firstUserMessage),
     updatedAt: chat.updatedAt,
     siteId: chat.siteId,
     assistantId: resolveAssistantId({ existing: chat.assistantId }),

@@ -108,6 +108,8 @@ class AgentDeps(AssistantDeps):
     ledger_summary: str = ""
     service_outage: ServiceOutageMemory = Field(default_factory=ServiceOutageMemory)
     experiment_id: str | None = None
+    # The researcher's request this turn, the name of a push with no name yet.
+    user_prompt: str = ""
     verification_scope: VerificationScope = Field(default_factory=VerificationScope)
 
     def to_strategy_context(self) -> StrategyMutationContext:
@@ -123,4 +125,5 @@ class AgentDeps(AssistantDeps):
             stated_structure=self.agent_state.operational_spec_draft.structure,
             criterion_texts=criterion_texts(self.agent_state.operational_spec_draft),
             stated_values=spec_stated_values(self.agent_state.operational_spec_draft),
+            user_prompt=self.user_prompt,
         )

@@ -41,6 +41,7 @@ import { AssistantThinkingPlaceholder } from "./AssistantThinkingPlaceholder";
 import { FailureNotice } from "./FailureNotice";
 import { SupersededBadge } from "./SupersededBadge";
 import { ConsultCarousel } from "./parts/ConsultCarousel";
+import { ProposalCard } from "./parts/ProposalCard";
 import { StoppedNotice } from "./StoppedNotice";
 import { dataPartRenderers } from "./dataPartRegistry";
 import { messageAnchorId } from "../thread/messageAnchor";
@@ -91,11 +92,25 @@ function ConsultUserToolPart(props: TraceAnchorProps) {
   );
 }
 
+// The proposal card renders where its tool part sits, the same way.
+function ProposeChangesToolPart(props: TraceAnchorProps) {
+  return (
+    <>
+      <TraceAnchor {...props} />
+      <ProposalCard toolCallId={props.toolCallId} />
+    </>
+  );
+}
+
 const contentComponents = {
   Text,
   Reasoning: ReasoningPart,
   tools: {
-    by_name: { think: TraceAnchor, consult_user: ConsultUserToolPart },
+    by_name: {
+      think: TraceAnchor,
+      consult_user: ConsultUserToolPart,
+      propose_changes: ProposeChangesToolPart,
+    },
     Fallback: TraceAnchor,
   },
   data: { by_name: dataPartRenderers, Fallback: UnknownDataPartError },

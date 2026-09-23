@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain import find_gene_entity
 from veupathdb.eda import EdaAnalysisDetail
 
-from pathfinder.domain.eda_parts import EdaComparison
-from pathfinder.services.eda.authoring import verified_count
-from pathfinder.services.eda.catalog import get_study_detail_for_dataset
+from pathfinder.domain.eda_parts import EdaComparison, EdaEffectDirection
 from pathfinder.services.eda.compute import VolcanoThresholds, analysis_comparison
 from pathfinder.services.eda.direction import (
     caption_verdict,
@@ -17,36 +14,33 @@ from pathfinder.services.eda.direction import (
 )
 
 
-async def refuse_an_empty_gene_subset(
-    site_id: str,
-    *,
-    dataset_id: str,
+def refuse_a_direction_without_a_volcano(
     analysis: EdaAnalysisDetail,
+    *,
+    effect_direction: EdaEffectDirection | None,
+    has_thresholds: bool,
 ) -> None:
-    """A subset that selects no genes is not exported, and the refusal says why.
-
-    A study with no gene entity is left to the export, which names that problem.
-    """
-    _entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
-    gene = find_gene_entity(study, subject="strategy step")
-    if gene.entity_id is None:
+    """A direction selects a side of a computed volcano, so it needs both."""
+    if effect_direction is None:
         return
-    counted = await verified_count(
-        site_id,
-        dataset_id=dataset_id,
-        entity_id=gene.entity_id,
-        filters=analysis.descriptor.subset.descriptor,
-    )
-    if counted.count:
-        return
-    msg = (
-        f"The subset selects 0 of {counted.unfiltered_count:,} genes, so there is "
-        "no step to export; nothing was written. A filter on a sample-level "
-        "entity selects samples, not genes. For 'up in A versus B' run "
-        "run_eda_compute and export the genes that pass its thresholds; to "
-        "subset genes directly, filter a variable that lives on the gene entity."
-    )
-    raise ModelRetry(msg)
+    computations = len(analysis.descriptor.computations)
+    if not computations:
+        msg = (
+            f'effect_direction="{effect_direction}" selects a side of a '
+            f"comparison, and the open analysis holds 0 computations. Nothing "
+            f"was written. Call run_eda_compute to run the comparison, then "
+            f"export with effect_size_threshold, significance_threshold and "
+            f"effect_direction."
+        )
+        raise ModelRetry(msg)
+    if not has_thresholds:
+        msg = (
+            f'effect_direction="{effect_direction}" selects a side of the '
+            f"volcano, so it needs effect_size_threshold and "
+            f"significance_threshold. Send both, or leave effect_direction unset "
+            f"to export the subset. Nothing was written."
+        )
+        raise ModelRetry(msg)
 
 
 def _groups(comparison: EdaComparison) -> str:

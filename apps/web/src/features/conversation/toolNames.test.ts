@@ -68,6 +68,7 @@ const REGISTERED = [
   "pin_note",
   "preview_eda_subset",
   "promote_to_memory",
+  "propose_changes",
   "read_gene_ids_from_gene_set",
   "read_gene_ids_from_strategy",
   "read_ledger_section",

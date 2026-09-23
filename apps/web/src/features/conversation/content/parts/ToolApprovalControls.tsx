@@ -10,9 +10,15 @@ import {
 } from "@/features/conversation/thread/ApprovalCard";
 import { approvalPromptFor } from "@/features/conversation/toolNames";
 
-import { CONSULT_TOOL_NAME } from "../../rail/consultActions";
+import { CONSULT_TOOL_NAME, PROPOSAL_TOOL_NAME } from "../../rail/consultActions";
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { useThreadDevMode } from "../../thread/useThreadDevMode";
+
+/** The tools whose approval their own card answers. */
+const CARD_TOOLS: ReadonlySet<string> = new Set([
+  CONSULT_TOOL_NAME,
+  PROPOSAL_TOOL_NAME,
+]);
 
 export interface ToolApprovalView {
   approvalId: string;
@@ -58,7 +64,7 @@ export function ToolApprovalControls({
   const chat = useChatHelpers();
   const { showRaw } = useThreadDevMode();
   const approval = findToolApproval(chat.messages, toolCallId);
-  if (approval === null || approval.toolName === CONSULT_TOOL_NAME) return null;
+  if (approval === null || CARD_TOOLS.has(approval.toolName)) return null;
 
   const respond = (approved: boolean) => {
     Promise.resolve(

@@ -6,9 +6,9 @@ from uuid import uuid4
 
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from pathfinder.ai.lead.reply_claims import CitedSource
 from pathfinder.ai.lead.turn_contract import (
     OFF_TOPIC_REPLY_MAX_CHARS,
-    CitedSource,
     reconcile,
     turn_record,
 )

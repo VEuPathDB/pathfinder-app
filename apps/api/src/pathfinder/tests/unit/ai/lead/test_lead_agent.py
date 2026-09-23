@@ -71,6 +71,7 @@ LEAD_TOOL_NAMES = frozenset(
         "preview_eda_subset",
         "run_eda_compute",
         "create_eda_step",
+        "propose_changes",
     }
 )
 
@@ -107,7 +108,8 @@ def test_the_built_agent_carries_every_lead_tool() -> None:
 
 
 def test_the_tools_that_ask_for_approval() -> None:
-    """The four the user answers: a design fork, two deletions and a long sweep."""
+    """The five the user answers: a design fork, an offer of further work, two
+    deletions and a long sweep."""
     tools = registered_tools(build_lead_agent().toolsets)
     deferred = sorted(name for name, tool in tools.items() if tool.requires_approval)
     assert deferred == [
@@ -115,6 +117,7 @@ def test_the_tools_that_ask_for_approval() -> None:
         "consult_user",
         "delete_step",
         "optimize_search_parameters",
+        "propose_changes",
     ]
 
 
@@ -253,8 +256,22 @@ def test_a_turn_that_built_nothing_is_never_asked() -> None:
     assert _run(_nudge_deps(built=False)).retries == []
 
 
-def test_a_turn_that_parks_on_an_approval_is_never_asked() -> None:
-    """A parked turn has not answered yet, so there is nothing to refuse."""
+def test_a_card_turn_that_owes_nothing_parks_unasked() -> None:
+    """The text beside a card is held to the turn's record, and this one passes."""
+    deps = _nudge_deps(built=False)
+    script = _parking_script()
+
+    result = asyncio.run(
+        build_lead_agent().run(_NUDGE_PROMPT, deps=deps, model=script.model()),
+    )
+
+    assert isinstance(result.output, DeferredToolRequests)
+    assert [call.tool_name for call in result.output.approvals] == ["consult_user"]
+    assert deps.state.turn_markers.contract_refused is False
+
+
+def test_a_built_card_turn_that_never_verified_is_asked_once() -> None:
+    """The card is denied with the correction once, and the next card parks."""
     deps = _nudge_deps(built=True)
     script = _parking_script()
 
@@ -263,8 +280,8 @@ def test_a_turn_that_parks_on_an_approval_is_never_asked() -> None:
     )
 
     assert isinstance(result.output, DeferredToolRequests)
-    assert script.retries == []
-    assert deps.state.turn_markers.contract_refused is False
+    assert [call.tool_name for call in result.output.approvals] == ["consult_user"]
+    assert deps.state.turn_markers.contract_refused is True
 
 
 _SERVED_PAPER = (

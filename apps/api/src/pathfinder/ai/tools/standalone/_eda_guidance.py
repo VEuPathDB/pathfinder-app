@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from pathfinder.services.eda.authoring import SubsetPreview
+from pathfinder.services.eda.authoring import SubsetCount, SubsetPreview
+from pathfinder.services.eda.gene_subset import GeneSubset
 
 SHEET_GUIDANCE = (
     "The sheet is pinned under 'Open EDA filter sheet' in your instructions. "
@@ -77,3 +78,23 @@ def preview_guidance(
             f"variable."
         )
     return " ".join(lines)
+
+
+def no_gene_subset_sentence(preview: SubsetPreview, *, subset: GeneSubset) -> str:
+    """The count of another entity, under a subset that names no gene filter."""
+    return (
+        f"{preview.count:,} of {preview.unfiltered_count:,} "
+        f"{preview.entity_display_name_plural} "
+        f"selected; this subset does not filter genes, because it holds "
+        f"{subset.filters_clause()}. A step exports genes, so run run_eda_compute "
+        f"or filter the gene entity {subset.gene_entity_clause()} before "
+        f"create_eda_step."
+    )
+
+
+def gene_count_sentence(genes: SubsetCount) -> str:
+    """The gene count beside a count of another entity."""
+    return (
+        f"Genes this subset selects: {genes.count:,} of {genes.unfiltered_count:,}. "
+        "A step exports genes, so that is the count a step would hold."
+    )

@@ -15,6 +15,7 @@ from pathfinder.ai.lead.dispatch_context import (
     refuse_and_restore,
 )
 from pathfinder.ai.lead.dispatch_messages import (
+    ContinuationReason,
     frame_bound_nothing_result,
     frame_claimed_more_than_it_bound,
     frame_continuation_work_order,
@@ -40,7 +41,25 @@ from pathfinder.domain.strategy.spec_diff import diff_specs
 
 
 def frame_work_order(reason: str, state: PipelineState) -> str:
-    """The order FRAME runs, naming the whole request the turn answers."""
+    """The order FRAME runs, naming the whole request the turn answers.
+
+    A draft that holds bound criteria and no built strategy is work an earlier
+    pass left, so the order continues it instead of framing the goal again.
+    """
+    domain = state.domain
+    spec = domain.operational_spec
+    if spec is not None and _bound_count(spec) and domain.last_build_outcome is None:
+        answered = state.turn_markers.answered_questions
+        return frame_continuation_work_order(
+            spec,
+            spec.goal or framing_goal(state),
+            ContinuationReason.ANSWERED_QUESTION
+            if answered
+            else ContinuationReason.EARLIER_TURN,
+            answered=answered,
+            message=state.user_prompt,
+            brief=reason,
+        )
     return (
         f"FRAME work order: {reason}\n"
         f"User's goal: {framing_goal(state)}\n"
@@ -82,6 +101,7 @@ def _continuation_work_order(deps: LeadDeps) -> str:
     return frame_continuation_work_order(
         deps.state.domain.operational_spec,
         deps.state.user_prompt,
+        ContinuationReason.BUDGET_STOP,
     )
 
 

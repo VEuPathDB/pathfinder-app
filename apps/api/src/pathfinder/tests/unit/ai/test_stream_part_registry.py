@@ -46,6 +46,7 @@ PINNED_SCHEMA_NAMES = frozenset(
         "ledger_update",
         "memory_retrieved",
         "scratchpad_updated",
+        "proposal",
     }
 )
 

@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a12"
+    "version": "0.2.0a13"
   },
   "paths": {
     "/health": {
@@ -19713,6 +19713,39 @@
         "title": "CriterionChange",
         "type": "object"
       },
+      "DeclinedProposal": {
+        "description": "A proposal the researcher answered no, with the note they sent.",
+        "properties": {
+          "question": {
+            "description": "One sentence the researcher answers with yes or no, for example \"Refine the strategy to require strict 3-hour specificity?\"",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "proposedChanges": {
+            "description": "Each change a yes makes to the strategy, as one plain sentence the edit realises: \"Exclude genes highly expressed at the other post-blood-meal time points\".",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Proposedchanges",
+            "type": "array"
+          },
+          "note": {
+            "default": "",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "proposedChanges"
+        ],
+        "title": "DeclinedProposal",
+        "type": "object"
+      },
       "DroppedCriterion": {
         "description": "A criterion with no realizable WDK search. It is surfaced, never dropped.",
         "properties": {
@@ -20376,6 +20409,16 @@
           },
           "constraints": {
             "$ref": "#/components/schemas/ConstraintSection"
+          },
+          "declinedProposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeclinedProposal"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -20756,6 +20799,34 @@
         ],
         "title": "PhaseDisposition",
         "type": "string"
+      },
+      "Proposal": {
+        "description": "The work a card offers: one question and the changes a yes makes.",
+        "properties": {
+          "question": {
+            "description": "One sentence the researcher answers with yes or no, for example \"Refine the strategy to require strict 3-hour specificity?\"",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "proposedChanges": {
+            "description": "Each change a yes makes to the strategy, as one plain sentence the edit realises: \"Exclude genes highly expressed at the other post-blood-meal time points\".",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Proposedchanges",
+            "type": "array"
+          }
+        },
+        "required": [
+          "question",
+          "proposedChanges"
+        ],
+        "title": "Proposal",
+        "type": "object"
       },
       "SavedStrategyRef": {
         "description": "A saved strategy the user reuses as the input of a criterion.\n\n``subtree`` is the saved strategy's steps, cloned with fresh ids, so the\nbuild pushes steps of its own instead of borrowing the saved strategy's.",
@@ -22181,6 +22252,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/MemoryRetrievedPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Proposal"
               },
               {
                 "type": "null"

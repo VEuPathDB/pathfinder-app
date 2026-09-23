@@ -17,6 +17,8 @@ from pathfinder.ai.lead.deltas import (
 )
 from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
+from pathfinder.ai.lead.lead_proposal import accepted_brief
+from pathfinder.ai.lead.proposal import Proposal
 from pathfinder.ai.lead.sub_agent_dispatch import run_recovery
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -77,6 +79,15 @@ async def resume_sub_agent(
                 deps=deps,
                 parent_tool_call_id=call_id,
                 reason=_ReasonArgs.model_validate(args).reason,
+                resume=resume,
+            )
+        case "propose_changes":
+            return await run_edit(
+                deps=deps,
+                parent_tool_call_id=call_id,
+                reason=accepted_brief(
+                    deps.state, call_id, Proposal.model_validate(args)
+                ),
                 resume=resume,
             )
         case "frame_problem":

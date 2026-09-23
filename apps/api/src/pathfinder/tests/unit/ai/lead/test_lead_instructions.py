@@ -234,3 +234,13 @@ def test_the_ledger_read_tool_names_the_frame_section() -> None:
     assert "``read_ledger_section`` (frame / build / verification)" in _flat(
         LEAD_INSTRUCTIONS
     )
+
+
+def test_an_offer_of_further_work_is_a_proposal_card() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert "An offer of further work is a proposal card" in instructions
+    assert "call ``propose_changes``" in instructions
+    assert "Be liberal with proposals" in instructions
+    assert "never taken from a bare yes" in instructions
+    assert "make the LAST sentence an offer" not in instructions

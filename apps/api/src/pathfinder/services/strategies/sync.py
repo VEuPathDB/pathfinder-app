@@ -27,6 +27,7 @@ from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.validate import validate_strategy
 from pathfinder.platform.errors import StrategyCompilationError
 from pathfinder.services.strategies.build import RootResolutionError, resolve_root_step
+from pathfinder.services.strategies.naming import name_for_the_push
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -258,10 +259,12 @@ async def sync_strategy_for_site(
     sync_state: WDKSyncState,
     site_id: str,
     strategy_name: str | None = None,
+    user_prompt: str = "",
 ) -> SyncResult:
     """Sync graph state to WDK: build step tree, create or update strategy, fetch counts.
 
-    Every step must already hold a WDK step ID.
+    Every step must already hold a WDK step ID. Without ``strategy_name``, a
+    graph that has no name yet is pushed under ``user_prompt``.
 
     :raises RootResolutionError: If root step cannot be determined.
     :raises StrategyCompilationError: If steps lack WDK IDs or validation fails.
@@ -288,7 +291,7 @@ async def sync_strategy_for_site(
 
     step_tree = build_step_tree_from_graph(root_step, sync_state.wdk_step_ids)
 
-    name = strategy_name or graph.name or "Untitled Strategy"
+    name = strategy_name or name_for_the_push(graph, user_prompt)
     pushed = await _create_or_update_wdk_strategy(api, step_tree, name, sync_state)
     wdk_strategy_id = pushed.wdk_strategy_id
 

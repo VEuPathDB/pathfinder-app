@@ -5,7 +5,14 @@ from enum import StrEnum
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 
-from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS, Constraint
+from pathfinder.domain.strategy.constraints import (
+    CONSTRAINT_KINDS,
+    CombinationReading,
+    CombinationRequest,
+    Constraint,
+    ConstraintKind,
+    read_combination,
+)
 
 
 class IntentClassification(StrEnum):
@@ -80,4 +87,48 @@ class UserIntent(CamelModel):
             "message - these are user-explicit by construction and override "
             "scoping's provisional assumptions for the same dimension."
         ),
+    )
+
+
+def _departure_words(request: CombinationRequest, reading: CombinationReading) -> str:
+    departures = [
+        f'"{c.before}" and "{c.after}" are joined by "{c.text}", which reads as '
+        f"{c.operator or 'both operators'}"
+        for c in reading.departures(request.operator)
+    ]
+    if reading.named is not None and reading.named != request.operator:
+        departures.append(f"the message names the combination as {reading.named}")
+    return "; ".join(departures)
+
+
+def unstated_operator_refusal(intent: UserIntent, message: str) -> str | None:
+    """Why a combination this intent records is not joined the way the message joins it.
+
+    None when every combination whose terms the message carries is joined by
+    the researcher's own operator.
+    """
+    for constraint in intent.explicit_constraints:
+        if constraint.kind is not ConstraintKind.COMBINATION:
+            continue
+        request = CombinationRequest.parse(constraint.requested_value)
+        reading = None if request is None else read_combination(message, request)
+        if request is None or reading is None or reading.states(request.operator):
+            continue
+        return (
+            f'The combination "{request.expression}" joins its requirements with '
+            f"{request.operator}, but the researcher's message does not: "
+            f"{_departure_words(request, reading)}. State the operator the "
+            "researcher used between those terms, or split the request into "
+            'separate constraints. An "or" inside one requirement is an '
+            "alternative within it, not a top-level OR."
+        )
+    return None
+
+
+def already_classified_message(classification: IntentClassification) -> str:
+    """The refusal of a classification that repeats the one this turn holds."""
+    return (
+        f"This turn is already classified as {classification.value}. Call "
+        "classify_user_intent once per turn, and again only to change the "
+        "classification; go on with the turn."
     )

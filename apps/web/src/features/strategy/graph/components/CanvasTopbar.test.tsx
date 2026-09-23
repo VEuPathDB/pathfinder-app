@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import type { Strategy } from "@pathfinder/shared";
 import { createTestWrapper } from "@/lib/query/testing";
 import { chatUrl, strategyCanvasUrl } from "@/lib/routes";
+import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 import { CanvasTopbar } from "./CanvasTopbar";
 
 const pushMock = vi.fn();
@@ -13,11 +14,11 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/conversation/conv-1/strategy",
 }));
 
+const pushStrategyMock = vi.hoisted(() => vi.fn());
 vi.mock("@pathfinder/shared/generated/hooks/usePushStrategy", () => ({
-  pushStrategy: vi.fn(async (_id: string, body: { name: string }) => ({
-    ...STRATEGY,
-    name: body.name,
-  })),
+  pushStrategy: pushStrategyMock.mockImplementation(
+    async (_id: string, body: { name: string }) => ({ ...STRATEGY, name: body.name }),
+  ),
 }));
 
 vi.mock("@pathfinder/shared/generated/hooks/useComputeStepCounts", () => ({
@@ -235,5 +236,51 @@ describe("the link to the host site", () => {
     renderTopbar(STRATEGY);
 
     expect(screen.queryAllByTestId("canvas-topbar-wdk-link")).toHaveLength(0);
+  });
+});
+
+describe("the name of a strategy whose conversation has no title yet", () => {
+  afterEach(() => {
+    cleanup();
+    useFirstMessageStore.setState({ byConversation: {} });
+    pushStrategyMock.mockClear();
+  });
+
+  function renderUntitled() {
+    useFirstMessageStore
+      .getState()
+      .rememberFirstMessage("conv-1", [
+        { id: "u1", role: "user", parts: [{ type: "text", text: "find kinases" }] },
+      ]);
+    const { Wrapper } = createTestWrapper();
+    render(
+      <Wrapper>
+        <CanvasTopbar
+          strategy={{ ...STRATEGY, name: "" }}
+          conversationId="conv-1"
+          syncState="idle"
+          onRetry={vi.fn()}
+        />
+      </Wrapper>,
+    );
+  }
+
+  it("shows the first message in the name field and saves nothing", async () => {
+    renderUntitled();
+
+    const input = screen.getByLabelText<HTMLInputElement>("Strategy name");
+    expect([input.value, input.placeholder]).toEqual(["", "find kinases"]);
+    await userEvent.click(input);
+    await userEvent.tab();
+    expect(pushStrategyMock.mock.calls).toEqual([]);
+  });
+
+  it("names the first message in the delete confirmation", async () => {
+    renderUntitled();
+
+    await userEvent.click(screen.getByLabelText("More strategy actions"));
+    await userEvent.click(await screen.findByText("Delete strategy"));
+
+    expect(await screen.findByRole("dialog")).toHaveTextContent("find kinases");
   });
 });

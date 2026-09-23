@@ -12,6 +12,9 @@ from typing import Protocol
 from uuid import UUID
 
 from assistant_core.persistence.models import Conversation
+from assistant_core.persistence.repositories.conversation import (
+    DEFAULT_CONVERSATION_NAME,
+)
 from assistant_core.platform.db import DBSessionFactory
 from assistant_core.platform.logging import get_logger
 from veupathdb.wdk import get_strategy_api
@@ -40,15 +43,20 @@ logger = get_logger(__name__)
 WDK_RENAME_SECONDS = 10
 """The longest a rename waits on WDK."""
 
+PROVISIONAL_NAME_LENGTH = 60
+"""The longest a request stands in for the thread's title."""
+
 __all__ = [
     "WDK_RENAME_SECONDS",
     "NamedThread",
     "ThreadNames",
     "TitleWrite",
+    "name_for_the_push",
     "name_if_unnamed",
     "name_the_thread",
     "name_the_thread_as_the_graph",
     "placeholder_strategy_name",
+    "provisional_strategy_name",
     "put_the_name_on_wdk",
     "rename_strategy_everywhere",
 ]
@@ -78,6 +86,32 @@ class NamedThread:
 def placeholder_strategy_name(wdk_strategy_id: int) -> str:
     """The name a WDK strategy that states no name of its own is listed under."""
     return f"WDK Strategy {wdk_strategy_id}"
+
+
+def provisional_strategy_name(prompt: str) -> str:
+    """The request cut on a word at 60 characters, or the placeholder for none.
+
+    The web names an untitled thread in its sidebar by the same rule.
+    """
+    text = " ".join(prompt.split())
+    if not text:
+        return DEFAULT_CONVERSATION_NAME
+    if len(text) <= PROVISIONAL_NAME_LENGTH:
+        return text
+    head = text[: PROVISIONAL_NAME_LENGTH + 1]
+    boundary = head.rfind(" ")
+    cut = head[:boundary] if boundary > 0 else text[:PROVISIONAL_NAME_LENGTH]
+    return f"{cut.rstrip()}..."
+
+
+def name_for_the_push(graph: StrategyGraph, user_prompt: str) -> str:
+    """The name a push sends. A graph with no name yet takes the request's.
+
+    The request's name is generated, so the thread's first title replaces it.
+    """
+    if graph.name in {"", DEFAULT_CONVERSATION_NAME}:
+        graph.name = provisional_strategy_name(user_prompt)
+    return graph.name
 
 
 async def name_the_thread(

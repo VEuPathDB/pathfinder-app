@@ -15,6 +15,8 @@ from pathfinder.ai.tools.standalone._eda_guidance import (
     APPLIED_GUIDANCE,
     SHEET_GUIDANCE,
     entity_count_clause,
+    gene_count_sentence,
+    no_gene_subset_sentence,
     opened_guidance,
     preview_guidance,
 )
@@ -31,6 +33,7 @@ from pathfinder.ai.tools.standalone.eda_stream_parts import (
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.services.eda import EdaFilter, EdaStudyDetail
 from pathfinder.services.eda.authoring import (
+    SubsetPreview,
     SubsetRejectedError,
     preview_subset,
     verified_count,
@@ -52,6 +55,7 @@ from pathfinder.services.eda.description import (
     permission_facts,
     variable_at,
 )
+from pathfinder.services.eda.gene_subset import gene_subset
 
 
 async def _study(
@@ -268,25 +272,27 @@ async def _bound_or_retry(
     return bound
 
 
-async def _genes_the_subset_selects(
+async def _gene_sentence(
     site_id: str,
     *,
     study: EdaStudyDetail,
     dataset_id: str,
     entity_id: str,
+    preview: SubsetPreview,
     filters: Sequence[EdaFilter],
 ) -> str:
-    """The gene count beside a count of another entity: a step exports genes."""
-    gene = find_gene_entity(study, subject="strategy step")
-    if gene.entity_id is None or gene.entity_id == entity_id:
+    """What the count of ``entity_id`` means for the genes a step exports."""
+    subset = gene_subset(study, filters)
+    if subset.gene_entity_id is None:
+        return ""
+    if not subset.filters_genes:
+        return no_gene_subset_sentence(preview, subset=subset)
+    if subset.gene_entity_id == entity_id:
         return ""
     genes = await verified_count(
-        site_id, dataset_id=dataset_id, entity_id=gene.entity_id, filters=filters
+        site_id, dataset_id=dataset_id, entity_id=subset.gene_entity_id, filters=filters
     )
-    return (
-        f" Genes this subset selects: {genes.count:,} of {genes.unfiltered_count:,}. "
-        "A step exports genes, so that is the count a step would hold."
-    )
+    return gene_count_sentence(genes)
 
 
 async def preview_eda_subset(
@@ -354,12 +360,21 @@ async def preview_eda_subset(
     statistics = (
         None if preview.distribution is None else preview.distribution.statistics
     )
-    genes_selected = await _genes_the_subset_selects(
+    gene_sentence = await _gene_sentence(
         site_id,
         study=study,
         dataset_id=bound.dataset_id,
         entity_id=entity_id,
+        preview=preview,
         filters=filters,
+    )
+    counted = preview_guidance(
+        preview_count=preview.count,
+        unfiltered_count=preview.unfiltered_count,
+        entity_display_name=preview.entity_display_name,
+        has_filters=bool(filters),
+        is_multi_valued=variable is not None and variable.is_multi_valued,
+        num_missing_cases=0 if statistics is None else statistics.num_missing_cases,
     )
     result = EdaSubsetPreviewResult(
         entity_id=preview.entity_id,
@@ -378,15 +393,7 @@ async def preview_eda_subset(
         num_var_values=0 if statistics is None else statistics.num_var_values,
         num_missing_cases=0 if statistics is None else statistics.num_missing_cases,
         distribution_note=preview.distribution_note,
-        guidance=preview_guidance(
-            preview_count=preview.count,
-            unfiltered_count=preview.unfiltered_count,
-            entity_display_name=preview.entity_display_name,
-            has_filters=bool(filters),
-            is_multi_valued=variable is not None and variable.is_multi_valued,
-            num_missing_cases=0 if statistics is None else statistics.num_missing_cases,
-        )
-        + genes_selected,
+        guidance=" ".join(part for part in (counted, gene_sentence) if part),
     )
     chunk = eda_subset_preview_chunk(
         dataset_id=bound.dataset_id,

@@ -25,7 +25,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     pipeline_state,
 )
 
-_PROSE = "I can build that whenever you want. Want me to?"
+_PROSE = "I can build that whenever you want."
 
 # The building tools a fresh thread meets the preconditions of: nothing is
 # built, so verification has nothing to check, no build failed and no EDA

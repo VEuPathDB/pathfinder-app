@@ -2,7 +2,6 @@ import type { EdaEntityResponse } from "@pathfinder/shared/generated/types/EdaEn
 import type { EdaFilter } from "@pathfinder/shared/generated/types/EdaFilter";
 
 const TIME_PART = /T\d{2}:\d{2}:\d{2}/;
-const SUMMARISED_VALUES = 3;
 
 /** The service parses only YYYY-MM-DDTHH:mm:ss; a bare date is a 500. */
 export function edaDateBound(value: string): string {
@@ -104,31 +103,6 @@ export function findFilter(
   variableId: string,
 ): EdaFilter | null {
   return filters.find((f) => names(f, entityId, variableId)) ?? null;
-}
-
-function shortList(values: readonly (string | number)[]): string {
-  return values.length > SUMMARISED_VALUES
-    ? `${String(values.length)} values`
-    : values.join(", ");
-}
-
-export function filterSummary(filter: EdaFilter): string {
-  switch (filter.type) {
-    case "stringSet":
-      return shortList(filter.stringSet);
-    case "numberSet":
-      return shortList(filter.numberSet);
-    case "dateSet":
-      return `${String(filter.dateSet.length)} dates`;
-    case "numberRange":
-      return `${String(filter.min)} to ${String(filter.max)}`;
-    case "dateRange":
-      return `${filter.min.slice(0, 10)} to ${filter.max.slice(0, 10)}`;
-    case "longitudeRange":
-      return `${String(filter.left)} to ${String(filter.right)}`;
-    case "multiFilter":
-      return `${filter.operation} of ${String(filter.subFilters.length)}`;
-  }
 }
 
 export interface EdaEntityNode {

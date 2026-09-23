@@ -73,6 +73,20 @@ values from the same read that supplies the counts. None of them writes a spec.
 A site that does not answer writes nothing: the turn and the canvas edit go on
 over the stored graph, and the refresh refuses with 503.
 
+**The operator is the researcher's, as well as the terms.** What was SAID
+includes how the requirements join. A `combination` constraint records one
+operator over the researcher's phrases, and the message must carry both
+(`domain/strategy/constraints.py::read_combination`): each term is located in
+the message, and the text between two consecutive terms, in message order, is
+the connective. A connective with "or" (or "and/or") states OR; one with "and",
+"with", "plus" or "as well as" states AND; a bare comma or no text takes the
+next conjunction in the list, and AND when none follows, OR when the list opens
+with "either". An "or" inside one term's span is an alternative within that
+requirement and never a connective. A message that names a "union" or an
+"intersection" states that operator. `classify_user_intent` refuses a
+combination whose terms the message carries and whose operator it does not,
+and the refusal quotes the connective between the two terms.
+
 An edit is planned against `answered_spec`
 (`ai/lead/edit_dispatch.py::run_edit`). FRAME's declaration check, its work
 order and the restore target of a refusal stay `spec_before_dispatch`, the plan
@@ -123,6 +137,12 @@ state needs no row, travels with a fork's copied checkpoint, and self-heals
 after a swallowed persist, because the next turn replays the spec back to what
 Postgres holds.
 
+**Letting VERIFY re-read the sentence for the operator.** VERIFY checks the
+built tree against the recorded constraint, so a wrong operator recorded at
+classification is one it confirms: the build that followed the recorded OR was
+verified against the same OR. The operator has to be right where the
+constraint is recorded, and the check there is the message's own connective.
+
 **Recording hand-edited parameter names at the canvas commit.** It needs a
 column the API process writes and the worker clears, and it misses operators,
 searches and every other writer that is not the canvas.
@@ -163,5 +183,9 @@ a resumed turn like any other.
 `services/strategies/site_changes.py`,
 `domain/strategy/spec_hydration.py::spec_stating_the_live_tree`,
 `ai/lead/edit_dispatch.py`,
+`domain/strategy/constraints.py::read_combination`,
+`ai/lead/intent.py::unstated_operator_refusal`,
+`tests/unit/domain/strategy/test_combination_operator_is_stated.py`,
+`tests/unit/ai/lead/test_classifier_reads_the_stated_operator.py`,
 `tests/unit/ai/lead/test_the_strategy_answers_to_a_spec.py`,
 `tests/unit/ai/lead/test_a_site_edit_and_the_next_edit.py`.

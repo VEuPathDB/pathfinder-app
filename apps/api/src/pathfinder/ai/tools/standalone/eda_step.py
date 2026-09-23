@@ -19,7 +19,7 @@ from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._eda_step_guard import (
     compared_groups,
-    refuse_an_empty_gene_subset,
+    refuse_a_direction_without_a_volcano,
 )
 from pathfinder.ai.tools.standalone._eda_step_spec import (
     restate_the_structure,
@@ -53,6 +53,10 @@ from pathfinder.services.eda.binding import (
 )
 from pathfinder.services.eda.compute import NoComputationError, VolcanoThresholds
 from pathfinder.services.eda.direction import selection_sentence
+from pathfinder.services.eda.gene_subset import (
+    NoGeneSubsetError,
+    refuse_a_subset_that_selects_no_genes,
+)
 from pathfinder.services.eda.steps import EdaStepPlan, eda_step_node
 from pathfinder.services.strategies.commit import (
     CommitResult,
@@ -81,17 +85,24 @@ class EdaStepCreated(EdaExport):
 
 
 def _thresholds(
+    analysis: EdaAnalysisDetail,
     effect_size_threshold: float | None,
     significance_threshold: float | None,
-    effect_direction: EdaEffectDirection,
+    effect_direction: EdaEffectDirection | None,
 ) -> VolcanoThresholds | None:
     """The volcano cut this call names, or None for the subset export."""
+    has_thresholds = (
+        effect_size_threshold is not None and significance_threshold is not None
+    )
+    refuse_a_direction_without_a_volcano(
+        analysis, effect_direction=effect_direction, has_thresholds=has_thresholds
+    )
     if effect_size_threshold is None or significance_threshold is None:
         return None
     return VolcanoThresholds(
         effect_size_threshold=effect_size_threshold,
         significance_threshold=significance_threshold,
-        effect_direction=effect_direction,
+        effect_direction=effect_direction or "upAndDown",
     )
 
 
@@ -120,6 +131,7 @@ def _strategy_context(
         stated_structure=None if spec is None else spec.structure,
         criterion_texts={} if spec is None else criterion_texts(spec),
         stated_values={} if spec is None else spec_stated_values(spec),
+        user_prompt=ctx.deps.state.user_prompt,
     )
 
 
@@ -202,6 +214,13 @@ async def _planned_export(
 ) -> EdaStepPlan:
     """The step the analysis exports, once it is known to hold genes."""
     try:
+        if thresholds is None:
+            await refuse_a_subset_that_selects_no_genes(
+                binding.site_id, dataset_id=binding.dataset_id, analysis=analysis
+            )
+    except NoGeneSubsetError as exc:
+        raise ModelRetry(exc.message) from exc
+    try:
         plan = eda_step_node(
             analysis,
             dataset_id=binding.dataset_id,
@@ -214,10 +233,6 @@ async def _planned_export(
             f"then export the genes that pass its thresholds."
         )
         raise ModelRetry(msg) from exc
-    if not plan.is_compute_backed:
-        await refuse_an_empty_gene_subset(
-            binding.site_id, dataset_id=binding.dataset_id, analysis=analysis
-        )
     return plan
 
 
@@ -231,7 +246,7 @@ async def create_eda_step(
     combine_with_root: CombineOp | None = None,
     effect_size_threshold: float | None = None,
     significance_threshold: float | None = None,
-    effect_direction: EdaEffectDirection = "upAndDown",
+    effect_direction: EdaEffectDirection | None = None,
     caption: str = "",
 ) -> ToolReturn[EdaStepCreated | ToolErrorPayload]:
     """Export the open EDA analysis into the researcher's strategy as a step.
@@ -243,7 +258,9 @@ async def create_eda_step(
     Two exports, and the arguments decide which:
 
     - The SUBSET's genes: call with no thresholds. Every gene in the filtered
-      subset becomes a step.
+      subset becomes a step. The subset needs a filter on the gene entity
+      (``has_gene_id`` in describe_eda_study); a subset of samples selects no
+      gene and is refused.
     - The genes passing a VOLCANO's thresholds: pass ``effect_size_threshold``
       AND ``significance_threshold``. The compute must already be complete -
       call run_eda_compute first and read its summary, so you know how many
@@ -251,7 +268,8 @@ async def create_eda_step(
       its group: a positive effect size is higher in group B (the comparison
       group) than in group A (the reference). ``upOnly`` keeps the genes
       higher in group B, ``downOnly`` the genes higher in group A, and
-      ``upAndDown`` both. The step is named by the genes it keeps, and the
+      ``upAndDown`` (the default) both. A direction without both thresholds,
+      or on an analysis with no computation, is refused. The step is named by the genes it keeps, and the
       result's ``selection`` says it in the groups' labels: repeat it.
 
     A gene passes when the absolute effect size is at or above
@@ -310,8 +328,9 @@ async def create_eda_step(
     _checked_thresholds(effect_size_threshold, significance_threshold)
 
     analysis = await read_analysis(binding.site_id, analysis_id=binding.analysis_id)
+    direction: EdaEffectDirection = effect_direction or "upAndDown"
     thresholds = _thresholds(
-        effect_size_threshold, significance_threshold, effect_direction
+        analysis, effect_size_threshold, significance_threshold, effect_direction
     )
     plan = await _planned_export(
         binding, analysis, thresholds=thresholds, search_name=search_name
@@ -381,7 +400,7 @@ async def create_eda_step(
         is_compute_backed=is_compute_backed,
         effect_size_threshold=effect_size_threshold,
         significance_threshold=significance_threshold,
-        effect_direction=effect_direction if is_compute_backed else None,
+        effect_direction=direction if is_compute_backed else None,
         wdk_strategy_id=wdk_strategy_id,
         wdk_url=sync.wdk_url if sync is not None else None,
         guidance=_guidance(wdk_strategy_id, is_compute_backed=is_compute_backed),
@@ -394,7 +413,7 @@ async def create_eda_step(
             if comparison is None
             else selection_sentence(
                 comparison,
-                effect_direction,
+                direction,
                 count=None if sync is None else sync.counts.get(node.id),
             )
         ),

@@ -57,6 +57,9 @@ class ExpectedOutcome(CamelModel):
     ``builds_strategy`` accepts a build and a turn that builds nothing.
     ``reply_names_its_searches`` holds a built strategy's reply to the title
     of every search step, and a turn that built nothing to a question.
+    ``root_operator`` is the root combine's operator, matched exactly, and
+    ``final_count_below_every_input`` holds the root's count strictly below
+    every search step's count.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -72,6 +75,8 @@ class ExpectedOutcome(CamelModel):
     reply_omits: list[str] = Field(default_factory=list)
     reply_names_its_searches: bool = False
     step_titles_omit: list[str] = Field(default_factory=list)
+    root_operator: str | None = None
+    final_count_below_every_input: bool | None = None
 
 
 class EvalCase(CamelModel):

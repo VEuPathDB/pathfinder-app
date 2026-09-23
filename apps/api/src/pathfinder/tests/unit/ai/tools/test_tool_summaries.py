@@ -38,12 +38,13 @@ from pathfinder.tests.unit.ai.tools.conftest import summary_chunks
 
 _SUMMARY_BUILDERS = frozenset({"with_summary", "summary_chunks"})
 
-# A sub-agent dispatch's native tool chunks never reach the wire; its line
-# rides the data-sub-agent-call payload, so a summary naming its call would
-# patch nothing.
+# A sub-agent dispatch's line rides the data-sub-agent-call payload, so a
+# summary naming its call would patch nothing. An accepted proposal is an edit
+# dispatch drawn the same way.
 _SUB_AGENT_DISPATCH_MODULES = frozenset(
     {
         "pathfinder.ai.lead.frame_dispatch",
+        "pathfinder.ai.lead.lead_proposal",
         "pathfinder.ai.lead.sub_agent_dispatch",
         "pathfinder.ai.lead.verify_dispatch",
         "pathfinder.ai.lead.edit_dispatch",

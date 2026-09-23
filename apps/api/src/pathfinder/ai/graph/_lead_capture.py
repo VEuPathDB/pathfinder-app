@@ -104,6 +104,8 @@ class _LeadRunCapture:
     pending_approval: PendingApproval | None = None
     pending_durable_call: PendingDurableCall | None = None
     parked_call_answered: bool = False
+    # The researcher declined the proposal card, so the turn writes no reply.
+    proposal_declined: bool = False
     prose_already_streamed: bool = False
 
     def note_model_output(

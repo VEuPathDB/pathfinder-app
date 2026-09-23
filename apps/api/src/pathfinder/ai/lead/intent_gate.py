@@ -17,6 +17,7 @@ from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import BUILDING_INTENTS, IntentClassification
 from pathfinder.ai.lead.ledger import InvestigationLedger
+from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 
 # The tools that write: they frame, materialize, patch or check a strategy, or
@@ -37,12 +38,14 @@ BUILDING_TOOLS: frozenset[str] = frozenset(
 
 # What a turn reaches before it says what the message asks: the classification
 # itself, the two reads of what the thread holds, the gene record read, the two
-# research reads, both ways to keep something the user names, and the
-# enrichment and the export of a gene set the workbench already holds. Every
-# other tool waits for the classification.
+# research reads, both ways to keep something the user names, the enrichment and
+# the export of a gene set the workbench already holds, and the proposal card,
+# which a typed yes accepts before any classification. Every other tool waits
+# for the classification.
 UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
     {
         "classify_user_intent",
+        PROPOSAL_TOOL,
         "read_ledger_section",
         "get_live_strategy_state",
         "read_gene_record",
@@ -85,12 +88,18 @@ def turn_is_off_topic(deps: LeadDeps) -> bool:
 
 
 def turn_builds(deps: LeadDeps) -> bool:
-    """Whether the intent governing this turn asks for a build."""
+    """Whether the intent governing this turn asks for a build.
+
+    A researcher who accepts a proposal asks for the work the card names.
+    """
     intent = deps.intent
     return (
         turn_is_classified(deps)
         and intent is not None
-        and intent.classification in BUILDING_INTENTS
+        and (
+            intent.classification in BUILDING_INTENTS
+            or deps.state.turn_markers.accepted_proposal
+        )
     )
 
 

@@ -1,13 +1,15 @@
 """What the Lead is told when a dispatch cannot proceed.
 
 Pure renderings of an ``OperationalSpec`` that a run ran out of budget on, that
-is not ready to build, or whose account of an edit does not match what changed.
+a new pass continues, that is not ready to build, or whose account of an edit
+does not match what changed.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
+from enum import StrEnum
 
 from veupathdb.domain.parameters import to_wire
 
@@ -48,45 +50,134 @@ def frame_result_from_draft(spec: OperationalSpec | None) -> FrameResult:
     )
 
 
-def frame_continuation_work_order(spec: OperationalSpec | None, prompt: str) -> str:
-    """The work order for the pass that continues one stopped by its budget.
+class ContinuationReason(StrEnum):
+    """Why a FRAME pass continues a draft instead of framing afresh."""
 
-    The bound criteria are printed so the second pass spends its calls on the
-    rest instead of paying again for what the first pass bound.
+    BUDGET_STOP = "the previous pass ran out of its tool budget"
+    ANSWERED_QUESTION = (
+        "the previous pass ended with a question the researcher has now answered"
+    )
+    EARLIER_TURN = (
+        "an earlier turn bound the criteria below and no strategy is built from "
+        "them yet"
+    )
+
+
+def frame_continuation_work_order(
+    spec: OperationalSpec | None,
+    prompt: str,
+    reason: ContinuationReason,
+    *,
+    answered: Sequence[OpenQuestion] = (),
+    message: str = "",
+    brief: str = "",
+) -> str:
+    """The work order for a pass that continues a draft an earlier pass bound.
+
+    The bound criteria are printed so the pass spends its calls on the rest
+    instead of paying again for what the earlier pass bound. A pass opened by
+    a new user message also reads the questions that message answers.
     """
+    if reason is not ContinuationReason.BUDGET_STOP:
+        return _resumed_work_order(spec, prompt, reason, answered, message, brief)
     criteria = spec.criteria if spec is not None else []
     bound = [c for c in criteria if c.bound]
-    unbound = [c for c in criteria if not c.bound]
     lines = [
-        (
-            "FRAME work order: the previous pass ran out of its tool budget. "
-            "Continue it; this is not a fresh frame."
-        ),
+        _continuation_heading(reason),
         f"User's goal: {prompt}",
         "",
         (
             f"{len(bound)} criteria are bound already and stay exactly as they are. "
             "Do NOT call set_criterion for any of them:"
         ),
-        *(
-            f"- [{c.id}] {c.text[:80]} -> {c.search_name or '(saved strategy)'}"
-            for c in bound
+        *_bound_lines(bound),
+        *_unbound_lines(criteria),
+        "",
+        (
+            "Bind what the goal states and the lists above do not cover, set "
+            "the structure over every criterion, and return a FrameResult."
         ),
     ]
-    if unbound:
+    return "\n".join(lines)
+
+
+def _continuation_heading(reason: ContinuationReason) -> str:
+    return f"FRAME work order: {reason.value}. Continue it; this is not a fresh frame."
+
+
+def _bound_lines(bound: Sequence[Criterion]) -> list[str]:
+    return [
+        f"- [{c.id}] {c.text[:80]} -> {c.search_name or '(saved strategy)'}"
+        for c in bound
+    ]
+
+
+def _unbound_lines(criteria: Sequence[Criterion]) -> list[str]:
+    unbound = [c for c in criteria if not c.bound]
+    if not unbound:
+        return []
+    return [
+        "",
+        "These criteria are recorded and still need a search:",
+        *(f"- [{c.id}] {c.text[:80]}" for c in unbound),
+    ]
+
+
+def _resumed_work_order(
+    spec: OperationalSpec | None,
+    goal: str,
+    reason: ContinuationReason,
+    answered: Sequence[OpenQuestion],
+    message: str,
+    brief: str,
+) -> str:
+    """The continuation a new user message opens over a draft still unbuilt.
+
+    Only the criteria the message concerns move, so a criterion bound and not
+    named costs the pass no search and no binding.
+    """
+    criteria = spec.criteria if spec is not None else []
+    done = [c for c in criteria if c.bound and not c.open_params]
+    waiting = [c for c in criteria if c.bound and c.open_params]
+    said = "answer" if reason is ContinuationReason.ANSWERED_QUESTION else "message"
+    lines = [
+        _continuation_heading(reason),
+        f"User's goal: {goal}",
+        "",
+        (
+            f"{len(done)} criteria are bound already. Do NOT call "
+            "search_for_searches or set_criterion for any of them unless the "
+            f"{said} below names it:"
+        ),
+        *_bound_lines(done),
+    ]
+    if waiting:
         lines.extend(
             [
                 "",
-                "These criteria are recorded and still need a search:",
-                *(f"- [{c.id}] {c.text[:80]}" for c in unbound),
+                f"These criteria hold open parameters the {said} may decide:",
+                *(
+                    f"- [{c.id}] {c.text[:80]} -> {c.search_name} (open: "
+                    f"{', '.join(slot.param_name for slot in c.open_params)})"
+                    for c in waiting
+                ),
             ],
         )
+    lines.extend(_unbound_lines(criteria))
+    lines.append("")
+    lines.extend(f"Question asked: {q.question}" for q in answered)
+    label = "Answer" if said == "answer" else "The user's message"
+    lines.append(f"{label}: {message}")
+    if brief:
+        lines.append(f"The Lead's brief: {brief}")
     lines.extend(
         [
             "",
             (
-                "Bind what the goal states and the lists above do not cover, set "
-                "the structure over every criterion, and return a FrameResult."
+                f"Resolve the {said} by binding or dropping ONLY the criteria it "
+                "concerns. Every other bound criterion stays exactly as it is: "
+                'state "kept" for it in `changes`. Set the structure over every '
+                "criterion and return a FrameResult."
             ),
         ],
     )

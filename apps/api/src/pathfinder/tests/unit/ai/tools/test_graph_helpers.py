@@ -5,6 +5,9 @@ The rest of a mid-edit canvas travels in ``detached_roots``.
 
 from __future__ import annotations
 
+from assistant_core.persistence.repositories.conversation import (
+    DEFAULT_CONVERSATION_NAME,
+)
 from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
 
 from pathfinder.ai.tools.standalone.graph_helpers import (
@@ -99,6 +102,23 @@ class TestTheContextPayloadUsesThatRule:
         payload = build_context_strategy_ast(session, graph)
         assert payload is not None
         assert payload.strategy_ast.root.id == "a"
+
+    def test_a_graph_with_no_name_yet_keeps_it(self) -> None:
+        """Only a push names a graph that has no name yet."""
+        graph = StrategyGraph("g1", DEFAULT_CONVERSATION_NAME, "plasmodb")
+        graph.record_type = "transcript"
+        add_step_to_graph(graph, _leaf("a"))
+        session = StrategySession("plasmodb")
+        session.add_graph(graph)
+        session.sync_state = WDKSyncState()
+
+        payload = build_context_strategy_ast(session, graph)
+
+        assert payload is not None
+        assert (payload.name, graph.name) == (
+            DEFAULT_CONVERSATION_NAME,
+            DEFAULT_CONVERSATION_NAME,
+        )
 
 
 def test_a_step_wdk_refused_reports_no_estimated_size() -> None:

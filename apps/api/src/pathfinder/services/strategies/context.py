@@ -43,6 +43,8 @@ class StrategyMutationContext:
     A write that sends another value for one of them is refused, wherever the
     value rides: a parameter patch or a leaf inside a written tree.
     """
+    user_prompt: str = ""
+    """The researcher's request this turn. A strategy with no name yet takes it."""
     locked_session: AsyncSession | None = None
     """A session that already owns the thread's strategy lock.
 

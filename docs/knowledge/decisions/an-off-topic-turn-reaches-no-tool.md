@@ -39,7 +39,10 @@ what the Lead's own run may spend in one turn, enforced by pydantic-ai through
 the `UsageLimits` each turn builds. It does not cover a sub-agent pass: FRAME,
 BUILD and VERIFY each run with a `RunUsage` of their own under
 `phase_usage_limits`, and their tokens reach the turn total through
-`_lead_capture`, not through this ceiling.
+`_lead_capture`, not through this ceiling. A turn that reaches it ends with
+`budget_stop_report`: the strategy it holds, the final step's title, count and
+site link from the ledger, the verification verdict and any open question FRAME
+recorded, and then the budget sentence.
 
 **An out-of-scope turn stops at 40000 tokens.** `off_topic_budget_stop` reads
 the `RunUsage` the turn handed the run, once per streamed event, and the turn

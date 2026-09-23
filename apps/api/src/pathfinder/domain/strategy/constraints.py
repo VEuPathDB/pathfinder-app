@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import itertools
 import re
+from collections import Counter
 from collections.abc import Sequence
 from enum import StrEnum
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from pydantic import Field
 from veupathdb.model import CamelModel
@@ -133,10 +135,9 @@ def _genus_abbreviated(value: str) -> str:
 def message_states_constraint(message: str, constraint: Constraint) -> bool:
     """Whether the message states the value this constraint carries.
 
-    A combination is written in a canonical form: the operator is the
-    classifier's and the terms are the user's, so the terms are what the
-    message must carry. An organism is written as the binomial, which the
-    message may carry with the genus abbreviated.
+    A combination is stated when the message carries its terms and joins them
+    with its operator: both are the user's. An organism is written as the
+    binomial, which the message may carry with the genus abbreviated.
     """
     value = constraint.requested_value
     if constraint.kind is ConstraintKind.ORGANISM:
@@ -150,7 +151,7 @@ def message_states_constraint(message: str, constraint: Constraint) -> bool:
     )
     if request is None:
         return message_states(message, value)
-    return all(message_states(message, term) for term in request.terms)
+    return combination_operator_is_stated(message, request)
 
 
 def standing_recommendations(
@@ -306,3 +307,192 @@ class CombinationRequest(CamelModel):
     def expression(self) -> str:
         """The combination as one line, in the user's own words."""
         return _SEPARATORS[self.operator].join(self.terms)
+
+
+_TOKEN_RE = re.compile(r"[a-z0-9]+", re.IGNORECASE)
+_AND_OR_RE = re.compile(r"\band\s*/\s*or\b", re.IGNORECASE)
+_UNION_RE = re.compile(r"\bunion\b", re.IGNORECASE)
+_INTERSECT_RE = re.compile(r"\bintersect(?:ion|s|ed)?\b", re.IGNORECASE)
+_JOINING_WORDS = frozenset({"with", "plus"})
+_AS_WELL_AS = "as well as"
+_EITHER = "either"
+_CLAUSE_BREAK_RE = re.compile(r"[,;:.!?]")
+
+# What a connective's own words state. "list" is a bare separator, which takes
+# the operator of the next conjunction in the list.
+_Stated = Literal["OR", "AND", "both", "list"]
+
+
+class Connective(CamelModel):
+    """The message text between two consecutive terms, and the operator it states.
+
+    ``operator`` is None when the text states both operators.
+    """
+
+    before: str
+    after: str
+    text: str
+    operator: CombinationOperator | None
+
+
+class CombinationReading(CamelModel):
+    """How the message itself joins a combination's terms, in message order.
+
+    ``named`` is the operator the message names as a set operation.
+    """
+
+    connectives: list[Connective]
+    named: CombinationOperator | None = None
+
+    def states(self, operator: CombinationOperator) -> bool:
+        if self.named is not None:
+            return self.named == operator
+        return all(c.operator == operator for c in self.connectives)
+
+    def departures(self, operator: CombinationOperator) -> list[Connective]:
+        """The connectives that do not state this operator."""
+        return [c for c in self.connectives if c.operator != operator]
+
+
+class _Span(NamedTuple):
+    term: str
+    start: int
+    end: int
+
+
+def _phrase(wanted: Sequence[str], words: Sequence[str]) -> tuple[int, int] | None:
+    """Where the term's words run in order in the message, first occurrence."""
+    width = len(wanted)
+    return next(
+        (
+            (left, left + width - 1)
+            for left in range(len(words) - width + 1)
+            if list(words[left : left + width]) == list(wanted)
+        ),
+        None,
+    )
+
+
+def _window(wanted: set[str], words: Sequence[str]) -> tuple[int, int] | None:
+    """The shortest run of message words that carries every word of the term."""
+    held: Counter[str] = Counter()
+    missing = len(wanted)
+    best: tuple[int, int] | None = None
+    left = 0
+    for right, word in enumerate(words):
+        if word in wanted:
+            held[word] += 1
+            missing -= held[word] == 1
+        while wanted and not missing:
+            if best is None or right - left < best[1] - best[0]:
+                best = (left, right)
+            dropped = words[left]
+            if dropped in wanted:
+                held[dropped] -= 1
+                missing += held[dropped] == 0
+            left += 1
+    return best
+
+
+def _span(term: str, tokens: Sequence[re.Match[str]]) -> _Span | None:
+    """Where the message carries the term: its phrase, else its words' shortest run."""
+    wanted = _words(term)
+    words = [token.group().casefold() for token in tokens]
+    found = _phrase(wanted, words) or _window(set(wanted), words)
+    if not wanted or found is None:
+        return None
+    return _Span(term, tokens[found[0]].start(), tokens[found[1]].end())
+
+
+def _between(message: str, first: _Span, second: _Span) -> tuple[str, list[str]]:
+    """The connective text and its words.
+
+    Two spans that share a phrase are joined by the words before the second
+    that are not the first term's own.
+    """
+    if second.start >= first.end:
+        text = message[first.end : second.start]
+        return text, _words(text)
+    text = message[first.start : second.start]
+    own = set(_words(first.term))
+    return text, [word for word in _words(text) if word not in own]
+
+
+def _stated_by(text: str, words: Sequence[str]) -> _Stated:
+    if _AND_OR_RE.search(text):
+        return "OR"
+    says_or, says_and = "or" in words, "and" in words
+    if says_or and says_and:
+        return "both"
+    if says_or:
+        return "OR"
+    if says_and or _JOINING_WORDS & set(words) or _AS_WELL_AS in " ".join(words):
+        return "AND"
+    return "list"
+
+
+def _named_operator(message: str) -> CombinationOperator | None:
+    union, intersect = _UNION_RE.search(message), _INTERSECT_RE.search(message)
+    if union and not intersect:
+        return "OR"
+    if intersect and not union:
+        return "AND"
+    return None
+
+
+def _resolved(
+    stated: Sequence[_Stated], default: CombinationOperator
+) -> list[CombinationOperator | None]:
+    """Each connective's operator, a bare separator taking the next conjunction's."""
+    following: CombinationOperator | None = default
+    resolved: list[CombinationOperator | None] = []
+    for own in reversed(stated):
+        match own:
+            case "OR" | "AND":
+                following = own
+            case "both":
+                following = None
+            case "list":
+                pass
+        resolved.append(following)
+    return resolved[::-1]
+
+
+def read_combination(
+    message: str, request: CombinationRequest
+) -> CombinationReading | None:
+    """How the message joins the request's terms, or None when a term is absent.
+
+    Each term is located by its words, and the connectives are read between
+    consecutive terms in message order. An "or" inside one term's span is an
+    alternative within that term, so it is never read as a connective.
+    """
+    tokens = list(_TOKEN_RE.finditer(message))
+    located = [_span(term, tokens) for term in request.terms]
+    spans = sorted(
+        (span for span in located if span is not None),
+        key=lambda span: (span.start, span.end),
+    )
+    if len(spans) != len(located):
+        return None
+    pairs = list(itertools.pairwise(spans))
+    between = [_between(message, first, second) for first, second in pairs]
+    clause = _CLAUSE_BREAK_RE.split(message[: spans[0].start])[-1]
+    opening = [*_words(clause), *_words(spans[0].term)[:1]]
+    default: CombinationOperator = "OR" if _EITHER in opening else "AND"
+    operators = _resolved([_stated_by(*joined) for joined in between], default)
+    return CombinationReading(
+        connectives=[
+            Connective(before=first.term, after=second.term, text=text, operator=op)
+            for (first, second), (text, _), op in zip(
+                pairs, between, operators, strict=True
+            )
+        ],
+        named=_named_operator(message),
+    )
+
+
+def combination_operator_is_stated(message: str, request: CombinationRequest) -> bool:
+    """Whether the message carries every term and joins them with this operator."""
+    reading = read_combination(message, request)
+    return reading is not None and reading.states(request.operator)

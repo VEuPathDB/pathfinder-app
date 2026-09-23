@@ -9,10 +9,12 @@ belongs to ``_lead_answers``, the durable park and its partition to
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 from uuid import UUID
 
 from assistant_core.graph import approvals
 from assistant_core.graph.durable import durable_tool_results
+from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.turn_state import (
     ParkedCall,
     PendingApproval,
@@ -28,13 +30,26 @@ from assistant_core.platform.logging import get_logger
 from langgraph.runtime import Runtime
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
-from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
+from pydantic_ai.tools import (
+    DeferredToolApprovalResult,
+    DeferredToolRequests,
+    DeferredToolResults,
+    ToolDenied,
+)
+from pydantic_ai.ui.vercel_ai.response_types import (
+    ToolInputAvailableChunk,
+    ToolInputStartChunk,
+    ToolOutputDeniedChunk,
+)
 
 from pathfinder.ai.graph._lead_answers import (
     answers_for,
+    is_pure_approval,
     sibling_answers,
+    typed_reply,
     unanswered_inner,
 )
+from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph._lead_durable import (
     enrichment_runs_answered,
     inner_durable_calls,
@@ -44,6 +59,7 @@ from pathfinder.ai.graph._lead_durable import (
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.dispatch_resume import SubAgentOutcome, resume_sub_agent
+from pathfinder.ai.lead.proposal import PROPOSAL_TOOL, DeclinedProposal
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import WIRE_PHASE_BY_ROLE, LeadDeps
 from pathfinder.domain.memory import MEMORY_KINDS, STANDING_MEMORY_KINDS
@@ -135,13 +151,109 @@ def pending_approval(
 class TurnResumption:
     """What the Lead's run re-enters: the parked call it answers, the results
     that answer it, the message to deliver with them, or a further call to
-    wait on."""
+    wait on. A declined proposal re-enters nothing: the turn ends as it stood."""
 
     parked: ParkedCall | None = None
     results: DeferredToolResults | None = None
     still_pending: PendingApproval | None = None
     still_durable: PendingDurableCall | None = None
     user_prompt: str | None = None
+    declined: DeclinedProposal | None = None
+
+
+_DECLINED_BY_REPLY = "The researcher sent a new message instead of answering the card."
+
+
+def _declined(deps: LeadDeps, approval: PendingApproval, note: str) -> DeclinedProposal:
+    """Record the card the researcher declined, so a later yes asks again."""
+    declined = DeclinedProposal.model_validate({**approval.tool_args, "note": note})
+    deps.state.domain.declined_proposal = declined
+    return declined
+
+
+def _resolve_proposal(
+    state: PipelineState,
+    deps: LeadDeps,
+    approval: PendingApproval,
+) -> TurnResumption:
+    """A yes runs the card's edit, and a no ends the turn with no model call.
+
+    A typed approval phrase is a yes. Any other typed message declines the card
+    and is delivered to the Lead as the researcher's next message.
+    """
+    answer: bool | DeferredToolApprovalResult | None = answers_for(
+        state, [approval.tool_call_id]
+    ).get(approval.tool_call_id)
+    typed = typed_reply(state)
+    if answer is None and typed is not None and is_pure_approval(typed):
+        answer = True
+    if answer is True:
+        return TurnResumption(
+            parked=approval,
+            results=DeferredToolResults(approvals={approval.tool_call_id: True}),
+        )
+    if answer is not None:
+        response = state.approval_responses[approval.tool_call_id]
+        return TurnResumption(
+            parked=approval,
+            declined=_declined(deps, approval, response.reason or ""),
+        )
+    if typed is None:
+        return TurnResumption(parked=approval, still_pending=approval)
+    _declined(deps, approval, "")
+    denial: DeferredToolApprovalResult = ToolDenied(message=_DECLINED_BY_REPLY)
+    return TurnResumption(
+        parked=approval,
+        results=DeferredToolResults(approvals={approval.tool_call_id: denial}),
+        user_prompt=typed,
+    )
+
+
+def turn_ends_before_the_run(
+    resumption: TurnResumption,
+    capture: _LeadRunCapture,
+    writer: Any,
+) -> bool:
+    """Whether the answer leaves the Lead's run nothing to do.
+
+    A declined proposal ends the turn as it stood. A sub-agent that stopped
+    again leaves the Lead's run untouched, so the turn ends on the new call.
+    """
+    if resumption.declined is not None:
+        _close_declined_card(resumption, capture, writer)
+        return True
+    if resumption.still_pending is None and resumption.still_durable is None:
+        return False
+    capture.pending_approval = resumption.still_pending
+    capture.pending_durable_call = resumption.still_durable
+    return True
+
+
+def _close_declined_card(
+    resumption: TurnResumption,
+    capture: _LeadRunCapture,
+    writer: Any,
+) -> None:
+    """Close the card as denied with no model call.
+
+    The reply already on screen stays the turn's reply, so the turn leaves its
+    answer and its questions as they stood.
+    """
+    if resumption.parked is None:
+        return
+    hint = approvals.deferred_hint(resumption.parked)
+    for chunk in (
+        ToolInputStartChunk(tool_call_id=hint.tool_call_id, tool_name=hint.tool_name),
+        ToolInputAvailableChunk(
+            tool_call_id=hint.tool_call_id,
+            tool_name=hint.tool_name,
+            input=hint.tool_args,
+        ),
+        ToolOutputDeniedChunk(tool_call_id=hint.tool_call_id),
+    ):
+        emit_chunk(writer, chunk)
+    capture.parked_call_answered = True
+    capture.proposal_declined = True
 
 
 def _reparked(
@@ -226,6 +338,23 @@ async def _resume_durable_call(
     )
 
 
+def _resolve_own_approval(
+    state: PipelineState,
+    deps: LeadDeps,
+    approval: PendingApproval,
+) -> TurnResumption:
+    """The answer to a call the Lead parked itself: a proposal card or another."""
+    if approval.tool_name == PROPOSAL_TOOL:
+        return _resolve_proposal(state, deps, approval)
+    answers = answers_for(state, [approval.tool_call_id])
+    if not answers:
+        return TurnResumption(parked=approval)
+    return TurnResumption(
+        parked=approval,
+        results=DeferredToolResults(approvals=answers),
+    )
+
+
 async def _resolve_pending_approval(
     *,
     state: PipelineState,
@@ -241,13 +370,7 @@ async def _resolve_pending_approval(
         return TurnResumption()
     sub_agent = approval.sub_agent
     if sub_agent is None:
-        answers = answers_for(state, [approval.tool_call_id])
-        if not answers:
-            return TurnResumption(parked=approval)
-        return TurnResumption(
-            parked=approval,
-            results=DeferredToolResults(approvals=answers),
-        )
+        return _resolve_own_approval(state, deps, approval)
     inner_ids = [call.tool_call_id for call in sub_agent.approvals]
     answers = answers_for(state, inner_ids)
     prompt: str | None = None

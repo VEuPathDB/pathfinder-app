@@ -63,16 +63,28 @@ def new_analysis(
     )
 
 
+class EmptyAnalysisError(ValidationError):
+    """The analysis holds no filter and no computation, so no step carries it."""
+
+    def __init__(self, dataset_id: str) -> None:
+        super().__init__(
+            title="Empty analysis",
+            detail=(
+                f"The analysis on dataset {dataset_id} holds no filter and no "
+                f"computation, so it selects no genes and exports no step."
+            ),
+        )
+
+
 def serialize_spec(analysis: EdaNewAnalysis) -> str:
     """The ``eda_analysis_spec`` parameter value for this analysis.
 
-    An analysis with no filters and no computation serializes to the empty
-    string: the plugin synthesizes a full empty descriptor, and the literal
-    ``{}`` is not what it expects.
+    An empty spec selects nothing, so an analysis with no filter and no
+    computation is refused.
     """
     descriptor = analysis.descriptor
     if not descriptor.subset.descriptor and not descriptor.computations:
-        return ""
+        raise EmptyAnalysisError(analysis.study_id)
     return analysis.model_dump_json(by_alias=True, exclude_none=True)
 
 
@@ -82,6 +94,7 @@ class SubsetPreview:
 
     entity_id: str
     entity_display_name: str
+    entity_display_name_plural: str
     count: int
     unfiltered_count: int
     distribution: EdaDistributionResponse | None
@@ -274,6 +287,7 @@ async def preview_subset(
     return SubsetPreview(
         entity_id=entity_id,
         entity_display_name=entity.display_name,
+        entity_display_name_plural=entity.display_name_plural,
         count=filtered,
         unfiltered_count=unfiltered,
         distribution=distribution,

@@ -26,6 +26,7 @@ from pathfinder.ai.lead.contract_messages import (
     off_topic_essay_message,
     unfinished_work_message,
     unnamed_search_message,
+    unrecorded_offer_message,
     unrecorded_question_message,
     unreported_change_message,
     unretrieved_source_message,
@@ -40,11 +41,14 @@ from pathfinder.ai.lead.intent_gate import (
 from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.ledger_sections import BuildSection
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.reply_claims import (
     CLAIMED_A_FRAME,
     SAVED_A_CONTROL_SET,
     SAVED_A_GENE_SET,
+    CitedSource,
     claims,
+    ends_with_a_question,
     machine_words,
     names_the_phrase,
     normalized_reference,
@@ -66,32 +70,15 @@ OFF_TOPIC_REPLY_MAX_CHARS = 400
 _CODE_FENCE = "```"
 
 CONTRACT_HEADING = "This reply does not match what the turn did:"
+PROSE_MAX_CHARS = 4000
 
 # The tools the Lead calls to do the turn's work. ``build_strategy`` runs no
-# sub-agent and is refused the same way the dispatches are.
-DISPATCH_TOOLS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {"build_strategy"}
-
-
-class CitedSource(CamelModel):
-    """One reference a reply names, and where this turn read it."""
-
-    model_config = ConfigDict(frozen=True)
-
-    kind: Literal["record", "literature", "web"]
-    label: str = Field(
-        max_length=200,
-        description=(
-            "What the reader sees: the gene id and the site for a record, the "
-            "title for a paper or a page."
-        ),
-    )
-    url: str | None = None
-    doi: str | None = None
-    pmid: str | None = None
-
-    def references(self) -> list[str]:
-        """Every identifier this source is checked by."""
-        return [value for value in (self.url, self.doi, self.pmid) if value]
+# sub-agent, and an accepted proposal runs an edit; both are refused the same
+# way the dispatches are.
+DISPATCH_TOOLS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {
+    "build_strategy",
+    PROPOSAL_TOOL,
+}
 
 
 class LeadResponse(CamelModel):
@@ -104,7 +91,7 @@ class LeadResponse(CamelModel):
     """
 
     prose: str = Field(
-        max_length=4000,
+        max_length=PROSE_MAX_CHARS,
         description=(
             "User-facing reply for this turn. Plain markdown. Do NOT "
             "include sub-agent log noise - synthesize from the Ledger."
@@ -172,6 +159,9 @@ class TurnRecord(CamelModel):
     created_control_sets: tuple[CreatedControlSet, ...]
     created_gene_sets: tuple[CreatedGeneSet, ...]
     added_searches: tuple[AddedSearch, ...] = ()
+    answered_a_card: bool = False
+    # The reply is the text beside a card, and the card asks its question.
+    ends_on_a_card: bool = False
 
 
 MismatchKind = Literal[
@@ -275,6 +265,7 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         created_control_sets=tuple(markers.created_control_sets),
         created_gene_sets=tuple(markers.created_gene_sets),
         added_searches=tuple(markers.added_searches),
+        answered_a_card=markers.consulted or markers.accepted_proposal,
     )
 
 
@@ -336,21 +327,28 @@ def _blamed_the_site(report: LeadResponse, record: TurnRecord) -> str | None:
 
 
 def _unrecorded_question(report: LeadResponse, record: TurnRecord) -> str | None:
-    """The next turn binds what the reply recorded, not what its prose asks."""
-    if not record.framed or report.next_state != "await_user":
+    """The next turn binds what the reply recorded, not what its prose asks.
+
+    A reply that ends on a question is an offer whatever the turn did, so it
+    stands only beside a recorded question or a card the researcher answered.
+    """
+    if report.asked_questions or record.answered_a_card or record.ends_on_a_card:
         return None
-    if report.asked_questions or "?" not in report.prose:
-        return None
-    return unrecorded_question_message()
+    if ends_with_a_question(report.prose):
+        return unrecorded_offer_message()
+    if record.framed and report.next_state == "await_user" and "?" in report.prose:
+        return unrecorded_question_message()
+    return None
 
 
 def _unfinished_work(report: LeadResponse, record: TurnRecord) -> str | None:
     """A turn whose work did not run ends by asking the user, not by promising.
 
     The state the reply claims decides nothing: work that did not run is undone
-    whether the reply waits on the user or calls the turn resolved.
+    whether the reply waits on the user or calls the turn resolved. A card is a
+    question to the user.
     """
-    if record.changed_strategy or report.asked_questions:
+    if record.changed_strategy or report.asked_questions or record.ends_on_a_card:
         return None
     if not record.refused_dispatches and record.last_phase_stop is None:
         return None
@@ -381,9 +379,12 @@ def _work_did_not_run(record: TurnRecord) -> bool:
 
 
 def _substituted_analysis(report: LeadResponse, record: TurnRecord) -> str | None:
-    """An analysis reached around a failure is reported under its own set."""
+    """An analysis reached around a failure is reported under its own set.
+
+    The text beside a card has no ``analysed_gene_set_ids`` to list the set in.
+    """
     analysed = record.analysed
-    if analysed is None or not record.substituted:
+    if analysed is None or not record.substituted or record.ends_on_a_card:
         return None
     if analysed.gene_set_id in report.analysed_gene_set_ids:
         return None
@@ -472,6 +473,9 @@ def hold_the_turn_contract(
     if not mismatches:
         return output
     markers.contract_refused = True
-    raise ModelRetry(
-        "\n\n".join([CONTRACT_HEADING, *(m.sentence for m in mismatches)]),
-    )
+    raise ModelRetry(correction_for(mismatches))
+
+
+def correction_for(mismatches: Sequence[Mismatch]) -> str:
+    """The one correction that lists every mismatch under one heading."""
+    return "\n\n".join([CONTRACT_HEADING, *(m.sentence for m in mismatches)])

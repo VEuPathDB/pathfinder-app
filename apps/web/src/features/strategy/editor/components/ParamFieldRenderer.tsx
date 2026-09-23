@@ -16,6 +16,7 @@ import { TreeBoxParam } from "../widgets/TreeBoxParam";
 import { TypeAheadParam } from "../widgets/TypeAheadParam";
 import { FilterParam } from "../widgets/FilterParam";
 import { DatasetParam } from "../widgets/DatasetParam";
+import { EdaSpecParam } from "../widgets/EdaSpecParam";
 import type { ParamWidgetProps } from "../widgets/types";
 import type { StepEditorState } from "../useStepEditorState";
 import type { ParamFormValues } from "../hooks/useParamForm";
@@ -165,6 +166,8 @@ function WidgetRenderer({
       return <FilterParam {...widgetProps} />;
     case "dataset":
       return <DatasetParam {...widgetProps} />;
+    case "eda-spec":
+      return <EdaSpecParam {...widgetProps} />;
     case "string":
     default:
       return <StringParam {...widgetProps} />;

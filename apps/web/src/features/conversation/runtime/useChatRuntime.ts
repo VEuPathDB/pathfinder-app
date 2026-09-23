@@ -24,6 +24,7 @@ import { refetchStrategy, strategyQueryOptions } from "@/lib/api/strategy";
 import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
 import { listScratchpadNotesQueryOptions } from "@pathfinder/shared/generated/hooks/useListScratchpadNotes";
 import { handleWdkAuthRefusal } from "@/state/useAuthGateStore";
+import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 import { useRightRailStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
 import { useSettingsStore } from "@/state/useSettingsStore";
@@ -87,10 +88,12 @@ export function useChatRuntime({
       prepareSendMessagesRequest: async ({ id, messages, trigger, body }) => {
         const siteId = useSessionStore.getState().selectedSite;
         const { phaseModels, phaseReasoning } = useSettingsStore.getState();
+        useFirstMessageStore.getState().rememberFirstMessage(conversationId, messages);
         const begun = await beginConversation(conversationId, {
           siteId,
           ...(assistantId !== undefined && { assistantId }),
         });
+        if (begun.isNew) invalidateConversationList();
         return {
           body: buildChatRequestBody({
             conversationId,

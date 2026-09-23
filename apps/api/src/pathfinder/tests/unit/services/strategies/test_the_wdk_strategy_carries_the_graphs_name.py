@@ -7,6 +7,9 @@ WDK did not take is sent again by the next push.
 from __future__ import annotations
 
 import pytest
+from assistant_core.persistence.repositories.conversation import (
+    DEFAULT_CONVERSATION_NAME,
+)
 from veupathdb.wdk import build_wdk_step_tree
 
 from pathfinder.domain.strategy.operations import UpdateStrategyMetaOp
@@ -110,6 +113,58 @@ async def test_a_created_strategy_records_its_name(
         "Kinase hunt"
     ]
     assert state.wdk_strategy_name == "Kinase hunt"
+
+
+class TestTheFirstPush:
+    """A graph with no name yet is created under the researcher's request."""
+
+    async def _create(
+        self, monkeypatch: pytest.MonkeyPatch, graph_name: str, user_prompt: str
+    ) -> tuple[list[object], str]:
+        api = StubAPI()
+        monkeypatch.setattr(sync, "get_strategy_api", lambda _site: api)
+        root = combine("step_join", leaf("step_a"), leaf("step_b"))
+        session = session_with(root, _IDS)
+        assert session.graph is not None
+        session.graph.name = graph_name
+        for step in session.graph.steps.values():
+            step.record_class = "transcript"
+        await sync.sync_strategy_for_site(
+            graph=session.graph,
+            sync_state=WDKSyncState(wdk_step_ids=dict(_IDS)),
+            site_id="plasmodb",
+            user_prompt=user_prompt,
+        )
+        created = [call.kwargs["name"] for call in api.named("create_strategy")]
+        return created, session.graph.name
+
+    async def test_a_graph_with_no_name_takes_the_request(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        created, graph_name = await self._create(
+            monkeypatch, DEFAULT_CONVERSATION_NAME, "find kinases\n in P. falciparum"
+        )
+
+        assert (created, graph_name) == (
+            ["find kinases in P. falciparum"],
+            "find kinases in P. falciparum",
+        )
+
+    async def test_a_graph_with_a_name_keeps_it(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        created, graph_name = await self._create(
+            monkeypatch, "Kinase hunt", "find kinases in P. falciparum"
+        )
+
+        assert (created, graph_name) == (["Kinase hunt"], "Kinase hunt")
+
+    async def test_no_request_leaves_the_placeholder(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        created, _ = await self._create(monkeypatch, DEFAULT_CONVERSATION_NAME, "")
+
+        assert created == [DEFAULT_CONVERSATION_NAME]
 
 
 async def test_a_renamed_strategy_sends_the_name_without_a_tree(

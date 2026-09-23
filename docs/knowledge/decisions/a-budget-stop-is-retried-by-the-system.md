@@ -4,7 +4,7 @@ title: A budget stop is retried by the system, not the user
 description: A FRAME pass that exhausts its call budget after binding at least one new criterion is dispatched again once per turn with a continuation work order, and the stop reaches the Lead as a typed PhaseStop it renders in the ledger. Reporting the stop to the Lead alone, retrying every stop, and retrying without a bound was rejected.
 tags: [agents, lead, frame, budget, ergonomics]
 generated: { by: claude-code/opus-5, at: 2026-09-01T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-01T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
 status: stable
 ---
 
@@ -30,7 +30,11 @@ with a continuation work order that prints what is bound and asks only for the
 rest, sized by the same `criteria_floor` the first pass used. The retry runs at
 most once per turn (`frame_retried_after_stop`). A turn that started from a
 strategy continues as an edit, because an edit owes a disposition for every
-criterion the turn began with.
+criterion the turn began with. A pass that continues an answered question is a
+continuation too: while the spec holds a bound criterion and no build,
+`frame_work_order` briefs it with the bound draft, the questions the message
+answers (`TurnMarkers.answered_questions`) and the answer, so it binds only
+what the answer concerns.
 
 **A reply may not attribute a stop to VEuPathDB.** `blamed_the_site` is a pure
 check over the reply text and the ledger's build section: text naming the site

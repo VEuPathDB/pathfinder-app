@@ -59,6 +59,11 @@ not the direction. Nothing is written on a refusal. The check reads the order
 of the labels because a caption such as "higher in 24h pbm than in 18h pbm"
 names both groups, and only the first is the side it claims.
 
+**A direction needs a computed volcano.** `effect_direction` is unset by
+default, and a direction on an analysis with no computation, or without both
+thresholds, is refused. See
+[an-eda-step-holds-a-compute-or-a-gene-subset](an-eda-step-holds-a-compute-or-a-gene-subset.md).
+
 **Groups never share a label.** `run_eda_compute` refuses a label in both
 groups before it defers a job, through its `args_validator`. The worker and the
 tab's run both call the client library's `validate_compute_config`, which

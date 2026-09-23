@@ -20,7 +20,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 
 _TURN_ONE = (
     "P. vivax genes that are orthologs of Plasmodium gametocyte-expressed "
-    "proteases with non-synonymous SNPs; combine text and GO evidence for "
+    "proteases with non-synonymous SNPs; combine text or GO evidence for "
     "proteases."
 )
 _TURN_TWO = (

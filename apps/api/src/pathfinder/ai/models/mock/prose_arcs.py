@@ -44,8 +44,8 @@ _IMPACT_PROSE = (
     "specificity at the cost of recall, so expect a smaller candidate list."
 )
 _CONTEXT_PROSE = (
-    "Good area to be in. I have not built anything yet. Want me to put a "
-    "candidate strategy together for it?"
+    "Good area to be in. I have not built anything yet. Say the word and I "
+    "will put a candidate strategy together for it."
 )
 
 # A request PathFinder does no part of: it names no gene, organism or dataset.

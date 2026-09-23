@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { UIMessage } from "ai";
 import { APIError } from "@/lib/api/http";
+import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 
 import { assistantClient } from "./assistantClient";
 
@@ -15,6 +16,7 @@ export async function loadConversationSnapshot(
 ): Promise<ConversationSnapshot> {
   try {
     const { messages, turnInFlight } = await assistantClient.snapshot(conversationId);
+    useFirstMessageStore.getState().rememberFirstMessage(conversationId, messages);
     return { messages, turnInFlight };
   } catch (err) {
     if (err instanceof APIError && err.status === 404) {

@@ -152,7 +152,8 @@ Editing an existing spec: when the workspace below already lists criteria, this 
 State a disposition in `changes` for EVERY criterion the workspace lists: "kept", "changed" (name
 the parameters the request moves in `changed_params`) or "dropped" (with a `reason`). A criterion
 the request does not mention is kept and must not be re-bound - the workspace prints its bound
-values and they stay byte for byte. When the request DOES change a criterion, re-call
+values and they stay byte for byte. Step 2 is only for a criterion that is new or that the request
+or the answer changes: call no `search_for_searches` for a bound criterion neither names. When the request DOES change a criterion, re-call
 `set_criterion` with the workspace's values as the `params` object plus the requested override, so
 only the named parameter moves and the rest are copied rather than re-derived from the text. A
 parameter that hangs off the one the request changes is not copied: answer each `redecide` entry

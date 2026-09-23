@@ -30,8 +30,10 @@ import {
   useDeleteStrategyMutation,
   useUpdateStrategyMetaMutation,
 } from "@/features/strategy/mutations";
+import { provisionalName } from "@/lib/conversations/provisionalName";
 import { chatUrl, strategyCanvasUrl } from "@/lib/routes";
 import { cn } from "@/lib/utils/cn";
+import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 import { CanvasDescriptionSheet } from "./CanvasDescriptionSheet";
 import { DeleteStrategyConfirm } from "./DeleteStrategyConfirm";
 
@@ -60,6 +62,10 @@ export function CanvasTopbar({
   const [descSheetOpen, setDescSheetOpen] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const firstMessage = useFirstMessageStore(
+    (s) => s.byConversation[conversationId] ?? null,
+  );
+  const shownName = provisionalName(strategy.name, firstMessage);
 
   if (strategy.name !== prevName) {
     setPrevName(strategy.name);
@@ -138,6 +144,7 @@ export function CanvasTopbar({
         }}
         onFocus={(event) => event.currentTarget.select()}
         aria-label="Strategy name"
+        placeholder={shownName}
         className="h-7 max-w-xs flex-1 text-sm"
       />
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -203,7 +210,7 @@ export function CanvasTopbar({
       />
       <DeleteStrategyConfirm
         open={confirmDeleteOpen}
-        strategyName={strategy.name}
+        strategyName={shownName}
         isDeleting={deleteStrategy.isPending}
         onCancel={() => setConfirmDeleteOpen(false)}
         onConfirm={handleConfirmDelete}

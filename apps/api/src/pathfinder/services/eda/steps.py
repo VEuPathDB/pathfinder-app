@@ -19,6 +19,7 @@ from pathfinder.services.eda.binding import open_analysis_or_conflict
 from pathfinder.services.eda.compute import VolcanoThresholds, analysis_comparison
 from pathfinder.services.eda.direction import direction_sentence
 from pathfinder.services.eda.export import eda_step_request
+from pathfinder.services.eda.gene_subset import refuse_a_subset_that_selects_no_genes
 
 
 def eda_search_name(*, is_compute_backed: bool) -> str:
@@ -86,9 +87,14 @@ async def export_analysis_step(
     """Add the thread's open analysis to its strategy, and read it back.
 
     The answer is the refreshed strategy the strategy routes already return,
-    so the tab parses it with the reader it already has.
+    so the tab parses it with the reader it already has. A subset export
+    clears the same gene check the agent's export clears.
     """
     binding, analysis = await open_analysis_or_conflict(conversation_id=conversation_id)
+    if thresholds is None:
+        await refuse_a_subset_that_selects_no_genes(
+            binding.site_id, dataset_id=binding.dataset_id, analysis=analysis
+        )
     plan = eda_step_node(
         analysis,
         dataset_id=binding.dataset_id,

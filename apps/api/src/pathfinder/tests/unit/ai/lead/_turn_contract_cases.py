@@ -14,9 +14,9 @@ from pathfinder.ai.graph.state import (
     StrategyDomainState,
 )
 from pathfinder.ai.lead.intent import IntentClassification
+from pathfinder.ai.lead.reply_claims import CitedSource
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
-    CitedSource,
     LeadResponse,
     LeadTurnState,
     reconcile,
@@ -68,7 +68,7 @@ CONTROL_SET_CLAIM = (
 )
 GENE_SET_REPLY = (
     'Saved the 102 rhoptry-protein genes as the gene set "rhoptry positives". '
-    "Do you want me to make a control set from it?"
+    "It can become a control set when you ask for one."
 )
 LISTS_SAVED_CONTROL_SETS = (
     "You have two saved control sets on this site: 'kinase positives' with 61 "

@@ -19,6 +19,12 @@ export const USER_QUESTION_ANSWERS_PART_TYPE = "data-user-question-answers" as c
 /** The consult carousel answers this tool's approval with the user's answers. */
 export const CONSULT_TOOL_NAME = "consult_user";
 
+/** The proposal card answers this tool's approval with a yes or a no. */
+export const PROPOSAL_TOOL_NAME = "propose_changes";
+
+/** The question id a yes on a proposal card is recorded under. */
+export const PROPOSAL_ANSWER_ID = "proposal";
+
 export function handleConsultSubmit(
   chat: ChatHelpersForApproval,
   pending: { approvalId: string },
@@ -28,9 +34,43 @@ export function handleConsultSubmit(
   chat.addToolApprovalResponse({ id: pending.approvalId, approved: true });
 }
 
+/**
+ * A yes carries the note as the card's answer, the way a consult carries its
+ * answers. A no carries the note as the denial's reason.
+ */
+export function handleProposalAnswer(
+  chat: ChatHelpersForApproval,
+  pending: { approvalId: string; question: string },
+  answer: { accepted: boolean; note: string },
+): void {
+  const note = answer.note.trim();
+  if (!answer.accepted) {
+    chat.addToolApprovalResponse({
+      id: pending.approvalId,
+      approved: false,
+      ...(note === "" ? {} : { reason: note }),
+    });
+    return;
+  }
+  handleConsultSubmit(chat, pending, [
+    {
+      questionId: PROPOSAL_ANSWER_ID,
+      prompt: pending.question,
+      chosenLabels: ["Yes"],
+      note,
+    },
+  ]);
+}
+
+/** A consult always carries answers; a proposal carries them only on a yes. */
+function carriesAnswers(toolName: string, approved: boolean): boolean {
+  if (toolName === CONSULT_TOOL_NAME) return true;
+  return toolName === PROPOSAL_TOOL_NAME && approved;
+}
+
 function answersPartsOf(part: UIMessage["parts"][number]): UIMessage["parts"] {
-  if (!isToolUIPart(part) || getToolName(part) !== CONSULT_TOOL_NAME) return [part];
-  if (part.state !== "approval-responded") return [part];
+  if (!isToolUIPart(part) || part.state !== "approval-responded") return [part];
+  if (!carriesAnswers(getToolName(part), part.approval.approved)) return [part];
   const data: UserQuestionAnswersPayload = {
     toolCallId: part.toolCallId,
     answers: useConsultAnswersStore.getState().answersFor(part.approval.id),

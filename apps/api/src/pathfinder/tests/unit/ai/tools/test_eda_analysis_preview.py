@@ -9,7 +9,12 @@ import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
-from veupathdb.eda import EdaDistributionResponse, EdaStringSetFilter
+from veupathdb.eda import (
+    EdaAnalysisDetail,
+    EdaDistributionResponse,
+    EdaFilter,
+    EdaStringSetFilter,
+)
 
 from pathfinder.ai.lead.intent_gate import unmet_preconditions
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -34,6 +39,14 @@ from pathfinder.tests._support.eda_wire import (
     fixture,
 )
 from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+    COUNTS_ENTITY,
+    SAMPLE_ENTITY,
+    analysis_detail,
+    de_study,
+    gene_filter,
+    sample_filter,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -68,6 +81,7 @@ def _preview(
     return SubsetPreview(
         entity_id=PHENOTYPE_ENTITY,
         entity_display_name="Gene Phenotype Data",
+        entity_display_name_plural="Gene Phenotype Data",
         count=count,
         unfiltered_count=4279,
         distribution=distribution,
@@ -349,3 +363,105 @@ async def test_a_preview_of_the_gene_entity_repeats_no_gene_count(
         "Genes this subset selects"
         not in returned(answer, EdaSubsetPreviewResult).guidance
     )
+
+
+def _wire_de(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    filters: list[EdaFilter],
+    counted_entity: str,
+    display_name: str,
+    plural: str,
+) -> list[str]:
+    """The RNA-Seq study, one analysis over ``filters``, and the gene counts taken."""
+    genes_counted: list[str] = []
+
+    async def read(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
+        del analysis_id
+        return analysis_detail(with_computation=False, filters=filters)
+
+    async def preview(_site: str, **_kwargs: object) -> SubsetPreview:
+        return SubsetPreview(
+            entity_id=counted_entity,
+            entity_display_name=display_name,
+            entity_display_name_plural=plural,
+            count=12,
+            unfiltered_count=24,
+            distribution=None,
+        )
+
+    async def genes(
+        _site: str, *, dataset_id: str, entity_id: str, filters: object
+    ) -> SubsetCount:
+        del dataset_id, filters
+        genes_counted.append(entity_id)
+        return SubsetCount(entity_id=entity_id, count=3, unfiltered_count=5399)
+
+    _wire(monkeypatch, preview)
+    monkeypatch.setattr(eda_analysis, "read_analysis", read)
+    monkeypatch.setattr(eda_analysis, "get_study_detail_for_dataset", de_study)
+    monkeypatch.setattr(eda_analysis, "verified_count", genes)
+    return genes_counted
+
+
+async def test_a_sample_subset_says_it_filters_no_gene(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """A count of samples is never reported as a count of genes."""
+    counted = _wire_de(
+        monkeypatch,
+        filters=[sample_filter()],
+        counted_entity=SAMPLE_ENTITY,
+        display_name="Sample",
+        plural="Samples",
+    )
+
+    answer = await eda_analysis.preview_eda_subset(lead_ctx, entity_id=SAMPLE_ENTITY)
+    guidance = returned(answer, EdaSubsetPreviewResult).guidance
+
+    assert guidance.endswith(
+        "12 of 24 Samples selected; this subset does not filter genes, because "
+        "it holds 1 filter on Sample. A step exports genes, so run "
+        "run_eda_compute or filter the gene entity pfal3D7 htseq counts "
+        "(ENT_fd574cd6) before create_eda_step."
+    )
+    assert "Genes this subset selects" not in guidance
+    assert counted == []
+
+
+async def test_a_count_of_the_gene_entity_under_a_sample_subset_is_not_genes(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """Rows of a gene-by-sample entity under a sample filter are not a gene count."""
+    _wire_de(
+        monkeypatch,
+        filters=[sample_filter()],
+        counted_entity=COUNTS_ENTITY,
+        display_name="pfal3D7 htseq counts",
+        plural="pfal3D7 htseq counts",
+    )
+
+    answer = await eda_analysis.preview_eda_subset(lead_ctx, entity_id=COUNTS_ENTITY)
+
+    assert returned(answer, EdaSubsetPreviewResult).guidance.startswith(
+        "12 of 24 pfal3D7 htseq counts selected; this subset does not filter genes"
+    )
+
+
+async def test_a_sample_count_under_a_gene_subset_also_states_the_gene_count(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    counted = _wire_de(
+        monkeypatch,
+        filters=[sample_filter(), gene_filter()],
+        counted_entity=SAMPLE_ENTITY,
+        display_name="Sample",
+        plural="Samples",
+    )
+
+    answer = await eda_analysis.preview_eda_subset(lead_ctx, entity_id=SAMPLE_ENTITY)
+    guidance = returned(answer, EdaSubsetPreviewResult).guidance
+
+    assert "Genes this subset selects: 3 of 5,399." in guidance
+    assert "does not filter genes" not in guidance
+    assert counted == [COUNTS_ENTITY]

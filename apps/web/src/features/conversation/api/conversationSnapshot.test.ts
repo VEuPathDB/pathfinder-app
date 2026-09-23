@@ -6,6 +6,7 @@ import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { APIError } from "@/lib/api/http";
+import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 
 import { server } from "../../../../vitest.msw-setup";
 
@@ -62,6 +63,29 @@ describe("loadConversationSnapshot", () => {
     expect(messages[1]?.parts).toEqual([
       { type: "text", text: "hello", state: "done" },
     ]);
+  });
+
+  it("records the thread's first message for the name it shows", async () => {
+    useFirstMessageStore.setState({ byConversation: {} });
+    serveSnapshot({
+      cursor: 3,
+      chunks: [
+        {
+          type: "user-message",
+          message: {
+            id: "u1",
+            role: "user",
+            parts: [{ type: "text", text: "find kinases" }],
+          },
+        },
+      ],
+    });
+
+    await loadConversationSnapshot("c1");
+
+    expect(useFirstMessageStore.getState().byConversation).toEqual({
+      c1: "find kinases",
+    });
   });
 
   it("advances the resume cursor to the one the snapshot reports", async () => {

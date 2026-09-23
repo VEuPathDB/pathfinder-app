@@ -10,7 +10,12 @@ from typing import Any
 
 from assistant_core.conversation.history import HISTORY_PROCESSORS
 from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
-from pydantic_ai.capabilities import PrepareTools, ProcessHistory, Thinking
+from pydantic_ai.capabilities import (
+    HandleDeferredToolCalls,
+    PrepareTools,
+    ProcessHistory,
+    Thinking,
+)
 from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
 
 from pathfinder.ai.agents._instructions import (
@@ -19,6 +24,7 @@ from pathfinder.ai.agents._instructions import (
 )
 from pathfinder.ai.graph.runtime import one_toolset
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
+from pathfinder.ai.lead.card_contract import hold_the_contract_on_a_card
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
 from pathfinder.ai.lead.frame_dispatch import frame_problem
 from pathfinder.ai.lead.guarantees import machine_guarantees_pin
@@ -32,6 +38,7 @@ from pathfinder.ai.lead.lead_pins import (
     pinned_user_intent,
     pinned_user_prompt,
 )
+from pathfinder.ai.lead.lead_proposal import propose_changes
 from pathfinder.ai.lead.lead_tools import (
     classify_user_intent,
     clear_strategy,
@@ -149,12 +156,14 @@ def build_lead_agent() -> LeadAgent:
             Tool(clear_strategy, requires_approval=True),
             Tool(delete_step, requires_approval=True),
             Tool(consult_user, requires_approval=True),
+            Tool(propose_changes, requires_approval=True),
         ],
         toolsets=[eda.build_toolset(), build_sweep_toolset(), turn_tool_sources],
         capabilities=agent_capabilities(
             [
                 Thinking(effort="medium"),
                 PrepareTools[LeadDeps](apply_tool_preconditions),
+                HandleDeferredToolCalls[LeadDeps](handler=hold_the_contract_on_a_card),
                 *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
             ],
         ),

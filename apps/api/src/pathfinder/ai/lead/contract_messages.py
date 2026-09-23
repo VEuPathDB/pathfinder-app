@@ -28,6 +28,19 @@ def unrecorded_question_message() -> str:
     )
 
 
+def unrecorded_offer_message() -> str:
+    """Why a reply that ends on a question and records nothing is refused."""
+    return (
+        "Your reply ends with a question and records nothing, so a yes on the "
+        "next turn accepts nothing the thread holds. When it offers further "
+        "work, put the offer on a proposal card: write the reply as text and, in "
+        "the same response, call ``propose_changes`` with the question in one "
+        "sentence and each concrete change a yes makes. When it asks the user "
+        "for a value, record the question in ``asked_questions`` with the value "
+        "you recommend. Otherwise end the reply without a question."
+    )
+
+
 def off_topic_essay_message(max_chars: int) -> str:
     """Why an out-of-scope reply that answers the request anyway is refused."""
     return (

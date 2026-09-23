@@ -152,6 +152,7 @@ def _preview(
     return SubsetPreview(
         entity_id=PHENOTYPE_ENTITY,
         entity_display_name="Gene phenotype",
+        entity_display_name_plural="Gene phenotypes",
         count=count,
         unfiltered_count=4279,
         distribution=distribution,

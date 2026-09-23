@@ -7,7 +7,8 @@ what left.
 
 ## Ranked
 
-1. [A search report pages transcripts under a gene cap](a-search-report-pages-transcripts-under-a-gene-cap.md) - `run_search_report` takes no view filter, so `variant_comparison` can flag a transcript search truncated early.
+1. [An EDA analysis is a criterion of the spec](an-eda-analysis-is-a-criterion-of-the-spec.md) - an exported EDA step's criterion carries no meaning FRAME can read and the handoff is keyed on the dataset, so a re-frame drops the step and fills a second comparison with a fold-change search.
+2. [A search report pages transcripts under a gene cap](a-search-report-pages-transcripts-under-a-gene-cap.md) - `run_search_report` takes no view filter, so `variant_comparison` can flag a transcript search truncated early.
 
 ## Known and accepted
 

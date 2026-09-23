@@ -38,7 +38,9 @@ no name, and a branch pushes its strategy under the branch thread's name.
 
 **A build does not name the strategy.** `build_strategy_from_spec` takes no name,
 so neither the spec's hydrated title nor the execution agent can give the
-strategy a name the thread does not hold.
+strategy a name the thread does not hold. Until the title lands, a push names a
+graph that has no name after the turn's request (`naming.name_for_the_push`,
+the web's `provisionalName` rule), and the title replaces that name.
 
 **A combine is named by its operator.** WDK names a step it receives without a
 name after its search, so an unnamed combine read as

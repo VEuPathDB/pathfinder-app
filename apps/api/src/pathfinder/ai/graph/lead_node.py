@@ -57,6 +57,7 @@ from pathfinder.ai.graph._lead_capture import (
     emit_lead_usage,
     usage_recorders,
 )
+from pathfinder.ai.graph._lead_card_hold import CardHold
 from pathfinder.ai.graph._lead_delta import _build_state_delta
 from pathfinder.ai.graph._lead_durable import (
     durable_resume_hints,
@@ -79,6 +80,7 @@ from pathfinder.ai.graph._lead_turn import (
     pending_approval,
     resolve_turn_resumption,
     retrieve_memories,
+    turn_ends_before_the_run,
 )
 from pathfinder.ai.graph.rebuild import rebuilt_state
 from pathfinder.ai.graph.runtime import Context
@@ -93,7 +95,7 @@ from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.lead_agent import LeadAgent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_budget import (
-    lead_turn_budget_message,
+    budget_stop_report,
     lead_usage_limits,
     off_topic_budget_stop,
 )
@@ -181,6 +183,16 @@ def _emit_unless_suppressed(
     emit_chunk(writer, chunk)
 
 
+def _emit_each(
+    writer: Any,
+    chunks: list[BaseChunk],
+    sub_agent_tool_calls: dict[str, str],
+    capture: _LeadRunCapture,
+) -> None:
+    for chunk in chunks:
+        _emit_unless_suppressed(writer, chunk, sub_agent_tool_calls, capture)
+
+
 def _stream_ends_after(
     event: AgentStreamEvent | AgentRunResultEvent[Any],
     guard: ToolRepetitionGuard,
@@ -233,17 +245,12 @@ async def _drive_lead_stream(
     message_id: UUID,
 ) -> None:
     resumption = await resolve_turn_resumption(state=state, deps=deps)
-    if resumption.still_pending is not None or resumption.still_durable is not None:
-        # The sub-agent stopped again. The Lead's run is untouched, so the turn
-        # ends on the new call instead of resuming it.
-        capture.pending_approval = resumption.still_pending
-        capture.pending_durable_call = resumption.still_durable
+    if turn_ends_before_the_run(resumption, capture, writer):
         return
     parked = resumption.parked
-    emitter = PhaseStreamEmitter(
-        message_id=str(message_id),
-        deferred_hints=_resume_hints(parked),
-    )
+    hints = _resume_hints(parked)
+    emitter = PhaseStreamEmitter(message_id=str(message_id), deferred_hints=hints)
+    hold = CardHold(resumed={hint.tool_call_id for hint in hints})
     deferred_results = resumption.results
     capture.parked_call_answered = deferred_results is not None
     resume_prompt = _run_prompt(state, resumption)
@@ -312,14 +319,19 @@ async def _drive_lead_stream(
                 error=str(exc),
             )
             capture.response = stop_response(
-                lead_turn_budget_message(),
+                budget_stop_report(
+                    derive_ledger(deps.state, deps.intent),
+                    deps.runtime.strategy_session,
+                    deps.state.domain.open_questions,
+                ),
                 changed=deps.state.turn_markers.changed_strategy,
             )
 
     try:
         with lead_model.override:
             async for v6_chunk in emitter.chunks(_agent_events()):
-                _emit_unless_suppressed(writer, v6_chunk, sub_agent_tool_calls, capture)
+                _emit_each(writer, hold.admit(v6_chunk), sub_agent_tool_calls, capture)
+            _emit_each(writer, hold.release(), sub_agent_tool_calls, capture)
     # The emitter re-raises the graph's control-flow signal and answers every
     # other exception of the run with an error chunk, so these two handlers see
     # that signal and a failure of the loop that writes the chunks.

@@ -2,12 +2,15 @@
  * Widget registry - maps WDK displayType (and spec.type) to React components.
  *
  * Dispatch order:
+ * 0. The EDA analysis spec, a JSON string param, routes by its name.
  * 1. Composite widgets claim groups of params (e.g., PhyleticProfile).
  * 2. Unclaimed visible params route by displayType first, then spec.type.
  * 3. Hidden unclaimed params -> skip rendering, collect defaults.
  */
 
 import { isInputStepParam, type ParamSpec } from "@/features/strategy/parameters/spec";
+
+import { EDA_ANALYSIS_SPEC_PARAM } from "./edaSpecLogic";
 
 /** Resolve the canonical displayType string from a param spec. */
 function resolveDisplayType(spec: ParamSpec): string {
@@ -48,10 +51,12 @@ export type WidgetKind =
   | "date-range"
   | "timestamp"
   | "filter"
-  | "dataset";
+  | "dataset"
+  | "eda-spec";
 
 /** Resolve which widget should render this spec. */
 export function resolveWidgetKind(spec: ParamSpec): WidgetKind {
+  if (spec.name === EDA_ANALYSIS_SPEC_PARAM) return "eda-spec";
   const displayType = resolveDisplayType(spec);
   if (displayType === DISPLAY_TYPES.TREE_BOX) return "treebox";
   if (displayType === DISPLAY_TYPES.TYPE_AHEAD) return "typeahead";

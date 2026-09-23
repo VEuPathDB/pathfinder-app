@@ -21,6 +21,7 @@ from pathfinder.ai.lead.ledger_sections import (
     VerificationSection,
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.ai.lead.proposal import DeclinedProposal
 from pathfinder.domain.strategy.combination_check import first_combination_violation
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import (
@@ -133,6 +134,8 @@ class InvestigationLedger(CamelModel):
     build: BuildSection
     verification: VerificationSection
     constraints: ConstraintSection = Field(default_factory=ConstraintSection)
+    # The last proposal card the researcher declined.
+    declined_proposal: DeclinedProposal | None = None
     # Why the last dispatch of this turn ended without a delta. It stays off the
     # wire: the Lead's prose is what a reader needs, not a second copy of it.
     phase_stop: PhaseStop | None = Field(default=None, exclude=True)
@@ -225,7 +228,22 @@ class InvestigationLedger(CamelModel):
             lines.extend(
                 ["### Recommended by you, not replaced by the user", *recommended]
             )
+        lines.extend(self._declined_proposal_lines())
         return "\n".join(lines)
+
+    def _declined_proposal_lines(self) -> list[str]:
+        """The card the researcher said no to. A later yes does not accept it."""
+        declined = self.declined_proposal
+        if declined is None:
+            return []
+        return [
+            "",
+            "## Declined proposal",
+            f"- asked: {declined.question}",
+            *(f"  - {change}" for change in declined.proposed_changes),
+            *([f"- the researcher's note: {declined.note}"] if declined.note else []),
+            "- a bare yes does not accept it: offer it again on a new card",
+        ]
 
     def render_section(self, section: str) -> str:
         """Render the full detail of one section."""

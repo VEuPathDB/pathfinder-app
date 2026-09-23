@@ -68,6 +68,7 @@ DOMAIN_FIELDS = {
     "original_request",
     "turn_briefing",
     "zero_result_history",
+    "declined_proposal",
 }
 
 STRATEGY_RESOURCES = {
@@ -78,6 +79,7 @@ STRATEGY_RESOURCES = {
     "experiment_id",
     "ledger_summary",
     "service_outage",
+    "user_prompt",
     "verification_scope",
 }
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -11,21 +11,6 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from sqlalchemy import select
-from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.domain.parameters import SinglePickValue
-from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
-from veupathdb.eda import (
-    EdaAnalysisDescriptor,
-    EdaAnalysisDetail,
-    EdaComparator,
-    EdaComputation,
-    EdaComputationDescriptor,
-    EdaDifferentialExpressionConfig,
-    EdaLabeledRange,
-    EdaStringSetFilter,
-    EdaSubsetDescriptor,
-    EdaVariableSpec,
-)
 from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.persistence.models import ConversationStrategy, User
@@ -34,189 +19,26 @@ from pathfinder.services.conversations.responses import ConversationResponse
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.binding import mutated_analysis_state
 from pathfinder.services.eda.compute import VolcanoThresholds
+from pathfinder.services.eda.gene_subset import NoGeneSubsetError
 from pathfinder.services.eda.steps import export_analysis_step
-from pathfinder.services.strategies import commit
-from pathfinder.services.strategies.commit import _WDKCommitOutcome
-from pathfinder.tests._support.eda_wire import (
-    AnalysisStore,
-    eda_transport,
-    wire_eda,
-)
+from pathfinder.tests._support.eda_wire import AnalysisStore
 from pathfinder.tests._support.step_params import string_param
+from pathfinder.tests.integration.eda._export_wiring import (
+    ANALYSIS,
+    DATASET,
+    STUDY,
+    added_step,
+    hermetic_wdk,
+    open_analysis,
+    persisted_ast,
+    search_names,
+    thread,
+)
+from pathfinder.tests.unit.ai.tools._eda_step_doubles import SAMPLE_ONLY_REFUSAL
 
 pytestmark = pytest.mark.asyncio
 
-_DATASET = "DS_53f554ec6a"
-_STUDY = "STUDY_53f554ec6a"
-_ENTITY = "GENE_PHENOTYPE_DATA_ENTITY"
-_SPECIES = "VAR_035294d0"
-_ANALYSIS = "t4fszEJ"
-_ROOT = "root"
-
-
-def _computation() -> EdaComputation:
-    return EdaComputation(
-        computation_id="c1",
-        descriptor=EdaComputationDescriptor(
-            configuration=EdaDifferentialExpressionConfig(
-                identifier_variable=EdaVariableSpec(
-                    entity_id=_ENTITY, variable_id="VAR_gene"
-                ),
-                value_variable=EdaVariableSpec(
-                    entity_id=_ENTITY, variable_id="VAR_counts"
-                ),
-                comparator=EdaComparator(
-                    variable=EdaVariableSpec(
-                        entity_id=_ENTITY, variable_id="VAR_state"
-                    ),
-                    group_a=[EdaLabeledRange(label="febrile")],
-                    group_b=[EdaLabeledRange(label="normal")],
-                ),
-            )
-        ),
-    )
-
-
-def _detail(*, with_computation: bool) -> EdaAnalysisDetail:
-    return EdaAnalysisDetail(
-        analysis_id=_ANALYSIS,
-        display_name="berghei subset",
-        study_id=_DATASET,
-        num_filters=1,
-        descriptor=EdaAnalysisDescriptor(
-            subset=EdaSubsetDescriptor(
-                descriptor=[
-                    EdaStringSetFilter(
-                        entity_id=_ENTITY,
-                        variable_id=_SPECIES,
-                        string_set=["P. berghei"],
-                    )
-                ]
-            ),
-            computations=[_computation()] if with_computation else [],
-        ),
-    )
-
-
-def _strategy_ast() -> dict[str, Any]:
-    root = StrategyStepNode(
-        id=_ROOT,
-        search_name="GenesByTaxon",
-        display_name="Taxon",
-        parameters={"organism": SinglePickValue(value="Plasmodium falciparum 3D7")},
-    )
-    ast = StrategyAst(record_type="transcript", root=root)
-    return ast.model_dump(by_alias=True, exclude_none=True, mode="json")
-
-
-@pytest.fixture
-def open_analysis(
-    monkeypatch: pytest.MonkeyPatch,
-) -> Iterator[Callable[..., AnalysisStore]]:
-    """Serve the phenotype study and one analysis document over the wire."""
-    token = veupathdb_auth_token_ctx.set("t")
-
-    def opened(*, with_computation: bool = False) -> AnalysisStore:
-        store = AnalysisStore(detail=_detail(with_computation=with_computation))
-        wire_eda(
-            monkeypatch,
-            eda_transport(
-                study_id=_STUDY, study_fixture="study_detail_phenotype", store=store
-            ),
-        )
-        return store
-
-    yield opened
-    veupathdb_auth_token_ctx.reset(token)
-
-
-@pytest.fixture
-def hermetic_wdk(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
-    """WDK is not reached: the step push is recorded instead of sent."""
-    pushed: list[Any] = []
-
-    async def no_push(**kwargs: Any) -> _WDKCommitOutcome:
-        pushed.append(kwargs["new_ast"])
-        return _WDKCommitOutcome(succeeded_step_ids=[], failures=[], sync_result=None)
-
-    monkeypatch.setattr(commit, "_commit_to_wdk", no_push)
-    return pushed
-
-
-@pytest.fixture
-async def thread(
-    patch_app_db_engine: None,
-    db_cleaner: None,
-) -> tuple[UUID, UUID]:
-    """A user, a conversation holding one step, and an analysis bound to it."""
-    del patch_app_db_engine, db_cleaner
-    user_id = uuid4()
-    conversation_id = uuid4()
-    async with async_session_factory() as session:
-        session.add(User(id=user_id))
-        await session.flush()
-        session.add(
-            Conversation(
-                assistant_id=PATHFINDER_ASSISTANT_ID,
-                id=conversation_id,
-                user_id=user_id,
-            )
-        )
-        await session.flush()
-        session.add(
-            ConversationStrategy(
-                conversation_id=conversation_id,
-                strategy_ast=_strategy_ast(),
-            )
-        )
-        await session.commit()
-    await binding.bind_conversation_analysis(
-        conversation_id=conversation_id,
-        site_id="plasmodb",
-        dataset_id=_DATASET,
-        analysis_id=_ANALYSIS,
-    )
-    return conversation_id, user_id
-
-
-def _walk(node: StrategyStepNode) -> Iterator[StrategyStepNode]:
-    yield node
-    for child in (node.primary_input, node.secondary_input):
-        if child is not None:
-            yield from _walk(child)
-
-
-def _search_names(ast: StrategyAst) -> list[str]:
-    """Every search the AST names, across its root and its detached roots."""
-    return [
-        node.search_name
-        for root in (ast.root, *ast.detached_roots)
-        for node in _walk(root)
-    ]
-
-
-async def _persisted_ast(conversation_id: UUID) -> StrategyAst:
-    """The strategy the thread now holds, read back from its row."""
-    async with async_session_factory() as session:
-        stored = await session.scalar(
-            select(ConversationStrategy.strategy_ast).where(
-                ConversationStrategy.conversation_id == conversation_id
-            )
-        )
-    assert stored is not None
-    return StrategyAst.model_validate(stored)
-
-
-async def _added_step(conversation_id: UUID) -> StrategyStepNode:
-    """The EDA-backed leaf the export added to the thread's strategy."""
-    ast = await _persisted_ast(conversation_id)
-    roots = [ast.root, *ast.detached_roots]
-    return next(
-        node
-        for root in roots
-        for node in _walk(root)
-        if node.search_name in {SUBSET_QUERY, COMPUTE_QUERY}
-    )
+__all__ = ["hermetic_wdk", "open_analysis", "thread"]
 
 
 async def test_a_subset_export_adds_the_generic_subset_step(
@@ -235,11 +57,11 @@ async def test_a_subset_export_adds_the_generic_subset_step(
             user_id=user_id,
         )
 
-    step = await _added_step(conversation_id)
+    step = await added_step(conversation_id)
     assert step.search_name == SUBSET_QUERY
-    assert string_param(step, "eda_dataset_id") == _DATASET
+    assert string_param(step, "eda_dataset_id") == DATASET
     spec = json.loads(string_param(step, "eda_analysis_spec"))
-    assert spec["studyId"] == _DATASET
+    assert spec["studyId"] == DATASET
     assert spec["descriptor"]["subset"]["descriptor"][0]["stringSet"] == ["P. berghei"]
     assert step.display_name == "berghei subset"
     assert ConversationResponse.model_validate(refreshed).id == conversation_id
@@ -266,7 +88,7 @@ async def test_a_volcano_export_adds_the_compute_step_with_the_thresholds(
             ),
         )
 
-    step = await _added_step(conversation_id)
+    step = await added_step(conversation_id)
     assert step.search_name == COMPUTE_QUERY
     assert set(step.parameters) == {"eda_dataset_id", "eda_analysis_spec"}
     spec = json.loads(string_param(step, "eda_analysis_spec"))
@@ -304,6 +126,29 @@ async def test_the_exported_step_is_persisted_on_the_thread(
         )
     assert stored is not None
     assert SUBSET_QUERY in json.dumps(stored)
+
+
+async def test_a_subset_of_samples_is_refused_and_writes_no_step(
+    thread: tuple[UUID, UUID],
+    open_analysis: Callable[..., AnalysisStore],
+    hermetic_wdk: list[Any],
+) -> None:
+    """A step exports genes, and a subset of samples selects none."""
+    conversation_id, user_id = thread
+    open_analysis(samples_only=True)
+
+    async with async_session_factory() as session:
+        with pytest.raises(NoGeneSubsetError) as refusal:
+            await export_analysis_step(
+                session=session,
+                conversation_id=conversation_id,
+                user_id=user_id,
+            )
+
+    assert refusal.value.status == 422
+    assert refusal.value.detail == SAMPLE_ONLY_REFUSAL
+    assert search_names(await persisted_ast(conversation_id)) == ["GenesByTaxon"]
+    assert hermetic_wdk == []
 
 
 async def test_an_export_on_an_unbound_thread_is_refused(
@@ -348,9 +193,9 @@ async def test_the_mutated_state_counts_the_write_and_names_the_study(
 
     assert first.revision == 1
     assert second.revision == 2
-    assert first.dataset_id == _DATASET
-    assert first.study_id == _STUDY
-    assert first.analysis_id == _ANALYSIS
+    assert first.dataset_id == DATASET
+    assert first.study_id == STUDY
+    assert first.analysis_id == ANALYSIS
     assert first.num_filters == 1
     assert first.filter_summaries == ["Species is one of P. berghei"]
     assert first.filters[0]["stringSet"] == ["P. berghei"]
@@ -386,12 +231,12 @@ async def test_an_export_beside_an_existing_strategy_is_a_detached_root_and_is_n
             user_id=user_id,
         )
 
-    ast = await _persisted_ast(conversation_id)
+    ast = await persisted_ast(conversation_id)
     assert ast.root.search_name == "GenesByTaxon"
     assert [root.search_name for root in ast.detached_roots] == [SUBSET_QUERY]
 
     pushed = hermetic_wdk[-1]
-    assert _search_names(pushed) == ["GenesByTaxon"]
+    assert search_names(pushed) == ["GenesByTaxon"]
 
 
 async def _thread_without_a_strategy(*, with_empty_row: bool) -> tuple[UUID, UUID]:
@@ -415,8 +260,8 @@ async def _thread_without_a_strategy(*, with_empty_row: bool) -> tuple[UUID, UUI
     await binding.bind_conversation_analysis(
         conversation_id=conversation_id,
         site_id="plasmodb",
-        dataset_id=_DATASET,
-        analysis_id=_ANALYSIS,
+        dataset_id=DATASET,
+        analysis_id=ANALYSIS,
     )
     return conversation_id, user_id
 
@@ -443,10 +288,10 @@ async def test_an_export_on_a_thread_with_no_strategy_begins_it(
             user_id=user_id,
         )
 
-    ast = await _persisted_ast(conversation_id)
+    ast = await persisted_ast(conversation_id)
     assert ast.root.search_name == SUBSET_QUERY
     assert ast.detached_roots == []
-    assert _search_names(hermetic_wdk[-1]) == [SUBSET_QUERY]
+    assert search_names(hermetic_wdk[-1]) == [SUBSET_QUERY]
     payload = ConversationResponse.model_validate(refreshed)
     assert payload.root_step_id == ast.root.id
     assert [step.search_name for step in payload.steps] == [SUBSET_QUERY]

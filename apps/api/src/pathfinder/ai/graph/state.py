@@ -17,6 +17,7 @@ from pathfinder.ai.lead.intent import (
     IntentClassification,
     UserIntent,
 )
+from pathfinder.ai.lead.proposal import DeclinedProposal
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.eda_thread import (
     EdaAnalysisFacts,
@@ -188,6 +189,11 @@ class TurnMarkers(CamelModel):
     created_gene_sets: list[CreatedGeneSet] = Field(default_factory=list)
     # The searches the steps this turn added run. The reply names each one.
     added_searches: list[AddedSearch] = Field(default_factory=list)
+    # The questions this message answers, as the thread held them before it.
+    answered_questions: list[OpenQuestion] = Field(default_factory=list)
+    # The researcher answered a consult, or accepted a proposal, under this message.
+    consulted: bool = False
+    accepted_proposal: bool = False
 
     @property
     def changed_strategy(self) -> bool:
@@ -290,6 +296,9 @@ class StrategyDomainState(BaseModel):
     # Every search that emptied a step on some build of this thread. A later
     # build that fills one of them is the recovery a case records.
     zero_result_history: list[ZeroResultStep] = Field(default_factory=list)
+    # The last proposal the researcher declined. A later bare yes does not
+    # accept it: the offer is made again on a new card.
+    declined_proposal: DeclinedProposal | None = None
 
     @property
     def has_strategy(self) -> bool:
@@ -366,6 +375,7 @@ class StrategyDomainState(BaseModel):
             self._attributed(intent.explicit_constraints, request_text),
         )
         self.record_recommendations()
+        self.turn_markers.answered_questions.extend(self.open_questions)
         self.open_questions = []
         if not self.original_request and intent.classification in REQUEST_INTENTS:
             self.original_request = request_text

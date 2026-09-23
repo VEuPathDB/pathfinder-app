@@ -217,6 +217,7 @@ async def apply_operations_and_commit(
     except ApplyError, ValueError:
         restore_graph(graph, old_ast, entry_labels)
         raise
+    renamed = bool(graph.name) and graph.name != entry_labels.name
     name_the_combines(graph.steps.values())
     graph.note_criteria(deps.criterion_texts)
 
@@ -279,7 +280,7 @@ async def apply_operations_and_commit(
         graph=graph,
         sync_result=sync_result.sync_result,
     )
-    if graph.name and graph.name != entry_labels.name:
+    if renamed:
         await name_the_thread_as_the_graph(deps, graph)
 
     return CommitResult(
@@ -354,7 +355,7 @@ async def _put_the_step_tree(
             graph=graph,
             sync_state=sync_state,
             site_id=deps.site_id,
-            strategy_name=graph.name,
+            user_prompt=deps.user_prompt,
         )
     except VEuPathDBError as exc:
         logger.warning(

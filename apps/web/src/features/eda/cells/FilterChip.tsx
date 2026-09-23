@@ -3,7 +3,7 @@
 import { XIcon } from "lucide-react";
 import type { EdaFilter } from "@pathfinder/shared/generated/types/EdaFilter";
 
-import { filterSummary } from "../filterDrafts";
+import { filterSummary } from "@/lib/eda/filterSummary";
 
 export interface FilterChipProps {
   filter: EdaFilter;

@@ -134,9 +134,9 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> _StubAPI:
         graph: Any,
         sync_state: Any,
         site_id: str,
-        strategy_name: str | None = None,
+        user_prompt: str = "",
     ) -> SyncResult:
-        del graph, sync_state, site_id, strategy_name
+        del graph, sync_state, site_id, user_prompt
         return SyncResult(
             wdk_strategy_id=42,
             wdk_url="http://example",

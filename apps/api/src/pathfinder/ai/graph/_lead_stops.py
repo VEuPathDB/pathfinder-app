@@ -199,10 +199,13 @@ def final_reply(
     """The turn's reply: the run's own, or one that says why there is none.
 
     A run that answered keeps its answer, whatever chunks it wrote on the way.
-    A turn parked on a call the user or a worker answers has no reply yet.
+    A turn parked on a call the user or a worker answers has no reply yet, and
+    a declined proposal keeps the reply the card was offered under.
     """
     if capture.response is not None:
         return capture.response
     if capture.pending_approval is not None or capture.pending_durable_call is not None:
+        return None
+    if capture.proposal_declined:
         return None
     return stop_response(fallback_prose(capture, unanswered), changed=changed)

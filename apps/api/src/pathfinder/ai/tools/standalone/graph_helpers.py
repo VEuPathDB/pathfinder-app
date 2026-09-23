@@ -14,7 +14,6 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     GraphEdge,
     GraphSnapshotContent,
     StepOkResponse,
-    is_placeholder_name,
 )
 from pathfinder.domain.strategy.build_outcome import citable_count
 from pathfinder.domain.strategy.combine_naming import combine_name
@@ -220,13 +219,9 @@ def build_context_strategy_ast(
     record_type = graph.record_type
     if not record_type:
         return None
-    name = graph.name
     description = graph.description
-    if is_placeholder_name(name):
-        name = derive_strategy_name(record_type, root_step)
     if not description:
         description = derive_strategy_description(record_type, root_step)
-    graph.name = name or graph.name
     graph.description = description
     sync_state = session.sync_state
     strategy_ast = graph.to_strategy_ast(root_id, sync_state=sync_state)
@@ -239,7 +234,7 @@ def build_context_strategy_ast(
         graph_name=graph.name,
         strategy_ast=strategy_ast,
         record_type=record_type,
-        name=name,
+        name=graph.name,
         description=description,
     )
 

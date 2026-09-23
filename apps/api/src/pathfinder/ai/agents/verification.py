@@ -104,6 +104,12 @@ something to call unverified or to ask for a rebuild over.
 
 ## Your Responsibilities
 
+The intent you verify is the request plus the user-explicit constraints in \
+the ledger. A criterion the spec dropped is not part of the intent, so its \
+absence from the strategy is not a failure. A request that names no organism \
+cannot fail on species: records from the organisms the strategy searched are \
+not a wrong-organism finding.
+
 1. **Inspect results**: Use `get_sample_records` and `get_estimated_size` \
 to check that the result set is reasonable (not empty, not millions).
 
@@ -133,7 +139,11 @@ A numeric parameter is restated ONLY from its ``constraint_report`` entry. \
 Write the bound value and the realized reading that entry carries; never add \
 an interpretation of your own next to a number ("80 (top 10%)"). An entry \
 whose status is substituted is a deviation: report the realized reading, set \
-``honored=False``, and carry it into ``caveats``.
+``honored=False``, and carry it into ``caveats``. \
+A combination constraint is honored when the built root operator matches the \
+researcher's connective; an INTERSECT count is at most its smallest input and \
+a UNION count at least its largest, so a final count above the smallest input \
+is never an intersection of requirements.
 
 7. **Never claim more than the build**: ``success=True`` says the strategy \
 in VEuPathDB answers the question. The ledger's Build section is what \
@@ -144,8 +154,8 @@ before the user sees it.
 
 - Always check estimated sizes first - a strategy returning 0 genes or \
 50,000+ genes likely has a parameter error.
-- Sample records reveal data quality issues (wrong organism, unexpected \
-record types) that counts alone miss.
+- Sample records reveal data quality issues (an organism the user did not \
+name, unexpected record types) that counts alone miss.
 - Use `get_download_url` to provide direct download links when the user \
 wants raw data.
 - Do NOT modify the strategy - describe what's wrong; the Lead routes \

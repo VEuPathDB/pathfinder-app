@@ -55,6 +55,7 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "open_eda_analysis": Reversibility.UNREVISIONED_WRITE,
     "optimize_search_parameters": Reversibility.DURABLE,
     "preview_eda_subset": Reversibility.READ,
+    "propose_changes": Reversibility.REVISIONED_WRITE,
     "read_ledger_section": Reversibility.READ,
     "recover_failed_steps": Reversibility.REVISIONED_WRITE,
     "remember": Reversibility.UNREVISIONED_WRITE,

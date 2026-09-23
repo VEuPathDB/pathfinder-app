@@ -3,6 +3,7 @@ export const TOOL_LABELS: Record<string, string> = {
   read_ledger_section: "Read progress",
   classify_user_intent: "Read the request",
   consult_user: "Ask the user",
+  propose_changes: "Propose changes",
   recover_failed_steps: "Repair steps",
   think: "Think",
   // Planning

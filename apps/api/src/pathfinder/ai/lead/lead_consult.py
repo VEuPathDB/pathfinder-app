@@ -101,6 +101,7 @@ async def consult_user(
     if answers:
         # Their answers are new requirements, so one more frame is licensed.
         state.turn_markers.framed = False
+        state.turn_markers.consulted = True
         state.domain.record_requirements(_answer_requirements(answers))
     asked.content = (
         f"Presented {len(questions)} question(s); awaiting the user's answers."

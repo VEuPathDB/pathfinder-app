@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from veupathdb.eda import (
     EdaComparator,
     EdaComputation,
@@ -18,15 +19,24 @@ from veupathdb.eda import (
     EdaVolcanoDescriptor,
 )
 
-from pathfinder.services.eda.authoring import new_analysis, serialize_spec
+from pathfinder.services.eda.authoring import (
+    EmptyAnalysisError,
+    new_analysis,
+    serialize_spec,
+)
 
 REPO = Path(__file__).resolve().parents[8]
 
 
-def test_no_filters_serializes_to_the_empty_string_not_a_json_object() -> None:
-    """An empty eda_analysis_spec is legal and means no filters."""
+def test_an_analysis_with_no_filter_and_no_computation_has_no_spec() -> None:
+    """An empty eda_analysis_spec selects nothing, so no step may carry one."""
     analysis = new_analysis(dataset_id="DS_x", display_name="x")
-    assert serialize_spec(analysis) == ""
+    with pytest.raises(EmptyAnalysisError) as refusal:
+        serialize_spec(analysis)
+    assert refusal.value.detail == (
+        "The analysis on dataset DS_x holds no filter and no computation, so "
+        "it selects no genes and exports no step."
+    )
 
 
 def test_a_filter_makes_the_spec_a_json_string_naming_the_dataset_id() -> None:

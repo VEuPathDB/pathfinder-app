@@ -57,6 +57,17 @@ The one latch is also what the precondition gate reads: `intent_gate.verificatio
 carried, so a turn corrected before a check passed reaches `verify_strategy` and no other tool
 that writes.
 
+`unrecorded_question` reads where the reply ends. A reply whose prose ends with a question (the
+last non-empty paragraph ends with `?`, closing emphasis, code, bracket and quote marks read
+through) is refused whatever the turn did and whatever `next_state` says, unless it records
+`asked_questions` or the researcher answered a card under this message: a consult, or a proposal
+card they accepted. The correction names the three ways out: an offer goes on a proposal card
+(`propose_changes`), a question for a value goes in `asked_questions`, anything else ends without
+a question. A reply that ends on a card is reconciled too, before the card is shown, by the
+deferred-call handler that denies the card with the correction. The first trigger stays beside it: a framed turn waiting on the user that asks
+anywhere in its prose and records nothing. See
+[an-offer-is-a-card-not-prose](an-offer-is-a-card-not-prose.md).
+
 The substituted-analysis rule reads a typed field instead of the prose. The record knows which
 gene set the enrichment ran on; the reply must list that id in `analysed_gene_set_ids`.
 

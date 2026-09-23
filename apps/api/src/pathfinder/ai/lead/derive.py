@@ -78,6 +78,7 @@ def derive_ledger(
         build=_derive_build_section(state),
         verification=_derive_verification_section(state),
         constraints=_derive_constraint_section(state, intent),
+        declined_proposal=state.domain.declined_proposal,
         phase_stop=phase_stop,
     )
 

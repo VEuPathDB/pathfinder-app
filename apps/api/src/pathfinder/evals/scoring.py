@@ -47,6 +47,29 @@ def step_titles(ast: StrategyAst) -> list[str]:
     return [node.display_label for node in nodes if node.infer_kind() != "combine"]
 
 
+def root_operator(ast: StrategyAst) -> str | None:
+    """The root combine's operator, or None when the root combines nothing."""
+    root = ast.root
+    if root.infer_kind() != "combine" or root.operator is None:
+        return None
+    return root.operator.value
+
+
+def final_count_below_every_input(ast: StrategyAst) -> bool | None:
+    """Whether the root's count is strictly below every search step's count.
+
+    None when the root combines nothing or a count is missing.
+    """
+    inputs = [node.id for node in walk(ast.root) if node.infer_kind() != "combine"]
+    counts = ast.step_counts or {}
+    if root_operator(ast) is None or ast.root.id not in counts:
+        return None
+    if not all(step_id in counts for step_id in inputs):
+        return None
+    final = counts[ast.root.id]
+    return all(final < counts[step_id] for step_id in inputs)
+
+
 class ObservedOutcome(CamelModel):
     """What one run of a case produced."""
 
@@ -61,6 +84,8 @@ class ObservedOutcome(CamelModel):
     tree: ComparisonNode | None = None
     step_titles: list[str] = Field(default_factory=list)
     reply_text: str = ""
+    root_operator: str | None = None
+    final_count_below_every_input: bool | None = None
 
 
 class CaseDifference(CamelModel):
@@ -112,6 +137,12 @@ def _value_differences(
             "stepIdsUnchanged",
             expected.step_ids_unchanged,
             observed.step_ids_unchanged,
+        ),
+        ("rootOperator", expected.root_operator, observed.root_operator),
+        (
+            "finalCountBelowEveryInput",
+            expected.final_count_below_every_input,
+            observed.final_count_below_every_input,
         ),
     )
     return [
@@ -276,6 +307,8 @@ __all__ = [
     "CaseDifference",
     "CaseScore",
     "ObservedOutcome",
+    "final_count_below_every_input",
+    "root_operator",
     "score_case",
     "step_titles",
     "structure_signature",
