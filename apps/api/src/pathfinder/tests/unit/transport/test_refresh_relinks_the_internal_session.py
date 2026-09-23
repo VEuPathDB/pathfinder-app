@@ -141,7 +141,7 @@ async def test_an_expired_internal_session_is_replaced(
 async def test_an_unreadable_veupathdb_session_keeps_the_internal_one(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """WDK naming nobody must not sign a working session out."""
+    """A VEuPathDB token the site refuses leaves the internal session in place."""
     app = _app(monkeypatch, resolved=None)
     async with _client(app) as client:
         response = await client.post(

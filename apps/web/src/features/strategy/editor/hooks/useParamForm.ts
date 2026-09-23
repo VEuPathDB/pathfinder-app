@@ -2,7 +2,7 @@ import { useId, useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import type { ParamSpec } from "@pathfinder/shared";
 import type { StepParameters } from "@/lib/types/stepParameters";
-import { isMultiParam } from "@/features/strategy/parameters/spec";
+import { isInputStepParam, isMultiParam } from "@/features/strategy/parameters/spec";
 import { paramValueToRaw } from "@/features/strategy/parameters/paramValue";
 import type { ParamValue } from "@/lib/parameters/paramValue";
 
@@ -37,7 +37,8 @@ function extractDefaults(
 ): ParamFormValues {
   const defaults: ParamFormValues = {};
   for (const spec of specs) {
-    if (spec.name === "" || spec.isVisible === false) continue;
+    if (spec.name === "" || spec.isVisible === false || isInputStepParam(spec))
+      continue;
     const persisted: ParamValue | undefined = override?.[spec.name];
     if (persisted !== undefined) {
       defaults[spec.name] = paramValueToRaw(persisted);

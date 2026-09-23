@@ -2,7 +2,6 @@
 
 import { type ReactNode, use } from "react";
 import { useRouter } from "next/navigation";
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { useShallow } from "zustand/react/shallow";
 import { useSessionStore } from "@/state/useSessionStore";
 import { AppNavRail } from "@/app/components/AppNavRail";
@@ -13,6 +12,7 @@ import { QueryErrorToasts } from "@/app/components/QueryErrorToasts";
 import { EvalDataNotice } from "@/features/settings/components/EvalDataNotice";
 import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import { useAuthRefresh } from "@/lib/query/hooks/useAuthRefresh";
+import { useSiteAccess } from "@/app/hooks/useSiteAccess";
 import { useSystemConfig } from "@/app/hooks/useSystemConfig";
 import { useModalState } from "@/app/hooks/useModalState";
 import { useWorkbenchSidebarLayout } from "@/app/hooks/useWorkbenchSidebarLayout";
@@ -24,9 +24,6 @@ import { GeneSearchSidebar } from "@/features/workbench/components/GeneSearchSid
 import { SidebarEdgeTab } from "@/features/workbench/components/SidebarEdgeTab";
 import { useWorkbenchStore } from "@/state/useWorkbenchStore";
 import { requiresFullScreenSignIn } from "@/state/useAuthGateStore";
-import { sitesOptions } from "@/lib/api/sites";
-import { authStatusOptions } from "@/lib/api/veupathdb-auth";
-import { siteIsDown } from "@/lib/sites/availability";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { AppShellError } from "@/app/components/AppShellError";
 import { Search } from "lucide-react";
@@ -60,9 +57,7 @@ function WorkbenchLayoutInner({
   if (storedSite !== siteId) {
     useSessionStore.setState({ selectedSite: siteId });
   }
-  const { data: authStatus } = useSuspenseQuery(authStatusOptions(selectedSite));
-  const { data: sites } = useSuspenseQuery(sitesOptions());
-  const veupathdbSignedIn = authStatus.signedIn;
+  const access = useSiteAccess(selectedSite);
   const { setupRequired, retry: retryConfig } = useSystemConfig();
   useSiteTheme(selectedSite);
   useAuthRefresh(selectedSite);
@@ -84,13 +79,14 @@ function WorkbenchLayoutInner({
     );
 
   if (setupRequired) return <SetupRequiredScreen onRetry={retryConfig} />;
+  if (access.kind === "pending") return <LoadingScreen />;
 
   // A site PathFinder cannot reach cannot authenticate anyone, so the notice
   // takes the sign-in prompt's place.
-  const siteDown = siteIsDown(sites, selectedSite);
+  const siteDown = access.kind === "down";
   const forcedSignIn =
-    !siteDown &&
-    requiresFullScreenSignIn({ embedded: false, signedIn: veupathdbSignedIn });
+    access.kind === "up" &&
+    requiresFullScreenSignIn({ embedded: false, signedIn: access.signedIn });
 
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
@@ -124,7 +120,9 @@ function WorkbenchLayoutInner({
         )}
 
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-card">
-          <SiteAvailabilityGate siteId={selectedSite}>{children}</SiteAvailabilityGate>
+          <SiteAvailabilityGate siteId={selectedSite} down={siteDown}>
+            {children}
+          </SiteAvailabilityGate>
         </div>
 
         {geneSearchOpen ? (

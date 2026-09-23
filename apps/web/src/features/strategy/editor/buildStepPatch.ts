@@ -1,5 +1,5 @@
 import type { ColocationParams, Step } from "@pathfinder/shared";
-import type { ParamSpec } from "@/features/strategy/parameters/spec";
+import { isInputStepParam, type ParamSpec } from "@/features/strategy/parameters/spec";
 import {
   paramValueToRaw,
   rawToParamValue,
@@ -34,7 +34,7 @@ export function buildStepPatch(args: BuildPatchArgs): Partial<Step> {
 
   const collect = (key: string, raw: string | string[]): void => {
     const spec = specsByName.get(key);
-    if (spec === undefined) return;
+    if (spec === undefined || isInputStepParam(spec)) return;
     const baseTyped = baseParams[key];
     const baseRaw = baseTyped === undefined ? null : paramValueToRaw(baseTyped);
     if (baseRaw !== null && rawEquals(raw, baseRaw)) return;

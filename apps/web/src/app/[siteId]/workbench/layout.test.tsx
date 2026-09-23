@@ -126,6 +126,47 @@ describe("WorkbenchLayout on a site that does not answer", () => {
   });
 });
 
+describe("WorkbenchLayout when the sign-in status is refused", () => {
+  it("shows the site notice beside the rail and the gene sets for a 503 SITE_UNAVAILABLE", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: string) =>
+        input.includes("/api/v1/veupathdb/auth/status")
+          ? Promise.resolve(
+              new Response(
+                JSON.stringify({
+                  status: 503,
+                  detail: "Could not connect to plasmodb (ReadTimeout).",
+                  code: "SITE_UNAVAILABLE",
+                }),
+                { status: 503, headers: { "content-type": "application/json" } },
+              ),
+            )
+          : new Promise<Response>(() => {}),
+      ),
+    );
+    useWorkbenchStore.setState({ leftSidebarOpen: true });
+    const { queryClient, Wrapper } = createTestWrapper();
+    queryClient.setQueryData(sitesOptions().queryKey, [siteRow({ id: "plasmodb" })]);
+
+    await act(async () => {
+      render(
+        <Wrapper>
+          <WorkbenchLayout params={settled({ siteId: "plasmodb" })}>
+            <div data-testid="routed-content" />
+          </WorkbenchLayout>
+        </Wrapper>,
+      );
+    });
+
+    expect(await screen.findByTestId("site-unavailable-notice")).toBeInTheDocument();
+    expect(screen.getByLabelText("Switch database")).toBeInTheDocument();
+    expect(screen.getByTestId("workbench-sidebar")).toBeInTheDocument();
+    expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("sign-in-gate")).not.toBeInTheDocument();
+  });
+});
+
 const PHONE_WIDTH = 390;
 
 describe("WorkbenchLayout at phone width", () => {

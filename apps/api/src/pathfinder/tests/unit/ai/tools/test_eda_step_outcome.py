@@ -169,6 +169,7 @@ async def test_the_export_records_what_the_case_remembers(
         effect_size_threshold=1.5,
         significance_threshold=0.01,
         effect_direction="upOnly",
+        caption="Genes higher in normal than in febrile",
     )
 
     export = lead_ctx.deps.state.turn_markers.eda_export

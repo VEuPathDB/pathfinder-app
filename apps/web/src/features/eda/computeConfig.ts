@@ -1,6 +1,8 @@
+import { z } from "zod";
 import type { EdaDifferentialExpressionConfig } from "@pathfinder/shared/generated/types/EdaDifferentialExpressionConfig";
 import type { EdaVariableResponse } from "@pathfinder/shared/generated/types/EdaVariableResponse";
 import type { EdaVariableSpec } from "@pathfinder/shared/generated/types/EdaVariableSpec";
+import { edaComputationDescriptorSchema } from "@pathfinder/shared/generated/zod/edaComputationDescriptorSchema";
 
 const P_VALUE_FLOOR = "1e-200";
 export const GENE_ID_VARIABLE = "VEUPATHDB_GENE_ID";
@@ -93,6 +95,51 @@ export function buildDifferentialExpressionConfig(
     differentialExpressionMethod: draft.method,
     pValueFloor: P_VALUE_FLOOR,
   };
+}
+
+/** The part of an analysis descriptor that holds its compute. */
+const analysisComputationsSchema = z.object({
+  computations: z.array(z.object({ descriptor: edaComputationDescriptorSchema })),
+});
+
+/** The draft of the compute the analysis already holds, or null when it holds
+ * none. The inverse of buildDifferentialExpressionConfig. */
+export function computeDraftOf(descriptor: unknown): ComputeConfigDraft | null {
+  const parsed = analysisComputationsSchema.safeParse(descriptor);
+  const computation = parsed.success ? parsed.data.computations[0] : undefined;
+  if (computation === undefined) return null;
+  const config = computation.descriptor.configuration;
+  return {
+    identifierEntityId: config.identifierVariable.entityId,
+    identifierVariableId: config.identifierVariable.variableId,
+    valueVariableId: config.valueVariable.variableId,
+    comparatorEntityId: config.comparator.variable.entityId,
+    comparatorVariableId: config.comparator.variable.variableId,
+    groupA: config.comparator.groupA.map((range) => range.label),
+    groupB: config.comparator.groupB.map((range) => range.label),
+    method: config.differentialExpressionMethod ?? "DESeq",
+  };
+}
+
+function sameLabels(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((label) => b.includes(label));
+}
+
+/** Whether two drafts run the same compute. A group is a set of labels. */
+export function isSameComputeDraft(
+  a: ComputeConfigDraft,
+  b: ComputeConfigDraft,
+): boolean {
+  return (
+    a.identifierEntityId === b.identifierEntityId &&
+    a.identifierVariableId === b.identifierVariableId &&
+    a.valueVariableId === b.valueVariableId &&
+    a.comparatorEntityId === b.comparatorEntityId &&
+    a.comparatorVariableId === b.comparatorVariableId &&
+    a.method === b.method &&
+    sameLabels(a.groupA, b.groupA) &&
+    sameLabels(a.groupB, b.groupB)
+  );
 }
 
 /** The gene identifier the export needs. A study declares at most one. */

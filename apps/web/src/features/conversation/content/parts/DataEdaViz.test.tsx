@@ -56,6 +56,80 @@ describe("DataEdaViz volcano", () => {
     expect(screen.getByTestId("eda-viz-volcano")).toHaveAttribute("role", "img");
   });
 
+  it("names both groups of the comparison under the title", () => {
+    render(
+      <DataEdaViz
+        data={{
+          ...EDA_VOLCANO_VIZ_FIXTURE,
+          comparison: { groupA: ["24h pbm"], groupB: ["18h pbm", "36h pbm"] },
+        }}
+      />,
+    );
+    expect(screen.getByTestId("eda-viz-comparison").textContent).toBe(
+      "Group A: 24h pbm - Group B: 18h pbm, 36h pbm",
+    );
+  });
+
+  it("prints no comparison line for a plot that carries none", () => {
+    render(<DataEdaViz data={EDA_VOLCANO_VIZ_FIXTURE} />);
+    expect(screen.queryByTestId("eda-viz-comparison")).toBe(null);
+    expect(screen.getByTestId("eda-viz-volcano").getAttribute("aria-label")).toMatch(
+      /Higher in group B \(\d+\) and Higher in group A \(\d+\)$/,
+    );
+  });
+
+  it("names each side of the volcano by its group's labels", () => {
+    render(
+      <DataEdaViz
+        data={{
+          ...EDA_VOLCANO_VIZ_FIXTURE,
+          comparison: { groupA: ["24h pbm"], groupB: ["18h pbm", "36h pbm"] },
+        }}
+      />,
+    );
+    expect(screen.getByTestId("eda-viz-volcano").getAttribute("aria-label")).toMatch(
+      /Higher in 18h pbm, 36h pbm \(\d+\) and Higher in 24h pbm \(\d+\)$/,
+    );
+  });
+
+  it("links the analysis in the site explorer the thread's state names", () => {
+    const chat = {
+      messages: [
+        {
+          id: "m-1",
+          role: "assistant",
+          parts: [
+            {
+              type: "data-eda.analysis-state",
+              data: {
+                ...EDA_ANALYSIS_STATE_FIXTURE,
+                analysisUrl:
+                  "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
+              },
+            },
+          ],
+        },
+      ],
+      status: "ready",
+    } as unknown as ChatHelpers;
+    renderBare(
+      <ChatHelpersProvider value={chat}>
+        <DataEdaViz data={EDA_VOLCANO_VIZ_FIXTURE} />
+      </ChatHelpersProvider>,
+    );
+    const link = screen.getByRole("link", { name: "Open in PlasmoDB" });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  it("offers no site link when the thread names no page for the analysis", () => {
+    render(<DataEdaViz data={EDA_VOLCANO_VIZ_FIXTURE} />);
+    expect(screen.queryByRole("link", { name: "Open in PlasmoDB" })).toBe(null);
+  });
+
   it("captions the figure with the compute's retained count", () => {
     render(
       <DataEdaViz

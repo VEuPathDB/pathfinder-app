@@ -295,33 +295,37 @@ def test_every_registered_tool_emits_a_summary() -> None:
     assert not missing, f"tools that write no summary: {sorted(missing)}"
 
 
+# One result per durable tool, in the shape its worker returns.
+_RESUMED: dict[str, dict[str, Any]] = {
+    "run_control_tests_on_step": {
+        "positiveIntersection": 8,
+        "positiveControlsCount": 10,
+    },
+    "optimize_search_parameters": {
+        "variants": [{}, {}],
+        "best": {"score": 0.5},
+        "objective": "mcc",
+    },
+    "run_eda_compute": {
+        "genesTested": 5511,
+        "retainedUp": 900,
+        "retainedDown": 643,
+        "comparison": {"groupA": ["normal"], "groupB": ["febrile"]},
+    },
+    "run_gene_set_enrichment": {
+        "totalSignificantTerms": 12,
+        "analysisTypesRun": ["go_process", "pathway"],
+    },
+}
+
+
 def test_the_durable_tools_summarize_their_resumed_result() -> None:
     """A durable tool's body never runs, so its summary rides the resume."""
     registered = _registered()
-    resumed: dict[str, dict[str, Any]] = {
-        "run_control_tests_on_step": {
-            "positiveIntersection": 8,
-            "positiveControlsCount": 10,
-        },
-        "optimize_search_parameters": {
-            "variants": [{}, {}],
-            "best": {"score": 0.5},
-            "objective": "mcc",
-        },
-        "run_eda_compute": {
-            "genesTested": 5511,
-            "retainedUp": 900,
-            "retainedDown": 643,
-        },
-        "run_gene_set_enrichment": {
-            "totalSignificantTerms": 12,
-            "analysisTypesRun": ["go_process", "pathway"],
-        },
-    }
     for name, build in _DURABLE_BUILDERS.items():
         assert name in registered, f"{name} is not registered"
         chunks = build(
-            {"status": "success", "result": resumed[name]}, uuid4(), "call_1"
+            {"status": "success", "result": _RESUMED[name]}, uuid4(), "call_1"
         )
         summaries = summary_chunks(chunks)
         assert len(summaries) == 1, name
@@ -330,7 +334,7 @@ def test_the_durable_tools_summarize_their_resumed_result() -> None:
 
 def test_a_durable_summary_is_dropped_when_the_call_has_no_id() -> None:
     for name, build in _DURABLE_BUILDERS.items():
-        chunks = build({"status": "success", "result": {}}, uuid4(), None)
+        chunks = build({"status": "success", "result": _RESUMED[name]}, uuid4(), None)
         assert summary_chunks(chunks) == [], name
 
 

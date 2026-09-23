@@ -14,15 +14,21 @@ function statePartsOf(messages: readonly UIMessage[]): EdaAnalysisState[] {
   return states;
 }
 
+function newestStateFor(
+  messages: readonly UIMessage[],
+  analysisId: string,
+): EdaAnalysisState | undefined {
+  return statePartsOf(messages)
+    .filter((state) => state.analysisId === analysisId)
+    .at(-1);
+}
+
 /** Whether this payload is the thread's newest state for its analysis. */
 export function isNewestAnalysisState(
   messages: readonly UIMessage[],
   data: EdaAnalysisState,
 ): boolean {
-  const mine = statePartsOf(messages).filter(
-    (state) => state.analysisId === data.analysisId,
-  );
-  const last = mine.at(-1);
+  const last = newestStateFor(messages, data.analysisId);
   if (last === undefined) return true;
   return JSON.stringify(last) === JSON.stringify(data);
 }
@@ -32,8 +38,20 @@ export function studyNameFor(
   messages: readonly UIMessage[],
   analysisId: string,
 ): string {
-  const mine = statePartsOf(messages).filter(
-    (state) => state.analysisId === analysisId,
-  );
-  return mine.at(-1)?.studyDisplayName ?? "";
+  return newestStateFor(messages, analysisId)?.studyDisplayName ?? "";
+}
+
+export interface AnalysisSiteLink {
+  siteId: string;
+  href: string;
+}
+
+/** The site explorer page of one analysis, read off the thread. */
+export function analysisSiteLinkFor(
+  messages: readonly UIMessage[],
+  analysisId: string,
+): AnalysisSiteLink | null {
+  const state = newestStateFor(messages, analysisId);
+  if (state?.analysisUrl == null) return null;
+  return { siteId: state.siteId, href: state.analysisUrl };
 }

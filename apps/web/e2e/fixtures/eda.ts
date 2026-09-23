@@ -249,7 +249,7 @@ export const COMPUTE_JOB = {
 export const EXPORTED_STEP = {
   id: "step_eda_1",
   searchName: "GenesByEdaVizWithCompute",
-  displayName: "EDA volcano, 1543 genes",
+  displayName: "Genes that differ between normal and febrile",
   estimatedSize: 1543,
 };
 

@@ -4,7 +4,7 @@ title: The strategy answers to a spec, and what moved since is replayed onto it
 description: The thread records the last spec the strategy was made to answer to and the tree it held at that moment. Everything between that tree and the live one was written outside the thread, and it is played onto every spec the turn holds. An edit is planned against the answered spec, so a plan may run ahead of the strategy without becoming its own baseline.
 tags: [agents, strategy, wdk, graph-ownership]
 generated: { by: claude-code/opus-5, at: 2026-09-21T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-21T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
 status: stable
 ---
 
@@ -49,6 +49,29 @@ finished background task:
 
 Only names the search's sheet shows are replayed. A step carries WDK's own
 parameters too, and a criterion states none of them.
+
+**The site writes the strategy too.** A value, an operator or a step the
+researcher changes on VEuPathDB itself is not in the stored graph until
+something reads it back.
+`services/strategies/site_changes.py::take_what_the_site_holds` reads the WDK
+strategy and writes onto the stored graph what the site moved, graph against
+graph: a value the site holds in neither form the step holds it in (its wire
+string and its decoded value), a weight when the graph holds one, a set
+operator, and, when the graph's whole main
+tree is on the site, the site's tree, so a step removed there leaves, a step
+added there joins with its decoded values, and a step replaced by another
+search is replaced. All three entry points read the site under the thread's
+write lock before they act. The turn entry
+(`site_changes.py::read_the_site_into_the_thread`, called from
+`ai/lead/pre_turn.py`) reads the stored graph again inside the lock, persists it
+when the site moved it, and hands the turn that graph before
+`the_changes_written_outside` runs, so a site edit is an ordinary outside change
+the spec replay already handles; the lock is released before the model runs.
+The canvas commit (`strategy_ops.apply_operation`) reads it before it plans the
+edit, and the count refresh (`strategy_ops.refresh_counts`) takes the site's
+values from the same read that supplies the counts. None of them writes a spec.
+A site that does not answer writes nothing: the turn and the canvas edit go on
+over the stored graph, and the refresh refuses with 503.
 
 An edit is planned against `answered_spec`
 (`ai/lead/edit_dispatch.py::run_edit`). FRAME's declaration check, its work
@@ -137,6 +160,8 @@ a resumed turn like any other.
 `ai/graph/state.py` (`answered_spec`, `answered_graph`),
 `ai/lead/answered_strategy.py`, `ai/lead/pre_turn.py`,
 `domain/strategy/outside_changes.py`, `domain/strategy/spec_replay.py`,
+`services/strategies/site_changes.py`,
 `domain/strategy/spec_hydration.py::spec_stating_the_live_tree`,
 `ai/lead/edit_dispatch.py`,
-`tests/unit/ai/lead/test_the_strategy_answers_to_a_spec.py`.
+`tests/unit/ai/lead/test_the_strategy_answers_to_a_spec.py`,
+`tests/unit/ai/lead/test_a_site_edit_and_the_next_edit.py`.

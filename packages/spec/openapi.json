@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a10"
+    "version": "0.2.0a11"
   },
   "paths": {
     "/health": {
@@ -4945,7 +4945,7 @@
           "veupathdb-auth"
         ],
         "summary": "Auth Status",
-        "description": "Return the current VEuPathDB auth status.\n\nA mock chat provider has no VEuPathDB session, so the internal cookie\nalone proves identity there.",
+        "description": "Return the current VEuPathDB auth status.\n\nA refused token or a guest is signed out; a site that does not answer is a\n503. A mock chat provider has no VEuPathDB session, so the internal cookie\nalone proves identity there.",
         "operationId": "auth_status_api_v1_veupathdb_auth_status_get",
         "parameters": [
           {
@@ -10411,6 +10411,17 @@
           "canExportRows": {
             "type": "boolean",
             "title": "Canexportrows"
+          },
+          "analysisUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysisurl"
           }
         },
         "type": "object",
@@ -10430,7 +10441,7 @@
           "canExportRows"
         ],
         "title": "EdaAnalysisState",
-        "description": "The open analysis, as both surfaces re-render it after every mutation.\n\n``revision`` is the mutation counter of the binding; ``None`` means\nunknown and the store's reconcile rule then takes the last write.\n``filters`` entries are the wire filter objects, kept as JSON because\nthis package cannot import the integrations union."
+        "description": "The open analysis, as both surfaces re-render it after every mutation.\n\n``revision`` is the mutation counter of the binding; ``None`` means\nunknown and the store's reconcile rule then takes the last write.\n``filters`` entries are the wire filter objects, kept as JSON because\nthis package cannot import the integrations union. ``analysis_url`` opens\nthe analysis in the site's own explorer; the thread log holds parts that\ncarry none, so it is optional."
       },
       "EdaBindAction": {
         "properties": {
@@ -10491,6 +10502,31 @@
           "groupB"
         ],
         "title": "EdaComparator"
+      },
+      "EdaComparison": {
+        "properties": {
+          "groupA": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Groupa"
+          },
+          "groupB": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Groupb"
+          }
+        },
+        "type": "object",
+        "required": [
+          "groupA",
+          "groupB"
+        ],
+        "title": "EdaComparison",
+        "description": "The labels of the two sample groups one compute compares.\n\n``group_a`` is the reference, so a positive effect size is higher in\n``group_b``."
       },
       "EdaComputationDescriptor": {
         "properties": {
@@ -11658,6 +11694,9 @@
             },
             "type": "array",
             "title": "Points"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/EdaComparison"
           }
         },
         "type": "object",
@@ -11669,7 +11708,8 @@
           "effectDirection",
           "totalPoints",
           "retainedPoints",
-          "points"
+          "points",
+          "comparison"
         ],
         "title": "EdaVizResponse"
       },
@@ -19823,6 +19863,17 @@
             "description": "One sentence the model wrote about the plot. Empty when it wrote none, and the figure is then captioned from the numbers alone.",
             "title": "Caption",
             "type": "string"
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EdaComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The two groups the plot compares. The thread log holds plots that carry none."
           }
         },
         "required": [

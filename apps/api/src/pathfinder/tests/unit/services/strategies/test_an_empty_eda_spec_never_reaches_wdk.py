@@ -12,7 +12,10 @@ from veupathdb.wdk import WDKIdentifier, WDKSearchConfig, WDKStep
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM, EDA_DATASET_ID_PARAM
 
 from pathfinder.services.strategies import step_wdk_push
+from pathfinder.services.strategies.step_push_planner import PatchAction
 from pathfinder.services.strategies.sync_state import WDKSyncState
+
+_VALUES = PatchAction(search_config=True, name=False)
 
 _DATASET_ID = "DS_70dd50fed7"
 _SEARCH = (
@@ -114,7 +117,7 @@ class TestThePatchCall:
         sync_state = self._sync_state()
 
         failure = await step_wdk_push._execute_patch(
-            sync_state, "plasmodb", _step(""), "transcript", name_moved=False
+            sync_state, "plasmodb", _step(""), "transcript", _VALUES
         )
 
         assert failure is not None
@@ -128,7 +131,7 @@ class TestThePatchCall:
             "plasmodb",
             _step(_ANALYSIS),
             "transcript",
-            name_moved=False,
+            _VALUES,
         )
 
         assert failure is None

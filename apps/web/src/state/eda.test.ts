@@ -135,6 +135,18 @@ describe("useEdaStore.applyAnalysisState", () => {
     expect(analysis?.canExportRows).toBe(true);
   });
 
+  it("keeps the site explorer link the part names", () => {
+    const analysisUrl =
+      "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1";
+    useEdaStore.getState().applyAnalysisState({ ...ANALYSIS_STATE, analysisUrl });
+    expect(useEdaStore.getState().analysis?.analysisUrl).toBe(analysisUrl);
+  });
+
+  it("holds no site link for a part that names none", () => {
+    useEdaStore.getState().applyAnalysisState(ANALYSIS_STATE);
+    expect(useEdaStore.getState().analysis?.analysisUrl).toBe(null);
+  });
+
   it("counts a filter the generated schema cannot parse instead of hiding it", () => {
     useEdaStore
       .getState()

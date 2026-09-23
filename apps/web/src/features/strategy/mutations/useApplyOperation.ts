@@ -27,6 +27,18 @@ class SyncPausedError extends Error {
   }
 }
 
+const STEP_SAVE_KINDS = new Set<GraphOperation["kind"]>([
+  "updateStepParams",
+  "updateCombineOperator",
+  "updateStepMeta",
+]);
+
+function failureLead(op: GraphOperation): string {
+  return STEP_SAVE_KINDS.has(op.kind)
+    ? "The step could not be saved"
+    : "Operation failed";
+}
+
 export const APPLY_OPERATION_MUTATION_KEY = ["strategy", "operation"] as const;
 const APPLY_OPERATION_SCOPE_ID = "strategy-operation";
 
@@ -77,7 +89,7 @@ export function useApplyOperation(conversationId: string) {
         return;
       }
       useStrategyStore.getState().setLastFailedOperation({ op: vars.op });
-      toast.error(toUserMessage(err, "Operation failed"));
+      toast.error(toUserMessage(err, failureLead(vars.op)));
     },
   });
 }

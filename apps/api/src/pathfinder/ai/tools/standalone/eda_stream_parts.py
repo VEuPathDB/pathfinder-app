@@ -8,6 +8,7 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.domain.eda_parts import (
     EdaAnalysisState,
+    EdaComparison,
     EdaEffectDirection,
     EdaEntityCount,
     EdaSubsetPreviewPart,
@@ -101,6 +102,7 @@ def eda_viz_chunk(
     effect_direction: str,
     summary: RetainedSummary,
     points: list[EdaVolcanoPoint],
+    comparison: EdaComparison,
     caption: str = "",
 ) -> DataChunk:
     """The volcano, capped so one message does not carry every gene."""
@@ -117,6 +119,7 @@ def eda_viz_chunk(
         retained_points=summary.retained,
         points=ordered[:_MAX_VIZ_POINTS],
         caption=caption,
+        comparison=comparison,
     )
     return DataChunk(
         type="data-eda.viz",

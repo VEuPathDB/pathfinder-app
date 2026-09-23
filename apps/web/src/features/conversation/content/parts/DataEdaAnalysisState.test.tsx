@@ -196,6 +196,29 @@ describe("DataEdaAnalysisState chips and navigation", () => {
     );
   });
 
+  it("links the analysis in the site's own explorer", () => {
+    render(
+      <DataEdaAnalysisState
+        data={{
+          ...EDA_ANALYSIS_STATE_FIXTURE,
+          analysisUrl:
+            "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
+        }}
+      />,
+    );
+    const link = screen.getByRole("link", { name: "Open in PlasmoDB" });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
+    );
+    expect(link).toHaveAttribute("rel", "noreferrer");
+  });
+
+  it("offers no site link for a state that names no page", () => {
+    render(<DataEdaAnalysisState data={EDA_ANALYSIS_STATE_FIXTURE} />);
+    expect(screen.queryByRole("link", { name: "Open in PlasmoDB" })).toBe(null);
+  });
+
   it("opens the EDA tab for the conversation in the path", async () => {
     render(<DataEdaAnalysisState data={EDA_ANALYSIS_STATE_FIXTURE} />);
     await userEvent.click(screen.getByRole("button", { name: "Open study" }));

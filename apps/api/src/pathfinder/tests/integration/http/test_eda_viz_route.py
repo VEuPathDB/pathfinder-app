@@ -136,6 +136,7 @@ async def test_viz_answers_with_the_thresholded_volcano(
     assert body["effectSizeLabel"] == "log2(Fold Change)"
     assert body["totalPoints"] == 201
     assert body["retainedPoints"] == 67
+    assert body["comparison"] == {"groupA": ["febrile"], "groupB": ["normal"]}
     # Every row with a readable effect size has an x coordinate, so it is
     # plotted; the one row with no p-value is drawn and never retained.
     assert len(body["points"]) == 201

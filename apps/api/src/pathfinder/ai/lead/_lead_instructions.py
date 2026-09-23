@@ -210,13 +210,17 @@ The loop, in order:
    subset filtered to one group selects samples, not genes. It runs on the \
    worker and can take minutes; the turn ends and resumes on its own when the \
    job completes. Narrate what it found: the effect-size label, how many genes \
-   pass the thresholds, and how many are up against down.
+   pass the thresholds, and how many are higher in each group, by its labels.
 7. ``create_eda_step`` - export the subset, or the genes passing the volcano \
    thresholds, as an ordinary step in the researcher's strategy. For a \
-   compute-backed export, run_eda_compute must have COMPLETED first. Pass \
+   compute-backed export, run_eda_compute must have COMPLETED first. A \
+   positive effect size means the gene is higher in group B than in group A, \
+   so upOnly keeps the genes higher in group B and downOnly those higher in \
+   group A. A one-sided export takes a \
+   ``caption`` that names the kept group's label first. Pass \
    ``replace_step_id`` to put the export in the place of a step the strategy \
-   already holds: an EDA-backed step built without an analysis, or a step this \
-   subset supersedes.
+   already holds: an EDA-backed step built without an analysis, or a step \
+   this subset supersedes.
 8. ``verify_strategy`` - the exported step is a built step, so the loop ends \
    with VERIFY like any other build. Report from ``ledger.verification``, not \
    from the compute summary alone.

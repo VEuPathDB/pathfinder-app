@@ -1,16 +1,24 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { usePrefetchQuery, useQuery } from "@tanstack/react-query";
+import { Suspense, useState } from "react";
 import { useInterval } from "usehooks-ts";
+import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
 import { systemReadyQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemReady";
 
+import { sitesOptions } from "@/lib/api/sites";
+import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { BusyWorkerBanner } from "./BusyWorkerBanner";
-import { StartupScreen, startupStatus } from "./StartupScreen";
+import { LoadingScreen } from "./LoadingScreen";
+import { STARTUP_GRACE_MS, StartupScreen, startupStatus } from "./StartupScreen";
 
-const STARTUP_GRACE_MS = 20_000;
-
-export function SystemReadyGate({ children }: { children: React.ReactNode }) {
+export function SystemReadyGate({
+  siteId,
+  children,
+}: {
+  siteId: string;
+  children: React.ReactNode;
+}) {
   const [mountedAt] = useState(() => Date.now());
   const [now, setNow] = useState(() => Date.now());
   const { data, isError } = useQuery({
@@ -24,7 +32,14 @@ export function SystemReadyGate({ children }: { children: React.ReactNode }) {
   // stuck in-flight (e.g. the DB is unreachable and the query never resolves).
   useInterval(() => setNow(Date.now()), ready ? null : 1000);
 
-  if (ready) return <>{children}</>;
+  const app = (
+    <>
+      <AppShellPrefetch siteId={siteId} />
+      <Suspense fallback={<LoadingScreen />}>{children}</Suspense>
+    </>
+  );
+
+  if (ready) return app;
 
   const status = startupStatus({
     data,
@@ -37,10 +52,18 @@ export function SystemReadyGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-full flex-col">
         <BusyWorkerBanner />
-        <div className="min-h-0 flex-1">{children}</div>
+        <div className="min-h-0 flex-1">{app}</div>
       </div>
     );
   }
 
   return <StartupScreen status={status} />;
+}
+
+/** Starts the reads every app shell suspends on while the shell code still loads. */
+function AppShellPrefetch({ siteId }: { siteId: string }) {
+  usePrefetchQuery(sitesOptions());
+  usePrefetchQuery(listModelsQueryOptions());
+  usePrefetchQuery(authStatusOptions(siteId));
+  return null;
 }

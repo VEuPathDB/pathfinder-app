@@ -69,7 +69,7 @@ def test_complete_new_step_still_pushes() -> None:
 def test_step_already_in_wdk_is_not_deferred() -> None:
     # Regressing a live WDK step into a draft would silently strip it from
     # the built strategy; the user must be told instead.
-    plan = [_plan("s1", PatchAction())]
+    plan = [_plan("s1", PatchAction(search_config=True, name=False))]
     result = defer_draft_steps(
         plan,
         steps_by_id=_steps(*_ids(plan)),

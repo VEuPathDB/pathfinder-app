@@ -11,6 +11,7 @@ const props = {
   onSave: vi.fn(),
   onDiscard: vi.fn(),
   count: 132,
+  recordType: "transcript",
   wdkUrl: "https://plasmodb.org/plasmo/app/workspace/strategies/1",
 };
 
@@ -53,5 +54,15 @@ describe("the link to the host site", () => {
     render(<EditorFooter {...props} wdkUrl={null} siteId="plasmodb" />);
 
     expect(screen.queryByRole("link")).toBe(null);
+  });
+});
+
+describe("the step count", () => {
+  afterEach(cleanup);
+
+  it("counts a transcript step in genes", () => {
+    render(<EditorFooter {...props} siteId="plasmodb" />);
+
+    expect(screen.getByText("132 genes")).toBeInTheDocument();
   });
 });

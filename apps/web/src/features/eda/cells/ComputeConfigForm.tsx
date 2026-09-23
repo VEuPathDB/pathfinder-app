@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import type { EdaVariableResponse } from "@pathfinder/shared/generated/types/EdaVariableResponse";
 
+import { Checkbox } from "@/components/ui/checkbox";
+
 import type {
   ComputeConfigDraft,
   DifferentialExpressionMethod,
@@ -113,22 +115,18 @@ export function ComputeConfigForm({
       </Field>
 
       <GroupField
-        id="eda-compute-group-a"
-        label="Group A"
-        value={draft.groupA[0] ?? ""}
+        label="Reference group (A)"
+        checked={draft.groupA}
+        taken={draft.groupB}
         vocabulary={vocabulary}
-        onChange={(label) =>
-          onChange({ ...draft, groupA: label === "" ? [] : [label] })
-        }
+        onChange={(groupA) => onChange({ ...draft, groupA })}
       />
       <GroupField
-        id="eda-compute-group-b"
-        label="Group B"
-        value={draft.groupB[0] ?? ""}
+        label="Comparison group (B)"
+        checked={draft.groupB}
+        taken={draft.groupA}
         vocabulary={vocabulary}
-        onChange={(label) =>
-          onChange({ ...draft, groupB: label === "" ? [] : [label] })
-        }
+        onChange={(groupB) => onChange({ ...draft, groupB })}
       />
     </div>
   );
@@ -153,34 +151,43 @@ function Field({
   );
 }
 
+/** One group's labels. A label the other group holds is disabled here, and
+ * the checked labels keep the vocabulary's order. */
 function GroupField({
-  id,
   label,
-  value,
+  checked,
+  taken,
   vocabulary,
   onChange,
 }: {
-  id: string;
   label: string;
-  value: string;
+  checked: readonly string[];
+  taken: readonly string[];
   vocabulary: readonly string[];
-  onChange: (label: string) => void;
+  onChange: (labels: string[]) => void;
 }) {
+  const toggle = (value: string) =>
+    onChange(
+      vocabulary.filter((entry) =>
+        entry === value ? !checked.includes(entry) : checked.includes(entry),
+      ),
+    );
   return (
-    <Field id={id} label={label}>
-      <select
-        id={id}
-        className={SELECT_CLASS}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">Choose a value...</option>
-        {vocabulary.map((entry) => (
-          <option key={entry} value={entry}>
-            {entry}
-          </option>
+    <fieldset className="space-y-1">
+      <legend className="text-[11px] text-muted-foreground">{label}</legend>
+      <ul className="max-h-40 space-y-1 overflow-y-auto">
+        {vocabulary.map((value) => (
+          <li key={value} className="flex items-center gap-2">
+            <Checkbox
+              aria-label={value}
+              checked={checked.includes(value)}
+              disabled={taken.includes(value)}
+              onCheckedChange={() => toggle(value)}
+            />
+            <span className="text-xs">{value}</span>
+          </li>
         ))}
-      </select>
-    </Field>
+      </ul>
+    </fieldset>
   );
 }

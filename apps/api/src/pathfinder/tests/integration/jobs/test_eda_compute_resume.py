@@ -446,6 +446,7 @@ async def test_the_volcano_reaches_conversation_events_after_the_state(
     assert data["analysisId"] == _eda_wire.ANALYSIS
     assert data["totalPoints"] == _eda_wire.FIXTURE_ROWS
     assert data["retainedPoints"] == _eda_wire.FIXTURE_RETAINED
+    assert data["comparison"] == {"groupA": ["normal"], "groupB": ["febrile"]}
     assert data["points"][0]["retained"] is True
     # The persisted row keeps the null, so the card can count the unplaced gene.
     assert len(data["points"]) == _eda_wire.FIXTURE_ROWS

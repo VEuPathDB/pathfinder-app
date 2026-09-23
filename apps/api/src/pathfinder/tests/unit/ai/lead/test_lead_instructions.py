@@ -70,6 +70,18 @@ def test_the_eda_section_asks_for_a_caption_on_every_plot() -> None:
     assert "caption" in eda_section
 
 
+def test_the_eda_section_states_the_sign_of_the_effect_size_by_group() -> None:
+    """upOnly keeps group B's side, so the Lead reads a direction as a group."""
+    eda_section = LEAD_INSTRUCTIONS[
+        LEAD_INSTRUCTIONS.index("## EDA: sample-level data") : LEAD_INSTRUCTIONS.index(
+            "## User-facing voice"
+        )
+    ]
+    assert "positive effect size means the gene is higher in group B" in eda_section
+    assert "upOnly keeps the genes higher in group B" in eda_section
+    assert "``caption`` that names the kept group's label first" in eda_section
+
+
 def test_the_eda_loop_ends_with_verification() -> None:
     """An exported study step is a built step, so the loop closes with VERIFY."""
     eda_section = LEAD_INSTRUCTIONS[

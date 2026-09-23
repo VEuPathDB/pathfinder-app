@@ -14,9 +14,10 @@ import { useEdaStore } from "@/state/eda";
 import {
   buildDifferentialExpressionConfig,
   comparatorVariables,
-  computeConfigProblem,
+  computeDraftOf,
   geneIdentifierVariable,
   isComputeConfigComplete,
+  isSameComputeDraft,
   valueVariables,
   GENE_ID_VARIABLE,
   type ComputeConfigDraft,
@@ -30,9 +31,11 @@ const STUDY_READ_FAILED = "Could not read the study";
 export interface ComputeCellProps {
   siteId: string;
   conversationId: string;
+  /** The analysis descriptor the thread's route answered, whose compute seeds the form. */
+  descriptor?: unknown;
 }
 
-export function ComputeCell({ siteId, conversationId }: ComputeCellProps) {
+export function ComputeCell({ siteId, conversationId, descriptor }: ComputeCellProps) {
   const datasetId = useEdaStore((s) => s.binding?.datasetId ?? "");
   const detail = useQuery({
     ...edaStudyDetailOptions(siteId, datasetId),
@@ -45,22 +48,29 @@ export function ComputeCell({ siteId, conversationId }: ComputeCellProps) {
     identifier === null ? [] : valueVariables(variables, identifier.entityId);
   const comparators = comparatorVariables(variables);
 
-  const [draft, setDraft] = useState<ComputeConfigDraft | null>(null);
-  const [seededFor, setSeededFor] = useState<string | null>(null);
-  const seedKey = identifier === null ? null : `${datasetId}:${identifier.variableId}`;
-  if (identifier !== null && seedKey !== null && seededFor !== seedKey) {
-    setSeededFor(seedKey);
-    setDraft({
-      identifierEntityId: identifier.entityId,
-      identifierVariableId: identifier.variableId,
-      valueVariableId: values[0]?.variableId ?? "",
-      comparatorEntityId: "",
-      comparatorVariableId: "",
-      groupA: [],
-      groupB: [],
-      method: "DESeq",
-    });
-  }
+  // The analysis's own compute seeds the form, or an empty draft when it has
+  // none. An edit belongs to the seed it was made on, so a new seed wins.
+  const recorded = computeDraftOf(descriptor);
+  const seed: ComputeConfigDraft | null =
+    recorded ??
+    (identifier === null
+      ? null
+      : {
+          identifierEntityId: identifier.entityId,
+          identifierVariableId: identifier.variableId,
+          valueVariableId: values[0]?.variableId ?? "",
+          comparatorEntityId: "",
+          comparatorVariableId: "",
+          groupA: [],
+          groupB: [],
+          method: "DESeq",
+        });
+  const seedKey = seed === null ? null : `${datasetId}:${JSON.stringify(seed)}`;
+  const [edit, setEdit] = useState<{
+    seedKey: string;
+    draft: ComputeConfigDraft;
+  } | null>(null);
+  const draft = edit !== null && edit.seedKey === seedKey ? edit.draft : seed;
 
   const [submitted, setSubmitted] = useState<EdaComputationDescriptor | null>(null);
 
@@ -79,10 +89,16 @@ export function ComputeCell({ siteId, conversationId }: ComputeCellProps) {
         <ComputeForm
           conversationId={conversationId}
           draft={draft}
+          runnable={
+            isComputeConfigComplete(draft) &&
+            (recorded === null || !isSameComputeDraft(draft, recorded))
+          }
           values={values}
           comparators={comparators}
           submitted={submitted}
-          onChange={setDraft}
+          onChange={(next) => {
+            if (seedKey !== null) setEdit({ seedKey, draft: next });
+          }}
           onRun={() =>
             setSubmitted({
               type: "differentialexpression",
@@ -98,6 +114,7 @@ export function ComputeCell({ siteId, conversationId }: ComputeCellProps) {
 function ComputeForm({
   conversationId,
   draft,
+  runnable,
   values,
   comparators,
   submitted,
@@ -106,13 +123,13 @@ function ComputeForm({
 }: {
   conversationId: string;
   draft: ComputeConfigDraft;
+  runnable: boolean;
   values: readonly EdaVariableResponse[];
   comparators: readonly EdaVariableResponse[];
   submitted: EdaComputationDescriptor | null;
   onChange: (next: ComputeConfigDraft) => void;
   onRun: () => void;
 }) {
-  const problem = computeConfigProblem(draft);
   return (
     <div className="space-y-3">
       <ComputeConfigForm
@@ -121,18 +138,8 @@ function ComputeForm({
         comparators={comparators}
         onChange={onChange}
       />
-      {problem !== null ? (
-        <p data-testid="eda-compute-config-error" className="text-xs text-destructive">
-          {problem}
-        </p>
-      ) : null}
       <div className="flex justify-end">
-        <Button
-          type="button"
-          size="sm"
-          disabled={!isComputeConfigComplete(draft)}
-          onClick={onRun}
-        >
+        <Button type="button" size="sm" disabled={!runnable} onClick={onRun}>
           Run compute
         </Button>
       </div>

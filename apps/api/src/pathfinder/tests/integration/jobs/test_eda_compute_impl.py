@@ -106,6 +106,11 @@ async def test_the_impl_polls_to_completion_and_returns_a_summary(
     assert result["retainedDown"] == 34
     assert result["retained"] == result["retainedUp"] + result["retainedDown"]
     assert "67 of 201" in result["guidance"]
+    assert result["comparison"] == {"groupA": ["normal"], "groupB": ["febrile"]}
+    assert result["signRule"] == (
+        "A positive effect size means the gene is higher in group B (febrile) "
+        "than in group A (normal)."
+    )
 
 
 async def test_progress_reports_queued_then_running_then_complete(

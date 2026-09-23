@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { applyOperationEndpointMutationRequestSchema } from "@pathfinder/shared/generated/zod/applyOperationEndpointSchema";
 import { APIError } from "./http";
 import {
   notOnSiteRefusal,
@@ -253,5 +254,32 @@ describe("notOnSiteRefusal", () => {
       data: body,
     });
     expect(notOnSiteRefusal(err)).toBe(null);
+  });
+});
+
+describe("a request body the client refuses before sending", () => {
+  function refusal(parameters: Record<string, unknown>): unknown {
+    return applyOperationEndpointMutationRequestSchema.safeParse({
+      op: { kind: "updateStepParams", stepId: "step-2", parameters },
+    }).error;
+  }
+
+  it("names the parameter that is missing a value", () => {
+    const err = refusal({
+      isSyntenic: { type: "single-pick-vocabulary", value: "yes" },
+      gene_result: { type: "input-step", stepId: "" },
+    });
+
+    expect(toUserMessage(err, "The step could not be saved")).toBe(
+      "The step could not be saved: gene_result is missing a value",
+    );
+  });
+
+  it("names the parameter whose value has the wrong shape", () => {
+    const err = refusal({ min_weight: { type: "number", value: "seven" } });
+
+    expect(toUserMessage(err, "Request failed.")).toBe(
+      "Request failed: min_weight has an invalid value",
+    );
   });
 });

@@ -13,6 +13,7 @@ from pathfinder.ai.eda_stream_parts import register_eda_stream_parts
 from pathfinder.ai.strategy_stream_parts import register_strategy_stream_parts
 from pathfinder.domain.eda_parts import (
     EdaAnalysisState,
+    EdaComparison,
     EdaDistributionSeries,
     EdaEntityCount,
     EdaSubsetPreviewPart,
@@ -81,16 +82,30 @@ def test_every_analysis_state_field_is_required_on_the_wire() -> None:
     ]
 
 
+def test_the_analysis_state_link_is_optional_because_the_log_holds_parts_without_it() -> (
+    None
+):
+    schema = EdaAnalysisState.model_json_schema(by_alias=True)
+    assert "analysisUrl" in schema["properties"]
+    assert "analysisUrl" not in schema["required"]
+
+
 # A plot's caption is written by the model, so a producer can have none.
 _OPTIONAL_ON_THE_WIRE = {
     EdaSubsetPreviewPart: {"caption"},
-    EdaVizPart: {"caption"},
+    EdaVizPart: {"caption", "comparison"},
 }
 
 
 @pytest.mark.parametrize(
     "part",
-    [EdaDistributionSeries, EdaSubsetPreviewPart, EdaVizPart, EdaVolcanoPoint],
+    [
+        EdaComparison,
+        EdaDistributionSeries,
+        EdaSubsetPreviewPart,
+        EdaVizPart,
+        EdaVolcanoPoint,
+    ],
     ids=lambda model: model.__name__,
 )
 def test_every_eda_part_field_is_required_on_the_wire(

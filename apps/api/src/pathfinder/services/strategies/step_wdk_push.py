@@ -31,17 +31,18 @@ from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.step_status import StepStatus, step_status
 from pathfinder.services.strategies._wdk_step_calls import (
-    _patch_combine_metadata,
+    _patch_name,
     _push_combine_step,
     _push_leaf_step,
     _push_transform_step,
-    _update_existing_step,
+    _put_search_config,
 )
 from pathfinder.services.strategies.step_push_planner import (
     CreateAction,
     PatchAction,
     RecreateAction,
     SkipAction,
+    StepActionT,
     StepPushPlan,
 )
 from pathfinder.services.strategies.step_search import names_a_wdk_question
@@ -143,17 +144,15 @@ async def _execute_patch(
     site_id: str,
     step: StrategyStep,
     record_type: str,
-    *,
-    name_moved: bool,
+    patch: PatchAction,
 ) -> StepPushFailure | None:
+    """Send the writes the patch names, the search config first."""
     api = get_strategy_api(site_id)
     try:
-        if step.kind.value == "combine":
-            await _patch_combine_metadata(api, sync_state, step)
-        else:
-            await _update_existing_step(
-                api, sync_state, step, record_type, name_moved=name_moved
-            )
+        if patch.search_config:
+            await _put_search_config(api, sync_state, step, record_type)
+        if patch.name:
+            await _patch_name(api, sync_state, step)
     except VEuPathDBError as exc:
         failure = _failure(step.id, wdk_search_name(step), exc, exc.status)
     except OSError as exc:
@@ -214,16 +213,12 @@ async def _execute_action(
     site_id: str,
     step: StrategyStep,
     record_type: str,
-    *,
-    name_moved: bool,
 ) -> tuple[StepPushFailure | None, int | None]:
     """Run one planned action, and name the WDK id a recreate replaces."""
     match action:
         case PatchAction():
             return (
-                await _execute_patch(
-                    sync_state, site_id, step, record_type, name_moved=name_moved
-                ),
+                await _execute_patch(sync_state, site_id, step, record_type, action),
                 None,
             )
         case CreateAction():
@@ -279,6 +274,19 @@ def defer_draft_steps(
     return deferred
 
 
+def _sends_parameters(action: StepActionT) -> bool:
+    """Whether the action writes the step's parameters to WDK."""
+    match action:
+        case SkipAction():
+            return False
+        case PatchAction():
+            return action.search_config
+        case CreateAction() | RecreateAction():
+            return True
+        case _:
+            assert_never(action)
+
+
 async def _validate_plan_params(
     plan: list[StepPushPlan],
     steps_by_id: dict[str, StrategyStep],
@@ -286,7 +294,7 @@ async def _validate_plan_params(
     strategy_class: str,
     existing_wdk_ids: dict[str, int],
 ) -> set[str]:
-    """Canonicalize the params of each pushable step in place.
+    """Canonicalize the params of each step the plan writes them for, in place.
 
     Validation resolves the record class WDK lists the step's search under, and
     the step keeps it. An incomplete step that is already in WDK raises instead
@@ -301,7 +309,7 @@ async def _validate_plan_params(
     incomplete: set[str] = set()
     for entry in plan:
         step = steps_by_id.get(entry.step_id)
-        if step is None or isinstance(entry.action, SkipAction):
+        if step is None or not _sends_parameters(entry.action):
             continue
         if not names_a_wdk_question(step):
             continue
@@ -370,7 +378,6 @@ async def push_steps_with_plan(
             site_id,
             step,
             record_type,
-            name_moved=entry.name_moved,
         )
         if replaced is not None:
             recreated[step.id] = replaced

@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { QueryClient } from "@tanstack/react-query";
 import { APIError } from "@/lib/api/http";
+import { AppError } from "@/lib/errors/AppError";
 import {
   setQueryErrorHandler,
   type QueryErrorNotice,
@@ -142,5 +143,35 @@ describe("global query error handler", () => {
     const client = __makeQueryClientForTests();
     await runFailingQuery(client, new Error("boom"));
     expect(handler).not.toHaveBeenCalled();
+  });
+});
+
+describe("default retry policy", () => {
+  function retries(error: Error): boolean {
+    const retry = __makeQueryClientForTests().getDefaultOptions().queries?.retry;
+    if (typeof retry !== "function") throw new Error("retry is not a policy");
+    return retry(0, error);
+  }
+
+  it("does not repeat a request that timed out", () => {
+    expect(retries(new AppError("no answer", "TIMEOUT"))).toBe(false);
+  });
+
+  it("does not repeat a request the api refused because the site is down", () => {
+    const refusal = new APIError("Could not connect to plasmodb (ReadTimeout).", {
+      status: 503,
+      statusText: "Service Unavailable",
+      url: "/api/v1/veupathdb/auth/status",
+      data: {
+        status: 503,
+        detail: "Could not connect to plasmodb (ReadTimeout).",
+        code: "SITE_UNAVAILABLE",
+      },
+    });
+    expect(retries(refusal)).toBe(false);
+  });
+
+  it("repeats a request the network dropped", () => {
+    expect(retries(new Error("network down"))).toBe(true);
   });
 });

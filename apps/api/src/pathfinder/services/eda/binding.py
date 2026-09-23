@@ -35,6 +35,7 @@ from pathfinder.services.eda.description import (
     filter_summaries,
     permission_facts,
 )
+from pathfinder.services.eda.urls import analysis_url
 
 _CONFLICT = 409
 
@@ -175,6 +176,9 @@ async def analysis_state(
             site_id, study=study, filters=analysis.descriptor.subset.descriptor
         ),
         can_export_rows=entry.can_export_rows and gene.entity_id is not None,
+        analysis_url=analysis_url(
+            site_id, dataset_id=dataset_id, analysis_id=analysis.analysis_id
+        ),
     )
 
 

@@ -105,14 +105,17 @@ class TestTheTokenMustNameTheSessionUser:
         assert seen == []
 
     @pytest.mark.asyncio
-    async def test_an_unresolvable_token_does_not_sign_the_session_out(
+    async def test_a_token_that_names_nobody_is_a_login_refusal(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """WDK naming nobody is an outage, not a second account."""
+        """The site refused the token or named a guest, so no account is signed in."""
         seen = _token_names(monkeypatch, None)
         veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
 
-        await wdk_identity.require_session_matches_wdk_identity(_session(), "plasmodb")
+        with pytest.raises(WDKLoginRequiredError):
+            await wdk_identity.require_session_matches_wdk_identity(
+                _session(), "plasmodb"
+            )
 
         assert seen == [REGISTERED_TOKEN]
 

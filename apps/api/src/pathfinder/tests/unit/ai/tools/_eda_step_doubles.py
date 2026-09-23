@@ -54,7 +54,7 @@ async def unbound(_ctx: object) -> ConversationAnalysisView | None:
     return None
 
 
-def _computation() -> EdaComputation:
+def _computation(group_a: Sequence[str], group_b: Sequence[str]) -> EdaComputation:
     return EdaComputation(
         computation_id="c1",
         descriptor=EdaComputationDescriptor(
@@ -69,15 +69,20 @@ def _computation() -> EdaComputation:
                     variable=EdaVariableSpec(
                         entity_id=PHENOTYPE_ENTITY, variable_id="VAR_state"
                     ),
-                    group_a=[EdaLabeledRange(label="febrile")],
-                    group_b=[EdaLabeledRange(label="normal")],
+                    group_a=[EdaLabeledRange(label=label) for label in group_a],
+                    group_b=[EdaLabeledRange(label=label) for label in group_b],
                 ),
             )
         ),
     )
 
 
-def analysis_detail(*, with_computation: bool) -> EdaAnalysisDetail:
+def analysis_detail(
+    *,
+    with_computation: bool,
+    group_a: Sequence[str] = ("febrile",),
+    group_b: Sequence[str] = ("normal",),
+) -> EdaAnalysisDetail:
     return EdaAnalysisDetail(
         analysis_id=ANALYSIS_ID,
         display_name="berghei subset",
@@ -92,7 +97,7 @@ def analysis_detail(*, with_computation: bool) -> EdaAnalysisDetail:
                     )
                 ]
             ),
-            computations=[_computation()] if with_computation else [],
+            computations=([_computation(group_a, group_b)] if with_computation else []),
         ),
     )
 

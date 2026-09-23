@@ -5,12 +5,7 @@ import type { Step } from "@pathfinder/shared";
 import { ResultLabel } from "./ResultLabel";
 import type { StepSnapshot } from "@/state/strategy/useStepSnapshot";
 
-/**
- * An unfinished step and a step whose count has not arrived both rendered as
- * "? transcripts", so the canvas could not tell the researcher which one they
- * were looking at. The backend now derives `status` in one place; this is the
- * canvas finally saying it.
- */
+/** An unfinished step reads as Draft, apart from a step whose count has not arrived. */
 
 function step(overrides: Partial<Step> = {}): Step {
   return {

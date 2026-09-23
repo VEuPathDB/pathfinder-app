@@ -1,4 +1,7 @@
+import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaComparison";
+
 import type { ChartTokens } from "./chartTheme";
+import { higherIn } from "@/lib/eda/comparison";
 import { selectVolcanoGenes } from "@/lib/eda/volcanoSelection";
 import type {
   VolcanoPointInput,
@@ -25,6 +28,7 @@ export interface VolcanoOptionModel {
   xAxis: { name: string };
   yAxis: { name: string };
   droppedRowCount: number;
+  ariaLabel: string;
 }
 
 export interface BuildVolcanoOptionArgs {
@@ -33,6 +37,7 @@ export interface BuildVolcanoOptionArgs {
   significanceField: VolcanoSignificanceField;
   effectSizeLabel: string;
   tokens: ChartTokens;
+  comparison?: EdaComparison | null | undefined;
 }
 
 export function volcanoPointY(pValue: number | null | undefined): number | null {
@@ -67,6 +72,8 @@ export function buildVolcanoOption(args: BuildVolcanoOptionArgs): VolcanoOptionM
     else neutral.push(plotted);
   }
 
+  const higherInB = higherIn(args.comparison, "B");
+  const higherInA = higherIn(args.comparison, "A");
   return {
     series: [
       {
@@ -75,12 +82,12 @@ export function buildVolcanoOption(args: BuildVolcanoOptionArgs): VolcanoOptionM
         itemStyle: { color: args.tokens.mutedForeground, opacity: 0.35 },
       },
       {
-        name: "Higher in group B",
+        name: higherInB,
         data: up,
         itemStyle: { color: args.tokens.positive, opacity: 0.85 },
       },
       {
-        name: "Higher in group A",
+        name: higherInA,
         data: down,
         itemStyle: { color: args.tokens.negative, opacity: 0.85 },
       },
@@ -93,5 +100,6 @@ export function buildVolcanoOption(args: BuildVolcanoOptionArgs): VolcanoOptionM
     xAxis: { name: args.effectSizeLabel },
     yAxis: { name: "-log10(p-value)" },
     droppedRowCount,
+    ariaLabel: `Volcano plot, ${higherInB} (${up.length}) and ${higherInA} (${down.length})`,
   };
 }

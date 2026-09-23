@@ -8,7 +8,7 @@ import pytest
 from veupathdb.domain.strategy import StepKind, StrategyStep
 from veupathdb.wdk import StrategyAPI, WDKSearchConfig
 
-from pathfinder.services.strategies._wdk_step_calls import _update_existing_step
+from pathfinder.services.strategies._wdk_step_calls import _put_search_config
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 
@@ -31,12 +31,11 @@ async def _patch(
 
     api = StrategyAPI.__new__(StrategyAPI)
     monkeypatch.setattr(api, "update_step_search_config", record)
-    await _update_existing_step(
+    await _put_search_config(
         api,
         WDKSyncState(wdk_step_ids={"step_a": 7}),
         step,
         "transcript",
-        name_moved=False,
     )
     return sent[0]
 

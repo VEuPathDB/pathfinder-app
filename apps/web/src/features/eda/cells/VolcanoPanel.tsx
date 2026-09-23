@@ -29,6 +29,7 @@ export function VolcanoPanel({ payload }: { payload: EdaViz }) {
       <VolcanoControls
         thresholds={thresholds}
         resetToken={payload}
+        comparison={payload.comparison}
         onChange={setVolcanoThresholds}
       />
       <div className="flex flex-col gap-3 lg:flex-row">
@@ -38,6 +39,7 @@ export function VolcanoPanel({ payload }: { payload: EdaViz }) {
             thresholds={thresholds}
             significanceField="adjustedPValue"
             effectSizeLabel={payload.effectSizeLabel}
+            comparison={payload.comparison}
             height={CHART_HEIGHT}
             testId="eda-viz-volcano"
           />

@@ -1,12 +1,37 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { DataStrategyLink } from "./DataStrategyLink";
 
+const STRATEGY = {
+  strategyId: "s1",
+  url: "https://plasmodb.org/plasmo/app/workspace/strategies/s1",
+  title: "My Strategy",
+};
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("DataStrategyLink", () => {
+  it("opens the strategy in a new tab when the app is not framed", () => {
+    render(<DataStrategyLink data={STRATEGY} />);
+    const link = screen.getByRole("link", { name: "My Strategy" });
+    expect(link).toHaveAttribute("href", STRATEGY.url);
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  it("replaces the framing site's page when the app is framed", () => {
+    vi.spyOn(window, "top", "get").mockReturnValue(null);
+    render(<DataStrategyLink data={STRATEGY} />);
+    const link = screen.getByRole("link", { name: "My Strategy" });
+    expect(link).toHaveAttribute("href", STRATEGY.url);
+    expect(link).toHaveAttribute("target", "_top");
+  });
+
   it("renders link with title", () => {
     render(
       <DataStrategyLink

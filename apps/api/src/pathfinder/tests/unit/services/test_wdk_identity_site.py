@@ -132,21 +132,6 @@ class TestOneTokenNamesOneUserOnEverySite:
         assert seen == ["plasmodb"]
 
 
-class TestAWdkOutageNamesNobody:
-    @pytest.mark.asyncio
-    async def test_the_session_keeps_its_own_identity(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        seen = _fake_wdk(monkeypatch, email=None)
-        _fake_user_row(monkeypatch)
-        veupathdb_auth_token_ctx.set(REGISTERED_TOKEN)
-        session = Principal(user_id=SESSION_USER, credential="pathfinder-cookie")
-
-        await wdk_identity.require_session_matches_wdk_identity(session, "plasmodb")
-
-        assert (seen, session.user_id) == (["plasmodb"], SESSION_USER)
-
-
 class TestTheRouteGateRefusesADegradedSiteBeforeAnyIdentityCall:
     @pytest.mark.asyncio
     async def test_the_named_degraded_site_is_refused(

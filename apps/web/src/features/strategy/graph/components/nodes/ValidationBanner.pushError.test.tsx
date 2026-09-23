@@ -6,13 +6,8 @@ import { stepErrorMessage, ValidationBanner } from "./ValidationBanner";
 import type { StepSnapshot } from "@/state/strategy/useStepSnapshot";
 
 /**
- * A step WDK rejected used to abort the whole commit, so the canvas rolled
- * back its optimistic state and said "Operation failed" - while the server had
- * in fact kept the edit. Now the operation succeeds and the rejection travels
- * on the step, which only helps if the canvas actually shows it.
- *
- * The lifecycle machine never transitions for this: the push failed on the
- * server, so nothing local goes "invalid".
+ * The server keeps an edit WDK rejected and the rejection travels on the step.
+ * The lifecycle machine does not change state, so the banner reads the step.
  */
 
 function step(overrides: Partial<Step> = {}): Step {

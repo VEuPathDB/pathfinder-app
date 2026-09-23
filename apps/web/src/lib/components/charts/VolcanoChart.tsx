@@ -1,6 +1,7 @@
 "use client";
 
 import type { EChartsOption, TooltipComponentFormatterCallbackParams } from "echarts";
+import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaComparison";
 
 import { EChart } from "./EChart";
 import { readChartTokens } from "./chartTheme";
@@ -29,6 +30,7 @@ export interface VolcanoChartProps {
   effectSizeLabel: string;
   height: number;
   testId: string;
+  comparison?: EdaComparison | null | undefined;
 }
 
 export function VolcanoChart(props: VolcanoChartProps) {
@@ -39,6 +41,7 @@ export function VolcanoChart(props: VolcanoChartProps) {
     significanceField: props.significanceField,
     effectSizeLabel: props.effectSizeLabel,
     tokens,
+    comparison: props.comparison,
   });
 
   const option: EChartsOption = {
@@ -94,7 +97,7 @@ export function VolcanoChart(props: VolcanoChartProps) {
       <EChart
         option={option}
         height={props.height}
-        ariaLabel={`Volcano plot, ${model.series[1]?.data.length ?? 0} higher in group B and ${model.series[2]?.data.length ?? 0} higher in group A`}
+        ariaLabel={model.ariaLabel}
         testId={props.testId}
       />
       {model.droppedRowCount > 0 && (

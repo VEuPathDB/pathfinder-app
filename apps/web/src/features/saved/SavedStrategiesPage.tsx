@@ -25,6 +25,7 @@ import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStra
 import { toUserMessage } from "@/lib/api/errors";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { chatRoot, chatUrl } from "@/lib/routes";
+import { countNoun } from "@/lib/utils/countNoun";
 import { useRightRailStore } from "@/state/useRightRailStore";
 
 interface SavedStrategiesPageProps {
@@ -233,7 +234,9 @@ function SavedRow({
         <span className="text-sm font-medium">{conv.name}</span>
         <span className="text-xs text-muted-foreground">
           {stepCount} {stepCount === 1 ? "step" : "steps"}
-          {size != null ? ` · ${size.toLocaleString()} results` : ""}
+          {size != null
+            ? ` · ${size.toLocaleString()} ${countNoun(conv.recordType, size)}`
+            : ""}
           {conv.recordType != null ? ` · ${conv.recordType}` : ""}
         </span>
       </button>

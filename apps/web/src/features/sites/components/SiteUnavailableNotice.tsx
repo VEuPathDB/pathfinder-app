@@ -17,7 +17,7 @@ export function SiteUnavailableNotice({ siteId }: { siteId: string }) {
   const site = rows.find((row) => row.id === siteId);
   const displayName = site?.displayName ?? siteId;
   const reason = site?.unavailableReason ?? null;
-  const alternatives = rows.filter((row) => row.available);
+  const alternatives = rows.filter((row) => row.available && row.id !== siteId);
 
   return (
     <div

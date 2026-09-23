@@ -35,7 +35,11 @@ from pathfinder.ai.tools.standalone.eda_stream_parts import (
     eda_analysis_state_chunk,
     eda_viz_chunk,
 )
-from pathfinder.domain.eda_parts import EdaEffectDirection, EdaVolcanoPoint
+from pathfinder.domain.eda_parts import (
+    EdaComparison,
+    EdaEffectDirection,
+    EdaVolcanoPoint,
+)
 from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.services.eda.authoring import apply_computation
 from pathfinder.services.eda.binding import (
@@ -49,6 +53,7 @@ from pathfinder.services.eda.compute import (
     RUNNING_STATUSES,
     RetainedSummary,
     VolcanoThresholds,
+    comparison_of,
     lookup_job,
     poll_job,
     read_statistics,
@@ -59,6 +64,7 @@ from pathfinder.services.eda.compute import (
 from pathfinder.services.eda.description import (
     permission_facts,
 )
+from pathfinder.services.eda.direction import sign_sentence
 
 _COMPUTE_NAME = "differentialexpression"
 _POLL_SECONDS = 3.0
@@ -152,6 +158,7 @@ async def _announce_volcano(
     conversation_id: UUID,
     binding: ConversationAnalysisView,
     statistics: VolcanoStatsResponse,
+    config: EdaDifferentialExpressionConfig,
     summary: RetainedSummary,
     caption: str,
 ) -> None:
@@ -176,6 +183,7 @@ async def _announce_volcano(
             EdaVolcanoPoint.model_validate(point, from_attributes=True)
             for point in view.points
         ],
+        comparison=comparison_of(config),
         caption=caption,
     )
     await append_chunk(
@@ -254,6 +262,46 @@ def _refuse(job: EdaComputeJob) -> RuntimeError:
     return RuntimeError(
         f"The differential-expression job {job.job_id} is {job.status}: {meaning}.",
     )
+
+
+def compute_result(
+    *,
+    job_id: str,
+    status: str,
+    method: str,
+    effect_size_label: str,
+    summary: RetainedSummary,
+    comparison: EdaComparison,
+) -> dict[str, Any]:
+    """The summary the agent resumes with, each side named by its group."""
+    higher_in_b = ", ".join(comparison.group_b)
+    higher_in_a = ", ".join(comparison.group_a)
+    return {
+        "jobId": job_id,
+        "status": status,
+        "computeName": _COMPUTE_NAME,
+        "method": method,
+        "effectSizeLabel": effect_size_label,
+        "genesTested": summary.total_rows,
+        "genesUnreadable": summary.unparseable_rows,
+        "effectSizeThreshold": _DEFAULT_EFFECT_SIZE,
+        "significanceThreshold": _DEFAULT_SIGNIFICANCE,
+        "retained": summary.retained,
+        "retainedUp": summary.retained_up,
+        "retainedDown": summary.retained_down,
+        "comparison": comparison.model_dump(by_alias=True, mode="json"),
+        "signRule": sign_sentence(comparison),
+        "guidance": (
+            f"{summary.retained} of {summary.total_rows} genes pass an effect "
+            f"size of {_DEFAULT_EFFECT_SIZE} and a p-value of "
+            f"{_DEFAULT_SIGNIFICANCE}: {summary.retained_up} higher in "
+            f"{higher_in_b} and {summary.retained_down} higher in {higher_in_a}. "
+            f"upOnly keeps the {summary.retained_up}, downOnly the "
+            f"{summary.retained_down}. Call create_eda_step with those "
+            f"thresholds to export them, or with different ones to change the "
+            f"cut."
+        ),
+    }
 
 
 async def run_eda_compute_impl(
@@ -343,29 +391,16 @@ async def run_eda_compute_impl(
         conversation_id=conversation_id,
         binding=binding,
         statistics=statistics,
+        config=config,
         summary=summary,
         caption=caption,
     )
     await progress.update(percent=1.0, message="Compute complete")
-    return {
-        "jobId": job.job_id,
-        "status": job.status,
-        "computeName": _COMPUTE_NAME,
-        "method": method,
-        "effectSizeLabel": statistics.effect_size_label,
-        "genesTested": summary.total_rows,
-        "genesUnreadable": summary.unparseable_rows,
-        "effectSizeThreshold": _DEFAULT_EFFECT_SIZE,
-        "significanceThreshold": _DEFAULT_SIGNIFICANCE,
-        "retained": summary.retained,
-        "retainedUp": summary.retained_up,
-        "retainedDown": summary.retained_down,
-        "guidance": (
-            f"{summary.retained} of {summary.total_rows} genes pass an effect "
-            f"size of {_DEFAULT_EFFECT_SIZE} and a p-value of "
-            f"{_DEFAULT_SIGNIFICANCE}: {summary.retained_up} up and "
-            f"{summary.retained_down} down. Call create_eda_step with those "
-            f"thresholds to export them, or with different ones to change the "
-            f"cut."
-        ),
-    }
+    return compute_result(
+        job_id=job.job_id,
+        status=job.status,
+        method=method,
+        effect_size_label=statistics.effect_size_label,
+        summary=summary,
+        comparison=comparison_of(config),
+    )

@@ -8,6 +8,12 @@ import { requestJson } from "./http";
 
 // VEuPathDB auth bridge
 
+const AUTH_STATUS_TIMEOUT_MS = 15_000;
+
+function isTimeout(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "TimeoutError";
+}
+
 export async function getVeupathdbAuthStatus(siteId: string): Promise<{
   signedIn: boolean;
   name?: string | null;
@@ -16,8 +22,11 @@ export async function getVeupathdbAuthStatus(siteId: string): Promise<{
   const raw = await requestJson(
     authStatusResponseSchema,
     `/api/v1/veupathdb/auth/status`,
-    { query: { siteId } },
-  );
+    { query: { siteId }, signal: AbortSignal.timeout(AUTH_STATUS_TIMEOUT_MS) },
+  ).catch((error: unknown) => {
+    if (!isTimeout(error)) throw error;
+    throw new AppError("The VEuPathDB sign-in check did not answer.", "TIMEOUT");
+  });
   return {
     signedIn: raw.signedIn,
     ...(raw.name !== undefined ? { name: raw.name } : {}),

@@ -125,7 +125,7 @@ describe("SavedStrategiesPage", () => {
 
     const kinaseRow = screen.getByTestId("saved-strategy-k1");
     expect(kinaseRow).toHaveTextContent("Kinase sweep");
-    expect(kinaseRow).toHaveTextContent("3 steps · 1,234 results · transcript");
+    expect(kinaseRow).toHaveTextContent("3 steps · 1,234 genes · transcript");
 
     const phosphRow = screen.getByTestId("saved-strategy-p1");
     expect(phosphRow).toHaveTextContent("1 step");

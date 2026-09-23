@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const pushMock = vi.fn();
@@ -188,5 +188,98 @@ describe("AppShellLayout on a site that does not answer", () => {
     expect(screen.queryByTestId("site-trigger-degraded")).not.toBeInTheDocument();
     expect(screen.queryByTestId("site-unavailable-notice")).not.toBeInTheDocument();
     expect(screen.getByTestId("routed-content")).toBeInTheDocument();
+  });
+});
+
+const SITE_UNAVAILABLE = {
+  type: "/errors/SITE_UNAVAILABLE",
+  title: "Cannot reach the site",
+  status: 503,
+  detail: "Could not connect to plasmodb (ReadTimeout).",
+  code: "SITE_UNAVAILABLE",
+};
+
+function json(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+/** Answers the sign-in status with each response in turn and leaves every other read pending. */
+function authStatusAnswers(...answers: Array<() => Response>) {
+  const calls: string[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: string) => {
+      if (!input.includes("/api/v1/veupathdb/auth/status")) {
+        return new Promise<Response>(() => {});
+      }
+      const answer = answers[Math.min(calls.length, answers.length - 1)]!;
+      calls.push(input);
+      return Promise.resolve(answer());
+    }),
+  );
+  return calls;
+}
+
+/** Renders inside an awaited act, so React flushes the render the answer resumes. */
+async function drawWithoutStatus() {
+  const { queryClient, Wrapper } = createTestWrapper();
+  queryClient.setQueryData(sitesOptions().queryKey, [AVAILABLE_PLASMODB]);
+  await act(async () => {
+    render(
+      <Wrapper>
+        <AppShellLayout params={settled({ siteId: "plasmodb" })}>
+          <div data-testid="routed-content" />
+        </AppShellLayout>
+      </Wrapper>,
+    );
+  });
+  return queryClient;
+}
+
+describe("AppShellLayout when the sign-in status is refused", () => {
+  afterEach(cleanup);
+
+  it("shows the site notice inside the shell for a 503 SITE_UNAVAILABLE", async () => {
+    authStatusAnswers(() => json(SITE_UNAVAILABLE, 503));
+
+    await drawWithoutStatus();
+
+    expect(await screen.findByTestId("site-unavailable-notice")).toBeInTheDocument();
+    expect(screen.getByLabelText("Switch database")).toBeInTheDocument();
+    expect(screen.getByTestId("conversation-sidebar")).toBeInTheDocument();
+    expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
+    expect(screen.queryByText("Application error")).not.toBeInTheDocument();
+    expect(screen.queryByText("Try another database:")).not.toBeInTheDocument();
+  });
+
+  it("keeps the application error for a 500", async () => {
+    authStatusAnswers(() =>
+      json({ title: "Internal Server Error", status: 500, detail: "boom" }, 500),
+    );
+
+    await drawWithoutStatus();
+
+    expect(await screen.findByText("Application error")).toBeInTheDocument();
+    expect(screen.queryByTestId("site-unavailable-notice")).not.toBeInTheDocument();
+  });
+
+  it("opens the app once a later sign-in status read answers", async () => {
+    const calls = authStatusAnswers(
+      () => json(SITE_UNAVAILABLE, 503),
+      () => json({ signedIn: true }, 200),
+    );
+    const queryClient = await drawWithoutStatus();
+    expect(await screen.findByTestId("site-unavailable-notice")).toBeInTheDocument();
+
+    await act(() =>
+      queryClient.refetchQueries({ queryKey: authStatusOptions("plasmodb").queryKey }),
+    );
+
+    expect(calls).toHaveLength(2);
+    expect(await screen.findByTestId("routed-content")).toBeInTheDocument();
+    expect(screen.queryByTestId("site-unavailable-notice")).not.toBeInTheDocument();
   });
 });

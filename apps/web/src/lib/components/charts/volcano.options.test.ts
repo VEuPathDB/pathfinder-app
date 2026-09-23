@@ -44,6 +44,21 @@ describe("buildVolcanoOption", () => {
     ]);
   });
 
+  it("names each side by its group's labels when the plot carries them", () => {
+    const option = buildVolcanoOption({
+      ...args,
+      comparison: { groupA: ["24h pbm"], groupB: ["18h pbm", "36h pbm"] },
+    });
+    expect(option.series.map((s) => s.name)).toEqual([
+      "Not notable",
+      "Higher in 18h pbm, 36h pbm",
+      "Higher in 24h pbm",
+    ]);
+    expect(option.ariaLabel).toBe(
+      "Volcano plot, Higher in 18h pbm, 36h pbm (1) and Higher in 24h pbm (1)",
+    );
+  });
+
   it("puts each qualifying gene in its own series with the right point count", () => {
     const option = buildVolcanoOption(args);
     expect(option.series[0]?.data).toHaveLength(3);

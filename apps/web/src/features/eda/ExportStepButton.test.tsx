@@ -60,7 +60,7 @@ const COMPLETED_JOB = {
 const EDA_STEP = {
   id: "step_eda",
   searchName: "GenesByEdaVizWithCompute",
-  displayName: "EDA volcano, 1543 genes",
+  displayName: "Genes higher in febrile than in normal",
   estimatedSize: 1543,
 };
 
@@ -252,6 +252,20 @@ describe("ExportStepButton", () => {
       screen.getByRole("link", { name: "Open the strategy canvas" }),
     ).toHaveAttribute("href", "/plasmodb/conversation/conv-1/strategy");
     expect(screen.queryByTestId("eda-export-draft-step")).toBe(null);
+  });
+
+  it("names the exported step by the genes it keeps", async () => {
+    answersWith({
+      analysis: analysis({ revision: 1 }),
+      job: null,
+      step: BESIDE_EXISTING,
+    });
+    readyToExport();
+    render(<ExportStepButton conversationId="conv-1" />);
+    await userEvent.click(screen.getByRole("button", { name: "Export as step" }));
+    expect(await screen.findByTestId("eda-export-step-name")).toHaveTextContent(
+      "Exported: Genes higher in febrile than in normal",
+    );
   });
 
   it("calls the step a draft beside an existing strategy, never pushed", async () => {

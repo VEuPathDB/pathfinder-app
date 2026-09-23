@@ -28,6 +28,7 @@ from pathfinder.services.eda.catalog import (
 )
 from pathfinder.services.eda.compute import (
     VolcanoThresholds,
+    analysis_comparison,
     bound_volcano,
     run_analysis_compute,
 )
@@ -176,6 +177,7 @@ async def read_eda_viz(
             EdaVizPointResponse.model_validate(point, from_attributes=True)
             for point in view.points
         ],
+        comparison=analysis_comparison(analysis),
     )
 
 

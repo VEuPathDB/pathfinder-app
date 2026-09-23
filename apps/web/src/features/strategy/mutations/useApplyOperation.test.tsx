@@ -14,6 +14,8 @@ vi.mock("sonner", () => ({
   toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() },
 }));
 
+import { toast } from "sonner";
+import { applyOperationEndpointMutationRequestSchema } from "@pathfinder/shared/generated/zod/applyOperationEndpointSchema";
 import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
 import { useStrategyStore } from "@/state/strategy/store";
 import { useApplyOperation } from "./useApplyOperation";
@@ -97,6 +99,45 @@ describe("useApplyOperation", () => {
       expect(harness.getStrategy("strategy-1")?.steps[0]?.displayName).toBe("A");
       expect(useStrategyStore.getState().lastFailedOperation).not.toBeNull();
     });
+  });
+
+  it("says in one sentence which parameter kept a step from being saved", async () => {
+    const initial = makeStrategy([
+      step({ id: "a", displayName: "A", searchName: "GenesByOrthologs" }),
+    ]);
+    const harness = makeQueryHarness(initial);
+    const body = {
+      op: {
+        kind: "updateStepParams",
+        stepId: "a",
+        parameters: { gene_result: { type: "input-step", stepId: "" } },
+      },
+    };
+    applyOperationEndpointMock.mockImplementationOnce(() =>
+      applyOperationEndpointMutationRequestSchema.parse(body),
+    );
+
+    const { result } = renderHook(() => useApplyOperation("strategy-1"), {
+      wrapper: harness.wrapper,
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          op: {
+            kind: "updateStepParams",
+            stepId: "a",
+            parameters: {
+              isSyntenic: { type: "single-pick-vocabulary", value: "yes" },
+            },
+          },
+        }),
+      ).rejects.toThrow();
+    });
+
+    expect(toast.error).toHaveBeenCalledWith(
+      "The step could not be saved: gene_result is missing a value",
+    );
   });
 
   it("pushes a snapshot to the history slice on success", async () => {

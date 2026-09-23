@@ -1,12 +1,9 @@
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 
-import { wdkAuthRefusal } from "@/lib/api/errors";
+import { siteUnavailableRefusal, wdkAuthRefusal } from "@/lib/api/errors";
 import { APIError } from "@/lib/api/http";
-import {
-  listModelsQueryKey,
-  listModelsQueryOptions,
-} from "@pathfinder/shared/generated/hooks/useListModels";
-import { sitesOptions } from "@/lib/api/sites";
+import { AppError } from "@/lib/errors/AppError";
+import { listModelsQueryKey } from "@pathfinder/shared/generated/hooks/useListModels";
 
 export interface QueryErrorNotice {
   message: string;
@@ -53,6 +50,9 @@ function makeQueryClient(): QueryClient {
         staleTime: 30_000,
         gcTime: 5 * 60_000,
         retry: (failureCount, error) => {
+          // A timeout or a down site gives the same answer at once. The shell asks again later.
+          if (error instanceof AppError && error.code === "TIMEOUT") return false;
+          if (siteUnavailableRefusal(error) !== null) return false;
           if (error instanceof APIError && error.status >= 400 && error.status < 500) {
             return false;
           }
@@ -80,10 +80,6 @@ export function getQueryClient(): QueryClient {
   if (typeof window === "undefined") {
     return makeQueryClient();
   }
-  if (browserQueryClient == null) {
-    browserQueryClient = makeQueryClient();
-    void browserQueryClient.prefetchQuery(sitesOptions());
-    void browserQueryClient.prefetchQuery(listModelsQueryOptions());
-  }
+  browserQueryClient ??= makeQueryClient();
   return browserQueryClient;
 }

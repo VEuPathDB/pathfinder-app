@@ -94,25 +94,21 @@ def test_no_old_ast_creates_all_steps() -> None:
             step_id="step_a",
             action=CreateAction(),
             reason="no wdk id",
-            name_moved=True,
         ),
         StepPushPlan(
             step_id="step_b",
             action=CreateAction(),
             reason="no wdk id",
-            name_moved=True,
         ),
         StepPushPlan(
             step_id="step_inner",
             action=CreateAction(),
             reason="no wdk id",
-            name_moved=True,
         ),
         StepPushPlan(
             step_id="step_t",
             action=CreateAction(),
             reason="no wdk id",
-            name_moved=True,
         ),
     ]
 
@@ -141,7 +137,7 @@ def test_single_leaf_param_change_patches_only_that_leaf() -> None:
     plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids)
 
     by_id = {p.step_id: p for p in plan}
-    assert by_id["step_a"].action == PatchAction()
+    assert by_id["step_a"].action == PatchAction(search_config=True, name=False)
     assert by_id["step_a"].reason == "params changed"
     assert by_id["step_b"].action == SkipAction()
     assert by_id["step_c"].action == SkipAction()
@@ -149,7 +145,12 @@ def test_single_leaf_param_change_patches_only_that_leaf() -> None:
     assert by_id["step_outer"].action == SkipAction()
     counts = {
         type(action).__name__: sum(1 for p in plan if p.action == action)
-        for action in (SkipAction(), CreateAction(), PatchAction(), RecreateAction())
+        for action in (
+            SkipAction(),
+            CreateAction(),
+            PatchAction(search_config=True, name=False),
+            RecreateAction(),
+        )
     }
     assert counts == {
         "SkipAction": 4,
@@ -281,9 +282,8 @@ def test_display_name_only_change_patches_leaf() -> None:
     assert plan == [
         StepPushPlan(
             step_id="step_a",
-            action=PatchAction(),
+            action=PatchAction(search_config=False, name=True),
             reason="display name changed",
-            name_moved=True,
         ),
     ]
 
@@ -340,7 +340,7 @@ def test_combine_metadata_only_change_patches_combine() -> None:
     plan = plan_step_pushes(old_ast=old, new_ast=new, existing_wdk_ids=wdk_ids)
 
     by_id = {p.step_id: p for p in plan}
-    assert by_id["step_c"].action == PatchAction()
-    assert by_id["step_c"].reason == "combine metadata changed"
+    assert by_id["step_c"].action == PatchAction(search_config=False, name=True)
+    assert by_id["step_c"].reason == "combine name changed"
     assert by_id["step_a"].action == SkipAction()
     assert by_id["step_b"].action == SkipAction()

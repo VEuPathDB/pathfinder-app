@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { SearchTransformBody } from "./SearchTransformBody";
 import type { StepEditorState } from "./useStepEditorState";
-import type { Step } from "@pathfinder/shared";
+import type { ParamSpec, Step } from "@pathfinder/shared";
 
 afterEach(cleanup);
 
@@ -114,6 +114,24 @@ describe("an empty parameter list only means empty once it is known", () => {
   it("says so when a completed fetch returned nothing", () => {
     renderBody({ isLoading: false, paramSpecsSettled: true, paramSpecs: [] });
 
+    expect(screen.getByText(EMPTY)).toBeInTheDocument();
+  });
+
+  it("draws no field for the parameter that wires the step's input", () => {
+    const inputStep: ParamSpec = {
+      name: "gene_result",
+      type: "input-step",
+      displayName: "Input Result",
+      displayType: "",
+      allowEmptyValue: true,
+      isVisible: true,
+      isNumber: false,
+      countOnlyLeaves: false,
+      initialDisplayValue: "",
+    };
+    renderBody({ isLoading: false, paramSpecsSettled: true, paramSpecs: [inputStep] });
+
+    expect(screen.queryByText("Input Result")).toBe(null);
     expect(screen.getByText(EMPTY)).toBeInTheDocument();
   });
 

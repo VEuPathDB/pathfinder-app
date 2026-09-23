@@ -11,8 +11,45 @@ function parseJson(text: string): unknown {
   }
 }
 
+type ZodIssue = z.core.$ZodIssue;
+
+/** The issue that reached furthest into the value, through every union option. */
+function deepestIssue(
+  issue: ZodIssue,
+  prefix: readonly PropertyKey[],
+): { issue: ZodIssue; path: PropertyKey[] } {
+  let best = { issue, path: [...prefix, ...issue.path] };
+  if (issue.code !== "invalid_union") return best;
+  for (const inner of issue.errors.flat()) {
+    const found = deepestIssue(inner, best.path);
+    if (found.path.length > best.path.length) best = found;
+  }
+  return best;
+}
+
+/** One sentence that names the field a request body failed on, never the issue list. */
+function invalidBodyMessage(err: z.ZodError, fallback: string): string {
+  const lead = fallback.replace(/\.$/, "");
+  const first = err.issues[0];
+  if (first === undefined) return fallback;
+  const { issue, path } = deepestIssue(first, []);
+  const names = path.filter((part): part is string => typeof part === "string");
+  // Inside a parameter map, the parameter's name is the field the user knows.
+  const inParameters = names.indexOf("parameters");
+  const field =
+    inParameters >= 0 && inParameters + 1 < names.length
+      ? names[inParameters + 1]
+      : names.at(-1);
+  if (field === undefined) return fallback;
+  const problem =
+    issue.code === "too_small" ? "is missing a value" : "has an invalid value";
+  return `${lead}: ${field} ${problem}`;
+}
+
 export function toUserMessage(err: unknown, fallback = "Request failed."): string {
   if (err == null) return fallback;
+
+  if (err instanceof z.ZodError) return invalidBodyMessage(err, fallback);
 
   if (err instanceof AppError) {
     const msg = err.message.trim();

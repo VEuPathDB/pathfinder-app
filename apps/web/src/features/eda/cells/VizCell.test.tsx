@@ -122,6 +122,7 @@ function vizResponse(totalPoints: number) {
     totalPoints,
     retainedPoints: 2,
     points: VOLCANO.points,
+    comparison: { groupA: ["normal"], groupB: ["febrile"] },
   };
 }
 
@@ -157,6 +158,42 @@ describe("VizCell", () => {
     useEdaStore.getState().applyViz(VOLCANO);
     render(<VizCell siteId="plasmodb" conversationId="conv-1" />);
     expect(screen.getByTestId("eda-viz-volcano")).toHaveAttribute("role", "img");
+  });
+
+  it("names both groups of the comparison under the cell title", () => {
+    useEdaStore.getState().applyViz({
+      ...VOLCANO,
+      comparison: { groupA: ["24h pbm"], groupB: ["18h pbm", "36h pbm"] },
+    });
+    render(<VizCell siteId="plasmodb" conversationId="conv-1" />);
+    expect(screen.getByTestId("eda-viz-cell")).toHaveTextContent(
+      "Group A: 24h pbm - Group B: 18h pbm, 36h pbm",
+    );
+  });
+
+  it("names each direction choice by the group whose genes it keeps", () => {
+    useEdaStore.getState().applyViz({
+      ...VOLCANO,
+      comparison: { groupA: ["24h pbm"], groupB: ["18h pbm", "36h pbm"] },
+    });
+    render(<VizCell siteId="plasmodb" conversationId="conv-1" />);
+    expect(
+      screen.getByRole("option", { name: "Higher in 18h pbm, 36h pbm" }),
+    ).toHaveAttribute("value", "upOnly");
+    expect(screen.getByRole("option", { name: "Higher in 24h pbm" })).toHaveAttribute(
+      "value",
+      "downOnly",
+    );
+    expect(screen.getByTestId("eda-viz-volcano")).toHaveAttribute(
+      "aria-label",
+      "Volcano plot, Higher in 18h pbm, 36h pbm (1) and Higher in 24h pbm (1)",
+    );
+  });
+
+  it("prints no comparison for a plot that names none", () => {
+    useEdaStore.getState().applyViz(VOLCANO);
+    render(<VizCell siteId="plasmodb" conversationId="conv-1" />);
+    expect(screen.getByTestId("eda-viz-cell")).not.toHaveTextContent("Group A:");
   });
 
   it("counts the selected genes and agrees with the retained total", () => {

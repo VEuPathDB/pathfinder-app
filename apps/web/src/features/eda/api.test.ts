@@ -194,6 +194,7 @@ describe("edaViz", () => {
               retained: false,
             },
           ],
+          comparison: { groupA: ["normal"], groupB: ["febrile"] },
         });
       }),
     );
@@ -216,6 +217,7 @@ describe("edaViz", () => {
     });
     expect(result.retainedPoints).toBe(1543);
     expect(result.points[1]?.pValue).toBe(null);
+    expect(result.comparison).toEqual({ groupA: ["normal"], groupB: ["febrile"] });
   });
 });
 

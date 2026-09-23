@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isMultiParam } from "./spec";
+import { isInputStepParam, isMultiParam } from "./spec";
 import type { ParamSpec } from "./spec";
 
 describe("isMultiParam", () => {
@@ -109,5 +109,16 @@ describe("isMultiParam", () => {
       };
       expect(isMultiParam(spec)).toBe(false);
     });
+  });
+});
+
+describe("isInputStepParam", () => {
+  it("is true for the parameter that wires a step's input", () => {
+    expect(isInputStepParam({ type: "input-step" })).toBe(true);
+  });
+
+  it("is false for a parameter the researcher sets", () => {
+    expect(isInputStepParam({ type: "single-pick-vocabulary" })).toBe(false);
+    expect(isInputStepParam({ type: "input-dataset" })).toBe(false);
   });
 });

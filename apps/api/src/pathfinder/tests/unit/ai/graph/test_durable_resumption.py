@@ -354,13 +354,21 @@ def test_a_call_no_worker_holds_is_not_a_durable_park() -> None:
     assert pending_durable_call(output=output, deps=deps, messages=[]) is None
 
 
+_COMPUTE_RESULT = {
+    "genesTested": 5511,
+    "retainedUp": 529,
+    "retainedDown": 1014,
+    "comparison": {"groupA": ["normal"], "groupB": ["febrile"]},
+}
+
+
 async def test_the_completion_turn_answers_the_parked_call_id() -> None:
     state = _state()
     state.pending_durable_call = _parked()
     state.durable_result = DurableTaskResult(
         task_id=_TASK_ID,
         status="success",
-        result={"genesTested": 5511, "retainedUp": 529, "retainedDown": 1014},
+        result=_COMPUTE_RESULT,
     )
 
     resumption = await resolve_turn_resumption(state=state, deps=_deps(state))
@@ -371,7 +379,7 @@ async def test_the_completion_turn_answers_the_parked_call_id() -> None:
     assert isinstance(answer, ToolReturn)
     assert answer.return_value == {
         "status": "success",
-        "result": {"genesTested": 5511, "retainedUp": 529, "retainedDown": 1014},
+        "result": _COMPUTE_RESULT,
     }
     summaries = [
         chunk

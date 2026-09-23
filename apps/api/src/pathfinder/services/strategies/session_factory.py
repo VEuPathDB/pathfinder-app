@@ -1,5 +1,7 @@
 """Helpers for hydrating in-memory strategy session context for agents."""
 
+from uuid import UUID
+
 from assistant_core.persistence.models import Conversation
 from assistant_core.persistence.repositories.conversation import (
     DEFAULT_CONVERSATION_NAME,
@@ -7,6 +9,7 @@ from assistant_core.persistence.repositories.conversation import (
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy import StrategyAst, flatten_tree
 
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
@@ -14,6 +17,7 @@ from pathfinder.persistence.models import (
     ConversationStrategyView,
     PersistedStrategyGraph,
 )
+from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.errors import StrategyAstCorruptError, StrategyCompilationError
 from pathfinder.services.strategies.sync import build_step_tree_from_graph
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -131,3 +135,15 @@ def build_strategy_session(
     session.sync_state = _restore_wdk_state(strategy_graph, graph)
     session.add_graph(graph)
     return session
+
+
+async def stored_strategy_session(
+    db: AsyncSession, conversation_id: UUID, site_id: str
+) -> StrategySession | None:
+    """The thread's strategy as its stored row holds it, or None for no thread."""
+    found = await ConversationRepository(db).get_with_strategy(conversation_id)
+    if found is None:
+        return None
+    return build_strategy_session(
+        site_id=site_id, strategy_graph=persisted_graph(*found)
+    )

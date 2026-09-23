@@ -6,6 +6,7 @@ import type { EdaAnalysisState } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
 import { Figure } from "@/features/conversation/thread/Figure";
 import { useConversationId } from "@/features/conversation/useConversationId";
+import { OpenInSiteLink } from "@/lib/components/OpenInSiteLink";
 import { edaTabUrl } from "@/lib/routes";
 import { useHydrateEdaPart } from "@/state/eda";
 
@@ -30,9 +31,14 @@ export function DataEdaAnalysisState({ data }: { data: EdaAnalysisState }) {
       title={data.studyDisplayName.length > 0 ? data.studyDisplayName : data.datasetId}
       caption={entityCountCaption(data.entityCounts)}
       action={
-        conversationId !== null ? (
-          <OpenEdaTab siteId={data.siteId} conversationId={conversationId} />
-        ) : null
+        <span className="flex shrink-0 items-center gap-1">
+          {data.analysisUrl != null ? (
+            <OpenInSiteLink href={data.analysisUrl} siteId={data.siteId} />
+          ) : null}
+          {conversationId !== null ? (
+            <OpenEdaTab siteId={data.siteId} conversationId={conversationId} />
+          ) : null}
+        </span>
       }
     >
       <div className="text-xs">

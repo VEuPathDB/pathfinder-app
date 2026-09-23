@@ -10,35 +10,23 @@ import { createTestWrapper } from "@/lib/query/testing";
 import { useSessionStore } from "@/state/useSessionStore";
 import { SiteAvailabilityGate } from "./SiteAvailabilityGate";
 
-function site(over: Partial<SiteResponse>): SiteResponse {
-  return {
-    id: "plasmodb",
-    name: "PlasmoDB",
-    displayName: "PlasmoDB (Plasmodium)",
-    baseUrl: "https://plasmodb.org/plasmo",
-    projectId: "PlasmoDB",
-    isPortal: false,
-    available: true,
-    unavailableReason: null,
-    ...over,
-  };
-}
-
-const PORTAL_DOWN = site({
+const PORTAL_DOWN: SiteResponse = {
   id: "veupathdb",
   name: "VEuPathDB",
   displayName: "VEuPathDB Portal (All organisms)",
+  baseUrl: "https://veupathdb.org/veupathdb",
+  projectId: "EuPathDB",
   isPortal: true,
   available: false,
   unavailableReason: "TimeoutError",
-});
+};
 
-function draw(siteId: string, rows: SiteResponse[]) {
+function draw(down: boolean) {
   const { queryClient, Wrapper } = createTestWrapper();
-  queryClient.setQueryData(sitesOptions().queryKey, rows);
+  queryClient.setQueryData(sitesOptions().queryKey, [PORTAL_DOWN]);
   return render(
     <Wrapper>
-      <SiteAvailabilityGate siteId={siteId}>
+      <SiteAvailabilityGate siteId="veupathdb" down={down}>
         <div data-testid="app-shell" />
       </SiteAvailabilityGate>
     </Wrapper>,
@@ -51,34 +39,27 @@ afterEach(() => {
 });
 
 describe("SiteAvailabilityGate", () => {
-  it("renders the app for a site that answers", () => {
-    draw("plasmodb", [PORTAL_DOWN, site({ id: "plasmodb" })]);
+  it("renders the content for a site that is up", () => {
+    draw(false);
 
     expect(screen.getByTestId("app-shell")).toBeInTheDocument();
     expect(screen.queryByTestId("site-unavailable-notice")).not.toBeInTheDocument();
   });
 
-  it("replaces the app with the notice for a site PathFinder cannot reach", () => {
-    draw("veupathdb", [PORTAL_DOWN, site({ id: "plasmodb" })]);
+  it("replaces the content with the notice for a site that is down", () => {
+    draw(true);
 
     expect(screen.queryByTestId("app-shell")).not.toBeInTheDocument();
-    expect(screen.getByTestId("site-unavailable-notice")).toBeInTheDocument();
     expect(
       screen.getByText("Couldn't reach VEuPathDB Portal (All organisms)"),
     ).toBeInTheDocument();
   });
 
-  it("leaves the stored site selection alone on a deep link to a site that is down", () => {
+  it("leaves the stored site selection alone on a site that is down", () => {
     useSessionStore.setState({ selectedSite: "plasmodb" });
 
-    draw("veupathdb", [PORTAL_DOWN, site({ id: "plasmodb" })]);
+    draw(true);
 
     expect(useSessionStore.getState().selectedSite).toBe("plasmodb");
-  });
-
-  it("renders the app for a site the list does not name", () => {
-    draw("orthomcl", [PORTAL_DOWN, site({ id: "plasmodb" })]);
-
-    expect(screen.getByTestId("app-shell")).toBeInTheDocument();
   });
 });

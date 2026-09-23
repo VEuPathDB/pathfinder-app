@@ -98,12 +98,18 @@ request names - the optional `siteId` on
 `services/wdk_identity.py::identity_site` hands the read to the first loaded
 site whenever the named one is degraded. A request that names a degraded site is
 refused 503 `SITE_UNAVAILABLE` by that same dependency, before the read.
-`fetch_current_user` catches `VEuPathDBError` as well as the `httpx` errors, so a
-WDK outage means the token names nobody and the session keeps its own identity,
-never a 502. `GET /api/v1/veupathdb/auth/status` reads the same loaded site, so
-the app shell does not block on a dead one. Every parameter that carries a site
-id spells it `siteId`, on the wire as well as in a path template, which is what
-lets one dependency bind it.
+`fetch_current_user` (`veupathdb-py` v0.1.0a14) makes one attempt under a 10 s
+deadline and returns `None` only for a request with no token or a token the site
+refuses (401/403); a site that does not answer raises `WDKError` with a server
+status. The identity read is itself a route that answers 503 on an outage:
+`services/wdk_identity.py::identity_or_unavailable` turns that `WDKError` into
+`SiteUnavailableError` naming the site, on the identity gate, on
+`GET /api/v1/veupathdb/auth/status` and on the login and refresh links, so an
+outage is never a sign-out, never "Invalid email or password" and never a silent
+pass. A token the site refuses is a login refusal. The auth status reads the
+same loaded site, so the app shell does not block on a dead one. Every parameter
+that carries a site id spells it `siteId`, on the wire as well as in a path
+template, which is what lets one dependency bind it.
 
 **The entry flow never opens a degraded site.** Every site-less route -
 `app/page.tsx`, `app/conversation/page.tsx`, `app/workbench/page.tsx` and
@@ -130,7 +136,11 @@ error class, and a link to every site that answers, re-rendered to the app by
 the 60 s refetch. The sign-in prompt is the one thing the gate still replaces
 outright, because a site that answers nothing cannot authenticate anyone; a
 sign-in that was attempted and refused shows the same notice inline, read from
-the problem body by `lib/api/errors.ts::siteUnavailableRefusal`.
+the problem body by `lib/api/errors.ts::siteUnavailableRefusal`. Both shells
+read the site through `app/hooks/useSiteAccess.ts`, which reports the site down
+when the list says so or when `GET /api/v1/veupathdb/auth/status` is refused
+`SITE_UNAVAILABLE`, asks again on the same 60 s interval, and leaves every other
+failure of that read to the shell's error boundary; the gate takes that answer.
 `app/[siteId]/layout.tsx` gates the subtree on the process being ready and
 nothing else.
 

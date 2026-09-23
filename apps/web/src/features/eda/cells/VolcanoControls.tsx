@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaComparison";
 
+import { higherIn } from "@/lib/eda/comparison";
 import type {
   VolcanoDirection,
   VolcanoThresholds,
@@ -10,16 +12,22 @@ import type {
 const INPUT_CLASS =
   "h-8 w-28 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
 
-const DIRECTIONS: { value: VolcanoDirection; label: string }[] = [
-  { value: "upAndDown", label: "Up and down" },
-  { value: "upOnly", label: "Up only" },
-  { value: "downOnly", label: "Down only" },
-];
+/** Each choice names the group whose genes it keeps. upOnly keeps group B's. */
+function directions(
+  comparison: EdaComparison | null | undefined,
+): { value: VolcanoDirection; label: string }[] {
+  return [
+    { value: "upAndDown", label: "Higher in either group" },
+    { value: "upOnly", label: higherIn(comparison, "B") },
+    { value: "downOnly", label: higherIn(comparison, "A") },
+  ];
+}
 
 export interface VolcanoControlsProps {
   thresholds: VolcanoThresholds;
   /** A new payload re-seeds the typed values from the adopted thresholds. */
   resetToken: unknown;
+  comparison?: EdaComparison | null | undefined;
   onChange: (next: VolcanoThresholds) => void;
 }
 
@@ -38,6 +46,7 @@ function toDirection(value: string): VolcanoDirection {
 export function VolcanoControls({
   thresholds,
   resetToken,
+  comparison,
   onChange,
 }: VolcanoControlsProps) {
   const [typed, setTyped] = useState(() => typedValues(thresholds));
@@ -107,7 +116,7 @@ export function VolcanoControls({
             onChange({ ...thresholds, direction: toDirection(event.target.value) })
           }
         >
-          {DIRECTIONS.map((direction) => (
+          {directions(comparison).map((direction) => (
             <option key={direction.value} value={direction.value}>
               {direction.label}
             </option>

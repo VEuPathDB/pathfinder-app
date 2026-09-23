@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils/cn";
+import { countNoun } from "@/lib/utils/countNoun";
 
 export type SyncState = "idle" | "saving" | "error" | "paused";
 
@@ -17,6 +18,8 @@ interface EditorFooterProps {
   onDiscard: () => void;
   /** Result count from useStepCounts. null = loading. -1 = unknown. */
   count: number | null;
+  /** The step's record type. It sets the noun the count reads as. */
+  recordType: string | null | undefined;
   wdkUrl: string | null;
   /** Site the strategy belongs to. The link names it. */
   siteId: string;
@@ -40,6 +43,7 @@ export function EditorFooter({
   onSave,
   onDiscard,
   count,
+  recordType,
   wdkUrl,
   siteId,
 }: EditorFooterProps) {
@@ -89,7 +93,9 @@ export function EditorFooter({
           {count === null ? (
             <Skeleton className="h-3 w-12" />
           ) : count >= 0 ? (
-            <span>{count.toLocaleString()} results</span>
+            <span>
+              {count.toLocaleString()} {countNoun(recordType, count)}
+            </span>
           ) : null}
           {wdkUrl != null && (
             <a

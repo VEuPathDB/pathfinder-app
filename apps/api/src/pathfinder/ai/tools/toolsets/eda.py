@@ -14,7 +14,10 @@ from pathfinder.ai.tools.standalone.eda_catalog import (
     describe_eda_study,
     search_eda_studies,
 )
-from pathfinder.ai.tools.standalone.eda_compute import run_eda_compute
+from pathfinder.ai.tools.standalone.eda_compute import (
+    refuse_shared_labels,
+    run_eda_compute,
+)
 from pathfinder.ai.tools.standalone.eda_step import create_eda_step
 
 
@@ -33,7 +36,12 @@ def build_toolset() -> AbstractToolset[LeadDeps]:
             open_eda_analysis,
             set_eda_filters,
             preview_eda_subset,
-            Tool(run_eda_compute, sequential=True, max_retries=3),
+            Tool(
+                run_eda_compute,
+                sequential=True,
+                max_retries=3,
+                args_validator=refuse_shared_labels,
+            ),
             create_eda_step,
         ],
     )

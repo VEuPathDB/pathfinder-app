@@ -16,7 +16,8 @@ from pathfinder.domain.strategy.operations import AddLeafOp
 from pathfinder.domain.strategy.operations.types import AttachNewRoot
 from pathfinder.services.conversations.service import ConversationService
 from pathfinder.services.eda.binding import open_analysis_or_conflict
-from pathfinder.services.eda.compute import VolcanoThresholds
+from pathfinder.services.eda.compute import VolcanoThresholds, analysis_comparison
+from pathfinder.services.eda.direction import direction_sentence
 from pathfinder.services.eda.export import eda_step_request
 
 
@@ -40,7 +41,10 @@ def eda_step_node(
     thresholds: VolcanoThresholds | None = None,
     search_name: str | None = None,
 ) -> EdaStepPlan:
-    """The step this analysis exports. Thresholds select the compute export."""
+    """The step this analysis exports. Thresholds select the compute export.
+
+    A compute export is named by the genes its direction keeps.
+    """
     is_compute_backed = thresholds is not None
     request = eda_step_request(
         analysis,
@@ -61,7 +65,13 @@ def eda_step_node(
             name: StringValue(value=value)
             for name, value in request.wdk_parameters().items()
         },
-        display_name=analysis.display_name or None,
+        display_name=(
+            analysis.display_name or None
+            if thresholds is None
+            else direction_sentence(
+                analysis_comparison(analysis), thresholds.effect_direction
+            )
+        ),
     )
     return EdaStepPlan(node=node, is_compute_backed=is_compute_backed)
 

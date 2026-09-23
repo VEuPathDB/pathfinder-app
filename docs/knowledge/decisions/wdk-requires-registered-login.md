@@ -67,8 +67,9 @@ The gate resolves the token to its internal user through
 `services/wdk_identity.py::require_session_matches_wdk_identity` and refuses a
 request whose token names another user with 401
 `ErrorCode.WDK_IDENTITY_MISMATCH`, title "VEuPathDB account changed". A token
-that resolves to nobody is a WDK outage, not a second account, and the session
-keeps its own identity. `POST /api/v1/veupathdb/auth/refresh` relinks: it
+the site refuses names nobody and is refused 401 `WDK_LOGIN_REQUIRED`; a site
+that does not answer the read is refused 503 `SITE_UNAVAILABLE`
+([a site that is down is down on its own](a-site-that-is-down-is-down-on-its-own.md)). `POST /api/v1/veupathdb/auth/refresh` relinks: it
 resolves the token's account on every call, and mints a new internal token when
 that account is not the cookie's, instead of returning early on any cookie that
 decodes. The web client treats the new code like the login refusal, except that

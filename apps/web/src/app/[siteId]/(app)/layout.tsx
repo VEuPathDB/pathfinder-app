@@ -2,7 +2,6 @@
 
 import { use, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 
 import { AppNavRail } from "@/app/components/AppNavRail";
@@ -18,17 +17,15 @@ import { useAuthRefresh } from "@/lib/query/hooks/useAuthRefresh";
 import { useAutoCollapsePanels } from "@/app/hooks/useAutoCollapsePanels";
 import { useModalState } from "@/app/hooks/useModalState";
 import { useSidebarResize } from "@/app/hooks/useSidebarResize";
+import { useSiteAccess } from "@/app/hooks/useSiteAccess";
 import { useSystemConfig } from "@/app/hooks/useSystemConfig";
 import { EvalDataNotice } from "@/features/settings/components/EvalDataNotice";
 import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import { ConversationSidebar } from "@/features/sidebar/components/ConversationSidebar";
 import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
-import { sitesOptions } from "@/lib/api/sites";
-import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { useEntrance } from "@/lib/motion";
 import { chatRoot } from "@/lib/routes";
-import { siteIsDown } from "@/lib/sites/availability";
 import { requiresFullScreenSignIn } from "@/state/useAuthGateStore";
 import { useLeftSidebarStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
@@ -74,9 +71,7 @@ function AppShellInner({
     });
   }
 
-  const { data: authStatus } = useSuspenseQuery(authStatusOptions(selectedSite));
-  const { data: sites } = useSuspenseQuery(sitesOptions());
-  const veupathdbSignedIn = authStatus.signedIn;
+  const access = useSiteAccess(selectedSite);
   useAuthRefresh(selectedSite);
   useSiteTheme(selectedSite);
   const { setupRequired, retry: retryConfig } = useSystemConfig();
@@ -99,12 +94,14 @@ function AppShellInner({
   };
 
   if (setupRequired) return <SetupRequiredScreen onRetry={retryConfig} />;
+  if (access.kind === "pending") return <LoadingScreen />;
 
   // A site PathFinder cannot reach cannot authenticate anyone, so the notice
   // takes the sign-in prompt's place.
-  const siteDown = siteIsDown(sites, selectedSite);
+  const siteDown = access.kind === "down";
   const forcedSignIn =
-    !siteDown && requiresFullScreenSignIn({ embedded, signedIn: veupathdbSignedIn });
+    access.kind === "up" &&
+    requiresFullScreenSignIn({ embedded, signedIn: access.signedIn });
   const signInGate = siteDown ? null : (
     <VeupathdbSignInGate
       forced={forcedSignIn}
@@ -170,7 +167,9 @@ function AppShellInner({
         )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <SiteAvailabilityGate siteId={selectedSite}>{children}</SiteAvailabilityGate>
+          <SiteAvailabilityGate siteId={selectedSite} down={siteDown}>
+            {children}
+          </SiteAvailabilityGate>
         </div>
       </div>
 

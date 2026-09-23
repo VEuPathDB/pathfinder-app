@@ -23,6 +23,7 @@ const LINK_CLASS = "underline underline-offset-2";
 interface ExportOutcome {
   strategy: Strategy;
   placement: ExportedStepPlacement;
+  stepName: string | null;
 }
 
 export function ExportStepButton({ conversationId }: { conversationId: string }) {
@@ -47,7 +48,9 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
       });
       if (response.analysis !== null) applyAnalysisState(response.analysis);
       const strategy = strategyFromExportedStep(response.step);
-      return { strategy, placement: exportedStepPlacement(strategy) };
+      const placement = exportedStepPlacement(strategy);
+      const step = strategy.steps.find((s) => s.id === placement.stepId);
+      return { strategy, placement, stepName: step?.displayName ?? null };
     },
     onSuccess: ({ strategy }) => {
       writeStrategy(queryClient, conversationId, strategy);
@@ -71,6 +74,14 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
           className="text-[11px] text-muted-foreground"
         >
           This study cannot export genes as a step.
+        </p>
+      ) : null}
+      {exportStep.data?.stepName != null ? (
+        <p
+          data-testid="eda-export-step-name"
+          className="text-[11px] text-muted-foreground"
+        >
+          {`Exported: ${exportStep.data.stepName}`}
         </p>
       ) : null}
       {exportStep.data !== undefined ? (

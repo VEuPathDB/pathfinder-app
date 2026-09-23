@@ -4,11 +4,21 @@ from __future__ import annotations
 
 import json
 
-from veupathdb.eda import VolcanoStatsResponse
+import pytest
+from veupathdb.eda import (
+    EdaAnalysisDescriptor,
+    EdaAnalysisDetail,
+    EdaDifferentialExpressionConfig,
+    VolcanoStatsResponse,
+)
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
+from pathfinder.domain.eda_parts import EdaComparison
 from pathfinder.services.eda.compute import (
+    NoComputationError,
     VolcanoThresholds,
+    analysis_comparison,
+    comparison_of,
     retained_point_ids,
     retained_summary,
     volcano_view,
@@ -276,3 +286,43 @@ def test_the_two_directions_partition_the_retained_set() -> None:
     assert up | down == both
     assert up & down == set()
     assert len(both) == 67
+
+
+def _config(group_a: list[str], group_b: list[str]) -> EdaDifferentialExpressionConfig:
+    return EdaDifferentialExpressionConfig.model_validate(
+        {
+            "identifierVariable": {
+                "entityId": "ENT_a0b79706",
+                "variableId": "VEUPATHDB_GENE_ID",
+            },
+            "valueVariable": {
+                "entityId": "ENT_a0b79706",
+                "variableId": "SEQUENCE_READ_COUNT",
+            },
+            "comparator": {
+                "variable": {"entityId": "ENT_8151325d", "variableId": "VAR_64c65374"},
+                "groupA": [{"label": label} for label in group_a],
+                "groupB": [{"label": label} for label in group_b],
+            },
+        }
+    )
+
+
+def test_the_comparison_keeps_every_label_of_each_group_in_order() -> None:
+    comparison = comparison_of(_config(["24h pbm"], ["18h pbm", "36h pbm"]))
+    assert comparison == EdaComparison(
+        group_a=["24h pbm"], group_b=["18h pbm", "36h pbm"]
+    )
+
+
+def test_an_analysis_with_no_compute_has_no_comparison() -> None:
+    analysis = EdaAnalysisDetail(
+        analysis_id="C3WiXt0",
+        display_name="Aedes aegypti 24h",
+        study_id="DS_a91f666e84",
+        num_filters=0,
+        num_computations=0,
+        descriptor=EdaAnalysisDescriptor(),
+    )
+    with pytest.raises(NoComputationError):
+        analysis_comparison(analysis)

@@ -85,6 +85,7 @@ def _state(
         user_prompt="find the kinases",
         domain=StrategyDomainState(
             operational_spec=spec,
+            answered_spec=spec.model_copy(deep=True),
             original_request="find every kinase in P. falciparum",
             last_build_outcome=outcome,
             zero_result_history=list(history or []),

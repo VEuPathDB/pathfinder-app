@@ -43,7 +43,9 @@ async def test_strategy_autowrite_is_idempotent(
         site_id="plasmodb",
         mode="strategy",
         user_prompt="q",
-        domain=StrategyDomainState(operational_spec=spec),
+        domain=StrategyDomainState(
+            operational_spec=spec, answered_spec=spec.model_copy(deep=True)
+        ),
     )
 
     async with lifespan_memory_store(database_url) as raw:

@@ -11,9 +11,11 @@ from assistant_core.tasks.declaration import declare_durable_tool
 from assistant_core.tasks.decorator import DurableOutcome
 from pydantic import ConfigDict
 from pydantic_ai import RunContext
+from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.eda_parts import EdaComparison
 from pathfinder.platform.durable_worker import durable_agent_tool
 
 _ESTIMATED_SECONDS = 120
@@ -31,9 +33,19 @@ class _ComputeOutcome(CamelModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    genes_tested: int = 0
-    retained_up: int = 0
-    retained_down: int = 0
+    genes_tested: int
+    retained_up: int
+    retained_down: int
+    comparison: EdaComparison
+
+
+def _sides(counts: _ComputeOutcome) -> str:
+    """Each side's count, named by the group it is higher in."""
+    return (
+        f"{counts.retained_up:,} higher in {', '.join(counts.comparison.group_b)} "
+        f"and {counts.retained_down:,} higher in "
+        f"{', '.join(counts.comparison.group_a)}"
+    )
 
 
 def _compute_chunks_from_result(
@@ -49,8 +61,7 @@ def _compute_chunks_from_result(
     retained = counts.retained_up + counts.retained_down
     return summary_chunks(
         tool_call_id,
-        f"{counts.genes_tested:,} genes tested, {counts.retained_up:,} up "
-        f"and {counts.retained_down:,} down",
+        f"{counts.genes_tested:,} genes tested, {_sides(counts)}",
         status="ok" if retained else "empty",
     )
 
@@ -60,6 +71,29 @@ EDA_COMPUTE = declare_durable_tool(
     estimated_duration_seconds=_ESTIMATED_SECONDS,
     chunks_from_result=_compute_chunks_from_result,
 )
+
+
+async def refuse_shared_labels(
+    ctx: RunContext[LeadDeps],
+    *,
+    identifier_variable: EdaVariableSpecIn,
+    value_variable: EdaVariableSpecIn,
+    comparator_variable: EdaVariableSpecIn,
+    group_a_labels: list[str],
+    group_b_labels: list[str],
+    method: Literal["DESeq", "limma"] = "DESeq",
+    caption: str = "",
+) -> None:
+    """Refuse two groups that share a label before any job is deferred."""
+    del ctx, identifier_variable, value_variable, comparator_variable, method, caption
+    shared = [label for label in group_a_labels if label in group_b_labels]
+    if shared:
+        msg = (
+            f"Labels named in both groups: {', '.join(shared)}. A sample cannot "
+            f"be its own control, so put each label in one group only. Nothing "
+            f"started."
+        )
+        raise ModelRetry(msg)
 
 
 @durable_agent_tool(EDA_COMPUTE)
@@ -96,20 +130,22 @@ async def run_eda_compute(
       two groups, and it lives on an ANCESTOR entity of the expression data.
     - ``group_a_labels`` is the reference group and ``group_b_labels`` is the
       comparison group. Every label must be a value in the comparator
-      variable's vocabulary, and no label may be in both groups.
+      variable's vocabulary, and no label may be in both groups. A positive
+      effect size means the gene is higher in group B than in group A.
     - ``method`` is ``DESeq`` for raw counts and ``limma`` for normalized array
       data. ``DESeq2`` is not a value.
 
     The result carries the job's identity, the number of genes tested, and how
     many pass the default thresholds of effect size 1 and p-value 0.05, split
-    into up and down. Tell the researcher those numbers, then use
-    create_eda_step to export the ones that pass.
+    into the genes higher in each group. ``comparison`` holds both groups'
+    labels and ``signRule`` states the sign in them. Tell the researcher those
+    numbers by group label, never as "up" or "down", then use create_eda_step
+    to export the ones that pass.
 
     Always write ``caption``. It is the one sentence printed under the plot,
     so it says what the comparison SHOWS in the researcher's terms - "Genes
-    higher in febrile samples than in normal samples, per gene" - never an
-    internal name and never a repeat of the numbers, which the figure already
-    carries.
+    that differ between febrile and normal samples" - never an internal name
+    and never a repeat of the numbers, which the figure already carries.
 
     Args:
         ctx: Agent run context.

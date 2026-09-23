@@ -44,7 +44,9 @@ async def test_auto_write_persists_strategy_on_verification_complete(
         site_id="plasmodb",
         mode="strategy",
         user_prompt="malaria transporters",
-        domain=StrategyDomainState(operational_spec=spec),
+        domain=StrategyDomainState(
+            operational_spec=spec, answered_spec=spec.model_copy(deep=True)
+        ),
     )
 
     async with lifespan_memory_store(database_url) as raw_store:

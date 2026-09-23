@@ -18,6 +18,7 @@ from veupathdb_mcp import ToolErrorPayload
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._eda_step_guard import (
+    compared_groups,
     refuse_an_empty_gene_subset,
 )
 from pathfinder.ai.tools.standalone._eda_step_spec import (
@@ -50,6 +51,7 @@ from pathfinder.services.eda.binding import (
     read_analysis,
 )
 from pathfinder.services.eda.compute import NoComputationError, VolcanoThresholds
+from pathfinder.services.eda.direction import selection_sentence
 from pathfinder.services.eda.steps import EdaStepPlan, eda_step_node
 from pathfinder.services.strategies.commit import (
     CommitResult,
@@ -73,6 +75,8 @@ class EdaStepCreated(EdaExport):
     # combine step that join created, which is the strategy's new root.
     combined_with_root: CombineOp | None = None
     combine_step_id: str | None = None
+    # The genes a compute export kept, named by the group they are higher in.
+    selection: str | None = None
 
 
 def _thresholds(
@@ -226,6 +230,7 @@ async def create_eda_step(
     effect_size_threshold: float | None = None,
     significance_threshold: float | None = None,
     effect_direction: EdaEffectDirection = "upAndDown",
+    caption: str = "",
 ) -> ToolReturn[EdaStepCreated | ToolErrorPayload]:
     """Export the open EDA analysis into the researcher's strategy as a step.
 
@@ -240,8 +245,12 @@ async def create_eda_step(
     - The genes passing a VOLCANO's thresholds: pass ``effect_size_threshold``
       AND ``significance_threshold``. The compute must already be complete -
       call run_eda_compute first and read its summary, so you know how many
-      genes you are about to export. ``effect_direction`` selects the up side,
-      the down side, or both.
+      genes you are about to export. ``effect_direction`` selects a side by
+      its group: a positive effect size is higher in group B (the comparison
+      group) than in group A (the reference). ``upOnly`` keeps the genes
+      higher in group B, ``downOnly`` the genes higher in group A, and
+      ``upAndDown`` both. The step is named by the genes it keeps, and the
+      result's ``selection`` says it in the groups' labels: repeat it.
 
     A gene passes when the absolute effect size is at or above
     ``effect_size_threshold`` and the p-value is at or below
@@ -266,6 +275,11 @@ async def create_eda_step(
     export's genes from the result. It needs a strategy with one root, and it
     names the whole placement, so it travels with none of the three above.
 
+    A one-sided export needs ``caption``: the genes it keeps, naming the kept
+    group's label first ("Genes higher in 24h pbm than in 18h pbm"). A caption
+    that names no group label, or whose first label is the other group's, is
+    refused and nothing is written.
+
     Available once ``preview_eda_subset`` has counted the open analysis, on
     this message or an earlier one, so the number you export is one the thread
     measured.
@@ -280,7 +294,9 @@ async def create_eda_step(
         combine_with_root: The operator to join the export to the root with.
         effect_size_threshold: Minimum absolute effect size to keep.
         significance_threshold: Maximum p-value to keep.
-        effect_direction: Which side of the volcano to keep.
+        effect_direction: upOnly keeps group B's side, downOnly group A's.
+        caption: The genes a one-sided export keeps, kept group named first.
+            Required for upOnly and downOnly.
     """
     binding = await bound_analysis(ctx)
     if binding is None:
@@ -292,16 +308,13 @@ async def create_eda_step(
     _checked_thresholds(effect_size_threshold, significance_threshold)
 
     analysis = await read_analysis(binding.site_id, analysis_id=binding.analysis_id)
-    plan = await _planned_export(
-        binding,
-        analysis,
-        thresholds=_thresholds(
-            effect_size_threshold,
-            significance_threshold,
-            effect_direction,
-        ),
-        search_name=search_name,
+    thresholds = _thresholds(
+        effect_size_threshold, significance_threshold, effect_direction
     )
+    plan = await _planned_export(
+        binding, analysis, thresholds=thresholds, search_name=search_name
+    )
+    comparison = compared_groups(analysis, thresholds, caption)
     node = plan.node
     is_compute_backed = plan.is_compute_backed
 
@@ -374,6 +387,15 @@ async def create_eda_step(
         dropped_step_ids=list(result.dropped_step_ids),
         combined_with_root=combine_with_root,
         combine_step_id=None if write.combine is None else write.combine.step.id,
+        selection=(
+            None
+            if comparison is None
+            else selection_sentence(
+                comparison,
+                effect_direction,
+                count=None if sync is None else sync.counts.get(node.id),
+            )
+        ),
     )
     ctx.deps.state.turn_markers.eda_export = created
     ctx.deps.state.turn_markers.edited = True

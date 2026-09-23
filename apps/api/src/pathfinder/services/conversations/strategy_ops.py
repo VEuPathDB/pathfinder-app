@@ -45,7 +45,10 @@ from pathfinder.services.strategies.insert_saved import (
     InsertSavedResult,
     insert_saved_into_conversation,
 )
-from pathfinder.services.strategies.live_counts import replace_counts_with_wdks
+from pathfinder.services.strategies.live_counts import (
+    read_the_live_strategy,
+    take_the_sites_counts,
+)
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
@@ -56,6 +59,10 @@ from pathfinder.services.strategies.save_substrategy import (
 from pathfinder.services.strategies.session_factory import (
     build_strategy_session,
     persisted_graph,
+)
+from pathfinder.services.strategies.site_changes import (
+    take_the_sites_edits,
+    take_what_the_site_holds,
 )
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.services.strategies.write_lock import strategy_write_lock
@@ -178,7 +185,14 @@ async def apply_operation(
             site_id=site_id,
             strategy_graph=persisted_graph(conversation, strategy),
         )
-        refuse_a_delete_the_graph_cannot_place(session.get_graph(None), op)
+        graph = session.get_graph(None)
+        # The edit is planned against the strategy as the site holds it, so a
+        # value set on the site is not written over by the stored one.
+        if graph is not None:
+            await take_the_sites_edits(
+                graph=graph, sync_state=ensure_sync_state(session), site_id=site_id
+            )
+        refuse_a_delete_the_graph_cannot_place(graph, op)
         ctx = StrategyMutationContext(
             site_id=site_id,
             strategy_session=session,
@@ -203,10 +217,11 @@ async def refresh_counts(
     *,
     site_id: str,
 ) -> ConversationResponse:
-    """Store what the site answers for every step, and answer with the thread.
+    """Store what the site holds for every step, and answer with the thread.
 
     The strategy moves on the site itself as well as here, so this is what a
-    researcher reaches for when the numbers on screen stop describing it.
+    researcher reaches for when the numbers on screen stop describing it. The
+    values the site holds are stored with its counts.
     """
     await get_owned_thread_or_404(repo, conversation_id, user_id)
     async with strategy_write_lock(conversation_id, async_session_factory) as locked:
@@ -220,15 +235,18 @@ async def refresh_counts(
         )
         graph = session.get_graph(None)
         if graph is None or not graph.steps:
-            raise NotFoundError(
-                code=ErrorCode.STRATEGY_NOT_FOUND,
+            raise AppError(
+                code=ErrorCode.INVALID_STRATEGY,
                 title="Strategy has no steps to count",
+                status=409,
+                detail="Add a step to the strategy before asking for its counts.",
             )
         sync_state = ensure_sync_state(session)
         if sync_state.wdk_strategy_id is None or not sync_state.wdk_step_ids:
-            raise NotFoundError(
-                code=ErrorCode.STRATEGY_NOT_FOUND,
+            raise AppError(
+                code=ErrorCode.INVALID_STRATEGY,
                 title="The site does not hold this strategy",
+                status=409,
                 detail="Build the strategy before asking for its counts.",
             )
         ctx = StrategyMutationContext(
@@ -239,11 +257,13 @@ async def refresh_counts(
         )
         # The refresh exists to settle a count the stored one may contradict,
         # so a site that answers nothing is refused rather than confirmed.
-        answered = await replace_counts_with_wdks(
-            graph=graph, sync_state=sync_state, site_id=site_id
-        )
-        if not answered:
+        live = await read_the_live_strategy(sync_state, site_id)
+        if live is None:
             raise SiteUnavailableError(site_id, SITE_DID_NOT_ANSWER)
+        await take_what_the_site_holds(
+            graph=graph, sync_state=sync_state, site_id=site_id, live=live
+        )
+        take_the_sites_counts(graph=graph, sync_state=sync_state, live=live)
         await persist_strategy_ast_to_conversation(
             deps=ctx, graph=graph, sync_result=None
         )

@@ -165,8 +165,6 @@ function WidgetRenderer({
       return <FilterParam {...widgetProps} />;
     case "dataset":
       return <DatasetParam {...widgetProps} />;
-    case "input-step":
-      return null;
     case "string":
     default:
       return <StringParam {...widgetProps} />;

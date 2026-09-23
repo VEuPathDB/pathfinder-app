@@ -109,7 +109,8 @@ class TestASavedStrategyReference:
 
         assert payload["ok"] is True
         assert len(graph.steps) == 5
-        assert stub_api.named("update_step_search_config") != []
+        assert graph.steps[interpro].display_name is None
+        assert [c.name for c in stub_api.calls if c.name.startswith("update")] == []
 
     async def test_a_replacement_that_drops_the_expansion_is_refused(
         self, stub_api: StubAPI
@@ -206,7 +207,7 @@ class TestASavedStrategyWithNoCombineOverIt:
         assert payload["ok"] is True
         assert len(graph.steps) == 3
         assert graph.steps[go_term].display_name == "protein kinase activity"
-        assert stub_api.named("update_step_search_config") != []
+        assert [c.name for c in stub_api.calls] == ["update_step_properties"]
 
     async def test_a_replacement_that_drops_the_expansion_is_refused(
         self, stub_api: StubAPI

@@ -33,6 +33,7 @@ interface EdaAnalysisSnapshot {
   filterSummaries: string[];
   entityCounts: EdaEntityCount[];
   canExportRows: boolean;
+  analysisUrl: string | null;
 }
 
 export interface EdaJobSnapshot {
@@ -137,6 +138,7 @@ function snapshotOf(payload: EdaAnalysisState): EdaAnalysisSnapshot {
     filterSummaries: payload.filterSummaries,
     entityCounts: payload.entityCounts,
     canExportRows: payload.canExportRows,
+    analysisUrl: payload.analysisUrl ?? null,
   };
 }
 

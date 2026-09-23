@@ -92,6 +92,12 @@ def _conversation_cases(owned: Owned) -> tuple[Case, ...]:
         ),
         Case(
             "POST",
+            "/api/v1/conversations/{strategyId:uuid}/refresh-counts",
+            f"{base}/refresh-counts{site}",
+            _CONV,
+        ),
+        Case(
+            "POST",
             "/api/v1/conversations/open",
             "/api/v1/conversations/open",
             _CONV,

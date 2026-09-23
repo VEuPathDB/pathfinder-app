@@ -34,11 +34,14 @@ from veupathdb_mcp.wdk import build_snapshot_from_wdk
 
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.services.strategies import spec_build, step_wdk_push
+from pathfinder.services.strategies.step_push_planner import PatchAction
 from pathfinder.services.strategies.step_search import (
     names_a_wdk_question,
     states_a_question,
 )
 from pathfinder.services.strategies.sync_state import WDKSyncState
+
+_VALUES = PatchAction(search_config=True, name=False)
 
 _BOOLEAN = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass"
 _SIGNAL = "GenesWithSignalPeptide"
@@ -334,7 +337,7 @@ class TestASetOperationIsNeverPushedAsASearch:
         sync_state = WDKSyncState(wdk_step_ids={step.id: _COMBINE_WDK_ID})
 
         failure = await step_wdk_push._execute_patch(
-            sync_state, "plasmodb", step, "transcript", name_moved=False
+            sync_state, "plasmodb", step, "transcript", _VALUES
         )
 
         assert failure is not None

@@ -296,3 +296,14 @@ def test_a_label_outside_the_recorded_vocabulary_is_caught_through_the_wire_conf
     assert len(errors) == 1
     assert "NOT_A_VALUE" in errors[0]
     assert "febrile, normal" in errors[0]
+
+
+def test_groups_that_share_a_label_are_caught_through_the_wire_config() -> None:
+    """apply_computation and the compute job both refuse this config."""
+    errors = validate_compute_config(_de_study(), _de_config(["normal", "febrile"]))
+    assert errors == [
+        (
+            "comparator names febrile in both groups, and a sample cannot be its "
+            "own control."
+        )
+    ]

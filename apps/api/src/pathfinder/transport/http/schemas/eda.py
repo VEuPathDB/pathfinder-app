@@ -8,7 +8,11 @@ from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import ConfigDict, Discriminator, Field
 
-from pathfinder.domain.eda_parts import EdaAnalysisState, EdaEffectDirection
+from pathfinder.domain.eda_parts import (
+    EdaAnalysisState,
+    EdaComparison,
+    EdaEffectDirection,
+)
 from pathfinder.services.eda import EdaComputationDescriptor, EdaFilter
 from pathfinder.services.eda.compute import VolcanoThresholds
 
@@ -141,6 +145,7 @@ class EdaVizResponse(CamelModel):
     total_points: int
     retained_points: int
     points: list[EdaVizPointResponse]
+    comparison: EdaComparison
 
 
 class ConversationEdaResponse(CamelModel):

@@ -276,6 +276,7 @@ async def test_a_volcano_export_adds_the_compute_step_with_the_thresholds(
         "significanceThreshold": 0.01,
         "effectDirection": "upOnly",
     }
+    assert step.display_name == "Genes higher in normal than in febrile"
 
 
 async def test_the_exported_step_is_persisted_on_the_thread(

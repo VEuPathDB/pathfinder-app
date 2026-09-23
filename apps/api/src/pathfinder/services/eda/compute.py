@@ -21,7 +21,7 @@ from veupathdb.eda import (
     get_eda_client,
 )
 
-from pathfinder.domain.eda_parts import EdaEffectDirection
+from pathfinder.domain.eda_parts import EdaComparison, EdaEffectDirection
 from pathfinder.platform.errors import AppError, ErrorCode
 from pathfinder.services.eda.authoring import apply_computation
 from pathfinder.services.eda.binding import read_analysis
@@ -343,6 +343,30 @@ async def read_statistics(
     )
 
 
+def comparison_of(config: EdaDifferentialExpressionConfig) -> EdaComparison:
+    """The labels of both groups, in the order the configuration holds them."""
+    return EdaComparison(
+        group_a=[group.label for group in config.comparator.group_a],
+        group_b=[group.label for group in config.comparator.group_b],
+    )
+
+
+def _computation_of(analysis: EdaAnalysisDetail) -> EdaComputation:
+    """The analysis's compute. One that has not run is a conflict."""
+    if not analysis.descriptor.computations:
+        msg = (
+            f"Analysis {analysis.analysis_id} has no comparison yet; run the "
+            f"differential expression first."
+        )
+        raise NoComputationError(msg)
+    return analysis.descriptor.computations[0]
+
+
+def analysis_comparison(analysis: EdaAnalysisDetail) -> EdaComparison:
+    """The groups the analysis's compute compares."""
+    return comparison_of(_computation_of(analysis).descriptor.configuration)
+
+
 async def bound_volcano(
     site_id: str,
     *,
@@ -354,13 +378,7 @@ async def bound_volcano(
 
     It never starts a job: a compute that has not run is a conflict.
     """
-    if not analysis.descriptor.computations:
-        msg = (
-            f"Analysis {analysis.analysis_id} has no comparison yet; run the "
-            f"differential expression first."
-        )
-        raise NoComputationError(msg)
-    computation = analysis.descriptor.computations[0]
+    computation = _computation_of(analysis)
     entry = await resolve_dataset(site_id, dataset_id)
     statistics = await read_statistics(
         site_id,

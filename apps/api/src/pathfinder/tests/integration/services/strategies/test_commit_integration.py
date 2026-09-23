@@ -34,6 +34,7 @@ from pathfinder.domain.strategy.operations import (
     DeleteResolution,
     DeleteStepOp,
     UpdateStepMetaOp,
+    UpdateStepParamsOp,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
@@ -247,6 +248,9 @@ def _orphaned(api: _CountingAPI) -> list[list[int]]:
         for c in api.calls
         if c.name == "delete_orphaned_steps"
     ]
+
+
+_PV = MultiPickValue(values=["Plasmodium vivax PvW1"])
 
 
 def _leaf(id_: str) -> StrategyStepNode:
@@ -659,10 +663,7 @@ async def test_a_partial_push_leaves_every_store_agreeing(
     seed_user: User,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A step that WDK rejects is a per-step failure, not an operation failure.
-
-    The edit is local truth, so memory, Postgres, and the response all agree.
-    """
+    """A step WDK rejects is a per-step failure; memory, Postgres and the reply agree."""
     api = _FailingAPI()
     _patch_strategy_api(monkeypatch, api)
 
@@ -680,18 +681,18 @@ async def test_a_partial_push_leaves_every_store_agreeing(
     # The operation reports what landed instead of raising.
     result = await apply_and_commit(
         deps=deps,
-        op=UpdateStepMetaOp(step_id="step_a", display_name="Renamed"),
+        op=UpdateStepParamsOp(step_id="step_a", parameters={"organism": _PV}),
     )
 
     assert result.failed_step_ids == ["step_a"]
 
     graph = deps.strategy_session.get_graph(None)
     assert graph is not None
-    assert graph.steps["step_a"].display_name == "Renamed"
+    assert graph.steps["step_a"].parameters == {"organism": _PV}
 
     async with session_maker() as fresh:
         refetched = await ConversationRepository(fresh).get_strategy(conv_id)
         ast = StrategyAst.model_validate(refetched.strategy_ast)
-        assert ast.root.display_name == "Renamed"
+        assert ast.root.parameters == {"organism": _PV}
         # The rejection is durable and attributed to the step that caused it.
         assert (ast.wdk_push_errors or {}).get("step_a")

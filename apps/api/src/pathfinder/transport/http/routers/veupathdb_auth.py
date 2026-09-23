@@ -32,7 +32,7 @@ from pathfinder.platform.security import (
     limiter,
 )
 from pathfinder.services.users import get_or_create_user_id
-from pathfinder.services.wdk_identity import identity_site
+from pathfinder.services.wdk_identity import identity_or_unavailable, identity_site
 from pathfinder.transport.http.deps import DBSession
 from pathfinder.transport.http.schemas import (
     AuthStatusResponse,
@@ -72,7 +72,9 @@ async def _link_internal_user(
     session: AsyncSession, veupathdb_token: str, site_id: str
 ) -> UUID | None:
     """Name the internal user of the VEuPathDB identity, creating it if new."""
-    email = await resolve_registered_email(veupathdb_token, site_id)
+    email = await identity_or_unavailable(
+        site_id, resolve_registered_email(veupathdb_token, site_id)
+    )
     if not email:
         return None
     return await get_or_create_user_id(session, email)
@@ -250,7 +252,8 @@ async def auth_status(
 ) -> _AuthStatusDict:
     """Return the current VEuPathDB auth status.
 
-    A mock chat provider has no VEuPathDB session, so the internal cookie
+    A refused token or a guest is signed out; a site that does not answer is a
+    503. A mock chat provider has no VEuPathDB session, so the internal cookie
     alone proves identity there.
     """
     settings = get_settings()
@@ -263,7 +266,8 @@ async def auth_status(
                 "email": "e2e@test.local",
             }
 
-    user = await fetch_current_user(identity_site(site_id))
+    read_site = identity_site(site_id)
+    user = await identity_or_unavailable(read_site, fetch_current_user(read_site))
     if user is None:
         return {"signedIn": False, "name": None, "email": None}
 

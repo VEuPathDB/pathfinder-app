@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useStore } from "@tanstack/react-form";
 import { toast } from "sonner";
 import type { Step } from "@pathfinder/shared";
+import { isInputStepParam } from "@/features/strategy/parameters/spec";
 import { useStrategyGraphCtx } from "@/features/strategy/graph/StrategyGraphContext";
 import {
   useDuplicateStepMutation,
@@ -73,7 +74,7 @@ export function EditorContent({
 
   const allowedParamKeys = new Set(
     state.paramSpecs
-      .filter((s) => s.name !== "" && s.isVisible !== false)
+      .filter((s) => s.name !== "" && s.isVisible !== false && !isInputStepParam(s))
       .map((s) => s.name),
   );
 
@@ -246,6 +247,7 @@ export function EditorContent({
     },
     onDiscard: () => setConfirmDiscardOpen(true),
     count: snapshot.estimatedSize,
+    recordType: step.recordType,
     wdkUrl,
     siteId,
   };

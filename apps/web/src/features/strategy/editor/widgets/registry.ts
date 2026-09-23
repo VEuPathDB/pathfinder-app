@@ -7,7 +7,7 @@
  * 3. Hidden unclaimed params -> skip rendering, collect defaults.
  */
 
-import type { ParamSpec } from "@/features/strategy/parameters/spec";
+import { isInputStepParam, type ParamSpec } from "@/features/strategy/parameters/spec";
 
 /** Resolve the canonical displayType string from a param spec. */
 function resolveDisplayType(spec: ParamSpec): string {
@@ -16,7 +16,7 @@ function resolveDisplayType(spec: ParamSpec): string {
 
 /** Check if a param is hidden (should not render UI). */
 export function isHiddenParam(spec: ParamSpec): boolean {
-  return spec.isVisible === false || spec.group === "_hidden";
+  return spec.isVisible === false || spec.group === "_hidden" || isInputStepParam(spec);
 }
 
 /** Check if a param belongs to the "advancedParams" group. */
@@ -48,8 +48,7 @@ export type WidgetKind =
   | "date-range"
   | "timestamp"
   | "filter"
-  | "dataset"
-  | "input-step";
+  | "dataset";
 
 /** Resolve which widget should render this spec. */
 export function resolveWidgetKind(spec: ParamSpec): WidgetKind {
@@ -68,6 +67,5 @@ export function resolveWidgetKind(spec: ParamSpec): WidgetKind {
   if (type === "timestamp") return "timestamp";
   if (type === "filter") return "filter";
   if (type === "input-dataset") return "dataset";
-  if (type === "input-step") return "input-step";
   return "string";
 }

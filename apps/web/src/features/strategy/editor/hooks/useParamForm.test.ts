@@ -330,11 +330,11 @@ describe("extractDefaults override", () => {
     expect(result["seen"]).toBe("1717200000000");
   });
 
-  it("reads a typed input-step value", () => {
+  it("gives an input-step parameter no form value", () => {
     const result = extractDefaults([specWith({ name: "prior", type: "input-step" })], {
       prior: { type: "input-step", stepId: "s-42" },
     });
-    expect(result["prior"]).toBe("s-42");
+    expect(Object.keys(result)).toEqual([]);
   });
 });
 

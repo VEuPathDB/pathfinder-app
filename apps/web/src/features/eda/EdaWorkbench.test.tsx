@@ -417,6 +417,57 @@ describe("EdaWorkbench", () => {
     );
   });
 
+  it("links back to the conversation the study belongs to", async () => {
+    bound();
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    const back = await screen.findByRole("link", { name: "Back to chat" });
+    expect(back).toHaveAttribute("href", "/plasmodb/conversation/conv-1");
+  });
+
+  it("links back to the conversation while no study is open", async () => {
+    server.use(
+      http.get(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
+        HttpResponse.json({ analysis: null, descriptor: null }),
+      ),
+    );
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    await screen.findByTestId("eda-study-picker");
+    expect(screen.getByRole("link", { name: "Back to chat" })).toHaveAttribute(
+      "href",
+      "/plasmodb/conversation/conv-1",
+    );
+  });
+
+  it("opens the analysis in the site's own explorer, in a new tab", async () => {
+    server.use(
+      http.get(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
+        HttpResponse.json({
+          analysis: {
+            ...ANALYSIS,
+            analysisUrl:
+              "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
+          },
+          descriptor: null,
+        }),
+      ),
+    );
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    const link = await screen.findByRole("link", { name: "Open in PlasmoDB" });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noreferrer");
+  });
+
+  it("offers no site link for an analysis that names no page", async () => {
+    bound();
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    await screen.findByTestId("eda-workbench-title");
+    expect(screen.queryByRole("link", { name: "Open in PlasmoDB" })).toBe(null);
+  });
+
   it("offers no Change study button while nothing is bound", async () => {
     server.use(
       http.get(`${BASE}/api/v1/conversations/conv-1/eda`, () =>

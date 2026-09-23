@@ -25,6 +25,7 @@ from pathfinder.ai.tools.standalone.eda_stream_parts import (
 )
 from pathfinder.domain.eda_parts import (
     EdaAnalysisState,
+    EdaComparison,
     EdaEntityCount,
     EdaVolcanoPoint,
 )
@@ -232,6 +233,7 @@ def _viz_chunk(
     points: list[EdaVolcanoPoint],
     effect_direction: str = "upAndDown",
     caption: str | None = None,
+    comparison: EdaComparison | None = None,
 ) -> DataChunk:
     extra = {} if caption is None else {"caption": caption}
     return eda_viz_chunk(
@@ -243,6 +245,7 @@ def _viz_chunk(
         effect_direction=effect_direction,
         summary=summary,
         points=points,
+        comparison=comparison or EdaComparison(group_a=["normal"], group_b=["febrile"]),
         **extra,
     )
 
@@ -293,6 +296,18 @@ def test_the_viz_chunk_leaves_the_caption_empty_when_unset() -> None:
     assert chunk.data["caption"] == ""
 
 
+def test_the_viz_chunk_names_the_labels_of_both_groups() -> None:
+    chunk = _viz_chunk(
+        summary=_summary(),
+        points=[],
+        comparison=EdaComparison(group_a=["24h pbm"], group_b=["18h pbm", "36h pbm"]),
+    )
+    assert chunk.data["comparison"] == {
+        "groupA": ["24h pbm"],
+        "groupB": ["18h pbm", "36h pbm"],
+    }
+
+
 def test_the_viz_chunk_refuses_a_direction_no_chart_draws() -> None:
     with pytest.raises(ValidationError):
         _viz_chunk(summary=_summary(), points=[], effect_direction="sideways")
@@ -328,6 +343,10 @@ async def test_the_analysis_state_chunk_names_the_part_kind(
     )
     assert chunk.type == "data-eda.analysis-state"
     assert chunk.data["analysisId"] == ANALYSIS_ID
+    assert chunk.data["analysisUrl"] == (
+        f"https://plasmodb.org/plasmo/app/workspace/analyses/"
+        f"{PHENOTYPE_DATASET}/{ANALYSIS_ID}"
+    )
     assert chunk.data["numFilters"] == 1
     assert chunk.data["revision"] == 3
     assert chunk.data["filterSummaries"] == ["Species is one of P. berghei"]

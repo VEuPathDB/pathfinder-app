@@ -2,6 +2,131 @@
 
 ## 2026-09-23
 
+* **A refused sign-in status keeps the shell.** A 503 `SITE_UNAVAILABLE` from
+  `GET /api/v1/veupathdb/auth/status` was thrown by the shells'
+  `useSuspenseQuery` to the outer boundary, so the user saw "Application error"
+  with the rail, the conversations list and the gene sets gone.
+  `app/hooks/useSiteAccess.ts` now answers pending, down or up for both shells:
+  down when the site list reports the site or the status read is refused, which
+  it asks again every 60 s and which stays down while it asks; every other
+  failure still reaches `AppShellError`. `SiteAvailabilityGate` takes that answer
+  as `down`, the notice no longer offers the site it is refusing, and the query
+  client does not retry a `SITE_UNAVAILABLE` refusal.
+
+* **The pins take the one-attempt identity read.** `veupathdb-py` v0.1.0a14 and
+  `veupathdb-mcp` v0.2.0a22 in `apps/api/pyproject.toml`, and the `wdk-mcp` and
+  `research-mcp` build contexts in `docker-compose.yml` and
+  `.github/workflows/publish-images.yml` at `#v0.2.0a22`. The api is 0.2.0a11.
+
+* **An identity read the site does not answer is a 503, not a sign-out.**
+  `fetch_current_user` now returns `None` only for no token or a token the site
+  refuses (401/403), and raises `WDKError` when the site does not answer: 502 past
+  its 10 s deadline or on a refused connection, the site's own status on a 5xx.
+  `services/wdk_identity.py::identity_or_unavailable` maps a server status to
+  `SiteUnavailableError` naming the site and lets a client status through. It
+  wraps the read in `resolve_veupathdb_user_id` (the identity gate, the chat body
+  reader and the bearer path), in `GET /api/v1/veupathdb/auth/status`, and in
+  `_link_internal_user` (login and refresh), so an outage on login is 503 and not
+  "Invalid email or password". `require_session_matches_wdk_identity` no longer
+  lets a token that names nobody pass as an outage: it is 401
+  `WDK_LOGIN_REQUIRED`.
+
+* **The site gate starts the shell's reads and shows the wait.** `SystemReadyGate`
+  now takes the route's `siteId`, prefetches the sites, the models and the site's
+  sign-in status (`usePrefetchQuery`) once the api is ready, and wraps the app in a
+  `Suspense` whose fallback is `LoadingScreen`, so a shell chunk that is still
+  loading shows "Loading..." instead of "Starting up..." with no request out. The
+  query client no longer prefetches at creation, so a boot-time failure does not
+  sit in the cache for a suspense read to throw. `LoadingScreen` offers a Reload
+  after the 20 s startup grace window everywhere it is a fallback. The sign-in
+  status request aborts after 15 s with a `TIMEOUT` `AppError`, which the default
+  retry policy does not repeat.
+
+* **A rename writes the name and nothing else.** A canvas rename of leaf step
+  440537303 on plasmodb strategy 330679883 sent two WDK writes, the search-config
+  PUT and then the name PATCH. The PUT carried the stored parameters, so it wrote
+  `min_exportpred_score` 10 over the 12 the researcher had set on PlasmoDB: the
+  step went from 85 genes to 191 and the strategy from 2 to 11. `PatchAction`
+  (`services/strategies/step_push_planner.py`) now names what it writes,
+  `search_config` when a value or the weight moved and `name` when the name moved
+  to one WDK can take, and `step_wdk_push._execute_patch` sends only those. A
+  rename is one `update_step_properties`, and a push that sends no parameters
+  validates none. A combine's parameters live on the site only and a
+  search-config PUT replaces the parameters whole, so a new combine weight
+  recreates the combine. `_update_existing_step` and `_patch_combine_metadata` are gone into
+  `_put_search_config` and `_patch_name`.
+
+* **The canvas and the refresh read what the site holds before they write.**
+  After the same score was set to 12 on PlasmoDB (count 85), a canvas edit of
+  another step and a `POST .../refresh-counts` both stored WDK's 85 beside
+  PathFinder's 10, so the sheet showed "10" next to "85 genes". Nothing read a
+  site edit back into the stored graph; turn entry replays changes to the stored
+  graph, not to the site. `services/strategies/site_changes.py::take_what_the_site_holds`
+  writes onto the graph a value the site holds in neither stored form, a weight
+  the graph holds and the site changed, a set operator, and, when the whole main
+  tree is on the site, the site's tree (removed, added and replaced steps). `apply_operation` runs it under the write
+  lock before it plans, and `refresh_counts` runs it from the read that supplies
+  the counts (`live_counts.read_the_live_strategy`, `take_the_sites_counts`). The
+  turn entry reads the site too: `ai/lead/pre_turn.py` calls
+  `read_the_site_into_the_thread`, which reads the stored graph again under the
+  write lock, persists what the site moved and hands the turn that graph before
+  the answered-graph replay, so a chat edit of another parameter of the same step
+  sends the site's value on. The lock is released before the model runs, and a
+  site that does not answer leaves the stored graph and the turn goes on. The
+  same read supplies the staleness counts, so a turn reads the site once.
+
+* **A step sheet never sends a step's input wiring.** Saving "Syntenic orthologs only?" on
+  a `GenesByOrthologs` step sent nothing: the sheet gave the hidden `input-step`
+  parameter `gene_result` the default `""`, the patch carried `{stepId: ""}`, and the
+  generated request schema refused it before the request. `isInputStepParam`
+  (`features/strategy/parameters/spec.ts`) keeps an `input-step` parameter out of the
+  form, the hidden defaults, the patch and the rendered fields. A request body the
+  client refuses now reads as one sentence that names the parameter
+  (`lib/api/errors.ts`, "The step could not be saved: gene_result is missing a
+  value"), not the issue list. A step count names genes for a transcript step, since
+  WDK's `estimatedSize` tracks `displayTotalCount` (`lib/utils/countNoun.ts`, on the
+  canvas node, the editor footer and the saved list).
+
+* **A refresh with nothing to refresh is a 409.** `refresh_counts` answered 404
+  `STRATEGY_NOT_FOUND` on an owned thread that holds no built strategy, which reads
+  as "no such thread"; it now answers 409 `INVALID_STRATEGY`, like the step-records
+  route, and the route is in the authz matrix.
+
+* **A volcano direction is stated by its groups.** A positive effect size is higher in
+  group B (web-monorepo `VolcanoPlotVisualization.tsx` labels that side "Up in" group
+  B), so `upOnly` keeps group B's genes. `run_eda_compute` returns `comparison` and
+  `signRule` and counts each side by its labels; `create_eda_step` returns `selection`
+  ("Kept 363 genes higher in 18h pbm, 36h pbm than in 24h pbm.") and names a compute
+  export's step with `services/eda/direction.py::direction_sentence`, on the tool and on
+  the tab's export alike, which is the rule the WDK plugin's `isRetainedRow` applies. A
+  one-sided export needs a `caption` whose first whole-word group label is the kept
+  group's; a caption naming no label is refused without suggesting a direction, and
+  `run_eda_compute` refuses a label in both groups before it defers a job. The volcano legend, its accessible label and the
+  direction choices name the labels, with the group letters for a part that carries no
+  comparison, and the tab's export names the step it wrote. See
+  `decisions/a-volcano-direction-is-stated-by-its-groups.md`.
+
+* **The compute form shows the analysis's compute and takes many labels per group.**
+  `computeDraftOf` (`features/eda/computeConfig.ts`) reads the first computation of the
+  descriptor `GET /conversations/{id}/eda` answers, so a compute the agent ran fills the
+  method, the value variable, the comparator and both groups, and "Run compute" stays
+  disabled until the draft differs from it (`isSameComputeDraft`, groups compared as
+  sets). "Reference group (A)" and "Comparison group (B)" are checkbox lists written in
+  the vocabulary's order; a label one group holds is disabled in the other, as on the
+  site, and an empty group disables the run.
+
+* **An EDA analysis opens in the site's own explorer, and a volcano names its groups.**
+  `EdaAnalysisState.analysisUrl` is `{web_base_url}/app/workspace/analyses/{datasetId}/{analysisId}`
+  (`services/eda/urls.py`); the explorer route reads the WDK dataset id, as
+  `useWdkStudyRecord` does in web-monorepo. It is optional on the wire because the
+  thread log holds parts without it. `EdaVizPart.comparison` (optional, same reason)
+  and `EdaVizResponse.comparison` (required) carry `EdaComparison`, the labels of
+  group A (the reference) and group B, so the workbench cell and the chat figure print
+  "Group A: ... - Group B: ...". The workbench header, the chat's analysis card and its
+  volcano link to the explorer through `lib/components/OpenInSiteLink.tsx`, which opens
+  `_top` inside a frame and `_blank` otherwise (`lib/utils/siteLinkTarget.ts`); the
+  workbench header also links back to the chat.
+
 * **A strategy step answers its genes.** `GET /api/v1/conversations/{id}/strategy/steps/{step_id}/records`
   (`getStepRecords`) takes the graph step id and `siteId`, `offset` and `limit`
   (1 to 500, default 50), and answers `StepRecordsResponse`: the WDK step id, the

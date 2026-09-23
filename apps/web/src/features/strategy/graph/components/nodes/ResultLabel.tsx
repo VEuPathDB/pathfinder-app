@@ -2,6 +2,7 @@
 
 import type { Step } from "@pathfinder/shared";
 import { Skeleton } from "@/components/ui/skeleton";
+import { countNoun } from "@/lib/utils/countNoun";
 import type { StepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { ZeroResultHoverCard } from "./ZeroResultHoverCard";
 
@@ -9,12 +10,6 @@ export type ResultLabelProps = {
   step: Step;
   snapshot: StepSnapshot;
 };
-
-function pluralizedRecord(step: Step, count: number): string {
-  const base =
-    step.recordType != null && step.recordType !== "" ? step.recordType : "result";
-  return count === 1 ? base : `${base}s`;
-}
 
 export function ResultLabel({ step, snapshot }: ResultLabelProps) {
   // A draft has not been sent to WDK, so there is no count to be waiting for.
@@ -40,7 +35,7 @@ export function ResultLabel({ step, snapshot }: ResultLabelProps) {
   if (typeof count === "number") {
     return (
       <span className="font-mono text-xs text-muted-foreground">
-        {count.toLocaleString()} {pluralizedRecord(step, count)}
+        {count.toLocaleString()} {countNoun(step.recordType, count)}
       </span>
     );
   }
@@ -53,7 +48,7 @@ export function ResultLabel({ step, snapshot }: ResultLabelProps) {
 
   return (
     <span className="font-mono text-xs text-muted-foreground">
-      ? {pluralizedRecord(step, 0)}
+      ? {countNoun(step.recordType, 0)}
     </span>
   );
 }

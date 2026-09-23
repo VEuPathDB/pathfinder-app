@@ -173,21 +173,13 @@ async def _push_transform_step(
     return wdk_result.id
 
 
-async def _update_existing_step(
+async def _put_search_config(
     api: StrategyAPI,
     sync_state: WDKSyncState,
     step: StrategyStep,
     record_type: str,
-    *,
-    name_moved: bool,
 ) -> None:
-    """Update an existing WDK step's search-config and the name it states."""
-    wdk_step_id = sync_state.wdk_step_ids[step.id]
-    kind = step.kind.value
-
-    # The params of a combine step are structural and never change.
-    if kind == "combine":
-        return
+    """Write the step's parameters and weight over the ones WDK holds."""
     refuse_a_set_operation(step.id, wdk_search_name(step))
     str_params: dict[str, str] = encode_params(step.parameters)
     _refuse_an_empty_eda_analysis(wdk_search_name(step), str_params)
@@ -197,29 +189,20 @@ async def _update_existing_step(
     if step.wdk_weight is not None:
         config = WDKSearchConfig(parameters=str_params, wdk_weight=step.wdk_weight)
     await api.update_step_search_config(
-        step_id=wdk_step_id,
+        step_id=sync_state.wdk_step_ids[step.id],
         search_config=config,
         record_type=record_type,
         search_name=wdk_search_name(step),
     )
-    if name_moved and step.display_name:
-        await api.update_step_properties(
-            step_id=wdk_step_id,
-            spec=PatchStepSpec(custom_name=step.display_name),
-        )
 
 
-async def _patch_combine_metadata(
+async def _patch_name(
     api: StrategyAPI,
     sync_state: WDKSyncState,
     step: StrategyStep,
 ) -> None:
-    # A WDK combine operator is a creation-time param. Only the display name
-    # and the weight accept a PATCH.
-    wdk_step_id = sync_state.wdk_step_ids[step.id]
-    if step.display_name is None:
-        return
+    """Write the name the step states."""
     await api.update_step_properties(
-        step_id=wdk_step_id,
+        step_id=sync_state.wdk_step_ids[step.id],
         spec=PatchStepSpec(custom_name=step.display_name),
     )

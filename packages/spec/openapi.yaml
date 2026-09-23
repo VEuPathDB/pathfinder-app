@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Pathfinder API
   description: VEuPathDB Strategy Builder Chatbot API
-  version: 0.2.0a10
+  version: 0.2.0a11
 paths:
   /health:
     get:
@@ -3010,7 +3010,9 @@ paths:
       description: 'Return the current VEuPathDB auth status.
 
 
-        A mock chat provider has no VEuPathDB session, so the internal cookie
+        A refused token or a guest is signed out; a site that does not answer is a
+
+        503. A mock chat provider has no VEuPathDB session, so the internal cookie
 
         alone proves identity there.'
       operationId: auth_status_api_v1_veupathdb_auth_status_get
@@ -6493,6 +6495,11 @@ components:
         canExportRows:
           type: boolean
           title: Canexportrows
+        analysisUrl:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Analysisurl
       type: object
       required:
       - siteId
@@ -6518,7 +6525,11 @@ components:
 
         ``filters`` entries are the wire filter objects, kept as JSON because
 
-        this package cannot import the integrations union.'
+        this package cannot import the integrations union. ``analysis_url`` opens
+
+        the analysis in the site''s own explorer; the thread log holds parts that
+
+        carry none, so it is optional.'
     EdaBindAction:
       properties:
         action:
@@ -6564,6 +6575,29 @@ components:
       - groupA
       - groupB
       title: EdaComparator
+    EdaComparison:
+      properties:
+        groupA:
+          items:
+            type: string
+          type: array
+          title: Groupa
+        groupB:
+          items:
+            type: string
+          type: array
+          title: Groupb
+      type: object
+      required:
+      - groupA
+      - groupB
+      title: EdaComparison
+      description: 'The labels of the two sample groups one compute compares.
+
+
+        ``group_a`` is the reference, so a positive effect size is higher in
+
+        ``group_b``.'
     EdaComputationDescriptor:
       properties:
         type:
@@ -7397,6 +7431,8 @@ components:
             $ref: '#/components/schemas/EdaVizPointResponse'
           type: array
           title: Points
+        comparison:
+          $ref: '#/components/schemas/EdaComparison'
       type: object
       required:
       - chart
@@ -7407,6 +7443,7 @@ components:
       - totalPoints
       - retainedPoints
       - points
+      - comparison
       title: EdaVizResponse
     EnrichmentAnalysisType:
       type: string
@@ -12708,6 +12745,11 @@ components:
             from the numbers alone.
           title: Caption
           type: string
+        comparison:
+          anyOf:
+          - $ref: '#/components/schemas/EdaComparison'
+          - type: 'null'
+          description: The two groups the plot compares. The thread log holds plots that carry none.
       required:
       - datasetId
       - analysisId

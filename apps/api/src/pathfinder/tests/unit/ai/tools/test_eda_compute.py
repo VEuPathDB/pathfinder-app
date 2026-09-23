@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 import pytest
 from assistant_core.tasks.declaration import durable_impl
-from pydantic_ai.exceptions import CallDeferred
+from pydantic import ValidationError
+from pydantic_ai.exceptions import CallDeferred, ModelRetry
 from pydantic_ai.tools import RunContext
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_compute
 from pathfinder.ai.tools.standalone.eda_compute import EdaVariableSpecIn
+from pathfinder.ai.tools.toolsets.eda import build_toolset
 from pathfinder.jobs.impls import register_all_tools
 from pathfinder.jobs.impls.eda_compute_impl import run_eda_compute_impl
 from pathfinder.tests._support.durable_dispatch import (
@@ -17,6 +21,7 @@ from pathfinder.tests._support.durable_dispatch import (
     capture_durable_dispatch,
 )
 from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests.unit.ai.tools.conftest import unwrap_function_toolset
 
 
 @pytest.fixture
@@ -157,3 +162,43 @@ def test_the_tool_is_registered_in_the_worker_registry() -> None:
     register_all_tools()
 
     assert durable_impl("run_eda_compute") == run_eda_compute_impl
+
+
+async def test_groups_that_share_a_label_are_refused_before_the_job(
+    compute_ctx: RunContext[LeadDeps],
+) -> None:
+    with pytest.raises(ModelRetry) as refused:
+        await eda_compute.refuse_shared_labels(
+            compute_ctx,
+            identifier_variable=EdaVariableSpecIn(
+                entity_id="E", variable_id="VEUPATHDB_GENE_ID"
+            ),
+            value_variable=EdaVariableSpecIn(
+                entity_id="E", variable_id="SEQUENCE_READ_COUNT"
+            ),
+            comparator_variable=EdaVariableSpecIn(entity_id="P", variable_id="C"),
+            group_a_labels=["24h pbm", "18h pbm"],
+            group_b_labels=["18h pbm", "36h pbm"],
+        )
+
+    assert "18h pbm" in str(refused.value)
+    assert "both groups" in str(refused.value)
+
+
+def test_the_toolset_checks_the_groups_before_it_defers() -> None:
+    tools = unwrap_function_toolset(build_toolset()).tools
+
+    assert tools["run_eda_compute"].args_validator is eda_compute.refuse_shared_labels
+
+
+def test_a_resumed_result_must_name_its_groups() -> None:
+    """The trace line names each side by its group, so the groups are required."""
+    with pytest.raises(ValidationError):
+        eda_compute._compute_chunks_from_result(
+            {
+                "status": "success",
+                "result": {"genesTested": 5, "retainedUp": 1, "retainedDown": 1},
+            },
+            uuid4(),
+            "call_1",
+        )

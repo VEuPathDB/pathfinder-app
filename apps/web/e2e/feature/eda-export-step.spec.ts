@@ -81,8 +81,14 @@ test.describe("EDA export as a strategy step", () => {
     await expect(page.getByTestId("eda-compute-cell")).toBeVisible({ timeout: 20_000 });
 
     await page.getByLabel("Comparator variable").selectOption(TEMPERATURE_VAR);
-    await page.getByLabel("Group A").selectOption("normal");
-    await page.getByLabel("Group B").selectOption("febrile");
+    await page
+      .getByRole("group", { name: "Reference group (A)" })
+      .getByRole("checkbox", { name: "normal" })
+      .click();
+    await page
+      .getByRole("group", { name: "Comparison group (B)" })
+      .getByRole("checkbox", { name: "febrile" })
+      .click();
     await page.getByRole("button", { name: "Run compute" }).click();
     await expect(page.getByTestId("eda-compute-complete")).toBeVisible({
       timeout: 20_000,
@@ -95,6 +101,9 @@ test.describe("EDA export as a strategy step", () => {
     // The exported step is the only root, so it begins the strategy.
     await expect(page.getByTestId("eda-export-began-strategy")).toContainText(
       "This step is now the strategy's first step.",
+    );
+    await expect(page.getByTestId("eda-export-step-name")).toHaveText(
+      `Exported: ${EXPORTED_STEP.displayName}`,
     );
     expect(actions).toEqual(["bind", "run-compute", "export-step"]);
 
@@ -115,7 +124,7 @@ test.describe("EDA export as a strategy step", () => {
     await expect(panel).toBeVisible({ timeout: 20_000 });
     await expect(
       page.getByTestId(`compact-step-row-${EXPORTED_STEP.id}`),
-    ).toContainText("EDA volcano");
+    ).toContainText(EXPORTED_STEP.displayName);
     // The recorded step's own estimated size.
     await expect(
       page.getByTestId(`compact-step-row-${EXPORTED_STEP.id}`),

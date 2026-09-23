@@ -79,7 +79,9 @@ class EdaAnalysisState(CamelModel):
     ``revision`` is the mutation counter of the binding; ``None`` means
     unknown and the store's reconcile rule then takes the last write.
     ``filters`` entries are the wire filter objects, kept as JSON because
-    this package cannot import the integrations union.
+    this package cannot import the integrations union. ``analysis_url`` opens
+    the analysis in the site's own explorer; the thread log holds parts that
+    carry none, so it is optional.
     """
 
     site_id: str
@@ -95,6 +97,7 @@ class EdaAnalysisState(CamelModel):
     filter_summaries: list[str]
     entity_counts: list[EdaEntityCount]
     can_export_rows: bool
+    analysis_url: str | None = None
 
 
 class EdaDistributionSeries(CamelModel):
@@ -152,6 +155,17 @@ class EdaVolcanoPoint(CamelModel):
     retained: bool
 
 
+class EdaComparison(CamelModel):
+    """The labels of the two sample groups one compute compares.
+
+    ``group_a`` is the reference, so a positive effect size is higher in
+    ``group_b``.
+    """
+
+    group_a: list[str]
+    group_b: list[str]
+
+
 class EdaVizPart(CamelModel):
     """Server-computed plot data, sized for one chart."""
 
@@ -171,5 +185,12 @@ class EdaVizPart(CamelModel):
             "One sentence the model wrote about the plot. Empty when it "
             "wrote none, and the figure is then captioned from the numbers "
             "alone."
+        ),
+    )
+    comparison: EdaComparison | None = Field(
+        default=None,
+        description=(
+            "The two groups the plot compares. The thread log holds plots "
+            "that carry none."
         ),
     )

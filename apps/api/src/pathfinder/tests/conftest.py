@@ -16,13 +16,17 @@ os.environ.setdefault(
     "CATALOG_CACHE_DIR", tempfile.mkdtemp(prefix="pathfinder-catalogs-")
 )
 
-os.environ.setdefault("API_ENV", "test")
+# The test profile wins over the host environment: a sourced dev env file
+# names a real provider, and a test must run on the scripted one.
+os.environ["API_ENV"] = "test"
+os.environ["PATHFINDER_CHAT_PROVIDER"] = "mock"
+os.environ["INPUT_SCREENING_ENABLED"] = "true"
+
 os.environ.setdefault("API_SECRET_KEY", "test-secret-key-test-secret-key-test")
 os.environ.setdefault(
     "DATABASE_URL",
     "postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder_test",
 )
-os.environ.setdefault("PATHFINDER_CHAT_PROVIDER", "mock")
 os.environ.setdefault("OPENAI_API_KEY", "")
 os.environ.setdefault("ANTHROPIC_API_KEY", "")
 os.environ.setdefault("GEMINI_API_KEY", "")

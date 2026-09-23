@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import type { EdaAnalysisState } from "@pathfinder/shared";
 
@@ -9,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { conversationEdaOptions, patchConversationEda } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
+import { OpenInSiteLink } from "@/lib/components/OpenInSiteLink";
+import { chatUrl } from "@/lib/routes";
 import { useEdaStore } from "@/state/eda";
 
 import { ExportStepButton } from "./ExportStepButton";
@@ -66,13 +70,25 @@ export function EdaWorkbench({ siteId, conversationId }: EdaWorkbenchProps) {
         data-testid="eda-workbench-header"
         className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4"
       >
-        <WorkbenchTitle
-          studyDisplayName={analysis?.studyDisplayName ?? ""}
-          displayName={analysis?.displayName ?? ""}
-          bound={analysis !== null}
-        />
+        <div className="flex min-w-0 items-center gap-2">
+          <Button asChild variant="ghost" size="sm" className="shrink-0 gap-1.5">
+            <Link href={chatUrl(siteId, conversationId)}>
+              <ArrowLeft className="size-4" aria-hidden />
+              <span className="text-xs">Back to chat</span>
+            </Link>
+          </Button>
+          <div className="h-5 w-px shrink-0 bg-border" aria-hidden />
+          <WorkbenchTitle
+            studyDisplayName={analysis?.studyDisplayName ?? ""}
+            displayName={analysis?.displayName ?? ""}
+            bound={analysis !== null}
+          />
+        </div>
         {analysis !== null ? (
           <div className="flex shrink-0 items-center gap-2">
+            {analysis.analysisUrl !== null ? (
+              <OpenInSiteLink href={analysis.analysisUrl} siteId={analysis.siteId} />
+            ) : null}
             <Button
               type="button"
               size="sm"
@@ -91,6 +107,7 @@ export function EdaWorkbench({ siteId, conversationId }: EdaWorkbenchProps) {
           siteId={siteId}
           conversationId={conversationId}
           analysisId={analysis?.analysisId ?? null}
+          descriptor={bindingQuery.data?.descriptor ?? null}
           isPending={bindingQuery.isPending}
           error={bindingQuery.error}
           onRetry={() => void bindingQuery.refetch()}
@@ -135,6 +152,7 @@ function WorkbenchBody({
   siteId,
   conversationId,
   analysisId,
+  descriptor,
   isPending,
   error,
   onRetry,
@@ -144,6 +162,7 @@ function WorkbenchBody({
   siteId: string;
   conversationId: string;
   analysisId: string | null;
+  descriptor: unknown;
   isPending: boolean;
   error: unknown;
   onRetry: () => void;
@@ -188,7 +207,11 @@ function WorkbenchBody({
   return (
     <div key={analysisId} className="flex flex-col gap-4">
       <SubsetCell siteId={siteId} conversationId={conversationId} />
-      <ComputeCell siteId={siteId} conversationId={conversationId} />
+      <ComputeCell
+        siteId={siteId}
+        conversationId={conversationId}
+        descriptor={descriptor}
+      />
       <VizCell siteId={siteId} conversationId={conversationId} />
     </div>
   );

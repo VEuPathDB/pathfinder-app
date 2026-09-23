@@ -173,15 +173,41 @@ class TestASilentZeroReportsEmpty:
 
     def test_run_eda_compute(self) -> None:
         chunks = eda_compute._compute_chunks_from_result(
-            {"status": "success", "result": {"genesTested": 0}},
+            {
+                "status": "success",
+                "result": {
+                    "genesTested": 0,
+                    "retainedUp": 0,
+                    "retainedDown": 0,
+                    "comparison": {"groupA": ["normal"], "groupB": ["febrile"]},
+                },
+            },
             uuid4(),
             "call_1",
         )
         assert (
             summary_chunks(chunks)[0].data["summary"]
-            == "0 genes tested, 0 up and 0 down"
+            == "0 genes tested, 0 higher in febrile and 0 higher in normal"
         )
         assert summary_chunks(chunks)[0].data["status"] == "empty"
+
+    def test_run_eda_compute_names_each_side_by_its_group(self) -> None:
+        chunks = eda_compute._compute_chunks_from_result(
+            {
+                "status": "success",
+                "result": {
+                    "genesTested": 5511,
+                    "retainedUp": 900,
+                    "retainedDown": 643,
+                    "comparison": {"groupA": ["normal"], "groupB": ["febrile"]},
+                },
+            },
+            uuid4(),
+            "call_1",
+        )
+        assert summary_chunks(chunks)[0].data["summary"] == (
+            "5,511 genes tested, 900 higher in febrile and 643 higher in normal"
+        )
 
     def test_run_gene_set_enrichment(self) -> None:
         chunks = workbench._enrichment_chunks_from_result(

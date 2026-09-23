@@ -1,7 +1,8 @@
-"""PathFinder's pre-turn work: measure the recorded build against WDK, play
-what was written outside this thread onto every spec the turn holds, give a
-strategy that has no spec one derived from what it already is, and brief the
-turn on what moved since the thread last answered.
+"""PathFinder's pre-turn work: take what the site moved onto the stored graph,
+measure the recorded build against WDK, play what was written outside this
+thread onto every spec the turn holds, give a strategy that has no spec one
+derived from what it already is, and brief the turn on what moved since the
+thread last answered.
 
 The user can edit the strategy between turns, in the graph editor or on the
 site. WDK owns it, so only WDK can say what it holds now.
@@ -33,8 +34,9 @@ from pathfinder.domain.strategy.spec_reconciliation import spec_the_strategy_hol
 from pathfinder.domain.strategy.staleness import detect_build_staleness
 from pathfinder.services.conversations.thread_activity import read_thread_activity
 from pathfinder.services.eda.binding import open_analysis_in
-from pathfinder.services.strategies.live_counts import read_wdk_step_counts
+from pathfinder.services.strategies.live_counts import counts_the_site_holds
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
+from pathfinder.services.strategies.site_changes import read_the_site_into_the_thread
 
 __all__ = [
     "attach_open_eda_analysis",
@@ -111,11 +113,18 @@ async def refresh_live_strategy_state(
     was written outside played onto every spec, and the spec reconstructed
     when the strategy has one and the checkpoint does not."""
     working_state = state.model_copy(deep=True)
+    # The site's own edits reach the stored graph first, so the replay below
+    # plays them onto the spec like any change written outside the thread.
+    live = await read_the_site_into_the_thread(
+        session=context.strategy_session,
+        conversation_id=state.conversation_id,
+        db_session_factory=context.db_session_factory,
+    )
     sync_state = context.strategy_session.sync_state
     live_counts = (
-        await read_wdk_step_counts(sync_state, context.site_id)
-        if sync_state is not None
-        else {}
+        {}
+        if live is None or sync_state is None
+        else counts_the_site_holds(live, sync_state)
     )
     working_state.domain.stale_build = detect_build_staleness(
         working_state.domain.last_build_outcome,

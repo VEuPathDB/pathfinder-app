@@ -95,3 +95,49 @@ describe("parameter round trip through the editor", () => {
     expect(Object.keys(patch)).toEqual([]);
   });
 });
+
+describe("a transform step's input wiring", () => {
+  const ORTHOLOG_SPECS: ParamSpec[] = [
+    spec({
+      name: "gene_result",
+      type: "input-step",
+      isVisible: false,
+      group: "_hidden",
+      initialDisplayValue: "",
+    }),
+    spec({
+      name: "isSyntenic",
+      type: "single-pick-vocabulary",
+      displayType: "select",
+      allowEmptyValue: false,
+      initialDisplayValue: "no",
+    }),
+  ];
+
+  it("sends only the edited parameter and never the input step", () => {
+    const patch = buildStepPatch({
+      step: {
+        id: "step-2",
+        searchName: "GenesByOrthologs",
+        parameters: { isSyntenic: { type: "single-pick-vocabulary", value: "no" } },
+      },
+      formValues: { isSyntenic: "yes" },
+      hiddenDefaults: { gene_result: "" },
+      allowedParamKeys: new Set(["isSyntenic"]),
+      paramSpecs: ORTHOLOG_SPECS,
+      operator: "",
+      displayName: "",
+      colocationParams: null,
+    });
+
+    expect(patch.parameters).toEqual({
+      isSyntenic: { type: "single-pick-vocabulary", value: "yes" },
+    });
+    const parsed = updateStepParamsOpSchema.safeParse({
+      kind: "updateStepParams",
+      stepId: "step-2",
+      parameters: patch.parameters,
+    });
+    expect(parsed.success).toBe(true);
+  });
+});

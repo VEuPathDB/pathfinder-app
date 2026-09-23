@@ -8,6 +8,7 @@ import type { EdaViz } from "@pathfinder/shared";
 import { Spinner } from "@/components/ui/spinner";
 import { edaViz } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
+import { comparisonLine } from "@/lib/eda/comparison";
 import { isEdaJobComplete, useEdaStore, type EdaJobSnapshot } from "@/state/eda";
 
 import { CellShell } from "./CellShell";
@@ -70,7 +71,11 @@ export function VizCell({ siteId, conversationId }: VizCellProps) {
   }
 
   return (
-    <CellShell title="Visualization" subtitle={null} testId="eda-viz-cell">
+    <CellShell
+      title="Visualization"
+      subtitle={current?.comparison != null ? comparisonLine(current.comparison) : null}
+      testId="eda-viz-cell"
+    >
       <VizBody
         payload={current}
         error={volcano.error}

@@ -42,10 +42,13 @@ On the client the wire is the authority: `resolveEstimatedSize` takes the count
 the server sent whenever there is one, and the lifecycle machine's cache fills
 in only for a step the wire does not count.
 `POST /api/v1/conversations/{strategyId}/refresh-counts` runs the same read on
-demand, behind the refresh control in the strategy rail. It is the researcher's
-way out of a number they distrust, so it never confirms one: a site that answers
-nothing is a 503 `SITE_UNAVAILABLE` and a strategy the site does not hold a 404
-`STRATEGY_NOT_FOUND`, both of which leave the stored counts alone. The commit
+demand, behind the refresh control in the strategy rail, and stores the values
+the site holds with its counts
+(`services/strategies/site_changes.py::take_what_the_site_holds`), so a count
+is never stored beside a value it does not count. It is the researcher's way out
+of a number they distrust, so it never confirms one: a site that answers nothing
+is a 503 `SITE_UNAVAILABLE` and a strategy the site does not hold a 409
+`INVALID_STRATEGY`, both of which leave the stored strategy alone. The commit
 path stays lenient, because there the invalidation has already marked the
 changed branch unknown.
 

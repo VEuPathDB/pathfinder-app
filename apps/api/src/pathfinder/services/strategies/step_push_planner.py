@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Discriminator
+from pydantic import BaseModel, ConfigDict, Discriminator, model_validator
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, walk
 
 
@@ -15,8 +15,23 @@ class CreateAction(BaseModel):
 
 
 class PatchAction(BaseModel):
+    """A write to a step WDK already holds, naming the parts that moved.
+
+    The search config carries every parameter and the weight, so it is sent
+    only when one of them moved; a new name alone is a properties patch.
+    """
+
     model_config = ConfigDict(frozen=True)
     kind: Literal["patch"] = "patch"
+    search_config: bool
+    name: bool
+
+    @model_validator(mode="after")
+    def _writes_something(self) -> PatchAction:
+        if not (self.search_config or self.name):
+            msg = "a patch that writes nothing is a skip"
+            raise ValueError(msg)
+        return self
 
 
 class RecreateAction(BaseModel):
@@ -35,8 +50,6 @@ class StepPushPlan(BaseModel):
     step_id: str
     action: StepActionT
     reason: str
-    # A name WDK already holds is not written again.
-    name_moved: bool = False
 
 
 def _index_by_id(ast: StrategyAst) -> dict[str, StrategyStepNode]:
@@ -55,11 +68,12 @@ def _decide_combine(
         return RecreateAction(), "combine input topology changed"
     if new_step.colocation_params != old_step.colocation_params:
         return RecreateAction(), "colocation params changed"
-    if (
-        new_step.display_name != old_step.display_name
-        or new_step.wdk_weight != old_step.wdk_weight
-    ):
-        return PatchAction(), "combine metadata changed"
+    if new_step.wdk_weight != old_step.wdk_weight:
+        # A combine's parameters live on the site only, and a search-config PUT
+        # replaces the parameters whole, so the weight goes in at creation.
+        return RecreateAction(), "combine weight changed"
+    if _renamed(new_step, old_step):
+        return PatchAction(search_config=False, name=True), "combine name changed"
     return SkipAction(), "combine unchanged"
 
 
@@ -70,15 +84,31 @@ def _decide_leaf_or_transform(
         # A WDK step runs the search it was created with. The search-config
         # endpoint validates against that search, so a new search is a new step.
         return RecreateAction(), "search changed"
-    if dict(new_step.parameters) != dict(old_step.parameters):
-        return PatchAction(), "params changed"
-    if new_step.display_name != old_step.display_name:
-        return PatchAction(), "display name changed"
-    if new_step.wdk_weight != old_step.wdk_weight:
-        return PatchAction(), "wdk weight changed"
     if new_step.primary_input_id != old_step.primary_input_id:
         return RecreateAction(), "transform input changed"
-    return SkipAction(), "leaf/transform unchanged"
+    moved = [
+        what
+        for what, differs in (
+            ("params", dict(new_step.parameters) != dict(old_step.parameters)),
+            ("wdk weight", new_step.wdk_weight != old_step.wdk_weight),
+            ("display name", _renamed(new_step, old_step)),
+        )
+        if differs
+    ]
+    if not moved:
+        return SkipAction(), "leaf/transform unchanged"
+    patch = PatchAction(
+        search_config="params" in moved or "wdk weight" in moved,
+        name="display name" in moved,
+    )
+    return patch, " and ".join(moved) + " changed"
+
+
+def _renamed(new_step: StrategyStepNode, old_step: StrategyStepNode) -> bool:
+    """A name WDK can be sent: a step whose name was cleared keeps the site's."""
+    return (
+        bool(new_step.display_name) and new_step.display_name != old_step.display_name
+    )
 
 
 def _decide_step(
@@ -143,11 +173,6 @@ def plan_step_pushes(
             step_id=step.id,
             action=decisions[step.id][0],
             reason=decisions[step.id][1],
-            name_moved=_name_moved(step, old_by_id.get(step.id)),
         )
         for step in new_steps
     ]
-
-
-def _name_moved(step: StrategyStepNode, old_step: StrategyStepNode | None) -> bool:
-    return old_step is None or step.display_name != old_step.display_name

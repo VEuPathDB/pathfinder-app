@@ -5,9 +5,11 @@ import {
   buildDifferentialExpressionConfig,
   comparatorVariables,
   computeConfigProblem,
+  computeDraftOf,
   DifferentialExpressionConfigError,
   geneIdentifierVariable,
   isComputeConfigComplete,
+  isSameComputeDraft,
   valueVariables,
 } from "./computeConfig";
 
@@ -244,5 +246,85 @@ describe("comparatorVariables", () => {
 
   it("drops a categorical variable whose vocabulary is empty", () => {
     expect(comparatorVariables([{ ...TEMPERATURE, vocabulary: [] }])).toEqual([]);
+  });
+});
+
+/** The analysis descriptor the conversation route answers, with one compute. */
+function descriptorComparing(groupA: string[], groupB: string[]) {
+  return {
+    subset: { descriptor: [] },
+    computations: [
+      {
+        computationId: "C3WiXt0",
+        descriptor: {
+          type: "differentialexpression",
+          configuration: {
+            identifierVariable: {
+              entityId: "ENT_fd574cd6",
+              variableId: "VEUPATHDB_GENE_ID",
+            },
+            valueVariable: {
+              entityId: "ENT_fd574cd6",
+              variableId: "SEQUENCE_READ_COUNT_SENSE",
+            },
+            comparator: {
+              variable: { entityId: "ENT_8151325d", variableId: "VAR_timepoint" },
+              groupA: groupA.map((label) => ({ label })),
+              groupB: groupB.map((label) => ({ label })),
+            },
+            differentialExpressionMethod: "limma",
+            pValueFloor: "1e-200",
+          },
+        },
+        visualizations: [],
+      },
+    ],
+    starredVariables: [],
+  };
+}
+
+describe("computeDraftOf", () => {
+  it("reads every field of the analysis's compute, both groups in order", () => {
+    expect(
+      computeDraftOf(descriptorComparing(["24h pbm"], ["18h pbm", "36h pbm"])),
+    ).toEqual({
+      identifierEntityId: "ENT_fd574cd6",
+      identifierVariableId: "VEUPATHDB_GENE_ID",
+      valueVariableId: "SEQUENCE_READ_COUNT_SENSE",
+      comparatorEntityId: "ENT_8151325d",
+      comparatorVariableId: "VAR_timepoint",
+      groupA: ["24h pbm"],
+      groupB: ["18h pbm", "36h pbm"],
+      method: "limma",
+    });
+  });
+
+  it("is null for an analysis with no compute", () => {
+    expect(computeDraftOf({ subset: { descriptor: [] }, computations: [] })).toBe(null);
+  });
+
+  it("is null for a thread with no analysis", () => {
+    expect(computeDraftOf(null)).toBe(null);
+  });
+});
+
+describe("isSameComputeDraft", () => {
+  it("holds for the same labels in another order", () => {
+    expect(
+      isSameComputeDraft(
+        { ...draft, groupB: ["febrile", "normal"], groupA: [] },
+        { ...draft, groupB: ["normal", "febrile"], groupA: [] },
+      ),
+    ).toBe(true);
+  });
+
+  it("fails when one group gains a label", () => {
+    expect(isSameComputeDraft(draft, { ...draft, groupB: ["febrile", "mild"] })).toBe(
+      false,
+    );
+  });
+
+  it("fails when the method changes", () => {
+    expect(isSameComputeDraft(draft, { ...draft, method: "limma" })).toBe(false);
   });
 });

@@ -22,7 +22,11 @@ from veupathdb.wdk import WDKStrategyDetails
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import ConversationRepository
-from pathfinder.platform.errors import ErrorCode, NotFoundError, SiteUnavailableError
+from pathfinder.platform.errors import (
+    AppError,
+    ErrorCode,
+    SiteUnavailableError,
+)
 from pathfinder.services.conversations import strategy_ops
 from pathfinder.services.strategies import live_counts
 from pathfinder.services.strategies.context import StrategyMutationContext
@@ -243,10 +247,13 @@ class TestAStrategyTheSiteDoesNotHoldHasNothingToRefresh:
         repo = _Repo(_thread(_ast(pushed=False), pushed=False))
         _install(monkeypatch, repo, _StubAPI())
 
-        with pytest.raises(NotFoundError) as refusal:
+        with pytest.raises(AppError) as refusal:
             await _run(repo)
 
-        assert refusal.value.code == ErrorCode.STRATEGY_NOT_FOUND
+        assert (refusal.value.code, refusal.value.status) == (
+            ErrorCode.INVALID_STRATEGY,
+            409,
+        )
 
     @pytest.mark.asyncio
     async def test_a_thread_with_no_steps_is_refused(
@@ -255,7 +262,11 @@ class TestAStrategyTheSiteDoesNotHoldHasNothingToRefresh:
         repo = _Repo(_thread(None))
         _install(monkeypatch, repo, _StubAPI())
 
-        with pytest.raises(NotFoundError) as refusal:
+        with pytest.raises(AppError) as refusal:
             await _run(repo)
 
-        assert refusal.value.code == ErrorCode.STRATEGY_NOT_FOUND
+        assert (refusal.value.code, refusal.value.status, refusal.value.detail) == (
+            ErrorCode.INVALID_STRATEGY,
+            409,
+            "Add a step to the strategy before asking for its counts.",
+        )

@@ -6,17 +6,19 @@ import type { EdaViz } from "@pathfinder/shared";
 
 import { Button } from "@/components/ui/button";
 import { Figure } from "@/features/conversation/thread/Figure";
+import { OpenInSiteLink } from "@/lib/components/OpenInSiteLink";
 import { ScatterChart } from "@/lib/components/charts/ScatterChart";
 import { VolcanoChart } from "@/lib/components/charts/VolcanoChart";
 import type {
   EdaScatterSeries,
   VolcanoThresholds,
 } from "@/lib/components/charts/types";
+import { comparisonLine } from "@/lib/eda/comparison";
 import { selectVolcanoGenes } from "@/lib/eda/volcanoSelection";
 import { useEdaStore, useHydrateEdaPart } from "@/state/eda";
 
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
-import { studyNameFor } from "./analysisStateParts";
+import { analysisSiteLinkFor, studyNameFor } from "./analysisStateParts";
 import { figureNumberFor } from "./figureNumbers";
 import { plotCaption } from "./plotCaptions";
 
@@ -35,6 +37,7 @@ export function DataEdaViz({ data }: { data: EdaViz }) {
   const [expanded, setExpanded] = useState(true);
   const height = expanded ? EXPANDED_HEIGHT : COLLAPSED_HEIGHT;
   const study = studyNameFor(chat.messages, data.analysisId);
+  const siteLink = analysisSiteLinkFor(chat.messages, data.analysisId);
   const retained = `${data.retainedPoints.toLocaleString()} of ${data.totalPoints.toLocaleString()} genes retained`;
 
   return (
@@ -44,8 +47,18 @@ export function DataEdaViz({ data }: { data: EdaViz }) {
       caption={plotCaption(data.caption ?? "", study, retained)}
       exhibit={{ kind: "figure", number: figureNumberFor(chat.messages, data) }}
       footer={<VizReadouts data={data} thresholds={thresholds} />}
+      action={
+        siteLink !== null ? (
+          <OpenInSiteLink href={siteLink.href} siteId={siteLink.siteId} />
+        ) : null
+      }
     >
       <div>
+        {data.comparison != null ? (
+          <p data-testid="eda-viz-comparison" className={MUTED}>
+            {comparisonLine(data.comparison)}
+          </p>
+        ) : null}
         <div className="flex justify-end">
           <Button
             type="button"
@@ -89,6 +102,7 @@ function VizPlot({ data, height, thresholds }: VizBodyProps) {
           thresholds={thresholds}
           significanceField={SIGNIFICANCE_FIELD}
           effectSizeLabel={data.effectSizeLabel}
+          comparison={data.comparison}
           height={height}
           testId="eda-viz-volcano"
         />

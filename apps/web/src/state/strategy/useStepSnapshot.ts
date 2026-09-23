@@ -25,19 +25,12 @@ export interface StepSnapshot {
   isFailed: boolean;
   /**
    * True when the step is deliberately unfinished - missing a required
-   * parameter, or a combine that is not fully wired.
-   *
-   * The backend derives this in one place. The canvas used to have no way to
-   * say it: an unfinished step and a step whose count had simply not arrived
-   * both rendered as "? transcripts".
+   * parameter, or a combine that is not fully wired. The backend derives it.
    */
   isDraft: boolean;
   /**
-   * Why WDK rejected this step's last push, if it did.
-   *
-   * A rejected step used to abort the whole commit, so the canvas rolled back
-   * and said "Operation failed" while the server had kept the edit. The
-   * rejection now travels with the step; this is where the canvas reads it.
+   * Why WDK rejected this step's last push, if it did. The server keeps the
+   * edit, and the rejection travels with the step.
    */
   wdkPushError: string | null;
 }
