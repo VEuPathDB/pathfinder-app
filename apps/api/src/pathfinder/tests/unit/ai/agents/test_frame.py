@@ -148,3 +148,10 @@ def test_frame_instructions_send_the_model_to_a_past_case_before_binding() -> No
         "public VEuPathDB strategies ranked against the goal. Both are reading; "
         "neither binds a criterion."
     ) in _normalized(_FRAME_INSTRUCTIONS)
+
+
+def test_frame_instructions_bind_only_a_search_that_states_the_criterion() -> None:
+    text = _normalized(_FRAME_INSTRUCTIONS)
+
+    assert ("Bind a search only if its summary states what the criterion asks.") in text
+    assert 'do not bind the nearest one: set disposition="needs_user"' in text

@@ -20,6 +20,7 @@ from veupathdb.wdk import (
     WDKIdentifier,
     WDKSearchConfig,
     WDKStep,
+    WDKStepTree,
     WDKStrategyDetails,
 )
 from veupathdb_mcp.catalog import ValidatedParams
@@ -64,7 +65,7 @@ class StubAPI:
     refuse: Exception | None = None
     """Raised by every step push, so a test can play WDK turning an edit down."""
 
-    def _record(self, name: str, **kwargs: Any) -> None:
+    def _record(self, name: str, /, **kwargs: Any) -> None:
         self.calls.append(Call(name, kwargs))
         if self.refuse is not None and name in _STEP_PUSHES:
             raise self.refuse
@@ -104,6 +105,7 @@ class StubAPI:
             secondary_step_id=spec.secondary_step_id,
             boolean_operator=spec.boolean_operator.value,
             record_type=record_type,
+            custom_name=spec.custom_name,
         )
         return WDKIdentifier(id=self._alloc())
 
@@ -121,6 +123,7 @@ class StubAPI:
             search_name=spec.search_name,
             input_step_id=input_step_id,
             record_type=record_type,
+            custom_name=spec.custom_name,
         )
         return WDKIdentifier(id=self._alloc())
 
@@ -155,6 +158,26 @@ class StubAPI:
             search_name="GenesByTaxon",
             search_config=WDKSearchConfig(parameters={}),
         )
+
+    async def create_strategy(
+        self, step_tree: WDKStepTree, name: str, user_id: str | None = None
+    ) -> WDKIdentifier:
+        del user_id
+        self._record("create_strategy", step_tree=step_tree, name=name)
+        return WDKIdentifier(id=self._alloc())
+
+    async def update_strategy(
+        self,
+        strategy_id: int,
+        step_tree: WDKStepTree | None = None,
+        name: str | None = None,
+        user_id: str | None = None,
+    ) -> WDKStrategyDetails:
+        del user_id
+        self._record(
+            "update_strategy", strategy_id=strategy_id, step_tree=step_tree, name=name
+        )
+        return await self.get_strategy(strategy_id)
 
     async def get_strategy(
         self, strategy_id: int, user_id: str | None = None

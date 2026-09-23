@@ -1,6 +1,8 @@
 """In-memory working state for a strategy that is under construction during a
 chat session."""
 
+from collections.abc import Mapping
+
 from veupathdb import get_logger
 from veupathdb.domain.strategy import (
     StepValidation,
@@ -13,6 +15,7 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.domain.strategy.types import SyncStateProtocol
 
 logger = get_logger(__name__)
@@ -41,6 +44,15 @@ class StrategyGraph:
         self.roots: set[str] = set()
         self.history: list[StrategyHistoryEntry] = []
         self.last_step_id: str | None = None
+        # The researcher's words each step stands for, keyed by step id.
+        self.criterion_texts: dict[str, str] = {}
+
+    def note_criteria(self, texts: Mapping[str, str]) -> None:
+        """Take the words for the steps the graph holds, and forget the rest."""
+        merged = {**self.criterion_texts, **texts}
+        self.criterion_texts = {
+            sid: text for sid, text in merged.items() if sid in self.steps
+        }
 
     def primary_root_id(self) -> str | None:
         """Return the root of the main strategy tree.
@@ -103,12 +115,18 @@ class StrategyGraph:
             if sync_state.wdk_push_errors:
                 wdk_push_errors = dict(sync_state.wdk_push_errors)
 
+        words = {s: t for s, t in self.criterion_texts.items() if s in self.steps}
         return StrategyAst(
             record_type=self.record_type or "",
             root=root,
             detached_roots=detached,
             name=self.name,
             description=self.description or None,
+            metadata=(
+                StepWords(criterion_texts=words).model_dump(by_alias=True)
+                if words
+                else None
+            ),
             step_counts=step_counts,
             wdk_step_ids=wdk_step_ids,
             step_validations=step_validations,

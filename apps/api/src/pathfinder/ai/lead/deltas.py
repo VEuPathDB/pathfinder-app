@@ -9,6 +9,12 @@ from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS, OpenQuestion
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
+from pathfinder.domain.strategy.step_words import AddedSearch
+
+_ADDED_SEARCHES = (
+    "The search each step this turn added runs, by its name on the site, and "
+    "the words it stands for. The reply names every one of them."
+)
 
 
 class FrameResult(CamelModel):
@@ -61,6 +67,9 @@ class ExecuteDelta(CamelModel):
     """Declarative BUILD output. No LLM ran; this is the build result."""
 
     outcome: BuildOutcome
+    added_searches: list[AddedSearch] = Field(
+        default_factory=list, description=_ADDED_SEARCHES
+    )
 
 
 class EditDelta(CamelModel):
@@ -84,6 +93,9 @@ class EditDelta(CamelModel):
             "strategy answers to, so a criterion framed on an earlier turn and "
             "built here reads as added in both."
         ),
+    )
+    added_searches: list[AddedSearch] = Field(
+        default_factory=list, description=_ADDED_SEARCHES
     )
     preserved_step_ids: list[str] = Field(default_factory=list)
     dropped_step_ids: list[str] = Field(default_factory=list)

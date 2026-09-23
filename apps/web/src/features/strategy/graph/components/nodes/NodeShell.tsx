@@ -5,7 +5,7 @@ import type { Step } from "@pathfinder/shared";
 import { cn } from "@/lib/utils/cn";
 import { useEntrance } from "@/lib/motion";
 import { STAGGER_DELAY_MS } from "@/features/strategy/graph/motion";
-import { stepTitle } from "@/features/strategy/graph/utils/stepTitle";
+import { stepSubtitle, stepTitle } from "@/features/strategy/graph/utils/stepTitle";
 import { CornerDot } from "./CornerDot";
 import { HoverActions } from "./HoverActions";
 import { InlineRename } from "./InlineRename";
@@ -75,6 +75,7 @@ export function NodeShell({
   // A step whose search metadata never loaded has no name to show.
   const name = stepTitle(step, kind);
   const title = name === "" ? "Error" : name;
+  const subtitle = stepSubtitle(step, kind);
   const isSyncing = snapshot.isBusy;
   const variantSlug = KIND_VAR[kind];
   const surfaceStyle: React.CSSProperties = {
@@ -181,6 +182,15 @@ export function NodeShell({
               data-testid="node-title"
             >
               {title}
+            </div>
+          )}
+          {subtitle !== "" && (
+            <div
+              className="truncate pr-12 text-[11px] leading-tight text-muted-foreground"
+              title={subtitle}
+              data-testid="node-subtitle"
+            >
+              {subtitle}
             </div>
           )}
           {children}

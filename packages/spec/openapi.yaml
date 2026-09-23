@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Pathfinder API
   description: VEuPathDB Strategy Builder Chatbot API
-  version: 0.2.0a11
+  version: 0.2.0a12
 paths:
   /health:
     get:
@@ -10266,6 +10266,11 @@ components:
           - type: string
           - type: 'null'
           title: Displayname
+        criterionText:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Criteriontext
         searchName:
           anyOf:
           - type: string
@@ -12510,6 +12515,11 @@ components:
           default: ''
           title: Searchname
           type: string
+        searchDisplayName:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Searchdisplayname
         savedStrategyRef:
           anyOf:
           - $ref: '#/components/schemas/SavedStrategyRef'

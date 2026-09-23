@@ -53,12 +53,15 @@ class ExpectedOutcome(CamelModel):
     """What a run of the case must produce. An unset field is not compared.
 
     ``parameters`` names, per search, the values that search must carry. A
-    parameter the case does not name is not compared.
+    parameter the case does not name is not compared. A null
+    ``builds_strategy`` accepts a build and a turn that builds nothing.
+    ``reply_names_its_searches`` holds a built strategy's reply to the title
+    of every search step, and a turn that built nothing to a question.
     """
 
     model_config = ConfigDict(frozen=True)
 
-    builds_strategy: bool
+    builds_strategy: bool | None
     structure: str | None = None
     record_type: str | None = None
     step_count: int | None = None
@@ -67,6 +70,8 @@ class ExpectedOutcome(CamelModel):
     parameters: dict[str, dict[str, str]] = Field(default_factory=dict)
     reply_mentions: list[str] = Field(default_factory=list)
     reply_omits: list[str] = Field(default_factory=list)
+    reply_names_its_searches: bool = False
+    step_titles_omit: list[str] = Field(default_factory=list)
 
 
 class EvalCase(CamelModel):

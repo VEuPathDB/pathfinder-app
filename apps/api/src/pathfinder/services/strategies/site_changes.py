@@ -359,17 +359,22 @@ def _placed(
         else _placed(node.secondary_input, graph, local_of)
     )
     held = _held_step(graph, local_of, node.id)
-    own = node if held is None else rebuild_tree(held.id, graph.steps)
-    search_name = (
-        COMBINE_SEARCH_NAME
-        if held is None and secondary is not None
-        else own.search_name
-    )
-    return own.model_copy(
+    if held is not None:
+        own = rebuild_tree(held.id, graph.steps)
+        return own.model_copy(
+            update={"primary_input": primary, "secondary_input": secondary}
+        )
+    # WDK names a step it receives without a name after its search.
+    return node.model_copy(
         update={
             "primary_input": primary,
             "secondary_input": secondary,
-            "search_name": search_name,
+            "search_name": (
+                COMBINE_SEARCH_NAME if secondary is not None else node.search_name
+            ),
+            "display_name": (
+                None if node.display_name == node.search_name else node.display_name
+            ),
         }
     )
 

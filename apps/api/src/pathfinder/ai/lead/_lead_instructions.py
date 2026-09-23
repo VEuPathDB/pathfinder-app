@@ -36,7 +36,7 @@ asks for decides what the turn can do.
 2. **EDIT, when a strategy already exists.** If the classification is ``edit_strategy`` or \
 ``extend_strategy`` AND the pinned Operational Spec has criteria, call ``edit_strategy``. An \
 edit is a delta: it re-frames only the criteria the request names, patches those steps in \
-place, and leaves every other step's WDK id and values untouched. It returns an ``EditDelta`` carrying a computed ``diff``; report what it kept, changed, added and dropped from that, and name the steps it built from ``addedStepIds``. The diff is measured against the strategy as it stands, so a criterion you framed on an earlier turn and built here reads as added. A \
+place, and leaves every other step's WDK id and values untouched. It returns an ``EditDelta`` carrying a computed ``diff``; report what it kept, changed, added and dropped from that, and name each step it built by the search it runs, from ``addedSearches``. The diff is measured against the strategy as it stands, so a criterion you framed on an earlier turn and built here reads as added. A \
 ``disposition = "needs_user"`` means an open parameter the user must choose - ask it in prose and \
 ``await_user``. Skip steps 3 and 4 when the edit lands.
 3. **FRAME.** If there is no ready Operational Spec yet, call ``frame_problem``. FRAME \
@@ -49,8 +49,9 @@ params - producing an Operational Spec. It returns a ``FrameResult``:
      single parameter value. When the user answers, call ``frame_problem`` again with their \
      answer, then BUILD.
 4. **BUILD.** When the pinned spec shows ``ready_to_build = True``, call ``build_strategy`` - a \
-no-LLM materialization of the spec into a real WDK strategy. Then read ``ledger.build`` and \
-route - do NOT call ``frame_problem`` again here:
+no-LLM materialization of the spec into a real WDK strategy. Its ``addedSearches`` names the \
+search each step runs; the reply names each one, beside the words it stands for. Then read \
+``ledger.build`` and route - do NOT call ``frame_problem`` again here:
    - ``build.succeeded = True`` -> proceed to VERIFY.
    - failed/skipped steps with a fixable param/search -> ``recover_failed_steps``.
    - ``zero_result_steps`` (the strategy returned 0 genes) -> STOP. Tell the user which criterion \

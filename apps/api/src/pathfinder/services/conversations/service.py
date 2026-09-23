@@ -4,8 +4,8 @@ Owns conversation read/write orchestration (repository + WDK sync + response
 shaping) so transport routers stay thin and never import persistence.
 """
 
-from dataclasses import dataclass
-from uuid import UUID, uuid4
+from dataclasses import dataclass, replace
+from uuid import UUID
 
 from assistant_core.conversation.authz import (
     get_owned_conversation,
@@ -13,9 +13,9 @@ from assistant_core.conversation.authz import (
 )
 from assistant_core.conversation.cancellation import stop_turn_before_delete
 from assistant_core.persistence.repositories.message import MessagesRepository
+from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import JSONObject
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy import (
     CombineOp,
@@ -26,7 +26,6 @@ from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.wdk import get_strategy_api
 
 from pathfinder.domain.strategy.operations import GraphOperation
-from pathfinder.persistence.models import ConversationStrategy
 from pathfinder.persistence.repositories import (
     ConversationRepository,
     ConversationUpdate,
@@ -36,6 +35,10 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations import strategy_ops
 from pathfinder.services.conversations.authz import get_owned_thread_or_404
 from pathfinder.services.conversations.begin import begin_conversation
+from pathfinder.services.conversations.duplicate import (
+    DuplicatedConversation,
+    duplicate_conversation,
+)
 from pathfinder.services.conversations.fork import ForkError, fork_conversation
 from pathfinder.services.conversations.responses import (
     ConversationResponse,
@@ -50,6 +53,7 @@ from pathfinder.services.conversations.update_input import (
 from pathfinder.services.strategies.insert_saved import (
     InsertSavedResult,
 )
+from pathfinder.services.strategies.naming import rename_strategy_everywhere
 from pathfinder.services.strategies.plan_validation import validate_plan_or_raise
 from pathfinder.services.strategies.save_substrategy import (
     SavedSubstrategyResult,
@@ -66,12 +70,6 @@ logger = get_logger(__name__)
 class BegunConversation:
     conversation_id: UUID
     is_new: bool
-    name: str
-
-
-@dataclass(frozen=True)
-class DuplicatedConversation:
-    id: UUID
     name: str
 
 
@@ -157,6 +155,11 @@ class ConversationService:
         patch: ConversationUpdateInput,
     ) -> ConversationResponse:
         await get_owned_conversation(self._repo, conversation_id, user_id)
+        if patch.name is not None:
+            await rename_strategy_everywhere(
+                conversation_id, patch.name, session_factory=async_session_factory
+            )
+            patch = replace(patch, name=None)
 
         plan: StrategyAst | None = None
         if patch.strategy_ast:
@@ -355,55 +358,7 @@ class ConversationService:
         conversation_id: UUID,
         user_id: UUID,
     ) -> DuplicatedConversation:
-        source = await get_visible_conversation(
-            self._repo,
-            conversation_id,
-            user_id,
-        )
-        source_strategy = await self._repo.get_strategy(conversation_id)
-        msg_repo = MessagesRepository(self._session)
-        new_conv = await self._repo.create(
-            user_id=user_id,
-            site_id=source.site_id,
-            assistant_id=source.assistant_id,
-            name=f"Copy of {source.name}" if source.name else "Conversation (copy)",
-        )
-        # Carry the strategy over (topology + params). WDK step ids are dropped
-        # so the copy re-syncs as its own fresh WDK strategy instead of sharing
-        # the source's steps; wdk_strategy_id stays None for the same reason.
-        copied_ast = dict(source_strategy.strategy_ast)
-        copied_ast.pop("wdkStepIds", None)
-        copied_ast.pop("wdk_step_ids", None)
-        if copied_ast:
-            self._session.add(
-                ConversationStrategy(
-                    conversation_id=new_conv.id,
-                    strategy_ast=copied_ast,
-                ),
-            )
-        for row in await msg_repo.list_messages_for_conversation(conversation_id):
-            await msg_repo.insert_message(
-                message_id=uuid4(),
-                conversation_id=new_conv.id,
-                role=row.role,
-                metadata=row.metadata_,
-            )
-        await self._session.execute(
-            text(
-                """
-                INSERT INTO conversation_events (
-                    conversation_id, turn_id, task_id, chunk
-                )
-                SELECT :dst, turn_id, task_id, chunk
-                FROM conversation_events
-                WHERE conversation_id = :src
-                ORDER BY id ASC
-                """,
-            ),
-            {"src": str(conversation_id), "dst": str(new_conv.id)},
-        )
-        await self._session.commit()
-        return DuplicatedConversation(id=new_conv.id, name=new_conv.name)
+        return await duplicate_conversation(self._session, conversation_id, user_id)
 
     async def begin(
         self,

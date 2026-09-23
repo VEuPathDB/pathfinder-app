@@ -16,6 +16,19 @@ def test_corpus_lists_the_shipped_cases(capsys: pytest.CaptureFixture[str]) -> N
     assert "remember-request-does-not-build" in printed
 
 
+def test_a_case_that_accepts_either_outcome_is_listed_as_either(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["corpus"]) == 0
+
+    row = next(
+        line
+        for line in capsys.readouterr().out.splitlines()
+        if line.startswith("a-search-the-site-lacks-is-named-or-asked")
+    )
+    assert row.split()[1:3] == ["plasmodb", "either"]
+
+
 def test_promote_requires_a_name_and_a_rationale() -> None:
     parser = _build_parser()
 

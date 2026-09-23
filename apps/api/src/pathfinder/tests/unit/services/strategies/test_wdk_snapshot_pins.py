@@ -1,4 +1,4 @@
-"""The step ids a live WDK strategy tree reports.
+"""The step ids and the name the read of a live WDK strategy keeps.
 
 The fixture is the shape WDK returns for a saved strategy: a combine over a
 transform, plus a combine WDK marks as an expanded saved sub-strategy.
@@ -15,7 +15,8 @@ from veupathdb.wdk import (
 )
 
 from pathfinder.services.strategies import reconcile
-from pathfinder.services.strategies.reconcile import fetch_wdk_strategy_step_ids
+from pathfinder.services.strategies.reconcile import reconcile_sync_state_with_wdk
+from pathfinder.services.strategies.sync_state import WDKSyncState
 
 _BOOLEAN = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass"
 
@@ -81,22 +82,35 @@ def _details() -> WDKStrategyDetails:
     )
 
 
+async def _reconciled(
+    monkeypatch: pytest.MonkeyPatch,
+    details: WDKStrategyDetails,
+    held: dict[str, int],
+) -> WDKSyncState:
+    monkeypatch.setattr(
+        reconcile, "get_strategy_api", lambda site_id: _FakeAPI(details)
+    )
+    state = WDKSyncState(wdk_step_ids=dict(held), wdk_strategy_id=7)
+    await reconcile_sync_state_with_wdk(state, "plasmodb", 7)
+    return state
+
+
 class TestTheLiveStepIds:
-    async def test_every_node_of_the_tree_is_reported(
+    async def test_every_node_of_the_tree_is_kept(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setattr(
-            reconcile, "get_strategy_api", lambda site_id: _FakeAPI(_details())
-        )
+        held = {"a": 10, "b": 20, "c": 30, "d": 40, "gone": 99}
 
-        assert await fetch_wdk_strategy_step_ids("plasmodb", 7) == {10, 20, 30, 40}
+        state = await _reconciled(monkeypatch, _details(), held)
 
-    async def test_a_leaf_tree_reports_one_id(
+        assert state.wdk_step_ids == {"a": 10, "b": 20, "c": 30, "d": 40}
+        assert state.wdk_strategy_name == "kinases"
+
+    async def test_a_leaf_tree_keeps_one_id(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         details = _details().model_copy(update={"step_tree": WDKStepTree(step_id=5)})
-        monkeypatch.setattr(
-            reconcile, "get_strategy_api", lambda site_id: _FakeAPI(details)
-        )
 
-        assert await fetch_wdk_strategy_step_ids("plasmodb", 7) == {5}
+        state = await _reconciled(monkeypatch, details, {"a": 5, "b": 10})
+
+        assert state.wdk_step_ids == {"a": 5}

@@ -143,12 +143,14 @@ async def _create_or_update_wdk_strategy(
 ) -> _PushedStrategy:
     """Create a new WDK strategy, or update the existing one.
 
-    A failed update creates a new strategy instead.
+    A failed update creates a new strategy instead. An unchanged tree sends
+    only a name WDK lags on.
     """
     wdk_strategy_id = sync_state.wdk_strategy_id
 
     if wdk_strategy_id is None:
         result = await api.create_strategy(step_tree, name)
+        sync_state.wdk_strategy_name = name
         logger.info("Created WDK strategy", wdk_strategy_id=result.id)
         return _PushedStrategy(result.id, created=True)
 
@@ -166,19 +168,41 @@ async def _create_or_update_wdk_strategy(
                 error=str(update_err),
             )
             result = await api.create_strategy(step_tree, name)
+            sync_state.wdk_strategy_name = name
             return _PushedStrategy(result.id, created=True)
         else:
+            sync_state.wdk_strategy_name = name
             logger.info(
                 "Updated WDK strategy step tree",
                 wdk_strategy_id=wdk_strategy_id,
             )
             return _PushedStrategy(wdk_strategy_id, created=False)
 
-    logger.debug(
-        "Step tree unchanged, skipping WDK update",
-        wdk_strategy_id=wdk_strategy_id,
-    )
+    await put_the_strategy_name(api, sync_state, name)
     return _PushedStrategy(wdk_strategy_id, created=False)
+
+
+async def put_the_strategy_name(
+    api: StrategyAPI, sync_state: WDKSyncState, name: str
+) -> None:
+    """Send the name when the one WDK holds is known and is another.
+
+    A refused name is logged: WDK keeps the name it holds, and the next push
+    sends this one again.
+    """
+    held = sync_state.wdk_strategy_name
+    if sync_state.wdk_strategy_id is None or held is None or held == name:
+        return
+    try:
+        await api.update_strategy(sync_state.wdk_strategy_id, name=name)
+    except VEuPathDBError as exc:
+        logger.warning(
+            "WDK did not take the strategy's name",
+            wdk_strategy_id=sync_state.wdk_strategy_id,
+            error=str(exc),
+        )
+        return
+    sync_state.wdk_strategy_name = name
 
 
 @dataclass

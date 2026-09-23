@@ -134,7 +134,6 @@ async def wdk_builder(
                 db_session_factory=async_session_factory,
             ),
             root=root,
-            name="rt",
         )
         assert outcome.failed_steps == [], outcome.failed_steps
         assert outcome.wdk_strategy_id is not None
@@ -196,7 +195,6 @@ async def wdk_build_raw(
                 db_session_factory=async_session_factory,
             ),
             root=root,
-            name="rt-raw",
         )
         if outcome.wdk_strategy_id is not None:
             created.append(outcome.wdk_strategy_id)

@@ -88,9 +88,13 @@ export function TraceRow({
           style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
         >
           <div className="overflow-hidden">
-            <div className="py-1 pl-5">
+            <div className="space-y-2 py-1 pl-5 [&_code]:text-xs! [&_pre]:p-3! [&_pre]:text-xs!">
               <ToolInput input={row.input} className="p-0" />
-              <ToolOutput output={row.output} errorText={row.errorText ?? undefined} />
+              <ToolOutput
+                output={row.output}
+                errorText={row.errorText ?? undefined}
+                className="p-0"
+              />
             </div>
           </div>
         </div>

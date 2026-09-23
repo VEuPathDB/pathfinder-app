@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from unittest.mock import AsyncMock
 
 import pytest
@@ -38,7 +39,12 @@ def _inspected(name: str) -> SearchOverview:
     )
 
 
-def _match(name: str, display_name: str, relevance: float) -> SearchMatch:
+def _match(
+    name: str,
+    display_name: str,
+    relevance: float,
+    similarity: float | None = 0.62,
+) -> SearchMatch:
     return SearchMatch(
         name=name,
         display_name=display_name,
@@ -47,6 +53,7 @@ def _match(name: str, display_name: str, relevance: float) -> SearchMatch:
         category="general",
         returns="transcript",
         relevance=relevance,
+        semantic_similarity=similarity,
     )
 
 
@@ -193,6 +200,102 @@ class TestSearchForSearches:
 
         assert len(result) == 1
         assert result[0]["error"] == "query_too_vague"
+
+
+_GPI = "genes with a predicted GPI anchor attachment signal"
+_FAINT = f"No search on plasmodb states '{_GPI}' closely; the nearest are listed."
+_UNSCORED = (
+    "The semantic index scored none of these results; the ranking is by keyword only."
+)
+_NOTHING = (
+    f"No search on plasmodb matched '{_GPI}'; only the searches every site "
+    "offers are listed."
+)
+
+
+class TestAFaintMatchIsReported:
+    async def _ranked(
+        self, monkeypatch: pytest.MonkeyPatch, matches: list[SearchMatch]
+    ) -> list[JSONObject]:
+        _serve(monkeypatch, "search_for_searches", matches)
+        return returned(
+            await search_for_searches(_ctx(AgentToolState()), query=_GPI),
+            list[JSONObject],
+        )
+
+    async def test_a_best_hit_below_the_floor_is_reported_first(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        result = await self._ranked(
+            monkeypatch,
+            [
+                _match("GenesByExportPrediction", "Exported Protein", 1.0, 0.31),
+                _match("GenesBySignalPeptide", "Signal Peptide", 0.9, 0.29),
+            ],
+        )
+
+        assert result[0] == {"note": _FAINT}
+        assert [row.get("name") for row in result[1:3]] == [
+            "GenesByExportPrediction",
+            "GenesBySignalPeptide",
+        ]
+
+    async def test_an_unscored_hit_does_not_count_against_a_close_one(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        result = await self._ranked(
+            monkeypatch,
+            [
+                _match("GenesByText", "Gene Text Search", 1.0, None),
+                _match("GenesByGPIAnchor", "GPI Anchor", 0.8, 0.58),
+            ],
+        )
+
+        assert [row["name"] for row in result] == ["GenesByText", "GenesByGPIAnchor"]
+
+    async def test_a_ranking_the_index_scored_nowhere_says_it_is_keyword_only(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        result = await self._ranked(
+            monkeypatch,
+            [
+                _match("GenesByExportPrediction", "Exported Protein", 1.0, None),
+                _match("GenesBySignalPeptide", "Signal Peptide", 0.9, None),
+            ],
+        )
+
+        assert result[0] == {"note": _UNSCORED}
+        assert [row.get("name") for row in result[1:3]] == [
+            "GenesByExportPrediction",
+            "GenesBySignalPeptide",
+        ]
+
+    async def test_a_query_that_matches_nothing_is_reported(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        result = await self._ranked(monkeypatch, [])
+
+        assert result[0] == {"note": _NOTHING}
+        assert [row.get("name") for row in result[1:]] == ["GenesByText"]
+
+    async def test_a_close_best_hit_carries_no_note(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        result = await self._ranked(
+            monkeypatch,
+            [
+                _match("GenesByGPIAnchor", "GPI Anchor", 1.0, 0.58),
+                _match("GenesByExportPrediction", "Exported Protein", 0.4, 0.2),
+            ],
+        )
+
+        assert [row for row in result if "note" in row] == []
+
+    def test_the_model_is_told_which_score_is_absolute(self) -> None:
+        doc = " ".join((inspect.getdoc(search_for_searches) or "").split())
+
+        assert "relevance`` is relative to the best hit" in doc
+        assert "``semanticSimilarity`` is the absolute cosine" in doc
 
 
 class TestListSearches:

@@ -32,14 +32,19 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     return install_stub_api(monkeypatch)
 
 
-def _saved_strategy_spec() -> OperationalSpec:
-    """An InterPro leaf intersected with a saved strategy of two searches."""
-    saved = combine(
+def _saved_union() -> StrategyStepNode:
+    """A saved strategy of two searches, its combine named as PathFinder names it."""
+    return combine(
         "saved_root",
         StrategyStepNode(id="saved_a", search_name="GenesByGoTerm"),
         StrategyStepNode(id="saved_b", search_name="GenesByText"),
         op=CombineOp.UNION,
-    )
+    ).model_copy(update={"display_name": "Union"})
+
+
+def _saved_strategy_spec() -> OperationalSpec:
+    """An InterPro leaf intersected with a saved strategy of two searches."""
+    saved = _saved_union()
     return OperationalSpec(
         goal="kinases",
         criteria=[
@@ -138,12 +143,7 @@ class TestASavedStrategyReference:
 
 def _only_saved_strategy_spec() -> OperationalSpec:
     """One criterion, a saved strategy of two searches, with no combine over it."""
-    saved = combine(
-        "saved_root",
-        StrategyStepNode(id="saved_a", search_name="GenesByGoTerm"),
-        StrategyStepNode(id="saved_b", search_name="GenesByText"),
-        op=CombineOp.UNION,
-    )
+    saved = _saved_union()
     return OperationalSpec(
         goal="the saved kinases",
         criteria=[

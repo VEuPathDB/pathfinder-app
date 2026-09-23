@@ -174,7 +174,7 @@ async def fork_conversation(
     if snapshot is not None and source_strategy_row is not None:
         await write_forked_strategy(
             session,
-            source=source,
+            branch=fork,
             snapshot=snapshot,
             strategy_row=source_strategy_row,
             new_conversation_id=new_conv_id,

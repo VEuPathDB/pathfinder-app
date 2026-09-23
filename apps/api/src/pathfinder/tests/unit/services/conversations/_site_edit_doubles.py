@@ -59,6 +59,7 @@ def stored_ast() -> StrategyAst:
             id=JOIN,
             search_name="__combine__",
             operator=CombineOp.INTERSECT,
+            display_name="Intersect",
             primary_input=StrategyStepNode(
                 id=EXPORT,
                 search_name="GenesByExportPred",

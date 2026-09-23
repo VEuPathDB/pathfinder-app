@@ -45,8 +45,9 @@ _CUT_NOTE = (
 
 def _sheet_block(criterion_id: str, sheet: PinnedSheet) -> str:
     if sheet.opened:
+        runs = f" ({sheet.what_runs})" if sheet.what_runs else ""
         lines = [
-            f"### sheet for {criterion_id} -> {sheet.search_name}",
+            f"### sheet for {criterion_id} -> {sheet.search_name}{runs}",
             _SHEET_GUIDANCE,
             f"params_template: {json.dumps(sheet.params_template())}",
         ]

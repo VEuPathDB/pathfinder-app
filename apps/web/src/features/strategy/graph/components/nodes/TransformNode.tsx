@@ -6,7 +6,7 @@ import { NodeShell } from "./NodeShell";
 import type { StepNodeProps } from "./types";
 
 const TRANSFORM_NODE_WIDTH = 184;
-const TRANSFORM_NODE_HEIGHT = 64;
+const TRANSFORM_NODE_HEIGHT = 80;
 
 const CHEVRON_CLIP =
   "polygon(0% 0%, calc(100% - 14px) 0%, 100% 50%, calc(100% - 14px) 100%, 0% 100%)";

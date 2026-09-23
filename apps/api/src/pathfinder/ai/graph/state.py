@@ -37,6 +37,7 @@ from pathfinder.domain.strategy.constraints import (
 )
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.staleness import StaleBuild
+from pathfinder.domain.strategy.step_words import AddedSearch
 
 PhaseName = Literal[
     "frame",
@@ -185,6 +186,8 @@ class TurnMarkers(CamelModel):
     # The workbench gene sets this turn saved, checked the same way. The
     # record belongs here, so a turn resumed after a park still holds it.
     created_gene_sets: list[CreatedGeneSet] = Field(default_factory=list)
+    # The searches the steps this turn added run. The reply names each one.
+    added_searches: list[AddedSearch] = Field(default_factory=list)
 
     @property
     def changed_strategy(self) -> bool:
@@ -215,6 +218,11 @@ class TurnMarkers(CamelModel):
         """Record one workbench gene set this turn saved, once."""
         if gene_set.id not in {held.id for held in self.created_gene_sets}:
             self.created_gene_sets.append(gene_set)
+
+    def record_added_searches(self, searches: Iterable[AddedSearch]) -> None:
+        """Record each added step once, keyed by its step id."""
+        held = {search.step_id for search in self.added_searches}
+        self.added_searches.extend(s for s in searches if s.step_id not in held)
 
     def record_enrichment_runs(self, runs: Iterable[EnrichmentRun]) -> None:
         """Add each answered enrichment once, keyed by its task."""

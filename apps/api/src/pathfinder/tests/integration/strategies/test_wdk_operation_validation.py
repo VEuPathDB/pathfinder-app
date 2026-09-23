@@ -87,7 +87,7 @@ async def built_text_conv(
         db_session_factory=async_session_factory,
     )
     outcome = await build_strategy_from_spec(
-        deps=deps, root=_text_leaf(["product"], [_ORG]), name="opval"
+        deps=deps, root=_text_leaf(["product"], [_ORG])
     )
     assert outcome.failed_steps == [], outcome.failed_steps
     assert outcome.wdk_strategy_id is not None

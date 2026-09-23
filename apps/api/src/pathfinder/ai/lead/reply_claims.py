@@ -78,3 +78,30 @@ def machine_words(prose: str) -> list[str]:
     found.extend(sorted(set(_A_STEP_ID.findall(text))))
     found.extend(sorted(set(_AN_ERROR_STRING.findall(text))))
     return found
+
+
+# What a written reference carries before the identifier itself.
+_REFERENCE_PREFIXES = (
+    "https://",
+    "http://",
+    "www.",
+    "doi.org/",
+    "dx.doi.org/",
+    "doi:",
+    "pmid:",
+    "pubmed.ncbi.nlm.nih.gov/",
+)
+
+
+def normalized_reference(value: str) -> str:
+    """One comparable form of a url, a DOI or a PMID."""
+    text = value.strip().casefold()
+    for prefix in _REFERENCE_PREFIXES:
+        text = text.removeprefix(prefix)
+    return text.rstrip("/")
+
+
+def names_the_phrase(prose: str, phrase: str) -> bool:
+    """Whether the prose holds the phrase whole, in any case."""
+    pattern = rf"(?<!\w){re.escape(phrase)}(?!\w)"
+    return re.search(pattern, prose, flags=re.IGNORECASE) is not None

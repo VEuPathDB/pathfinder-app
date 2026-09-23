@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import NamedTuple
 
 from assistant_core.platform.logging import get_logger
@@ -81,8 +82,8 @@ def _replace_graph_contents(
     root: StrategyStepNode,
     *,
     sync_state: WDKSyncState,
-    name: str | None,
     description: str | None,
+    criterion_texts: Mapping[str, str],
 ) -> None:
     """Replace the graph with the spec tree, and forget the counts it had.
 
@@ -96,8 +97,7 @@ def _replace_graph_contents(
     graph.steps = flatten_tree(root)
     graph.recompute_roots()
     graph.last_step_id = root.id
-    if name is not None:
-        graph.name = name
+    graph.note_criteria(criterion_texts)
     if description is not None:
         graph.description = description
 
@@ -170,12 +170,12 @@ async def build_strategy_from_spec(
     *,
     deps: StrategyMutationContext,
     root: StrategyStepNode,
-    name: str | None = None,
     description: str | None = None,
 ) -> BuildOutcome:
     """Build a declarative tree into the graph, WDK, and the database.
 
     A per-step failure does not abort the build. Sibling subtrees still push.
+    The strategy keeps the thread's name.
     """
     session = deps.strategy_session
     graph = session.get_graph(None)
@@ -193,7 +193,11 @@ async def build_strategy_from_spec(
     nodes = [steps_by_id[sid] for sid in subtree_ids(root.id, steps_by_id)]
     sync_state = ensure_sync_state(session)
     _replace_graph_contents(
-        graph, root, sync_state=sync_state, name=name, description=description
+        graph,
+        root,
+        sync_state=sync_state,
+        description=description,
+        criterion_texts=deps.criterion_texts,
     )
 
     await reconcile_sync_state_with_wdk(

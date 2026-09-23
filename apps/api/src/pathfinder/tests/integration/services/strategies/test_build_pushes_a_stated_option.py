@@ -218,7 +218,6 @@ async def test_the_pushed_step_carries_the_option_and_the_row_records_it(
     outcome = await build_strategy_from_spec(
         deps=_context(conversation_id, session_maker),
         root=tree.root,
-        name="Gametocyte expression",
     )
 
     assert outcome.failed_steps == []

@@ -15,6 +15,7 @@ from veupathdb.wdk import (
 )
 from veupathdb_mcp.catalog import EDA_ANALYSIS_SPEC_PARAM
 
+from pathfinder.domain.strategy.combine_naming import combine_name
 from pathfinder.services.strategies.step_search import refuse_a_set_operation
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -94,6 +95,7 @@ async def _push_combine_step(
         )
         return None
 
+    name = combine_name(step.display_name, step.search_name, parsed_op)
     if parsed_op == CombineOp.COLOCATE:
         coloc = step.colocation_params
         if coloc is None:
@@ -106,7 +108,7 @@ async def _push_combine_step(
             NewStepSpec(
                 search_name="GenesBySpanLogic",
                 search_config=WDKSearchConfig(parameters=coloc.to_wdk_params()),
-                custom_name=step.display_name,
+                custom_name=name,
             ),
             input_step_id=primary_wdk_id,
             record_type="transcript",
@@ -118,7 +120,7 @@ async def _push_combine_step(
             primary_step_id=primary_wdk_id,
             secondary_step_id=secondary_wdk_id,
             boolean_operator=parsed_op,
-            custom_name=step.display_name or None,
+            custom_name=name,
             wdk_weight=step.wdk_weight,
         ),
         record_type=record_type,

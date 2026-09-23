@@ -1,8 +1,8 @@
-"""Auto-import gene sets for WDK-linked chats.
+"""Auto-import the gene set of a WDK-linked chat.
 
-When strategies are synced from WDK, eligible chats automatically get a gene
-set created and linked. Once imported (or once the user deletes the
-auto-imported gene set), the chat is marked so re-syncs don't recreate it.
+A chat whose build reaches WDK gets a gene set created and linked. Once
+imported (or once the user deletes the auto-imported gene set), the chat is
+marked so a later build does not recreate it.
 """
 
 from typing import Protocol
@@ -21,7 +21,6 @@ from pathfinder.persistence.repositories import (
 from pathfinder.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,
 )
-from pathfinder.platform.errors import InternalError
 from pathfinder.services.gene_sets.operations import EmptyGeneSetError, GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
@@ -79,95 +78,82 @@ def _is_eligible(strategy: ConversationStrategyView) -> bool:
     )
 
 
-async def auto_import_gene_sets(
-    conversations: list[ConversationWithStrategy],
+async def auto_import_gene_set(
+    thread: ConversationWithStrategy,
     *,
+    name: str,
     conv_repo: StrategyLinkWriter,
     gene_set_service: GeneSetImporter,
     site_id: str,
     user_id: UUID,
-) -> list[GeneSet]:
-    """Create gene sets for eligible conversations.
+) -> GeneSet | None:
+    """Create the thread's gene set under ``name`` and link it to the thread.
 
-    For each eligible conversation (has wdk_strategy_id, not yet imported, no
-    existing gene set), creates a gene set and links it to the conversation.
-
-    Returns the list of newly created gene sets.
+    Returns the created set, or None when the thread is not eligible, already
+    has a set for its strategy, or its strategy returned no genes.
     """
-    created: list[GeneSet] = []
+    conversation, strategy = thread
+    wdk_id = strategy.wdk_strategy_id
+    if wdk_id is None or not _is_eligible(strategy):
+        return None
 
-    seen_wdk_ids: set[int] = set()
+    # A set that already exists for this WDK strategy (from a concurrent
+    # background task or a previous partial import) is linked, not recreated.
+    existing = gene_set_service.find_by_wdk_strategy(user_id, wdk_id)
+    if existing:
+        await conv_repo.update_conversation(
+            conversation.id,
+            ConversationUpdate(
+                gene_set_id=existing.id,
+                gene_set_id_set=True,
+                gene_set_auto_imported=True,
+            ),
+        )
+        return None
 
-    for conversation, strategy in conversations:
-        if not _is_eligible(strategy):
-            continue
-
-        wdk_id = strategy.wdk_strategy_id
-        if wdk_id is None:
-            msg = "wdk_id must not be None (guaranteed by _is_eligible)"
-            raise InternalError(detail=msg)
-
-        if wdk_id in seen_wdk_ids:
-            continue
-        seen_wdk_ids.add(wdk_id)
-
-        # Skip if a gene set already exists for this WDK strategy (from a
-        # concurrent background task or previous partial import).
-        existing = gene_set_service.find_by_wdk_strategy(user_id, wdk_id)
-        if existing:
-            await conv_repo.update_conversation(
-                conversation.id,
-                ConversationUpdate(
-                    gene_set_id=existing.id,
-                    gene_set_id_set=True,
-                    gene_set_auto_imported=True,
-                ),
-            )
-            continue
-
-        try:
-            gs = await gene_set_service.create(
-                user_id=user_id,
-                name=conversation.name or f"WDK Strategy {wdk_id}",
-                site_id=site_id,
-                gene_ids=[],
-                source="strategy",
-                wdk=GeneSetWdkContext(
-                    wdk_strategy_id=wdk_id,
-                    record_type=strategy.record_type,
-                ),
-            )
-            await gene_set_service.flush(gs.id)
-            await conv_repo.update_conversation(
-                conversation.id,
-                ConversationUpdate(
-                    gene_set_id=gs.id,
-                    gene_set_id_set=True,
-                    gene_set_auto_imported=True,
-                ),
-            )
-            created.append(gs)
-            logger.info(
-                "Auto-imported gene set for chat",
+    try:
+        gs = await gene_set_service.create(
+            user_id=user_id,
+            name=name,
+            site_id=site_id,
+            gene_ids=[],
+            source="strategy",
+            wdk=GeneSetWdkContext(
+                wdk_strategy_id=wdk_id,
+                record_type=strategy.record_type,
+            ),
+        )
+        await gene_set_service.flush(gs.id)
+        await conv_repo.update_conversation(
+            conversation.id,
+            ConversationUpdate(
                 gene_set_id=gs.id,
-                wdk_strategy_id=wdk_id,
-                gene_count=len(gs.gene_ids),
-            )
-        except EmptyGeneSetError:
-            # Expected, not a failure: leave the latch off so a later build
-            # that actually returns genes still gets imported.
-            logger.info(
-                "Skipped gene set auto-import: strategy returned 0 genes",
-                wdk_strategy_id=wdk_id,
-            )
-        except (VEuPathDBError, RuntimeError) as exc:
-            logger.warning(
-                "Failed to auto-import gene set for chat",
-                wdk_strategy_id=wdk_id,
-                error=str(exc),
-            )
-
-    return created
+                gene_set_id_set=True,
+                gene_set_auto_imported=True,
+            ),
+        )
+    except EmptyGeneSetError:
+        # Expected, not a failure: leave the latch off so a later build
+        # that actually returns genes still gets imported.
+        logger.info(
+            "Skipped gene set auto-import: strategy returned 0 genes",
+            wdk_strategy_id=wdk_id,
+        )
+        return None
+    except (VEuPathDBError, RuntimeError) as exc:
+        logger.warning(
+            "Failed to auto-import gene set for chat",
+            wdk_strategy_id=wdk_id,
+            error=str(exc),
+        )
+        return None
+    logger.info(
+        "Auto-imported gene set for chat",
+        gene_set_id=gs.id,
+        wdk_strategy_id=wdk_id,
+        gene_count=len(gs.gene_ids),
+    )
+    return gs
 
 
 async def import_gene_set_for_conversation(
@@ -175,12 +161,15 @@ async def import_gene_set_for_conversation(
     conversation_id: UUID,
     site_id: str,
     user_id: UUID,
+    name: str,
 ) -> GeneSet | None:
     """Create + link a gene set for a single just-built conversation.
 
     Called inline after an auto-build commits ``wdk_strategy_id``, so a fresh
     session sees it. Idempotent (``_is_eligible`` + ``find_by_wdk_strategy``).
     Returns the created gene set, or ``None`` if ineligible/already imported.
+    A thread with a name gives the set that name; ``name`` stands in until the
+    thread has one.
     """
     async with async_session_factory() as session:
         try:
@@ -203,8 +192,9 @@ async def import_gene_set_for_conversation(
                 )
                 await session.commit()
                 return resynced
-            created = await auto_import_gene_sets(
-                [(conversation, strategy)],
+            created = await auto_import_gene_set(
+                (conversation, strategy),
+                name=conversation.name or name,
                 conv_repo=repo,
                 gene_set_service=gene_set_svc,
                 site_id=site_id,
@@ -219,4 +209,4 @@ async def import_gene_set_for_conversation(
                 error=str(e),
             )
             return None
-        return created[0] if created else None
+        return created

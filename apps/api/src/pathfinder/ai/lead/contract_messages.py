@@ -13,6 +13,7 @@ from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import DroppedCriterion
 from pathfinder.domain.strategy.spec_diff import SpecDiff
+from pathfinder.domain.strategy.step_words import AddedSearch
 
 
 def unrecorded_question_message() -> str:
@@ -241,4 +242,21 @@ def machine_words_message(found: Sequence[str]) -> str:
         f"user holds no tool name, no step id and no error code, so none of "
         f"them says what went wrong. {THE_PLAIN_SENTENCE} Then ask the one "
         f"question that unblocks it, or stop."
+    )
+
+
+def unnamed_search_message(missing: Sequence[AddedSearch]) -> str:
+    """Why a reply that does not name a search this turn added is refused.
+
+    The step runs the search, not the words it was chosen for, so a reply in
+    the request's words alone can say the strategy holds a filter it lacks.
+    """
+    listed = "; ".join(
+        f"{added.search_display_name} (for: {added.criterion_text})"
+        for added in missing
+    )
+    return (
+        f"This turn added steps your reply does not name by the search they "
+        f"run: {listed}. Name each search as written here, and say what it "
+        f"finds; when it is not what the request asked for, say so."
     )

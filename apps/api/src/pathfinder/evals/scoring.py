@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
-from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, fold
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, fold, walk
 
 from pathfinder.evals.case import EvalCase
 from pathfinder.evals.distance import (
@@ -39,6 +39,14 @@ def structure_signature(ast: StrategyAst) -> str:
     return fold(ast.root, _node_signature)
 
 
+def step_titles(ast: StrategyAst) -> list[str]:
+    """The title of every step that runs a search, combines left out."""
+    nodes = [*walk(ast.root)]
+    for detached in ast.detached_roots:
+        nodes.extend(walk(detached))
+    return [node.display_label for node in nodes if node.infer_kind() != "combine"]
+
+
 class ObservedOutcome(CamelModel):
     """What one run of a case produced."""
 
@@ -51,6 +59,7 @@ class ObservedOutcome(CamelModel):
     verified: bool | None = None
     step_ids_unchanged: bool | None = None
     tree: ComparisonNode | None = None
+    step_titles: list[str] = Field(default_factory=list)
     reply_text: str = ""
 
 
@@ -79,7 +88,8 @@ def _build_difference(
     case: EvalCase,
     observed: ObservedOutcome,
 ) -> CaseDifference | None:
-    if case.expected.builds_strategy == observed.built_strategy:
+    expected = case.expected.builds_strategy
+    if expected is None or expected == observed.built_strategy:
         return None
     return CaseDifference(
         field="builtStrategy",
@@ -133,6 +143,40 @@ def _phrase_differences(
                 field="replyOmits",
                 expected=", ".join(present),
                 actual=observed.reply_text[:200],
+            ),
+        )
+    return differences
+
+
+def _title_differences(
+    case: EvalCase,
+    observed: ObservedOutcome,
+) -> list[CaseDifference]:
+    """The reply names what runs, and no step is titled by the forbidden words."""
+    reply = observed.reply_text.casefold()
+    differences: list[CaseDifference] = []
+    if case.expected.reply_names_its_searches:
+        unnamed = [t for t in observed.step_titles if t.casefold() not in reply]
+        if unnamed or (not observed.built_strategy and "?" not in reply):
+            differences.append(
+                CaseDifference(
+                    field="replyNamesItsSearches",
+                    expected=", ".join(unnamed) or "a question",
+                    actual=observed.reply_text[:200],
+                ),
+            )
+    titled = [
+        title
+        for title in observed.step_titles
+        for phrase in case.expected.step_titles_omit
+        if phrase.casefold() in title.casefold()
+    ]
+    if titled:
+        differences.append(
+            CaseDifference(
+                field="stepTitlesOmit",
+                expected=", ".join(case.expected.step_titles_omit),
+                actual=", ".join(titled),
             ),
         )
     return differences
@@ -217,6 +261,7 @@ def score_case(case: EvalCase, observed: ObservedOutcome) -> CaseScore:
         _value_differences(case, observed)
         + _parameter_differences(case, observed)
         + _phrase_differences(case, observed)
+        + _title_differences(case, observed)
     )
     return CaseScore(
         name=case.name,
@@ -232,5 +277,6 @@ __all__ = [
     "CaseScore",
     "ObservedOutcome",
     "score_case",
+    "step_titles",
     "structure_signature",
 ]

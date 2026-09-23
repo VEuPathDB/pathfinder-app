@@ -6,7 +6,7 @@ build re-enters.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
@@ -39,19 +39,22 @@ from pathfinder.ai.lead.sub_agent_stream import (
     stream_sub_agent,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
+from pathfinder.ai.tools.standalone.graph_helpers import derive_strategy_name
 from pathfinder.ai.tools.standalone.strategy_refusals import (
     build_departs_from_the_plan_message,
 )
 from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import (
+    OperationalSpec,
     build_step_tree,
     fold_option_criteria,
     renumber_criteria,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.step_words import added_searches, criterion_texts
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
@@ -89,11 +92,13 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
     except ValueError as exc:
         raise ModelRetry(structure_does_not_convert_message(str(exc))) from exc
     agent_deps = agent_deps_for(deps)
+    context = replace(
+        agent_deps.to_strategy_context(),
+        criterion_texts=criterion_texts(spec, built.step_id_by_criterion),
+    )
     try:
         outcome: BuildOutcome = await build_strategy_from_spec(
-            deps=agent_deps.to_strategy_context(),
-            root=built.root,
-            name=spec.title or None,
+            deps=context, root=built.root
         )
     except ApplyError as exc:
         raise ModelRetry(build_departs_from_the_plan_message(str(exc))) from exc
@@ -109,6 +114,8 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
             entry, built.step_id_by_criterion
         )
     deps.state.record_build(outcome)
+    added = added_searches(renumbered, built.step_id_by_criterion.values())
+    deps.state.turn_markers.record_added_searches(added)
     graph = agent_deps.strategy_session.get_graph(None)
     # The whole local tree is persisted even when a push fails part way, so
     # the renumbered spec is what the strategy answers to either way.
@@ -120,6 +127,7 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
         )
     if (
         outcome.wdk_strategy_id is not None
+        and graph is not None
         and agent_deps.user_id is not None
         and agent_deps.conversation_id is not None
     ):
@@ -127,8 +135,21 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
             conversation_id=agent_deps.conversation_id,
             site_id=agent_deps.site_id,
             user_id=agent_deps.user_id,
+            name=_gene_set_name(renumbered, graph),
         )
-    return ExecuteDelta(outcome=outcome)
+    return ExecuteDelta(outcome=outcome, added_searches=added)
+
+
+_SET_NAME_LENGTH = 60
+
+
+def _gene_set_name(spec: OperationalSpec, graph: StrategyGraph) -> str:
+    """The name the thread's gene set takes until the thread has a title."""
+    stated = (spec.interpreted_goal or spec.goal).strip().splitlines()
+    if stated:
+        return stated[0].strip()[:_SET_NAME_LENGTH].rstrip()
+    root = graph.steps.get(graph.primary_root_id() or "")
+    return graph.name if root is None else derive_strategy_name(graph.record_type, root)
 
 
 async def run_recovery(

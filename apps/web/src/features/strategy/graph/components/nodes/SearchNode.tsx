@@ -6,7 +6,7 @@ import { NodeShell } from "./NodeShell";
 import type { StepNodeProps } from "./types";
 
 const SEARCH_NODE_WIDTH = 168;
-const SEARCH_NODE_HEIGHT = 64;
+const SEARCH_NODE_HEIGHT = 80;
 
 export function SearchNode(props: StepNodeProps) {
   const {

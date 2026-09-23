@@ -25,17 +25,14 @@ from uuid import UUID
 from assistant_core.conversation.authz import get_visible_conversation
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.context import calling_application
-from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.models import ConversationStrategy, ExperimentRow
 from pathfinder.persistence.repositories.conversation import ConversationRepository
-from pathfinder.persistence.repositories.conversation_update import (
-    ConversationUpdate,
-)
 from pathfinder.platform.errors import NotFoundError
+from pathfinder.services.conversations.turns import name_conversation_if_unnamed
 
 logger = get_logger(__name__)
 
@@ -148,13 +145,10 @@ async def _persist_generated_title(
         return
     if not title:
         return
-    async with async_session_factory() as session:
-        repo = ConversationRepository(session)
-        existing = await repo.get_by_id(conversation_id)
-        if existing is None or existing.name:
-            return
-        await repo.update_conversation(
-            conversation_id,
-            ConversationUpdate(name=title),
+    try:
+        await name_conversation_if_unnamed(conversation_id, title=title)
+    except Exception:
+        logger.exception(
+            "begin: naming the thread failed",
+            conversation_id=str(conversation_id),
         )
-        await session.commit()

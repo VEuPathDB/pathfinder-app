@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import pytest
 from pydantic import TypeAdapter
+from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.platform.errors import AppError, ErrorCode
@@ -82,6 +83,25 @@ async def test_the_snapshot_is_pushed_with_no_wdk_ids_of_its_own(
     )
     assert pushed == _FRESH_IDS
     assert set(pushed.values()).isdisjoint(_SOURCE_IDS.values())
+
+
+async def test_the_pushed_snapshot_names_its_combine_by_its_operator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(materialize, "push_steps_with_plan", _RecordingPush())
+    monkeypatch.setattr(materialize, "sync_strategy_for_site", _fake_sync)
+
+    result = await materialize_strategy_snapshot(
+        site_id="plasmodb",
+        conversation_id=uuid4(),
+        name="protease work",
+        strategy_ast=three_step_ast().model_dump(
+            by_alias=True, exclude_none=True, mode="json"
+        ),
+    )
+
+    pushed = StrategyAst.model_validate(result.strategy_ast)
+    assert pushed.root.display_name == "Intersect"
 
 
 async def test_a_wdk_failure_leaves_the_thread_with_the_plan_alone(

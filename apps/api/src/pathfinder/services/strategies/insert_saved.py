@@ -31,6 +31,7 @@ from veupathdb_mcp.wdk import (
 )
 
 from pathfinder.domain.strategy.build_outcome import StepPushFailure
+from pathfinder.domain.strategy.combine_naming import combine_display_name
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.repositories.conversation import ConversationRepository
@@ -120,6 +121,7 @@ def _build_new_root(
         id=generate_step_id(),
         kind=StepKind.COMBINE,
         operator=operator,
+        display_name=combine_display_name(operator),
         primary_input_id=target_step_id,
         secondary_input_id=cloned_secondary.id,
         expanded_strategy_id=expanded_strategy_id,
@@ -200,7 +202,6 @@ async def insert_saved_into_conversation(
         outcome = await build_strategy_from_spec(
             deps=deps,
             root=new_full_root,
-            name=graph.name,
             description=graph.description,
         )
     except ApplyError:

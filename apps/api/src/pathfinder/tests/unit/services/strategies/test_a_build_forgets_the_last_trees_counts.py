@@ -45,8 +45,8 @@ def test_a_reused_step_id_keeps_no_count() -> None:
         _graph(),
         _leaf(_KEPT_ID, "P. falciparum 3D7"),
         sync_state=sync_state,
-        name=None,
         description=None,
+        criterion_texts={},
     )
 
     assert sync_state.step_counts == {}
@@ -59,8 +59,8 @@ def test_no_count_of_the_replaced_tree_survives() -> None:
         _graph(),
         _leaf("step_new", "P. falciparum 3D7"),
         sync_state=sync_state,
-        name=None,
         description=None,
+        criterion_texts={},
     )
 
     assert sync_state.step_counts == {}

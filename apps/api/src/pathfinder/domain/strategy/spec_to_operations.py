@@ -18,6 +18,7 @@ from veupathdb.domain.strategy import (
     subtree_ids,
 )
 
+from pathfinder.domain.strategy.combine_naming import combine_display_name
 from pathfinder.domain.strategy.edit_plan import (
     EditPlan,
     UnsupportedEditError,
@@ -266,11 +267,14 @@ def _change_op(
         )
     # An update merges, so a search change and a removed value both need the
     # node restated. The inputs come from the live subtree and stay attached.
-    subtree = rebuild_tree(after.id, graph.steps).model_copy(
+    live = rebuild_tree(after.id, graph.steps)
+    subtree = live.model_copy(
         update={
             "search_name": after.search_name,
             "parameters": _restated_params(graph, change, after),
-            "display_name": after.text[:60],
+            # A step that keeps its search keeps its name; a new search is
+            # titled by what now runs.
+            "display_name": after.title if change.rebound_search else live.display_name,
         }
     )
     return ReplaceSubtreeOp(step_id=after.id, subtree=subtree)
@@ -349,6 +353,7 @@ def _join(plan: EditPlan, left_id: str, right_id: str, operator: CombineOp) -> s
                 id=new_id,
                 search_name=COMBINE_SEARCH_NAME,
                 operator=operator,
+                display_name=combine_display_name(operator),
             ),
             left_id=left_id,
             right_id=right_id,

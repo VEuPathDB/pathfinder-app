@@ -9,6 +9,7 @@ import {
   inferCombineRecordTypeOrMismatch,
   isValidGraphConnection,
 } from "@/features/strategy/graph/utils/graphConnectionsLogic";
+import { operatorName } from "@/features/strategy/graph/utils/stepTitle";
 import { useAddStepMutation } from "@/features/strategy/mutations";
 import { useApplyOperation } from "@/features/strategy/mutations/useApplyOperation";
 
@@ -73,7 +74,7 @@ export function useGraphConnections({
       const newStep: Step = {
         id: generateStepId(),
         kind: "combine",
-        displayName: "INTERSECT combine",
+        displayName: operatorName("INTERSECT"),
         operator: "INTERSECT",
         recordType: recordType ?? null,
         primaryInputStepId: effect.sourceId,
@@ -116,7 +117,7 @@ export function useGraphConnections({
     const newStep: Step = {
       id: generateStepId(),
       kind: "combine",
-      displayName: "INTERSECT combine",
+      displayName: operatorName("INTERSECT"),
       operator: "INTERSECT",
       recordType: recordType ?? null,
       primaryInputStepId: sourceId,

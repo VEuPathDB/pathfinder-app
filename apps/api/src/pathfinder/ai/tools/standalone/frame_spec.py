@@ -28,6 +28,8 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._catalog_models import (
     ensure_search_registered,
     register_search,
+    search_display_name,
+    what_it_finds,
 )
 from pathfinder.ai.tools.standalone._frame_count import (
     criterion_line,
@@ -71,6 +73,9 @@ class SetCriterionResult(CamelModel):
 
     criterion_id: str
     search_name: str
+    # The search's name on the site, and its one-line summary once bound: what
+    # the step runs, which is what the reply names.
+    what_runs: str = ""
     # The saved strategy this criterion reuses as its input, when it names one.
     saved_strategy: SavedStrategyListing | None = None
     # Every visible parameter name mapped to null, in sheet order.
@@ -269,6 +274,7 @@ async def set_criterion(
                 sheet_pinned=True,
             ),
             record_type,
+            definition,
         )
     search = SearchContext(ctx.deps.site_id, record_type, search_name)
     definition = await _search_definition(search)
@@ -322,6 +328,7 @@ async def set_criterion(
                 criterion_id=criterion_id, search_name=search_name, redecide=redecide
             ),
             record_type,
+            definition,
         )
     # A half switched off holds a value the request never stated, so it is
     # disclosed like a default.
@@ -350,6 +357,7 @@ async def set_criterion(
             id=criterion_id,
             text=text,
             search_name=search_name,
+            search_display_name=search_display_name(definition),
             role=role,
             resolved_params=resolved.params,
             defaulted_params=defaulted,
@@ -378,6 +386,7 @@ async def set_criterion(
             alternatives=alternatives,
         ),
         record_type,
+        definition,
     )
 
 
@@ -385,8 +394,16 @@ def _criterion_return(
     ctx: RunContext[AgentDeps],
     result: SetCriterionResult,
     record_type: str,
+    definition: WDKSearch,
 ) -> ToolReturn[SetCriterionResult]:
-    """The bound criterion, or the parameters the call still leaves open."""
+    """The bound criterion, or the parameters the call still leaves open.
+
+    The sheet's own heading carries the summary, so the sheet-opening return
+    stays short enough to survive history elision.
+    """
+    name = search_display_name(definition)
+    runs = name if result.sheet_pinned else f"{name}: {what_it_finds(definition)}"
+    result = result.model_copy(update={"what_runs": runs})
     if result.sheet_pinned:
         return with_summary(
             result,

@@ -13,6 +13,7 @@ from veupathdb_mcp.wdk import (
     canonicalize_synced_parameters,
 )
 
+from pathfinder.domain.strategy.combine_naming import given_by_a_researcher
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import (
     ConversationRepository,
@@ -25,6 +26,7 @@ from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
 )
 from pathfinder.platform.errors import InternalError
+from pathfinder.services.strategies.naming import placeholder_strategy_name
 
 logger = get_logger(__name__)
 
@@ -98,7 +100,6 @@ async def sync_to_chat(
     VEuPathDB just before adopting it.
     """
     payload, is_saved = await fetch_and_convert(api, wdk_id)
-    name = payload.name or f"WDK Strategy {wdk_id}"
 
     return await upsert_chat(
         conv_repo=conv_repo,
@@ -107,13 +108,21 @@ async def sync_to_chat(
         created_here=created_here,
         spec=WdkChatSpec(
             wdk_id=wdk_id,
-            name=name,
+            name=wdk_chat_name(payload, wdk_id),
             strategy_ast=payload,
             record_type=payload.record_type,
             is_saved=is_saved,
             step_count=len(walk(payload.root)),
         ),
     )
+
+
+def wdk_chat_name(payload: StrategyAst, wdk_id: int) -> str:
+    """The strategy's name, else its root step's own name, else its id."""
+    root = payload.root
+    given = given_by_a_researcher(root.display_name, root.search_name)
+    root_name = root.display_name if given else None
+    return payload.name or root_name or placeholder_strategy_name(wdk_id)
 
 
 async def upsert_chat(
@@ -127,18 +136,20 @@ async def upsert_chat(
     """Creates or updates the local record for a WDK strategy.
 
     A row that already names this strategy holds its provenance, so only a
-    new row records ``created_here``.
+    new row records ``created_here``. A thread keeps the name it holds, and
+    the stored strategy carries that name.
     """
     found = await SavedStrategyRepository(conv_repo.session).get_by_wdk_strategy_id(
         owner.user_id, spec.wdk_id
     )
     existing = None if found is None else found[0]
     if existing:
+        name = existing.name or spec.name
         await conv_repo.update_conversation(
             existing.id,
             ConversationUpdate(
-                name=spec.name,
-                strategy_ast=spec.strategy_ast,
+                name=None if existing.name else spec.name,
+                strategy_ast=spec.strategy_ast.model_copy(update={"name": name}),
                 record_type=spec.record_type,
                 wdk_strategy_id=spec.wdk_id,
                 wdk_strategy_id_set=True,
@@ -158,7 +169,9 @@ async def upsert_chat(
         await conv_repo.update_conversation(
             created.id,
             ConversationUpdate(
-                strategy_ast=spec.strategy_ast,
+                strategy_ast=spec.strategy_ast.model_copy(
+                    update={"name": created.name}
+                ),
                 record_type=spec.record_type,
                 wdk_strategy_id=spec.wdk_id,
                 wdk_strategy_id_set=True,

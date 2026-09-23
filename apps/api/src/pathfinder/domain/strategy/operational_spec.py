@@ -13,6 +13,7 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.strategy.combine_naming import combine_display_name
 from pathfinder.domain.strategy.constraints import Constraint
 
 CriterionRole = Literal["seed", "filter", "transform", "exclude"]
@@ -125,6 +126,8 @@ class Criterion(CamelModel):
     id: str
     text: str
     search_name: str = ""
+    # The search's name on the site, which is what its step is titled.
+    search_display_name: str | None = None
     # Set instead of ``search_name`` when the criterion reuses a saved strategy.
     saved_strategy_ref: SavedStrategyRef | None = None
     role: CriterionRole = "filter"
@@ -141,6 +144,11 @@ class Criterion(CamelModel):
     @property
     def bound(self) -> bool:
         return bool(self.search_name) or self.saved_strategy_ref is not None
+
+    @property
+    def title(self) -> str:
+        """The name the step carries: what runs, else the researcher's words."""
+        return self.search_display_name or self.text[:60]
 
 
 class OperationalSpec(CamelModel):
@@ -375,7 +383,7 @@ def _node_to_step(
         step = StrategyStepNode(
             search_name=crit.search_name,
             parameters=dict(crit.resolved_params),
-            display_name=crit.text[:60],
+            display_name=crit.title,
         )
         minted[crit.id] = step.id
         return step
@@ -387,7 +395,7 @@ def _node_to_step(
         step = StrategyStepNode(
             search_name=crit.search_name,
             parameters=dict(crit.resolved_params),
-            display_name=crit.text[:60],
+            display_name=crit.title,
             primary_input=_node_to_step(node.inputs[0], by_id, minted),
         )
         minted[crit.id] = step.id
@@ -443,6 +451,7 @@ def _combine(left: _Operand, right: _Operand, operator: CombineOp) -> _Operand:
     step = StrategyStepNode(
         search_name=COMBINE_SEARCH_NAME,
         operator=operator,
+        display_name=combine_display_name(operator),
         primary_input=left.step,
         secondary_input=right.step,
         expanded_strategy_id=saved.wdk_strategy_id if saved is not None else None,

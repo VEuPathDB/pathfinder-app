@@ -355,3 +355,19 @@ describe("applyOperation: deleteEdge", () => {
     expect(result.next.steps.map((x) => x.id).sort()).toEqual(["b"]);
   });
 });
+
+describe("applyOperation: duplicateStep", () => {
+  test("the combine over the copy carries the Intersect name the api gives it", () => {
+    const s = strategy([step("a")]);
+    const result = applyOperation(s, {
+      kind: "duplicateStep",
+      sourceStepId: "a",
+      duplicateStepId: "a_copy",
+      combineStepId: "join",
+    });
+    expect(result.kind).toBe("applied");
+    if (result.kind !== "applied") return;
+    const join = result.next.steps.find((x) => x.id === "join");
+    expect(join?.displayName).toBe("Intersect");
+  });
+});

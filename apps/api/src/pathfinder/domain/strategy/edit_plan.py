@@ -17,6 +17,10 @@ from veupathdb.domain.strategy import (
     rebuild_tree,
 )
 
+from pathfinder.domain.strategy.combine_naming import (
+    combine_display_name,
+    combine_name,
+)
 from pathfinder.domain.strategy.operational_spec import (
     MIN_COMBINE_INPUTS,
     Criterion,
@@ -64,7 +68,7 @@ def node_for(criterion: Criterion) -> StrategyStepNode:
         id=criterion.id,
         search_name=criterion.search_name,
         parameters=dict(criterion.resolved_params),
-        display_name=criterion.text[:60],
+        display_name=criterion.title,
     )
 
 
@@ -148,6 +152,7 @@ def _target_join(
             id=generate_step_id(),
             search_name=COMBINE_SEARCH_NAME,
             operator=operator,
+            display_name=combine_display_name(operator),
             primary_input=left,
             secondary_input=right,
         )
@@ -155,6 +160,7 @@ def _target_join(
     return rebuild_tree(existing, plan.graph.steps).model_copy(
         update={
             "operator": operator,
+            "display_name": combine_name(live.display_name, live.search_name, operator),
             "colocation_params": (
                 live.colocation_params if live.operator is operator else None
             ),

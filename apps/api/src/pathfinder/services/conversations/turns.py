@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 from uuid import UUID
 
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import DBSessionFactory, async_session_factory
 
 from pathfinder.persistence.repositories import ConversationRepository
-from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
+from pathfinder.services.strategies.naming import name_if_unnamed, put_the_name_on_wdk
+from pathfinder.services.strategies.write_lock import strategy_write_lock
+
+LOCK_WAIT_SECONDS = 10
+"""The longest a title waits on the thread's strategy lock and its writes."""
 
 
 async def load_conversation(conversation_id: UUID) -> Conversation | None:
@@ -23,16 +28,20 @@ async def load_conversation(conversation_id: UUID) -> Conversation | None:
 async def name_conversation_if_unnamed(conversation_id: UUID, *, title: str) -> bool:
     """Give the thread a generated title, keeping any name it already holds.
 
-    Reports whether the title was written.
+    Reports whether the title was written. The strategy carries the name the
+    thread holds either way. The lock is waited on for a bounded time and is
+    released before the name goes to WDK.
     """
-    async with async_session_factory() as session:
-        repo = ConversationRepository(session)
-        conversation = await repo.get_by_id(conversation_id)
-        if conversation is None or conversation.name:
-            return False
-        await repo.update_conversation(conversation_id, ConversationUpdate(name=title))
-        await session.commit()
-    return True
+    async with asyncio.timeout(LOCK_WAIT_SECONDS):
+        async with strategy_write_lock(
+            conversation_id, async_session_factory
+        ) as locked:
+            title_write = await name_if_unnamed(
+                ConversationRepository(locked), conversation_id, title=title
+            )
+    if title_write.named is not None:
+        await put_the_name_on_wdk(title_write.named)
+    return title_write.written
 
 
 async def turn_start_revision_id(conversation_id: UUID) -> int | None:

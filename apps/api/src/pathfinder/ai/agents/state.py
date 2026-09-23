@@ -71,6 +71,8 @@ class PinnedSheet(BaseModel):
 
     search_name: str
     opened: bool
+    # The search's name on the site and what it finds, shown where it is bound.
+    what_runs: str = ""
     entries: list[SheetEntry] = Field(default_factory=list)
     # Params whose vocabulary changed once the parents were bound, in sheet order.
     redecide: list[str] = Field(default_factory=list)
@@ -104,11 +106,18 @@ class AgentToolState:
     created_gene_sets: list[CreatedGeneSet] = field(default_factory=list)
 
     def pin_sheet(
-        self, criterion_id: str, search_name: str, entries: list[SheetEntry]
+        self,
+        criterion_id: str,
+        search_name: str,
+        entries: list[SheetEntry],
+        *,
+        what_runs: str,
     ) -> PinnedSheet:
         """Open a sheet for the criterion, replacing anything it holds."""
         self.open_sheets.pop(criterion_id, None)
-        sheet = PinnedSheet(search_name=search_name, opened=True, entries=entries)
+        sheet = PinnedSheet(
+            search_name=search_name, opened=True, what_runs=what_runs, entries=entries
+        )
         self.open_sheets[criterion_id] = sheet
         return sheet
 

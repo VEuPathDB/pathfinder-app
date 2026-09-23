@@ -71,6 +71,21 @@ def test_splicing_at_the_root_makes_the_new_combine_the_root() -> None:
     ]
 
 
+def test_the_splice_combine_carries_its_operators_name() -> None:
+    graph = _graph(_leaf("step_a", "GO:0004672"))
+
+    _new_root, combine_id = _build_new_root(
+        graph=graph,
+        target_step_id="step_a",
+        cloned_secondary=_saved(),
+        operator=CombineOp.MINUS,
+        expanded_strategy_id=7777,
+        expanded_name="Binding genes",
+    )
+
+    assert graph.steps[combine_id].display_name == "Minus"
+
+
 def test_splicing_below_the_root_rewires_only_the_parent_slot() -> None:
     graph = _graph(
         StrategyStepNode(

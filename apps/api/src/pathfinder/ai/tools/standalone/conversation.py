@@ -23,10 +23,20 @@ from pathfinder.ai.tools.standalone.stream_parts import (
     graph_cleared_chunk,
     strategy_meta_chunk,
 )
+from pathfinder.services.strategies.naming import rename_strategy_everywhere
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
 from pathfinder.services.strategies.sync_state import WDKSyncState
+
+
+async def _rename_the_thread(deps: AgentDeps, name: str) -> str | None:
+    """Rename the thread the turn runs on; None when the turn names no thread."""
+    if deps.conversation_id is None or deps.db_session_factory is None:
+        return None
+    return await rename_strategy_everywhere(
+        deps.conversation_id, name, session_factory=deps.db_session_factory
+    )
 
 
 async def rename_strategy(
@@ -59,21 +69,21 @@ async def rename_strategy(
         raise ModelRetry(msg)
 
     old_name = graph.name
-    graph.name = new_name
+    graph.name = await _rename_the_thread(ctx.deps, new_name) or new_name
     graph.description = description
-    graph.save_history(f"Renamed from '{old_name}' to '{new_name}'")
+    graph.save_history(f"Renamed from '{old_name}' to '{graph.name}'")
 
     return with_summary(
         RenameStrategyResult(
             graph_id=graph.id,
             old_name=old_name,
-            new_name=new_name,
-            name=new_name,
+            new_name=graph.name,
+            name=graph.name,
             record_type=graph.record_type or "",
             description=graph.description,
             plan=graph.to_strategy_ast(sync_state=session.sync_state),
         ),
-        f"Renamed to {new_name}",
+        f"Renamed to {graph.name}",
         ctx=ctx,
         extra=[strategy_meta_chunk(session, graph)],
     )

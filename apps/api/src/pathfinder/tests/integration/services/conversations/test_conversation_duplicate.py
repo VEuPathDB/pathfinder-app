@@ -83,6 +83,7 @@ async def test_duplicate_copies_strategy_dropping_wdk_ids(
         assert isinstance(text_expr, dict)
         assert text_expr.get("value") == "kinase"
         assert "wdkStepIds" not in copied.strategy_ast
+        assert copied.strategy_ast.get("name") == "Copy of Kinase strategy"
         assert copied.wdk_strategy_id is None
 
         original = await repo.get_strategy(conv_id)

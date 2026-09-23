@@ -18,6 +18,8 @@ Choices with a real alternative, where the reasoning is not recoverable from the
 - [A strategy has a revision history, and fork, revert and Stop read it](a-strategy-has-a-revision-history.md) - every strategy write appends a snapshot, so a branch point, a revert target and a stopped turn each read the state in force at their message instead of the thread's latest AST
 - [A strategy edit holds the thread's lock across its read](a-graph-operation-holds-the-thread-lock-across-its-read.md) - the read, the WDK round trip and the write of one JSON tree are one transaction on `/operations` and on `/insert-saved`, so two overlapping edits cannot each write a whole tree built from the same base
 - [A step count has one owner](a-step-count-has-one-owner.md) - the commit reads every count back from VEuPathDB before it emits or persists, and the client reads the wire rather than a cached count
+- [A strategy has one name, and the thread holds it](one-name-for-a-strategy.md) - the conversation names the strategy; the stored AST, the WDK strategy and the auto-imported gene set carry copies written by one rename function, and a combine no researcher named carries its operator's label
+- [A step says what runs](a-step-says-what-runs.md) - a search step is titled by its search with the request's words beneath it, the binding and the catalog show the search and how close it is, and the reply names every search the turn added; a similarity refusal was rejected
 
 ## Agents
 

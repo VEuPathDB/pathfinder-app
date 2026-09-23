@@ -53,21 +53,24 @@ async def anchor_snapshot(
 async def write_forked_strategy(
     session: AsyncSession,
     *,
-    source: Conversation,
+    branch: Conversation,
     snapshot: StrategyRevisionView,
     strategy_row: ConversationStrategy,
     new_conversation_id: UUID,
     anchor_message_id: UUID,
 ) -> None:
-    """Push the snapshot as the fork's own WDK strategy and store it."""
+    """Push the snapshot as the fork's own WDK strategy and store it.
+
+    The stored strategy and the WDK strategy carry the branch thread's name.
+    """
     source_strategy = strategy_view_of(strategy_row)
     # The snapshot's own WDK id says nothing about whether its tree was ever
     # pushed: a fork's copied history carries none. Every snapshot with a tree
     # is pushed, and a WDK refusal leaves the branch holding the plan.
     materialized = await materialize_strategy_snapshot(
-        site_id=source.site_id,
+        site_id=branch.site_id,
         conversation_id=new_conversation_id,
-        name=source.name,
+        name=branch.name,
         strategy_ast=snapshot.strategy_ast,
         record_type=snapshot.record_type,
         step_count=snapshot.step_count,

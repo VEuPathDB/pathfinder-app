@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy import StrategyAst, flatten_tree
 
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.persistence.models import (
     ConversationStrategyView,
     PersistedStrategyGraph,
@@ -111,20 +112,25 @@ def build_strategy_session(
         raise ValueError(msg)
 
     session = StrategySession(site_id)
-    name = strategy_graph.name or DEFAULT_CONVERSATION_NAME
+    payload = strategy_graph.strategy_ast
+    # The thread owns the name; the stored strategy carries a copy of it.
+    name = (
+        strategy_graph.name
+        or (payload.name if payload is not None else None)
+        or DEFAULT_CONVERSATION_NAME
+    )
     graph = StrategyGraph(strategy_graph.id, name, site_id)
-    if strategy_graph.strategy_ast is not None:
-        payload = strategy_graph.strategy_ast
+    if payload is not None:
         try:
             graph.record_type = payload.record_type
-            graph.name = payload.name or name
             graph.steps = flatten_tree(payload.root)
             for detached in payload.detached_roots:
                 graph.steps.update(flatten_tree(detached))
             graph.recompute_roots()
             graph.last_step_id = payload.root.id
             graph.description = payload.description
-            graph.save_history(f"Loaded graph: {payload.name or name}")
+            graph.note_criteria(StepWords.of(payload).criterion_texts)
+            graph.save_history(f"Loaded graph: {name}")
         except (ValueError, TypeError, KeyError) as e:
             logger.warning(
                 "Failed to load graph plan",

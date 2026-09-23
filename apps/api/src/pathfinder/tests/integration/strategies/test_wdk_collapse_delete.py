@@ -111,7 +111,7 @@ async def built_nested_conv(
         ),
         _text_leaf("pf_taxon", "transporter"),
     )
-    outcome = await build_strategy_from_spec(deps=deps, root=root, name="col")
+    outcome = await build_strategy_from_spec(deps=deps, root=root)
     assert outcome.failed_steps == [], outcome.failed_steps
     assert outcome.wdk_strategy_id is not None
     created.append(outcome.wdk_strategy_id)

@@ -98,7 +98,6 @@ async def built(
             db_session_factory=async_session_factory,
         ),
         root=text_leaf("kinase"),
-        name="kinases",
     )
     assert outcome.failed_steps == [], outcome.failed_steps
     assert outcome.wdk_strategy_id is not None

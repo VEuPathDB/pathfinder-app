@@ -172,7 +172,9 @@ def _combine(id_: str, p: StrategyStepNode, s: StrategyStepNode) -> StrategyStep
 
 
 def _seed_session(
-    root: StrategyStepNode, wdk_step_ids: dict[str, int]
+    root: StrategyStepNode,
+    wdk_step_ids: dict[str, int],
+    criterion_texts: dict[str, str] | None = None,
 ) -> StrategyMutationContext:
     session = StrategySession(site_id="plasmodb")
     graph = StrategyGraph(graph_id="g1", name="Test", site_id="plasmodb")
@@ -188,6 +190,7 @@ def _seed_session(
         site_id="plasmodb",
         strategy_session=session,
         conversation_id=uuid4(),
+        criterion_texts=criterion_texts or {},
     )
 
 
@@ -253,3 +256,18 @@ async def test_a_refused_push_leaves_no_count_on_its_step(stub_api: _StubAPI) ->
     assert [failure.step_id for failure in result.failures] == ["a"]
     assert result.failures[0].wdk_status == 422
     assert session_sync.step_counts["a"] is None
+
+
+@pytest.mark.asyncio
+async def test_a_commit_takes_the_words_the_spec_states(stub_api: _StubAPI) -> None:
+    del stub_api
+    deps = _seed_session(
+        _leaf("a"), wdk_step_ids={"a": 100}, criterion_texts={"a": "kinases"}
+    )
+
+    await apply_and_commit(
+        deps=deps, op=UpdateStepMetaOp(step_id="a", display_name="renamed")
+    )
+
+    assert deps.strategy_session.graph is not None
+    assert deps.strategy_session.graph.criterion_texts == {"a": "kinases"}

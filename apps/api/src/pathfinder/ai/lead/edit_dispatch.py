@@ -64,6 +64,7 @@ from pathfinder.domain.strategy.spec_to_operations import (
     criteria_the_edit_introduces,
     operations_for,
 )
+from pathfinder.domain.strategy.step_words import added_searches
 from pathfinder.services.strategies.commit import (
     CommitResult,
     apply_operations_and_commit,
@@ -204,6 +205,8 @@ async def _push_the_edit(
         deps.state, after, agent_deps.strategy_session.get_graph(None)
     )
     deps.state.record_build(outcome)
+    searches = added_searches(after, added)
+    deps.state.turn_markers.record_added_searches(searches)
     _emit_graph_snapshot(agent_deps)
     # A push VEuPathDB did not take is the answer. The applied-operation line
     # would read as a success the strategy does not hold.
@@ -213,6 +216,7 @@ async def _push_the_edit(
         description=commit.description if refusal is None else refusal.message,
         operations_applied=len(ops),
         added_step_ids=added,
+        added_searches=searches,
         preserved_step_ids=preserved,
         dropped_step_ids=list(commit.dropped_step_ids),
         failed_step_ids=list(commit.failed_step_ids),

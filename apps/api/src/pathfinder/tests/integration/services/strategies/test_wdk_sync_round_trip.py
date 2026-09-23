@@ -7,6 +7,7 @@ from uuid import UUID
 from assistant_core.platform.db import async_session_factory
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
+from pathfinder.persistence.repositories import ConversationUpdate
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
@@ -70,7 +71,9 @@ async def test_importing_a_wdk_strategy_creates_the_side_row(
     assert plan_needs_detail_fetch(strategy) is False
 
 
-async def test_a_second_import_updates_the_same_thread(authed_user_id: UUID) -> None:
+async def test_a_second_import_updates_the_same_thread_and_keeps_its_name(
+    authed_user_id: UUID,
+) -> None:
     async with async_session_factory() as session:
         repo = ConversationRepository(session)
         first = await upsert_chat(
@@ -101,7 +104,38 @@ async def test_a_second_import_updates_the_same_thread(authed_user_id: UUID) -> 
         await session.commit()
 
         assert second.id == first_id
-        assert second.name == "renamed upstream"
+        assert second.name == "imported"
         second_strategy = await repo.get_strategy(second.id)
         assert second_strategy.wdk_strategy_id == WDK_ID
         assert second_strategy.step_count == 6
+        assert second_strategy.strategy_ast.get("name") == "imported"
+
+
+async def test_an_import_names_a_thread_that_has_no_name(authed_user_id: UUID) -> None:
+    owner = ChatOwner(user_id=authed_user_id, assistant_id=PATHFINDER_ASSISTANT_ID)
+    async with async_session_factory() as session:
+        repo = ConversationRepository(session)
+        first = await upsert_chat(
+            conv_repo=repo,
+            owner=owner,
+            site_id="plasmodb",
+            created_here=False,
+            spec=_spec("imported"),
+        )
+        await repo.update_conversation(first.id, ConversationUpdate(name=""))
+        await session.commit()
+
+    async with async_session_factory() as session:
+        repo = ConversationRepository(session)
+        second = await upsert_chat(
+            conv_repo=repo,
+            owner=owner,
+            site_id="plasmodb",
+            created_here=False,
+            spec=_spec("named upstream"),
+        )
+        await session.commit()
+
+        assert second.name == "named upstream"
+        stored = await repo.get_strategy(second.id)
+        assert stored.strategy_ast.get("name") == "named upstream"

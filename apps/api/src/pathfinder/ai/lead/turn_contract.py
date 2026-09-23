@@ -25,6 +25,7 @@ from pathfinder.ai.lead.contract_messages import (
     machine_words_message,
     off_topic_essay_message,
     unfinished_work_message,
+    unnamed_search_message,
     unrecorded_question_message,
     unreported_change_message,
     unretrieved_source_message,
@@ -45,6 +46,8 @@ from pathfinder.ai.lead.reply_claims import (
     SAVED_A_GENE_SET,
     claims,
     machine_words,
+    names_the_phrase,
+    normalized_reference,
 )
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -54,6 +57,7 @@ from pathfinder.domain.strategy.operational_spec import (
     eda_backed_drops,
 )
 from pathfinder.domain.strategy.spec_diff import SpecDiff
+from pathfinder.domain.strategy.step_words import AddedSearch
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -66,26 +70,6 @@ CONTRACT_HEADING = "This reply does not match what the turn did:"
 # The tools the Lead calls to do the turn's work. ``build_strategy`` runs no
 # sub-agent and is refused the same way the dispatches are.
 DISPATCH_TOOLS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {"build_strategy"}
-
-# What a written reference carries before the identifier itself.
-_REFERENCE_PREFIXES = (
-    "https://",
-    "http://",
-    "www.",
-    "doi.org/",
-    "dx.doi.org/",
-    "doi:",
-    "pmid:",
-    "pubmed.ncbi.nlm.nih.gov/",
-)
-
-
-def normalized_reference(value: str) -> str:
-    """One comparable form of a url, a DOI or a PMID."""
-    text = value.strip().casefold()
-    for prefix in _REFERENCE_PREFIXES:
-        text = text.removeprefix(prefix)
-    return text.rstrip("/")
 
 
 class CitedSource(CamelModel):
@@ -187,6 +171,7 @@ class TurnRecord(CamelModel):
     retrieved_sources: tuple[str, ...]
     created_control_sets: tuple[CreatedControlSet, ...]
     created_gene_sets: tuple[CreatedGeneSet, ...]
+    added_searches: tuple[AddedSearch, ...] = ()
 
 
 MismatchKind = Literal[
@@ -203,6 +188,7 @@ MismatchKind = Literal[
     "substituted_analysis",
     "off_topic_essay",
     "unretrieved_source",
+    "unnamed_search",
 ]
 
 
@@ -288,6 +274,7 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         retrieved_sources=tuple(markers.retrieved_sources),
         created_control_sets=tuple(markers.created_control_sets),
         created_gene_sets=tuple(markers.created_gene_sets),
+        added_searches=tuple(markers.added_searches),
     )
 
 
@@ -427,6 +414,16 @@ def _unretrieved_source(report: LeadResponse, record: TurnRecord) -> str | None:
     return unretrieved_source_message(absent)
 
 
+def _unnamed_search(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A step this turn added is named in the reply by the search it runs."""
+    missing = [
+        added
+        for added in record.added_searches
+        if not names_the_phrase(report.prose, added.search_display_name)
+    ]
+    return unnamed_search_message(missing) if missing else None
+
+
 _RULES: tuple[
     tuple[MismatchKind, Callable[[LeadResponse, TurnRecord], str | None]], ...
 ] = (
@@ -443,6 +440,7 @@ _RULES: tuple[
     ("substituted_analysis", _substituted_analysis),
     ("off_topic_essay", _off_topic_essay),
     ("unretrieved_source", _unretrieved_source),
+    ("unnamed_search", _unnamed_search),
 )
 
 

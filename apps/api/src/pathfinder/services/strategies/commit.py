@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.strategy import (
     StrategyAst,
     flatten_tree,
@@ -13,6 +13,7 @@ from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.wdk import get_strategy_api
 
 from pathfinder.domain.strategy.build_outcome import StepPushFailure
+from pathfinder.domain.strategy.combine_naming import name_the_combines
 from pathfinder.domain.strategy.operations import (
     GraphOperation,
     ReplaceStrategyOp,
@@ -34,6 +35,7 @@ from pathfinder.services.strategies.batch_refusal import (
 )
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.live_counts import replace_counts_with_wdks
+from pathfinder.services.strategies.naming import name_the_thread_as_the_graph
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
@@ -45,6 +47,7 @@ from pathfinder.services.strategies.step_push_planner import plan_step_pushes
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
 from pathfinder.services.strategies.sync import (
     SyncResult,
+    put_the_strategy_name,
     step_tree_is_current,
     sync_strategy_for_site,
 )
@@ -100,14 +103,16 @@ class GraphLabels(BaseModel):
     name: str
     description: str | None = None
     last_step_id: str | None = None
+    criterion_texts: dict[str, str] = Field(default_factory=dict)
 
 
 def graph_labels(graph: StrategyGraph) -> GraphLabels:
-    """The name, the description and the write cursor the graph carries now."""
+    """The name, the description, the write cursor and the words it carries now."""
     return GraphLabels(
         name=graph.name,
         description=graph.description,
         last_step_id=graph.last_step_id,
+        criterion_texts=dict(graph.criterion_texts),
     )
 
 
@@ -132,6 +137,7 @@ def restore_graph(
     graph.name = entry.name
     graph.description = entry.description
     graph.last_step_id = entry.last_step_id
+    graph.criterion_texts = dict(entry.criterion_texts)
 
 
 def _the_tree_the_batch_leaves(
@@ -211,6 +217,8 @@ async def apply_operations_and_commit(
     except ApplyError, ValueError:
         restore_graph(graph, old_ast, entry_labels)
         raise
+    name_the_combines(graph.steps.values())
+    graph.note_criteria(deps.criterion_texts)
 
     refusal = refusal_after_the_batch(
         deps=deps,
@@ -271,6 +279,8 @@ async def apply_operations_and_commit(
         graph=graph,
         sync_result=sync_result.sync_result,
     )
+    if graph.name and graph.name != entry_labels.name:
+        await name_the_thread_as_the_graph(deps, graph)
 
     return CommitResult(
         description=result.description,
@@ -332,11 +342,12 @@ async def _put_the_step_tree(
     A recreated step keeps its local id under a new WDK id, so the local shape
     alone does not say whether the tree moved.
     """
-    if (
-        new_ast is None
-        or not graph.steps
-        or step_tree_is_current(new_ast.root, sync_state)
-    ):
+    if new_ast is None or not graph.steps:
+        return None
+    if step_tree_is_current(new_ast.root, sync_state):
+        await put_the_strategy_name(
+            get_strategy_api(deps.site_id), sync_state, graph.name
+        )
         return None
     try:
         return await sync_strategy_for_site(

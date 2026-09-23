@@ -383,3 +383,29 @@ def _spec_never_reached() -> Any:
         tool_sources: tuple[Any, ...] = ()
 
     return _Spec()
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [RuntimeError("the gene set store is closed"), TimeoutError()],
+)
+async def test_a_title_the_store_did_not_take_is_logged_and_the_turn_goes_on(
+    monkeypatch: pytest.MonkeyPatch, failure: Exception
+) -> None:
+    """Naming the thread never ends a turn before its finish chunk."""
+
+    async def _title() -> str:
+        return "Kinases in gametocytes"
+
+    async def _fails(conversation_id: UUID, *, title: str) -> bool:
+        del conversation_id, title
+        raise failure
+
+    monkeypatch.setattr(turn_runner, "name_conversation_if_unnamed", _fails)
+    writer = _writer()
+
+    await turn_runner._write_title(
+        asyncio.create_task(_title()), writer.conversation_id, writer
+    )
+
+    assert writer.chunks == []

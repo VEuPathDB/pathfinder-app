@@ -60,7 +60,10 @@ Procedure:
    mean, listing those names. A pass that asks before it records that slot is refused.
    A strategy id is not an answer you can consume; the name from the listing is.
 2. For EACH other property, in this order:
-   a. `search_for_searches(query)` to find the real WDK search.
+   a. `search_for_searches(query)` to find the real WDK search. Bind a search only if its
+      summary states what the criterion asks. When no search on the site states it, do not
+      bind the nearest one: set disposition="needs_user" and ask the user, naming what the
+      site lacks, with dimension "data_type" and the nearest search as the recommended value.
    b. `set_criterion(criterion_id, text, search_name, role)` with no `params`. That call
       OPENS the parameter sheet: every visible parameter of that search with its type,
       help, default, dependency and vocabulary (whole, or the entries most relevant to

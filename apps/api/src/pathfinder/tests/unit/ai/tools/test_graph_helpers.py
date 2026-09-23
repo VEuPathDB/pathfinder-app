@@ -118,6 +118,14 @@ def test_a_step_wdk_refused_reports_no_estimated_size() -> None:
     assert response.wdk_push_error == "422 profileset_generic: Invalid value"
 
 
+def test_an_unnamed_combine_is_answered_under_its_operators_name() -> None:
+    graph = _with_a_pair_and_a_stray()
+
+    response = build_step_response(graph, graph.steps["c"])
+
+    assert response.display_name == "Intersect"
+
+
 class TestTheStrategyLineNamesWhatItCounted:
     """``count_summary`` states a size in the records the strategy holds."""
 

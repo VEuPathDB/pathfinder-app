@@ -35,6 +35,8 @@ class StrategyMutationContext:
 
     A write that joins those criteria at another operator is refused.
     """
+    criterion_texts: Mapping[str, str] = field(default_factory=dict)
+    """The researcher's words for each step the spec states, keyed by step id."""
     stated_values: Mapping[str, StatedCriterion] = field(default_factory=dict)
     """The values the spec's criteria state, keyed by criterion id.
 

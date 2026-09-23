@@ -20,7 +20,7 @@ from pathfinder.persistence.repositories.conversation_update import (
 )
 from pathfinder.services.gene_sets.operations import EmptyGeneSetError
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
-from pathfinder.services.strategies.auto_import import auto_import_gene_sets
+from pathfinder.services.strategies.auto_import import auto_import_gene_set
 
 
 @dataclass
@@ -104,14 +104,15 @@ async def _run(
     conversation = thread[0]
     repo = _StubRepo()
     svc = _StubGeneSetService(resolved=resolved)
-    created = await auto_import_gene_sets(
-        [thread],
+    created = await auto_import_gene_set(
+        thread,
+        name="Kinases expressed in gametocytes",
         conv_repo=repo,
         gene_set_service=svc,
         site_id="plasmodb",
         user_id=conversation.user_id,
     )
-    return repo, created
+    return repo, [] if created is None else [created]
 
 
 async def test_empty_result_creates_nothing_and_does_not_latch() -> None:
@@ -131,3 +132,12 @@ async def test_non_empty_result_imports_and_latches() -> None:
     assert conversation_id == thread[0].id
     assert upd.gene_set_auto_imported is True
     assert upd.gene_set_id == created[0].id
+
+
+async def test_the_set_takes_the_name_the_caller_gives() -> None:
+    thread = _thread()
+    thread[0].name = ""
+
+    _repo, created = await _run(thread, ["PF3D7_0100100"])
+
+    assert [gs.name for gs in created] == ["Kinases expressed in gametocytes"]

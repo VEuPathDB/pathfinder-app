@@ -85,7 +85,6 @@ async def test_organism_multipick_survives_wdk_roundtrip(
                 db_session_factory=async_session_factory,
             ),
             root=root,
-            name="rt",
         )
         assert outcome.failed_steps == [], outcome.failed_steps
         wdk_strategy_id = outcome.wdk_strategy_id

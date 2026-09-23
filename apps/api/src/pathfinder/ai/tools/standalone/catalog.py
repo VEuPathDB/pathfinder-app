@@ -12,11 +12,16 @@ from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import VEuPathDBError
 from veupathdb_mcp import ToolErrorPayload, catalog, tool_payloads
-from veupathdb_mcp.catalog import UNIVERSAL_SEARCHES, VagueSearchQueryError
+from veupathdb_mcp.catalog import UNIVERSAL_SEARCHES, SearchMatch, VagueSearchQueryError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 
 logger = get_logger(__name__)
+
+# Mirrors the tool server's _MIN_SEMANTIC_SIM (0.35) and moves with it. A result
+# whose closest scored hit is under it says so; the number changes that
+# sentence and never refuses a search.
+_FAINT_MATCH = 0.35
 
 
 class _PhyleticLookup(CamelModel):
@@ -62,9 +67,13 @@ async def search_for_searches(
 ) -> ToolReturn[list[JSONObject]]:
     """Find WDK searches by description and/or keywords.
 
-    Returns a ranked list with name, displayName, description, category,
-    what the search returns, and a relevance score (0-1, higher is better).
-    Prefer searches with higher relevance scores.
+    Returns a ranked list with name, displayName, description, category and
+    what the search returns. ``relevance`` is relative to the best hit, so the
+    top hit reads 1.0 however weak it is. ``semanticSimilarity`` is the
+    absolute cosine of the query against the search: read it to tell a match
+    from the best of nothing. When no search states the query closely, when
+    nothing matched, or when the ranking is by keyword only, the first entry
+    is a note that says which.
 
     Args:
         ctx: Agent run context.
@@ -97,6 +106,7 @@ async def search_for_searches(
             status="warn",
         )
     results: list[JSONObject] = cast("list[JSONObject]", [m.to_dict() for m in matches])
+    note = _ranking_note(matches, ctx.deps.site_id, query)
 
     # The reader's number is what the query ranked, not the universal searches
     # every result list carries.
@@ -112,6 +122,8 @@ async def search_for_searches(
     ctx.deps.agent_state.record_catalog_searches(
         [str(r["name"]) for r in results if "name" in r]
     )
+    if note is not None:
+        results.insert(0, {"note": note})
 
     return with_summary(
         results,
@@ -119,6 +131,40 @@ async def search_for_searches(
         ctx=ctx,
         status="ok" if found else "empty",
     )
+
+
+def _ranking_note(matches: list[SearchMatch], site_id: str, query: str) -> str | None:
+    """The sentence that states how close the ranking came, or None when close.
+
+    A hit the index did not score says nothing about closeness, so only the
+    scored hits are measured against the floor.
+    """
+    scored = [
+        m.semantic_similarity for m in matches if m.semantic_similarity is not None
+    ]
+    best = max(scored, default=None)
+    logger.info(
+        "Searches ranked",
+        query=query,
+        hits=len(matches),
+        scored=len(scored),
+        best_similarity=best,
+    )
+    if not matches:
+        return (
+            f"No search on {site_id} matched '{query}'; only the searches every "
+            f"site offers are listed."
+        )
+    if best is None:
+        return (
+            "The semantic index scored none of these results; the ranking is by "
+            "keyword only."
+        )
+    if best < _FAINT_MATCH:
+        return (
+            f"No search on {site_id} states '{query}' closely; the nearest are listed."
+        )
+    return None
 
 
 async def browse_search_categories(

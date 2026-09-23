@@ -1,6 +1,7 @@
 import type { Step, Strategy } from "@pathfinder/shared";
 import { findParent } from "./utils";
 import { patchSteps } from "./_patch";
+import { operatorName } from "@/features/strategy/graph/utils/stepTitle";
 import type { GraphOperation } from "@/lib/types/graphOperation";
 import type { ApplyResult } from "./types";
 
@@ -98,7 +99,7 @@ export function applyDuplicateStep(
   const combine: Step = {
     id: op.combineStepId,
     kind: "combine",
-    displayName: op.combineDisplayName ?? "INTERSECT combine",
+    displayName: op.combineDisplayName ?? operatorName("INTERSECT"),
     operator: "INTERSECT",
     recordType: source.recordType ?? null,
     primaryInputStepId: op.sourceStepId,

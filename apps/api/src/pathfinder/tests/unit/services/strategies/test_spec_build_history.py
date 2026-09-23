@@ -45,8 +45,8 @@ async def test_the_replaced_strategy_is_recoverable() -> None:
         graph,
         _leaf("step_new", "P. falciparum 3D7"),
         sync_state=WDKSyncState(),
-        name=None,
         description=None,
+        criterion_texts={},
     )
 
     assert len(graph.history) == before + 1
@@ -59,8 +59,8 @@ async def test_the_history_entry_holds_the_pre_rebuild_shape() -> None:
         graph,
         _leaf("step_new", "P. falciparum 3D7"),
         sync_state=WDKSyncState(),
-        name=None,
         description=None,
+        criterion_texts={},
     )
 
     restored = graph.history[-1].strategy_ast
@@ -78,8 +78,8 @@ async def test_the_new_spec_is_what_the_graph_holds_afterwards() -> None:
         graph,
         _leaf("step_new", "P. falciparum 3D7"),
         sync_state=WDKSyncState(),
-        name=None,
         description=None,
+        criterion_texts={},
     )
 
     assert sorted(graph.steps) == ["step_new"]
@@ -93,8 +93,8 @@ async def test_building_into_an_empty_graph_records_nothing_to_undo() -> None:
         graph,
         _leaf("step_new", "P. falciparum 3D7"),
         sync_state=WDKSyncState(),
-        name=None,
         description=None,
+        criterion_texts={},
     )
 
     assert graph.history == []

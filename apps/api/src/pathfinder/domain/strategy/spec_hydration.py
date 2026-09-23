@@ -22,6 +22,7 @@ from pathfinder.domain.strategy.operational_spec import (
     structure_criteria,
 )
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
+from pathfinder.domain.strategy.step_words import StepWords
 
 __all__ = [
     "hidden_params_dropped",
@@ -36,11 +37,13 @@ def spec_from_ast(ast: StrategyAst, *, goal: str) -> OperationalSpec:
 
     One criterion per non-combine node, keyed on the node's step id, holding
     the parameters the node carries. The structure mirrors the tree. The
-    criterion text is the step's label, so no code may derive a value from it.
+    criterion text is the researcher's words the strategy stored for the step,
+    else its label, so no code may derive a value from it.
     """
     seed_id = _deepest_primary_leaf(ast.root).id
     criteria: list[Criterion] = []
-    structure = _structure_of(ast.root, seed_id, criteria)
+    words = StepWords.of(ast).criterion_texts
+    structure = _structure_of(ast.root, seed_id, criteria, words)
     return OperationalSpec(
         goal=goal,
         title=ast.name or "",
@@ -138,15 +141,16 @@ def _structure_of(
     node: StrategyStepNode,
     seed_id: str,
     criteria: list[Criterion],
+    words: Mapping[str, str],
 ) -> StructureNode:
     kind = node.infer_kind()
-    inputs = [_structure_of(child, seed_id, criteria) for child in node.inputs()]
+    inputs = [_structure_of(child, seed_id, criteria, words) for child in node.inputs()]
     if kind == "combine":
         return StructureNode(kind="combine", operator=node.operator, inputs=inputs)
     criteria.append(
         Criterion(
             id=node.id,
-            text=node.display_name or f"{node.search_name} step",
+            text=words.get(node.id) or node.display_name or f"{node.search_name} step",
             search_name=node.search_name,
             role=_role_of(node.id, kind, seed_id),
             resolved_params=dict(node.parameters),

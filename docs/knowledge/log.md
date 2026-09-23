@@ -2,6 +2,58 @@
 
 ## 2026-09-23
 
+* **A step says what runs.** A request for a property no site search states
+  was bound to the nearest search, titled with the request's words and reported
+  in them. `set_criterion` returns `whatRuns` (the search's name, and its summary
+  once bound) and the pinned sheet heading carries both; FRAME binds a search
+  only if its summary states the criterion and asks otherwise.
+  `search_for_searches` says when no scored hit reaches `_FAINT_MATCH` (0.35),
+  says the ranking is by keyword only when the index scored no hit, and logs
+  the query with its best similarity. A leaf or transform is titled by its
+  search's display name, with the criterion's words as `criterionText`
+  (stored in the AST `metadata`, drawn as the node subtitle and in the step
+  editor). A build and an edit record `addedSearches`, and the turn contract
+  refuses once a reply that does not name each one. A strategy re-imported
+  from WDK (`upsert_chat`, `build_snapshot_from_wdk`) carries no `StepWords`,
+  so its steps show no subtitle and the reply rule skips them. Eval case
+  `a-search-the-site-lacks-is-named-or-asked` pins it. See
+  [a-step-says-what-runs](decisions/a-step-says-what-runs.md).
+
+* **veupathdb-mcp v0.2.0a23.** The pin moves in `apps/api/pyproject.toml`, both
+  compose build contexts and `publish-images.yml`; pathfinder-api is 0.2.0a12.
+  `SearchMatch.semantic_similarity` is the absolute cosine, `relevance` is
+  relative to the best hit, and a query that matches nothing returns no match.
+
+* **A combine is named by its operator.** WDK names a step it receives without
+  a name after its search, so every combine PathFinder pushed read as
+  `boolean_question_TranscriptRecordClasses_TranscriptRecordClass` on the site.
+  `domain/strategy/combine_naming.py` gives a combine no researcher named the
+  canvas label of its operator ("Intersect", "Union", "Minus", "Minus
+  (reversed)", "Left only", "Right only", "Colocated"): at every construction
+  site, on an operator change, at push time, and at commit for a combine pushed
+  without one. `packages/spec/operations_parity.json` `combine_labels` holds the
+  labels and both suites assert them. The site read keeps no name equal to the
+  step's search name, and the canvas treats an operator label as no name. A
+  stored "<OPERATOR> combine" name the old canvas generated is replaced too.
+
+* **A strategy has one name, and the thread holds it.** The graph takes the
+  conversation's name before the stored AST's, and
+  `services/strategies/naming.py::rename_strategy_everywhere` writes the
+  conversation, the AST, the auto-imported gene set and WDK for the first title,
+  a sidebar rename and the agent's `rename_strategy`. A push sends a name WDK
+  lags on (`WDKSyncState.wdk_strategy_name`, read before every push), an import
+  from WDK names only an unnamed thread, a duplicate's AST and a branch's AST
+  and WDK strategy carry the new thread's name, and a build takes no name. The
+  thread's lock covers the local writes only: the WDK rename runs after it,
+  bounded at 10 s, the title waits at most 10 s for the lock, and
+  `_write_title` logs any failure instead of ending the turn before `finish`. See
+  [one-name-for-a-strategy](decisions/one-name-for-a-strategy.md).
+
+* **An auto-imported gene set is named by the goal, then by the title.** The
+  first build names the set by the framed goal (first line, 60 characters) and a
+  rename moves a set that still holds a provisional name. `WDK Strategy <id>` is
+  left only as the import fallback after the root step's own name.
+
 * **A refused sign-in status keeps the shell.** A 503 `SITE_UNAVAILABLE` from
   `GET /api/v1/veupathdb/auth/status` was thrown by the shells'
   `useSuspenseQuery` to the outer boundary, so the user saw "Application error"

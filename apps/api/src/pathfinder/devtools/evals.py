@@ -117,10 +117,17 @@ async def _extract_now() -> int:
     return 0
 
 
+_BUILD_LABELS: dict[bool | None, str] = {
+    True: "builds",
+    False: "no build",
+    None: "either",
+}
+
+
 def _list_corpus() -> int:
     cases = load_corpus()
     for case in cases:
-        build = "builds" if case.expected.builds_strategy else "no build"
+        build = _BUILD_LABELS[case.expected.builds_strategy]
         print(f"{case.name:52} {case.site_id:10} {build:9} {case.provenance.origin}")
     print(f"{len(cases)} case(s) in {CORPUS_DIR}")
     return 0

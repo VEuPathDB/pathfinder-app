@@ -15,6 +15,7 @@ from assistant_core.platform.types import JSONObject
 from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import VEuPathDBError
 
+from pathfinder.domain.strategy.combine_naming import name_the_combines
 from pathfinder.domain.strategy.revision import (
     parse_strategy_ast,
     without_wdk_ids,
@@ -123,6 +124,7 @@ async def materialize_strategy_snapshot(
     graph = session.graph
     if graph is None:
         return _plan_only(fresh)
+    name_the_combines(graph.steps.values())
     sync_state = ensure_sync_state(session)
     try:
         outcome = await push_steps_with_plan(

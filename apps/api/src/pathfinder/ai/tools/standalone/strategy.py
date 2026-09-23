@@ -83,7 +83,6 @@ async def build_strategy(
     ctx: RunContext[AgentDeps],
     root: StepTreePayload,
     *,
-    name: str | None = None,
     description: str | None = None,
     graph_id: str | None = None,
     base_revision: str | None = None,
@@ -117,7 +116,6 @@ async def build_strategy(
                 },
                 "secondaryInput": {"searchName": "C", "parameters": {...}},
             },
-            name="...",
         )
 
     To add a NEW set as a sibling of an existing tree, wrap the existing
@@ -145,7 +143,6 @@ async def build_strategy(
         outcome = await build_strategy_from_spec(
             deps=deps.to_strategy_context(),
             root=root,
-            name=name,
             description=description,
         )
     except ApplyError as exc:

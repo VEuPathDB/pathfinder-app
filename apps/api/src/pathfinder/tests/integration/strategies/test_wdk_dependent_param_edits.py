@@ -77,9 +77,7 @@ async def built_go_conv(
         conversation_id=conv_id,
         db_session_factory=async_session_factory,
     )
-    outcome = await build_strategy_from_spec(
-        deps=deps, root=go_term_leaf("GO:0004672"), name="go"
-    )
+    outcome = await build_strategy_from_spec(deps=deps, root=go_term_leaf("GO:0004672"))
     assert outcome.failed_steps == [], outcome.failed_steps
     assert outcome.wdk_strategy_id is not None
     created.append(outcome.wdk_strategy_id)

@@ -395,7 +395,15 @@ async def _write_title(
         return
     if not title:
         return
-    if not await name_conversation_if_unnamed(conversation_id, title=title):
+    try:
+        named = await name_conversation_if_unnamed(conversation_id, title=title)
+    except Exception:
+        # The next turn names the thread, so a failed write costs one chunk.
+        logger.exception(
+            "Naming the thread failed", conversation_id=str(conversation_id)
+        )
+        return
+    if not named:
         return
     await writer.write(
         conversation_title_event(title=title).model_dump(

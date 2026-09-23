@@ -17,6 +17,7 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     is_placeholder_name,
 )
 from pathfinder.domain.strategy.build_outcome import citable_count
+from pathfinder.domain.strategy.combine_naming import combine_name
 from pathfinder.domain.strategy.explain import explain_operation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_status import step_status
@@ -106,7 +107,11 @@ def build_step_response(
     return StepResponse(
         id=step.id,
         kind=step.kind.value,
-        display_name=step.display_label,
+        display_name=(
+            combine_name(step.display_name, step.search_name, step.operator)
+            or step.display_label
+        ),
+        criterion_text=graph.criterion_texts.get(step.id) if graph else None,
         search_name=step.search_name,
         record_type=record_type,
         parameters=step.parameters or None,

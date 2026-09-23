@@ -96,7 +96,7 @@ async def built_union(
         primary_input=_text_leaf("kinase", "kinase"),
         secondary_input=_text_leaf("phosphatase", "phosphatase"),
     )
-    outcome = await build_strategy_from_spec(deps=deps, root=root, name="val")
+    outcome = await build_strategy_from_spec(deps=deps, root=root)
     assert outcome.failed_steps == [], outcome.failed_steps
     assert outcome.wdk_strategy_id is not None
     created.append(outcome.wdk_strategy_id)

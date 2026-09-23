@@ -16,17 +16,6 @@ from pathfinder.services.strategies.sync_state import WDKSyncState
 logger = get_logger(__name__)
 
 
-async def fetch_wdk_strategy_step_ids(site_id: str, wdk_strategy_id: int) -> set[int]:
-    """Return the set of WDK step IDs currently in `wdk_strategy_id`'s tree.
-
-    Raises `VEuPathDBError` if WDK is unreachable; callers decide whether
-    that is fatal or merely "skip reconciliation, proceed with stale state".
-    """
-    api = get_strategy_api(site_id)
-    detail = await api.get_strategy(wdk_strategy_id)
-    return {node.step_id for node in walk_wdk_step_tree(detail.step_tree)}
-
-
 async def reconcile_sync_state_with_wdk(
     sync_state: WDKSyncState,
     site_id: str,
@@ -35,14 +24,15 @@ async def reconcile_sync_state_with_wdk(
     """Drop locally-tracked wdk_step_ids that are not in WDK's actual tree.
 
     Self-heals from prior partial-failure corruption and out-of-band
-    deletes. If the WDK GET fails (network, 404, etc.) the function logs
-    and returns - better to push with possibly-stale state than to fail
-    the whole patch because reconciliation could not run.
+    deletes, and records the name WDK holds. If the WDK GET fails (network,
+    404, etc.) the function logs and returns - better to push with
+    possibly-stale state than to fail the whole patch because reconciliation
+    could not run.
     """
     if wdk_strategy_id is None or not sync_state.wdk_step_ids:
         return
     try:
-        live_ids = await fetch_wdk_strategy_step_ids(site_id, wdk_strategy_id)
+        detail = await get_strategy_api(site_id).get_strategy(wdk_strategy_id)
     except (VEuPathDBError, OSError) as exc:
         logger.warning(
             "WDK reconciliation read failed; proceeding with stale sync_state",
@@ -51,6 +41,8 @@ async def reconcile_sync_state_with_wdk(
         )
         return
 
+    sync_state.wdk_strategy_name = detail.name
+    live_ids = {node.step_id for node in walk_wdk_step_tree(detail.step_tree)}
     dropped = {
         local: wdk
         for local, wdk in sync_state.wdk_step_ids.items()

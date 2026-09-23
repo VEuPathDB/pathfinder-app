@@ -90,6 +90,47 @@ class TestAShapeChangedOnTheSite:
             {**WDK, "555": 555, "600": 600},
         )
 
+    @pytest.mark.parametrize(
+        ("site_name", "stored_name"),
+        [
+            ("boolean_question_transcript", None),
+            ("Exported minus SignalP", "Exported minus SignalP"),
+        ],
+    )
+    async def test_a_combine_added_on_the_site_keeps_only_a_given_name(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        site_name: str,
+        stored_name: str | None,
+    ) -> None:
+        """WDK names an unnamed step after its search, which is no name."""
+        site = the_site(
+            tree={
+                "stepId": 600,
+                "primaryInput": {
+                    "stepId": WDK[JOIN],
+                    "primaryInput": {"stepId": WDK[EXPORT]},
+                    "secondaryInput": {"stepId": WDK[TAXON]},
+                },
+                "secondaryInput": {"stepId": 555},
+            },
+            extra={
+                "555": site_step(555, "GenesBySignalP", {"min_signalp": "7"}, 900),
+                "600": site_step(
+                    600,
+                    "boolean_question_transcript",
+                    {"bq_operator": "MINUS"},
+                    1,
+                    name=site_name,
+                ),
+            },
+        )
+        repo = install_the_site(monkeypatch, site)
+
+        await refresh(repo)
+
+        assert repo.stored.root.display_name == stored_name
+
     async def test_a_step_replaced_on_the_site_by_another_search_is_replaced(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:

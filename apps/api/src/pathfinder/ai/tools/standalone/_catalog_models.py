@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from veupathdb import strip_html_tags
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import read_search_definition
 
@@ -23,6 +24,16 @@ def _search_overview_of(search: WDKSearch, record_type: str) -> SearchOverview:
             if not p.allow_empty_value or p.min_selected_count >= 1
         ],
     )
+
+
+def search_display_name(search: WDKSearch) -> str:
+    """The name the site shows for the search, as plain text."""
+    return strip_html_tags(search.display_name) or search.url_segment
+
+
+def what_it_finds(search: WDKSearch) -> str:
+    """The site's one-line summary of the search, as plain text."""
+    return " ".join(strip_html_tags(search.summary or search.description).split())
 
 
 def register_search(state: AgentToolState, search: WDKSearch, record_type: str) -> None:

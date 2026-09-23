@@ -38,6 +38,7 @@ from pathfinder.evals.distance import tree_from_ast
 from pathfinder.evals.scoring import (
     ObservedOutcome,
     score_case,
+    step_titles,
     structure_signature,
 )
 from pathfinder.evals.store import load_corpus
@@ -94,6 +95,7 @@ async def observe(
         verified=await _verification_verdict(conversation_id),
         step_ids_unchanged=step_ids_unchanged,
         tree=tree_from_ast(ast) if ast is not None else None,
+        step_titles=step_titles(ast) if ast is not None else [],
         reply_text=reply_text,
     )
 

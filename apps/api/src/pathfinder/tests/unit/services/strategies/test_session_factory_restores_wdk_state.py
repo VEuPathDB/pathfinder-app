@@ -69,3 +69,31 @@ def test_a_stored_push_error_survives_the_load_and_leaves_the_tree_unrecorded() 
 
     assert state.wdk_step_tree is None
     assert state.wdk_push_errors == {"step_b": "HTTP 422 from WDK"}
+
+
+def _named(conversation_name: str, ast_name: str | None) -> str:
+    persisted = _persisted(None)
+    assert persisted.strategy_ast is not None
+    persisted = persisted.model_copy(
+        update={
+            "name": conversation_name,
+            "strategy_ast": persisted.strategy_ast.model_copy(
+                update={"name": ast_name}
+            ),
+        }
+    )
+    session = build_strategy_session(site_id="plasmodb", strategy_graph=persisted)
+    assert session.graph is not None
+    return session.graph.name
+
+
+def test_the_graph_carries_the_threads_name_over_the_stored_one() -> None:
+    assert _named("Kinase hunt", "New Conversation") == "Kinase hunt"
+
+
+def test_an_unnamed_thread_keeps_the_stored_name() -> None:
+    assert _named("", "Kinase hunt") == "Kinase hunt"
+
+
+def test_a_thread_and_a_strategy_with_no_name_take_the_default() -> None:
+    assert _named("", None) == "New Conversation"

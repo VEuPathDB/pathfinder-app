@@ -37,7 +37,7 @@ nodes, not re-authoring the whole strategy.
 ## Tool Reference
 
 ### Build / edit
-- ``build_strategy(root, name?, description?, graph_id?, base_revision?)`` \
+- ``build_strategy(root, description?, graph_id?, base_revision?)`` \
 - Materialize the WHOLE strategy from a single declarative \
 ``StrategyStepNode`` tree. Use it to build from nothing. Replacing a \
 strategy that already has steps requires ``base_revision`` from \

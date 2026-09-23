@@ -13,7 +13,9 @@ from veupathdb.domain.strategy import (
     flatten_tree,
 )
 
+from pathfinder.domain.strategy.combine_naming import combine_name
 from pathfinder.domain.strategy.step_status import StepStatus, step_status
+from pathfinder.domain.strategy.step_words import StepWords
 
 
 class StepResponse(CamelModel):
@@ -22,6 +24,8 @@ class StepResponse(CamelModel):
     id: str
     kind: str | None = None
     display_name: str | None = None
+    # The researcher's words the step stands for; the title names the search.
+    criterion_text: str | None = None
     search_name: str | None = None
     record_type: str | None = None
     parameters: dict[str, ParamValue] | None = None
@@ -62,7 +66,11 @@ def step_response_from_strategy_ast(
     return StepResponse(
         id=step.id,
         kind=step.infer_kind(),
-        display_name=step.display_label,
+        display_name=(
+            combine_name(step.display_name, step.search_name, step.operator)
+            or step.display_label
+        ),
+        criterion_text=StepWords.of(payload).criterion_texts.get(step.id),
         search_name=step.search_name,
         record_type=payload.record_type,
         parameters=step.parameters,

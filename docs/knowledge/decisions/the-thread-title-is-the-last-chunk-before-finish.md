@@ -71,6 +71,15 @@ whose user text is non-empty, and `name_conversation_if_unnamed` writes only whe
 the thread has no name, so the next turn names it. `POST /conversations/{id}/begin`
 also generates a title of its own when the thread is created.
 
+Writing the title is bounded the same way. `name_conversation_if_unnamed` waits
+at most 10 s (`LOCK_WAIT_SECONDS`) for the thread's strategy lock and its local
+writes (the thread, the stored strategy, the auto-imported gene set), releases
+the lock, and then sends the name to WDK under its own 10 s bound
+(`naming.WDK_RENAME_SECONDS`), catching every failure there. `_write_title`
+catches any failure of the write and logs it, so the worst case before `finish`
+is 15 + 10 + 10 s, and a write that fails or times out costs one title chunk:
+the next turn names the thread, and the next push sends the name to WDK.
+
 # What would change this
 
 The rule belongs in the protocol, not only in this runner. `PROTOCOL.md` states a

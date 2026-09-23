@@ -58,6 +58,14 @@ class RecordingAPI:
     def named(self, name: str) -> list[Call]:
         return [c for c in self.calls if c.name == name]
 
+    async def update_step_properties(
+        self, step_id: int, spec: object, *, user_id: str | None = None
+    ) -> None:
+        del user_id
+        self.calls.append(
+            Call("update_step_properties", {"step_id": step_id, "spec": spec})
+        )
+
     async def delete_step(self, step_id: int, *, user_id: str | None = None) -> None:
         del user_id
         self.calls.append(Call("delete_step", {"step_id": step_id}))

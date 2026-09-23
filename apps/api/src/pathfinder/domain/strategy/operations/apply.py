@@ -13,6 +13,7 @@ from veupathdb.domain.strategy import (
     subtree_ids,
 )
 
+from pathfinder.domain.strategy.combine_naming import combine_name
 from pathfinder.domain.strategy.operations._delete import (
     _apply_delete_edge,
     _apply_delete_step,
@@ -120,6 +121,9 @@ def _apply_add_combine(graph: StrategyGraph, op: AddCombineOp) -> ApplyResult:
     combine = _step_from_node(op.step, StepKind.COMBINE)
     combine.primary_input_id = op.left_id
     combine.secondary_input_id = op.right_id
+    combine.display_name = combine_name(
+        combine.display_name, combine.search_name, combine.operator
+    )
     graph.steps[combine.id] = combine
     _settle(graph, combine.id)
     return ApplyResult(description=f"Combined {op.left_id} and {op.right_id}")
@@ -203,6 +207,9 @@ def _apply_update_combine_operator(
     target = _require(graph, op.step_id, "step")
     target.operator = op.operator
     target.colocation_params = op.colocation_params
+    target.display_name = combine_name(
+        target.display_name, target.search_name, op.operator
+    )
     return ApplyResult(
         description=f"Set operator of {op.step_id} to {op.operator.value}"
     )
@@ -249,7 +256,7 @@ def _apply_duplicate_step(
         primary_input_id=source.id,
         secondary_input_id=duplicate.id,
         operator=CombineOp.INTERSECT,
-        display_name=op.combine_display_name,
+        display_name=combine_name(op.combine_display_name, None, CombineOp.INTERSECT),
     )
 
     parent_info = graph.parent_of(op.source_step_id)

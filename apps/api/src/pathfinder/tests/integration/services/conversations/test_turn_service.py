@@ -9,8 +9,14 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
-from pathfinder.persistence.models import ConversationStrategyView, User
+from pathfinder.persistence.models import (
+    ConversationStrategy,
+    ConversationStrategyView,
+    User,
+)
+from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
@@ -141,3 +147,24 @@ async def test_naming_a_revision_binds_it_to_the_turn_message(
         )
     assert named is not None
     assert named.id == revision.id
+
+
+async def test_the_title_reaches_the_stored_strategy(db_session: AsyncSession) -> None:
+    conversation = await _thread(db_session)
+    db_session.add(
+        ConversationStrategy(
+            conversation_id=conversation.id,
+            strategy_ast=StrategyAst(
+                record_type="transcript",
+                name="New Conversation",
+                root=StrategyStepNode(id="step_a", search_name="GenesByTaxon"),
+            ).model_dump(by_alias=True, exclude_none=True, mode="json"),
+        )
+    )
+    await db_session.commit()
+
+    await name_conversation_if_unnamed(conversation.id, title="Kinase hunt")
+
+    async with async_session_factory() as session:
+        stored = await ConversationRepository(session).get_strategy(conversation.id)
+    assert stored.strategy_ast.get("name") == "Kinase hunt"

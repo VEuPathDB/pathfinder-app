@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a11"
+    "version": "0.2.0a12"
   },
   "paths": {
     "/health": {
@@ -15948,6 +15948,17 @@
             ],
             "title": "Displayname"
           },
+          "criterionText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criteriontext"
+          },
           "searchName": {
             "anyOf": [
               {
@@ -19522,6 +19533,17 @@
             "default": "",
             "title": "Searchname",
             "type": "string"
+          },
+          "searchDisplayName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Searchdisplayname"
           },
           "savedStrategyRef": {
             "anyOf": [

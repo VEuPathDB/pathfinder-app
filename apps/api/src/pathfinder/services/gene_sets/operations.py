@@ -182,6 +182,12 @@ class GeneSetService:
             raise NotFoundError(detail=msg)
         return refreshed
 
+    async def rename(self, gene_set: GeneSet, name: str) -> None:
+        """Write a new name on the set, durable before the call returns."""
+        gene_set.name = name
+        self._store.save(gene_set)
+        await self.flush(gene_set.id)
+
     async def record_vdi_publication(
         self, gene_set: GeneSet, vdi_id: str | None
     ) -> None:

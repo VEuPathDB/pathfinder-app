@@ -54,3 +54,36 @@ describe("EditorHeader kind badge", () => {
     );
   });
 });
+
+describe("EditorHeader subtitle", () => {
+  it("shows the request's words beneath the name of the search that runs", () => {
+    render(
+      <EditorHeader
+        step={{
+          ...STEP,
+          displayName: "Exported Protein",
+          criterionText: "genes with a predicted GPI anchor",
+        }}
+        kind="search"
+        stepNumber={1}
+        onRename={() => {}}
+        onDelete={() => {}}
+        onDuplicate={() => {}}
+        onCopyUrl={() => {}}
+        onSaveAsReusable={() => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("Step name")).toHaveValue("Exported Protein");
+    expect(screen.getByTestId("step-editor-subtitle")).toHaveTextContent(
+      "genes with a predicted GPI anchor",
+    );
+  });
+
+  it("shows no subtitle for a step that carries no words", () => {
+    renderHeader("search");
+
+    expect(screen.getByLabelText("Step name")).toHaveValue("Genes by taxon");
+    expect(screen.queryByTestId("step-editor-subtitle")).toBeNull();
+  });
+});

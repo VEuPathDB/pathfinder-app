@@ -13,6 +13,10 @@ from veupathdb_mcp.catalog import (
 )
 
 from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.tools.standalone._catalog_models import (
+    search_display_name,
+    what_it_finds,
+)
 from pathfinder.ai.tools.standalone._frame_proposals import (
     ParamProposals,
     _CriterionCall,
@@ -85,4 +89,7 @@ def _open_sheet(
         format_param_info_typed(definition.parameters or []),
         query=state.operational_spec_draft.goal,
     )
-    return state.pin_sheet(criterion_id, search_name, entries).params_template()
+    runs = f"{search_display_name(definition)}: {what_it_finds(definition)}"
+    return state.pin_sheet(
+        criterion_id, search_name, entries, what_runs=runs
+    ).params_template()
