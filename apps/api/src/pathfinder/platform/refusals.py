@@ -14,7 +14,7 @@ from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import AgentDepsT, RunContext, ToolDefinition
 
 from pathfinder.platform.durable_worker import DurableCallsRefused
-from pathfinder.platform.errors import AppError
+from pathfinder.platform.errors import AppError, ProviderKeyError
 
 _NOT_FOUND_STATUS = 404
 _SERVER_ERROR_STATUS = 500
@@ -24,7 +24,7 @@ _IDENTITY_STATUSES = frozenset({401, 403})
 # The tool that lists the ids each caller-supplied argument can hold.
 LISTS_THE_IDS: Mapping[str, str] = {
     "control_set_id": "list_control_sets",
-    "gene_set_id": "list_workbench_gene_sets",
+    "gene_set_id": "list_gene_sets",
 }
 
 
@@ -49,9 +49,14 @@ def _unknown_id_guidance(args: dict[str, Any], stated: str) -> str:
 
 
 def the_model_can_correct(error: AppError) -> bool:
-    """Whether another call with other arguments can pass this refusal."""
+    """Whether another call with other arguments can pass this refusal.
+
+    No argument pays for a model that no key may pay for.
+    """
     return (
-        error.status < _SERVER_ERROR_STATUS and error.status not in _IDENTITY_STATUSES
+        error.status < _SERVER_ERROR_STATUS
+        and error.status not in _IDENTITY_STATUSES
+        and not isinstance(error, ProviderKeyError)
     )
 
 

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Pathfinder API
   description: VEuPathDB Strategy Builder Chatbot API
-  version: 0.2.0a14
+  version: 0.2.0a15
 paths:
   /health:
     get:
@@ -374,152 +374,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/sites/{siteId}/organisms:
-    get:
-      tags:
-      - sites
-      summary: Get Organisms
-      operationId: get_organisms_api_v1_sites__siteId__organisms_get
-      parameters:
-      - name: siteId
-        in: path
-        required: true
-        schema:
-          type: string
-          minLength: 1
-          maxLength: 50
-          title: Siteid
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OrganismsResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/sites/{siteId}/genes/search:
-    get:
-      tags:
-      - sites
-      summary: Search Genes
-      operationId: search_genes_api_v1_sites__siteId__genes_search_get
-      parameters:
-      - name: siteId
-        in: path
-        required: true
-        schema:
-          type: string
-          minLength: 1
-          maxLength: 50
-          title: Siteid
-      - name: q
-        in: query
-        required: false
-        schema:
-          type: string
-          default: ''
-          title: Q
-      - name: organism
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Organism
-      - name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 50
-          title: Limit
-      - name: offset
-        in: query
-        required: false
-        schema:
-          type: integer
-          default: 0
-          title: Offset
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GeneSearchResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/sites/{siteId}/genes/resolve:
-    post:
-      tags:
-      - sites
-      summary: Resolve Genes
-      operationId: resolve_genes_api_v1_sites__siteId__genes_resolve_post
-      parameters:
-      - name: siteId
-        in: path
-        required: true
-        schema:
-          type: string
-          minLength: 1
-          maxLength: 50
-          title: Siteid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GeneResolveRequest'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GeneResolveResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/sites/{siteId}/strategies:
     get:
       tags:
@@ -582,11 +436,11 @@ paths:
 
         catalog''s hardcoded values act as a fallback for models the upstream
 
-        library doesn''t yet track. Models whose provider has no API key are
+        library doesn''t yet track. A model whose provider the deployment does not
 
-        returned with ``enabled: false`` so the frontend can render them as
+        pay for is returned with ``enabled: false``; a researcher''s own key is read
 
-        disabled in the picker.'
+        from ``/api/v1/me/provider-keys``, because this route answers before sign-in.'
       operationId: list_models_api_v1_models_get
       responses:
         '200':
@@ -1377,6 +1231,141 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/conversations/{conversation_id}/messages/{message_id}/rating:
+    put:
+      tags:
+      - conversations
+      summary: Like or dislike one assistant message; the latest rating wins.
+      operationId: rate_message_api_v1_conversations__conversation_id__messages__message_id__rating_put
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Conversation Id
+      - name: message_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Message Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageRatingRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatedMessage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+    delete:
+      tags:
+      - conversations
+      summary: Take back the rating of one assistant message.
+      operationId: clear_message_rating_api_v1_conversations__conversation_id__messages__message_id__rating_delete
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Conversation Id
+      - name: message_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Message Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/conversations/{conversation_id}/ratings:
+    get:
+      tags:
+      - conversations
+      summary: The rated messages of the conversation.
+      operationId: list_message_ratings_api_v1_conversations__conversation_id__ratings_get
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: conversation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Conversation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatedMessageList'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/conversations/{conversation_id}/revert-to-message:
     post:
       tags:
@@ -1875,154 +1864,16 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/experiments:
+  /api/v1/seed:
     post:
       tags:
-      - experiments
-      summary: Create Experiment
-      description: Create and run an experiment, streaming typed progress events directly.
-      operationId: create_experiment_api_v1_experiments_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateExperimentRequest'
-      responses:
-        '200':
-          description: Server-sent event stream.
-          content:
-            application/json:
-              schema: {}
-            text/event-stream:
-              schema:
-                type: string
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/experiments/batch:
-    post:
-      tags:
-      - experiments
-      summary: Create Batch Experiment
-      description: Run the same search across multiple organisms, streaming progress directly.
-      operationId: create_batch_experiment_api_v1_experiments_batch_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateBatchExperimentRequest'
-      responses:
-        '200':
-          description: Server-sent event stream.
-          content:
-            application/json:
-              schema: {}
-            text/event-stream:
-              schema:
-                type: string
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/experiments/benchmark:
-    post:
-      tags:
-      - experiments
-      summary: Create Benchmark
-      description: Run the same strategy against multiple control sets, streaming progress directly.
-      operationId: create_benchmark_api_v1_experiments_benchmark_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateBenchmarkRequest'
-      responses:
-        '200':
-          description: Server-sent event stream.
-          content:
-            application/json:
-              schema: {}
-            text/event-stream:
-              schema:
-                type: string
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/experiments/seed:
-    post:
-      tags:
-      - experiments
+      - seed
       summary: Seed Strategies
       description: 'Seed demo strategies and control sets across VEuPathDB sites.
 
 
         With a site id, only seeds for that database are created.'
-      operationId: seed_strategies_api_v1_experiments_seed_post
+      operationId: seed_strategies_api_v1_seed_post
       security:
       - APIKeyCookie: []
       - HTTPBearer: []
@@ -2047,462 +1898,6 @@ paths:
             text/event-stream:
               schema:
                 type: string
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/experiments/{experiment_id}/custom-enrich:
-    post:
-      tags:
-      - experiments
-      summary: Custom Enrichment
-      description: Test enrichment of a custom gene set against the experiment results.
-      operationId: custom_enrichment_api_v1_experiments__experiment_id__custom_enrich_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: experiment_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Experiment Id
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CustomEnrichRequest'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CustomEnrichmentResult'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/experiments/{experiment_id}/threshold-sweep:
-    post:
-      tags:
-      - experiments
-      summary: Threshold Sweep
-      description: Sweep a parameter across a range and stream metrics as they complete.
-      operationId: threshold_sweep_api_v1_experiments__experiment_id__threshold_sweep_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: experiment_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Experiment Id
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ThresholdSweepRequest'
-      responses:
-        '200':
-          description: Server-sent event stream.
-          content:
-            application/json:
-              schema: {}
-            text/event-stream:
-              schema:
-                type: string
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/experiments/{experiment_id}/results/attributes:
-    get:
-      tags:
-      - experiments
-      summary: Get Experiment Attributes
-      description: Returns the available attributes for the experiment record type.
-      operationId: get_experiment_attributes_api_v1_experiments__experiment_id__results_attributes_get
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: experiment_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Experiment Id
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AttributesResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/experiments/{experiment_id}/results/records:
-    get:
-      tags:
-      - experiments
-      summary: Get Experiment Records
-      description: Returns one page of classified result records.
-      operationId: get_experiment_records_api_v1_experiments__experiment_id__results_records_get
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: experiment_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Experiment Id
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      - name: offset
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 0
-          default: 0
-          title: Offset
-      - name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-          maximum: 500
-          minimum: 1
-          default: 50
-          title: Limit
-      - name: sort
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Sort
-      - name: dir
-        in: query
-        required: false
-        schema:
-          enum:
-          - ASC
-          - DESC
-          type: string
-          default: ASC
-          title: Dir
-      - name: attributes
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Attributes
-      - name: filterAttribute
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Filterattribute
-      - name: filterValue
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Filtervalue
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecordsResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/experiments/{experiment_id}/results/record:
-    post:
-      tags:
-      - experiments
-      summary: Get Experiment Record Detail
-      description: Returns the full detail of one record, selected by primary key.
-      operationId: get_experiment_record_detail_api_v1_experiments__experiment_id__results_record_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: experiment_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Experiment Id
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RecordDetailRequest'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecordDetailResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/experiments/{experiment_id}/results/distributions/{attribute_name}:
-    get:
-      tags:
-      - experiments
-      summary: Get Experiment Distribution
-      description: Returns the distribution of one attribute from the byValue column reporter.
-      operationId: get_experiment_distribution_api_v1_experiments__experiment_id__results_distributions__attribute_name__get
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: attribute_name
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Attribute Name
-      - name: experiment_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Experiment Id
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DistributionResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/control-sets:
-    get:
-      tags:
-      - control-sets
-      summary: List Control Sets
-      description: List control sets visible to the current user.
-      operationId: list_control_sets_api_v1_control_sets_get
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      - name: tags
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Tags
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ControlSetResponse'
-                title: Response List Control Sets Api V1 Control Sets Get
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-    post:
-      tags:
-      - control-sets
-      summary: Create Control Set
-      description: Create a new control set.
-      operationId: create_control_set_api_v1_control_sets_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateControlSetRequest'
-      responses:
-        '201':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ControlSetResponse'
         '422':
           description: Validation Error
           content:
@@ -3043,49 +2438,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
   /api/v1/gene-sets:
-    post:
-      tags:
-      - gene-sets
-      summary: Create Gene Set
-      description: Create a new gene set.
-      operationId: create_gene_set_api_v1_gene_sets_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateGeneSetRequest'
-      responses:
-        '201':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GeneSetResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
     get:
       tags:
       - gene-sets
@@ -3123,56 +2475,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/gene-sets/{gene_set_id}/retake:
-    post:
-      tags:
-      - gene-sets
-      summary: Retake Gene Set
-      description: Replace a gene set's genes with what its source strategy holds now.
-      operationId: retake_gene_set_api_v1_gene_sets__gene_set_id__retake_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: gene_set_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Gene Set Id
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GeneSetResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
@@ -3299,516 +2601,6 @@ paths:
       - APIKeyCookie: []
       - HTTPBearer: []
       - APIKeyHeader: []
-  /api/v1/gene-sets/operations:
-    post:
-      tags:
-      - gene-sets
-      summary: Set Operations
-      description: Perform set operations (intersect, union, minus) between two gene sets.
-      operationId: set_operations_api_v1_gene_sets_operations_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SetOperationRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GeneSetResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-  /api/v1/gene-sets/reverse-search:
-    post:
-      tags:
-      - gene-sets
-      summary: Reverse Search
-      description: Rank the user's gene sets by how well they recover the given positive genes.
-      operationId: reverse_search_api_v1_gene_sets_reverse_search_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ReverseSearchRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/ReverseSearchResultItem'
-                type: array
-                title: Response Reverse Search Api V1 Gene Sets Reverse Search Post
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-  /api/v1/gene-sets/ensemble:
-    post:
-      tags:
-      - gene-sets
-      summary: Ensemble Scoring
-      description: Score genes by frequency across multiple gene sets.
-      operationId: ensemble_scoring_api_v1_gene_sets_ensemble_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EnsembleScoringRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/EnsembleScore'
-                type: array
-                title: Response Ensemble Scoring Api V1 Gene Sets Ensemble Post
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-  /api/v1/gene-sets/{gene_set_id}/enrich:
-    post:
-      tags:
-      - gene-sets
-      summary: Enrich Gene Set
-      description: Run enrichment analysis on a gene set.
-      operationId: enrich_gene_set_api_v1_gene_sets__gene_set_id__enrich_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: gene_set_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Gene Set Id
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GeneSetEnrichRequest'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/JSONObject'
-                title: Response Enrich Gene Set Api V1 Gene Sets  Gene Set Id  Enrich Post
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/gene-sets/{gene_set_id}/results/attributes:
-    get:
-      tags:
-      - gene-sets
-      summary: Get Gene Set Attributes
-      description: Get available attributes for a gene set's record type.
-      operationId: get_gene_set_attributes_api_v1_gene_sets__gene_set_id__results_attributes_get
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: gene_set_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Gene Set Id
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AttributesResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/gene-sets/{gene_set_id}/results/records:
-    get:
-      tags:
-      - gene-sets
-      summary: Get Gene Set Records
-      description: Get paginated result records for a gene set.
-      operationId: get_gene_set_records_api_v1_gene_sets__gene_set_id__results_records_get
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: gene_set_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Gene Set Id
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      - name: offset
-        in: query
-        required: false
-        schema:
-          type: integer
-          minimum: 0
-          default: 0
-          title: Offset
-      - name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-          maximum: 500
-          minimum: 1
-          default: 50
-          title: Limit
-      - name: sort
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Sort
-      - name: dir
-        in: query
-        required: false
-        schema:
-          enum:
-          - ASC
-          - DESC
-          type: string
-          default: ASC
-          title: Dir
-      - name: attributes
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Attributes
-      - name: filterAttribute
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Filterattribute
-      - name: filterValue
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Filtervalue
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecordsResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/gene-sets/{gene_set_id}/results/distributions/{attribute_name}:
-    get:
-      tags:
-      - gene-sets
-      summary: Get Gene Set Distribution
-      description: Get distribution data for an attribute using the byValue column reporter.
-      operationId: get_gene_set_distribution_api_v1_gene_sets__gene_set_id__results_distributions__attribute_name__get
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: gene_set_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Gene Set Id
-      - name: attribute_name
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Attribute Name
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DistributionResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/gene-sets/{gene_set_id}/results/record:
-    post:
-      tags:
-      - gene-sets
-      summary: Get Gene Set Record Detail
-      description: Get a single record's full details by primary key.
-      operationId: get_gene_set_record_detail_api_v1_gene_sets__gene_set_id__results_record_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: gene_set_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Gene Set Id
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RecordDetailRequest'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecordDetailResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/gene-sets/{gene_set_id}/experiments:
-    get:
-      tags:
-      - gene-sets
-      summary: List Gene Set Experiments
-      description: List this user's experiments on one gene set, newest first.
-      operationId: list_gene_set_experiments_api_v1_gene_sets__gene_set_id__experiments_get
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: gene_set_id
-        in: path
-        required: true
-        schema:
-          type: string
-          title: Gene Set Id
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Experiment'
-                title: Response List Gene Set Experiments Api V1 Gene Sets  Gene Set Id  Experiments Get
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-        '404':
-          description: Not Found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/gene-sets/confidence:
-    post:
-      tags:
-      - gene-sets
-      summary: Gene Confidence
-      description: Compute per-gene composite confidence scores from classification data.
-      operationId: gene_confidence_api_v1_gene_sets_confidence_post
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GeneConfidenceRequest'
-        required: true
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/GeneConfidenceScoreResponse'
-                type: array
-                title: Response Gene Confidence Api V1 Gene Sets Confidence Post
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/gene-sets/{gene_set_id}/vdi-publication:
     post:
       tags:
@@ -4378,6 +3170,146 @@ paths:
       - APIKeyCookie: []
       - HTTPBearer: []
       - APIKeyHeader: []
+  /api/v1/me/provider-keys:
+    get:
+      tags:
+      - me
+      summary: Get My Provider Keys
+      description: The stored keys by their last four characters, and who pays for what.
+      operationId: get_my_provider_keys_api_v1_me_provider_keys_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderKeysResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+  /api/v1/me/provider-keys/{provider}:
+    put:
+      tags:
+      - me
+      summary: Put My Provider Key
+      description: 'Check the key with the provider, then store it sealed in place of the last.
+
+
+        Each call spends on the key it names, so the route is rate limited.'
+      operationId: put_my_provider_key_api_v1_me_provider_keys__provider__put
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          enum:
+          - openai
+          - anthropic
+          - google
+          type: string
+          title: Provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderKeyIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderKeyView'
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '429':
+          description: Too Many Requests
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '503':
+          description: Service Unavailable
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+    delete:
+      tags:
+      - me
+      summary: Delete My Provider Key
+      description: Revoke the key. Its ciphertext is dropped and it is never read again.
+      operationId: delete_my_provider_key_api_v1_me_provider_keys__provider__delete
+      security:
+      - APIKeyCookie: []
+      - HTTPBearer: []
+      - APIKeyHeader: []
+      parameters:
+      - name: provider
+        in: path
+        required: true
+        schema:
+          enum:
+          - openai
+          - anthropic
+          - google
+          type: string
+          title: Provider
+      responses:
+        '204':
+          description: Successful Response
+        '403':
+          description: Forbidden
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '404':
+          description: Not Found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/me/privacy:
     get:
       tags:
@@ -4492,7 +3424,7 @@ components:
           title: Kind
           default: addCombine
         step:
-          $ref: '#/components/schemas/StrategyStepNode-Input'
+          $ref: '#/components/schemas/StrategyStepNode'
         leftId:
           type: string
           title: Leftid
@@ -4513,7 +3445,7 @@ components:
           title: Kind
           default: addLeaf
         step:
-          $ref: '#/components/schemas/StrategyStepNode-Input'
+          $ref: '#/components/schemas/StrategyStepNode'
         attach:
           oneOf:
           - $ref: '#/components/schemas/AttachNewRoot'
@@ -4537,7 +3469,7 @@ components:
           title: Kind
           default: addTransform
         step:
-          $ref: '#/components/schemas/StrategyStepNode-Input'
+          $ref: '#/components/schemas/StrategyStepNode'
         inputId:
           type: string
           title: Inputid
@@ -4553,6 +3485,38 @@ components:
       - inputId
       - mode
       title: AddTransformOp
+    AnalysisRationale:
+      properties:
+        kind:
+          type: string
+          const: analysis
+          title: Kind
+          default: analysis
+        datasetId:
+          type: string
+          title: Datasetid
+        method:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Method
+        term:
+          type: string
+          title: Term
+        reason:
+          type: string
+          title: Reason
+        short:
+          type: string
+          title: Short
+          default: ''
+      type: object
+      required:
+      - datasetId
+      - term
+      - reason
+      title: AnalysisRationale
+      description: 'Why an analysis step selects its genes: the compute its document holds.'
     ApplyOperationRequest:
       properties:
         op:
@@ -4621,21 +3585,6 @@ components:
           default: new-root
       type: object
       title: AttachNewRoot
-    AttributesResponse:
-      properties:
-        attributes:
-          items:
-            $ref: '#/components/schemas/RecordAttribute'
-          type: array
-          title: Attributes
-        recordType:
-          type: string
-          title: Recordtype
-      type: object
-      required:
-      - attributes
-      - recordType
-      title: AttributesResponse
     AuthStatusResponse:
       properties:
         signedIn:
@@ -4666,30 +3615,6 @@ components:
       - success
       title: AuthSuccessResponse
       description: Success response. Auth token is set via httpOnly cookie only.
-    BatchOrganismTargetRequest:
-      properties:
-        organism:
-          type: string
-          title: Organism
-        positiveControls:
-          anyOf:
-          - items:
-              type: string
-            type: array
-          - type: 'null'
-          title: Positivecontrols
-        negativeControls:
-          anyOf:
-          - items:
-              type: string
-            type: array
-          - type: 'null'
-          title: Negativecontrols
-      type: object
-      required:
-      - organism
-      title: BatchOrganismTargetRequest
-      description: Per-organism override for a cross-organism batch experiment.
     BeginConversationRequest:
       properties:
         siteId:
@@ -4697,11 +3622,6 @@ components:
           maxLength: 50
           minLength: 1
           title: Siteid
-        experimentId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Experimentid
         seedText:
           anyOf:
           - type: string
@@ -4736,52 +3656,6 @@ components:
       - isNew
       - name
       title: BeginConversationResponse
-    BenchmarkControlSet:
-      properties:
-        label:
-          type: string
-          minLength: 1
-          title: Label
-        positiveControls:
-          items:
-            type: string
-          type: array
-          title: Positivecontrols
-        negativeControls:
-          items:
-            type: string
-          type: array
-          title: Negativecontrols
-        controlSetId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Controlsetid
-        isPrimary:
-          type: boolean
-          title: Isprimary
-          default: false
-      type: object
-      required:
-      - label
-      - positiveControls
-      - negativeControls
-      title: BenchmarkControlSet
-      description: A single control set within a benchmark suite.
-    BootstrapResult:
-      properties:
-        nIterations:
-          type: integer
-          title: Niterations
-          default: 0
-        metricCis:
-          additionalProperties:
-            $ref: '#/components/schemas/ConfidenceInterval'
-          type: object
-          title: Metriccis
-      type: object
-      title: BootstrapResult
-      description: Robustness assessment via bootstrap resampling.
     BuildGoldRequest:
       properties:
         goldId:
@@ -4884,11 +3758,6 @@ components:
           type: string
           title: Mode
           default: strategy
-        experimentId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Experimentid
         phaseModels:
           additionalProperties:
             type: string
@@ -4910,7 +3779,7 @@ components:
 
         (``trigger``, ``id``, ``messages``) with PathFinder-scoped fields
 
-        (``conversationId``, ``siteId``, ``mode``, ``experimentId``) layered on
+        (``conversationId``, ``siteId``, ``mode``) layered on
 
         via ``body`` on the client transport. The authenticated user UUID still
 
@@ -4919,55 +3788,6 @@ components:
         ``UIMessage`` so deferred-tool approval-responded parts deserialize into
 
         the discriminated union and ``iter_tool_approval_responses`` works.'
-    Classification:
-      type: string
-      enum:
-      - TP
-      - FP
-      - FN
-      - TN
-    ClassifiedRecord:
-      properties:
-        displayName:
-          type: string
-          title: Displayname
-        id:
-          items:
-            $ref: '#/components/schemas/WDKRecordIdPart'
-          type: array
-          title: Id
-        recordClassName:
-          type: string
-          title: Recordclassname
-        attributes:
-          additionalProperties:
-            $ref: '#/components/schemas/JsonValue'
-          type: object
-          title: Attributes
-        tables:
-          additionalProperties:
-            $ref: '#/components/schemas/JsonValue'
-          type: object
-          title: Tables
-        tableErrors:
-          items:
-            type: string
-          type: array
-          title: Tableerrors
-        classification:
-          anyOf:
-          - $ref: '#/components/schemas/Classification'
-          - type: 'null'
-      type: object
-      required:
-      - displayName
-      - id
-      - recordClassName
-      - attributes
-      - tables
-      - tableErrors
-      title: ClassifiedRecord
-      description: WDK record plus optional TP/FP/FN/TN tag from experiment classification.
     ColocationParams:
       properties:
         operation:
@@ -5112,116 +3932,25 @@ components:
         WDK defines the same set. LONLY matches MINUS and RONLY matches RMINUS.
 
         Both names stay, for round-trip fidelity with WDK.'
-    ConfidenceInterval:
+    ComparedSearch:
       properties:
-        lower:
-          type: number
-          title: Lower
-          default: 0.0
-        mean:
-          type: number
-          title: Mean
-          default: 0.0
-        upper:
-          type: number
-          title: Upper
-          default: 0.0
-        std:
-          type: number
-          title: Std
-          default: 0.0
-      type: object
-      title: ConfidenceInterval
-      description: Bootstrap confidence interval for a single metric.
-    ConfusionMatrix:
-      properties:
-        truePositives:
-          type: integer
-          title: Truepositives
-        falsePositives:
-          type: integer
-          title: Falsepositives
-        trueNegatives:
-          type: integer
-          title: Truenegatives
-        falseNegatives:
-          type: integer
-          title: Falsenegatives
-      type: object
-      required:
-      - truePositives
-      - falsePositives
-      - trueNegatives
-      - falseNegatives
-      title: ConfusionMatrix
-      description: 2x2 confusion matrix counts.
-    ControlSetResponse:
-      properties:
-        id:
-          type: string
-          title: Id
         name:
           type: string
           title: Name
-        siteId:
+        displayName:
           type: string
-          title: Siteid
-        recordType:
-          type: string
-          title: Recordtype
-        positiveIds:
-          items:
-            type: string
-          type: array
-          title: Positiveids
-        negativeIds:
-          items:
-            type: string
-          type: array
-          title: Negativeids
-        source:
+          title: Displayname
+        similarity:
           anyOf:
-          - type: string
+          - type: number
           - type: 'null'
-          title: Source
-        tags:
-          items:
-            type: string
-          type: array
-          title: Tags
-        provenanceNotes:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Provenancenotes
-        version:
-          type: integer
-          title: Version
-        isPublic:
-          type: boolean
-          title: Ispublic
-        userId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Userid
-        createdAt:
-          type: string
-          title: Createdat
+          title: Similarity
       type: object
       required:
-      - id
       - name
-      - siteId
-      - recordType
-      - positiveIds
-      - negativeIds
-      - tags
-      - version
-      - isPublic
-      - createdAt
-      title: ControlSetResponse
-      description: Serialized control set returned to the client.
+      - displayName
+      title: ComparedSearch
+      description: A search the catalog answered beside the bound one, as that answer scored it.
     ConversationDuplicateResponse:
       properties:
         id:
@@ -5343,11 +4072,6 @@ components:
           - type: string
           - type: 'null'
           title: Genesetid
-        experimentId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Experimentid
         dismissedAt:
           anyOf:
           - type: string
@@ -5387,96 +4111,6 @@ components:
       - createdAt
       - updatedAt
       title: ConversationResponse
-    CreateBatchExperimentRequest:
-      properties:
-        base:
-          $ref: '#/components/schemas/CreateExperimentRequest'
-        organismParamName:
-          type: string
-          title: Organismparamname
-        targetOrganisms:
-          items:
-            $ref: '#/components/schemas/BatchOrganismTargetRequest'
-          type: array
-          minItems: 1
-          title: Targetorganisms
-      type: object
-      required:
-      - base
-      - organismParamName
-      - targetOrganisms
-      title: CreateBatchExperimentRequest
-      description: Request to run the same search across multiple organisms.
-    CreateBenchmarkRequest:
-      properties:
-        base:
-          $ref: '#/components/schemas/CreateExperimentRequest'
-        controlSets:
-          items:
-            $ref: '#/components/schemas/BenchmarkControlSet'
-          type: array
-          minItems: 1
-          title: Controlsets
-      type: object
-      required:
-      - base
-      - controlSets
-      title: CreateBenchmarkRequest
-      description: Request to run a benchmark suite across multiple control sets.
-    CreateControlSetRequest:
-      properties:
-        name:
-          type: string
-          maxLength: 255
-          minLength: 1
-          title: Name
-        siteId:
-          type: string
-          maxLength: 50
-          minLength: 1
-          title: Siteid
-        recordType:
-          type: string
-          maxLength: 100
-          minLength: 1
-          title: Recordtype
-        positiveIds:
-          items:
-            type: string
-          type: array
-          title: Positiveids
-        negativeIds:
-          items:
-            type: string
-          type: array
-          title: Negativeids
-        source:
-          anyOf:
-          - type: string
-            maxLength: 50
-          - type: 'null'
-          title: Source
-        tags:
-          items:
-            type: string
-          type: array
-          title: Tags
-        provenanceNotes:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Provenancenotes
-        isPublic:
-          type: boolean
-          title: Ispublic
-          default: false
-      type: object
-      required:
-      - name
-      - siteId
-      - recordType
-      title: CreateControlSetRequest
-      description: Payload for creating a new control set.
     CreateConversationRequest:
       properties:
         name:
@@ -5497,346 +4131,6 @@ components:
       - siteId
       - strategyAst
       title: CreateConversationRequest
-    CreateExperimentRequest:
-      properties:
-        siteId:
-          type: string
-          maxLength: 50
-          minLength: 1
-          title: Siteid
-        recordType:
-          type: string
-          title: Recordtype
-        mode:
-          type: string
-          enum:
-          - single
-          - multi-step
-          - import
-          title: Mode
-          default: single
-        searchName:
-          type: string
-          title: Searchname
-          default: ''
-        parameters:
-          additionalProperties:
-            oneOf:
-            - $ref: '#/components/schemas/StringValue'
-            - $ref: '#/components/schemas/NumberValue'
-            - $ref: '#/components/schemas/NumberRangeValue'
-            - $ref: '#/components/schemas/DateValue'
-            - $ref: '#/components/schemas/DateRangeValue'
-            - $ref: '#/components/schemas/TimestampValue'
-            - $ref: '#/components/schemas/SinglePickValue'
-            - $ref: '#/components/schemas/MultiPickValue'
-            - $ref: '#/components/schemas/FilterValue'
-            - $ref: '#/components/schemas/InputDatasetValue'
-            - $ref: '#/components/schemas/InputStepValue'
-            discriminator:
-              propertyName: type
-              mapping:
-                date: '#/components/schemas/DateValue'
-                date-range: '#/components/schemas/DateRangeValue'
-                filter: '#/components/schemas/FilterValue'
-                input-dataset: '#/components/schemas/InputDatasetValue'
-                input-step: '#/components/schemas/InputStepValue'
-                multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
-                number: '#/components/schemas/NumberValue'
-                number-range: '#/components/schemas/NumberRangeValue'
-                single-pick-vocabulary: '#/components/schemas/SinglePickValue'
-                string: '#/components/schemas/StringValue'
-                timestamp: '#/components/schemas/TimestampValue'
-          type: object
-          title: Parameters
-        stepTree:
-          $ref: '#/components/schemas/JsonValue'
-        sourceStrategyId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Sourcestrategyid
-        positiveControls:
-          items:
-            type: string
-          type: array
-          title: Positivecontrols
-        negativeControls:
-          items:
-            type: string
-          type: array
-          title: Negativecontrols
-        controlsSearchName:
-          type: string
-          title: Controlssearchname
-        controlsParamName:
-          type: string
-          title: Controlsparamname
-        controlsValueFormat:
-          type: string
-          enum:
-          - newline
-          - json_list
-          - comma
-          title: Controlsvalueformat
-          default: newline
-        enableCrossValidation:
-          type: boolean
-          title: Enablecrossvalidation
-          default: false
-        kFolds:
-          type: integer
-          maximum: 10.0
-          minimum: 2.0
-          title: Kfolds
-          default: 5
-        enrichmentTypes:
-          items:
-            $ref: '#/components/schemas/EnrichmentAnalysisType'
-          type: array
-          title: Enrichmenttypes
-        name:
-          type: string
-          maxLength: 200
-          title: Name
-          default: Untitled Experiment
-        description:
-          type: string
-          maxLength: 2000
-          title: Description
-          default: ''
-        parameterDisplayValues:
-          anyOf:
-          - $ref: '#/components/schemas/JSONObject'
-          - type: 'null'
-        controlSetId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Controlsetid
-        geneSetId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Genesetid
-        maxListSize:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Maxlistsize
-        parentExperimentId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Parentexperimentid
-        targetGeneIds:
-          anyOf:
-          - items:
-              type: string
-            type: array
-          - type: 'null'
-          title: Targetgeneids
-      type: object
-      required:
-      - siteId
-      - recordType
-      - positiveControls
-      - negativeControls
-      - controlsSearchName
-      - controlsParamName
-      title: CreateExperimentRequest
-      description: 'Request to create and run an experiment.
-
-
-        Supports three modes: ``single`` (default), ``multi-step``, and ``import``.'
-    CreateGeneSetRequest:
-      properties:
-        name:
-          type: string
-          maxLength: 200
-          minLength: 1
-          title: Name
-        siteId:
-          type: string
-          maxLength: 50
-          minLength: 1
-          title: Siteid
-        geneIds:
-          items:
-            type: string
-          type: array
-          title: Geneids
-        source:
-          type: string
-          enum:
-          - strategy
-          - paste
-          - upload
-          - derived
-          - saved
-          title: Source
-          default: paste
-        wdkStrategyId:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Wdkstrategyid
-        wdkStepId:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Wdkstepid
-        searchName:
-          anyOf:
-          - type: string
-            maxLength: 255
-          - type: 'null'
-          title: Searchname
-        recordType:
-          anyOf:
-          - type: string
-            maxLength: 100
-          - type: 'null'
-          title: Recordtype
-        parameters:
-          anyOf:
-          - additionalProperties:
-              oneOf:
-              - $ref: '#/components/schemas/StringValue'
-              - $ref: '#/components/schemas/NumberValue'
-              - $ref: '#/components/schemas/NumberRangeValue'
-              - $ref: '#/components/schemas/DateValue'
-              - $ref: '#/components/schemas/DateRangeValue'
-              - $ref: '#/components/schemas/TimestampValue'
-              - $ref: '#/components/schemas/SinglePickValue'
-              - $ref: '#/components/schemas/MultiPickValue'
-              - $ref: '#/components/schemas/FilterValue'
-              - $ref: '#/components/schemas/InputDatasetValue'
-              - $ref: '#/components/schemas/InputStepValue'
-              discriminator:
-                propertyName: type
-                mapping:
-                  date: '#/components/schemas/DateValue'
-                  date-range: '#/components/schemas/DateRangeValue'
-                  filter: '#/components/schemas/FilterValue'
-                  input-dataset: '#/components/schemas/InputDatasetValue'
-                  input-step: '#/components/schemas/InputStepValue'
-                  multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
-                  number: '#/components/schemas/NumberValue'
-                  number-range: '#/components/schemas/NumberRangeValue'
-                  single-pick-vocabulary: '#/components/schemas/SinglePickValue'
-                  string: '#/components/schemas/StringValue'
-                  timestamp: '#/components/schemas/TimestampValue'
-            type: object
-          - type: 'null'
-          title: Parameters
-      type: object
-      required:
-      - name
-      - siteId
-      - geneIds
-      title: CreateGeneSetRequest
-      description: Request to create a gene set from IDs, a strategy, or an upload.
-    CrossValidationResult:
-      properties:
-        k:
-          type: integer
-          title: K
-        folds:
-          items:
-            $ref: '#/components/schemas/FoldMetrics'
-          type: array
-          title: Folds
-        meanMetrics:
-          $ref: '#/components/schemas/ExperimentMetrics'
-        stdMetrics:
-          additionalProperties:
-            type: number
-          type: object
-          title: Stdmetrics
-        overfittingScore:
-          type: number
-          title: Overfittingscore
-          default: 0.0
-        overfittingLevel:
-          type: string
-          title: Overfittinglevel
-          default: low
-      type: object
-      required:
-      - k
-      - folds
-      - meanMetrics
-      title: CrossValidationResult
-      description: Aggregated cross-validation result.
-    CustomEnrichRequest:
-      properties:
-        geneSetName:
-          type: string
-          minLength: 1
-          title: Genesetname
-        geneIds:
-          items:
-            type: string
-          type: array
-          minItems: 1
-          title: Geneids
-      type: object
-      required:
-      - geneSetName
-      - geneIds
-      title: CustomEnrichRequest
-      description: Request to run a custom gene-set enrichment test.
-    CustomEnrichmentResult:
-      properties:
-        geneSetName:
-          type: string
-          title: Genesetname
-        geneSetSize:
-          type: integer
-          title: Genesetsize
-        geneSetInBackground:
-          type: integer
-          title: Genesetinbackground
-        overlapCount:
-          type: integer
-          title: Overlapcount
-        overlapGenes:
-          items:
-            type: string
-          type: array
-          title: Overlapgenes
-        backgroundSize:
-          type: integer
-          title: Backgroundsize
-        tpCount:
-          type: integer
-          title: Tpcount
-        foldEnrichment:
-          type: number
-          title: Foldenrichment
-        pValue:
-          type: number
-          title: Pvalue
-        oddsRatio:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Oddsratio
-      type: object
-      required:
-      - geneSetName
-      - geneSetSize
-      - geneSetInBackground
-      - overlapCount
-      - overlapGenes
-      - backgroundSize
-      - tpCount
-      - foldEnrichment
-      - pValue
-      - oddsRatio
-      title: CustomEnrichmentResult
-      description: Return shape of :func:`run_custom_enrichment`.
     DataUIPart:
       properties:
         type:
@@ -5999,20 +4293,6 @@ components:
       - parameterName
       title: DependentParamsRequest
       description: Dependent parameter values request.
-    DistributionResponse:
-      properties:
-        histogram:
-          items:
-            $ref: '#/components/schemas/WDKHistogramBin'
-          type: array
-          title: Histogram
-        statistics:
-          $ref: '#/components/schemas/WDKHistogramStatistics'
-      type: object
-      required:
-      - histogram
-      - statistics
-      title: DistributionResponse
     DuplicateStepOp:
       properties:
         kind:
@@ -7450,152 +5730,6 @@ components:
       - points
       - comparison
       title: EdaVizResponse
-    EnrichmentAnalysisType:
-      type: string
-      enum:
-      - go_function
-      - go_component
-      - go_process
-      - pathway
-      - word
-    EnrichmentResult:
-      properties:
-        analysisType:
-          $ref: '#/components/schemas/EnrichmentAnalysisType'
-        terms:
-          items:
-            $ref: '#/components/schemas/EnrichmentTerm'
-          type: array
-          title: Terms
-        totalGenesAnalyzed:
-          type: integer
-          title: Totalgenesanalyzed
-          default: 0
-        backgroundSize:
-          type: integer
-          title: Backgroundsize
-          default: 0
-        error:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Error
-      type: object
-      required:
-      - analysisType
-      - terms
-      title: EnrichmentResult
-      description: Results for a single enrichment analysis type.
-    EnrichmentTerm:
-      properties:
-        termId:
-          type: string
-          title: Termid
-        termName:
-          type: string
-          title: Termname
-        geneCount:
-          type: integer
-          title: Genecount
-        backgroundCount:
-          type: integer
-          title: Backgroundcount
-        foldEnrichment:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Foldenrichment
-        oddsRatio:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Oddsratio
-        pValue:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Pvalue
-        fdr:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Fdr
-        bonferroni:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Bonferroni
-        genes:
-          items:
-            type: string
-          type: array
-          title: Genes
-      type: object
-      required:
-      - termId
-      - termName
-      - geneCount
-      - backgroundCount
-      - foldEnrichment
-      - oddsRatio
-      - pValue
-      - fdr
-      - bonferroni
-      title: EnrichmentTerm
-      description: 'Single enriched term from WDK analysis.
-
-
-        WDK returns numeric fields as JSON strings (``"3.48"``, ``"3.40e-13"``,
-
-        ``"Infinity"``). A None ratio is unbounded; a None probability is not
-
-        computable.'
-    EnsembleScore:
-      properties:
-        geneId:
-          type: string
-          title: Geneid
-        frequency:
-          type: number
-          title: Frequency
-        count:
-          type: integer
-          title: Count
-        total:
-          type: integer
-          title: Total
-        inPositives:
-          type: boolean
-          title: Inpositives
-      type: object
-      required:
-      - geneId
-      - frequency
-      - count
-      - total
-      - inPositives
-      title: EnsembleScore
-      description: A single gene's ensemble score.
-    EnsembleScoringRequest:
-      properties:
-        geneSetIds:
-          items:
-            type: string
-          type: array
-          minItems: 2
-          title: Genesetids
-        positiveControls:
-          anyOf:
-          - items:
-              type: string
-            type: array
-          - type: 'null'
-          title: Positivecontrols
-      type: object
-      required:
-      - geneSetIds
-      title: EnsembleScoringRequest
-      description: Request to compute ensemble frequency scores across gene sets.
     EventsSnapshot:
       properties:
         chunks:
@@ -7617,351 +5751,6 @@ components:
       - cursor
       title: EventsSnapshot
       description: The completed history a thread serves, and where a tail continues it.
-    Experiment:
-      properties:
-        id:
-          type: string
-          title: Id
-        config:
-          $ref: '#/components/schemas/ExperimentConfig'
-        userId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Userid
-        applicationId:
-          type: string
-          title: Applicationid
-        status:
-          type: string
-          enum:
-          - pending
-          - running
-          - completed
-          - error
-          - cancelled
-          title: Status
-          default: pending
-        metrics:
-          anyOf:
-          - $ref: '#/components/schemas/ExperimentMetrics'
-          - type: 'null'
-        crossValidation:
-          anyOf:
-          - $ref: '#/components/schemas/CrossValidationResult'
-          - type: 'null'
-        enrichmentResults:
-          items:
-            $ref: '#/components/schemas/EnrichmentResult'
-          type: array
-          title: Enrichmentresults
-        truePositiveGenes:
-          items:
-            $ref: '#/components/schemas/GeneInfo'
-          type: array
-          title: Truepositivegenes
-        falseNegativeGenes:
-          items:
-            $ref: '#/components/schemas/GeneInfo'
-          type: array
-          title: Falsenegativegenes
-        falsePositiveGenes:
-          items:
-            $ref: '#/components/schemas/GeneInfo'
-          type: array
-          title: Falsepositivegenes
-        trueNegativeGenes:
-          items:
-            $ref: '#/components/schemas/GeneInfo'
-          type: array
-          title: Truenegativegenes
-        error:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Error
-        totalTimeSeconds:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Totaltimeseconds
-        createdAt:
-          type: string
-          title: Createdat
-          default: ''
-        completedAt:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Completedat
-        batchId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Batchid
-        benchmarkId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Benchmarkid
-        controlSetLabel:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Controlsetlabel
-        isPrimaryBenchmark:
-          type: boolean
-          title: Isprimarybenchmark
-          default: false
-        wdkStrategyId:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Wdkstrategyid
-        wdkStepId:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Wdkstepid
-        notes:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Notes
-        robustness:
-          anyOf:
-          - $ref: '#/components/schemas/BootstrapResult'
-          - type: 'null'
-        geneSetMembership:
-          anyOf:
-          - $ref: '#/components/schemas/GeneSetMembership'
-          - type: 'null'
-      type: object
-      required:
-      - id
-      - config
-      title: Experiment
-      description: Full experiment with config and results.
-    ExperimentConfig:
-      properties:
-        siteId:
-          type: string
-          title: Siteid
-        recordType:
-          type: string
-          title: Recordtype
-        searchName:
-          type: string
-          title: Searchname
-        parameters:
-          additionalProperties:
-            oneOf:
-            - $ref: '#/components/schemas/StringValue'
-            - $ref: '#/components/schemas/NumberValue'
-            - $ref: '#/components/schemas/NumberRangeValue'
-            - $ref: '#/components/schemas/DateValue'
-            - $ref: '#/components/schemas/DateRangeValue'
-            - $ref: '#/components/schemas/TimestampValue'
-            - $ref: '#/components/schemas/SinglePickValue'
-            - $ref: '#/components/schemas/MultiPickValue'
-            - $ref: '#/components/schemas/FilterValue'
-            - $ref: '#/components/schemas/InputDatasetValue'
-            - $ref: '#/components/schemas/InputStepValue'
-            discriminator:
-              propertyName: type
-              mapping:
-                date: '#/components/schemas/DateValue'
-                date-range: '#/components/schemas/DateRangeValue'
-                filter: '#/components/schemas/FilterValue'
-                input-dataset: '#/components/schemas/InputDatasetValue'
-                input-step: '#/components/schemas/InputStepValue'
-                multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
-                number: '#/components/schemas/NumberValue'
-                number-range: '#/components/schemas/NumberRangeValue'
-                single-pick-vocabulary: '#/components/schemas/SinglePickValue'
-                string: '#/components/schemas/StringValue'
-                timestamp: '#/components/schemas/TimestampValue'
-          type: object
-          title: Parameters
-        positiveControls:
-          items:
-            type: string
-          type: array
-          title: Positivecontrols
-        negativeControls:
-          items:
-            type: string
-          type: array
-          title: Negativecontrols
-        controlsSearchName:
-          type: string
-          title: Controlssearchname
-        controlsParamName:
-          type: string
-          title: Controlsparamname
-        controlsValueFormat:
-          type: string
-          enum:
-          - newline
-          - json_list
-          - comma
-          title: Controlsvalueformat
-          default: newline
-        enableCrossValidation:
-          type: boolean
-          title: Enablecrossvalidation
-          default: false
-        kFolds:
-          type: integer
-          title: Kfolds
-          default: 5
-        enrichmentTypes:
-          items:
-            $ref: '#/components/schemas/EnrichmentAnalysisType'
-          type: array
-          title: Enrichmenttypes
-        name:
-          type: string
-          title: Name
-          default: ''
-        description:
-          type: string
-          title: Description
-          default: ''
-        parameterDisplayValues:
-          anyOf:
-          - additionalProperties:
-              type: string
-            type: object
-          - type: 'null'
-          title: Parameterdisplayvalues
-        mode:
-          type: string
-          enum:
-          - single
-          - multi-step
-          - import
-          title: Mode
-          default: single
-        stepTree:
-          anyOf:
-          - $ref: '#/components/schemas/StrategyStepNode-Output'
-          - type: 'null'
-        sourceStrategyId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Sourcestrategyid
-        controlSetId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Controlsetid
-        geneSetId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Genesetid
-        maxListSize:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Maxlistsize
-        parentExperimentId:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Parentexperimentid
-        targetGeneIds:
-          anyOf:
-          - items:
-              type: string
-            type: array
-          - type: 'null'
-          title: Targetgeneids
-      type: object
-      required:
-      - siteId
-      - recordType
-      - searchName
-      - parameters
-      - positiveControls
-      - negativeControls
-      - controlsSearchName
-      - controlsParamName
-      title: ExperimentConfig
-      description: 'Full configuration for an experiment run.
-
-
-        Supports three modes:
-
-
-        * **single** (default): one search + parameters.
-
-        * **multi-step**: a recursive ``step_tree`` of search/combine/transform nodes.
-
-        * **import**: import an existing Pathfinder strategy by ``source_strategy_id``.'
-    ExperimentMetrics:
-      properties:
-        confusionMatrix:
-          $ref: '#/components/schemas/ConfusionMatrix'
-        sensitivity:
-          type: number
-          title: Sensitivity
-        specificity:
-          type: number
-          title: Specificity
-        precision:
-          type: number
-          title: Precision
-        f1Score:
-          type: number
-          title: F1Score
-        mcc:
-          type: number
-          title: Mcc
-        balancedAccuracy:
-          type: number
-          title: Balancedaccuracy
-        negativePredictiveValue:
-          type: number
-          title: Negativepredictivevalue
-          default: 0.0
-        falsePositiveRate:
-          type: number
-          title: Falsepositiverate
-          default: 0.0
-        falseNegativeRate:
-          type: number
-          title: Falsenegativerate
-          default: 0.0
-        youdensJ:
-          type: number
-          title: Youdensj
-          default: 0.0
-        totalResults:
-          type: integer
-          title: Totalresults
-          default: 0
-        totalPositives:
-          type: integer
-          title: Totalpositives
-          default: 0
-        totalNegatives:
-          type: integer
-          title: Totalnegatives
-          default: 0
-      type: object
-      required:
-      - confusionMatrix
-      - sensitivity
-      - specificity
-      - precision
-      - f1Score
-      - mcc
-      - balancedAccuracy
-      title: ExperimentMetrics
-      description: Full classification metrics derived from a confusion matrix.
     FetchGeneIdsRequest:
       properties:
         strategyId:
@@ -8054,29 +5843,6 @@ components:
           title: Filters
       type: object
       title: FilterValue
-    FoldMetrics:
-      properties:
-        foldIndex:
-          type: integer
-          title: Foldindex
-        metrics:
-          $ref: '#/components/schemas/ExperimentMetrics'
-        positiveControlIds:
-          items:
-            type: string
-          type: array
-          title: Positivecontrolids
-        negativeControlIds:
-          items:
-            type: string
-          type: array
-          title: Negativecontrolids
-      type: object
-      required:
-      - foldIndex
-      - metrics
-      title: FoldMetrics
-      description: Metrics for a single cross-validation fold.
     ForkConversationRequest:
       properties:
         fromMessageId:
@@ -8087,204 +5853,6 @@ components:
       required:
       - fromMessageId
       title: ForkConversationRequest
-    GeneConfidenceRequest:
-      properties:
-        tpIds:
-          items:
-            type: string
-          type: array
-          title: Tpids
-        fpIds:
-          items:
-            type: string
-          type: array
-          title: Fpids
-        fnIds:
-          items:
-            type: string
-          type: array
-          title: Fnids
-        tnIds:
-          items:
-            type: string
-          type: array
-          title: Tnids
-        ensembleScores:
-          anyOf:
-          - additionalProperties:
-              type: number
-            type: object
-          - type: 'null'
-          title: Ensemblescores
-        enrichmentGeneCounts:
-          anyOf:
-          - additionalProperties:
-              type: integer
-            type: object
-          - type: 'null'
-          title: Enrichmentgenecounts
-        maxEnrichmentTerms:
-          type: integer
-          minimum: 1.0
-          title: Maxenrichmentterms
-          default: 1
-      type: object
-      required:
-      - tpIds
-      - fpIds
-      - fnIds
-      - tnIds
-      title: GeneConfidenceRequest
-      description: Request to compute per-gene confidence scores from classification data.
-    GeneConfidenceScoreResponse:
-      properties:
-        geneId:
-          type: string
-          title: Geneid
-        compositeScore:
-          type: number
-          title: Compositescore
-        classificationScore:
-          type: number
-          title: Classificationscore
-        ensembleScore:
-          type: number
-          title: Ensemblescore
-        enrichmentScore:
-          type: number
-          title: Enrichmentscore
-      type: object
-      required:
-      - geneId
-      - compositeScore
-      - classificationScore
-      - ensembleScore
-      - enrichmentScore
-      title: GeneConfidenceScoreResponse
-      description: One gene confidence score.
-    GeneInfo:
-      properties:
-        id:
-          type: string
-          title: Id
-        name:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Name
-        organism:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Organism
-        product:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Product
-      type: object
-      required:
-      - id
-      title: GeneInfo
-      description: Minimal gene metadata.
-    GeneResolveRequest:
-      properties:
-        geneIds:
-          items:
-            type: string
-          type: array
-          title: Geneids
-      type: object
-      required:
-      - geneIds
-      title: GeneResolveRequest
-    GeneResolveResponse:
-      properties:
-        resolved:
-          items:
-            $ref: '#/components/schemas/ResolvedGeneResponse'
-          type: array
-          title: Resolved
-        unresolved:
-          items:
-            type: string
-          type: array
-          title: Unresolved
-      type: object
-      required:
-      - resolved
-      - unresolved
-      title: GeneResolveResponse
-    GeneSearchResponse:
-      properties:
-        results:
-          items:
-            $ref: '#/components/schemas/GeneSearchResultResponse'
-          type: array
-          title: Results
-        totalCount:
-          type: integer
-          title: Totalcount
-        suggestedOrganisms:
-          items:
-            type: string
-          type: array
-          title: Suggestedorganisms
-      type: object
-      required:
-      - results
-      - totalCount
-      title: GeneSearchResponse
-    GeneSearchResultResponse:
-      properties:
-        geneId:
-          type: string
-          title: Geneid
-        displayName:
-          type: string
-          title: Displayname
-          default: ''
-        organism:
-          type: string
-          title: Organism
-          default: ''
-        product:
-          type: string
-          title: Product
-          default: ''
-        geneName:
-          type: string
-          title: Genename
-          default: ''
-        geneType:
-          type: string
-          title: Genetype
-          default: ''
-        location:
-          type: string
-          title: Location
-          default: ''
-        matchedFields:
-          items:
-            type: string
-          type: array
-          title: Matchedfields
-      type: object
-      required:
-      - geneId
-      title: GeneSearchResultResponse
-    GeneSetEnrichRequest:
-      properties:
-        enrichmentTypes:
-          items:
-            $ref: '#/components/schemas/EnrichmentAnalysisType'
-          type: array
-          title: Enrichmenttypes
-      type: object
-      required:
-      - enrichmentTypes
-      title: GeneSetEnrichRequest
-      description: Request to run enrichment on a gene set.
     GeneSetExportResponse:
       properties:
         exportId:
@@ -8327,25 +5895,6 @@ components:
       - siteId
       - rawText
       title: GeneSetImportRequest
-    GeneSetMembership:
-      properties:
-        geneCount:
-          type: integer
-          title: Genecount
-        digest:
-          type: string
-          title: Digest
-      type: object
-      required:
-      - geneCount
-      - digest
-      title: GeneSetMembership
-      description: 'The gene ids a set holds, named by a digest of them.
-
-
-        Two sets of the same size are different sets, so the count alone does not
-
-        tell one membership from another.'
     GeneSetResponse:
       properties:
         id:
@@ -8429,20 +5978,6 @@ components:
             type: object
           - type: 'null'
           title: Parameters
-        parentSetIds:
-          items:
-            type: string
-          type: array
-          title: Parentsetids
-        operation:
-          anyOf:
-          - type: string
-            enum:
-            - intersect
-            - union
-            - minus
-          - type: 'null'
-          title: Operation
         createdAt:
           type: string
           title: Createdat
@@ -8450,11 +5985,6 @@ components:
           type: integer
           title: Stepcount
           default: 1
-        enrichmentResults:
-          items:
-            $ref: '#/components/schemas/EnrichmentResult'
-          type: array
-          title: Enrichmentresults
         vdiId:
           anyOf:
           - type: string
@@ -8581,6 +6111,19 @@ components:
         $ref: '#/components/schemas/JsonValue'
       type: object
     JsonValue: {}
+    KeyRefusal:
+      type: string
+      enum:
+      - invalid
+      - unreadable
+      title: KeyRefusal
+      description: Why a stored key cannot pay for a turn.
+    KeyableProvider:
+      type: string
+      enum:
+      - openai
+      - anthropic
+      - google
     LoginPayload:
       properties:
         email:
@@ -8773,6 +6316,17 @@ components:
         The runtime holds a kind to a name''s shape; which names exist is this
 
         application''s, so the wire names them.'
+    MessageRatingRequest:
+      properties:
+        rating:
+          $ref: '#/components/schemas/Rating'
+          description: The researcher's word on the message.
+      additionalProperties: false
+      type: object
+      required:
+      - rating
+      title: MessageRatingRequest
+      description: A like or a dislike of one assistant message.
     ModelCatalogEntryResponse:
       properties:
         id:
@@ -9021,17 +6575,13 @@ components:
       - after
       title: OpenMessageRef
       description: The message a log left open, and the exclusive cursor a tail replays it from.
-    OrganismsResponse:
-      properties:
-        organisms:
-          items:
-            type: string
-          type: array
-          title: Organisms
-      type: object
-      required:
-      - organisms
-      title: OrganismsResponse
+    PaidBy:
+      type: string
+      enum:
+      - deployment
+      - user
+      title: PaidBy
+      description: Whose provider key a usage row was spent on. The cap counts the deployment's.
     ParamSpecResponse:
       properties:
         name:
@@ -9212,20 +6762,6 @@ components:
       - reasoningEffort
       title: PhaseTierConfig
       description: Model + reasoning effort for a single role.
-    PrimaryKeyPart:
-      properties:
-        name:
-          type: string
-          title: Name
-        value:
-          type: string
-          title: Value
-      type: object
-      required:
-      - name
-      - value
-      title: PrimaryKeyPart
-      description: A single part of a composite WDK primary key.
     PrivacySettings:
       properties:
         evalDataConsent:
@@ -9305,6 +6841,79 @@ components:
       - streamId
       title: ProductActionRequest
       description: A user interaction to be recorded as a product signal.
+    ProviderKeyIn:
+      properties:
+        key:
+          type: string
+          maxLength: 512
+          minLength: 20
+          format: password
+          title: Key
+          writeOnly: true
+      type: object
+      required:
+      - key
+      title: ProviderKeyIn
+      description: A provider key as the researcher enters it. It is never sent back.
+    ProviderKeyView:
+      properties:
+        provider:
+          $ref: '#/components/schemas/KeyableProvider'
+        hint:
+          type: string
+          title: Hint
+        status:
+          type: string
+          enum:
+          - active
+          - refused
+          title: Status
+        refusal:
+          anyOf:
+          - $ref: '#/components/schemas/KeyRefusal'
+          - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+        refusedAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Refusedat
+      type: object
+      required:
+      - provider
+      - hint
+      - status
+      - createdAt
+      title: ProviderKeyView
+      description: 'One stored key as the researcher sees it: never the key, only its tail.'
+    ProviderKeysResponse:
+      properties:
+        enabled:
+          type: boolean
+          title: Enabled
+        keys:
+          items:
+            $ref: '#/components/schemas/ProviderKeyView'
+          type: array
+          title: Keys
+        payers:
+          additionalProperties:
+            $ref: '#/components/schemas/PaidBy'
+          propertyNames:
+            $ref: '#/components/schemas/ModelProvider'
+          type: object
+          title: Payers
+      type: object
+      required:
+      - enabled
+      - keys
+      - payers
+      title: ProviderKeysResponse
+      description: The researcher's stored keys, and who pays for each provider now.
     ProviderStatus:
       properties:
         openai:
@@ -9398,6 +7007,18 @@ components:
           type: string
           format: date-time
           title: Resetsat
+        ownKeyUsd:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Ownkeyusd
+        ownKeyTokens:
+          type: integer
+          title: Ownkeytokens
+        ownKeyProviders:
+          items:
+            $ref: '#/components/schemas/KeyableProvider'
+          type: array
+          title: Ownkeyproviders
       type: object
       required:
       - usedUsd
@@ -9405,7 +7026,52 @@ components:
       - totalTokens
       - percent
       - resetsAt
+      - ownKeyUsd
+      - ownKeyTokens
+      - ownKeyProviders
       title: QuotaResponse
+      description: 'The allowance the deployment pays for, and the spend on the user''s keys.
+
+
+        ``used_usd``, ``total_tokens`` and ``percent`` count deployment-paid spend
+
+        only, so the limit caps what it says it caps.'
+    RatedMessage:
+      properties:
+        messageId:
+          type: string
+          format: uuid
+          title: Messageid
+        rating:
+          $ref: '#/components/schemas/Rating'
+        ratedAt:
+          type: string
+          format: date-time
+          title: Ratedat
+      type: object
+      required:
+      - messageId
+      - rating
+      - ratedAt
+      title: RatedMessage
+      description: One message's standing rating.
+    RatedMessageList:
+      properties:
+        ratings:
+          items:
+            $ref: '#/components/schemas/RatedMessage'
+          type: array
+          title: Ratings
+      type: object
+      required:
+      - ratings
+      title: RatedMessageList
+      description: The rated messages of one thread.
+    Rating:
+      type: string
+      enum:
+      - like
+      - dislike
     ReadinessResponse:
       properties:
         status:
@@ -9502,99 +7168,6 @@ components:
       - text
       title: ReasoningUIPart
       description: A reasoning part of a message.
-    RecordAttribute:
-      properties:
-        name:
-          type: string
-          title: Name
-        displayName:
-          type: string
-          title: Displayname
-        help:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Help
-        type:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Type
-        isDisplayable:
-          type: boolean
-          title: Isdisplayable
-        isSortable:
-          type: boolean
-          title: Issortable
-        isSuggested:
-          type: boolean
-          title: Issuggested
-      type: object
-      required:
-      - name
-      - displayName
-      - help
-      - type
-      - isDisplayable
-      - isSortable
-      - isSuggested
-      title: RecordAttribute
-    RecordDetailRequest:
-      properties:
-        primaryKey:
-          items:
-            $ref: '#/components/schemas/PrimaryKeyPart'
-          type: array
-          minItems: 1
-          title: Primarykey
-      type: object
-      required:
-      - primaryKey
-      title: RecordDetailRequest
-      description: Request to fetch a single record by primary key.
-    RecordDetailResponse:
-      properties:
-        displayName:
-          type: string
-          title: Displayname
-        id:
-          items:
-            $ref: '#/components/schemas/WDKRecordIdPart'
-          type: array
-          title: Id
-        recordClassName:
-          type: string
-          title: Recordclassname
-        attributes:
-          additionalProperties:
-            $ref: '#/components/schemas/JsonValue'
-          type: object
-          title: Attributes
-        attributeNames:
-          additionalProperties:
-            type: string
-          type: object
-          title: Attributenames
-        tables:
-          additionalProperties:
-            $ref: '#/components/schemas/JsonValue'
-          type: object
-          title: Tables
-        tableErrors:
-          items:
-            type: string
-          type: array
-          title: Tableerrors
-      type: object
-      required:
-      - displayName
-      - id
-      - recordClassName
-      - attributes
-      - attributeNames
-      - tables
-      - tableErrors
-      title: RecordDetailResponse
     RecordTypeResponse:
       properties:
         name:
@@ -9614,73 +7187,6 @@ components:
       - displayName
       title: RecordTypeResponse
       description: Record type information.
-    RecordsMeta:
-      properties:
-        totalCount:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Totalcount
-        displayTotalCount:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Displaytotalcount
-        responseCount:
-          type: integer
-          title: Responsecount
-        pagination:
-          $ref: '#/components/schemas/RecordsPagination'
-        attributes:
-          items:
-            type: string
-          type: array
-          title: Attributes
-        tables:
-          items:
-            type: string
-          type: array
-          title: Tables
-      type: object
-      required:
-      - responseCount
-      - pagination
-      - attributes
-      - tables
-      title: RecordsMeta
-      description: 'Counts for one page of records.
-
-
-        A count is optional because WDK does not always publish one, and a client
-
-        that shows zero there states a result nobody measured.'
-    RecordsPagination:
-      properties:
-        offset:
-          type: integer
-          title: Offset
-        numRecords:
-          type: integer
-          title: Numrecords
-      type: object
-      required:
-      - offset
-      - numRecords
-      title: RecordsPagination
-    RecordsResponse:
-      properties:
-        records:
-          items:
-            $ref: '#/components/schemas/ClassifiedRecord'
-          type: array
-          title: Records
-        meta:
-          $ref: '#/components/schemas/RecordsMeta'
-      type: object
-      required:
-      - records
-      - meta
-      title: RecordsResponse
     ReplaceStrategyOp:
       properties:
         kind:
@@ -9689,7 +7195,7 @@ components:
           title: Kind
           default: replaceStrategy
         root:
-          $ref: '#/components/schemas/StrategyStepNode-Input'
+          $ref: '#/components/schemas/StrategyStepNode'
         name:
           anyOf:
           - type: string
@@ -9716,110 +7222,12 @@ components:
           type: string
           title: Stepid
         subtree:
-          $ref: '#/components/schemas/StrategyStepNode-Input'
+          $ref: '#/components/schemas/StrategyStepNode'
       type: object
       required:
       - stepId
       - subtree
       title: ReplaceSubtreeOp
-    ResolvedGeneResponse:
-      properties:
-        geneId:
-          type: string
-          title: Geneid
-        displayName:
-          type: string
-          title: Displayname
-          default: ''
-        organism:
-          type: string
-          title: Organism
-          default: ''
-        product:
-          type: string
-          title: Product
-          default: ''
-        geneName:
-          type: string
-          title: Genename
-          default: ''
-        geneType:
-          type: string
-          title: Genetype
-          default: ''
-        location:
-          type: string
-          title: Location
-          default: ''
-      type: object
-      required:
-      - geneId
-      title: ResolvedGeneResponse
-    ReverseSearchRequest:
-      properties:
-        positiveGeneIds:
-          items:
-            type: string
-          type: array
-          minItems: 1
-          title: Positivegeneids
-        negativeGeneIds:
-          anyOf:
-          - items:
-              type: string
-            type: array
-          - type: 'null'
-          title: Negativegeneids
-        siteId:
-          type: string
-          maxLength: 50
-          minLength: 1
-          title: Siteid
-      type: object
-      required:
-      - positiveGeneIds
-      - siteId
-      title: ReverseSearchRequest
-      description: Request to rank a user's gene sets by recall of the given genes.
-    ReverseSearchResultItem:
-      properties:
-        geneSetId:
-          type: string
-          title: Genesetid
-        name:
-          type: string
-          title: Name
-        searchName:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Searchname
-        recall:
-          type: number
-          title: Recall
-        precision:
-          type: number
-          title: Precision
-        f1:
-          type: number
-          title: F1
-        estimatedSize:
-          type: integer
-          title: Estimatedsize
-        overlapCount:
-          type: integer
-          title: Overlapcount
-      type: object
-      required:
-      - geneSetId
-      - name
-      - recall
-      - precision
-      - f1
-      - estimatedSize
-      - overlapCount
-      title: ReverseSearchResultItem
-      description: One ranked gene set in a reverse-search result.
     RevertRequest:
       properties:
         messageId:
@@ -9909,6 +7317,77 @@ components:
         ``extra="forbid"`` rejects ``title``/``body``/``summary`` edits with 422
 
         so scratchpad content stays agent-authored.'
+    SearchRationale:
+      properties:
+        kind:
+          type: string
+          const: search
+          title: Kind
+          default: search
+        searchName:
+          type: string
+          title: Searchname
+        basis:
+          type: string
+          enum:
+          - parameter
+          - organism
+          - record_type
+          - only_match
+          - nearest
+          title: Basis
+        term:
+          type: string
+          title: Term
+        reason:
+          type: string
+          maxLength: 160
+          title: Reason
+        similarity:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Similarity
+        compared:
+          items:
+            $ref: '#/components/schemas/ComparedSearch'
+          type: array
+          maxItems: 3
+          title: Compared
+        answered:
+          type: integer
+          title: Answered
+          default: 0
+        query:
+          type: string
+          title: Query
+          default: ''
+        toolCallId:
+          type: string
+          title: Toolcallid
+        sources:
+          items:
+            type: string
+          type: array
+          title: Sources
+        short:
+          type: string
+          title: Short
+          default: ''
+      type: object
+      required:
+      - searchName
+      - basis
+      - term
+      - reason
+      - toolCallId
+      title: SearchRationale
+      description: 'Why a criterion runs its search, against what the catalog answered.
+
+
+        The tool writes every field but ``basis``, ``term`` and ``reason`` from the
+
+        catalog read it recorded, so the comparison is what FRAME saw.'
     SearchResponse:
       properties:
         name:
@@ -9967,34 +7446,6 @@ components:
       type: object
       title: SearchValidationRequest
       description: Search parameter validation request.
-    SetOperationRequest:
-      properties:
-        setAId:
-          type: string
-          title: Setaid
-        setBId:
-          type: string
-          title: Setbid
-        operation:
-          type: string
-          enum:
-          - intersect
-          - union
-          - minus
-          title: Operation
-        name:
-          type: string
-          maxLength: 200
-          minLength: 1
-          title: Name
-      type: object
-      required:
-      - setAId
-      - setBId
-      - operation
-      - name
-      title: SetOperationRequest
-      description: Request to combine two gene sets with a set operation.
     SinglePickValue:
       properties:
         type:
@@ -10276,6 +7727,18 @@ components:
           - type: string
           - type: 'null'
           title: Criteriontext
+        rationale:
+          anyOf:
+          - oneOf:
+            - $ref: '#/components/schemas/SearchRationale'
+            - $ref: '#/components/schemas/AnalysisRationale'
+            discriminator:
+              propertyName: kind
+              mapping:
+                analysis: '#/components/schemas/AnalysisRationale'
+                search: '#/components/schemas/SearchRationale'
+          - type: 'null'
+          title: Rationale
         searchName:
           anyOf:
           - type: string
@@ -10465,10 +7928,10 @@ components:
           type: string
           title: Recordtype
         root:
-          $ref: '#/components/schemas/StrategyStepNode-Input'
+          $ref: '#/components/schemas/StrategyStepNode'
         detachedRoots:
           items:
-            $ref: '#/components/schemas/StrategyStepNode-Input'
+            $ref: '#/components/schemas/StrategyStepNode'
           type: array
           title: Detachedroots
         name:
@@ -10519,7 +7982,7 @@ components:
       - root
       title: StrategyAst
       description: Serialized strategy graph state used at every persistence boundary.
-    StrategyStepNode-Input:
+    StrategyStepNode:
       properties:
         searchName:
           type: string
@@ -10556,110 +8019,11 @@ components:
           title: Parameters
         primaryInput:
           anyOf:
-          - $ref: '#/components/schemas/StrategyStepNode-Input'
+          - $ref: '#/components/schemas/StrategyStepNode'
           - type: 'null'
         secondaryInput:
           anyOf:
-          - $ref: '#/components/schemas/StrategyStepNode-Input'
-          - type: 'null'
-        operator:
-          anyOf:
-          - $ref: '#/components/schemas/CombineOp'
-          - type: 'null'
-        colocationParams:
-          anyOf:
-          - $ref: '#/components/schemas/ColocationParams'
-          - type: 'null'
-        displayName:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Displayname
-        filters:
-          items:
-            $ref: '#/components/schemas/StepFilter'
-          type: array
-          title: Filters
-        analyses:
-          items:
-            $ref: '#/components/schemas/StepAnalysis'
-          type: array
-          title: Analyses
-        reports:
-          items:
-            $ref: '#/components/schemas/StepReport'
-          type: array
-          title: Reports
-        wdkWeight:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Wdkweight
-        expandedStrategyId:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Expandedstrategyid
-        expandedName:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Expandedname
-        id:
-          type: string
-          title: Id
-      type: object
-      required:
-      - searchName
-      title: StrategyStepNode
-      description: 'Recursive strategy node.
-
-
-        The kind follows the structure: two inputs is a combine, one input is a
-
-        transform, and no input is a search.'
-    StrategyStepNode-Output:
-      properties:
-        searchName:
-          type: string
-          title: Searchname
-        parameters:
-          additionalProperties:
-            oneOf:
-            - $ref: '#/components/schemas/StringValue'
-            - $ref: '#/components/schemas/NumberValue'
-            - $ref: '#/components/schemas/NumberRangeValue'
-            - $ref: '#/components/schemas/DateValue'
-            - $ref: '#/components/schemas/DateRangeValue'
-            - $ref: '#/components/schemas/TimestampValue'
-            - $ref: '#/components/schemas/SinglePickValue'
-            - $ref: '#/components/schemas/MultiPickValue'
-            - $ref: '#/components/schemas/FilterValue'
-            - $ref: '#/components/schemas/InputDatasetValue'
-            - $ref: '#/components/schemas/InputStepValue'
-            discriminator:
-              propertyName: type
-              mapping:
-                date: '#/components/schemas/DateValue'
-                date-range: '#/components/schemas/DateRangeValue'
-                filter: '#/components/schemas/FilterValue'
-                input-dataset: '#/components/schemas/InputDatasetValue'
-                input-step: '#/components/schemas/InputStepValue'
-                multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
-                number: '#/components/schemas/NumberValue'
-                number-range: '#/components/schemas/NumberRangeValue'
-                single-pick-vocabulary: '#/components/schemas/SinglePickValue'
-                string: '#/components/schemas/StringValue'
-                timestamp: '#/components/schemas/TimestampValue'
-          type: object
-          title: Parameters
-        primaryInput:
-          anyOf:
-          - $ref: '#/components/schemas/StrategyStepNode-Output'
-          - type: 'null'
-        secondaryInput:
-          anyOf:
-          - $ref: '#/components/schemas/StrategyStepNode-Output'
+          - $ref: '#/components/schemas/StrategyStepNode'
           - type: 'null'
         operator:
           anyOf:
@@ -10887,46 +8251,6 @@ components:
       - text
       title: TextUIPart
       description: A text part of a message.
-    ThresholdSweepRequest:
-      properties:
-        parameterName:
-          type: string
-          title: Parametername
-        sweepType:
-          type: string
-          enum:
-          - numeric
-          - categorical
-          title: Sweeptype
-          default: numeric
-        min:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Min
-        max:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Max
-        steps:
-          type: integer
-          maximum: 50.0
-          minimum: 3.0
-          title: Steps
-          default: 10
-        values:
-          anyOf:
-          - items:
-              type: string
-            type: array
-          - type: 'null'
-          title: Values
-      type: object
-      required:
-      - parameterName
-      title: ThresholdSweepRequest
-      description: Request to sweep a parameter across a range (numeric) or set of values (categorical).
     TierListResponse:
       properties:
         presets:
@@ -11810,81 +9134,6 @@ components:
       - term
       title: WDKFilterOntologyTerm
       description: A node in the ontology tree of a filter parameter.
-    WDKHistogramBin:
-      properties:
-        value:
-          type: integer
-          title: Value
-          default: 0
-        binStart:
-          type: string
-          title: Binstart
-          default: ''
-        binEnd:
-          type: string
-          title: Binend
-          default: ''
-        binLabel:
-          type: string
-          title: Binlabel
-          default: ''
-      type: object
-      title: WDKHistogramBin
-      description: Single bin in a column distribution histogram.
-    WDKHistogramStatistics:
-      properties:
-        subsetSize:
-          type: integer
-          title: Subsetsize
-          default: 0
-        subsetMin:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Subsetmin
-        subsetMax:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Subsetmax
-        subsetMean:
-          anyOf:
-          - type: number
-          - type: 'null'
-          title: Subsetmean
-        numVarValues:
-          type: integer
-          title: Numvarvalues
-          default: 0
-        numDistinctValues:
-          type: integer
-          title: Numdistinctvalues
-          default: 0
-        numDistinctEntityRecords:
-          type: integer
-          title: Numdistinctentityrecords
-          default: 0
-        numMissingCases:
-          type: integer
-          title: Nummissingcases
-          default: 0
-      type: object
-      title: WDKHistogramStatistics
-      description: Statistics summary for a column distribution.
-    WDKRecordIdPart:
-      properties:
-        name:
-          type: string
-          title: Name
-        value:
-          type: string
-          title: Value
-      type: object
-      required:
-      - name
-      - value
-      title: WDKRecordIdPart
-      description: One (name, value) segment of a WDK record's composite primary key.
     WDKTreeBoxVocabNode:
       properties:
         data:
@@ -12048,6 +9297,11 @@ components:
       - EDA_COMPUTE_NOT_RUN
       - SPECIALIST_PRECONDITION_FAILED
       - SESSION_CONFLICT
+      - PROVIDER_KEY_REFUSED
+      - PROVIDER_KEY_UNREADABLE
+      - PROVIDER_NOT_CONFIGURED
+      - PROVIDER_UNREACHABLE
+      - PROVIDER_KEYS_DISABLED
       title: ErrorCode
       type: string
     JSONArray:
@@ -12301,6 +9555,40 @@ components:
       - wdkUrl
       title: BuildSection
       type: object
+    CheckedStepCount:
+      description: 'One step of the judged strategy: the count the build recorded and the site''s.'
+      properties:
+        stepId:
+          title: Stepid
+          type: string
+        wdkStepId:
+          title: Wdkstepid
+          type: integer
+        title:
+          title: Title
+          type: string
+        recordedCount:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Recordedcount
+        siteCount:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Sitecount
+        drifted:
+          description: The site counts the step differently from the build.
+          readOnly: true
+          title: Drifted
+          type: boolean
+      required:
+      - stepId
+      - wdkStepId
+      - title
+      - drifted
+      title: CheckedStepCount
+      type: object
     Constraint:
       properties:
         kind:
@@ -12490,12 +9778,88 @@ components:
       - summary
       title: ContrastSummary
       type: object
+    ControlEnrichment:
+      description: 'The one-sided hypergeometric test of positives among the returned controls.
+
+
+        The population is every control tested, the draws are the controls the
+
+        target returned, and ``p_value`` is the chance of at least that many positives.'
+      properties:
+        population:
+          minimum: 1
+          title: Population
+          type: integer
+        positives:
+          minimum: 0
+          title: Positives
+          type: integer
+        returned:
+          minimum: 0
+          title: Returned
+          type: integer
+        positivesReturned:
+          minimum: 0
+          title: Positivesreturned
+          type: integer
+        pValue:
+          maximum: 1.0
+          minimum: 0.0
+          title: Pvalue
+          type: number
+      required:
+      - population
+      - positives
+      - returned
+      - positivesReturned
+      - pValue
+      title: ControlEnrichment
+      type: object
+    ControlSetEvidence:
+      description: 'One control set of a test: the controls the target returned and the rest.
+
+
+        The two lists partition the controls, so every count is read from them.'
+      properties:
+        returned:
+          items:
+            type: string
+          title: Returned
+          type: array
+        notReturned:
+          items:
+            type: string
+          title: Notreturned
+          type: array
+        controlsCount:
+          description: Every control of this set.
+          readOnly: true
+          title: Controlscount
+          type: integer
+        returnedCount:
+          description: The controls the target returned.
+          readOnly: true
+          title: Returnedcount
+          type: integer
+        rate:
+          description: The share of the controls the target returned.
+          readOnly: true
+          title: Rate
+          type: number
+      required:
+      - returned
+      - notReturned
+      - controlsCount
+      - returnedCount
+      - rate
+      title: ControlSetEvidence
+      type: object
     ControlSetSummary:
-      description: 'One control set of a control test: its size, its hits, its rate and the
+      description: 'One control set of a control test: its size, its hits, its rate and every
 
-        ids behind the counts. ``missed_ids`` is empty for a negative set, whose
+        id it was given. ``hit_ids`` are the controls the target returned and
 
-        hits are the unexpected ones.'
+        ``missed_ids`` the controls it did not.'
       properties:
         controlsCount:
           minimum: 0
@@ -12529,6 +9893,33 @@ components:
       - controlsCount
       - intersectionCount
       title: ControlSetSummary
+      type: object
+    ControlTestEvidence:
+      description: 'One control test: the target it read and the sets it was given.'
+      properties:
+        testedLabel:
+          title: Testedlabel
+          type: string
+        wdkStepId:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Wdkstepid
+        positive:
+          anyOf:
+          - $ref: '#/components/schemas/ControlSetEvidence'
+          - type: 'null'
+        negative:
+          anyOf:
+          - $ref: '#/components/schemas/ControlSetEvidence'
+          - type: 'null'
+        enrichment:
+          anyOf:
+          - $ref: '#/components/schemas/ControlEnrichment'
+          - type: 'null'
+      required:
+      - testedLabel
+      title: ControlTestEvidence
       type: object
     ControlTestResults:
       description: 'The numbers one control test measured against a built WDK step.
@@ -12683,6 +10074,10 @@ components:
           - type: string
           - type: 'null'
           title: Needsanalysison
+        rationale:
+          anyOf:
+          - $ref: '#/components/schemas/SearchRationale'
+          - type: 'null'
       required:
       - id
       - text
@@ -12735,6 +10130,27 @@ components:
       - criterionId
       - disposition
       title: CriterionChange
+      type: object
+    CriterionCitations:
+      description: The references a criterion was bound on, each one a read of the turn returned.
+      properties:
+        criterionId:
+          title: Criterionid
+          type: string
+        criterionText:
+          title: Criteriontext
+          type: string
+        references:
+          items:
+            type: string
+          minItems: 1
+          title: References
+          type: array
+      required:
+      - criterionId
+      - criterionText
+      - references
+      title: CriterionCitations
       type: object
     DeclinedProposal:
       description: A proposal the researcher answered no, with the note they sent.
@@ -12927,45 +10343,85 @@ components:
       - retained
       title: EdaVolcanoPoint
       type: object
-    EnrichmentResultsChunk:
+    EvidenceCard:
+      description: The evidence behind one verification of one strategy revision.
       properties:
-        taskId:
-          title: Taskid
+        checkId:
+          title: Checkid
           type: string
-        toolCallId:
-          default: ''
-          title: Toolcallid
+        revision:
+          title: Revision
           type: string
-        geneSetId:
-          title: Genesetid
+        siteId:
+          title: Siteid
           type: string
-        geneSetName:
-          title: Genesetname
+        checkedAt:
+          format: date-time
+          title: Checkedat
           type: string
-        geneCount:
-          title: Genecount
-          type: integer
-        results:
-          items:
-            $ref: '#/components/schemas/EnrichmentResult'
-          title: Results
-          type: array
-        downloads:
+        wdkStrategyId:
           anyOf:
-          - additionalProperties:
-              anyOf:
-              - type: string
-              - type: integer
-            type: object
+          - type: integer
           - type: 'null'
-          title: Downloads
+          title: Wdkstrategyid
+        strategyUrl:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Strategyurl
+        siteRead:
+          $ref: '#/components/schemas/SiteRead'
+        steps:
+          items:
+            $ref: '#/components/schemas/CheckedStepCount'
+          title: Steps
+          type: array
+        controls:
+          items:
+            $ref: '#/components/schemas/ControlTestEvidence'
+          title: Controls
+          type: array
+        citations:
+          items:
+            $ref: '#/components/schemas/CriterionCitations'
+          title: Citations
+          type: array
+        verdict:
+          $ref: '#/components/schemas/EvidenceVerdict'
       required:
-      - taskId
-      - geneSetId
-      - geneSetName
-      - geneCount
-      - results
-      title: EnrichmentResultsChunk
+      - checkId
+      - revision
+      - siteId
+      - checkedAt
+      - siteRead
+      - steps
+      - controls
+      - citations
+      - verdict
+      title: EvidenceCard
+      type: object
+    EvidenceVerdict:
+      description: 'The verdict as the ledger holds it after the build check.
+
+
+        ``refused_because`` is the ledger''s own sentence for a refused success.'
+      properties:
+        supported:
+          title: Supported
+          type: boolean
+        pendingChecks:
+          items:
+            type: string
+          title: Pendingchecks
+          type: array
+        refusedBecause:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Refusedbecause
+      required:
+      - supported
+      title: EvidenceVerdict
       type: object
     FailureCause:
       description: Typed cause of a phase's exit, surfaced to the LLM supervisor.
@@ -13642,6 +11098,12 @@ components:
       properties: {}
       title: ScratchpadUpdatedPayload
       type: object
+    SiteRead:
+      enum:
+      - read
+      - not_answered
+      - not_read
+      type: string
     SpecDiff:
       properties:
         changes:
@@ -13792,105 +11254,6 @@ components:
       required:
       - revision
       title: StrategyRevisionPayload
-      type: object
-    StrategyStepNode:
-      description: 'Recursive strategy node.
-
-
-        The kind follows the structure: two inputs is a combine, one input is a
-
-        transform, and no input is a search.'
-      properties:
-        searchName:
-          title: Searchname
-          type: string
-        parameters:
-          additionalProperties:
-            discriminator:
-              mapping:
-                date: '#/components/schemas/DateValue'
-                date-range: '#/components/schemas/DateRangeValue'
-                filter: '#/components/schemas/FilterValue'
-                input-dataset: '#/components/schemas/InputDatasetValue'
-                input-step: '#/components/schemas/InputStepValue'
-                multi-pick-vocabulary: '#/components/schemas/MultiPickValue'
-                number: '#/components/schemas/NumberValue'
-                number-range: '#/components/schemas/NumberRangeValue'
-                single-pick-vocabulary: '#/components/schemas/SinglePickValue'
-                string: '#/components/schemas/StringValue'
-                timestamp: '#/components/schemas/TimestampValue'
-              propertyName: type
-            oneOf:
-            - $ref: '#/components/schemas/StringValue'
-            - $ref: '#/components/schemas/NumberValue'
-            - $ref: '#/components/schemas/NumberRangeValue'
-            - $ref: '#/components/schemas/DateValue'
-            - $ref: '#/components/schemas/DateRangeValue'
-            - $ref: '#/components/schemas/TimestampValue'
-            - $ref: '#/components/schemas/SinglePickValue'
-            - $ref: '#/components/schemas/MultiPickValue'
-            - $ref: '#/components/schemas/FilterValue'
-            - $ref: '#/components/schemas/InputDatasetValue'
-            - $ref: '#/components/schemas/InputStepValue'
-          title: Parameters
-          type: object
-        primaryInput:
-          anyOf:
-          - $ref: '#/components/schemas/StrategyStepNode'
-          - type: 'null'
-        secondaryInput:
-          anyOf:
-          - $ref: '#/components/schemas/StrategyStepNode'
-          - type: 'null'
-        operator:
-          anyOf:
-          - $ref: '#/components/schemas/CombineOp'
-          - type: 'null'
-        colocationParams:
-          anyOf:
-          - $ref: '#/components/schemas/ColocationParams'
-          - type: 'null'
-        displayName:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Displayname
-        filters:
-          items:
-            $ref: '#/components/schemas/StepFilter'
-          title: Filters
-          type: array
-        analyses:
-          items:
-            $ref: '#/components/schemas/StepAnalysis'
-          title: Analyses
-          type: array
-        reports:
-          items:
-            $ref: '#/components/schemas/StepReport'
-          title: Reports
-          type: array
-        wdkWeight:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Wdkweight
-        expandedStrategyId:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Expandedstrategyid
-        expandedName:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Expandedname
-        id:
-          title: Id
-          type: string
-      required:
-      - searchName
-      title: StrategyStepNode
       type: object
     StructureNode:
       properties:
@@ -14456,9 +11819,9 @@ components:
           anyOf:
           - $ref: '#/components/schemas/EdaVizPart'
           - type: 'null'
-        enrichmentResults:
+        evidenceCard:
           anyOf:
-          - $ref: '#/components/schemas/EnrichmentResultsChunk'
+          - $ref: '#/components/schemas/EvidenceCard'
           - type: 'null'
         geneSet:
           anyOf:

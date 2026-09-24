@@ -16,7 +16,6 @@ from assistant_core.platform.context import user_id_ctx
 from assistant_core.platform.logging import get_logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb_mcp.wdk.enrichment import EnrichmentResult, probability_cell, ratio_cell
 
 from pathfinder.persistence.models import Export
 from pathfinder.platform.context import request_base_url_ctx
@@ -28,44 +27,6 @@ EXPORT_TTL = timedelta(minutes=10)
 _EXPORT_TTL_SECONDS = int(EXPORT_TTL.total_seconds())
 
 SessionFactory = Callable[[], AsyncSession]
-
-_ENRICHMENT_HEADER = [
-    "analysis_type",
-    "term_id",
-    "term_name",
-    "gene_count",
-    "background_count",
-    "fold_enrichment",
-    "odds_ratio",
-    "p_value",
-    "fdr",
-    "bonferroni",
-    "genes",
-]
-
-
-def enrichment_rows(
-    results: list[EnrichmentResult],
-) -> tuple[list[str], list[list[object]]]:
-    """Build the header and the data rows of an enrichment export."""
-    rows: list[list[object]] = [
-        [
-            result.analysis_type,
-            term.term_id,
-            term.term_name,
-            term.gene_count,
-            term.background_count,
-            ratio_cell(term.fold_enrichment),
-            ratio_cell(term.odds_ratio),
-            probability_cell(term.p_value),
-            probability_cell(term.fdr),
-            probability_cell(term.bonferroni),
-            ";".join(term.genes),
-        ]
-        for result in results
-        for term in result.terms
-    ]
-    return list(_ENRICHMENT_HEADER), rows
 
 
 @dataclass(frozen=True, slots=True)
@@ -199,49 +160,6 @@ class ExportService:
             writer.writerow([gid])
         return await self._store(
             buf.getvalue().encode("utf-8"), f"{name_part}.csv", "text/csv"
-        )
-
-    async def export_enrichment(
-        self, results: list[EnrichmentResult], name: str
-    ) -> ExportResult:
-        """Export enrichment results as CSV."""
-        name_part = _sanitize_filename(name or "enrichment")
-        header, rows = enrichment_rows(results)
-        buf = io.StringIO()
-        writer = csv.writer(buf)
-        writer.writerow(header)
-        for row in rows:
-            writer.writerow(row)
-        return await self._store(
-            buf.getvalue().encode("utf-8"), f"{name_part}_enrichment.csv", "text/csv"
-        )
-
-    async def export_enrichment_tsv(
-        self, results: list[EnrichmentResult], name: str
-    ) -> ExportResult:
-        """Export enrichment results as TSV."""
-        name_part = _sanitize_filename(name or "enrichment")
-        header, rows = enrichment_rows(results)
-        buf = io.StringIO()
-        writer = csv.writer(buf, delimiter="\t")
-        writer.writerow(header)
-        for row in rows:
-            writer.writerow(row)
-        return await self._store(
-            buf.getvalue().encode("utf-8"),
-            f"{name_part}_enrichment.tsv",
-            "text/tab-separated-values",
-        )
-
-    async def export_enrichment_json(
-        self, results: list[EnrichmentResult], name: str
-    ) -> ExportResult:
-        """Export enrichment results as JSON."""
-        name_part = _sanitize_filename(name or "enrichment")
-        serialized = [r.model_dump(by_alias=True) for r in results]
-        content = json.dumps(serialized, indent=2).encode("utf-8")
-        return await self._store(
-            content, f"{name_part}_enrichment.json", "application/json"
         )
 
     async def export_json(self, data: object, name: str) -> ExportResult:

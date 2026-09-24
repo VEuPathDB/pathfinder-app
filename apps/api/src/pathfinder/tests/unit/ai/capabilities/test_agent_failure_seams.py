@@ -190,7 +190,7 @@ async def test_a_missing_id_in_a_verification_tool_names_the_listing_tool() -> N
     retries = _retry_messages(result.all_messages())
     assert len(retries) == 1
     assert _MISSING_GENE_SET in retries[0]
-    assert "list_workbench_gene_sets" in retries[0]
+    assert "list_gene_sets" in retries[0]
 
 
 def _resilience_ctx() -> MagicMock:

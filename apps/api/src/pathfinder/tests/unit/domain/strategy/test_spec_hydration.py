@@ -21,11 +21,13 @@ from veupathdb.domain.strategy import (
 
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
-    build_step_tree,
 )
 from pathfinder.domain.strategy.spec_hydration import (
     hidden_params_dropped,
     spec_from_ast,
+)
+from pathfinder.domain.strategy.spec_tree import (
+    build_step_tree,
 )
 
 

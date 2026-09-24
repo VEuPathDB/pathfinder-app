@@ -16,9 +16,9 @@ from veupathdb_mcp.controls import run_step_control_tests
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.graph.runtime import Context
+from pathfinder.services.evidence.optimization import tunable_parameters_of_search
 from pathfinder.services.experiment.published_names import published_names
 from pathfinder.services.export.control_downloads import attach_control_downloads
-from pathfinder.services.workbench.optimization import tunable_parameters_of_search
 
 logger = get_logger(__name__)
 

@@ -19,6 +19,7 @@ from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.auth_context import attach_wdk_auth
 from pathfinder.jobs.payloads import ChatTurnPayload
+from pathfinder.jobs.turn_keys import turn_keys
 from pathfinder.platform.config import get_settings
 
 logger = get_logger(__name__)
@@ -64,13 +65,16 @@ async def run_chat_turn(payload: dict[str, Any]) -> None:
             capture_llm(parsed.capture_dir) if parsed.capture_dir else nullcontext()
         )
         with capture:
-            await run_turn(
-                request=TurnRequest(body=body, user_id=parsed.user_id),
-                spec=spec,
-                compiled_graph=graph,
-                memory_store=store,
-                writer=writer,
-            )
+            async with turn_keys(
+                user_id=parsed.user_id, spec=spec, body=body, writer=writer
+            ):
+                await run_turn(
+                    request=TurnRequest(body=body, user_id=parsed.user_id),
+                    spec=spec,
+                    compiled_graph=graph,
+                    memory_store=store,
+                    writer=writer,
+                )
     logger.info(
         "chat turn completed",
         conversation_id=str(body.conversation_id),

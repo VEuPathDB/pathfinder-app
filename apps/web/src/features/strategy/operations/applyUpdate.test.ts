@@ -6,7 +6,7 @@ import { applyOperation } from "./apply";
 
 // Parity tests cover topology (which steps survive, how inputs rewire); these
 // pin the VALUE transformations parity doesn't - the operator flip and the
-// param edit the drug-targets / workbench flows perform.
+// param edit the drug-targets flow performs.
 
 function leaf(id: string, displayName: string): Step {
   return makeStep({

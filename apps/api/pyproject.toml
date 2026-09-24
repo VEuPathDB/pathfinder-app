@@ -1,6 +1,6 @@
 [project]
 name = "pathfinder-api"
-version = "0.2.0a14"
+version = "0.2.0a15"
 description = "VEuPathDB Strategy Builder Chatbot API"
 requires-python = ">=3.14"
 dependencies = [
@@ -31,6 +31,7 @@ dependencies = [
     "numpy>=2.0.0",
     "openai>=2.0.0",
     "pyjwt>=2.13.0", # PYSEC-2026-175/177/178/179
+    "cryptography>=50.0.0", # seals researchers' provider keys
     "slowapi>=0.1.9",
     "assistant-core",
     "cachetools>=7.0.5",
@@ -57,9 +58,9 @@ constraint-dependencies = [
     "soupsieve>=2.8.4",  # PYSEC-2026-3071, PYSEC-2026-3072
 ]
 [tool.uv.sources]
-assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0a16" }
-veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a15" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0a24" }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0a17" }
+veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0a16" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0a25" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0a16" }
 
 [build-system]
@@ -290,14 +291,14 @@ source_modules = [
 ]
 forbidden_modules = ["pathfinder.assistants"]
 
-# The workbench is one module: gene sets, experiments, control sets, variant
-# comparisons and parameter sweeps. `services/workbench/` is its facade, and it
+# The evidence VERIFY reads is one module: gene sets, control sets, variant
+# comparisons and parameter sweeps. `services/evidence/` is its facade, and it
 # holds functions with bodies, not re-export lines. What is forbidden below is
 # every module whose behaviour the facade owns; a result type stays importable
 # from the module that defines it, because a facade that re-exports a type is a
 # re-export. Direct-only, like the four above.
 [[tool.importlinter.contracts]]
-name = "The agent and the jobs reach the workbench only through its facade"
+name = "The agent and the jobs reach the evidence producers only through its facade"
 type = "forbidden"
 allow_indirect_imports = true
 source_modules = [
@@ -307,8 +308,6 @@ source_modules = [
 forbidden_modules = [
     "pathfinder.services.control_sets",
     "pathfinder.services.experiment.control_sourcing",
-    "pathfinder.services.experiment.store",
-    "pathfinder.services.gene_sets.enrichment",
     "pathfinder.services.gene_sets.store",
     "pathfinder.services.parameter_optimization.sweep",
     "pathfinder.services.parameter_optimization.tunable",
@@ -458,7 +457,6 @@ ignore_imports = [
     "pathfinder.tests._support.catalog_builders -> veupathdb_mcp.catalog.param_validation",
     "pathfinder.tests.integration.ai._organism_swap_wire -> veupathdb_mcp.catalog.param_discovery",
     "pathfinder.tests.integration.ai._organism_swap_wire -> veupathdb_mcp.catalog.searches",
-    "pathfinder.tests.integration.durable.test_geneset_enrichment_durable -> veupathdb_mcp.wdk.enrichment.service",
     "pathfinder.tests.unit.ai.tools.conftest -> veupathdb_mcp.catalog.search_inspection",
     "pathfinder.tests.unit.ai.tools.test_ai_expression_tool -> veupathdb_mcp.wdk.ai_expression",
     "pathfinder.tests.unit.ai.tools.test_catalog -> veupathdb_mcp.catalog.searches",

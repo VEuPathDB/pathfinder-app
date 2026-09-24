@@ -46,9 +46,12 @@ def _extract(*, built: bool = True) -> EvalExtract:
     )
 
 
-def _row(*, built: bool = True, promoted: bool = False) -> EvalStagedCase:
+def _row(
+    *, built: bool = True, promoted: bool = False, rated: bool = False
+) -> EvalStagedCase:
     return EvalStagedCase(
         id=STAGING_ID,
+        rated_message_id=uuid4() if rated else None,
         site_id="plasmodb",
         assistant_id="pathfinder",
         content_hash="a" * 64,
@@ -67,7 +70,7 @@ def test_a_promoted_row_has_no_extract_to_read() -> None:
 
 
 def test_the_default_expectation_repeats_what_the_run_did() -> None:
-    expectation = default_expectation(_extract())
+    expectation = default_expectation(_row())
 
     assert expectation.builds_strategy
     assert expectation.structure == "(A INTERSECT B)"
@@ -84,12 +87,14 @@ def test_a_run_with_a_pending_check_defaults_to_not_verified() -> None:
             )
         }
     )
+    row = _row()
+    row.extract = extract.model_dump(by_alias=True, mode="json")
 
-    assert default_expectation(extract).verified is False
+    assert default_expectation(row).verified is False
 
 
 def test_a_run_that_built_nothing_defaults_to_forbidding_a_build() -> None:
-    expectation = default_expectation(_extract(built=False))
+    expectation = default_expectation(_row(built=False))
 
     assert not expectation.builds_strategy
     assert expectation.structure is None
@@ -137,3 +142,34 @@ def test_a_case_built_from_a_staged_row_names_no_user() -> None:
 
     assert "user" not in payload.casefold()
     assert case.assert_de_identified()
+
+
+def test_a_disliked_row_s_default_expectation_compares_nothing() -> None:
+    """The recorded run is the one the researcher said was wrong."""
+    assert default_expectation(_row(rated=True)) == ExpectedOutcome(
+        builds_strategy=None
+    )
+
+
+def test_a_disliked_row_is_not_promoted_without_an_expectation() -> None:
+    with pytest.raises(ValueError, match="state what the case expects"):
+        build_case(
+            _row(rated=True),
+            PromotionEdits(name="a-case", rationale="the reply was wrong"),
+            today="2026-09-24",
+        )
+
+
+def test_a_disliked_row_promotes_with_the_curator_s_expectation() -> None:
+    case = build_case(
+        _row(rated=True),
+        PromotionEdits(
+            name="a-case",
+            rationale="the build intersected where the request said OR",
+            expected=ExpectedOutcome(builds_strategy=True, structure="(A UNION B)"),
+        ),
+        today="2026-09-24",
+    )
+
+    assert case.expected.structure == "(A UNION B)"
+    assert case.turns == ["find kinases", "now swap the organism"]

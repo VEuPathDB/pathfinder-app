@@ -1,24 +1,13 @@
-"""Gene set business logic: CRUD, set operations, enrichment, and step results."""
+"""Gene set business logic: create, re-sync, rename, list and delete."""
 
 from uuid import UUID, uuid4
 
 from assistant_core.platform.context import calling_application
 from assistant_core.platform.logging import get_logger
 from veupathdb.errors import ValidationError
-from veupathdb.wdk import (
-    get_strategy_api,
-)
-from veupathdb_mcp.wdk import (
-    GeneSetWdkContext,
-    StepResultsService,
-    frozen_step_id,
-    resolve_wdk_context,
-)
-from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType, EnrichmentResult
+from veupathdb_mcp.wdk import GeneSetWdkContext, resolve_wdk_context
 
-from pathfinder.platform.errors import InternalError, NotFoundError
-from pathfinder.platform.identity import GENE_SET_STRATEGY_NAME
-from pathfinder.services.gene_sets.enrichment import run_enrichment_batch
+from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets.store import GeneSetStore
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
 
@@ -161,27 +150,6 @@ class GeneSetService:
         )
         return gs
 
-    async def retake_from_source(self, user_id: UUID, gene_set_id: str) -> GeneSet:
-        """Replace a set's membership with what its source strategy holds now.
-
-        :raises ValidationError: If the set was not derived from a strategy.
-        :raises EmptyResyncError: If the strategy resolves to zero genes.
-        """
-        gs = await self.get_for_user(user_id, gene_set_id)
-        if gs.wdk_strategy_id is None:
-            msg = (
-                "This gene set was not taken from a strategy, so there is no "
-                "source to re-take it from."
-            )
-            raise ValidationError(detail=msg)
-        refreshed = await self.resync_strategy(
-            gene_set_id, wdk_strategy_id=gs.wdk_strategy_id, site_id=gs.site_id
-        )
-        if refreshed is None:
-            msg = f"Gene set not found: {gene_set_id}"
-            raise NotFoundError(detail=msg)
-        return refreshed
-
     async def rename(self, gene_set: GeneSet, name: str) -> None:
         """Write a new name on the set, durable before the call returns."""
         gene_set.name = name
@@ -229,96 +197,3 @@ class GeneSetService:
             msg = f"Gene set not found: {gene_set_id}"
             raise NotFoundError(detail=msg)
         logger.info("Gene set deleted", gene_set_id=gene_set_id)
-
-    async def perform_set_operation(
-        self,
-        *,
-        user_id: UUID,
-        set_a_id: str,
-        set_b_id: str,
-        operation: str,
-        name: str,
-    ) -> GeneSet:
-        """Combine two gene sets with intersect, union, or minus."""
-        set_a = await self.get_for_user(user_id, set_a_id)
-        set_b = await self.get_for_user(user_id, set_b_id)
-
-        ids_a = set(set_a.gene_ids)
-        ids_b = set(set_b.gene_ids)
-
-        match operation:
-            case "intersect":
-                result_ids = ids_a & ids_b
-            case "union":
-                result_ids = ids_a | ids_b
-            case "minus":
-                result_ids = ids_a - ids_b
-            case _:
-                msg = f"Invalid operation: must be 'intersect', 'union', or 'minus', got '{operation}'"
-                raise ValidationError(detail=msg)
-
-        gs = GeneSet(
-            id=str(uuid4()),
-            name=name,
-            site_id=set_a.site_id,
-            gene_ids=sorted(result_ids),
-            source="derived",
-            user_id=user_id,
-            parent_set_ids=[set_a.id, set_b.id],
-            operation=operation,
-        )
-        self._store.save(gs)
-        logger.info(
-            "Gene set derived via set operation",
-            gene_set_id=gs.id,
-            operation=operation,
-            gene_count=len(gs.gene_ids),
-        )
-        return gs
-
-    async def run_enrichment(
-        self,
-        user_id: UUID,
-        gene_set_id: str,
-        enrichment_types: list[EnrichmentAnalysisType],
-    ) -> list[EnrichmentResult]:
-        """Run enrichment analysis on a gene set."""
-        gs = await self.get_for_user(user_id, gene_set_id)
-        results, errors = await run_enrichment_batch(gs, enrichment_types)
-
-        if not results and errors:
-            msg = "Enrichment analysis failed: " + "; ".join(errors)
-            raise InternalError(detail=msg)
-
-        gs.enrichment_results = results
-        self._store.save(gs)
-        # Enrichment is a slow WDK round trip. The results must be durable
-        # before the caller displays them.
-        await self.flush(gs.id)
-        return results
-
-    async def get_step_results_service(
-        self, user_id: UUID, gene_set_id: str
-    ) -> StepResultsService:
-        """Build a step-results service for a gene set.
-
-        :raises ValidationError: If the gene set has no WDK step.
-        """
-        gs = await self.get_for_user(user_id, gene_set_id)
-        record_type = gs.record_type or "transcript"
-        # The set's membership is what it stores. The step it came from can
-        # have moved since, and browsing that would show a different set.
-        step_id = await frozen_step_id(
-            gs.site_id,
-            list(gs.gene_ids),
-            record_type,
-            strategy_name=GENE_SET_STRATEGY_NAME,
-        )
-        if step_id is None:
-            step_id = gs.wdk_step_id
-        if not step_id:
-            msg = "No genes and no WDK strategy: this gene set has nothing to browse."
-            raise ValidationError(detail=msg)
-        return StepResultsService(
-            get_strategy_api(gs.site_id), step_id=step_id, record_type=record_type
-        )

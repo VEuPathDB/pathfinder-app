@@ -1,4 +1,5 @@
-"""Reading requests, replies and the verification verdict out of the chunk log.
+"""Reading requests, replies, the verification verdict and its evidence card out
+of the chunk log.
 
 The chunk log is the durable record of what the user saw, so it is what an
 extract is made of. Every text that leaves here is redacted first.
@@ -10,13 +11,15 @@ from collections.abc import Sequence
 
 from assistant_core.conversation.ui_message_reducer import USER_MESSAGE_CHUNK_TYPE
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
+from pathfinder.domain.evidence import EvidenceCard
 from pathfinder.evals.extract import ExtractedTurn, ExtractedVerification
 from pathfinder.evals.redaction import redact_text
 
 TEXT_DELTA = "text-delta"
 LEDGER_UPDATE = "data-ledger-update"
+EVIDENCE_CARD = "data-evidence-card"
 
 
 class ChunkPart(CamelModel):
@@ -60,14 +63,14 @@ class LedgerData(CamelModel):
 
 
 class ConversationChunk(CamelModel):
-    """One logged chunk, read for the three things an extract needs."""
+    """One logged chunk, read for the four things an extract needs."""
 
     model_config = ConfigDict(extra="ignore")
 
     type: str = ""
     delta: str = ""
     message: ChunkMessage | None = None
-    data: LedgerData | None = None
+    data: dict[str, JsonValue] | None = None
 
 
 class LoggedChunk(BaseModel):
@@ -105,14 +108,63 @@ def read_turns(rows: Sequence[LoggedChunk]) -> list[ExtractedTurn]:
     ]
 
 
+def _redacted(card: EvidenceCard) -> EvidenceCard:
+    """The card with every text on it redacted; counts and ids are not identity."""
+    verdict = card.verdict
+    return card.model_copy(
+        update={
+            "strategy_url": (
+                None if card.strategy_url is None else redact_text(card.strategy_url)
+            ),
+            "steps": [
+                step.model_copy(update={"title": redact_text(step.title)})
+                for step in card.steps
+            ],
+            "controls": [
+                test.model_copy(update={"tested_label": redact_text(test.tested_label)})
+                for test in card.controls
+            ],
+            "citations": [
+                cited.model_copy(
+                    update={
+                        "criterion_text": redact_text(cited.criterion_text),
+                        "references": [redact_text(r) for r in cited.references],
+                    }
+                )
+                for cited in card.citations
+            ],
+            "verdict": verdict.model_copy(
+                update={
+                    "pending_checks": [redact_text(p) for p in verdict.pending_checks],
+                    "refused_because": (
+                        None
+                        if verdict.refused_because is None
+                        else redact_text(verdict.refused_because)
+                    ),
+                }
+            ),
+        }
+    )
+
+
+def read_evidence(rows: Sequence[LoggedChunk]) -> EvidenceCard | None:
+    """The last evidence card in the log, redacted, or None."""
+    latest: EvidenceCard | None = None
+    for row in rows:
+        chunk = row.chunk
+        if chunk.type == EVIDENCE_CARD and chunk.data is not None:
+            latest = EvidenceCard.model_validate(chunk.data)
+    return None if latest is None else _redacted(latest)
+
+
 def read_verification(rows: Sequence[LoggedChunk]) -> ExtractedVerification | None:
-    """The last verification verdict in the log, redacted, or None."""
+    """The last verification verdict in the log and its card, redacted, or None."""
     latest: DigestView | None = None
     for row in rows:
         chunk = row.chunk
         if chunk.type != LEDGER_UPDATE or chunk.data is None:
             continue
-        verification = chunk.data.verification
+        verification = LedgerData.model_validate(chunk.data).verification
         if verification is not None and verification.digest is not None:
             latest = verification.digest
     if latest is None:
@@ -123,7 +175,8 @@ def read_verification(rows: Sequence[LoggedChunk]) -> ExtractedVerification | No
         key_findings=[redact_text(line) for line in latest.key_findings],
         caveats=[redact_text(line) for line in latest.caveats],
         pending_checks=latest.pending_checks,
+        evidence=read_evidence(rows),
     )
 
 
-__all__ = ["LoggedChunk", "read_turns", "read_verification"]
+__all__ = ["LoggedChunk", "read_evidence", "read_turns", "read_verification"]

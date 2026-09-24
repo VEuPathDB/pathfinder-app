@@ -7,10 +7,16 @@ from __future__ import annotations
 
 import math
 
+from veupathdb_mcp.controls import (
+    ControlTargetData,
+    ControlTestResult,
+    NegativeControls,
+    PositiveControls,
+)
+
 from pathfinder.services.experiment.metrics import (
     compute_confusion_matrix,
     compute_metrics,
-    evaluate_gene_ids_against_controls,
     metrics_from_control_result,
 )
 
@@ -102,26 +108,15 @@ def test_mcc_is_zero_not_nan_when_one_class_absent() -> None:
     assert not math.isinf(m.mcc)
 
 
-def test_evaluate_gene_ids_against_controls_pure_set_ops() -> None:
-    result = evaluate_gene_ids_against_controls(
-        gene_ids=["g1", "g2", "g3", "g4"],
-        positive_controls=["g1", "g2", "missing"],
-        negative_controls=["g3", "negmiss"],
-    )
-    assert result.positive is not None
-    assert result.positive.controls_count == 3
-    assert result.positive.intersection_count == 2  # g1, g2
-    assert math.isclose(result.positive.recall or 0.0, 2 / 3)
-    assert result.negative is not None
-    assert result.negative.intersection_count == 1  # g3
-    assert math.isclose(result.negative.false_positive_rate or 0.0, 1 / 2)
-
-
 def test_metrics_from_control_result_end_to_end() -> None:
-    result = evaluate_gene_ids_against_controls(
-        gene_ids=["g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8"],
-        positive_controls=[f"g{i}" for i in range(1, 11)],  # g1..g10, 8 hit
-        negative_controls=["g7", "g8"] + [f"n{i}" for i in range(8)],  # 2 hit of 10
+    result = ControlTestResult(
+        target=ControlTargetData(estimated_size=8),
+        positive=PositiveControls(
+            recovered_ids=[f"g{i}" for i in range(1, 9)], missed_ids=["g9", "g10"]
+        ),
+        negative=NegativeControls(
+            admitted_ids=["g7", "g8"], excluded_ids=[f"n{i}" for i in range(8)]
+        ),
     )
     m = metrics_from_control_result(result)
     assert m.confusion_matrix.true_positives == 8

@@ -8,3 +8,5 @@ export const MOCK_PLAN_PROMPT = "create step";
 export const MOCK_PLAN_REPLY = /Verified end-to-end/;
 export const MOCK_DELEGATION_PROMPT = "create delegation";
 export const MOCK_DELEGATION_DRAFT_PROMPT = "create delegation draft";
+/** A build whose check tests the controls the mock names, so it leaves an evidence card. */
+export const MOCK_CONTROLS_PROMPT = "create step and check it against my controls";

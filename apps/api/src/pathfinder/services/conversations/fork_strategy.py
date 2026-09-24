@@ -86,8 +86,6 @@ async def write_forked_strategy(
             # would rewrite its source's set. The branch imports its own.
             gene_set_id=None,
             gene_set_auto_imported=False,
-            # The experiment is read, never written, so the branch keeps it.
-            experiment_id=source_strategy.experiment_id,
             wdk_strategy_id=materialized.wdk_strategy_id,
             wdk_strategy_created_here=materialized.created_wdk_strategy,
             # The fork still embeds the imported subtrees, so it keeps

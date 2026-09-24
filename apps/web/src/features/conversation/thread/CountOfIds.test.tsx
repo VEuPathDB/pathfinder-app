@@ -27,18 +27,16 @@ describe("CountOfIds", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the ids on hover, and says how many of the count they are", async () => {
+  it("shows every id behind the count on hover", async () => {
     const user = userEvent.setup();
-    render(<CountOfIds count={9} ids={IDS} noun="positive controls recovered" />);
+    render(<CountOfIds count={2} ids={IDS} noun="positive controls recovered" />);
 
     await user.hover(screen.getByTestId("count-of-ids"));
 
     await waitFor(() => {
       expect(screen.getByText("PF3D7_1222600, PF3D7_1031000")).toBeInTheDocument();
     });
-    expect(
-      screen.getByText("2 of 9 shown. Click the number to copy them."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Click the number to copy them.")).toBeInTheDocument();
   });
 
   it("copies every id it holds when the count is clicked", () => {

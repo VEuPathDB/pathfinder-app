@@ -28,8 +28,9 @@ the publication.
   demand. PathFinder runs no polling loop.
 - Transport: `POST` and `GET /api/v1/gene-sets/{id}/vdi-publication`, both behind the
   registered-login gate.
-- UI: one button in the workbench gene-set header, with a visibility select and a confirm
-  step, because the action creates a durable artifact outside PathFinder.
+- UI: one button on the gene-set figure in the thread (`content/parts/DataGeneSet.tsx`),
+  beside its delete, with a visibility select and a confirm step, because the action creates
+  a durable artifact outside PathFinder.
 
 # What the probe measured
 

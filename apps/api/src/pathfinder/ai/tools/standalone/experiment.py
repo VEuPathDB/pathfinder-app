@@ -5,38 +5,40 @@ from uuid import UUID
 
 from assistant_core.graph.tool_summary import summary_chunks, with_summary
 from assistant_core.platform.logging import get_logger
-from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.tasks.declaration import declare_durable_tool
 from assistant_core.tasks.decorator import DurableOutcome
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp import ToolErrorPayload, tool_error
 from veupathdb_mcp.controls import (
-    ControlSetData,
     ControlTargetData,
     ControlTestResult,
     IntersectionConfig,
+    NegativeControls,
+    PositiveControls,
     run_positive_negative_controls,
 )
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.stream_events import control_test_results_event
+from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.stream_part_payloads import (
     ControlSetSummary,
     ControlTestResults,
     TestedParameter,
 )
+from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
 from pathfinder.platform.durable_worker import durable_agent_tool
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
+from pathfinder.services.evidence.optimization import tunable_parameters_of_search
 from pathfinder.services.experiment.metrics import metrics_from_control_result
 from pathfinder.services.experiment.published_names import published_names
 from pathfinder.services.export.control_downloads import attach_control_downloads
-from pathfinder.services.workbench.optimization import tunable_parameters_of_search
 
 logger = get_logger(__name__)
 
@@ -51,42 +53,34 @@ def _shown(value: str) -> str:
     return f"{value[:VALUE_CHARS].rstrip()} ..."
 
 
-class _ControlCounts(CamelModel):
-    """What a control test measured, flat as the worker reports it.
+class _ControlCounts(ControlOutcome):
+    """What a control test filed, flat as the worker reports it, with WDK's names.
 
-    A control set the test did not run leaves its count absent.
     ``target_label`` and ``parameter_labels`` are what WDK calls the tested
     step and its parameters, and they are empty when WDK did not answer.
     """
 
     model_config = ConfigDict(extra="ignore")
 
-    step_id: int | None = None
-    search_name: str = ""
     target_label: str = ""
-    estimated_size: int = 0
-    parameters: dict[str, ParamValue] = Field(default_factory=dict)
     parameter_labels: dict[str, str] = Field(default_factory=dict)
-    positive_intersection: int | None = None
-    positive_controls_count: int | None = None
-    positive_recall: float | None = None
-    positive_intersection_ids: list[str] = Field(default_factory=list)
-    positive_missing_ids: list[str] = Field(default_factory=list)
-    negative_intersection: int | None = None
-    negative_controls_count: int | None = None
-    negative_false_positive_rate: float | None = None
-    negative_intersection_ids: list[str] = Field(default_factory=list)
     tunable_parameters: list[str] = Field(default_factory=list)
 
-    def _set(
-        self, controls_count: int | None, hits: int | None
-    ) -> ControlSetData | None:
-        if controls_count is None:
-            return None
-        return ControlSetData(
-            controls_count=controls_count,
-            intersection_count=hits or 0,
-        )
+    def positive_controls(self) -> PositiveControls | None:
+        """The positive set, or None when the test was given no positives."""
+        match (self.positive_recovered_ids, self.positive_missed_ids):
+            case (list() as recovered, list() as missed):
+                return PositiveControls(recovered_ids=recovered, missed_ids=missed)
+            case _:
+                return None
+
+    def negative_controls(self) -> NegativeControls | None:
+        """The negative set, or None when the test was given no negatives."""
+        match (self.negative_admitted_ids, self.negative_excluded_ids):
+            case (list() as admitted, list() as excluded):
+                return NegativeControls(admitted_ids=admitted, excluded_ids=excluded)
+            case _:
+                return None
 
     def measured(self) -> ControlTestResult:
         """The typed result the metrics engine scores."""
@@ -96,35 +90,55 @@ class _ControlCounts(CamelModel):
                 step_id=self.step_id,
                 estimated_size=self.estimated_size,
             ),
-            positive=self._set(
-                self.positive_controls_count, self.positive_intersection
-            ),
-            negative=self._set(
-                self.negative_controls_count, self.negative_intersection
-            ),
+            positive=self.positive_controls(),
+            negative=self.negative_controls(),
         )
 
     def positive_set(self) -> ControlSetSummary | None:
-        """The positive set, or None when the test ran no positives."""
-        if self.positive_controls_count is None:
+        """The positive set as the exhibit shows it."""
+        positive = self.positive_controls()
+        if positive is None:
             return None
         return ControlSetSummary(
-            controls_count=self.positive_controls_count,
-            intersection_count=self.positive_intersection or 0,
-            recall=self.positive_recall,
-            hit_ids=self.positive_intersection_ids,
-            missed_ids=self.positive_missing_ids,
+            controls_count=positive.controls_count,
+            intersection_count=positive.intersection_count,
+            recall=positive.recall,
+            hit_ids=positive.recovered_ids,
+            missed_ids=positive.missed_ids,
         )
 
     def negative_set(self) -> ControlSetSummary | None:
-        """The negative set, or None when the test ran no negatives."""
-        if self.negative_controls_count is None:
+        """The negative set as the exhibit shows it."""
+        negative = self.negative_controls()
+        if negative is None:
             return None
         return ControlSetSummary(
-            controls_count=self.negative_controls_count,
-            intersection_count=self.negative_intersection or 0,
-            false_positive_rate=self.negative_false_positive_rate,
-            hit_ids=self.negative_intersection_ids,
+            controls_count=negative.controls_count,
+            intersection_count=negative.intersection_count,
+            false_positive_rate=negative.false_positive_rate,
+            hit_ids=negative.admitted_ids,
+            missed_ids=negative.excluded_ids,
+        )
+
+    def evidence(self, wdk_step_id: int | None) -> ControlTestEvidence | None:
+        """The test as the card files it, or None when it was given no control."""
+        positive = self.positive_controls()
+        negative = self.negative_controls()
+        if positive is None and negative is None:
+            return None
+        return ControlTestEvidence(
+            tested_label=self.reader_label(),
+            wdk_step_id=wdk_step_id,
+            positive=None
+            if positive is None
+            else ControlSetEvidence(
+                returned=positive.recovered_ids, not_returned=positive.missed_ids
+            ),
+            negative=None
+            if negative is None
+            else ControlSetEvidence(
+                returned=negative.admitted_ids, not_returned=negative.excluded_ids
+            ),
         )
 
     def reader_label(self) -> str:
@@ -179,6 +193,17 @@ def controls_summary(counts: _ControlCounts) -> str:
         f"{counts.positive_controls_count or 0} positive controls recovered; "
         f"recall {metrics.sensitivity:.2f}, {scored}; {knobs}"
     )
+
+
+def control_test_run(
+    result: dict[str, JsonValue], *, tool_call_id: str
+) -> ControlTestRun | None:
+    """The run a finished step test records, or None when it was given no control."""
+    counts = _ControlCounts.model_validate(result)
+    evidence = counts.evidence(counts.step_id)
+    if evidence is None:
+        return None
+    return ControlTestRun(tool_call_id=tool_call_id, evidence=evidence)
 
 
 def _control_test_chunks_from_result(
@@ -303,6 +328,12 @@ async def run_control_tests_on_search(
         }
     )
     tool_call_id = ctx.tool_call_id or ""
+    # A search test reads a step it creates and deletes, so no step id is kept.
+    evidence = counts.evidence(None)
+    if evidence is not None:
+        ctx.deps.turn_markers.record_control_tests(
+            [ControlTestRun(tool_call_id=tool_call_id, evidence=evidence)]
+        )
     return with_summary(
         outcome,
         controls_summary(counts),

@@ -11,9 +11,9 @@ from assistant_core.tasks.progress import TaskProgressEmitter
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
 from veupathdb.wdk import WDKSearchConfig, WDKStep
 from veupathdb_mcp.controls import (
-    ControlSetData,
     ControlTargetData,
     ControlTestResult,
+    PositiveControls,
 )
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
@@ -83,15 +83,12 @@ def _measured(monkeypatch: pytest.MonkeyPatch) -> None:
         negative_controls: list[str] | None = None,
     ) -> ControlTestResult:
         del site_id, negative_controls
+        recovered, missed = (positive_controls or [])[:2], (positive_controls or [])[2:]
         return ControlTestResult(
             site_id="plasmodb",
             record_type="transcript",
             target=ControlTargetData(step_id=wdk_step_id, estimated_size=132),
-            positive=ControlSetData(
-                controls_count=len(positive_controls or []),
-                intersection_count=2,
-                recall=2 / 3,
-            ),
+            positive=PositiveControls(recovered_ids=recovered, missed_ids=missed),
         )
 
     async def no_export(outcome: ControlOutcome, name: str) -> ControlOutcome:
@@ -135,6 +132,8 @@ async def test_the_result_names_the_search_the_step_runs(
     assert result["searchName"] == SEARCH
     assert result["stepId"] == STEP_ID
     assert result["positiveIntersection"] == 2
+    assert result["positiveRecoveredIds"] == ["PF3D7_1227900", "PF3D7_0102600"]
+    assert result["positiveMissedIds"] == ["PF3D7_0213400"]
     assert result["targetLabel"] == LABEL
     assert result["parameterLabels"] == {"organism": "Organism"}
     assert result["tunableParameters"] == ["organism", "scope"]
@@ -162,7 +161,7 @@ async def test_a_refused_step_lookup_leaves_the_name_empty(
     assert result["targetLabel"] == ""
     assert result["parameterLabels"] == {}
     assert result["tunableParameters"] == []
-    assert result["positiveIntersection"] == 2
+    assert result["positiveRecoveredIds"] == ["PF3D7_1227900"]
 
 
 async def test_a_step_wdk_does_not_name_falls_back_to_its_search(

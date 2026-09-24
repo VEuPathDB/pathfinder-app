@@ -41,8 +41,15 @@ def staged_extract(row: EvalStagedCase) -> EvalExtract:
     return EvalExtract.model_validate(row.extract)
 
 
-def default_expectation(extract: EvalExtract) -> ExpectedOutcome:
-    """What the recorded run did, as the expectation a curator starts from."""
+def default_expectation(row: EvalStagedCase) -> ExpectedOutcome:
+    """What the recorded run did, as the expectation a curator starts from.
+
+    A disliked message's run is the one the researcher said was wrong, so its
+    default compares nothing.
+    """
+    if row.rated_message_id is not None:
+        return ExpectedOutcome(builds_strategy=None)
+    extract = staged_extract(row)
     strategy = extract.strategy
     verification = extract.verification
     return ExpectedOutcome(
@@ -61,6 +68,9 @@ def build_case(
 ) -> EvalCase:
     """The case a promotion writes, from the staged extract plus the edits."""
     extract = staged_extract(row)
+    if row.rated_message_id is not None and edits.expected is None:
+        msg = f"staged case {row.id} is a disliked message; state what the case expects"
+        raise ValueError(msg)
     turns = edits.turns or [turn.request for turn in extract.turns]
     return EvalCase(
         name=edits.name,
@@ -68,7 +78,7 @@ def build_case(
         site_id=row.site_id,
         assistant_id=row.assistant_id,
         rationale=edits.rationale,
-        expected=edits.expected or default_expectation(extract),
+        expected=edits.expected or default_expectation(row),
         provenance=CaseProvenance(
             site=row.site_id,
             assistant=row.assistant_id,

@@ -28,6 +28,7 @@ from pathfinder.ai.lead.turn_budget import (
 from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.staleness import StaleBuild
+from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.domain.strategy.step_words import AddedSearch
 from pathfinder.platform.config import get_settings
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
@@ -38,6 +39,7 @@ from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     NOT_VERIFIED,
     OBJECTION,
     QUESTION,
+    SEARCH,
     SITE_ID,
     STEP,
     STRATEGY_LINE,
@@ -262,6 +264,27 @@ def test_every_step_the_turn_added_is_named() -> None:
 
     assert report.split("\n\n")[1] == (
         f'This turn added 2 steps: "{TITLE}" ({WORDS}); "Text" (kinases).'
+    )
+
+
+def test_a_step_with_a_reason_is_named_with_it() -> None:
+    reasoned = ADDED.model_copy(
+        update={
+            "rationale": SearchRationale(
+                search_name=SEARCH,
+                basis="parameter",
+                term="Minimum ExportPred Score",
+                reason="sets Minimum ExportPred Score to 10",
+                tool_call_id="call_1",
+            )
+        }
+    )
+    turn = TurnMarkers(built=True, added_searches=[reasoned])
+
+    report = _report(built(), None, built_session(), turn=turn)
+
+    assert report.split("\n\n")[1] == (
+        f'This turn added 1 step: "{TITLE}" ({WORDS}; sets Minimum ExportPred Score).'
     )
 
 

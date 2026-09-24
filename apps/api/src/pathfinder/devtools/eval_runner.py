@@ -41,6 +41,7 @@ from pathfinder.evals.scoring import (
     final_count_below_every_input,
     root_operator,
     score_case,
+    step_reasons,
     step_titles,
     structure_signature,
 )
@@ -103,6 +104,7 @@ async def observe(
         step_ids_unchanged=step_ids_unchanged,
         tree=tree_from_ast(ast) if ast is not None else None,
         step_titles=step_titles(ast) if ast is not None else [],
+        step_reasons=step_reasons(ast) if ast is not None else [],
         reply_text=reply_text,
         root_operator=root_operator(ast) if ast is not None else None,
         final_count_below_every_input=(

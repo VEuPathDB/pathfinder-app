@@ -5,7 +5,12 @@ import type { InvestigationLedger } from "@pathfinder/shared/generated/types/Inv
 import { phaseLabel } from "@/lib/models/phaseRoles";
 import { type Tone } from "@/features/conversation/rail/statusTone";
 
-import { BuildDetail, FrameDetail, VerificationDetail } from "./LedgerPanelDetail";
+import {
+  BuildDetail,
+  type CheckedEvidence,
+  FrameDetail,
+  VerificationDetail,
+} from "./LedgerPanelDetail";
 import { LedgerContrasts } from "./LedgerContrasts";
 import {
   BoolBadge,
@@ -164,11 +169,27 @@ export function BuildSection({
   );
 }
 
+/** One control set as the summary reads it: returned of controls. */
+function controlCounts(evidence: CheckedEvidence): string {
+  return evidence.card.controls
+    .flatMap((test) => [
+      ...(test.positive == null
+        ? []
+        : [`${test.positive.returnedCount}/${test.positive.controlsCount} positives`]),
+      ...(test.negative == null
+        ? []
+        : [`${test.negative.returnedCount}/${test.negative.controlsCount} negatives`]),
+    ])
+    .join(", ");
+}
+
 export function VerificationSection({
   verification,
+  evidence = null,
   detail = false,
 }: {
   verification: InvestigationLedger["verification"];
+  evidence?: CheckedEvidence | null;
   detail?: boolean;
 }) {
   const digest = verification.digest;
@@ -186,7 +207,10 @@ export function VerificationSection({
           )
         }
       />
-      {detail && <VerificationDetail verification={verification} />}
+      {evidence !== null && evidence.card.controls.length > 0 && (
+        <LedgerRow label="controls returned" value={controlCounts(evidence)} />
+      )}
+      {detail && <VerificationDetail verification={verification} evidence={evidence} />}
     </LedgerSection>
   );
 }

@@ -30,9 +30,11 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    build_step_tree,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.spec_tree import (
+    build_step_tree,
+)
 from pathfinder.domain.strategy.step_words import StampedKind, StepWords
 from pathfinder.services.eda.export import exported_analysis
 from pathfinder.services.strategies import insert_saved

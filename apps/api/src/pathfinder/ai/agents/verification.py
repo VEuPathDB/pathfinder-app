@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from assistant_core.conversation.history import HISTORY_PROCESSORS
 from assistant_core.scratchpad.toolset import build_scratchpad_toolset
-from pydantic_ai import Agent, DeferredToolRequests, RunContext
+from pydantic_ai import Agent, DeferredToolRequests, ModelRetry, RunContext
 from pydantic_ai.capabilities import ProcessHistory, Thinking
 
 from pathfinder.ai.agents._instructions import (
@@ -24,7 +24,13 @@ from pathfinder.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from pathfinder.ai.agents.vocabulary import with_vocabulary
 from pathfinder.ai.capabilities.resilience import ToolResilience
 from pathfinder.ai.graph.runtime import AgentDeps, turn_tool_sources
+from pathfinder.ai.lead.contract_messages import unbacked_digest_message
 from pathfinder.ai.lead.deltas import VerificationDelta
+from pathfinder.ai.lead.evidence_claims import (
+    backing_results,
+    control_claims,
+    unbacked_claims,
+)
 from pathfinder.ai.tools.toolsets.verification import build_toolset
 from pathfinder.platform.refusals import agent_capabilities
 
@@ -65,20 +71,21 @@ negative_controls?)`` - Test controls against a built strategy step.
 target_parameters, positive_controls?, negative_controls?)`` - Test controls \
 against a standalone search.
 
-### Workbench / enrichment
-- ``run_gene_set_enrichment(gene_set_id, enrichment_types?)`` - GO / pathway \
-/ word enrichment on a gene set.
-- ``list_workbench_gene_sets()`` - List gene sets in the Workbench.
+Every control test you run is recorded, and the evidence card under your check \
+lists each control id it filed. State a control count or a control gene id in \
+``prose``, ``key_findings`` or ``caveats`` only as a test of this turn filed it; \
+the runtime refuses any other once.
+
+### Gene sets
+- ``list_gene_sets()`` - List the gene sets the user saved.
 - ``export_gene_set(gene_set_id, output_format?)`` - Export gene set as \
 CSV/TXT.
-- ``create_workbench_gene_set(name, step_id?, gene_ids?)`` - Save a gene set. Name \
+- ``save_gene_set(name, step_id?, gene_ids?)`` - Save a gene set. Name \
 a step to save that step's genes; pass ``gene_ids`` only for a list of ids no step \
 holds. Do NOT call after a successful build - sets are auto-created.
 
-### Experiment-linked analysis (only when chat has an experiment_id)
-- ``get_evaluation_summary``, ``get_confidence_scores``, \
-``get_enrichment_results``, ``get_experiment_config``, \
-``get_result_gene_lists``.
+GO, pathway and word enrichment are analyses the site runs on a step, from its \
+result page; the evidence card links it. They are not checks you run.
 
 ### Gene Lookup (control tests)
 Control tests require VEuPathDB **gene IDs** (e.g. ``PF3D7_1222600``), not \
@@ -98,11 +105,8 @@ and stop there; do not describe the gene's expression from anything else.
 - A turn that ADDED OR CHANGED ONE STEP is verified by counts: read the \
 strategy, confirm the new step returns a plausible number, and report it. \
 Do not start a background job for it.
-- A turn that BUILT A WHOLE STRATEGY earns the deeper checks: controls, and \
-enrichment when a control set exists.
-- ``run_gene_set_enrichment`` runs for minutes on a worker. It is offered \
-only when the turn's delta warrants it or the user asked for it, so verify \
-what is in front of you rather than reaching for it.
+- A turn that BUILT A WHOLE STRATEGY earns the deeper check: controls, when \
+the researcher named them or a control set exists.
 - A STUDY STEP (search ``GenesByEdaVizWithCompute`` or ``GenesByEdaSubset``) \
 is verified with ``check_study_step``: its thresholds and its subset filters \
 are both in its analysis spec, so its cut is a fact you can state, not \
@@ -124,20 +128,10 @@ to check that the result set is reasonable (not empty, not millions).
 2. **Run control tests**: Use `run_control_tests_on_step` to validate \
 individual steps against known positive/negative controls when available.
 
-3. **Analyze workbench quality (when a chat experiment is linked)**: Use \
-`get_evaluation_summary`, `get_confidence_scores`, `get_enrichment_results`, \
-`get_experiment_config`, and `get_result_gene_lists` to assess how the \
-strategy classifies the \
-reference controls. These tools return an error when the chat is not \
-associated with an experiment.
-
-4. **Enrich results**: When `run_gene_set_enrichment` is offered, use it for \
-GO term and pathway enrichment to confirm biological relevance.
-
-5. **Export**: Use `export_gene_set` and `create_workbench_gene_set` to \
+3. **Export**: Use `export_gene_set` and `save_gene_set` to \
 make results available for downstream analysis.
 
-6. **Reconcile constraints**: For each constraint in the ledger's \
+4. **Reconcile constraints**: For each constraint in the ledger's \
 Constraints section, emit one ``constraint_report`` entry (``label``, \
 ``requested``, ``realized``, ``honored``, ``note``). If any user-explicit \
 constraint is not honored - a substituted data type, a dropped statistical \
@@ -153,7 +147,7 @@ researcher's connective; an INTERSECT count is at most its smallest input and \
 a UNION count at least its largest, so a final count above the smallest input \
 is never an intersection of requirements.
 
-7. **Never claim more than the build**: ``success=True`` says the strategy \
+5. **Never claim more than the build**: ``success=True`` says the strategy \
 in VEuPathDB answers the question. The ledger's Build section is what \
 happened; a success that the build does not support is refused and rewritten \
 before the user sees it.
@@ -221,6 +215,28 @@ def pinned_researcher_request(ctx: RunContext[AgentDeps]) -> str | None:
     return f"## The researcher's request\n{request}"
 
 
+def hold_the_digest_to_the_controls(
+    ctx: RunContext[AgentDeps], output: VerificationDelta | DeferredToolRequests
+) -> VerificationDelta | DeferredToolRequests:
+    """Refuse, once per check, a digest that states a control result nothing holds."""
+    if not isinstance(output, VerificationDelta):
+        return output
+    markers = ctx.deps.turn_markers
+    scope = ctx.deps.verification_scope
+    if scope.check_id in markers.refused_digests:
+        return output
+    digest = output.digest
+    text = "\n".join([digest.prose, *digest.key_findings, *digest.caveats])
+    results = backing_results(
+        (run.evidence for run in markers.control_tests), scope.last_card
+    )
+    found = unbacked_claims(control_claims(text), results)
+    if not found:
+        return output
+    markers.refused_digests.append(scope.check_id)
+    raise ModelRetry(unbacked_digest_message(found))
+
+
 def build_verification_agent() -> VerificationAgent:
     """A verification agent for one dispatch.
 
@@ -263,4 +279,5 @@ def build_verification_agent() -> VerificationAgent:
         pinned_run_budget,
     ):
         agent.instructions(fn)
+    agent.output_validator(hold_the_digest_to_the_controls)
     return agent

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Annotated
+from uuid import UUID
 
 from assistant_core.registry import resolve_turn_assistant
 from assistant_core.spec import AssistantSpec
@@ -8,13 +9,17 @@ from fastapi import APIRouter, Depends, Response
 
 from pathfinder.ai.conversation.dispatcher import dispatch
 from pathfinder.ai.conversation.request_body import ChatRequestBody
-from pathfinder.assistants.registry import get_assistant_registry
+from pathfinder.assistants.registry import (
+    assistant_role_models,
+    get_assistant_registry,
+)
 from pathfinder.services.wdk_identity import require_session_matches_wdk_identity
 from pathfinder.transport.http.deps import (
     CurrentPrincipal,
+    CurrentUser,
     DBSession,
-    QuotaCheckedUser,
     refuse_degraded_site,
+    require_turn_paid,
 )
 
 router = APIRouter(tags=["chat"])
@@ -50,11 +55,26 @@ async def require_available_chat_site(body: ChatRequestBody) -> None:
     refuse_degraded_site(body.site_id)
 
 
+ChatAssistant = Annotated[AssistantSpec, Depends(resolve_chat_assistant)]
+
+
+async def paid_turn_user(
+    body: ChatRequestBody,
+    session: DBSession,
+    user_id: CurrentUser,
+    spec: ChatAssistant,
+) -> UUID:
+    """The caller, once a key is known to pay for every model the turn runs."""
+    roles = assistant_role_models(spec.assistant_id, body.runtime_phase_models)
+    await require_turn_paid(session, user_id, roles.values())
+    return user_id
+
+
 @router.post("/api/v1/chat", dependencies=[Depends(require_available_chat_site)])
 async def chat(
     body: ChatRequestBody,
     session: DBSession,
-    user_id: QuotaCheckedUser,
-    spec: Annotated[AssistantSpec, Depends(resolve_chat_assistant)],
+    user_id: Annotated[UUID, Depends(paid_turn_user)],
+    spec: ChatAssistant,
 ) -> Response:
     return await dispatch(body=body, session=session, user_id=user_id, spec=spec)

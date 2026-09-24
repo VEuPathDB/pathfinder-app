@@ -41,14 +41,14 @@
     "type": "tool-input-start"
   },
   {
-    "inputTextDelta": "{\"prose\":\"[mock] hi\",\"nextState\":\"await_user\",\"strategyChanged\":false,\"analysedGeneSetIds\":[],\"sources\":[]}",
+    "inputTextDelta": "{\"prose\":\"[mock] hi\",\"nextState\":\"await_user\",\"strategyChanged\":false,\"sources\":[]}",
     "toolCallId": "<REDACTED>",
     "type": "tool-input-delta"
   },
   {
     "data": {
       "costUsd": "0",
-      "totalTokens": 62
+      "totalTokens": 60
     },
     "transient": true,
     "type": "data-turn-usage"
@@ -60,14 +60,13 @@
       "costUsd": "0",
       "modelId": "mock:lead",
       "reasoningEffort": null,
-      "tokens": 62
+      "tokens": 60
     },
     "id": "<REDACTED>",
     "type": "data-lead-usage"
   },
   {
     "input": {
-      "analysedGeneSetIds": [],
       "nextState": "await_user",
       "prose": "[mock] hi",
       "sources": [],
@@ -109,7 +108,7 @@
   {
     "data": {
       "costUsd": "0",
-      "totalTokens": 62
+      "totalTokens": 60
     },
     "transient": true,
     "type": "data-turn-usage"
@@ -121,7 +120,7 @@
       "costUsd": "0",
       "modelId": "mock:lead",
       "reasoningEffort": null,
-      "tokens": 62
+      "tokens": 60
     },
     "id": "<REDACTED>",
     "type": "data-lead-usage"

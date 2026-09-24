@@ -20,6 +20,7 @@ ProductActionName = Literal[
     "plan_ask_question",
     "undo_turn",
     "assistant_regenerate",
+    "message_rated",
 ]
 
 _LANGFUSE_ERRORS = (langfuse.api.Error, ValueError, OSError)

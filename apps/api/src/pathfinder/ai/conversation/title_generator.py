@@ -7,7 +7,6 @@ turn runner writes it as `data-conversation-title`, the last chunk before
 
 from __future__ import annotations
 
-import contextlib
 import re
 
 import httpx
@@ -16,11 +15,12 @@ from assistant_core.platform.types import ModelProvider
 from assistant_core.spec import MockModelFactory
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import AgentRunError, UserError
-from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.usage import UsageLimits
 
 from pathfinder.ai.models.catalog import get_smallest_model
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.errors import ProviderKeyError
+from pathfinder.platform.model_keys import keyed_model
 
 MAX_TITLE_WORDS = 7
 MAX_TITLE_CHARS = 60
@@ -120,8 +120,12 @@ async def generate_conversation_title(
     # ``entry`` is only None on the mock path above, so the fallback must be the
     # mock model, not a real provider id.
     title_model_id = entry.id if entry is not None else "mock:deterministic"
+    try:
+        model = mock_model() if is_mock else keyed_model(title_model_id)
+    except ProviderKeyError:
+        return _fallback_title(first_user_message)
     agent: Agent[None, str] = Agent(
-        title_model_id,
+        model,
         output_type=str,
         instructions=_TITLE_INSTRUCTIONS,
         model_settings=build_model_settings(title_model_id),
@@ -129,19 +133,19 @@ async def generate_conversation_title(
         name="conversation-title",
         defer_model_check=True,
     )
-
-    override_ctx = (
-        agent.override(model=mock_model())
-        if is_mock and not isinstance(agent.model, FunctionModel)
-        else contextlib.nullcontext()
-    )
     try:
-        with override_ctx:
-            result = await agent.run(
-                f"User's first message:\n{cleaned}",
-                usage_limits=_TITLE_USAGE_LIMITS,
-            )
-    except AgentRunError, UserError, httpx.HTTPError, TimeoutError, OSError:
+        result = await agent.run(
+            f"User's first message:\n{cleaned}",
+            usage_limits=_TITLE_USAGE_LIMITS,
+        )
+    except (
+        AgentRunError,
+        UserError,
+        ProviderKeyError,
+        httpx.HTTPError,
+        TimeoutError,
+        OSError,
+    ):
         return _fallback_title(first_user_message)
 
     return _trim_title(result.output) or _fallback_title(first_user_message)

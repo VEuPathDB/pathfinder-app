@@ -21,7 +21,7 @@ from assistant_core.cost import cost_for_run
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
 from assistant_core.graph.turn_state import PendingApproval, PendingDurableCall
 from assistant_core.platform.logging import get_logger
-from assistant_core.platform.types import ReasoningEffort
+from assistant_core.platform.types import PaidBy, ReasoningEffort
 from pydantic_ai.messages import AgentStreamEvent, ModelMessage, PartStartEvent
 from pydantic_ai.run import AgentRunResultEvent
 from pydantic_ai.ui.vercel_ai.response_types import (
@@ -41,6 +41,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
 )
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.catalog import context_window_for
+from pathfinder.platform.model_keys import turn_paid_by
 
 logger = get_logger(__name__)
 
@@ -55,11 +56,16 @@ class GuardStop:
 
 @dataclass(frozen=True)
 class SpendOutsideTheLead:
-    """What one turn spent beyond the Lead's own model calls."""
+    """What one turn spent beyond the Lead's own model calls.
+
+    ``own_key_*`` is the part of the sub-agent spend the researcher's keys paid.
+    """
 
     sub_agent_tokens: int = 0
     sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
     tool_cost: Decimal = field(default_factory=lambda: Decimal(0))
+    own_key_tokens: int = 0
+    own_key_cost: Decimal = field(default_factory=lambda: Decimal(0))
 
     def minus(self, billed: "SpendOutsideTheLead") -> "SpendOutsideTheLead":
         """The part of this spend the quota has not received yet."""
@@ -67,6 +73,8 @@ class SpendOutsideTheLead:
             sub_agent_tokens=self.sub_agent_tokens - billed.sub_agent_tokens,
             sub_agent_cost=self.sub_agent_cost - billed.sub_agent_cost,
             tool_cost=self.tool_cost - billed.tool_cost,
+            own_key_tokens=self.own_key_tokens - billed.own_key_tokens,
+            own_key_cost=self.own_key_cost - billed.own_key_cost,
         )
 
 
@@ -93,6 +101,8 @@ class _LeadRunCapture:
     sub_agent_tokens: int = 0
     sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
     tool_cost: Decimal = field(default_factory=lambda: Decimal(0))
+    own_key_sub_agent_tokens: int = 0
+    own_key_sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
     # The part of the spend outside the Lead's calls the quota already holds.
     billed_outside_the_lead: SpendOutsideTheLead = field(
         default_factory=SpendOutsideTheLead,
@@ -141,6 +151,8 @@ class _LeadRunCapture:
             sub_agent_tokens=self.sub_agent_tokens,
             sub_agent_cost=self.sub_agent_cost,
             tool_cost=self.tool_cost,
+            own_key_tokens=self.own_key_sub_agent_tokens,
+            own_key_cost=self.own_key_sub_agent_cost,
         )
 
     def residual_totals(self, state: PipelineState) -> tuple[int, str]:
@@ -170,6 +182,9 @@ def absorb_sub_agent_usage(capture: _LeadRunCapture, info: SubAgentRunUsage) -> 
     )
     capture.sub_agent_tokens += info.usage.total_tokens
     capture.sub_agent_cost += cost
+    if info.paid_by is PaidBy.USER:
+        capture.own_key_sub_agent_tokens += info.usage.total_tokens
+        capture.own_key_sub_agent_cost += cost
     by_call = capture.sub_agent_usage_by_call
     spent = by_call.get(info.parent_tool_call_id, SubAgentCallUsage())
     by_call[info.parent_tool_call_id] = spent.plus(info.usage.total_tokens, cost)
@@ -280,6 +295,7 @@ async def _charge_token_delta(
                 user_id=state.user_id,
                 tokens=delta_tokens,
                 cost_usd=delta_cost,
+                paid_by=turn_paid_by(agent_model),
             )
             await session.commit()
     except SQLAlchemyError:
@@ -304,6 +320,28 @@ async def _charge_token_delta(
     emit_lead_usage(writer, capture, capture.charged_tokens, str(capture.charged_cost))
 
 
+def _residual_by_payer(
+    capture: _LeadRunCapture,
+    unbilled: SpendOutsideTheLead,
+    lead_tokens: int,
+    lead_cost: Decimal,
+) -> dict[PaidBy, tuple[int, Decimal]]:
+    """The unbilled spend of the turn, split by whose key paid for it.
+
+    A served tool's cost is always the deployment's.
+    """
+    lead_is_keyed = turn_paid_by(capture.lead_model) is PaidBy.USER
+    own_tokens = unbilled.own_key_tokens + (lead_tokens if lead_is_keyed else 0)
+    own_cost = unbilled.own_key_cost + (lead_cost if lead_is_keyed else Decimal(0))
+    total_tokens = lead_tokens + unbilled.sub_agent_tokens
+    total_cost = lead_cost + unbilled.sub_agent_cost + unbilled.tool_cost
+    split = {
+        PaidBy.USER: (own_tokens, own_cost),
+        PaidBy.DEPLOYMENT: (total_tokens - own_tokens, total_cost - own_cost),
+    }
+    return {payer: spent for payer, spent in split.items() if any(spent)}
+
+
 async def _persist_residual_quota(
     context: Context | None,
     state: PipelineState,
@@ -315,18 +353,21 @@ async def _persist_residual_quota(
     lead_residual_cost = max(capture.cost_usd - capture.charged_cost, Decimal(0))
     spend = capture.spend_outside_the_lead()
     unbilled = spend.minus(capture.billed_outside_the_lead)
-    total_tokens = lead_residual_tokens + unbilled.sub_agent_tokens
-    total_cost = lead_residual_cost + unbilled.sub_agent_cost + unbilled.tool_cost
-    if total_tokens == 0 and total_cost == 0:
+    charges = _residual_by_payer(
+        capture, unbilled, lead_residual_tokens, lead_residual_cost
+    )
+    if not charges:
         return
     async with context.db_session_factory() as session:
         try:
-            await quota.accumulate(
-                session,
-                user_id=state.user_id,
-                tokens=total_tokens,
-                cost_usd=total_cost,
-            )
+            for paid_by, (tokens, cost_usd) in charges.items():
+                await quota.accumulate(
+                    session,
+                    user_id=state.user_id,
+                    tokens=tokens,
+                    cost_usd=cost_usd,
+                    paid_by=paid_by,
+                )
             await session.commit()
         except SQLAlchemyError:
             logger.warning(

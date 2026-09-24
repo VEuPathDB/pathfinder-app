@@ -15,6 +15,7 @@ from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult, set_criterion
 from pathfinder.ai.tools.toolsets.frame import _frame_enum_overrides
 from pathfinder.domain.strategy.operational_spec import CriterionRole
+from pathfinder.tests._support.catalog_reads import listing
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     KINASE_PARAMS,
@@ -166,7 +167,7 @@ async def test_the_refusal_records_the_transforms_it_names(
     """The guard that names a transform admits it on the next call."""
     serve_sheet(monkeypatch, takes_an_input_step=False)
     state = AgentToolState()
-    state.record_catalog_searches(["GenesByEcNumber", _LEAF])
+    state.record_catalog_read(listing(["GenesByEcNumber", _LEAF]))
 
     with pytest.raises(ModelRetry):
         await open_sheet(state, _LEAF, "transform")

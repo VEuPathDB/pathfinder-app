@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from pydantic_ai import RunContext
 
 from pathfinder.ai.graph.runtime import VerificationScope
@@ -15,6 +17,7 @@ from pathfinder.ai.lead.dispatch_context import (
     dispatch_call_id,
     framing_goal,
 )
+from pathfinder.ai.lead.evidence_card import publish_evidence_card
 from pathfinder.ai.lead.ledger import (
     build_contradiction,
     digest_held_to_the_build,
@@ -28,25 +31,17 @@ from pathfinder.ai.lead.sub_agent_stream import (
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
 from pathfinder.ai.tools.toolsets._dynamic import live_wdk_step_ids
+from pathfinder.domain.evidence import EvidenceVerdict
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.eda.analysis_kinds import unread_analyses
 
 
-def verification_scope(
-    deps: LeadDeps, *, enrichment_requested: bool
-) -> VerificationScope:
-    """What this turn changed and the request it answers, as VERIFY reads them."""
-    diff = derive_ledger(deps.state, deps.intent).frame.spec_diff()
-    request = framing_goal(deps.state)
-    if diff is None:
-        return VerificationScope(
-            enrichment_requested=enrichment_requested, request=request
-        )
+def verification_scope(deps: LeadDeps, *, check_id: str) -> VerificationScope:
+    """The request this turn answers and the check that answers it, as VERIFY reads them."""
     return VerificationScope(
-        criteria_touched=diff.touched_count(),
-        is_edit=True,
-        enrichment_requested=enrichment_requested,
-        request=request,
+        request=framing_goal(deps.state),
+        check_id=check_id,
+        last_card=deps.state.domain.card_of_the_strategy(),
     )
 
 
@@ -55,7 +50,6 @@ async def run_verification(
     deps: LeadDeps,
     parent_tool_call_id: str,
     reason: str,
-    enrichment_requested: bool = False,
     resume: SubAgentResume | None = None,
 ) -> VerificationDelta | SubAgentApprovalWait:
     """Run verification and record its digest, on a fresh or a resumed dispatch."""
@@ -66,7 +60,7 @@ async def run_verification(
     )
     agent_deps = agent_deps_for(deps)
     agent_deps.verification_scope = verification_scope(
-        deps, enrichment_requested=enrichment_requested
+        deps, check_id=parent_tool_call_id
     )
     delta = await stream_sub_agent(
         run=PhaseRun("verification", work_order),
@@ -85,18 +79,37 @@ async def run_verification(
     graph = deps.runtime.strategy_session.get_graph(None)
     # The pending checks are the strategy's to state, never the checker's.
     pending = [] if graph is None else unread_analyses(graph)
-    digest = _digest_the_build_supports(
+    held = _digest_the_build_supports(
         deps, delta.digest.model_copy(update={"pending_checks": pending})
     )
-    judged = live_tree(graph)
-    deps.state.domain.record_verdict(digest, revision=strategy_revision(judged))
+    digest = held.digest
+    revision = strategy_revision(live_tree(graph))
+    deps.state.domain.record_verdict(digest, revision=revision)
     deps.state.turn_markers.verified = digest.passed
+    await publish_evidence_card(
+        deps,
+        check_id=parent_tool_call_id,
+        revision=revision,
+        verdict=EvidenceVerdict(
+            supported=digest.success,
+            pending_checks=digest.pending_checks,
+            refused_because=held.refused_because,
+        ),
+    )
     return VerificationDelta(digest=digest)
+
+
+@dataclass(frozen=True)
+class _HeldDigest:
+    """The digest the ledger lets stand, and the reason it refused a success."""
+
+    digest: VerificationDigest
+    refused_because: str | None = None
 
 
 def _digest_the_build_supports(
     deps: LeadDeps, digest: VerificationDigest
-) -> VerificationDigest:
+) -> _HeldDigest:
     """Hold the verdict to what the ledger recorded.
 
     The digest decides the reply, the memory auto-write and the eval verdict,
@@ -104,42 +117,41 @@ def _digest_the_build_supports(
     reader.
     """
     if not digest.success:
-        return digest
+        return _HeldDigest(digest)
     ledger = derive_ledger(deps.state, deps.intent)
     contradiction = build_contradiction(
         ledger.build,
         built_step_count=len(live_wdk_step_ids(deps.runtime.strategy_session)),
     )
     if contradiction is not None:
-        return digest_held_to_the_build(digest, contradiction)
+        return _HeldDigest(
+            digest_held_to_the_build(digest, contradiction), contradiction
+        )
     structural = structure_contradiction(
         deps.state.domain.requirements,
         deps.state.domain.operational_spec,
     )
     if structural is None:
-        return digest
-    return digest_held_to_the_build(
-        digest, structural, failure_cause=FailureCause.STRUCTURE_VIOLATION
+        return _HeldDigest(digest)
+    return _HeldDigest(
+        digest_held_to_the_build(
+            digest, structural, failure_cause=FailureCause.STRUCTURE_VIOLATION
+        ),
+        structural,
     )
 
 
 async def verify_strategy(
     ctx: RunContext[LeadDeps],
     reason: str,
-    *,
-    enrichment_requested: bool = False,
 ) -> VerificationDelta:
     """Run the verification sub-agent on the built strategy.
 
     This sub-agent owns every post-build check, so route a user's request for
-    one here through ``reason``: GO, pathway and word enrichment on what this
-    turn built; control tests on a step or a search; parameter optimization;
-    sample records from a result; result export. Enrichment and export you can
-    also run yourself, on a gene set the user has already saved.
-
-    Set ``enrichment_requested`` only when the user asked for GO, pathway or
-    word enrichment in this message. It runs for minutes on a worker, so an
-    edit turn that did not ask for it is verified by its counts instead.
+    one here through ``reason``: control tests on a step or a search;
+    parameter optimization; sample records from a result; result export. Each
+    check leaves an evidence card in the thread. GO, pathway and word
+    enrichment run on the site, from the step page the card links.
 
     Available once the strategy holds a step, and until a verification of this
     turn reports success.
@@ -149,7 +161,6 @@ async def verify_strategy(
         deps=ctx.deps,
         parent_tool_call_id=tool_call_id,
         reason=reason,
-        enrichment_requested=enrichment_requested,
     )
     if isinstance(result, SubAgentApprovalWait):
         defer_dispatch(ctx.deps, tool_call_id, result)

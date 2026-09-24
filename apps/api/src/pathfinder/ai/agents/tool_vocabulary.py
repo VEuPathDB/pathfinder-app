@@ -40,13 +40,8 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "get_estimated_size",
         "get_sample_records",
         "get_download_url",
-        # Workbench and experiment reads
-        "list_workbench_gene_sets",
-        "get_evaluation_summary",
-        "get_enrichment_results",
-        "get_confidence_scores",
-        "get_experiment_config",
-        "get_result_gene_lists",
+        # Gene set reads
+        "list_gene_sets",
         # Research, served by the research tool source
         "research_web_search",
         "research_literature_search",

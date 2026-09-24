@@ -11,17 +11,10 @@ import {
 
 interface CountOfIdsProps {
   count: number;
-  /** The ids the count stands for. WDK samples a long list, so this can be
-   * shorter than the count. */
+  /** Every id the count stands for, or none when the count carries no ids. */
   ids: readonly string[];
   /** What the ids are, read in the card and in the copy message. */
   noun: string;
-}
-
-function shownOf(count: number, ids: readonly string[]): string {
-  return ids.length < count
-    ? `${ids.length.toLocaleString()} of ${count.toLocaleString()} shown`
-    : `${ids.length.toLocaleString()} shown`;
 }
 
 /** A count that shows the ids behind it, and copies them when clicked. */
@@ -51,7 +44,7 @@ export function CountOfIds({ count, ids, noun }: CountOfIdsProps): ReactElement 
           {ids.join(", ")}
         </p>
         <p className="mt-1.5 text-[10px] text-muted-foreground">
-          {`${shownOf(count, ids)}. Click the number to copy them.`}
+          Click the number to copy them.
         </p>
       </HoverCardContent>
     </HoverCard>

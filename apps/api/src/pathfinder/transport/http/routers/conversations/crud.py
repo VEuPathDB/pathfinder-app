@@ -173,7 +173,6 @@ async def begin_strategy(
         user_id=user_id,
         site_id=body.site_id,
         assistant_id=spec.assistant_id,
-        experiment_id=body.experiment_id,
     )
     if begun.is_new and body.seed_text:
         start_title_generation(

@@ -6,7 +6,6 @@ const isCI = Boolean(process.env["CI"]);
 // turn. Their data-part waits starve when every worker slot holds a turn, so
 // they run in the serialized `feature-turns` project instead of `feature`.
 const turnDrivingFeatureSpecs = [
-  "**/e2e/feature/ai-workbench-integration.spec.ts",
   "**/e2e/feature/auth.spec.ts",
   "**/e2e/feature/auto-build.spec.ts",
   "**/e2e/feature/branch-switch.spec.ts",
@@ -17,6 +16,7 @@ const turnDrivingFeatureSpecs = [
   "**/e2e/feature/execution-phase.spec.ts",
   "**/e2e/feature/experiment-flows.spec.ts",
   "**/e2e/feature/fork-branch.spec.ts",
+  "**/e2e/feature/gene-set-figure.spec.ts",
   "**/e2e/feature/insert-saved.spec.ts",
   "**/e2e/feature/site-help-assistant.spec.ts",
   "**/e2e/feature/strategy-complex-edit.spec.ts",
@@ -109,20 +109,11 @@ export default defineConfig({
       fullyParallel: false,
     },
     {
-      name: "cross-feature",
-      testDir: "./e2e/cross-feature",
-      timeout: 120_000,
-      // All cross-feature tests run enrichment against live VEuPathDB WDK
-      // APIs.  WDK rate-limits concurrent analysis requests, so serialize
-      // tests within this project to avoid parallel enrichment calls.
-      fullyParallel: false,
-    },
-    {
       name: "journey",
       testDir: "./e2e/journey",
       timeout: 180_000,
-      // Journey tests run enrichment against live VEuPathDB WDK APIs.
-      // WDK rate-limits concurrent analysis requests, so serialize these.
+      // Journey tests drive several turns against live VEuPathDB WDK APIs,
+      // so they run one at a time.
       fullyParallel: false,
     },
   ],

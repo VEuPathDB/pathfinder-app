@@ -12,6 +12,8 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, fold, walk
 
+from pathfinder.domain.strategy.step_rationale import said_beside
+from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.evals.case import EvalCase
 from pathfinder.evals.distance import (
     ComparisonNode,
@@ -45,6 +47,17 @@ def step_titles(ast: StrategyAst) -> list[str]:
     for detached in ast.detached_roots:
         nodes.extend(walk(detached))
     return [node.display_label for node in nodes if node.infer_kind() != "combine"]
+
+
+def step_reasons(ast: StrategyAst) -> list[tuple[str, str]]:
+    """The title and the recorded term of every step that says why it runs its search."""
+    words = StepWords.of(ast)
+    nodes = [node for root in (ast.root, *ast.detached_roots) for node in walk(root)]
+    return [
+        (node.display_label, reason.term)
+        for node in nodes
+        if (reason := words.rationale_of(node.id, node.search_name)) is not None
+    ]
 
 
 def root_operator(ast: StrategyAst) -> str | None:
@@ -83,6 +96,8 @@ class ObservedOutcome(CamelModel):
     step_ids_unchanged: bool | None = None
     tree: ComparisonNode | None = None
     step_titles: list[str] = Field(default_factory=list)
+    # The title and the recorded term of each step that says why it runs.
+    step_reasons: list[tuple[str, str]] = Field(default_factory=list)
     reply_text: str = ""
     root_operator: str | None = None
     final_count_below_every_input: bool | None = None
@@ -196,6 +211,19 @@ def _title_differences(
                     actual=observed.reply_text[:200],
                 ),
             )
+    unreasoned = [
+        title
+        for title, term in observed.step_reasons
+        if not said_beside(observed.reply_text, title, term)
+    ]
+    if case.expected.reply_gives_its_reasons and unreasoned:
+        differences.append(
+            CaseDifference(
+                field="replyGivesItsReasons",
+                expected=", ".join(unreasoned),
+                actual=observed.reply_text[:200],
+            ),
+        )
     titled = [
         title
         for title in observed.step_titles
@@ -310,6 +338,7 @@ __all__ = [
     "final_count_below_every_input",
     "root_operator",
     "score_case",
+    "step_reasons",
     "step_titles",
     "structure_signature",
 ]

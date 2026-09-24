@@ -33,7 +33,6 @@ def test_durable_tasks_registered_on_verification_queue() -> None:
     assert names == {
         "durable:run_control_tests_on_step",
         "durable:optimize_search_parameters",
-        "durable:geneset_enrichment",
         "durable:run_eda_compute",
     }
     assert names <= set(procrastinate_app.tasks)
@@ -55,5 +54,5 @@ async def test_durable_tasks_can_be_deferred(
             )
             for tool in declared_durable_tools()
         ]
-    assert len(job_ids) == 4
+    assert len(job_ids) == 3
     assert all(job_id > 0 for job_id in job_ids)

@@ -106,21 +106,23 @@ def _parked(*, sub_agent: SubAgentApprovalPending | None = None) -> PendingDurab
 def test_the_parked_call_carries_the_task_and_the_registered_tool_name() -> None:
     state = _state()
     deps = _deps(state)
-    deps.durable_deferrals["call_enrich"] = DurableDeferral(
+    deps.durable_deferrals["call_sweep"] = DurableDeferral(
         task_id=_TASK_ID,
-        tool_name="geneset_enrichment",
+        tool_name="optimize_search_parameters",
     )
     output = DeferredToolRequests(
-        calls=[_call("call_enrich", "run_gene_set_enrichment")],
+        calls=[_call("call_sweep", "optimize_search_parameters")],
     )
 
     parked = pending_durable_call(output=output, deps=deps, messages=[])
 
     assert parked is not None
     assert parked.task_ids == [_TASK_ID]
-    assert parked.tool_call_id == "call_enrich"
-    assert parked.tool_name == "run_gene_set_enrichment"
-    assert [c.durable_tool_name for c in parked.durable_calls] == ["geneset_enrichment"]
+    assert parked.tool_call_id == "call_sweep"
+    assert parked.tool_name == "optimize_search_parameters"
+    assert [c.durable_tool_name for c in parked.durable_calls] == [
+        "optimize_search_parameters"
+    ]
     assert parked.phase == "lead"
 
 
@@ -185,26 +187,26 @@ def _mixed_park() -> PendingDurableCall:
         prior_messages_json=_HISTORY,
         durable_calls=[
             DurableCall(
-                tool_call_id="inner_enrich",
-                tool_name="run_gene_set_enrichment",
-                args={"gene_set_id": "gs-inner"},
+                tool_call_id="inner_controls",
+                tool_name="run_control_tests_on_step",
+                args={"wdk_step_id": 132},
                 task_id=_TASK_ID,
-                durable_tool_name="geneset_enrichment",
+                durable_tool_name="run_control_tests_on_step",
             ),
             DurableCall(
-                tool_call_id="call_enrich",
-                tool_name="run_gene_set_enrichment",
-                args={"gene_set_id": "gs-own"},
+                tool_call_id="call_sweep",
+                tool_name="optimize_search_parameters",
+                args={"wdk_step_id": 132},
                 task_id=_OWN_TASK_ID,
-                durable_tool_name="geneset_enrichment",
+                durable_tool_name="optimize_search_parameters",
             ),
         ],
         sub_agent=SubAgentApprovalPending(
             role="verification",
             approvals=[
                 SubAgentApprovalCall(
-                    tool_call_id="inner_enrich",
-                    tool_name="run_gene_set_enrichment",
+                    tool_call_id="inner_controls",
+                    tool_name="run_control_tests_on_step",
                 ),
             ],
             messages_json=_HISTORY,
@@ -217,12 +219,12 @@ def _both_reported() -> list[DurableTaskResult]:
         DurableTaskResult(
             task_id=_TASK_ID,
             status="success",
-            result={"geneSetId": "gs-inner", "geneCount": 155},
+            result={"stepId": 132, "estimatedSize": 155},
         ),
         DurableTaskResult(
             task_id=_OWN_TASK_ID,
             status="success",
-            result={"geneSetId": "gs-own", "geneCount": 42},
+            result={"variants": [], "objective": "f1"},
         ),
     ]
 
@@ -236,27 +238,27 @@ def test_a_dispatch_and_a_lead_durable_call_are_parked_together() -> None:
             role="verification",
             approvals=[
                 SubAgentApprovalCall(
-                    tool_call_id="inner_enrich",
-                    tool_name="run_gene_set_enrichment",
+                    tool_call_id="inner_controls",
+                    tool_name="run_control_tests_on_step",
                 ),
             ],
             messages_json=_HISTORY,
         ),
         deferrals={
-            "inner_enrich": DurableDeferral(
+            "inner_controls": DurableDeferral(
                 task_id=_TASK_ID,
-                tool_name="geneset_enrichment",
+                tool_name="run_control_tests_on_step",
             ),
         },
     )
-    deps.durable_deferrals["call_enrich"] = DurableDeferral(
+    deps.durable_deferrals["call_sweep"] = DurableDeferral(
         task_id=_OWN_TASK_ID,
-        tool_name="geneset_enrichment",
+        tool_name="optimize_search_parameters",
     )
     output = DeferredToolRequests(
         calls=[
             _call("call_verify", "verify_strategy"),
-            _call("call_enrich", "run_gene_set_enrichment"),
+            _call("call_sweep", "optimize_search_parameters"),
         ],
     )
 
@@ -266,8 +268,8 @@ def test_a_dispatch_and_a_lead_durable_call_are_parked_together() -> None:
     assert parked.tool_call_id == "call_verify"
     assert parked.sub_agent is not None
     assert [c.tool_call_id for c in parked.durable_calls] == [
-        "inner_enrich",
-        "call_enrich",
+        "inner_controls",
+        "call_sweep",
     ]
     assert parked.task_ids == [_TASK_ID, _OWN_TASK_ID]
 
@@ -292,14 +294,14 @@ async def test_each_parked_call_is_answered_once_on_the_completion_turn(
 
     resumption = await resolve_turn_resumption(state=state, deps=_deps(state))
 
-    assert [sorted(results.calls) for results in handed] == [["inner_enrich"]]
+    assert [sorted(results.calls) for results in handed] == [["inner_controls"]]
     assert resumption.results is not None
-    assert sorted(resumption.results.calls) == ["call_enrich", "call_verify"]
-    own = resumption.results.calls["call_enrich"]
+    assert sorted(resumption.results.calls) == ["call_sweep", "call_verify"]
+    own = resumption.results.calls["call_sweep"]
     assert isinstance(own, ToolReturn)
     assert own.return_value == {
         "status": "success",
-        "result": {"geneSetId": "gs-own", "geneCount": 42},
+        "result": {"variants": [], "objective": "f1"},
     }
 
 
@@ -321,7 +323,7 @@ async def test_a_sub_agent_that_parks_again_carries_the_leads_answered_call(
                 approvals=[
                     SubAgentApprovalCall(
                         tool_call_id="inner_next",
-                        tool_name="run_gene_set_enrichment",
+                        tool_name="run_control_tests_on_step",
                     ),
                 ],
                 messages_json=_HISTORY,
@@ -329,7 +331,7 @@ async def test_a_sub_agent_that_parks_again_carries_the_leads_answered_call(
             durable={
                 "inner_next": DurableDeferral(
                     task_id=_NEXT_TASK_ID,
-                    tool_name="geneset_enrichment",
+                    tool_name="run_control_tests_on_step",
                 ),
             },
         )
@@ -341,7 +343,7 @@ async def test_a_sub_agent_that_parks_again_carries_the_leads_answered_call(
     assert resumption.still_durable is not None
     assert [c.tool_call_id for c in resumption.still_durable.durable_calls] == [
         "inner_next",
-        "call_enrich",
+        "call_sweep",
     ]
     assert resumption.still_durable.task_ids == [_NEXT_TASK_ID, _OWN_TASK_ID]
 
@@ -428,15 +430,15 @@ def test_the_sub_agent_park_names_the_inner_call_the_worker_answers() -> None:
             role="verification",
             approvals=[
                 SubAgentApprovalCall(
-                    tool_call_id="call_enrich",
-                    tool_name="run_gene_set_enrichment",
+                    tool_call_id="call_sweep",
+                    tool_name="run_control_tests_on_step",
                 ),
             ],
             messages_json=_HISTORY,
         ),
     )
 
-    assert [c.tool_call_id for c in parked.durable_calls] == ["call_enrich"]
+    assert [c.tool_call_id for c in parked.durable_calls] == ["call_sweep"]
 
 
 def test_a_lead_park_names_its_own_call() -> None:
@@ -455,5 +457,5 @@ def test_a_mixed_park_announces_the_dispatch_and_the_leads_own_calls() -> None:
 
     assert [hint.tool_call_id for hint in durable_resume_hints(parked)] == [
         "call_verify",
-        "call_enrich",
+        "call_sweep",
     ]

@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 import type { Step } from "@pathfinder/shared";
-import { operatorName, stepSubtitle, stepTitle } from "./stepTitle";
+import {
+  operatorName,
+  reasonDetail,
+  stepReason,
+  stepSubtitle,
+  stepTitle,
+} from "./stepTitle";
 
 import fixture from "../../../../../../../packages/spec/operations_parity.json";
 
@@ -80,5 +86,45 @@ describe("stepSubtitle", () => {
 
   test("a combine has no subtitle", () => {
     expect(stepSubtitle({ ...exported, kind: "combine" }, "combine")).toBe("");
+  });
+});
+
+describe("stepReason", () => {
+  const chosen: Step = {
+    ...combineStep("Exported Protein", "GenesByExportPrediction"),
+    kind: "search",
+    operator: null,
+    rationale: {
+      kind: "search",
+      searchName: "GenesByExportPrediction",
+      basis: "nearest",
+      term: "GPI anchor",
+      reason: "no search states a GPI anchor; Exported Protein scored nearest",
+      similarity: 0.44,
+      compared: [
+        { name: "GenesByText", displayName: "Gene Text Search", similarity: 0.41 },
+        { name: "GenesWithSignalPeptide", displayName: "Predicted Signal Peptide" },
+      ],
+      toolCallId: "call_gpi",
+      short: "nearest to GPI anchor",
+    },
+  };
+
+  test("a search that says why shows the label the api wrote", () => {
+    expect(stepReason(chosen, "search")).toBe("nearest to GPI anchor");
+  });
+
+  test("the detail is the reason and what the search was chosen over", () => {
+    expect(chosen.rationale != null && reasonDetail(chosen.rationale)).toBe(
+      "no search states a GPI anchor; Exported Protein scored nearest " +
+        "(over Gene Text Search 0.41, Predicted Signal Peptide)",
+    );
+  });
+
+  test("a step with no reason and a combine show none", () => {
+    expect([
+      stepReason({ ...chosen, rationale: null }, "search"),
+      stepReason(chosen, "combine"),
+    ]).toEqual(["", ""]);
   });
 });

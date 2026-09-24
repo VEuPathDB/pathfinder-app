@@ -1,26 +1,23 @@
 """Dependency injection for HTTP routes."""
 
+from collections.abc import Iterable
 from typing import Annotated
 from uuid import UUID
 
 from assistant_core import quota
 from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.db import get_db_session
+from assistant_core.platform.types import ModelProvider, PaidBy
 from fastapi import Depends, HTTPException, Query, Request, status
 from langgraph.store.postgres.aio import AsyncPostgresStore
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import (
-    ForbiddenError,
-    NotFoundError,
-    SiteUnavailableError,
-)
+from pathfinder.platform.errors import SiteUnavailableError
 from pathfinder.platform.principal import Principal
 from pathfinder.platform.readiness import get_readiness
 from pathfinder.platform.security import resolve_principal
-from pathfinder.services.experiment.store import get_experiment_store
-from pathfinder.services.experiment.types import Experiment
+from pathfinder.services.provider_keys import key_statuses, require_payers
 from pathfinder.services.users import effective_monthly_limit_usd, ensure_user_exists
 from pathfinder.services.wdk_identity import (
     require_registered_wdk_login,
@@ -112,10 +109,21 @@ async def require_registered_wdk_identity(
     return principal.user_id
 
 
-async def require_quota_available(
-    session: DBSession,
-    user_id: CurrentUser,
-) -> UUID:
+async def require_turn_paid(
+    session: AsyncSession,
+    user_id: UUID,
+    model_ids: Iterable[str],
+) -> dict[ModelProvider, PaidBy]:
+    """Who pays for each provider of a turn, or the refusal that stops it
+    before anything of it is stored.
+
+    A refused or unreadable key of the researcher is refused and never replaced
+    by the deployment's. The monthly allowance stops only a turn that runs some
+    model on the deployment's key.
+    """
+    payers = require_payers(model_ids, await key_statuses(session, user_id))
+    if PaidBy.DEPLOYMENT not in payers.values():
+        return payers
     status_now = await quota.get_current(
         session,
         user_id,
@@ -132,24 +140,4 @@ async def require_quota_available(
                 "totalTokens": status_now.total_tokens,
             },
         )
-    return user_id
-
-
-QuotaCheckedUser = Annotated[UUID, Depends(require_quota_available)]
-
-
-async def get_experiment_owned_by_user(
-    experiment_id: str,
-    user_id: CurrentUser,
-) -> Experiment:
-    """Resolve an experiment by ID and verify the current user owns it."""
-    store = get_experiment_store()
-    exp = await store.aget(experiment_id)
-    if not exp:
-        raise NotFoundError(title="Experiment not found")
-    if exp.user_id != str(user_id):
-        raise ForbiddenError(title="Not authorized to access this experiment")
-    return exp
-
-
-ExperimentDep = Annotated[Experiment, Depends(get_experiment_owned_by_user)]
+    return payers

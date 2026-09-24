@@ -23,9 +23,14 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 
-from pathfinder.assistants.site_help.agent import SiteHelpDeps, build_site_help_agent
+from pathfinder.assistants.site_help.agent import (
+    SiteHelpDeps,
+    build_site_help_agent,
+    turn_model_id,
+)
 from pathfinder.assistants.site_help.mock import build_site_help_mock
 from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
+from pathfinder.platform.model_keys import turn_paid_by
 from pathfinder.platform.tool_sources import WDK_MCP_SOURCE_ID
 
 # The catalog reads a service credential may make, and the one measurement the
@@ -86,11 +91,18 @@ def build_deps(state: TurnState, context: SiteHelpTurnContext) -> SiteHelpDeps:
 
 
 async def charge_usage(user_id: UUID, tokens: int, cost_usd: Decimal) -> None:
-    """Site-help turns count against the same monthly budget as any other."""
+    """Site-help turns count against the same monthly budget as any other,
+    on the row of whoever paid for the model the turn ran."""
     if tokens == 0 and cost_usd == 0:
         return
     async with async_session_factory() as session:
-        await accumulate(session, user_id=user_id, tokens=tokens, cost_usd=cost_usd)
+        await accumulate(
+            session,
+            user_id=user_id,
+            tokens=tokens,
+            cost_usd=cost_usd,
+            paid_by=turn_paid_by(turn_model_id()),
+        )
         await session.commit()
 
 

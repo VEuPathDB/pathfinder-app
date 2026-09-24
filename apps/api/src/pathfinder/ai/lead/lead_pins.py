@@ -149,7 +149,7 @@ _OFF_TOPIC_REDIRECT = (
     "## This turn is out of scope\n"
     "Answer in two sentences and call no tool. Say that PathFinder builds, "
     "edits and checks search strategies on the VEuPathDB databases and runs "
-    "enrichment, EDA and exports on what they return, then invite the user to "
+    "EDA and exports on what they return, then invite the user to "
     "put their question in those terms. Write nothing else: no code, no draft, "
     "and no answer to what was asked."
 )

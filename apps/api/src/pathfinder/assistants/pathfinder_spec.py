@@ -100,7 +100,6 @@ async def build_turn_context(request: TurnContextRequest) -> Context:
         tool_sources=dict(request.tool_sources),
         cancel_event=request.cancel_event,
         memory_store=request.memory_store,
-        experiment_id=None if strategy is None else strategy.experiment_id,
         phase_models=dict(request.phase_models),
         phase_reasoning=dict(request.phase_reasoning),
     )

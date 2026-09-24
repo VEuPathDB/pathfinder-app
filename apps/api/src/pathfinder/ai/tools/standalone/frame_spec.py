@@ -51,6 +51,10 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     _refuse_unknown_names,
     _refuse_unmatched_values,
 )
+from pathfinder.ai.tools.standalone._frame_rationale import (
+    SearchChoice,
+    rationale_for,
+)
 from pathfinder.ai.tools.standalone._frame_roles import (
     refuse_a_transform_on_a_saved_strategy,
 )
@@ -67,6 +71,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OpenSlot,
     ParameterAlternatives,
 )
+from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.services.strategies.saved_library import SavedStrategyListing
 
 
@@ -102,6 +107,8 @@ class SetCriterionResult(CamelModel):
     # A non-empty list means nothing was recorded; decide these and re-call.
     # The fresh vocabulary is on the pinned sheet.
     redecide: list[str] = Field(default_factory=list)
+    # Why the criterion runs this search, against what the catalog answered.
+    rationale: SearchRationale | None = None
 
 
 async def _record_type(ctx: RunContext[AgentDeps], search_name: str) -> str:
@@ -176,6 +183,7 @@ async def set_criterion(
     params: ParamProposals | None = None,
     assumed: list[DeclaredAssumption] | None = None,
     saved_strategy: str = "",
+    why: SearchChoice | None = None,
 ) -> ToolReturn[SetCriterionResult]:
     """Bind a criterion to a WDK search, in two calls.
 
@@ -216,6 +224,9 @@ async def set_criterion(
     state and that is not the sheet's default, one entry per parameter with the
     value and the reason. Each becomes a constraint the user reads and can
     override. A half of a reference and comparison pair is never assumed.
+
+    ``why`` goes on the call with ``params``: why this search and not the others
+    the catalog answered. Its basis is checked against the read and the values.
 
     ``result_count`` is how many records the binding you just made matches,
     and is null for a search that runs on another step.
@@ -301,11 +312,12 @@ async def set_criterion(
         call, infos, PHYLETIC_LIST_PARAMS if phyletic is not None else frozenset()
     )
     # A null proposal states no value, so it leaves the param to resolution.
-    overrides = {name: value for name, value in params.items() if value is not None}
     # The derived pattern replaces the two lists it was derived from.
-    if phyletic is not None:
-        overrides.update(phyletic)
-    overrides.update(radio)
+    overrides = {
+        **{name: value for name, value in params.items() if value is not None},
+        **(phyletic or {}),
+        **radio,
+    }
     try:
         resolved = await resolve_params_with_intent(
             fetch_at=fetch_at,
@@ -335,6 +347,7 @@ async def set_criterion(
             record_type,
             definition,
         )
+    rationale = await rationale_for(ctx, call, record_type, infos, resolved.params, why)
     # A half switched off holds a value the request never stated, so it is
     # disclosed like a default.
     defaulted = sorted(set(resolved.defaulted()) | radio.keys())
@@ -371,6 +384,7 @@ async def set_criterion(
                 AssumedValue(param_name=e.param_name, value=e.value, reason=e.reason)
                 for e in assumed or []
             ],
+            rationale=rationale,
         ),
         record_type=record_type,
         definition=definition,
@@ -389,6 +403,7 @@ async def set_criterion(
             open_slots=open_params,
             result_count=count,
             alternatives=alternatives,
+            rationale=rationale,
         ),
         record_type,
         definition,
@@ -432,4 +447,6 @@ def _criterion_return(
         result.result_count,
         result.alternatives,
     )
+    if result.rationale is not None:
+        line = f"{line}, {result.rationale.short}"
     return with_summary(result, line, ctx=ctx, status=status)

@@ -18,6 +18,7 @@
     ],
     "replyOmits": [],
     "replyNamesItsSearches": true,
+    "replyGivesItsReasons": true,
     "stepTitlesOmit": [
       "GPI"
     ]

@@ -69,7 +69,6 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
         ),
         turn_markers=state.turn_markers,
         ledger_summary=ledger.render_summary(),
-        experiment_id=runtime.experiment_id,
         cancel_event=runtime.cancel_event,
         memory_store=runtime.memory_store,
         retrieved_memories=deps.retrieved_memories,

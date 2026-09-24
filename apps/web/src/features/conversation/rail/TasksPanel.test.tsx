@@ -51,7 +51,7 @@ function stubTasks(status: string, error: string | null = null) {
         tasks: [
           {
             taskId: TASK_ID,
-            toolName: "run_gene_set_enrichment",
+            toolName: "run_control_tests_on_step",
             status,
             estimatedDurationSeconds: 120,
             createdAt: "2026-08-30T00:00:00Z",
@@ -69,7 +69,10 @@ const RESULT_TURN: UIMessage[] = [
     role: "assistant",
     parts: [
       { type: "data-task-completed", data: { taskId: TASK_ID, status: "success" } },
-      { type: "data-enrichment-results", data: { taskId: TASK_ID } },
+      {
+        type: "data-control-test-results",
+        data: { taskId: TASK_ID, toolCallId: "call_sLwqd6ToSyX9TDfOm62FTIT6" },
+      },
     ] as UIMessage["parts"],
   },
 ];
@@ -78,7 +81,7 @@ describe("the Tasks panel row opens what the task produced", () => {
   it("links a completed row to the exhibit the task produced", async () => {
     stubTasks("complete");
     renderPanel(RESULT_TURN);
-    const link = await screen.findByRole("link", { name: /Gene-set enrichment/ });
+    const link = await screen.findByRole("link", { name: /Run control tests/ });
     expect(link.getAttribute("href")).toBe("#table-1");
   });
 
@@ -88,11 +91,13 @@ describe("the Tasks panel row opens what the task produced", () => {
       {
         id: "m1",
         role: "assistant",
-        parts: [{ type: "text", text: "Enrichment finished." }] as UIMessage["parts"],
+        parts: [
+          { type: "text", text: "Control tests finished." },
+        ] as UIMessage["parts"],
       },
     ]);
     await waitFor(() => {
-      expect(screen.getByText("Gene-set enrichment")).toBeInTheDocument();
+      expect(screen.getByText("Run control tests")).toBeInTheDocument();
     });
     expect(screen.queryByRole("link")).toBeNull();
   });
@@ -101,7 +106,7 @@ describe("the Tasks panel row opens what the task produced", () => {
     stubTasks("running");
     renderPanel([]);
     await waitFor(() => {
-      expect(screen.getByText("Gene-set enrichment")).toBeInTheDocument();
+      expect(screen.getByText("Run control tests")).toBeInTheDocument();
     });
     expect(screen.queryByRole("link")).toBeNull();
   });

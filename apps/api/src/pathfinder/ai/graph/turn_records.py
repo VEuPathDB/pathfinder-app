@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Literal
 from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -10,8 +11,29 @@ from pydantic import ConfigDict, Field
 
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.domain.eda_thread import EdaExport
+from pathfinder.domain.evidence import ControlTestEvidence
 from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.step_words import AddedSearch
+
+# What a written reference carries before the identifier itself.
+_REFERENCE_PREFIXES = (
+    "https://",
+    "http://",
+    "www.",
+    "doi.org/",
+    "dx.doi.org/",
+    "doi:",
+    "pmid:",
+    "pubmed.ncbi.nlm.nih.gov/",
+)
+
+
+def normalized_reference(value: str) -> str:
+    """One comparable form of a url, a DOI or a PMID."""
+    text = value.strip().casefold()
+    for prefix in _REFERENCE_PREFIXES:
+        text = text.removeprefix(prefix)
+    return text.rstrip("/")
 
 
 class ZeroResultStep(CamelModel):
@@ -21,17 +43,18 @@ class ZeroResultStep(CamelModel):
     criterion_text: str = ""
 
 
-class EnrichmentRun(CamelModel):
-    """One enrichment a durable task answered, and what it named.
+# What filed the controls: a control test, a scored comparison or a sweep.
+ControlTestOrigin = Literal["control_test", "scored_comparison", "sweep"]
 
-    A run that failed names the set it was asked for; a run that finished
-    names the set the worker reports it analysed.
-    """
 
-    task_id: UUID
-    gene_set_id: str
-    gene_set_name: str = ""
-    succeeded: bool = False
+class ControlTestRun(CamelModel):
+    """One control result this turn read, as its source filed the controls."""
+
+    model_config = ConfigDict(frozen=True)
+
+    tool_call_id: str
+    evidence: ControlTestEvidence
+    origin: ControlTestOrigin = "control_test"
 
 
 class CreatedControlSet(CamelModel):
@@ -78,9 +101,10 @@ class TurnMarkers(CamelModel):
     eda_datasets_opened: list[str] = Field(default_factory=list)
     # The EDA cut this turn exported, which the turn's case records.
     eda_export: EdaExport | None = None
-    # Every enrichment answered under this message, in the order the workers
-    # answered them. A reply reads it to say which set an analysis ran on.
-    enrichment_runs: list[EnrichmentRun] = Field(default_factory=list)
+    # Every control result this turn read, in the order each one answered.
+    control_tests: list[ControlTestRun] = Field(default_factory=list)
+    # The checks whose digest was corrected once for its control results.
+    refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
     # reply cites is checked against it.
     retrieved_sources: list[str] = Field(default_factory=list)
@@ -118,6 +142,18 @@ class TurnMarkers(CamelModel):
         if reference and reference not in self.retrieved_sources:
             self.retrieved_sources.append(reference)
 
+    def retrieved_as(self, reference: str) -> str | None:
+        """The form a read of this turn returned the reference in, else None."""
+        wanted = normalized_reference(reference)
+        return next(
+            (
+                found
+                for found in self.retrieved_sources
+                if normalized_reference(found) == wanted
+            ),
+            None,
+        )
+
     def record_control_set(self, control_set: CreatedControlSet) -> None:
         """Record one control set this turn wrote, once."""
         if control_set.id not in {held.id for held in self.created_control_sets}:
@@ -133,11 +169,10 @@ class TurnMarkers(CamelModel):
         held = {search.step_id for search in self.added_searches}
         self.added_searches.extend(s for s in searches if s.step_id not in held)
 
-    def record_enrichment_runs(self, runs: Iterable[EnrichmentRun]) -> None:
-        """Add each answered enrichment once, keyed by its task."""
-        known = {run.task_id for run in self.enrichment_runs}
+    def record_control_tests(self, runs: Iterable[ControlTestRun]) -> None:
+        """Add each control test once, keyed by its tool call."""
+        held = {run.tool_call_id for run in self.control_tests}
         for run in runs:
-            if run.task_id in known:
-                continue
-            known.add(run.task_id)
-            self.enrichment_runs.append(run)
+            if run.tool_call_id not in held:
+                held.add(run.tool_call_id)
+                self.control_tests.append(run)

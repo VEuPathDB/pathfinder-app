@@ -129,9 +129,7 @@ def build_strategy_session(
             graph.recompute_roots()
             graph.last_step_id = payload.root.id
             graph.description = payload.description
-            stored = StepWords.of(payload)
-            graph.note_criteria(stored.criterion_texts)
-            graph.note_analysis_kinds(stored.analysis_kinds)
+            graph.note_words(StepWords.of(payload))
             graph.save_history(f"Loaded graph: {name}")
         except (ValueError, TypeError, KeyError) as e:
             logger.warning(

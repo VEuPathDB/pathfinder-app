@@ -13,7 +13,7 @@ from typing import cast
 from uuid import UUID, uuid4
 
 from assistant_core.platform.context import calling_application
-from sqlalchemy import CursorResult, delete, func, select, update
+from sqlalchemy import CursorResult, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.evals.extract import EvalExtract
@@ -34,21 +34,36 @@ class EvalStagingRepository:
         user_id: UUID,
         conversation_id: UUID,
         extract: EvalExtract,
+        rated_message_id: UUID | None = None,
     ) -> UUID | None:
-        """Queue one candidate. Returns None when this thread or this content
-        is already known, staged or promoted."""
+        """Queue one candidate. Returns None when it is already known.
+
+        An extraction row is known by its thread or its content. A rated row is
+        known by its message or its content; when the same thread's extraction
+        row waits with that content, that row takes the message instead.
+        """
         content_hash = extract.content_hash()
         async with self._session_factory() as session:
-            known = await session.scalar(
-                select(func.count())
-                .select_from(EvalStagedCase)
-                .where(
-                    (EvalStagedCase.content_hash == content_hash)
-                    | (EvalStagedCase.source_conversation_id == conversation_id),
-                ),
-            )
-            if known:
-                return None
+            if rated_message_id is None:
+                known = (EvalStagedCase.content_hash == content_hash) | (
+                    EvalStagedCase.source_conversation_id == conversation_id
+                )
+            else:
+                known = (EvalStagedCase.content_hash == content_hash) | (
+                    EvalStagedCase.rated_message_id == rated_message_id
+                )
+            found = await session.scalar(select(EvalStagedCase).where(known).limit(1))
+            if found is not None:
+                if (
+                    rated_message_id is None
+                    or found.status != STAGED
+                    or found.rated_message_id is not None
+                    or found.source_conversation_id != conversation_id
+                ):
+                    return None
+                found.rated_message_id = rated_message_id
+                await session.commit()
+                return found.id
             staging_id = uuid4()
             session.add(
                 EvalStagedCase(
@@ -61,6 +76,7 @@ class EvalStagingRepository:
                     content_hash=content_hash,
                     extract=extract.model_dump(by_alias=True, mode="json"),
                     status=STAGED,
+                    rated_message_id=rated_message_id,
                 ),
             )
             await session.commit()
@@ -91,12 +107,29 @@ class EvalStagingRepository:
                     user_id=None,
                     source_conversation_id=None,
                     extract=None,
+                    rated_message_id=None,
                     status=PROMOTED,
                     corpus_name=corpus_name,
                     promoted_at=datetime.now(UTC),
                 ),
             )
             await session.commit()
+
+    async def unstage_rated(self, message_id: UUID) -> int:
+        """Delete the staged row of one rated message. A promoted row names none."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                delete(EvalStagedCase).where(
+                    EvalStagedCase.rated_message_id == message_id,
+                    EvalStagedCase.status == STAGED,
+                ),
+            )
+            await session.commit()
+        return _deleted(result)
+
+
+def _deleted(result: object) -> int:
+    return cast("CursorResult[object]", result).rowcount or 0
 
 
 async def delete_staged_for_user(
@@ -118,8 +151,7 @@ async def delete_staged_for_user(
         stmt = stmt.where(EvalStagedCase.application_id == application_id)
     if site_id is not None:
         stmt = stmt.where(EvalStagedCase.site_id == site_id)
-    result = cast("CursorResult[object]", await session.execute(stmt))
-    return result.rowcount or 0
+    return _deleted(await session.execute(stmt))
 
 
 __all__ = ["EvalStagingRepository", "delete_staged_for_user"]

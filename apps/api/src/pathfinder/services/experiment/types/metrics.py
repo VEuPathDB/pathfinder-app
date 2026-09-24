@@ -1,7 +1,7 @@
-"""Classification metrics for the Experiment Lab."""
+"""Classification metrics for experiment runs."""
 
 from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict
 
 
 class ConfusionMatrix(CamelModel):
@@ -46,27 +46,3 @@ class GeneInfo(CamelModel):
     name: str | None = None
     organism: str | None = None
     product: str | None = None
-
-
-class FoldMetrics(CamelModel):
-    """Metrics for a single cross-validation fold."""
-
-    model_config = ConfigDict(frozen=True)
-
-    fold_index: int
-    metrics: ExperimentMetrics
-    positive_control_ids: list[str] = Field(default_factory=list)
-    negative_control_ids: list[str] = Field(default_factory=list)
-
-
-class CrossValidationResult(CamelModel):
-    """Aggregated cross-validation result."""
-
-    model_config = ConfigDict(frozen=True)
-
-    k: int
-    folds: list[FoldMetrics]
-    mean_metrics: ExperimentMetrics
-    std_metrics: dict[str, float] = Field(default_factory=dict)
-    overfitting_score: RoundedFloat = 0.0
-    overfitting_level: str = "low"

@@ -12,6 +12,7 @@ from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.services.strategies import spec_build
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -46,7 +47,7 @@ def test_a_reused_step_id_keeps_no_count() -> None:
         _leaf(_KEPT_ID, "P. falciparum 3D7"),
         sync_state=sync_state,
         description=None,
-        criterion_texts={},
+        step_words=StepWords(),
     )
 
     assert sync_state.step_counts == {}
@@ -60,7 +61,7 @@ def test_no_count_of_the_replaced_tree_survives() -> None:
         _leaf("step_new", "P. falciparum 3D7"),
         sync_state=sync_state,
         description=None,
-        criterion_texts={},
+        step_words=StepWords(),
     )
 
     assert sync_state.step_counts == {}

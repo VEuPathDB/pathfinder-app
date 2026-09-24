@@ -10,15 +10,17 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    build_step_tree,
 )
 from pathfinder.domain.strategy.operations import AddLeafOp, ReplaceSubtreeOp
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
+from pathfinder.domain.strategy.spec_tree import (
+    build_step_tree,
+)
 from pathfinder.domain.strategy.step_words import (
     AddedSearch,
     StepWords,
     added_searches,
-    criterion_texts,
+    step_words,
 )
 
 from ._builders import (
@@ -134,7 +136,11 @@ def test_a_rebound_step_takes_the_name_of_its_new_search() -> None:
 def test_the_graph_carries_the_researchers_words_through_its_ast() -> None:
     graph = graph_of(three_step_root())
 
-    graph.note_criteria({"step_text": "protease genes", "step_gone": "stale words"})
+    graph.note_words(
+        StepWords(
+            criterion_texts={"step_text": "protease genes", "step_gone": "stale words"}
+        )
+    )
     ast = graph.to_strategy_ast()
 
     assert ast is not None
@@ -150,7 +156,7 @@ def test_a_graph_with_no_words_writes_no_metadata() -> None:
 
 def test_a_hydrated_criterion_states_the_researchers_words() -> None:
     graph = graph_of(three_step_root())
-    graph.note_criteria({"step_text": "protease genes"})
+    graph.note_words(StepWords(criterion_texts={"step_text": "protease genes"}))
     ast = graph.to_strategy_ast()
     assert isinstance(ast, StrategyAst)
 
@@ -167,7 +173,7 @@ def test_the_words_are_keyed_by_the_step_each_criterion_built() -> None:
         _EXPORTED, _ORTHOLOGS, root=spec_transform("c_orth", spec_leaf("c_gpi"))
     )
 
-    texts = criterion_texts(spec, {"c_gpi": "step_1", "c_orth": "step_2"})
+    texts = step_words(spec, {"c_gpi": "step_1", "c_orth": "step_2"}).criterion_texts
 
     assert texts == {
         "step_1": "genes with a predicted GPI anchor",

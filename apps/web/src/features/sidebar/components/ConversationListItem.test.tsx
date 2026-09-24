@@ -24,7 +24,6 @@ function makeItem(): ConversationItem {
     isDismissed: false,
     isSaved: false,
     stepCount: 1,
-    experimentId: null,
     parentConversationId: null,
     parentMessageId: null,
     chat: { id: "c1", name: "Kinase strategy" } as ConversationResponse,

@@ -101,7 +101,7 @@ async def _apply_decorations(
     wdk_step_ids: dict[str, int],
     api: StrategyAPI,
 ) -> None:
-    """Apply declared filters, analyses, and reports to each WDK step."""
+    """Apply declared filters and reports to each WDK step."""
     for step in walk(root_step):
         wdk_step_id = wdk_step_ids.get(step.id)
         if wdk_step_id is None:
@@ -112,13 +112,6 @@ async def _apply_decorations(
                 filter_name=step_filter.name,
                 value=step_filter.value,
                 disabled=step_filter.disabled,
-            )
-        for analysis in step.analyses:
-            await api.run_step_analysis(
-                step_id=wdk_step_id,
-                analysis_type=analysis.analysis_type,
-                parameters=analysis.parameters,
-                custom_name=analysis.custom_name,
             )
         for report in step.reports:
             await api.run_step_report(

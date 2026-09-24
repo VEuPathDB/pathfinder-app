@@ -102,7 +102,7 @@ async def export(
     async def _commit(**kwargs: Any) -> CommitResult:
         for op in kwargs["ops"]:
             apply_operation(thread.graph, op)
-        thread.graph.note_analysis_kinds(kwargs["deps"].analysis_kinds)
+        thread.graph.note_words(kwargs["deps"].step_words)
         thread.committed.extend(kwargs["ops"])
         return CommitResult(description="exported")
 

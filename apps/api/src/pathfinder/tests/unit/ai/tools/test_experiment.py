@@ -10,7 +10,12 @@ from uuid import UUID
 import pytest
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, DataChunk
 from veupathdb.domain.parameters import StringValue
-from veupathdb_mcp.controls import ControlSetData, ControlTargetData, ControlTestResult
+from veupathdb_mcp.controls import (
+    ControlTargetData,
+    ControlTestResult,
+    NegativeControls,
+    PositiveControls,
+)
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.tools.standalone import experiment
@@ -28,20 +33,11 @@ def _measured() -> ControlTestResult:
             step_id=77,
             estimated_size=132,
         ),
-        positive=ControlSetData(
-            controls_count=3,
-            intersection_count=2,
-            intersection_ids_sample=["PF3D7_1222600", "PF3D7_1031000"],
-            missing_ids_sample=["PF3D7_0000001"],
-            target_estimated_size=132,
-            recall=2 / 3,
+        positive=PositiveControls(
+            recovered_ids=["PF3D7_1031000", "PF3D7_1222600"],
+            missed_ids=["PF3D7_0000001"],
         ),
-        negative=ControlSetData(
-            controls_count=1,
-            intersection_count=0,
-            target_estimated_size=132,
-            false_positive_rate=0.0,
-        ),
+        negative=NegativeControls(admitted_ids=[], excluded_ids=["TGME49_205250"]),
     )
 
 
@@ -94,7 +90,8 @@ async def test_the_tool_returns_the_measured_counts_not_empty_defaults() -> None
     assert outcome.estimated_size == 132
     assert outcome.positive_intersection == 2
     assert outcome.positive_controls_count == 3
-    assert outcome.positive_missing_ids == ["PF3D7_0000001"]
+    assert outcome.positive_missed_ids == ["PF3D7_0000001"]
+    assert outcome.negative_excluded_ids == ["TGME49_205250"]
     assert outcome.negative_intersection == 0
     assert outcome.negative_controls_count == 1
 
@@ -121,14 +118,10 @@ def _durable_result(**overrides: Any) -> dict[str, Any]:
         search_name="GenesByMolecularWeight",
         parameters={"organism": StringValue(value="Plasmodium falciparum 3D7")},
         estimated_size=132,
-        positive_intersection=2,
-        positive_controls_count=3,
-        positive_recall=2 / 3,
-        positive_intersection_ids=["PF3D7_1222600", "PF3D7_1031000"],
-        positive_missing_ids=["PF3D7_0000001"],
-        negative_intersection=0,
-        negative_controls_count=1,
-        negative_false_positive_rate=0.0,
+        positive_recovered_ids=["PF3D7_1031000", "PF3D7_1222600"],
+        positive_missed_ids=["PF3D7_0000001"],
+        negative_admitted_ids=[],
+        negative_excluded_ids=["TGME49_205250"],
     )
     dumped = outcome.model_dump(by_alias=True, exclude_none=True, mode="json")
     dumped["targetLabel"] = "Genes by Molecular Weight"
@@ -173,7 +166,7 @@ def test_the_durable_answer_emits_the_exhibit_beside_the_summary() -> None:
         "intersectionCount": 2,
         "recall": 2 / 3,
         "falsePositiveRate": None,
-        "hitIds": ["PF3D7_1222600", "PF3D7_1031000"],
+        "hitIds": ["PF3D7_1031000", "PF3D7_1222600"],
         "missedIds": ["PF3D7_0000001"],
     }
     assert exhibit["negative"] == {
@@ -182,13 +175,15 @@ def test_the_durable_answer_emits_the_exhibit_beside_the_summary() -> None:
         "recall": None,
         "falsePositiveRate": 0.0,
         "hitIds": [],
-        "missedIds": [],
+        "missedIds": ["TGME49_205250"],
     }
 
 
 def test_the_exhibit_omits_a_control_set_the_test_did_not_run() -> None:
     answer = _durable_result()
     for key in (
+        "negativeAdmittedIds",
+        "negativeExcludedIds",
         "negativeIntersection",
         "negativeControlsCount",
         "negativeFalsePositiveRate",
@@ -272,4 +267,4 @@ async def test_a_search_level_test_leaves_the_same_exhibit() -> None:
     assert exhibit["targetParameters"] == [
         {"label": "Organism", "value": "Plasmodium falciparum 3D7"}
     ]
-    assert exhibit["positive"]["hitIds"] == ["PF3D7_1222600", "PF3D7_1031000"]
+    assert exhibit["positive"]["hitIds"] == ["PF3D7_1031000", "PF3D7_1222600"]

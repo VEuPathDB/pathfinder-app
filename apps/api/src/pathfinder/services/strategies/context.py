@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pathfinder.domain.strategy.operational_spec import SpecStructure
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import StatedCriterion
-from pathfinder.domain.strategy.step_words import StampedKind
+from pathfinder.domain.strategy.step_words import StepWords
 
 
 @dataclass(frozen=True)
@@ -36,10 +36,10 @@ class StrategyMutationContext:
 
     A write that joins those criteria at another operator is refused.
     """
-    criterion_texts: Mapping[str, str] = field(default_factory=dict)
-    """The researcher's words for each step the spec states, keyed by step id."""
-    analysis_kinds: Mapping[str, StampedKind] = field(default_factory=dict)
-    """Which plugin reads the analysis document of each EDA step the batch writes."""
+    step_words: StepWords = field(default_factory=StepWords)
+    """What the batch notes on each step it writes, keyed by step id: the
+    researcher's words and the search choice the spec states, and which plugin
+    reads the analysis document of an EDA step."""
     stated_values: Mapping[str, StatedCriterion] = field(default_factory=dict)
     """The values the spec's criteria state, keyed by criterion id.
 

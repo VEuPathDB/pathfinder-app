@@ -72,11 +72,11 @@ def test_detect_durable_task() -> None:
     gate = detect_gate(
         pending_approval=None,
         tool_args={},
-        durable_tasks=[("task-123", "geneset_enrichment")],
+        durable_tasks=[("task-123", "optimize_search_parameters")],
     )
     assert gate.kind == "durable"
     assert [t.task_id for t in gate.tasks] == ["task-123"]
-    assert [t.task_tool for t in gate.tasks] == ["geneset_enrichment"]
+    assert [t.task_tool for t in gate.tasks] == ["optimize_search_parameters"]
 
 
 def test_detect_names_every_task_one_step_handed_to_the_worker() -> None:

@@ -19,20 +19,22 @@ from assistant_core.graph.turn_state import (
     PendingDurableCall,
     SubAgentApprovalPending,
 )
-from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BaseModel, ConfigDict, JsonValue
+from pydantic import JsonValue
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 
-from pathfinder.ai.graph.turn_records import EnrichmentRun
+from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.sub_agent_tools import WIRE_PHASE_BY_ROLE, LeadDeps
-
-_ENRICHMENT_TOOL = "run_gene_set_enrichment"
+from pathfinder.ai.tools.standalone.experiment import CONTROL_TESTS, control_test_run
+from pathfinder.ai.tools.standalone.optimization import (
+    PARAMETER_SWEEP,
+    sweep_control_runs,
+)
 
 __all__ = [
     "ConcurrentDurableDispatchError",
+    "control_results_answered",
     "durable_resume_hints",
-    "enrichment_runs_answered",
     "inner_durable_calls",
     "outer_durable_calls",
     "pending_durable_call",
@@ -40,43 +42,23 @@ __all__ = [
 ]
 
 
-class _EnrichmentArgs(BaseModel):
-    """The gene set one enrichment call was made for."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    gene_set_id: str = ""
-
-
-class _EnrichmentReport(CamelModel):
-    """The gene set one finished enrichment says it analysed."""
-
-    model_config = ConfigDict(extra="ignore")
-
-    gene_set_id: str = ""
-    gene_set_name: str = ""
-
-
-def enrichment_runs_answered(
+def control_results_answered(
     parked: PendingDurableCall,
     answers: Mapping[UUID, DurableTaskResult],
-) -> list[EnrichmentRun]:
-    """What each answered enrichment ran on, as the thread records it."""
-    runs: list[EnrichmentRun] = []
+) -> list[ControlTestRun]:
+    """Every control result a finished control test or sweep filed."""
+    runs: list[ControlTestRun] = []
     for call in parked.durable_calls:
-        if call.tool_name != _ENRICHMENT_TOOL:
-            continue
         answer = answers[call.task_id]
-        reported = _EnrichmentReport.model_validate(answer.result)
-        asked = _EnrichmentArgs.model_validate(call.args)
-        runs.append(
-            EnrichmentRun(
-                task_id=call.task_id,
-                gene_set_id=reported.gene_set_id or asked.gene_set_id,
-                gene_set_name=reported.gene_set_name,
-                succeeded=answer.status == "success",
-            ),
-        )
+        if answer.status != "success":
+            continue
+        if call.durable_tool_name == CONTROL_TESTS.tool_name:
+            run = control_test_run(answer.result, tool_call_id=call.tool_call_id)
+            runs.extend([] if run is None else [run])
+        elif call.durable_tool_name == PARAMETER_SWEEP.tool_name:
+            runs.extend(
+                sweep_control_runs(answer.result, tool_call_id=call.tool_call_id)
+            )
     return runs
 
 

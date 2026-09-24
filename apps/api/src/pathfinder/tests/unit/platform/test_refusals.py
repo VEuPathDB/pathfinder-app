@@ -24,6 +24,10 @@ from pathfinder.platform.errors import (
     ErrorCode,
     InternalError,
     NotFoundError,
+    ProviderKeyError,
+    ProviderKeyRefusedError,
+    ProviderKeyUnreadableError,
+    ProviderNotConfiguredError,
     SiteUnavailableError,
     UnauthorizedError,
     site_failure_reason,
@@ -76,7 +80,7 @@ async def test_a_missing_id_names_the_tool_that_lists_the_ids() -> None:
     message = str(caught.value)
     assert ErrorCode.NOT_FOUND in message
     assert _MISSING_GENE_SET in message
-    assert "list_workbench_gene_sets" in message
+    assert "list_gene_sets" in message
 
 
 @pytest.mark.asyncio
@@ -86,7 +90,7 @@ async def test_a_refusal_without_an_id_argument_states_its_code() -> None:
 
     message = str(caught.value)
     assert ErrorCode.NOT_FOUND in message
-    assert "list_workbench_gene_sets" not in message
+    assert "list_gene_sets" not in message
 
 
 @pytest.mark.asyncio
@@ -99,7 +103,7 @@ async def test_only_the_missing_id_is_blamed() -> None:
         )
 
     message = str(caught.value)
-    assert "list_workbench_gene_sets" in message
+    assert "list_gene_sets" in message
     assert "list_control_sets" not in message
     assert _LIVE_CONTROL_SET not in message
 
@@ -116,6 +120,22 @@ async def test_a_sign_in_refusal_is_not_retried() -> None:
     """No argument the model can choose passes an identity refusal."""
     with pytest.raises(UnauthorizedError):
         await _route(UnauthorizedError(code=ErrorCode.WDK_LOGIN_REQUIRED), {})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "refusal",
+    [
+        ProviderKeyRefusedError("OpenAI"),
+        ProviderKeyUnreadableError("OpenAI"),
+        ProviderNotConfiguredError("Google"),
+    ],
+    ids=["refused", "unreadable", "no payer"],
+)
+async def test_a_key_refusal_is_not_retried(refusal: ProviderKeyError) -> None:
+    """No argument the model can choose pays for a model nobody may pay for."""
+    with pytest.raises(type(refusal)):
+        await _route(refusal, {})
 
 
 def _one_call_then_text(text: str) -> Callable[..., ModelResponse]:
@@ -257,7 +277,7 @@ async def test_the_gene_set_service_refusal_names_its_listing_tool(
 
     message = await _seam_message(refused.value, {"gene_set_id": _MISSING_GENE_SET})
     assert _MISSING_GENE_SET in message
-    assert "list_workbench_gene_sets" in message
+    assert "list_gene_sets" in message
 
 
 def test_every_read_id_has_a_listing_tool() -> None:

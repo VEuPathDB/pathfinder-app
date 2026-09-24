@@ -375,7 +375,6 @@ class ConversationService:
         user_id: UUID,
         site_id: str,
         assistant_id: str,
-        experiment_id: str | None,
     ) -> BegunConversation:
         result = await begin_conversation(
             session=self._session,
@@ -383,7 +382,6 @@ class ConversationService:
             user_id=user_id,
             site_id=site_id,
             assistant_id=assistant_id,
-            experiment_id=experiment_id,
         )
         await self._session.commit()
         return BegunConversation(

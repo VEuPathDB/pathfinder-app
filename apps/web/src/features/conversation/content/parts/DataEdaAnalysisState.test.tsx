@@ -232,7 +232,7 @@ describe("DataEdaAnalysisState off a conversation route", () => {
   });
 
   it("has no open action when the path names no conversation", () => {
-    route.pathname = "/plasmodb/workbench";
+    route.pathname = "/plasmodb/saved";
     render(<DataEdaAnalysisState data={EDA_ANALYSIS_STATE_FIXTURE} />);
     expect(screen.queryByRole("button", { name: "Open study" })).toBe(null);
     expect(screen.getByTestId("data-eda-analysis-state")).toHaveTextContent(

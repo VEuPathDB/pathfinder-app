@@ -10,6 +10,7 @@ from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps, ServiceOutageMemory
 from pathfinder.ai.tools.toolsets._dynamic import EnumOverrides, ValidatingEnumToolset
 from pathfinder.ai.tools.toolsets.frame import _frame_enum_overrides, build_toolset
+from pathfinder.tests._support.catalog_reads import listing
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 # name -> (every argument, the required ones)
@@ -63,6 +64,7 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
                 "saved_strategy",
                 "search_name",
                 "text",
+                "why",
             }
         ),
         frozenset({"criterion_id", "text"}),
@@ -139,7 +141,7 @@ def _overrides(
     discovered: list[str] | None = None,
 ) -> EnumOverrides:
     state = AgentToolState()
-    state.record_catalog_searches(candidates)
+    state.record_catalog_read(listing(candidates))
     for name in discovered or []:
         state.discovered_searches[name] = _inspected(name)
     ctx = agent_run_context(agent_state=state)

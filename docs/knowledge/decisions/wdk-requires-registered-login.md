@@ -31,8 +31,8 @@ the wording can improve without breaking the recogniser.
 whole router: a listing that reads local rows keeps working while the create
 that materializes a WDK object is refused, so a user who loses their VEuPathDB
 access can still see and delete what they already have. `POST
-/api/v1/experiments/{id}/threshold-sweep` is gated because it runs the
-experiment's search again on WDK; `DELETE /api/v1/gene-sets/{id}` is not,
+/api/v1/seed` is gated because it builds strategies in the researcher's own
+WDK account; `DELETE /api/v1/gene-sets/{id}` is not,
 because it deletes a local row. Two routes whose WDK call is an opt-in flag are ungated on purpose -
 `DELETE /api/v1/conversations/{id}?deleteFromWdk=true` and `DELETE
 /api/v1/user/data?deleteWdk=true` - because the local half must run for a

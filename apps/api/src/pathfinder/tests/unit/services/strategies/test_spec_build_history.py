@@ -16,6 +16,7 @@ from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.services.strategies import spec_build
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -46,7 +47,7 @@ async def test_the_replaced_strategy_is_recoverable() -> None:
         _leaf("step_new", "P. falciparum 3D7"),
         sync_state=WDKSyncState(),
         description=None,
-        criterion_texts={},
+        step_words=StepWords(),
     )
 
     assert len(graph.history) == before + 1
@@ -60,7 +61,7 @@ async def test_the_history_entry_holds_the_pre_rebuild_shape() -> None:
         _leaf("step_new", "P. falciparum 3D7"),
         sync_state=WDKSyncState(),
         description=None,
-        criterion_texts={},
+        step_words=StepWords(),
     )
 
     restored = graph.history[-1].strategy_ast
@@ -79,7 +80,7 @@ async def test_the_new_spec_is_what_the_graph_holds_afterwards() -> None:
         _leaf("step_new", "P. falciparum 3D7"),
         sync_state=WDKSyncState(),
         description=None,
-        criterion_texts={},
+        step_words=StepWords(),
     )
 
     assert sorted(graph.steps) == ["step_new"]
@@ -94,7 +95,7 @@ async def test_building_into_an_empty_graph_records_nothing_to_undo() -> None:
         _leaf("step_new", "P. falciparum 3D7"),
         sync_state=WDKSyncState(),
         description=None,
-        criterion_texts={},
+        step_words=StepWords(),
     )
 
     assert graph.history == []

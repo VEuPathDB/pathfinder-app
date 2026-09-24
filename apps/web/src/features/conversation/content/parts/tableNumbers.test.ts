@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { UIMessage } from "ai";
 import type {
   ControlTestResults,
-  EnrichmentResultsChunk,
   ScoredComparison,
+  VariantComparison,
 } from "@pathfinder/shared";
 
 import { tableNumberFor, tablePartFor } from "./tableNumbers";
@@ -20,13 +20,7 @@ const CONTROLS: ControlTestResults = {
   negative: { controlsCount: 1, intersectionCount: 0, falsePositiveRate: 0 },
 };
 
-const ENRICHMENT: EnrichmentResultsChunk = {
-  taskId: "t2",
-  geneSetId: "gs-1",
-  geneSetName: "Erythrocytic kinases",
-  geneCount: 1342,
-  results: [],
-};
+const VARIANTS: VariantComparison = { variants: [], overlaps: [] };
 
 const SCORED: ScoredComparison = {
   objective: "mcc",
@@ -48,12 +42,12 @@ describe("tableNumberFor", () => {
       part("data-eda.viz", { chart: "volcano" }),
       part("data-control-test-results", CONTROLS),
       part("data-scored-comparison", SCORED),
-      part("data-enrichment-results", ENRICHMENT),
+      part("data-variant-comparison", VARIANTS),
     ]);
 
     expect(tableNumberFor(messages, CONTROLS)).toBe(1);
     expect(tableNumberFor(messages, SCORED)).toBe(2);
-    expect(tableNumberFor(messages, ENRICHMENT)).toBe(3);
+    expect(tableNumberFor(messages, VARIANTS)).toBe(3);
   });
 
   it("gives two numbers to two exhibits that carry equal payloads", () => {
@@ -110,10 +104,22 @@ describe("tablePartFor", () => {
     });
   });
 
-  it("finds the enrichment exhibit a task produced, which names no call", () => {
-    const messages = messagesOf([part("data-enrichment-results", ENRICHMENT)]);
+  it("finds a control-test exhibit whose call id is empty, and names no call", () => {
+    const unnamed = { ...CONTROLS, toolCallId: "" };
+    const messages = messagesOf([part("data-control-test-results", unnamed)]);
 
-    expect(tablePartFor(messages, "t2")).toEqual({ number: 1, toolCallId: null });
+    expect(tablePartFor(messages, CONTROLS.taskId)).toEqual({
+      number: 1,
+      toolCallId: null,
+    });
+  });
+
+  it("finds no task exhibit in a comparison table", () => {
+    const messages = messagesOf([
+      part("data-scored-comparison", { ...SCORED, taskId: "t2" }),
+    ]);
+
+    expect(tablePartFor(messages, "t2")).toBe(null);
   });
 
   it("answers null for a task that produced no exhibit", () => {

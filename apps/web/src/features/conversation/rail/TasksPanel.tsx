@@ -33,7 +33,7 @@ export function TasksPanel({ conversationId }: TasksPanelProps) {
         <RailEmptyState
           icon={<Timer className="h-8 w-8" aria-hidden />}
           heading="No background tasks yet"
-          description="Long-running verification jobs (controls, enrichment, parameter optimization) show up here with live progress."
+          description="Long-running verification jobs (control tests, parameter optimization, study computations) show up here with live progress."
         />
       ) : (
         <ul className="divide-y divide-border">

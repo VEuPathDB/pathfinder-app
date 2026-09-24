@@ -11,14 +11,20 @@ import importlib
 import inspect
 import pkgutil
 from dataclasses import fields
+from datetime import UTC, datetime
 from types import ModuleType
 from uuid import uuid4
 
 import pytest
 from assistant_core import memory
 from assistant_core.memory.autowrite import auto_write_memories
-from assistant_core.memory.retrieval import RetrievalScope, retrieve_relevant_memories
-from assistant_core.memory.schemas import MemoryEntryDraft
+from assistant_core.memory.retrieval import (
+    PIN_WEIGHT,
+    RetrievalScope,
+    hybrid_score,
+    retrieve_relevant_memories,
+)
+from assistant_core.memory.schemas import MemoryEntryDraft, MemoryValue
 from assistant_core.memory.store import memory_namespace
 
 from pathfinder.ai.agents.state import CreatedGeneSet
@@ -30,6 +36,7 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
 from pathfinder.domain.memory import MEMORY_KINDS
+from pathfinder.domain.message_rating import pinned
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 
 FOREIGN_PACKAGES = (
@@ -127,3 +134,21 @@ def test_the_product_turns_a_verified_turn_into_its_candidates() -> None:
         ("gene_set_note", "gene_set_note:gs-1"),
         ("knowledge", f"knowledge:{conversation_id.hex}:0"),
     ]
+
+
+def test_a_pinned_value_scores_one_pin_weight_above_the_same_value() -> None:
+    """The product's pin tag is the one the runtime's score reads."""
+    value = MemoryValue(
+        kind="case",
+        name="kinases",
+        summary="find every kinase in P. falciparum: 142",
+        content={"root_count": 142},
+        created_at=datetime(2026, 9, 24, tzinfo=UTC),
+    )
+
+    lift = hybrid_score(memory=pinned(value), semantic=0.5) - hybrid_score(
+        memory=value, semantic=0.5
+    )
+
+    assert lift == pytest.approx(PIN_WEIGHT)
+    assert pytest.approx(0.1) == PIN_WEIGHT

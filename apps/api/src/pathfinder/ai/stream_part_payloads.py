@@ -1,4 +1,4 @@
-"""Typed payloads for the graph, strategy, gene-set and enrichment data-parts.
+"""Typed payloads for the graph, strategy, gene-set and control-test data-parts.
 ``strategy_stream_parts`` registers them by kind."""
 
 from __future__ import annotations
@@ -7,7 +7,6 @@ from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-from veupathdb_mcp.wdk.enrichment import EnrichmentResult
 
 # Matches WDK BooleanOperator (canonical 7) and the frontend `CombineOperator`
 # union in `packages/shared-ts/src/types.ts`. Narrowing to a subset would silently
@@ -72,20 +71,10 @@ class GeneSet(CamelModel):
     site_id: str
 
 
-class EnrichmentResultsChunk(CamelModel):
-    task_id: str
-    tool_call_id: str = ""
-    gene_set_id: str
-    gene_set_name: str
-    gene_count: int
-    results: list[EnrichmentResult]
-    downloads: dict[str, str | int] | None = None
-
-
 class ControlSetSummary(CamelModel):
-    """One control set of a control test: its size, its hits, its rate and the
-    ids behind the counts. ``missed_ids`` is empty for a negative set, whose
-    hits are the unexpected ones."""
+    """One control set of a control test: its size, its hits, its rate and every
+    id it was given. ``hit_ids`` are the controls the target returned and
+    ``missed_ids`` the controls it did not."""
 
     controls_count: int = Field(ge=0)
     intersection_count: int = Field(ge=0)

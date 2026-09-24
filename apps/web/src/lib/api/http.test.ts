@@ -272,15 +272,15 @@ describe("a refused request reports the server's message", () => {
 
   it("falls back to the problem title when the body carries no field message", async () => {
     refuse({
-      title: "Enrichment analysis failed",
+      title: "Gene set export failed",
       status: 500,
       code: "INTERNAL_ERROR",
     });
-    const error = await requestJson(z.object({}), "/api/v1/gene-sets/x/enrich", {
+    const error = await requestJson(z.object({}), "/api/v1/gene-sets/x/export", {
       method: "POST",
       body: {},
     }).catch((err: unknown) => err);
-    expect((error as APIError).message).toBe("Enrichment analysis failed");
+    expect((error as APIError).message).toBe("Gene set export failed");
   });
 
   it("keeps the transport line when the body says nothing", async () => {

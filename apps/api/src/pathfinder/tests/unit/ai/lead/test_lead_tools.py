@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from inspect import signature
 from typing import Any
 
 import pytest
 from assistant_core.graph.stream_events import ToolSummaryPayload
-from pydantic_ai import DeferredToolRequests, RunContext
+from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart, ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
@@ -20,7 +19,7 @@ from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.mock import get_mock_model
-from pathfinder.ai.tools.standalone import export, workbench
+from pathfinder.ai.tools.standalone import export, gene_sets
 from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResult
 from pathfinder.ai.tools.toolsets import execution
 from pathfinder.domain.strategy.session import StrategySession
@@ -29,7 +28,6 @@ from pathfinder.services.gene_records import read
 from pathfinder.services.gene_records.read import GeneRecordSummary
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.sync_state import WDKSyncState
-from pathfinder.tests._support.durable_dispatch import capture_durable_dispatch
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.sub_agents import toolset_tool_names
 from pathfinder.tests._support.tool_returns import returned
@@ -198,12 +196,12 @@ async def test_clearing_without_confirmation_is_a_retry() -> None:
 _SAVE_REQUEST = "Save the 155 genes as a gene set called gametocyte candidates."
 
 
-async def test_a_save_request_reaches_the_workbench_through_the_leads_toolset(
+async def test_a_save_request_reaches_the_gene_set_store_through_the_leads_toolset(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The scripted turn runs on the real Lead and its real registrations."""
     saved: list[GeneSet] = []
-    monkeypatch.setattr(workbench, "save_gene_set", saved.append)
+    monkeypatch.setattr(gene_sets, "store_gene_set", saved.append)
     deps = lead_deps(pipeline_state(user_prompt=_SAVE_REQUEST))
 
     result = await build_lead_agent().run(
@@ -245,77 +243,12 @@ async def test_a_scripted_turn_classifies_the_message_once_and_replies() -> None
     assert deps.intent.classification is IntentClassification.CONTEXT_STATEMENT
 
 
-_ENRICHMENT_REQUEST = (
-    "Run a GO enrichment on the gene set 'gametocyte secreted candidates' "
-    "and summarize the top terms."
-)
-
-
-async def test_an_enrichment_request_parks_on_the_task_through_the_leads_toolset(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The scripted turn runs on the real Lead and its real registrations."""
-    dispatch = capture_durable_dispatch(monkeypatch)
-    deps = lead_deps(pipeline_state(user_prompt=_ENRICHMENT_REQUEST))
-
-    result = await build_lead_agent().run(
-        _ENRICHMENT_REQUEST,
-        deps=deps,
-        model=get_mock_model(),
-    )
-
-    assert isinstance(result.output, DeferredToolRequests)
-    assert [entry["tool_name"] for entry in dispatch.created] == ["geneset_enrichment"]
-    assert dispatch.created[0]["args"]["kwargs"]["gene_set_id"] == "gs_mock_enrichment"
-    assert [d.tool_name for d in deps.durable_deferrals.values()] == [
-        "geneset_enrichment"
-    ]
-
-
-def test_the_leads_enrichment_tool_is_registered_sequential() -> None:
-    """One parked call is checkpointed per turn, so the batch cannot hold two."""
-    tools = build_lead_agent()._function_toolset.tools
-
-    assert tools["run_gene_set_enrichment"].sequential is True
-
-
-def test_the_two_enrichment_registrations_take_the_same_arguments() -> None:
-    """One declaration answers both, so the worker reads one set of kwargs.
-
-    The annotation decides what is serialised into the job, so it is part of
-    the argument and not of the context.
-    """
-    lead = signature(lead_tools.run_gene_set_enrichment).parameters
-    verify = signature(workbench.run_gene_set_enrichment).parameters
-
-    assert [str(p) for p in list(lead.values())[1:]] == [
-        str(p) for p in list(verify.values())[1:]
-    ]
-
-
-def test_the_enrichment_tool_is_offered_before_the_turn_is_classified() -> None:
-    """A request that names a saved set asks for no strategy."""
-    assert "run_gene_set_enrichment" in UNCLASSIFIED_TOOLS
-    assert "run_gene_set_enrichment" not in BUILDING_TOOLS
-
-
-def test_the_enrichment_docstring_names_what_answers_the_call() -> None:
-    """The completion call carries the terms, and the Lead reads them there."""
-    doc = _flat(lead_tools.run_gene_set_enrichment.__doc__ or "")
-
-    assert "get_enrichment_results" not in doc
-    assert "enrichmentResults" in doc
-
-
-_EXPORT_REQUEST = (
-    "Export the gene set 'gametocyte secreted candidates' as CSV and tell me "
-    "where to find the file."
-)
-_EXPORT_URL = "https://exports.test/gametocyte_secreted_candidates.csv"
+_EXPORT_REQUEST = "Export the gene set 'gametocyte secreted candidates' as a CSV."
+_EXPORT_URL = "https://pathfinder.example.org/api/v1/exports/e1"
 
 
 class _ExportService:
-    """The export service, without the database its files live in."""
+    """Writes nothing, and answers with one link."""
 
     async def export_gene_set(
         self,

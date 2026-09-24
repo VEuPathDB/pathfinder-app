@@ -6,12 +6,12 @@ import pytest
 from veupathdb.domain.parameters import VocabOption
 from veupathdb_mcp.catalog import ParameterInfo
 
+from pathfinder.services.evidence.optimization import enumerate_variants
 from pathfinder.services.parameter_optimization.tunable import (
     parameter_space_for_search,
     sweep_plan,
     tunable_parameter_names,
 )
-from pathfinder.services.workbench.optimization import enumerate_variants
 
 
 def _info(name: str, param_type: str) -> ParameterInfo:

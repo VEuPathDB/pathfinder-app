@@ -17,6 +17,7 @@ from pathfinder.ai.lead.lead_agent import LeadAgent
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.platform.model_keys import keyed_model
 from pathfinder.platform.tiers import resolve_phase_tier_config
 
 _LEAD_ROLE = "lead"
@@ -61,7 +62,7 @@ def resolve_lead_model_context(
     )
     return LeadModelContext(
         override=agent.override(
-            model=maybe_wrap_model(effective_model, _LEAD_ROLE),
+            model=maybe_wrap_model(keyed_model(effective_model), _LEAD_ROLE),
             model_settings=build_model_settings(effective_model, thinking=effort),
         ),
         model_id=effective_model,

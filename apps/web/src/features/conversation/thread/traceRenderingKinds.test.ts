@@ -9,7 +9,6 @@ describe("traceRenderingKinds", () => {
       "data-eda.analysis-state",
       "data-eda.subset-preview",
       "data-eda.viz",
-      "data-enrichment-results",
       "data-control-test-results",
       "data-strategy-link",
       "data-gene-set",

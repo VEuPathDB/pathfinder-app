@@ -7,18 +7,8 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
 from pathfinder.ai.lead.ledger import InvestigationLedger
-from pathfinder.ai.stream_part_payloads import (
-    ControlTestResults,
-    EnrichmentResultsChunk,
-)
-
-
-def enrichment_results_event(results: EnrichmentResultsChunk) -> DataChunk:
-    """Report the terms one enrichment run found, as its own exhibit."""
-    return DataChunk(
-        type="data-enrichment-results",
-        data=results.model_dump(by_alias=True, mode="json"),
-    )
+from pathfinder.ai.stream_part_payloads import ControlTestResults
+from pathfinder.domain.evidence import EvidenceCard
 
 
 def control_test_results_event(results: ControlTestResults) -> DataChunk:
@@ -26,6 +16,14 @@ def control_test_results_event(results: ControlTestResults) -> DataChunk:
     return DataChunk(
         type="data-control-test-results",
         data=results.model_dump(by_alias=True, mode="json"),
+    )
+
+
+def evidence_card_event(card: EvidenceCard) -> DataChunk:
+    """Report the evidence behind one check, as its own part."""
+    return DataChunk(
+        type="data-evidence-card",
+        data=card.model_dump(by_alias=True, mode="json"),
     )
 
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -127,6 +127,36 @@ describe("EditorContent", () => {
       "http://localhost:3000/plasmodb/conversation/conv-1/strategy/step/step_7",
     );
     expect(writeText).toHaveBeenCalledTimes(1);
+  });
+
+  it("says in the results section why the step runs its search", () => {
+    const reason = "sets Organism to Plasmodium falciparum 3D7";
+    render(
+      <EditorContent
+        step={{
+          ...STEP,
+          rationale: {
+            kind: "search",
+            searchName: "GenesByTaxon",
+            basis: "parameter",
+            term: "Organism",
+            reason,
+            toolCallId: "call_1",
+            short: "sets Organism",
+          },
+        }}
+        siteId="plasmodb"
+        recordType="gene"
+        conversationId="conv-1"
+        registerCloseHandler={vi.fn()}
+        onClosed={vi.fn()}
+      />,
+      { wrapper: queryWrapper },
+    );
+
+    expect(within(screen.getByTestId("step-results")).getByText(reason).tagName).toBe(
+      "P",
+    );
   });
 
   it("lists the genes a pushed step returns", async () => {

@@ -6,7 +6,6 @@ from uuid import UUID
 from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.stream_events import scratchpad_updated_event
 from assistant_core.graph.turn_message import write_turn_message
-from assistant_core.memory.autowrite import auto_write_memories
 from assistant_core.memory.deadline import (
     MemoryStoreTimeoutError,
     memory_store_deadline,
@@ -24,6 +23,10 @@ from pathfinder.ai.agents.compactor import build_compactor_agent
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
+from pathfinder.services.conversations.message_ratings import (
+    TurnMemories,
+    write_turn_memories,
+)
 from pathfinder.services.conversations.turns import name_turn_strategy_revision
 
 logger = get_logger(__name__)
@@ -54,6 +57,7 @@ async def _name_strategy_revision(
 async def finalize_turn_node(
     state: PipelineState, runtime: Runtime[Context]
 ) -> Command[Literal["__end__"]]:
+    turn_message_id: UUID | None = None
     if runtime.context is not None:
         turn_message_id = await write_turn_message(
             context=runtime.context,
@@ -77,18 +81,21 @@ async def finalize_turn_node(
         and verdict.passed
         and runtime.context.memory_store is not None
     ):
-        mem_store = MemoryStore(store=runtime.context.memory_store)
-        tombstones = TombstoneRepository(
-            session_factory=runtime.context.db_session_factory,
-        )
         try:
             candidates = await collect_turn_memory_candidates(state)
             async with memory_store_deadline("the memory auto-write"):
-                await auto_write_memories(
-                    store=mem_store,
-                    tombstones=tombstones,
-                    user_id=state.user_id,
-                    candidates=candidates,
+                await write_turn_memories(
+                    TurnMemories(
+                        user_id=state.user_id,
+                        conversation_id=state.conversation_id,
+                        message_id=turn_message_id,
+                        candidates=candidates,
+                    ),
+                    session_factory=runtime.context.db_session_factory,
+                    store=MemoryStore(store=runtime.context.memory_store),
+                    tombstones=TombstoneRepository(
+                        session_factory=runtime.context.db_session_factory,
+                    ),
                 )
             notes_written = True
         except MemoryStoreTimeoutError as exc:

@@ -19,9 +19,10 @@ from assistant_core.tasks.progress import TaskProgressEmitter
 from assistant_core.tasks.runner import run_durable_task
 from sqlalchemy import select
 from veupathdb_mcp.controls import (
-    ControlSetData,
     ControlTargetData,
     ControlTestResult,
+    NegativeControls,
+    PositiveControls,
 )
 from veupathdb_mcp.tool_payloads import ControlOutcome, DownloadLinks
 
@@ -64,21 +65,8 @@ async def _fake_run_step(
         site_id="plasmodb",
         record_type="transcript",
         target=ControlTargetData(step_id=wdk_step_id, estimated_size=100),
-        positive=ControlSetData(
-            controls_count=len(pos),
-            intersection_count=len(pos),
-            intersection_ids_sample=pos,
-            recall=1.0 if pos else None,
-        )
-        if pos
-        else None,
-        negative=ControlSetData(
-            controls_count=len(neg),
-            intersection_count=0,
-            false_positive_rate=0.0 if neg else None,
-        )
-        if neg
-        else None,
+        positive=PositiveControls(recovered_ids=pos, missed_ids=[]) if pos else None,
+        negative=NegativeControls(admitted_ids=[], excluded_ids=neg) if neg else None,
     )
 
 

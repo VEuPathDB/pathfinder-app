@@ -1,13 +1,17 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import type { ModelCatalogEntry, ReasoningEffort } from "@pathfinder/shared";
 import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
 import { listTiersQueryOptions } from "@pathfinder/shared/generated/hooks/useListTiers";
 import { useSettingsStore } from "@/state/useSettingsStore";
 import { assistantLabel } from "@/lib/assistants";
 import { useActiveAssistantId } from "@/features/settings/useActiveAssistantId";
+import { useProviderPayers } from "@/lib/hooks/useProviderPayers";
+import { withPayers } from "@/lib/models/payers";
 import { phaseDescription, phaseLabel } from "@/lib/models/phaseRoles";
+import { PROVIDER_TABS } from "@/lib/models/providerMeta";
 import { ModelPicker } from "@/features/settings/components/ModelPicker";
 import { TierPicker } from "@/features/settings/components/TierPicker";
 import { ReasoningToggle } from "@/features/settings/components/ReasoningToggle";
@@ -20,7 +24,8 @@ import {
 
 export function ModelSettings() {
   const { data } = useQuery(listModelsQueryOptions());
-  const modelCatalog = data?.models ?? [];
+  const { payers } = useProviderPayers();
+  const modelCatalog = withPayers(data?.models ?? [], payers);
   const phaseDefaults = data?.phaseDefaults ?? {};
   const phaseModels = useSettingsStore((s) => s.phaseModels);
   const setPhaseModel = useSettingsStore((s) => s.setPhaseModel);
@@ -29,8 +34,17 @@ export function ModelSettings() {
   const applyPhasePreset = useSettingsStore((s) => s.applyPhasePreset);
 
   const { data: tierData } = useQuery(listTiersQueryOptions());
-  const provider = data?.defaultProvider ?? "";
   const assistantId = useActiveAssistantId();
+  const [chosenProvider, setChosenProvider] = useState<string | null>(null);
+  // A provider is offered when someone pays for it and it has presets here.
+  const providers = PROVIDER_TABS.filter(
+    (tab) =>
+      tab.key !== "all" &&
+      payers?.[tab.key] !== undefined &&
+      Object.keys(presetsForProvider(tierData?.presets, assistantId, tab.key)).length >
+        0,
+  );
+  const provider = chosenProvider ?? data?.defaultProvider ?? "";
   const tierPresets = presetsForProvider(tierData?.presets, assistantId, provider);
   const roles = rolesForAssistant(tierData?.presets, assistantId, provider);
   const activeTier = deriveActiveTier(
@@ -51,6 +65,26 @@ export function ModelSettings() {
           use the default.
         </p>
       </div>
+
+      {providers.length > 1 && (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {providers.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              aria-pressed={tab.key === provider}
+              onClick={() => setChosenProvider(tab.key)}
+              className={
+                tab.key === provider
+                  ? "rounded-md border border-primary bg-primary/10 px-2.5 py-1 text-xs font-medium text-foreground"
+                  : "rounded-md border border-border/60 px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted/50"
+              }
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <TierPicker
         presets={tierPresets}

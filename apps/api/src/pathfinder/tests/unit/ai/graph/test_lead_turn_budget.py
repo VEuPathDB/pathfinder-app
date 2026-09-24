@@ -25,6 +25,7 @@ from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead import (
+    evidence_card,
     sub_agent_dispatch,
     sub_agent_stream,
     sub_agent_tools,
@@ -264,7 +265,7 @@ def test_a_turn_at_its_whole_budget_reports_what_it_built(
         sub_agent_dispatch, "import_gene_set_for_conversation", _no_gene_set
     )
     writer = Collector()
-    for module in (sub_agent_dispatch, sub_agent_stream):
+    for module in (sub_agent_dispatch, sub_agent_stream, evidence_card):
         monkeypatch.setattr(module, "get_stream_writer", lambda: writer)
     state = _framed_state()
     session = StrategySession(site_id=SITE_ID)

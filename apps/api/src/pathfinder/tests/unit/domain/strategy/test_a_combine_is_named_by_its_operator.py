@@ -24,7 +24,6 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    build_step_tree,
 )
 from pathfinder.domain.strategy.operations import (
     AddCombineOp,
@@ -32,6 +31,9 @@ from pathfinder.domain.strategy.operations import (
     UpdateCombineOperatorOp,
 )
 from pathfinder.domain.strategy.operations.apply import apply_operation
+from pathfinder.domain.strategy.spec_tree import (
+    build_step_tree,
+)
 
 from ._builders import (
     graph_of,

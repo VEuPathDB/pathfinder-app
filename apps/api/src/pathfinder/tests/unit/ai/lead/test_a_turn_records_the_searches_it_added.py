@@ -21,10 +21,12 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
+)
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,
     renumber_criteria,
 )
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_words import AddedSearch
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.services.strategies.context import StrategyMutationContext
@@ -102,7 +104,7 @@ async def test_a_build_records_the_search_it_added(
     )
     assert delta.added_searches == [added]
     assert ctx.deps.state.turn_markers.added_searches == [added]
-    assert dict(contexts[0].criterion_texts) == {step_id: _GPI_WORDS}
+    assert contexts[0].step_words.criterion_texts == {step_id: _GPI_WORDS}
 
 
 def _built() -> tuple[OperationalSpec, StrategySession]:

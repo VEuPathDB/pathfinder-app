@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 from uuid import uuid4
 
 import pytest
@@ -17,7 +16,6 @@ from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.tests.integration.strategies.conftest import (
     BuildAndRead,
-    go_term_leaf,
     step_gene_ids,
     text_leaf,
 )
@@ -49,67 +47,6 @@ async def test_variant_comparison_real_counts_and_overlap(wdk_session: None) -> 
     kin_phos = pairs[frozenset(("kinase", "phosphatase"))]
     assert kin_phos.shared <= 15
     assert 0.0 <= kin_phos.jaccard < 0.2
-
-
-async def test_gene_set_operations_match_ground_truth_on_real_sets(
-    wdk_builder: BuildAndRead,
-) -> None:
-    _, kinase_ids = await step_gene_ids(await wdk_builder(text_leaf("kinase")))
-    _, go_kinase_ids = await step_gene_ids(
-        await wdk_builder(go_term_leaf("GO:0004672"))
-    )
-    assert len(kinase_ids) >= 100
-    assert len(go_kinase_ids) >= 90
-
-    user_id = uuid4()
-    svc = GeneSetService(get_gene_set_store())
-    created: list[str] = []
-    try:
-        set_a = await svc.create(
-            user_id=user_id,
-            name="kinase text",
-            site_id="plasmodb",
-            gene_ids=sorted(kinase_ids),
-            source="paste",
-        )
-        set_b = await svc.create(
-            user_id=user_id,
-            name="GO kinases",
-            site_id="plasmodb",
-            gene_ids=sorted(go_kinase_ids),
-            source="paste",
-        )
-        created += [set_a.id, set_b.id]
-
-        async def op(operation: str) -> set[str]:
-            result = await svc.perform_set_operation(
-                user_id=user_id,
-                set_a_id=set_a.id,
-                set_b_id=set_b.id,
-                operation=operation,
-                name=operation,
-            )
-            created.append(result.id)
-            return set(result.gene_ids)
-
-        intersect = await op("intersect")
-        union = await op("union")
-        minus = await op("minus")
-
-        assert intersect == kinase_ids & go_kinase_ids
-        assert union == kinase_ids | go_kinase_ids
-        assert minus == kinase_ids - go_kinase_ids
-
-        # Real overlap is substantial but partial - proves a meaningful join,
-        # not a trivial subset or disjoint pair.
-        assert len(intersect) >= 80
-        assert len(intersect) < len(kinase_ids)
-        assert len(union) > max(len(kinase_ids), len(go_kinase_ids))
-        assert len(minus) == len(kinase_ids) - len(intersect)
-    finally:
-        for gid in created:
-            with contextlib.suppress(Exception):
-                await svc.delete(user_id, gid)
 
 
 async def test_validate_control_ids_splits_real_from_fake(

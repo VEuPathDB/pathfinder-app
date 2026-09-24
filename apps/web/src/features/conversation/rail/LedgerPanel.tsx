@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { EvidenceCard } from "@pathfinder/shared";
 import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
 import type { UIMessage } from "ai";
 import { runningPhase } from "@veupathdb/assistant-client";
@@ -13,6 +14,7 @@ import { useRightRailStore } from "@/state/useRightRailStore";
 import { useChatHelpers } from "../runtime/chatHelpersContext";
 import { ConstraintsSection } from "./ConstraintsSection";
 import { ContextSection } from "./ContextSection";
+import { cardIsSuperseded, latestEvidenceCard } from "./evidenceCards";
 import {
   BuildSection,
   FrameSection,
@@ -32,16 +34,20 @@ const TABS: { id: Tab; label: string }[] = [
 
 export function ledgerTabSignatures(
   ledger: InvestigationLedger,
+  card: EvidenceCard | null = null,
 ): Record<DetailTab, string> {
   return {
     frame: JSON.stringify([ledger.userIntent, ledger.frame]),
     build: JSON.stringify(ledger.build),
-    verification: JSON.stringify(ledger.verification),
+    verification: JSON.stringify([ledger.verification, card?.checkId ?? null]),
   };
 }
 
 /** Whether each detail tab has anything behind it yet. An empty one raises no dot. */
-function ledgerTabHasContent(ledger: InvestigationLedger): Record<DetailTab, boolean> {
+function ledgerTabHasContent(
+  ledger: InvestigationLedger,
+  card: EvidenceCard | null,
+): Record<DetailTab, boolean> {
   const { frame, build, verification } = ledger;
   const {
     pushedCount = 0,
@@ -60,7 +66,10 @@ function ledgerTabHasContent(ledger: InvestigationLedger): Record<DetailTab, boo
       needsRecovery ||
       build.succeeded,
     verification:
-      verification.complete || verification.successful || verification.digest != null,
+      verification.complete ||
+      verification.successful ||
+      verification.digest != null ||
+      card !== null,
   };
 }
 
@@ -85,10 +94,11 @@ export function LedgerPanel({ conversationId }: { conversationId: string }) {
   const ledgerSeen = useRightRailStore((s) => s.ledgerSeen);
   const markLedgerTabSeen = useRightRailStore((s) => s.markLedgerTabSeen);
 
-  const signatures = ledger !== null ? ledgerTabSignatures(ledger) : null;
-  const hasContent = ledger !== null ? ledgerTabHasContent(ledger) : null;
-  const seen = ledgerSeen[conversationId] ?? {};
   const parts = chat.messages.flatMap((m) => m.parts);
+  const card = latestEvidenceCard(parts);
+  const signatures = ledger !== null ? ledgerTabSignatures(ledger, card) : null;
+  const hasContent = ledger !== null ? ledgerTabHasContent(ledger, card) : null;
+  const seen = ledgerSeen[conversationId] ?? {};
   const phase = runningPhase(parts);
 
   // Keep the active detail tab marked seen as it updates live (render-time
@@ -165,7 +175,7 @@ export function LedgerPanel({ conversationId }: { conversationId: string }) {
                 {`${phaseLabel(phase)} is running...`}
               </p>
             )}
-            <LedgerTabContent tab={tab} ledger={ledger} parts={parts} />
+            <LedgerTabContent tab={tab} ledger={ledger} parts={parts} card={card} />
           </>
         )}
       </div>
@@ -177,18 +187,22 @@ function LedgerTabContent({
   tab,
   ledger,
   parts,
+  card,
 }: {
   tab: Tab;
   ledger: InvestigationLedger;
   parts: readonly UIMessage["parts"][number][];
+  card: EvidenceCard | null;
 }) {
+  const evidence =
+    card === null ? null : { card, superseded: cardIsSuperseded(parts, card) };
   if (tab === "summary") {
     return (
       <div className="divide-y divide-border">
         <IntentSection intent={ledger.userIntent} />
         <FrameSection frame={ledger.frame} />
         <BuildSection build={ledger.build} />
-        <VerificationSection verification={ledger.verification} />
+        <VerificationSection verification={ledger.verification} evidence={evidence} />
         <ContextSection parts={parts} />
         <ConstraintsSection constraints={ledger.constraints} />
       </div>
@@ -211,7 +225,11 @@ function LedgerTabContent({
   }
   return (
     <div className="divide-y divide-border">
-      <VerificationSection verification={ledger.verification} detail />
+      <VerificationSection
+        verification={ledger.verification}
+        evidence={evidence}
+        detail
+      />
       <ConstraintsSection constraints={ledger.constraints} />
     </div>
   );

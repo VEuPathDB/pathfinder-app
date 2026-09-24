@@ -2,11 +2,14 @@
 
 import { Handle, Position } from "@xyflow/react";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
+import { stepReason } from "@/features/strategy/graph/utils/stepTitle";
 import { NodeShell } from "./NodeShell";
 import type { StepNodeProps } from "./types";
 
 const SEARCH_NODE_WIDTH = 168;
 const SEARCH_NODE_HEIGHT = 80;
+// A step that says why it runs its search draws one more line.
+const SEARCH_NODE_HEIGHT_WITH_REASON = 96;
 
 export function SearchNode(props: StepNodeProps) {
   const {
@@ -31,7 +34,11 @@ export function SearchNode(props: StepNodeProps) {
       isUnsaved={isUnsaved}
       isOrphan={isOrphan}
       width={SEARCH_NODE_WIDTH}
-      height={SEARCH_NODE_HEIGHT}
+      height={
+        stepReason(step, "search") === ""
+          ? SEARCH_NODE_HEIGHT
+          : SEARCH_NODE_HEIGHT_WITH_REASON
+      }
       snapshot={snapshot}
       enterDelayIndex={enterDelayIndex}
       onOpenDetails={onOpenDetails}

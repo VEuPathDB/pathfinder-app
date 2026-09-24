@@ -194,7 +194,7 @@ def test_the_lead_instructions_name_no_parameter_in_camel_case() -> None:
 
 def test_the_inventory_reaches_every_phase() -> None:
     """A short inventory would pass every check above without testing it."""
-    assert len(_TOOL_NAMES) >= 80
+    assert len(_TOOL_NAMES) >= 75
     for name in ("verify_strategy", "set_criterion", "build_strategy"):
         assert name in _TOOL_NAMES, name
     for name in ("run_eda_compute", "run_control_tests_on_step", "list_notes"):

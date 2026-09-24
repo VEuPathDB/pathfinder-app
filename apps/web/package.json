@@ -1,6 +1,6 @@
 {
   "name": "pathfinder-web",
-  "version": "0.2.0-alpha.9",
+  "version": "0.2.0-alpha.10",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -46,7 +46,6 @@
     "@tanstack/react-form": "^1.33.5",
     "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-query-devtools": "^5.102.8",
-    "@tanstack/react-table": "^9.2.4",
     "@veupathdb/assistant-client": "git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@veupathdb/assistant-client&tag=v0.3.0a16",
     "@xyflow/react": "^12.11.6",
     "ai": "7.0.87",
@@ -65,7 +64,6 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-error-boundary": "^6.1.4",
-    "reaviz": "^16.2.2",
     "remark-gfm": "^4.0.1",
     "shiki": "^4.4.3",
     "sonner": "^2.0.8",

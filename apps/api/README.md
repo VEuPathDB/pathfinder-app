@@ -76,13 +76,12 @@ src/pathfinder/
     control_sets.py          #   Control-set CRUD over the repository
     conversations/           #   Conversation lifecycle, fork, revert, cancellation, scratchpad
     eda/                     #   EDA study catalog, subsetting, compute, export
-    enrichment/              #   Custom enrichment and its statistics
+    enrichment/              #   The hypergeometric statistic the evidence card reports
     eval.py                  #   Thesis evaluation: gold strategies and their gene ids
     eval_data/               #   Eval staging and promotion
-    experiment/              #   Experiment engine (evaluate, persist, robustness, cross-validate,
-                             #     enrich), sweeps, seeds, streaming
+    experiment/              #   Experiment engine (evaluate), scored and variant comparisons, seeds
     export/                  #   Data export and its sweeper, incl. control downloads
-    gene_sets/               #   Gene set CRUD, confidence, ensemble, enrichment
+    gene_sets/               #   Gene set store, import, delete, VDI publication
     parameter_optimization/  #   Parameter sweeps, scoring, builders
     quota.py                 #   Per-user monthly USD quota
     research/                #   Literature retrieval
@@ -91,18 +90,17 @@ src/pathfinder/
     user_data.py             #   Purges a user's data
     users.py                 #   User accounts
     wdk_identity.py          #   Who a request is on VEuPathDB, and the internal user it maps to
-    workbench/               #   The facade ai/ and jobs/ reach the workbench through (gene_sets,
-                             #     experiments, control_sets, comparisons, optimization); functions
+    evidence/                #   The facade ai/ and jobs/ reach the evidence producers through
+                             #     (gene_sets, control_sets, comparisons, optimization); functions
                              #     with bodies, and the fifth import-linter contract forbids the rest
   transport/                 # HTTP layer
     http/
       routers/               #   FastAPI routers
         chat.py              #     Chat endpoint
         conversations/       #     CRUD, events, counts, fork, revert, WDK import, scratchpad
-        sites/               #     Site-scoped catalog, gene, parameter endpoints
-        experiments/         #     Experiment execution, evaluation, enrichment, results
-        gene_sets/           #     Gene set CRUD, confidence, enrichment, records, operations
-        control_sets.py      #     Control set CRUD
+        sites/               #     Site-scoped catalog and parameter endpoints
+        seed.py              #     Demo strategies and control sets, as a stream
+        gene_sets/           #     Gene set list, delete, export, import, VDI publication
         eda.py               #     EDA studies, subset counts, distributions, viz
         evaluation.py        #     Thesis eval endpoints
         exports.py           #     Export download
@@ -148,8 +146,8 @@ assistant a thread uses is fixed when the thread is created.
 
 **Durable tools**:
 
-`run_control_tests_on_step`, `optimize_search_parameters`, `run_gene_set_enrichment` and
-`run_eda_compute` are deferred: the call creates a `background_tasks` row and a procrastinate job,
+`run_control_tests_on_step`, `optimize_search_parameters` and `run_eda_compute` are
+deferred: the call creates a `background_tasks` row and a procrastinate job,
 the turn ends, and the worker opens a new turn on the thread with the result once every task of
 that step has reported.
 

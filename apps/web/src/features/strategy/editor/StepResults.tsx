@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { ChevronDown, ExternalLink } from "lucide-react";
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName, type Step } from "@pathfinder/shared";
 import {
   getStepRecords,
   getStepRecordsQueryKey,
@@ -18,6 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { notOnSiteRefusal, toUserMessage } from "@/lib/api/errors";
 import { cn } from "@/lib/utils/cn";
+import { StepRationale } from "./StepRationale";
 
 const PAGE_SIZE = 50;
 const NOT_ON_SITE = "Not on the site yet";
@@ -31,6 +32,8 @@ interface StepResultsProps {
   /** The count the footer shows. null = loading. -1 = unknown. */
   estimatedSize: number | null;
   hasUnsavedEdits: boolean;
+  /** Why the step runs what it runs; null when it records no reason. */
+  rationale: Step["rationale"];
 }
 
 function countLabel(count: number): string {
@@ -45,6 +48,7 @@ export function StepResults({
   siteId,
   estimatedSize,
   hasUnsavedEdits,
+  rationale,
 }: StepResultsProps) {
   const [open, setOpen] = useState(true);
   const pagingKey = `${stepId}:${wdkStepId ?? ""}`;
@@ -98,6 +102,7 @@ export function StepResults({
       className="mt-6 border-t border-border pt-4"
       data-testid="step-results"
     >
+      {rationale != null && <StepRationale rationale={rationale} />}
       <div className="flex items-center justify-between gap-2 text-xs">
         <CollapsibleTrigger className="inline-flex items-center gap-1.5 font-medium text-foreground">
           <ChevronDown

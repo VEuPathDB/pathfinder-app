@@ -407,7 +407,6 @@ async def thread_content_snapshot(conversation_id: UUID) -> JSONObject:
                 strategy.strategy_ast,
                 strategy.gene_set_id,
                 strategy.gene_set_auto_imported,
-                strategy.experiment_id,
                 list(strategy.imported_saved_strategy_ids),
             ]
         ),

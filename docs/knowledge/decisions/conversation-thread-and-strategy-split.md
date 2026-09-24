@@ -19,7 +19,7 @@ could not be shared.
 `dismissed_at`, `parent_conversation_id`, `parent_message_id` and the two
 timestamps. `conversation_strategies` holds `record_type`, `wdk_strategy_id`,
 `is_saved`, `step_count`, `strategy_ast`, `estimated_size`, `gene_set_id`,
-`gene_set_auto_imported`, `experiment_id` and `imported_saved_strategy_ids`.
+`gene_set_auto_imported` and `imported_saved_strategy_ids`.
 `conversation_id` is both its primary key and a `ForeignKey(... ondelete=
 "CASCADE")`, so the relation is 1:1 by construction and a deleted thread
 cannot leave an orphan.
@@ -33,8 +33,7 @@ names WDK strategies the built tree embeds and moves; `dismissed_at` hides the
 **chat** from the sidebar and stays, as do the two `parent_*` columns, which
 record where a thread was branched from and are anchored on a message.
 `site_id` stays: it exists before any strategy does and it scopes every
-listing. `experiment_id` moves, because an experiment is PathFinder science
-and means nothing to a thread-only assistant.
+listing.
 
 **The child carries no owner of its own.** No `user_id`, no `application_id`.
 Ownership is the parent's `(user_id, application_id)` pair

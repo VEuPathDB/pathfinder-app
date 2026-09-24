@@ -61,12 +61,12 @@ _VARIANT_PROSE = (
     "which direction you'd like to carry into the strategy."
 )
 _SAVE_GENE_SET_PROSE = (
-    "Saved to your workbench as a gene set. Enrichment, export and the "
-    "control tools can read it from there."
+    "Saved as a gene set. You can export it, publish it to your workspace, "
+    "and test controls against it."
 )
 _ENRICHMENT_PROSE = (
-    "Enrichment is running on that gene set. I will summarize the ranked "
-    "terms when it reports."
+    "GO, pathway and word enrichment run on the site: open the step from the "
+    "evidence card and use its Analyze results tab."
 )
 _EXPORT_PROSE = "The file is ready. Download it here: "
 _CONTROLS_PROSE = (
@@ -118,7 +118,7 @@ _REMEMBER_MARKERS = ("please remember", "remember for future sessions")
 # A request to read the thread's own record back. The Lead answers from the
 # Ledger, so a branch's inherited state is visible in the reply.
 _RECALL_MARKERS = ("recap what i have asked",)
-# A save of a gene list: the workbench tool, never the memory note.
+# A save of a gene list: the gene-set tool, never the memory note.
 _SAVE_GENE_SET_MARKERS = ("as a gene set",)
 _SAVE_GENE_SET_IDS = ("PF3D7_0709000", "PF3D7_1133400")
 # An export of a set that is already saved: the file tool, on its id.
@@ -133,10 +133,8 @@ _SWEEP_PROSE = (
     "The sweep is running. I will report the winning setting and its score "
     "when it reports."
 )
-# An enrichment of a set that is already saved: the durable tool, on its id.
+# A request for an enrichment is answered with the site's own analysis.
 _ENRICHMENT_MARKERS = ("enrichment on the gene set",)
-_ENRICHMENT_GENE_SET_ID = "gs_mock_enrichment"
-_ENRICHMENT_TYPES = ("go_function", "go_process", "go_component")
 _RECALL_SECTION = "frame"
 LOOP_CALL_ARGS = {"record_type": "transcript"}
 
@@ -295,8 +293,8 @@ def _kept_sequence(
 ) -> list[ToolCallPart] | None:
     """The arcs that act on a set or a preference the user already keeps.
 
-    Enrichment and export of a saved set are two of them: they ask for no
-    strategy.
+    The export of a saved set and a request for its enrichment are two of
+    them: they ask for no strategy.
     """
     if has_any(lowered, _EXPORT_MARKERS):
         return [
@@ -313,18 +311,7 @@ def _kept_sequence(
     if has_any(lowered, _ENRICHMENT_MARKERS):
         return [
             classify("follow_up_question"),
-            scripted_call(
-                "run_gene_set_enrichment",
-                {
-                    "gene_set_id": _ENRICHMENT_GENE_SET_ID,
-                    "enrichment_types": list(_ENRICHMENT_TYPES),
-                },
-            ),
-            lead_final(
-                _ENRICHMENT_PROSE,
-                "await_user",
-                analysed_gene_set_ids=[_ENRICHMENT_GENE_SET_ID],
-            ),
+            lead_final(_ENRICHMENT_PROSE, "await_user"),
         ]
     if has_any(lowered, _SWEEP_MARKERS):
         return [
@@ -343,7 +330,7 @@ def _kept_sequence(
         return [
             classify("follow_up_question"),
             scripted_call(
-                "create_workbench_gene_set",
+                "save_gene_set",
                 {
                     "name": "mock gene set",
                     "gene_ids": list(_SAVE_GENE_SET_IDS),

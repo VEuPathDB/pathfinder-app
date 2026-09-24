@@ -2,11 +2,16 @@
 type: Decision
 title: An enrichment over a result of several organisms is refused until a background is named
 description: WDK's enrichment plugins test one organism's genes against that organism's genome and the analysis form defaults to the first organism its result holds. A 10-gene ToxoDB set spanning 7 organisms was therefore tested as 1 Eimeria falciformis gene and reported 0 significant terms over 10 genes analyzed. EnrichmentService now refuses a result whose organism vocabulary holds more than one entry when no BackgroundSource organism was given, and names every organism. Running against the form default, choosing the majority organism, and one run per organism were rejected.
-tags: [wdk-alignment, enrichment, mcp, workbench, e2e]
+tags: [wdk-alignment, enrichment, mcp, e2e]
 generated: { by: claude-code/fable-5-1, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/fable-5-1, at: 2026-09-05T00:00:00Z }
-status: stable
+status: superseded
 ---
+
+> Superseded in v0.2.0a15 for PathFinder: it runs no enrichment since the site took GO,
+> pathway and word enrichment back ([VERIFY shows its evidence](verify-shows-its-evidence.md)).
+> The refusal stands as the tool server's own rule, in
+> `veupathdb_mcp.wdk.enrichment.service.EnrichmentService`.
 
 # What was measured
 
@@ -54,6 +59,8 @@ organism and its enrichment assertion is real.
 
 # Reopen when
 
-A caller can state the organism from the workbench (the panel has no organism
-control; the agent-side `run_gene_set_enrichment` takes none). Then the refusal
-becomes a prompt for that control instead of a message.
+PathFinder no longer runs an enrichment: since v0.2.0a15 GO, pathway and word
+enrichment run on the site from the step page the evidence card links
+([VERIFY shows its evidence](verify-shows-its-evidence.md)). The refusal is the
+tool server's own rule for its callers. Reopen it there when a caller can state
+the organism.

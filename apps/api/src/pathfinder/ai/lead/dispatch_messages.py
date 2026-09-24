@@ -17,10 +17,12 @@ from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
-    carried_values,
     structure_criteria,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
+from pathfinder.domain.strategy.spec_fold import (
+    carried_values,
+)
 
 
 def frame_result_from_draft(spec: OperationalSpec | None) -> FrameResult:

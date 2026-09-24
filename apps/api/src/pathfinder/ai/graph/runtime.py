@@ -14,9 +14,10 @@ from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from pathfinder.ai.graph.turn_records import TurnMarkers
+from pathfinder.domain.evidence import EvidenceCard
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
-from pathfinder.domain.strategy.step_words import criterion_texts
+from pathfinder.domain.strategy.step_words import step_words
 from pathfinder.services.strategies.context import StrategyMutationContext
 
 # A search is abandoned once it has failed this many times in a turn. The
@@ -72,27 +73,17 @@ class Context(TurnContext):
     strategy_session: StrategySession
     # The declared tool sources this turn resolved, keyed by their local name.
     tool_sources: Mapping[str, AbstractToolset[Any]] = field(default_factory=dict)
-    experiment_id: str | None = None
 
 
 class VerificationScope(CamelModel):
-    """What this turn changed, and what the user asked verification to do.
+    """What the user asked verification to answer, and which check this is."""
 
-    A fresh turn leaves the counts at zero, which warrants every check.
-    """
-
-    criteria_touched: int = 0
-    is_edit: bool = False
-    enrichment_requested: bool = False
     # The researcher's request, with any clarification, that the verdict answers.
     request: str = ""
-
-    def warrants_enrichment(self) -> bool:
-        """Enrichment costs a background job of minutes, so an edit that
-        touched one criterion is verified by its counts instead."""
-        if self.enrichment_requested:
-            return True
-        return not (self.is_edit and self.criteria_touched <= 1)
+    # The Lead's dispatch call this check answers.
+    check_id: str = ""
+    # The evidence card of the thread's last check, which a digest may restate.
+    last_card: EvidenceCard | None = None
 
 
 class AgentDeps(AssistantDeps):
@@ -109,7 +100,6 @@ class AgentDeps(AssistantDeps):
     turn_markers: TurnMarkers
     ledger_summary: str = ""
     service_outage: ServiceOutageMemory = Field(default_factory=ServiceOutageMemory)
-    experiment_id: str | None = None
     # The request the thread answers, the name of a push with no name yet.
     user_prompt: str = ""
     verification_scope: VerificationScope = Field(default_factory=VerificationScope)
@@ -125,7 +115,7 @@ class AgentDeps(AssistantDeps):
                 c.id for c in self.agent_state.operational_spec_draft.criteria
             ),
             stated_structure=self.agent_state.operational_spec_draft.structure,
-            criterion_texts=criterion_texts(self.agent_state.operational_spec_draft),
+            step_words=step_words(self.agent_state.operational_spec_draft),
             stated_values=spec_stated_values(self.agent_state.operational_spec_draft),
             user_prompt=self.user_prompt,
         )

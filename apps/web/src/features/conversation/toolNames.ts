@@ -33,18 +33,13 @@ export const TOOL_LABELS: Record<string, string> = {
   preview_eda_subset: "Preview samples",
   run_eda_compute: "Run differential expression",
   create_eda_step: "Add study step",
-  // Experiments and controls
+  // Comparisons and controls
   compare_search_variants: "Compare variants",
   compare_variants_scored: "Score variants",
   build_control_set: "Build control set",
   list_control_sets: "List control sets",
   read_gene_ids_from_gene_set: "Gene ids from gene set",
   read_gene_ids_from_strategy: "Gene ids from strategy",
-  get_experiment_config: "Read experiment setup",
-  get_evaluation_summary: "Read evaluation summary",
-  get_ensemble_analysis: "Read ensemble analysis",
-  get_confidence_scores: "Read confidence scores",
-  get_step_contributions: "Compare step contributions",
   // Strategy
   build_strategy: "Build the strategy",
   verify_strategy: "Check the strategy",
@@ -56,7 +51,6 @@ export const TOOL_LABELS: Record<string, string> = {
   rename_strategy: "Rename strategy",
   delete_step: "Delete step",
   insert_saved_strategy: "Insert saved strategy",
-  add_step_analysis: "Add analysis step",
   add_step_filter: "Add filter step",
   add_step_report: "Add report step",
   update_combine_operator: "Change how steps combine",
@@ -65,11 +59,10 @@ export const TOOL_LABELS: Record<string, string> = {
   replace_subtree: "Replace part of a strategy",
   get_estimated_size: "Count results",
   // Results and gene sets
-  get_result_gene_lists: "Read gene list",
   get_sample_records: "Read sample records",
   get_download_url: "Prepare download",
-  create_workbench_gene_set: "Save gene set",
-  list_workbench_gene_sets: "List gene sets",
+  save_gene_set: "Save gene set",
+  list_gene_sets: "List gene sets",
   export_gene_set: "Export gene set",
   lookup_gene_records: "Look up genes",
   get_ai_expression_summary: "Read expression summary",
@@ -79,10 +72,6 @@ export const TOOL_LABELS: Record<string, string> = {
   check_study_step: "Check the study step",
   run_control_tests_on_step: "Run control tests",
   optimize_search_parameters: "Optimize parameters",
-  run_gene_set_enrichment: "Gene-set enrichment",
-  get_enrichment_results: "Read enrichment results",
-  // The name the enrichment task itself puts on the wire.
-  geneset_enrichment: "Gene set enrichment",
   // Scratchpad and memory
   note: "Save note",
   read_note: "Read note",

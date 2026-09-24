@@ -27,7 +27,7 @@ from testcontainers.community.postgres import PostgresContainer
 from pathfinder.platform.migrations import include_object, upgrade_all
 
 DATABASE_NAME = "pathfinder_test_three_chains"
-RUNTIME_HEAD = "2026_09_09_0004"
+RUNTIME_HEAD = "2026_09_24_0005"
 
 Difference = tuple[Any, ...] | list[tuple[Any, ...]]
 

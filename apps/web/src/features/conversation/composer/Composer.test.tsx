@@ -12,6 +12,7 @@ vi.mock("next/navigation", () => ({
   useParams: () => ({ siteId: "plasmodb" }),
   usePathname: () => "/plasmodb/conversation",
   useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";

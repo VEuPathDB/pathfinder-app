@@ -112,22 +112,20 @@ that carries a site id spells it `siteId`, on the wire as well as in a path
 template, which is what lets one dependency bind it.
 
 **The entry flow never opens a degraded site.** Every site-less route -
-`app/page.tsx`, `app/conversation/page.tsx`, `app/workbench/page.tsx` and
-`app/workbench/[id]/page.tsx` - is a `force-dynamic` server component calling
+`app/page.tsx` and `app/conversation/page.tsx` - is a `force-dynamic` server
+component calling
 `app/entrySiteRedirect.tsx::redirectToEntrySite`, which reads
 `GET /api/v1/sites` on the server and redirects to the portal's own URL when it
 answers, else the first site in the list's order that answers
-(`lib/sites/entrySite.ts::chooseEntrySite`); the workbench item route keeps its
-gene-set id in the target. When the request fails or no site answers it renders
+(`lib/sites/entrySite.ts::chooseEntrySite`). When the request fails or no site answers it renders
 the startup screen instead of redirecting, so there is no loop and no endless
 spinner. The stored site selection follows the URL the app shell renders, so the
 entry flow's choice replaces a stored degraded site and a deep link to a
 degraded site leaves the selection alone.
 
 **A degraded site keeps its shell; only its VEuPathDB-backed content is
-refused.** `SiteAvailabilityGate` renders inside both app shells
-(`app/[siteId]/(app)/layout.tsx` and `app/[siteId]/workbench/layout.tsx`),
-around the routed content and below the nav rail, so a URL that names a
+refused.** `SiteAvailabilityGate` renders inside the app shell
+(`app/[siteId]/(app)/layout.tsx`), around the routed content and below the nav rail, so a URL that names a
 degraded site still draws the rail with its site switcher and its "Not
 responding" marker, and the conversations list and saved gene sets - this
 deployment's own rows, which the api serves for a degraded site - stay

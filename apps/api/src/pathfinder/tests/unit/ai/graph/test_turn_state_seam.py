@@ -57,6 +57,7 @@ DOMAIN_FIELDS = {
     "discovered_searches",
     "verification_digest",
     "verified_revision",
+    "last_evidence_card",
     "last_build_outcome",
     "stale_build",
     "created_gene_sets",
@@ -77,7 +78,6 @@ STRATEGY_RESOURCES = {
     "tool_sources",
     "agent_state",
     "turn_markers",
-    "experiment_id",
     "ledger_summary",
     "service_outage",
     "user_prompt",
@@ -158,7 +158,6 @@ def test_context_extends_turn_context_with_the_strategy_resources() -> None:
     assert added == {
         "strategy_session",
         "tool_sources",
-        "experiment_id",
     }
 
 

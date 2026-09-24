@@ -17,6 +17,7 @@ from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from assistant_core.graph.turn_state import DurableDeferral, SubAgentApprovalPending
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.models.settings import build_model_settings
+from assistant_core.platform.types import PaidBy
 from pydantic_ai.usage import RunUsage, UsageLimits
 
 from pathfinder.ai.agents.execution import EXECUTION_MODEL, build_execution_agent
@@ -249,7 +250,7 @@ class SubAgentRunUsage:
     """Usage from one pass of a sub-agent dispatch.
 
     Each phase can run a different model, so the cost uses the sub-agent's
-    own model pricing, not the Lead's.
+    own model pricing, not the Lead's, and names the key that paid for it.
     """
 
     usage: RunUsage
@@ -257,6 +258,7 @@ class SubAgentRunUsage:
     provider_name: str | None
     provider_url: str | None
     parent_tool_call_id: str
+    paid_by: PaidBy
 
 
 @dataclass(frozen=True)

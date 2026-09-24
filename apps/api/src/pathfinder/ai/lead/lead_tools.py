@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb import JSONObject
-from veupathdb_mcp.wdk.enrichment import EnrichmentAnalysisType
 
 from pathfinder.ai.lead._delete_rules import DeleteSurface
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
@@ -27,19 +26,17 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import (
     conversation,
     export,
+    gene_sets,
     memory_tools,
     strategy_edits,
-    workbench,
 )
 from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResult
 from pathfinder.ai.tools.standalone.export_models import ExportResultResponse
-from pathfinder.ai.tools.standalone.workbench import GENESET_ENRICHMENT
-from pathfinder.ai.tools.standalone.workbench_models import (
+from pathfinder.ai.tools.standalone.gene_set_models import (
     GeneSetCreatedResponse,
     GeneSetListResponse,
 )
 from pathfinder.domain.memory import MemoryKind
-from pathfinder.platform.durable_worker import durable_agent_tool
 from pathfinder.services.gene_records import read
 from pathfinder.services.gene_records.read import GeneRecordSummary
 
@@ -141,7 +138,7 @@ def classify_user_intent(
 
     PathFinder does its work through these tools; it writes no code and no
     general text. In scope: building, extending, editing and verifying
-    strategies; enrichment; EDA; exports; workbench gene sets; memory;
+    strategies; EDA; exports; saved gene sets; memory;
     questions about the databases, the searches, the parameters and the
     organisms; and the biology behind a search - what a kinase is, what a
     signal peptide is, what a p-value cutoff means here. ``off_topic`` is the
@@ -198,7 +195,7 @@ async def remember(
     "validate" it.
 
     It stores a note. A gene set the user asks you to save is created with
-    ``create_workbench_gene_set``, and ``gene_set_note`` is a note about a set
+    ``save_gene_set``, and ``gene_set_note`` is a note about a set
     that already exists.
     """
     inner = inner_context(ctx)
@@ -212,19 +209,19 @@ async def remember(
     )
 
 
-async def create_workbench_gene_set(
+async def save_gene_set(
     ctx: RunContext[LeadDeps],
     name: str,
     record_type: str = "transcript",
     step_id: str | None = None,
     gene_ids: list[str] | None = None,
 ) -> ToolReturn[GeneSetCreatedResponse]:
-    """Save a gene set in the user's Workbench.
+    """Save a gene set the user can export, publish and test controls against.
 
     This is the save the user asks for when they say "save these genes as a
-    gene set". The set appears in the Workbench sidebar, and its id is what
-    enrichment, export, EDA and the control tools take. ``remember`` stores a
-    note about a set; it creates none.
+    gene set". The set appears in the thread, and its id is what the export
+    and control tools take. ``remember`` stores a note about a set; it creates
+    none.
 
     Args:
         name: The name the user gave the set.
@@ -237,7 +234,7 @@ async def create_workbench_gene_set(
             which no step holds. It saves that list alone, so leave it out
             whenever the genes are a step's.
     """
-    return await workbench.create_workbench_gene_set(
+    return await gene_sets.save_gene_set(
         inner_context(ctx),
         name=name,
         record_type=record_type,
@@ -246,45 +243,15 @@ async def create_workbench_gene_set(
     )
 
 
-async def list_workbench_gene_sets(
+async def list_gene_sets(
     ctx: RunContext[LeadDeps],
 ) -> ToolReturn[GeneSetListResponse]:
-    """List the gene sets in the user's Workbench, each with its id.
+    """List the gene sets the user saved on this site, each with its id.
 
     Call it before you use a gene-set id you did not just create, and when a
     tool answers that an id names nothing.
     """
-    return await workbench.list_workbench_gene_sets(inner_context(ctx))
-
-
-@durable_agent_tool(GENESET_ENRICHMENT)
-async def run_gene_set_enrichment(
-    ctx: RunContext[LeadDeps],
-    gene_set_id: str,
-    enrichment_types: list[EnrichmentAnalysisType] | None = None,
-) -> dict[str, Any]:
-    """Run enrichment analysis on a gene set in the Workbench.
-
-    This is the enrichment the user asks for when they name a saved set. Take
-    the id from ``list_workbench_gene_sets`` or from the save that created it.
-
-    Durable: the analysis runs on the worker, the turn ends while the GO,
-    pathway and word phases run, and you are called again with the summary
-    (the gene set's id, ``geneCount``, ``enrichmentResults``, ``downloads``).
-    Name the top terms from the ``enrichmentResults`` you are answered with.
-
-    The set needs a WDK step id or search parameters, so the service can
-    recover the background gene universe.
-
-    Args:
-        gene_set_id: ID of the gene set to run enrichment on.
-        enrichment_types: Types of enrichment to run. Options: ``go_function``,
-            ``go_process``, ``go_component``, ``pathway``, ``word``. Default:
-            all five types.
-    """
-    del ctx, gene_set_id, enrichment_types
-    msg = "run_gene_set_enrichment runs on the worker via @durable_agent_tool"
-    raise NotImplementedError(msg)
+    return await gene_sets.list_gene_sets(inner_context(ctx))
 
 
 async def export_gene_set(
@@ -294,8 +261,8 @@ async def export_gene_set(
 ) -> ToolReturn[ExportResultResponse]:
     """Export a saved gene set as a downloadable CSV or TXT file.
 
-    This is the download the user asks for when they name a set in their
-    Workbench. Take the id from ``list_workbench_gene_sets``. The reply carries
+    This is the download the user asks for when they name a set they saved.
+    Take the id from ``list_gene_sets``. The reply carries
     the link, which expires after ten minutes, so give it to the user.
 
     Args:

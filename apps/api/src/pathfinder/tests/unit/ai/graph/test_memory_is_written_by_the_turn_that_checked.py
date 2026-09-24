@@ -22,6 +22,7 @@ from pathfinder.ai.graph.state import (
     VerificationDigest,
 )
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.services.conversations.message_ratings import TurnMemories
 from pathfinder.tests._support.database import no_database
 
 
@@ -97,16 +98,16 @@ async def _finalize(
 
     writes = 0
 
-    async def _count_write(**kwargs: Any) -> None:
+    async def _count_write(turn: TurnMemories, **kwargs: Any) -> None:
         nonlocal writes
-        del kwargs
+        del turn, kwargs
         writes += 1
 
     store = _RecordingStore()
     monkeypatch.setattr(nodes, "write_turn_message", _no_turn_message)
     monkeypatch.setattr(nodes, "collect_turn_memory_candidates", _one_candidate)
     monkeypatch.setattr(nodes, "TombstoneRepository", _NoTombstones)
-    monkeypatch.setattr(nodes, "auto_write_memories", _count_write)
+    monkeypatch.setattr(nodes, "write_turn_memories", _count_write)
     monkeypatch.setattr(nodes, "compact_scratchpad", _count_compaction)
     runtime: Runtime[Context] = Runtime(
         context=Context(

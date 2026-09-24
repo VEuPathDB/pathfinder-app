@@ -44,7 +44,7 @@ This repo is organized as:
   - The agents themselves, the WDK client, the services, and the procrastinate worker.
 - **`apps/web/`**: Next.js UI
   - Chat UI with strategy graph visualization, step editing, and result panes.
-  - **Workbench** for gene set management and multi-panel analysis (enrichment, distributions, cross-validation).
+  - An evidence card under each check: every control id the tests filed, each step's count on the site, and the step link where the site runs its own analyses.
   - Proxies API routes via Next rewrites (see `apps/web/next.config.ts`).
 - **`packages/shared-ts/`**: shared TypeScript types (`@pathfinder/shared`) plus the Kubb-generated `src/generated/{types,zod,hooks}`.
   - The web app imports types via TS path mapping to `packages/shared-ts/src` (see `apps/web/tsconfig.json`).

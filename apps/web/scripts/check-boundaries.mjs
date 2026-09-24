@@ -15,10 +15,6 @@
  *
  *   5. src/state/ owns global stores: it may not import @/features/ or @/app/.
  *
- *   6. A feature that publishes entry paths (FEATURE_ENTRYPOINTS) is reachable
- *      through them and nothing else. Naming one is the permission, so rule 1
- *      needs no exception row for such a target; naming a file inside it fails.
- *
  * Exit code 1 on violations, 0 if clean.
  */
 
@@ -143,20 +139,11 @@ function isAllowedFeatureImport(specifier, selfFeature) {
 // `conversation` is the app shell: it owns the rail, the thread, the composer
 // and the slash commands, so it reaches into the surfaces it hosts. Rule 1 does
 // not constrain it, and this map says so. An exception admits the whole tree of
-// the target, which is why a feature with an API belongs in FEATURE_ENTRYPOINTS
-// instead.
+// the target.
 const CROSS_FEATURE_EXCEPTIONS = new Map([
   ["conversation", new Set(["settings", "strategy", "saved"])],
   // sidebar awaits pending strategy pushes before it switches conversations.
   ["sidebar", new Set(["strategy"])],
-]);
-
-// The paths a feature publishes. Naming one of them is the permission, and the
-// only permission: any feature may import an entry path, and no feature may
-// import anything else of a feature that publishes. A feature absent from this
-// map is closed by rule 1 unless an exception row above admits it.
-const FEATURE_ENTRYPOINTS = new Map([
-  ["workbench", new Set(["api/geneSets", "analysis"])],
 ]);
 
 /** Layers that may not import a higher layer, keyed by src/ subdirectory. */
@@ -182,7 +169,7 @@ export function checkSource(source, srcRelPath) {
   const isProduction = !isTestOrFixture(srcRelPath);
   const imports = extractImports(source);
 
-  // ------ Rules 1, 3 & 6: cross-feature imports + allowed imports ------
+  // ------ Rules 1 & 3: cross-feature imports + allowed imports ------
   if (selfFeature) {
     const allowedCrossTargets = CROSS_FEATURE_EXCEPTIONS.get(selfFeature) ?? new Set();
 
@@ -192,24 +179,6 @@ export function checkSource(source, srcRelPath) {
       if (crossMatch) {
         const targetFeature = crossMatch[1];
         if (targetFeature === selfFeature) continue;
-        const entryPaths = FEATURE_ENTRYPOINTS.get(targetFeature);
-        if (entryPaths) {
-          // Rule 6: a feature that publishes is reachable through its entry
-          // paths and nothing else.
-          const entry = specifier.slice(`@/features/${targetFeature}/`.length);
-          if (!entryPaths.has(entry)) {
-            add(
-              6,
-              lineNum,
-              `Not an entry path: features/${selfFeature} imports "${specifier}"; features/${targetFeature} publishes ${[
-                ...entryPaths,
-              ]
-                .map((p) => `@/features/${targetFeature}/${p}`)
-                .join(", ")}`,
-            );
-          }
-          continue;
-        }
         if (!allowedCrossTargets.has(targetFeature)) {
           add(
             1,
@@ -271,7 +240,6 @@ const RULE_NAMES = {
   3: "Features: allowed import sources only",
   4: "lib/ is pure (no features, state or app)",
   5: "state/ may not import features or app",
-  6: "A cross-feature import names an entry path",
 };
 
 function main() {

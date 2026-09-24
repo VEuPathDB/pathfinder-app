@@ -21,6 +21,8 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
+)
+from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,
     renumber_criteria,
 )

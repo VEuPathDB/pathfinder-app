@@ -43,10 +43,9 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     pipeline_state,
 )
 
-_ENRICHMENT = "run_gene_set_enrichment"
 _ROOT_COUNT = 16
 _DESCRIPTION = verify_strategy.__doc__ or ""
-_USER_FACING = ["enrich", "control", "sample"]
+_USER_FACING = ["control", "sample", "evidence card"]
 
 pytestmark = pytest.mark.usefixtures("collector")
 
@@ -61,26 +60,20 @@ class TestTheDispatchToolNamesWhatItCanDo:
 
 
 class TestTheCapabilitiesAreReallyThere:
-    def test_enrichment_belongs_to_the_verification_toolset(self) -> None:
-        assert "run_gene_set_enrichment" in toolset_tool_names(
+    def test_the_control_tests_belong_to_the_verification_toolset(self) -> None:
+        assert "run_control_tests_on_step" in toolset_tool_names(
             verification.build_toolset()
         )
 
     def test_the_lead_serves_a_saved_gene_set_without_a_dispatch(self) -> None:
-        """The two calls a saved set answers, and no read of another universe.
+        """The two calls a saved set answers, and no read of a step.
 
-        A saved set's enrichment travels back on the completion call, and its
-        download takes the set's own id.
+        A download of a saved set takes the set's own id.
         """
-        workbench_reads = {
-            _ENRICHMENT,
-            "get_enrichment_results",
-            "export_gene_set",
-            "get_download_url",
-        }
-        carried = agent_tool_names(build_lead_agent()) & workbench_reads
+        saved_set_reads = {"list_gene_sets", "export_gene_set", "get_download_url"}
+        carried = agent_tool_names(build_lead_agent()) & saved_set_reads
 
-        assert carried == {_ENRICHMENT, "export_gene_set"}
+        assert carried == {"list_gene_sets", "export_gene_set"}
 
 
 def _criterion(index: int, search_name: str) -> Criterion:
@@ -214,8 +207,6 @@ async def _verify(
     monkeypatch: pytest.MonkeyPatch,
     deps: LeadDeps,
     script: _Script,
-    *,
-    enrichment_requested: bool = False,
 ) -> VerificationDelta:
     monkeypatch.setattr(sub_agent_tools, "get_mock_model", script.model)
     with pinned_sub_agent(
@@ -228,13 +219,12 @@ async def _verify(
             deps=deps,
             parent_tool_call_id="lead_call_verify",
             reason="confirm the transform",
-            enrichment_requested=enrichment_requested,
         )
     assert isinstance(result, VerificationDelta)
     return result
 
 
-async def test_a_one_step_edit_is_not_offered_enrichment(
+async def test_a_one_step_edit_is_verified_by_its_counts(
     monkeypatch: pytest.MonkeyPatch,
     collector: ChunkCollector,
 ) -> None:
@@ -242,26 +232,16 @@ async def test_a_one_step_edit_is_not_offered_enrichment(
 
     delta = await _verify(monkeypatch, _one_step_edit(), script)
 
-    assert _ENRICHMENT not in script.offered
     assert collector.step_tool_names() == {"get_strategy"}
     assert delta.digest.prose == "The strategy returns 16 records."
 
 
-async def test_the_user_can_still_ask_for_enrichment_on_an_edit(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    script = _Script()
-
-    await _verify(monkeypatch, _one_step_edit(), script, enrichment_requested=True)
-
-    assert "run_gene_set_enrichment" in script.offered
-
-
-async def test_a_fresh_build_is_still_offered_enrichment(
+async def test_a_check_offers_the_control_tests_and_no_enrichment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     script = _Script()
 
     await _verify(monkeypatch, _fresh_build(), script)
 
-    assert "run_gene_set_enrichment" in script.offered
+    assert "run_control_tests_on_step" in script.offered
+    assert sorted(name for name in script.offered if "enrich" in name) == []

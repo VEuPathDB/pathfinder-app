@@ -18,6 +18,8 @@ from pathfinder.ai.conversation import turn_failure
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
 from pathfinder.assistants.registry import get_assistant_registry
+from pathfinder.domain.provider_keys import KeyableProvider, KeyRefusal, ProviderKeyring
+from pathfinder.jobs import turn_keys
 from pathfinder.jobs.impls import chat_turn_impl
 from pathfinder.jobs.impls.chat_turn_impl import run_chat_turn
 from pathfinder.jobs.payloads import ChatTurnPayload
@@ -104,6 +106,24 @@ async def _holding_application(conversation_id: UUID) -> str:
 def _conversation_application(monkeypatch: pytest.MonkeyPatch) -> None:
     """The row lookup the worker uses to name its application."""
     monkeypatch.setattr(scope, "conversation_application_id", _holding_application)
+
+
+async def _no_stored_keys(user_id: UUID) -> ProviderKeyring:
+    del user_id
+    return ProviderKeyring()
+
+
+async def _nothing_refused(
+    user_id: UUID, refusals: dict[KeyableProvider, KeyRefusal]
+) -> None:
+    del user_id, refusals
+
+
+@pytest.fixture(autouse=True)
+def _researcher_holds_no_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The key rows the worker reads when a turn starts, and marks after it."""
+    monkeypatch.setattr(turn_keys, "load_keyring", _no_stored_keys)
+    monkeypatch.setattr(turn_keys, "record_refusals", _nothing_refused)
 
 
 @pytest.mark.asyncio

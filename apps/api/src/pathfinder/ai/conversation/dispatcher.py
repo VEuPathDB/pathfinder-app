@@ -50,7 +50,6 @@ async def dispatch(
         user_id=user_id,
         site_id=body.site_id,
         assistant_id=spec.assistant_id,
-        experiment_id=body.experiment_id,
     )
     # The row is the authority. A concurrent first turn can create the thread
     # under another assistant between the resolve and the insert.

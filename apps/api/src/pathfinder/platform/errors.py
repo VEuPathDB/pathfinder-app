@@ -57,6 +57,13 @@ class ErrorCode(StrEnum):
     SPECIALIST_PRECONDITION_FAILED = "SPECIALIST_PRECONDITION_FAILED"
     SESSION_CONFLICT = "SESSION_CONFLICT"
 
+    # A researcher's provider keys
+    PROVIDER_KEY_REFUSED = "PROVIDER_KEY_REFUSED"
+    PROVIDER_KEY_UNREADABLE = "PROVIDER_KEY_UNREADABLE"
+    PROVIDER_NOT_CONFIGURED = "PROVIDER_NOT_CONFIGURED"
+    PROVIDER_UNREACHABLE = "PROVIDER_UNREACHABLE"
+    PROVIDER_KEYS_DISABLED = "PROVIDER_KEYS_DISABLED"
+
 
 class ProblemDetail(BaseModel):
     """RFC 9457 Problem Details response."""
@@ -298,6 +305,97 @@ class StrategyCompilationError(AppError):
             title="Strategy compilation failed",
             status=500,
             detail=detail,
+        )
+
+
+_KEYS_IN_SETTINGS = "Settings, under Provider keys"
+
+
+class ProviderKeyError(AppError):
+    """No key may pay for a model the request names.
+
+    Other call arguments cannot pass it, so a model is never asked to retry.
+    """
+
+
+class ProviderKeyRefusedError(ProviderKeyError):
+    """The provider refused the researcher's key, so nothing may run on it.
+
+    Nothing falls back to the deployment's key.
+    """
+
+    def __init__(self, provider_name: str, *, status: int = 409) -> None:
+        super().__init__(
+            code=ErrorCode.PROVIDER_KEY_REFUSED,
+            title=f"{provider_name} refused your key",
+            status=status,
+            detail=(
+                f"{provider_name} refused the key you added, so nothing ran on it. "
+                f"Replace or remove your {provider_name} key in {_KEYS_IN_SETTINGS}."
+            ),
+        )
+
+
+class ProviderKeyUnreadableError(ProviderKeyError):
+    """The server secret no longer opens the researcher's stored key."""
+
+    def __init__(self, provider_name: str) -> None:
+        super().__init__(
+            code=ErrorCode.PROVIDER_KEY_UNREADABLE,
+            title=f"Your {provider_name} key cannot be read",
+            status=409,
+            detail=(
+                f"This server can no longer read the {provider_name} key you "
+                f"added, so nothing ran on it. Enter the key again in "
+                f"{_KEYS_IN_SETTINGS}."
+            ),
+        )
+
+
+class ProviderNotConfiguredError(ProviderKeyError):
+    """Neither the researcher nor the deployment holds a key for the provider."""
+
+    def __init__(self, provider_name: str) -> None:
+        super().__init__(
+            code=ErrorCode.PROVIDER_NOT_CONFIGURED,
+            title=f"No {provider_name} key",
+            status=422,
+            detail=(
+                f"This deployment holds no {provider_name} key and you have not "
+                f"added one. Add yours in {_KEYS_IN_SETTINGS}, or choose a model "
+                f"of another provider."
+            ),
+        )
+
+
+class ProviderUnreachableError(AppError):
+    """The provider did not answer the check of a new key, so it was not stored."""
+
+    def __init__(self, provider_name: str) -> None:
+        super().__init__(
+            code=ErrorCode.PROVIDER_UNREACHABLE,
+            title=f"{provider_name} did not answer",
+            status=503,
+            detail=(
+                f"{provider_name} did not answer the check of your key, so it was "
+                "not saved. Try again in a moment."
+            ),
+        )
+
+
+class ProviderKeysDisabledError(AppError):
+    """The deployment holds no secret to seal a researcher's key under.
+
+    The refusal stands until an operator sets the secret, so it is a 403 and
+    not an outage a caller may wait out.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            code=ErrorCode.PROVIDER_KEYS_DISABLED,
+            title="Personal keys are off",
+            status=403,
+            detail="This deployment does not accept personal provider keys.",
         )
 
 

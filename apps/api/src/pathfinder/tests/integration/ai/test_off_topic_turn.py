@@ -83,7 +83,7 @@ async def test_the_off_topic_reply_is_short_and_names_what_pathfinder_does(
     assert "```" not in output.prose
     assert len(output.prose) < OFF_TOPIC_REPLY_MAX_CHARS
     assert "VEuPathDB" in output.prose
-    assert "enrichment" in output.prose
+    assert "EDA" in output.prose
 
 
 async def test_a_biology_question_after_a_build_is_not_off_topic(

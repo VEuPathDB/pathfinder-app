@@ -15,6 +15,9 @@ from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import ConfigDict, Field, model_validator
 
+from pathfinder.domain.evidence import EvidenceCard
+from pathfinder.domain.strategy.step_rationale import StepRationale
+from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.evals.redaction import assert_redacted
 
 
@@ -27,8 +30,19 @@ class ExtractedTurn(CamelModel):
     reply: str = ""
 
 
+class _StoredTexts(CamelModel):
+    """The texts a stored strategy carries beside its searches and values."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    name: str | None = None
+    description: str | None = None
+    metadata: StepWords | None = None
+
+
 class ExtractedStrategy(CamelModel):
-    """The strategy the investigation ended with."""
+    """The strategy the investigation ended with, and why each step runs what
+    it runs, by step id."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -36,10 +50,25 @@ class ExtractedStrategy(CamelModel):
     step_count: int = 0
     structure: str = ""
     strategy_ast: JSONObject = Field(default_factory=dict)
+    rationales: dict[str, StepRationale] = Field(default_factory=dict)
+
+    def texts(self) -> list[str]:
+        """Every text a researcher or a model wrote into the strategy."""
+        stored = _StoredTexts.model_validate(self.strategy_ast)
+        words = stored.metadata or StepWords()
+        reasons = [*words.rationales.values(), *self.rationales.values()]
+        return [
+            stored.name or "",
+            stored.description or "",
+            *words.criterion_texts.values(),
+            *(text for reason in reasons for text in (reason.reason, reason.term)),
+            *(r.query for r in words.rationales.values()),
+            *(source for r in words.rationales.values() for source in r.sources),
+        ]
 
 
 class ExtractedVerification(CamelModel):
-    """The verdict the verification phase reported."""
+    """The verdict the verification phase reported, and the evidence behind it."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -48,6 +77,7 @@ class ExtractedVerification(CamelModel):
     key_findings: list[str] = Field(default_factory=list)
     caveats: list[str] = Field(default_factory=list)
     pending_checks: list[str] = Field(default_factory=list)
+    evidence: EvidenceCard | None = None
 
     @property
     def passed(self) -> bool:
@@ -75,6 +105,11 @@ class EvalExtract(CamelModel):
             assert_redacted(self.verification.reason)
             for line in (*self.verification.key_findings, *self.verification.caveats):
                 assert_redacted(line)
+            evidence = self.verification.evidence
+            for text in evidence.texts() if evidence is not None else []:
+                assert_redacted(text)
+        for text in self.strategy.texts() if self.strategy is not None else []:
+            assert_redacted(text)
         return self
 
     def content_hash(self) -> str:

@@ -77,3 +77,33 @@ def test_record_product_action_handles_exception() -> None:
                 entry_id="1709234567890-0",
             )
         )
+
+
+def test_a_message_rating_carries_the_turn_s_usage() -> None:
+    mock_client = MagicMock()
+    with patch(
+        "pathfinder.platform.langfuse.actions.get_langfuse",
+        return_value=mock_client,
+    ):
+        record_product_action(
+            ProductActionEvent(
+                action="message_rated",
+                stream_id="7b0c2f4e-1111-4111-8111-111111111111",
+                metadata={
+                    "rating": "dislike",
+                    "conversationId": "3a9d0c6e-2222-4222-8222-222222222222",
+                    "messageId": "7b0c2f4e-1111-4111-8111-111111111111",
+                    "turnTraceId": "trace-9",
+                    "totalTokens": 18342,
+                    "costUsd": 0.0412,
+                },
+            )
+        )
+
+    call = mock_client.create_event.call_args.kwargs
+    assert call["name"] == "product.message_rated"
+    assert call["metadata"]["rating"] == "dislike"
+    assert call["metadata"]["turnTraceId"] == "trace-9"
+    assert call["metadata"]["totalTokens"] == 18342
+    assert call["metadata"]["costUsd"] == 0.0412
+    assert call["metadata"]["conversationId"] == "3a9d0c6e-2222-4222-8222-222222222222"

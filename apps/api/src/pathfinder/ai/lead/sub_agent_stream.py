@@ -65,6 +65,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
     phase_override_kwargs,
     phase_usage_limits,
 )
+from pathfinder.platform.model_keys import keyed_model
 
 logger = get_logger(__name__)
 
@@ -245,7 +246,7 @@ def _phase_agent(
     agent = BUILD_SUB_AGENT_BY_ROLE[role]()
     overrides = phase_override_kwargs(deps.runtime, role)
     if "model" in overrides:
-        overrides["model"] = maybe_wrap_model(overrides["model"], role)
+        overrides["model"] = maybe_wrap_model(keyed_model(overrides["model"]), role)
     if not overrides:
         return agent, contextlib.nullcontext()
     return agent, agent.override(**overrides)
@@ -304,7 +305,7 @@ async def stream_sub_agent[OutputT: BaseModel](
     refusal: _ToolRefusal | None = None
     usage = RunUsage()
     usage_recorded = False
-    context_meter = ContextMeter()
+    context_meter = ContextMeter(model_id=phase_model_id(deps.runtime, role))
     # A pass that continues a stopped one runs on its own budget, so its card
     # adds what the dispatch already spent.
     baseline = deps.sub_agent_usage_by_call.get(
@@ -343,7 +344,7 @@ async def stream_sub_agent[OutputT: BaseModel](
                             deferrals=agent_deps.durable_deferrals,
                         )
                         deps.record_sub_agent_usage(
-                            run_usage(event, parent_tool_call_id),
+                            run_usage(event, deps, role, parent_tool_call_id),
                         )
                         usage_recorded = True
                         continue

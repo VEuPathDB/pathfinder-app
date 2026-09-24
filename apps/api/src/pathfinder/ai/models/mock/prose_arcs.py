@@ -20,7 +20,7 @@ CLASSIFY = "classify_user_intent"
 # Two sentences, no code, under the cap the off-topic validator holds.
 OFF_TOPIC_PROSE = (
     "PathFinder builds and checks search strategies on the VEuPathDB "
-    "databases, and runs enrichment, EDA and exports on what they return. "
+    "databases, and runs EDA and exports on what they return. "
     "Ask me one of those and I will take it from there."
 )
 KINASE_PROSE = (
@@ -62,18 +62,15 @@ def lead_final(
     next_state: LeadTurnState,
     *,
     strategy_changed: bool = False,
-    analysed_gene_set_ids: Sequence[str] = (),
     sources: Sequence[Mapping[str, str]] = (),
 ) -> ToolCallPart:
     """The Lead's final answer, as the turn contract reads it: what the arc
-    wrote, the gene sets whose enrichment it reports, and the references it
-    cites."""
+    wrote and the references it cites."""
     return terminal_call(
         {
             "prose": prose,
             "nextState": next_state,
             "strategyChanged": strategy_changed,
-            "analysedGeneSetIds": list(analysed_gene_set_ids),
             "sources": [dict(source) for source in sources],
         },
     )

@@ -27,7 +27,7 @@ def test_download_routes_declare_real_content_types(app: FastAPI) -> None:
 
 def test_streaming_route_declares_event_stream(app: FastAPI) -> None:
     spec = app.openapi()
-    op = _op(spec, "/api/v1/experiments/{experiment_id}/threshold-sweep", "post")
+    op = _op(spec, "/api/v1/seed", "post")
     content = op["responses"]["200"]["content"]
     assert "text/event-stream" in content, content
 

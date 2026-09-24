@@ -41,7 +41,7 @@ from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.services.conversations.begin import begin_conversation
 
 # The durable tool the Lead calls on a saved set, under the name the model uses.
-ENRICHMENT_TOOL = "run_gene_set_enrichment"
+SWEEP_TOOL = "optimize_search_parameters"
 
 
 def test_parse_run_args_maps_phase_models_and_run_dir(tmp_path: Path) -> None:
@@ -456,7 +456,7 @@ async def test_a_durable_call_is_declined_and_the_run_writes_its_artifacts(
     """The debugger runs no worker, so the turn ends with the refusal on record."""
     args = parse_run_args(
         [
-            "Run a GO enrichment on the gene set I saved",
+            "Tune the parameters of the kinase step",
             "--site",
             "plasmodb",
             "--mock",
@@ -475,8 +475,6 @@ async def test_a_durable_call_is_declined_and_the_run_writes_its_artifacts(
     summary = json.loads((run_dir / "summary.json").read_text())
     assert summary["status"] == "ok"
     transcript = (run_dir / "transcript.md").read_text()
-    assert f"[lead] {ENRICHMENT_TOOL}" in transcript
-    assert durable_call_refusal(ENRICHMENT_TOOL) in transcript
-    assert _answers_to(run_dir, ENRICHMENT_TOOL) == [
-        durable_call_refusal(ENRICHMENT_TOOL)
-    ]
+    assert f"[lead] {SWEEP_TOOL}" in transcript
+    assert durable_call_refusal(SWEEP_TOOL) in transcript
+    assert _answers_to(run_dir, SWEEP_TOOL) == [durable_call_refusal(SWEEP_TOOL)]

@@ -23,6 +23,7 @@ from pathfinder.tests.integration.persistence._migration_db import (
 )
 
 PREVIOUS_REVISION = "2026_08_21_0001"
+REVISION = "2026_08_21_0002"
 USER_ID = uuid4()
 BUILT_ID = uuid4()
 CLEARED_ID = uuid4()
@@ -85,7 +86,7 @@ def seeded_database(
 def test_the_upgrade_moves_every_strategy_column_off_the_thread(
     seeded_database: str,
 ) -> None:
-    command.upgrade(alembic_config(seeded_database), "head")
+    command.upgrade(alembic_config(seeded_database), REVISION)
 
     thread_columns = columns(seeded_database, "conversations")
     assert (
@@ -110,7 +111,7 @@ def test_the_upgrade_moves_every_strategy_column_off_the_thread(
 def test_only_a_conversation_that_held_strategy_state_gets_a_side_row(
     seeded_database: str,
 ) -> None:
-    command.upgrade(alembic_config(seeded_database), "head")
+    command.upgrade(alembic_config(seeded_database), REVISION)
 
     ids = {
         str(row[0])
@@ -125,7 +126,7 @@ def test_only_a_conversation_that_held_strategy_state_gets_a_side_row(
 def test_the_side_row_carries_the_values_the_thread_held(
     seeded_database: str,
 ) -> None:
-    command.upgrade(alembic_config(seeded_database), "head")
+    command.upgrade(alembic_config(seeded_database), REVISION)
 
     side_row = rows(
         seeded_database,
@@ -152,7 +153,7 @@ def test_the_side_row_carries_the_values_the_thread_held(
 def test_the_unique_wdk_strategy_index_moves_with_the_column(
     seeded_database: str,
 ) -> None:
-    command.upgrade(alembic_config(seeded_database), "head")
+    command.upgrade(alembic_config(seeded_database), REVISION)
 
     assert "ix_conversations_wdk_strategy_id" not in indexes(
         seeded_database,
@@ -165,7 +166,7 @@ def test_the_unique_wdk_strategy_index_moves_with_the_column(
 
 
 def test_deleting_a_thread_takes_its_side_row_with_it(seeded_database: str) -> None:
-    command.upgrade(alembic_config(seeded_database), "head")
+    command.upgrade(alembic_config(seeded_database), REVISION)
 
     with psycopg.connect(psycopg_url(seeded_database), autocommit=True) as connection:
         connection.execute(
@@ -181,7 +182,7 @@ def test_deleting_a_thread_takes_its_side_row_with_it(seeded_database: str) -> N
 def test_the_downgrade_puts_the_columns_and_the_values_back(
     seeded_database: str,
 ) -> None:
-    command.upgrade(alembic_config(seeded_database), "head")
+    command.upgrade(alembic_config(seeded_database), REVISION)
 
     command.downgrade(alembic_config(seeded_database), PREVIOUS_REVISION)
 

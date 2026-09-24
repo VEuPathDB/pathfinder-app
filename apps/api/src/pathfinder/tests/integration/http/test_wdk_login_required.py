@@ -135,21 +135,17 @@ class TestARequestWithNoVEuPathDBSessionIsRefused:
         signed_out: httpx.AsyncClient,
         owned: Owned,
     ) -> None:
-        response = await signed_out.post(
-            f"/api/v1/gene-sets/{owned.gene_set_ids[0]}/enrich",
-            json={"enrichmentTypes": ["go_function"]},
+        response = await signed_out.get(
+            f"/api/v1/gene-sets/{owned.gene_set_ids[0]}/vdi-publication",
         )
 
         _assert_login_required(response)
 
-    async def test_an_experiment_route_is_refused(
+    async def test_the_seed_route_is_refused(
         self,
         signed_out: httpx.AsyncClient,
-        owned: Owned,
     ) -> None:
-        response = await signed_out.get(
-            f"/api/v1/experiments/{owned.experiment_ids[0]}/results/attributes",
-        )
+        response = await signed_out.post("/api/v1/seed?siteId=plasmodb")
 
         _assert_login_required(response)
 
@@ -176,9 +172,8 @@ class TestAGuestVEuPathDBTokenIsNotALogin:
         guest = veupathdb_token(stubbed_oauth, is_guest=True)
         async with client_for(app, owned.user_id) as client:
             client.headers[WDK_AUTH_HEADER] = guest
-            response = await client.post(
-                f"/api/v1/gene-sets/{owned.gene_set_ids[0]}/enrich",
-                json={"enrichmentTypes": ["go_function"]},
+            response = await client.get(
+                f"/api/v1/gene-sets/{owned.gene_set_ids[0]}/vdi-publication",
             )
 
         _assert_login_required(response)
@@ -192,9 +187,8 @@ class TestAGuestVEuPathDBTokenIsNotALogin:
         del stubbed_oauth
         async with client_for(app, owned.user_id) as client:
             client.headers[WDK_AUTH_HEADER] = "not.a.token"
-            response = await client.post(
-                f"/api/v1/gene-sets/{owned.gene_set_ids[0]}/enrich",
-                json={"enrichmentTypes": ["go_function"]},
+            response = await client.get(
+                f"/api/v1/gene-sets/{owned.gene_set_ids[0]}/vdi-publication",
             )
 
         _assert_login_required(response)
@@ -211,9 +205,8 @@ class TestARegisteredTokenPassesTheGate:
         registered = veupathdb_token(stubbed_oauth)
         async with client_for(app, token_account_user_id) as client:
             client.headers[WDK_AUTH_HEADER] = registered
-            response = await client.post(
-                f"/api/v1/gene-sets/{uuid4()}/enrich",
-                json={"enrichmentTypes": ["go_function"]},
+            response = await client.get(
+                f"/api/v1/gene-sets/{uuid4()}/vdi-publication",
             )
 
         assert response.status_code == _NOT_FOUND, response.text
@@ -228,9 +221,8 @@ class TestARegisteredTokenPassesTheGate:
         registered = veupathdb_token(stubbed_oauth)
         async with client_for(app, token_account_user_id) as client:
             client.cookies.set("Authorization", registered)
-            response = await client.post(
-                f"/api/v1/gene-sets/{uuid4()}/enrich",
-                json={"enrichmentTypes": ["go_function"]},
+            response = await client.get(
+                f"/api/v1/gene-sets/{uuid4()}/vdi-publication",
             )
 
         assert response.status_code == _NOT_FOUND, response.text

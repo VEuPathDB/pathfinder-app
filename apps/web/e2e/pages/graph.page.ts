@@ -294,7 +294,7 @@ export class GraphPage {
    * Assert the rail panel with steps is visible (planning artifact applied).
    *
    * A test that waits on a build turn carries that turn's budget on top of its
-   * own, the way the enrichment helper does. The grant is made once per test.
+   * own. The grant is made once per test.
    */
   async expectRailPanel() {
     if (!this.buildBudgetGranted) {

@@ -12,7 +12,6 @@ export interface ConversationItem {
   isDismissed: boolean;
   isSaved: boolean;
   stepCount: number;
-  experimentId: string | null;
   parentConversationId: string | null;
   parentMessageId: string | null;
   /** Full backend payload - kept so downstream handlers can inspect server state. */
@@ -32,7 +31,6 @@ export function chatToConversationItem(
     isDismissed: chat.dismissedAt != null,
     isSaved: chat.isSaved ?? false,
     stepCount: chat.stepCount ?? 0,
-    experimentId: chat.experimentId ?? null,
     parentConversationId: chat.parentConversationId ?? null,
     parentMessageId: chat.parentMessageId ?? null,
     chat,

@@ -39,6 +39,7 @@ from pathfinder.ai.models.mock.specs import (
     criterion_replies,
     edit_frame_call,
     frame_call,
+    organism_for,
     verification_delta,
 )
 
@@ -95,9 +96,36 @@ def _frame_script(messages: list[ModelMessage]) -> ToolCallPart:
     return frame_call(_active_spec(), called, replies)
 
 
+# A request that names its controls is checked against these before the digest.
+_CONTROLS_MARKERS = ("against my controls",)
+_CONTROL_TEST = "run_control_tests_on_search"
+_POSITIVE_CONTROLS = ("PF3D7_0102600", "PF3D7_0709000", "PF3D7_1133400")
+_NEGATIVE_CONTROLS = ("TGME49_205250",)
+
+
+def _control_test_call() -> ToolCallPart:
+    """A test of the single-leaf spec's search, the one step a mock build pushes."""
+    organism = organism_for(current_scope_id.get())
+    return scripted_call(
+        _CONTROL_TEST,
+        {
+            "target_search_name": "GenesByTaxon",
+            "target_parameters": {
+                "organism": {"type": "multi-pick-vocabulary", "values": [organism]}
+            },
+            "positive_controls": list(_POSITIVE_CONTROLS),
+            "negative_controls": list(_NEGATIVE_CONTROLS),
+        },
+    )
+
+
 def _verification_script(messages: list[ModelMessage]) -> ToolCallPart:
-    del messages
-    success = verification_succeeds(current_user_text.get())
+    text = current_user_text.get()
+    if has_any(text.lower(), _CONTROLS_MARKERS) and _CONTROL_TEST not in (
+        acted_tool_names(messages)
+    ):
+        return _control_test_call()
+    success = verification_succeeds(text)
     prose = SUCCESS_PROSE if success else FEEDBACK_PROSE
     return terminal_call(verification_delta(success=success, prose=prose))
 

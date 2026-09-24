@@ -1,4 +1,4 @@
-"""The catalog listing tools record every name they show the model."""
+"""The catalog listing tools record every search they show the model."""
 
 from __future__ import annotations
 
@@ -11,7 +11,12 @@ from pydantic_ai import RunContext
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import RecordTypeInfo, SearchMatch, searches
 
-from pathfinder.ai.agents.state import AgentToolState, SearchOverview
+from pathfinder.ai.agents.state import (
+    AgentToolState,
+    CatalogHit,
+    CatalogRead,
+    SearchOverview,
+)
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.catalog import (
     get_record_types,
@@ -131,11 +136,11 @@ class TestSearchForSearches:
             "GenesByGoTerm",
             "GenesByText",
         ]
-        assert state.catalog_search_names == {
+        assert [hit.name for hit in state.catalog_reads[-1].hits] == [
             "GenesByTaxon",
             "GenesByGoTerm",
             "GenesByText",
-        }
+        ]
 
     async def test_the_universal_search_is_appended_to_the_matches(
         self, monkeypatch: pytest.MonkeyPatch
@@ -316,7 +321,25 @@ class TestListSearches:
         result = returned(await list_searches(_ctx(state)), list[str])
 
         assert result == ["GenesByTaxon", "GenesByGoTerm"]
-        assert state.catalog_search_names == {"GenesByTaxon", "GenesByGoTerm"}
+        assert state.catalog_reads == [
+            CatalogRead(
+                tool_call_id="call_1",
+                tool="list_searches",
+                record_type="transcript",
+                hits=[
+                    CatalogHit(
+                        name="GenesByTaxon",
+                        display_name="Genes by Taxon",
+                        record_type="transcript",
+                    ),
+                    CatalogHit(
+                        name="GenesByGoTerm",
+                        display_name="Genes by GO Term",
+                        record_type="transcript",
+                    ),
+                ],
+            )
+        ]
 
     async def test_one_record_type_narrows_the_listing(
         self, monkeypatch: pytest.MonkeyPatch
@@ -380,7 +403,21 @@ class TestListTransforms:
         result = returned(await list_transforms(_ctx(state)), list[JSONObject])
 
         assert [row["name"] for row in result] == ["GenesByOrthologs"]
-        assert state.catalog_search_names == {"GenesByOrthologs"}
+        assert state.catalog_reads == [
+            CatalogRead(
+                tool_call_id="call_1",
+                tool="list_transforms",
+                record_type="transcript",
+                hits=[
+                    CatalogHit(
+                        name="GenesByOrthologs",
+                        display_name="Transform to Orthologs",
+                        description="Orthologs of the input genes.",
+                        record_type="transcript",
+                    )
+                ],
+            )
+        ]
 
     async def test_a_listed_transform_passes_the_search_name_guard(
         self, monkeypatch: pytest.MonkeyPatch

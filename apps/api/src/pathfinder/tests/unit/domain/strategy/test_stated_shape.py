@@ -14,8 +14,6 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SavedStrategyRef,
     SpecStructure,
-    build_step_tree,
-    renumber_criteria,
 )
 from pathfinder.domain.strategy.operations import (
     AddLeafOp,
@@ -28,6 +26,10 @@ from pathfinder.domain.strategy.operations.types import (
     GraphOperation,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.spec_tree import (
+    build_step_tree,
+    renumber_criteria,
+)
 from pathfinder.domain.strategy.stated_shape import (
     SlotWrite,
     evicted_by,

@@ -1,6 +1,6 @@
 """Verification-phase toolset for testing, analyzing, and exporting results."""
 
-from pydantic_ai.tools import RunContext, Tool, ToolDefinition
+from pydantic_ai.tools import RunContext, Tool
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 
@@ -19,6 +19,7 @@ from pathfinder.ai.tools.standalone.gene import (
     lookup_gene_records,
     resolve_gene_ids_to_records,
 )
+from pathfinder.ai.tools.standalone.gene_sets import list_gene_sets, save_gene_set
 from pathfinder.ai.tools.standalone.memory_tools import remember, search_memory
 from pathfinder.ai.tools.standalone.results import (
     get_download_url,
@@ -29,18 +30,6 @@ from pathfinder.ai.tools.standalone.strategy_graph import (
     get_strategy,
 )
 from pathfinder.ai.tools.standalone.think import think
-from pathfinder.ai.tools.standalone.workbench import (
-    create_workbench_gene_set,
-    list_workbench_gene_sets,
-    run_gene_set_enrichment,
-)
-from pathfinder.ai.tools.standalone.workbench_read import (
-    get_confidence_scores,
-    get_enrichment_results,
-    get_evaluation_summary,
-    get_experiment_config,
-    get_result_gene_lists,
-)
 from pathfinder.ai.tools.toolsets._dynamic import (
     DynamicEnumToolset,
     EnumOverrides,
@@ -70,19 +59,6 @@ def _verification_enum_overrides(
     return overrides
 
 
-ENRICHMENT_TOOL = "run_gene_set_enrichment"
-
-
-def _warranted_by_the_delta(
-    ctx: RunContext[AgentDeps],
-    tool_def: ToolDefinition,
-) -> bool:
-    """Offer enrichment only on a turn whose delta earns its cost."""
-    if tool_def.name != ENRICHMENT_TOOL:
-        return True
-    return ctx.deps.verification_scope.warrants_enrichment()
-
-
 def build_toolset() -> AbstractToolset[AgentDeps]:
     """Build the verification-phase toolset.
 
@@ -93,9 +69,6 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
     A durable call ends the run deferred, and one parked call is checkpointed
     per turn, so a batch that fires two of them would leave the second
     unanswered.
-
-    ``run_gene_set_enrichment`` is offered only when the turn's delta warrants
-    it, so an edit of one step is verified by its counts.
     """
     base: FunctionToolset[AgentDeps] = FunctionToolset(
         max_retries=3,
@@ -108,15 +81,9 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             lookup_gene_records,
             get_ai_expression_summary,
             resolve_gene_ids_to_records,
-            create_workbench_gene_set,
-            Tool(run_gene_set_enrichment, sequential=True, max_retries=3),
-            list_workbench_gene_sets,
+            save_gene_set,
+            list_gene_sets,
             export_gene_set,
-            get_evaluation_summary,
-            get_enrichment_results,
-            get_confidence_scores,
-            get_experiment_config,
-            get_result_gene_lists,
             get_strategy,
             check_study_step,
             request_search_inspection,
@@ -128,4 +95,4 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
     return DynamicEnumToolset(
         wrapped=base,
         build_overrides=_verification_enum_overrides,
-    ).filtered(_warranted_by_the_delta)
+    )

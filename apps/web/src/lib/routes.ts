@@ -42,11 +42,3 @@ export function strategyStepUrl(
 ): string {
   return `${strategyCanvasUrl(siteId, conversationId)}/step/${stepId}`;
 }
-
-export function workbenchRoot(siteId: string): string {
-  return `/${siteId}/workbench`;
-}
-
-export function workbenchGeneSetUrl(siteId: string, geneSetId: string): string {
-  return `/${siteId}/workbench/${geneSetId}`;
-}

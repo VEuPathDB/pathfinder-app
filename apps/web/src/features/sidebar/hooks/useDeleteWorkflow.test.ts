@@ -53,7 +53,6 @@ function item(over: Partial<ConversationResponse>): ConversationItem {
     isDismissed: false,
     isSaved: false,
     stepCount: 0,
-    experimentId: null,
     parentConversationId: null,
     parentMessageId: null,
     chat: c,

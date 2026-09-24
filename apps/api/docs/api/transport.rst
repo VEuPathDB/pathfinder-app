@@ -84,11 +84,6 @@ specific domain area.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.sites.genes
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 .. automodule:: pathfinder.transport.http.routers.sites.params
    :members:
    :undoc-members:
@@ -100,11 +95,6 @@ specific domain area.
    :show-inheritance:
 
 .. automodule:: pathfinder.transport.http.routers.health
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.control_sets
    :members:
    :undoc-members:
    :show-inheritance:
@@ -125,26 +115,6 @@ specific domain area.
    :show-inheritance:
 
 .. automodule:: pathfinder.transport.http.routers.gene_sets.crud
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.gene_sets.operations
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.gene_sets.enrichment
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.gene_sets.records
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.gene_sets.confidence
    :members:
    :undoc-members:
    :show-inheritance:
@@ -174,22 +144,7 @@ specific domain area.
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: pathfinder.transport.http.routers.experiments.execution
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.experiments.evaluation
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.experiments.enrichment
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.experiments.results
+.. automodule:: pathfinder.transport.http.routers.seed
    :members:
    :undoc-members:
    :show-inheritance:
@@ -210,11 +165,6 @@ Pydantic request/response models (DTOs) for the HTTP API.
    :show-inheritance:
 
 .. automodule:: pathfinder.transport.http.schemas.steps
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.schemas.experiments
    :members:
    :undoc-members:
    :show-inheritance:

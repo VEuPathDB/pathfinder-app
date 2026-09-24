@@ -22,7 +22,7 @@ import { handleWdkAuthRefusal } from "@/state/useAuthGateStore";
 import { useConversationDetail } from "@/state/useConversationExists";
 import { useSessionStore } from "@/state/useSessionStore";
 
-import { QuotaExhaustedBanner, useQuotaExhausted } from "./QuotaExhaustedBanner";
+import { PaymentBanners, useComposerBlock } from "./QuotaExhaustedBanner";
 import {
   SIGN_IN_TO_BUILD,
   VeupathdbSignInRequired,
@@ -118,9 +118,9 @@ export function Composer({ conversationId }: { conversationId: string }) {
   const text = useAuiState((s) => s.composer.text);
   const attachmentCount = useAuiState((s) => s.composer.attachments.length);
   const siteId = useSessionStore((s) => s.selectedSite);
-  const quotaExhausted = useQuotaExhausted();
+  const payment = useComposerBlock(conversationId);
   const signedIn = useVeupathdbSignedIn();
-  const blocked = quotaExhausted || !signedIn;
+  const blocked = payment.blocked || !signedIn;
   const isRunning = useAuiState((s) => s.thread.isRunning);
   const lastSendAt = useRef(0);
   const requestServerCancel = (): void => {
@@ -249,7 +249,7 @@ export function Composer({ conversationId }: { conversationId: string }) {
           aui.composer().setText("");
         }}
       />
-      <QuotaExhaustedBanner />
+      <PaymentBanners conversationId={conversationId} />
       <VeupathdbSignInRequired />
       <div
         className="focus-within:shadow-[var(--shadow-composer-focus)] flex flex-col gap-2 rounded-lg border bg-background shadow-[var(--shadow-composer)] transition-shadow aria-disabled:opacity-60"
@@ -260,9 +260,8 @@ export function Composer({ conversationId }: { conversationId: string }) {
           placeholder={
             !signedIn
               ? SIGN_IN_TO_BUILD
-              : quotaExhausted
-                ? "Monthly quota reached - try again after the reset date."
-                : "Ask about strategies, genes, or data... (try /help)"
+              : (payment.placeholder ??
+                "Ask about strategies, genes, or data... (try /help)")
           }
           className="max-h-36 w-full resize-none overflow-y-auto bg-transparent p-3 text-sm outline-none disabled:cursor-not-allowed"
           autoFocus

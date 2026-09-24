@@ -40,21 +40,16 @@ async def system_config() -> SystemConfigResponse:
     screen before asking users to log in.
     """
     settings = get_settings()
-    is_mock = settings.pathfinder_chat_provider.strip().lower() == "mock"
-    providers = ProviderStatus(
-        openai=bool(settings.openai_api_key),
-        anthropic=bool(settings.anthropic_api_key),
-        google=bool(settings.gemini_api_key),
-        ollama=bool(settings.ollama_base_url),
-    )
+    paid = settings.deployment_providers
     return SystemConfigResponse(
         chat_provider=settings.pathfinder_chat_provider,
-        llm_configured=is_mock
-        or providers.openai
-        or providers.anthropic
-        or providers.google
-        or providers.ollama,
-        providers=providers,
+        llm_configured=bool(paid),
+        providers=ProviderStatus(
+            openai="openai" in paid,
+            anthropic="anthropic" in paid,
+            google="google" in paid,
+            ollama="ollama" in paid,
+        ),
     )
 
 

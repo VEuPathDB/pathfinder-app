@@ -18,16 +18,13 @@ from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.database import no_database
 
 
-def _build_context(
-    *, experiment_id: str | None = None, cancel_event: asyncio.Event | None = None
-) -> Context:
+def _build_context(*, cancel_event: asyncio.Event | None = None) -> Context:
     return Context(
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=no_database,
         cancel_event=cancel_event or asyncio.Event(),
-        experiment_id=experiment_id,
     )
 
 
@@ -58,7 +55,6 @@ def test_agent_deps_is_pydantic_and_lists_live_fields() -> None:
         "ledger_summary",
         "service_outage",
         "tool_repetition_guard",
-        "experiment_id",
         "user_prompt",
         "verification_scope",
         "cancel_event",
@@ -131,12 +127,6 @@ def test_dispatch_deps_copy_state_into_scratchpad() -> None:
     discovered = state.domain.discovered_searches
     assert deps.agent_state.discovered_searches == discovered
     assert deps.agent_state.discovered_searches is not discovered
-
-
-def test_dispatch_deps_propagate_experiment_id_from_context() -> None:
-    ctx = _build_context(experiment_id="exp-42")
-    deps = _deps(_build_state(), ctx)
-    assert deps.experiment_id == "exp-42"
 
 
 def test_dispatch_deps_propagate_cancel_event_from_context() -> None:

@@ -23,10 +23,12 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
+)
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,
     renumber_criteria,
 )
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state

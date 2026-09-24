@@ -20,15 +20,14 @@ PathFinder API
       :link: api/experiments
       :link-type: doc
 
-      Backend evaluation engine powering the workbench: control sets,
-      classification metrics, cross-validation, and enrichment.
+      Backend evaluation engine for the scored comparison and the control
+      tests: control sets and classification metrics.
 
-   .. grid-item-card:: Workbench
+   .. grid-item-card:: Gene Sets
       :link: api/gene_sets
       :link-type: doc
 
-      Gene set management, confidence scoring, ensemble analysis, and
-      AI-powered result exploration.
+      Gene set capture, import, export and publication to VEuPathDB.
 
 .. grid:: 3
    :gutter: 3

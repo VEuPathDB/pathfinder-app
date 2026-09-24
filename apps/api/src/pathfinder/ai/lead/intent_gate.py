@@ -36,8 +36,8 @@ BUILDING_TOOLS: frozenset[str] = frozenset(
 
 # What a turn reaches before it says what the message asks: the classification
 # itself, the two reads of what the thread holds, the gene record read, the two
-# research reads, both ways to keep something the user names, the enrichment and
-# the export of a gene set the workbench already holds, and the proposal card,
+# research reads, both ways to keep something the user names, the export of a
+# gene set the user already saved, and the proposal card,
 # which a typed yes accepts before any classification. Every other tool waits
 # for the classification.
 UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
@@ -50,9 +50,8 @@ UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
         "research_web_search",
         "research_literature_search",
         "remember",
-        "create_workbench_gene_set",
-        "list_workbench_gene_sets",
-        "run_gene_set_enrichment",
+        "save_gene_set",
+        "list_gene_sets",
         "export_gene_set",
     }
 )

@@ -137,7 +137,7 @@ async def test_an_export_with_no_spec_states_one(
     assert [(c.id, c.text) for c in spec.criteria] == [(exported, _WORDS)]
     assert spec.structure == SpecStructure(root=_node(exported))
     assert ctx.deps.state.domain.answered_spec == spec
-    assert _graph(ctx).analysis_kinds == {
+    assert _graph(ctx).words.analysis_kinds == {
         exported: StampedKind(search_name="GenesByEdaSubset", kind=AnalysisKind.SUBSET)
     }
 

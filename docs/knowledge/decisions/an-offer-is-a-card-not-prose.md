@@ -53,8 +53,7 @@ Lead asks in prose.
   on the Lead: it runs inside the run, before the approval chunk (which the stream writes only
   from the run's final output), builds a `LeadResponse` from that text and reconciles it against
   the `TurnRecord` with `ends_on_a_card` set. A card asks its own question, so `unrecorded_question`
-  and `unfinished_work` stand, and a card carries no `analysed_gene_set_ids`, so
-  `substituted_analysis` is not read. On a mismatch the card is denied with the correction - an
+  and `unfinished_work` stand. On a mismatch the card is denied with the correction - an
   approval call accepts only an approval or a denial - and the Lead answers again in the same run,
   issuing the card again; the latch is `contract_refused`, shared with the typed reply.
   `ai/graph/_lead_card_hold.py::CardHold` holds the Lead's text and every chunk of each new card

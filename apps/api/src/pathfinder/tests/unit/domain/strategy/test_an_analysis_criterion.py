@@ -11,17 +11,21 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    build_step_tree,
-    fold_option_criteria,
     pending_analyses,
 )
 from pathfinder.domain.strategy.operations import ReplaceSubtreeOp
 from pathfinder.domain.strategy.spec_diff import diff_specs
+from pathfinder.domain.strategy.spec_fold import (
+    fold_option_criteria,
+)
 from pathfinder.domain.strategy.spec_hydration import root_join_operator
 from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
 from pathfinder.domain.strategy.spec_to_operations import operations_for
+from pathfinder.domain.strategy.spec_tree import (
+    build_step_tree,
+)
 
 from ._analysis import EXPORTED, analysed, binding, exported_step, pending
 from ._builders import graph_with

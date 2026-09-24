@@ -1,5 +1,6 @@
 "use client";
 
+import type { EvidenceCard } from "@pathfinder/shared";
 import type { Criterion } from "@pathfinder/shared/generated/types/Criterion";
 import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
 import type { NodeResult } from "@pathfinder/shared/generated/types/NodeResult";
@@ -8,6 +9,7 @@ import { MessageResponse } from "@/components/ai-elements/message";
 import { formatParamValue } from "@/lib/parameters/paramValue";
 import { type Tone } from "@/features/conversation/rail/statusTone";
 
+import { EvidenceCardBody } from "./EvidenceCardBody";
 import { StatusPill } from "./LedgerPanelPrimitives";
 
 function Markdown({ children }: { children: string }) {
@@ -45,6 +47,15 @@ function CriterionCard({ crit }: { crit: Criterion }) {
       {selects != null && selects !== crit.text && (
         <p className="mt-1 break-words text-[11px] leading-relaxed text-foreground">
           {selects}
+        </p>
+      )}
+      {crit.rationale?.short != null && (
+        <p
+          className="mt-1 break-words text-[11px] leading-relaxed text-muted-foreground"
+          title={crit.rationale.reason}
+          data-testid="criterion-why"
+        >
+          why: {crit.rationale.short}
         </p>
       )}
       {params.length > 0 && (
@@ -176,19 +187,30 @@ function MarkdownList({ label, items }: { label: string; items: string[] }) {
   );
 }
 
+/** The latest check's evidence card, and whether the strategy changed since it. */
+export interface CheckedEvidence {
+  card: EvidenceCard;
+  superseded: boolean;
+}
+
 export function VerificationDetail({
   verification,
+  evidence = null,
 }: {
   verification: InvestigationLedger["verification"];
+  evidence?: CheckedEvidence | null;
 }) {
   const digest = verification.digest;
-  if (digest == null) return null;
+  if (digest == null && evidence === null) return null;
   return (
     <div className="mt-2 min-w-0 space-y-2 border-t border-border pt-2">
-      {digest.prose !== "" && <Markdown>{digest.prose}</Markdown>}
-      <MarkdownList label="key findings" items={digest.keyFindings ?? []} />
-      <MarkdownList label="caveats" items={digest.caveats ?? []} />
-      <MarkdownList label="pending checks" items={digest.pendingChecks ?? []} />
+      {digest != null && digest.prose !== "" && <Markdown>{digest.prose}</Markdown>}
+      <MarkdownList label="key findings" items={digest?.keyFindings ?? []} />
+      <MarkdownList label="caveats" items={digest?.caveats ?? []} />
+      <MarkdownList label="pending checks" items={digest?.pendingChecks ?? []} />
+      {evidence !== null && (
+        <EvidenceCardBody card={evidence.card} superseded={evidence.superseded} />
+      )}
     </div>
   );
 }

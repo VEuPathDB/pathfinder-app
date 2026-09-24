@@ -13,7 +13,7 @@ status: stable
 `ai/lead/turn_record.py` owns the record the check reads:
 
 - `LeadResponse` - the typed reply. It carries three fields the runtime reads as claims:
-  `strategy_changed`, `asked_questions` and `analysed_gene_set_ids`.
+  `strategy_changed`, `asked_questions` and `sources`.
 - `TurnRecord` - a frozen model of what the turn did, built by `turn_record(ctx)` from
   `TurnMarkers`, the domain state and the derived ledger.
 - `reconcile(report, record) -> list[Mismatch]` - one pure function, one rule per failure
@@ -69,8 +69,9 @@ deferred-call handler that denies the card with the correction. The first trigge
 anywhere in its prose and records nothing. See
 [an-offer-is-a-card-not-prose](an-offer-is-a-card-not-prose.md).
 
-The substituted-analysis rule reads a typed field instead of the prose. The record knows which
-gene set the enrichment ran on; the reply must list that id in `analysed_gene_set_ids`.
+The `unbacked_evidence` rule reads the prose against the control tests the turn recorded: a
+control count or a control gene id the reply states must be one a test of this turn filed
+(`ai/lead/evidence_claims.py`, see [VERIFY shows its evidence](verify-shows-its-evidence.md)).
 
 # Why
 

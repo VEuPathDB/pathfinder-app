@@ -224,7 +224,7 @@ def test_negative_generation_stays_on_where_a_complement_exists(
         for operation in _parsed_operations(schema)
     }
 
-    assert modes["POST /api/v1/gene-sets"] == [GenerationMode.POSITIVE]
+    assert modes["POST /api/v1/conversations/step-counts"] == [GenerationMode.POSITIVE]
     assert set(modes["GET /api/v1/sites"]) == set(GenerationMode)
     positive_only = {
         label for label, asked in modes.items() if asked == [GenerationMode.POSITIVE]

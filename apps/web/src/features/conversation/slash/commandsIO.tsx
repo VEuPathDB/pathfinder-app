@@ -2,7 +2,7 @@
 
 import { Download, Upload } from "lucide-react";
 
-import { listGeneSets } from "@/features/workbench/api/geneSets";
+import { listGeneSets } from "@/lib/api/geneSets";
 import { loadConversationSnapshot } from "@/features/conversation/api/conversationSnapshot";
 
 import { downloadTextFile, fetchJson, renderChatMarkdown } from "./registryUtils";

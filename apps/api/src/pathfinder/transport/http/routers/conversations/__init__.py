@@ -11,6 +11,7 @@ from . import (
     events,
     insert_saved,
     operations,
+    ratings,
     revert,
     save_substrategy,
     scratchpad,
@@ -35,6 +36,7 @@ router.include_router(crud.router)
 router.include_router(events.router)
 router.include_router(sidebar.router)
 router.include_router(scratchpad.router)
+router.include_router(ratings.router)
 router.include_router(revert.router)
 router.include_router(save_substrategy.router)
 router.include_router(cancel.router)

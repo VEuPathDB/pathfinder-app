@@ -39,9 +39,9 @@ row because its own resources belong to it.
 `exports` table so a control outcome carried download links. It moved up to
 `services/export/control_downloads.py`, beside the two callers that want the
 links: the agent tool and the durable job. The served tool returns the outcome
-with `downloads` unset. The same cut splits `services/gene_sets/enrichment.py`:
-the stored-set half keeps the export, and the by-value half a tool calls is
-`veupathdb_mcp/wdk/enrichment/gene_ids.py`.
+with `downloads` unset. The by-value enrichment a tool calls is
+`veupathdb_mcp/wdk/enrichment/gene_ids.py`; PathFinder's stored-set enrichment,
+which kept an export, was removed in v0.2.0a15.
 
 ## The package `__init__` that cost 1009 LOC of closure
 

@@ -47,9 +47,9 @@ TOOL_IDENTIFIERS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {
     "build_strategy",
     "clear_strategy",
     "consult_user",
-    "create_workbench_gene_set",
     "delete_step",
     PROPOSAL_TOOL,
+    "save_gene_set",
 }
 
 # A step id the graph mints, and the error strings a reply can copy out of a
@@ -87,19 +87,6 @@ def machine_words(prose: str) -> list[str]:
     return found
 
 
-# What a written reference carries before the identifier itself.
-_REFERENCE_PREFIXES = (
-    "https://",
-    "http://",
-    "www.",
-    "doi.org/",
-    "dx.doi.org/",
-    "doi:",
-    "pmid:",
-    "pubmed.ncbi.nlm.nih.gov/",
-)
-
-
 class CitedSource(CamelModel):
     """One reference a reply names, and where this turn read it."""
 
@@ -120,20 +107,6 @@ class CitedSource(CamelModel):
     def references(self) -> list[str]:
         """Every identifier this source is checked by."""
         return [value for value in (self.url, self.doi, self.pmid) if value]
-
-
-def normalized_reference(value: str) -> str:
-    """One comparable form of a url, a DOI or a PMID."""
-    text = value.strip().casefold()
-    for prefix in _REFERENCE_PREFIXES:
-        text = text.removeprefix(prefix)
-    return text.rstrip("/")
-
-
-def names_the_phrase(prose: str, phrase: str) -> bool:
-    """Whether the prose holds the phrase whole, in any case."""
-    pattern = rf"(?<!\w){re.escape(phrase)}(?!\w)"
-    return re.search(pattern, prose, flags=re.IGNORECASE) is not None
 
 
 # What may close a question after its mark: whitespace, emphasis, code, a

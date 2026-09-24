@@ -111,8 +111,8 @@ def test_a_seeded_control_set_is_named_after_the_file_it_came_from() -> None:
     }
 
 
-def test_a_save_request_creates_a_workbench_gene_set() -> None:
-    """The save the user asks for is the workbench tool, never a memory note."""
+def test_a_save_request_saves_a_gene_set() -> None:
+    """The save the user asks for is the gene-set tool, never a memory note."""
     msgs: list[ModelMessage] = [
         _user("Save the 155 genes as a gene set called gametocyte candidates.")
     ]
@@ -121,7 +121,7 @@ def test_a_save_request_creates_a_workbench_gene_set() -> None:
 
     assert names == [
         "classify_user_intent",
-        "create_workbench_gene_set",
+        "save_gene_set",
         "final_result",
     ]
     assert "remember" not in names
@@ -515,3 +515,13 @@ def test_a_retry_from_another_tool_does_not_stop_the_build_arc() -> None:
     ]
 
     assert "verify_strategy" in _names(arcs._lead_sequence(msgs))
+
+
+def test_an_enrichment_request_is_answered_with_the_site() -> None:
+    """GO enrichment runs on the site, so the arc calls no tool for it."""
+    msgs: list[ModelMessage] = [_user("Run GO enrichment on the gene set I saved.")]
+
+    sequence = arcs._lead_sequence(msgs)
+
+    assert _names(sequence) == ["classify_user_intent", "final_result"]
+    assert "Analyze results tab" in str(sequence[-1].args)

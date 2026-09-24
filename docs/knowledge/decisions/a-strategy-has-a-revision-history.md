@@ -100,11 +100,10 @@ branch keeps its messages while losing the chunks that render them. Scratchpad
 notes are copied under the same anchor cutoff as the log: a note a later turn
 wrote is a later turn's artifact.
 
-**A branch owns its gene set and shares its experiment.** A gene set taken from
+**A branch owns its gene set.** A gene set taken from
 a strategy is re-synced against whatever strategy its thread holds, so a branch
 that inherited `gene_set_id` would rewrite its source's saved set on its first
-build. The branch starts unlinked and imports one of its own. `experiment_id`
-is read and never written, so the branch keeps it.
+build. The branch starts unlinked and imports one of its own.
 
 # What was rejected
 

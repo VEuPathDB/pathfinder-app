@@ -1,23 +1,21 @@
-"""Gene-set create, list, retake, delete, export and import."""
+"""Gene-set list, delete, export and import."""
 
 import re
 from typing import Literal, cast
 
 from fastapi import APIRouter, Query, Request
 from veupathdb.errors import ValidationError
-from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.platform.security import limiter
 from pathfinder.services.export import get_export_service
 from pathfinder.transport.http.deps import CurrentUser, SiteIdQuery
 from pathfinder.transport.http.schemas.gene_sets import (
-    CreateGeneSetRequest,
     GeneSetExportResponse,
     GeneSetImportRequest,
     GeneSetResponse,
 )
 
-from ._shared import NEEDS_WDK_LOGIN, gene_set_service, not_found, to_response
+from ._shared import gene_set_service, not_found, to_response
 
 router = APIRouter()
 
@@ -38,31 +36,6 @@ def _parse_gene_id_blob(raw: str) -> list[str]:
     return out
 
 
-@router.post("", status_code=201, dependencies=NEEDS_WDK_LOGIN)
-@limiter.limit("30/minute")
-async def create_gene_set(
-    request: Request,
-    body: CreateGeneSetRequest,
-    user_id: CurrentUser,
-) -> GeneSetResponse:
-    """Create a new gene set."""
-    gs = await gene_set_service().create(
-        user_id=user_id,
-        name=body.name,
-        site_id=body.site_id,
-        gene_ids=body.gene_ids,
-        source=body.source,
-        wdk=GeneSetWdkContext(
-            wdk_strategy_id=body.wdk_strategy_id,
-            wdk_step_id=body.wdk_step_id,
-            search_name=body.search_name,
-            record_type=body.record_type,
-            parameters=body.parameters,
-        ),
-    )
-    return to_response(gs)
-
-
 @router.get("")
 async def list_gene_sets(
     user_id: CurrentUser,
@@ -71,19 +44,6 @@ async def list_gene_sets(
     """List all gene sets for the current user, optionally filtered by site."""
     sets = await gene_set_service().list_for_user(user_id, site_id=site_id)
     return [to_response(gs) for gs in sets]
-
-
-@router.post("/{gene_set_id}/retake", dependencies=NEEDS_WDK_LOGIN)
-async def retake_gene_set(
-    gene_set_id: str,
-    user_id: CurrentUser,
-) -> GeneSetResponse:
-    """Replace a gene set's genes with what its source strategy holds now."""
-    try:
-        gs = await gene_set_service().retake_from_source(user_id, gene_set_id)
-    except KeyError as exc:
-        raise not_found(exc) from exc
-    return to_response(gs)
 
 
 @router.delete("/{gene_set_id}")

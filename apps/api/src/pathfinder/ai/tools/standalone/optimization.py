@@ -13,12 +13,15 @@ from pydantic import ConfigDict, Field, field_validator
 from pydantic_ai import RunContext
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 
+from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
 from pathfinder.platform.durable_worker import durable_agent_tool
 from pathfinder.services.parameter_optimization.config import (
     SWEEP_BUDGET,
     SWEEP_BUDGET_MAX,
     SWEEP_BUDGET_MIN,
+    SweepVariantResult,
 )
 
 
@@ -48,6 +51,47 @@ class _SweepOutcome(CamelModel):
     @classmethod
     def _no_winner_scores_zero(cls, value: object) -> object:
         return {} if value is None else value
+
+
+class _SweepTrials(CamelModel):
+    """The trials a finished sweep reports, each with the controls it filed."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    variants: list[SweepVariantResult] = Field(default_factory=list)
+
+
+def sweep_control_runs(
+    result: dict[str, Any], *, tool_call_id: str
+) -> list[ControlTestRun]:
+    """One control result per setting the sweep scored."""
+    runs: list[ControlTestRun] = []
+    for trial in _SweepTrials.model_validate(result).variants:
+        positive, negative = trial.positive, trial.negative
+        if positive is None and negative is None:
+            continue
+        runs.append(
+            ControlTestRun(
+                tool_call_id=f"{tool_call_id}:{trial.variant_id}",
+                origin="sweep",
+                evidence=ControlTestEvidence(
+                    tested_label=f"setting {trial.variant_id}",
+                    positive=None
+                    if positive is None
+                    else ControlSetEvidence(
+                        returned=positive.recovered_ids,
+                        not_returned=positive.missed_ids,
+                    ),
+                    negative=None
+                    if negative is None
+                    else ControlSetEvidence(
+                        returned=negative.admitted_ids,
+                        not_returned=negative.excluded_ids,
+                    ),
+                ),
+            )
+        )
+    return runs
 
 
 def _sweep_chunks_from_result(

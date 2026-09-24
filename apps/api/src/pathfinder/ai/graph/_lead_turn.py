@@ -51,7 +51,7 @@ from pathfinder.ai.graph._lead_answers import (
 )
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph._lead_durable import (
-    enrichment_runs_answered,
+    control_results_answered,
     inner_durable_calls,
     outer_durable_calls,
     split_durable_answers,
@@ -302,8 +302,8 @@ async def _resume_durable_call(
     parked = state.answered_durable_call
     if parked is None:
         return TurnResumption(still_durable=state.pending_durable_call)
-    deps.state.turn_markers.record_enrichment_runs(
-        enrichment_runs_answered(parked, state.durable_answers),
+    deps.state.turn_markers.record_control_tests(
+        control_results_answered(parked, state.durable_answers),
     )
     answered = durable_tool_results(parked, state.durable_answers)
     sub_agent = parked.sub_agent

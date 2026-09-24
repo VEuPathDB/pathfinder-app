@@ -16,6 +16,7 @@ from pathfinder.ai.lead.reply_claims import machine_words
 from pathfinder.ai.tools.standalone.graph_helpers import build_step_response
 from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
+from pathfinder.domain.strategy.step_words import AddedSearch
 from pathfinder.platform.config import get_settings
 
 # One turn's ceiling on the Lead's own model requests, and on the tool calls
@@ -110,12 +111,19 @@ def _verdict(digest: VerificationDigest) -> str:
     return f"Verification objected: {first}"
 
 
+def _stands_for(step: AddedSearch) -> str:
+    """The words the step stands for, and why it runs its search when recorded."""
+    if step.rationale is None:
+        return step.criterion_text
+    return f"{step.criterion_text}; {step.rationale.short}"
+
+
 def _this_turn(turn: TurnMarkers) -> str:
     """What this turn wrote to the strategy, naming each step it added."""
     added = turn.added_searches
     if added:
         named = "; ".join(
-            f'"{step.search_display_name}" ({step.criterion_text})' for step in added
+            f'"{step.search_display_name}" ({_stands_for(step)})' for step in added
         )
         return f"This turn added {count_noun(len(added), 'step')}: {named}."
     if turn.changed_strategy:

@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { seedExperiments } from "@/features/settings/api/experiments";
+import { seedDemoData } from "@/features/settings/api/seed";
 import { invalidateUserScopedQueries } from "@/lib/query/invalidateUserScoped";
 import Image from "next/image";
 import { Loader2, FlaskConical } from "lucide-react";
@@ -71,7 +71,7 @@ export function SeedingSettings() {
     setSeedingDb(siteId ?? "all");
     setSeedStatus("Starting...");
     try {
-      await seedExperiments((message) => setSeedStatus(message), siteId);
+      await seedDemoData((message) => setSeedStatus(message), siteId);
     } catch (err) {
       setSeedStatus(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
@@ -133,7 +133,8 @@ export function SeedingSettings() {
 
           <p className="text-xs text-muted-foreground">
             Seeds demo strategies and control sets for the selected database. Strategies
-            appear in the sidebar; control sets are available in the Experiments tab.
+            appear in the sidebar; the assistant reads the control sets when it runs
+            control tests.
           </p>
         </div>
       </SettingsField>

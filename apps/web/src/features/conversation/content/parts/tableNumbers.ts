@@ -1,21 +1,18 @@
 import type { UIMessage } from "ai";
 import type {
   ControlTestResults,
-  EnrichmentResultsChunk,
   ScoredComparison,
   VariantComparison,
 } from "@pathfinder/shared";
 
 /** A part the thread numbers as a paper table. */
-export type TableExhibit =
-  ControlTestResults | EnrichmentResultsChunk | ScoredComparison | VariantComparison;
+export type TableExhibit = ControlTestResults | ScoredComparison | VariantComparison;
 
+/** The one table kind a durable task produces. */
 const CONTROL_TESTS = "data-control-test-results";
-const ENRICHMENT = "data-enrichment-results";
 
 const TABLE_KINDS: ReadonlySet<string> = new Set([
   CONTROL_TESTS,
-  ENRICHMENT,
   "data-scored-comparison",
   "data-variant-comparison",
 ]);
@@ -54,8 +51,6 @@ export function tableNumberFor(
   return index === -1 ? null : index + 1;
 }
 
-const TASK_KINDS: ReadonlySet<string> = new Set([CONTROL_TESTS, ENRICHMENT]);
-
 /** The exhibit one durable task left on the thread, or null when it left none. */
 export function tablePartFor(
   messages: readonly UIMessage[],
@@ -64,7 +59,7 @@ export function tablePartFor(
   const tables = tablesOf(messages);
   const index = tables.findIndex(
     (table) =>
-      TASK_KINDS.has(table.type) &&
+      table.type === CONTROL_TESTS &&
       "taskId" in table.data &&
       table.data.taskId === taskId,
   );

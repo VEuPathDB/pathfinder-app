@@ -7,34 +7,25 @@
 import type {
   AuthStatusResponse,
   BackgroundTaskStarted,
-  BootstrapResult,
-  Classification,
   ColocationParams,
   CombineOp,
-  ConfidenceInterval,
-  ConfusionMatrix,
-  ControlSetResponse,
   ControlSetSummary,
   ControlTestResults,
   CreateConversationRequest,
-  CrossValidationResult,
   EdaAnalysisState,
   EdaDistributionSeries,
   EdaEntityCount,
   EdaSubsetPreviewPart,
   EdaVizPart,
   EdaVolcanoPoint,
-  EnrichmentAnalysisType,
-  EnrichmentResult,
-  EnrichmentTerm,
-  ExperimentConfig,
-  ExperimentMetrics,
-  Experiment,
-  GeneConfidenceRequest,
-  GeneInfo,
-  GeneResolveResponse,
-  GeneSearchResponse,
-  GeneSearchResultResponse,
+  CheckedStepCount,
+  ControlEnrichment,
+  ControlSetEvidence,
+  ControlTestEvidence,
+  CriterionCitations,
+  EvidenceCard,
+  EvidenceVerdict,
+  SiteRead,
   GeneSet as GeneSetStreamPart,
   GeneSetResponse,
   GraphCleared,
@@ -59,7 +50,6 @@ import type {
   ScoredVariant,
   ReasoningEffort,
   RecordTypeResponse,
-  ResolvedGeneResponse,
   ScratchpadUpdatedPayload,
   SearchResponse,
   SiteResponse,
@@ -83,7 +73,6 @@ import type {
   TurnFailedPayload,
   ConversationTitlePayload,
   ConversationResponse,
-  EnrichmentResultsChunk,
   TaskCompleted,
   TaskListItem,
   TaskListResponse,
@@ -102,9 +91,6 @@ import type {
 } from "./generated/types/index";
 
 export type ModelCatalogEntry = ModelCatalogEntryResponse;
-export type GeneSearchResult = GeneSearchResultResponse;
-export type { GeneSearchResponse, GeneResolveResponse };
-export type ResolvedGene = ResolvedGeneResponse;
 export type Search = SearchResponse;
 export type RecordType = RecordTypeResponse;
 export type {
@@ -132,25 +118,10 @@ export type {
   VdiVisibility,
 };
 
-export type {
-  BootstrapResult,
-  ConfidenceInterval,
-  ConfusionMatrix,
-  CrossValidationResult,
-  EnrichmentResult,
-  EnrichmentTerm,
-  Experiment,
-  ExperimentConfig,
-  ExperimentMetrics,
-  GeneConfidenceRequest,
-  GeneInfo,
-};
-
 export type { ColocationParams };
 
 export type Step = StepResponse;
 export type GeneSet = GeneSetResponse;
-export type ControlSet = ControlSetResponse;
 
 export type Strategy = Omit<ConversationResponse, "steps" | "isSaved"> & {
   steps: StepResponse[];
@@ -265,7 +236,7 @@ const VEUPATHDB_SITES: SiteName[] = [
   },
 ];
 
-export type { Classification, EnrichmentAnalysisType, ModelProvider, ReasoningEffort };
+export type { ModelProvider, ReasoningEffort };
 
 export type StepKind = "search" | "transform" | "combine";
 
@@ -294,10 +265,17 @@ export type {
   BackgroundTaskStarted,
   TaskCompleted,
   TurnUsage,
-  EnrichmentResultsChunk,
   ControlTestResults,
   ControlSetSummary,
   TestedParameter,
+  CheckedStepCount,
+  ControlEnrichment,
+  ControlSetEvidence,
+  ControlTestEvidence,
+  CriterionCitations,
+  EvidenceCard,
+  EvidenceVerdict,
+  SiteRead,
 };
 export type GeneSetPart = GeneSetStreamPart;
 export type TaskProgressChunk = TaskProgressStreamPart;
@@ -348,8 +326,8 @@ export type KnownDataPartKind =
   | "data-background-task-started"
   | "data-task-progress"
   | "data-task-completed"
-  | "data-enrichment-results"
   | "data-control-test-results"
+  | "data-evidence-card"
   | "data-strategy-link"
   | "data-strategy-meta"
   | "data-graph-snapshot"
@@ -386,8 +364,8 @@ export interface DataPartPayloadMap {
   "data-background-task-started": BackgroundTaskStarted;
   "data-task-progress": TaskProgressStreamPart;
   "data-task-completed": TaskCompleted;
-  "data-enrichment-results": EnrichmentResultsChunk;
   "data-control-test-results": ControlTestResults;
+  "data-evidence-card": EvidenceCard;
   "data-strategy-link": StrategyLink;
   "data-strategy-meta": StrategyMeta;
   "data-graph-snapshot": GraphSnapshot;

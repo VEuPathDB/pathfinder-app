@@ -16,6 +16,7 @@ from fastapi import Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, TypeAdapter
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException
 from veupathdb.errors import VEuPathDBError
@@ -187,25 +188,42 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     )
 
 
+class _FieldError(BaseModel):
+    """Where a request failed validation and why, without the value it held.
+
+    A refused value may be a secret, so neither the log nor the answer carries it.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    type: str
+    loc: tuple[int | str, ...]
+    msg: str
+
+
+_FIELD_ERRORS = TypeAdapter(list[_FieldError])
+
+
 async def request_validation_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     """Handle request validation errors as problem+json with field-level errors."""
-    raw = exc.errors()
+    reported = _FIELD_ERRORS.validate_python(exc.errors())
+    errors = jsonable_encoder([error.model_dump() for error in reported])
     _logger.warning(
         "Request validation failed",
         method=request.method,
         path=request.url.path,
-        errors=raw,
+        errors=errors,
     )
-    summary = "; ".join(item["msg"] for item in raw) or "Request validation failed"
+    summary = "; ".join(error.msg for error in reported) or "Request validation failed"
     return problem_response(
         request,
         status=HTTPStatus.UNPROCESSABLE_ENTITY,
         code=ErrorCode.VALIDATION_ERROR,
         title="Request validation failed",
         detail=summary,
-        errors=jsonable_encoder(raw),
+        errors=errors,
     )
 
 

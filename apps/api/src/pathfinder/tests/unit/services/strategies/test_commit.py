@@ -24,6 +24,7 @@ from pathfinder.domain.strategy.operations import (
     UpdateStepParamsOp,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.services.strategies import (
     commit,
     live_counts,
@@ -174,7 +175,7 @@ def _combine(id_: str, p: StrategyStepNode, s: StrategyStepNode) -> StrategyStep
 def _seed_session(
     root: StrategyStepNode,
     wdk_step_ids: dict[str, int],
-    criterion_texts: dict[str, str] | None = None,
+    step_words: StepWords | None = None,
 ) -> StrategyMutationContext:
     session = StrategySession(site_id="plasmodb")
     graph = StrategyGraph(graph_id="g1", name="Test", site_id="plasmodb")
@@ -190,7 +191,7 @@ def _seed_session(
         site_id="plasmodb",
         strategy_session=session,
         conversation_id=uuid4(),
-        criterion_texts=criterion_texts or {},
+        step_words=step_words or StepWords(),
     )
 
 
@@ -262,7 +263,9 @@ async def test_a_refused_push_leaves_no_count_on_its_step(stub_api: _StubAPI) ->
 async def test_a_commit_takes_the_words_the_spec_states(stub_api: _StubAPI) -> None:
     del stub_api
     deps = _seed_session(
-        _leaf("a"), wdk_step_ids={"a": 100}, criterion_texts={"a": "kinases"}
+        _leaf("a"),
+        wdk_step_ids={"a": 100},
+        step_words=StepWords(criterion_texts={"a": "kinases"}),
     )
 
     await apply_and_commit(
@@ -270,4 +273,4 @@ async def test_a_commit_takes_the_words_the_spec_states(stub_api: _StubAPI) -> N
     )
 
     assert deps.strategy_session.graph is not None
-    assert deps.strategy_session.graph.criterion_texts == {"a": "kinases"}
+    assert deps.strategy_session.graph.words.criterion_texts == {"a": "kinases"}

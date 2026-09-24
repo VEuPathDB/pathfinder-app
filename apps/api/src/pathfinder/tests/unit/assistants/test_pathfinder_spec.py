@@ -85,7 +85,7 @@ def _install_strategy(
 async def test_its_turn_context_is_the_product_context(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _install_strategy(monkeypatch, ConversationStrategyView(experiment_id="exp_1"))
+    _install_strategy(monkeypatch, ConversationStrategyView())
     sources = {"research": FunctionToolset[object]()}
     request = TurnContextRequest(
         conversation=Conversation(id=uuid4(), name="", site_id="plasmodb"),
@@ -103,7 +103,6 @@ async def test_its_turn_context_is_the_product_context(
     assert isinstance(context, Context)
     assert context.site_id == "plasmodb"
     assert context.strategy_session is not None
-    assert context.experiment_id == "exp_1"
     assert context.phase_models == {"lead": "openai:gpt-5.6-luna"}
     assert context.tool_sources == sources
 

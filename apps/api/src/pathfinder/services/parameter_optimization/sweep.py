@@ -192,6 +192,8 @@ async def run_trial(
         estimated_size=metrics.estimated_size,
         positive_hits=metrics.positive_hits,
         negative_hits=metrics.negative_hits,
+        positive=wdk_result.positive,
+        negative=wdk_result.negative,
     )
     if progress_callback is not None:
         await progress_callback(

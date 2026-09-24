@@ -32,7 +32,7 @@ describe("useConversationId", () => {
   });
 
   it("is null on a path that names no conversation", () => {
-    route.pathname = "/plasmodb/workbench";
+    route.pathname = "/plasmodb/saved";
     expect(renderHook(() => useConversationId()).result.current).toBe(null);
   });
 });

@@ -79,7 +79,6 @@ async def test_an_absent_row_reads_as_a_strategy_that_was_never_built(
     assert summary.step_count == 0
     assert summary.estimated_size is None
     assert summary.gene_set_id is None
-    assert summary.experiment_id is None
     assert summary.steps == []
 
 

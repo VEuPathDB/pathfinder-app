@@ -30,7 +30,7 @@ async def test_the_export_stores_its_kind_and_the_answer_carries_it(
 
     first = await export(thread, reference="18h")
 
-    assert thread.graph.analysis_kinds == {
+    assert thread.graph.words.analysis_kinds == {
         first.step_id: StampedKind(search_name=COMPUTE_QUERY, kind=AnalysisKind.COMPUTE)
     }
     assert _answered_kinds(thread) == {
@@ -59,7 +59,7 @@ async def test_an_edit_a_turn_entry_and_a_second_export_keep_every_kind(
             search_name=COMPUTE_QUERY, kind=AnalysisKind.COMPUTE
         ),
     }
-    assert (thread.graph.analysis_kinds, _answered_kinds(thread)) == (
+    assert (thread.graph.words.analysis_kinds, _answered_kinds(thread)) == (
         expected,
         expected,
     )

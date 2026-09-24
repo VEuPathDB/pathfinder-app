@@ -38,9 +38,6 @@ GATED: frozenset[tuple[str, str]] = frozenset(
                 "/refreshed-dependent-params"
             ),
         ),
-        ("GET", "/api/v1/sites/{siteId}/organisms"),
-        ("GET", "/api/v1/sites/{siteId}/genes/search"),
-        ("POST", "/api/v1/sites/{siteId}/genes/resolve"),
         # The account listing reads the site the path names.
         ("GET", "/api/v1/sites/{siteId}/strategies"),
         # EDA: the study set the request names lives on the site.
@@ -94,7 +91,7 @@ UNGATED_BUT_REACHES_A_SITE: dict[tuple[str, str], str] = {
     ): "Same shape: the binding row names the site.",
     (
         "POST",
-        "/api/v1/experiments/seed",
+        "/api/v1/seed",
     ): "Its site is optional, so the required site dependency cannot bind it; "
     "the identity gate refuses a degraded one and the seed stream reports each "
     "site's own failure.",
@@ -107,13 +104,9 @@ BODY_SITE_UNGATED: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/conversations"),
         ("POST", "/api/v1/conversations/open"),
         ("POST", "/api/v1/conversations/step-counts"),
-        ("POST", "/api/v1/control-sets"),
         ("POST", "/api/v1/eval/build-gold"),
         ("POST", "/api/v1/eval/strategy-gene-ids"),
-        ("POST", "/api/v1/experiments"),
-        ("POST", "/api/v1/gene-sets"),
         ("POST", "/api/v1/gene-sets/import"),
-        ("POST", "/api/v1/gene-sets/reverse-search"),
     }
 )
 
@@ -123,28 +116,9 @@ BODY_SITE_UNGATED: frozenset[tuple[str, str]] = frozenset(
 # then works on comes from a stored row, not from the request.
 IDENTITY_SITE_GATED: frozenset[tuple[str, str]] = frozenset(
     {
-        ("GET", "/api/v1/experiments/{experiment_id}/results/attributes"),
-        (
-            "GET",
-            "/api/v1/experiments/{experiment_id}/results/distributions/{attribute_name}",
-        ),
-        ("GET", "/api/v1/experiments/{experiment_id}/results/records"),
-        ("GET", "/api/v1/gene-sets/{gene_set_id}/results/attributes"),
-        (
-            "GET",
-            "/api/v1/gene-sets/{gene_set_id}/results/distributions/{attribute_name}",
-        ),
-        ("GET", "/api/v1/gene-sets/{gene_set_id}/results/records"),
         ("GET", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
         ("POST", "/api/v1/conversations/{conversation_id}/revert-to-message"),
         ("POST", "/api/v1/conversations/{strategyId:uuid}/fork"),
-        ("POST", "/api/v1/experiments/batch"),
-        ("POST", "/api/v1/experiments/benchmark"),
-        ("POST", "/api/v1/experiments/{experiment_id}/results/record"),
-        ("POST", "/api/v1/experiments/{experiment_id}/threshold-sweep"),
-        ("POST", "/api/v1/gene-sets/{gene_set_id}/enrich"),
-        ("POST", "/api/v1/gene-sets/{gene_set_id}/results/record"),
-        ("POST", "/api/v1/gene-sets/{gene_set_id}/retake"),
         ("POST", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
     }
 )
@@ -153,7 +127,6 @@ IDENTITY_SITE_GATED: frozenset[tuple[str, str]] = frozenset(
 # Routes that carry a site id and touch only this deployment's own rows.
 LOCAL_READ_UNGATED: frozenset[tuple[str, str]] = frozenset(
     {
-        ("GET", "/api/v1/control-sets"),
         ("GET", "/api/v1/conversations"),
         ("GET", "/api/v1/conversations/dismissed"),
         ("GET", "/api/v1/conversations/saved-strategy-consumers"),

@@ -105,7 +105,7 @@ describe("BranchOrRevertDialog", () => {
     );
     expect(
       screen.getByText(
-        /The strategy goes back to what it was at this message; a later version stays in your VEuPathDB account\. Workbench gene sets are kept\./,
+        /The strategy goes back to what it was at this message; a later version stays in your VEuPathDB account\. Saved gene sets are kept\./,
       ),
     ).toBeInTheDocument();
   });

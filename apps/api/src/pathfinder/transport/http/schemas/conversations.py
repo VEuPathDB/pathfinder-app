@@ -33,7 +33,6 @@ class OpenConversationResponse(CamelModel):
 
 class BeginConversationRequest(CamelModel):
     site_id: SiteId
-    experiment_id: str | None = None
     seed_text: str | None = Field(default=None, max_length=4000)
     # Names the assistant a NEW conversation is created under. An existing
     # conversation keeps its own, and a request naming another one is refused.

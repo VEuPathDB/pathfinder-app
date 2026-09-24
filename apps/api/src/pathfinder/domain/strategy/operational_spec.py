@@ -1,34 +1,25 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
-from typing import Literal, NamedTuple
+from typing import Literal
 
-from pydantic import ConfigDict, Field, model_validator
-from veupathdb.domain.parameters import ParamValue, UnboundParameter, to_wire
+from pydantic import Field, model_validator
+from veupathdb.domain.parameters import ParamValue, UnboundParameter
 from veupathdb.domain.strategy import (
-    COMBINE_SEARCH_NAME,
     CombineOp,
     StrategyStepNode,
-    clone_with_fresh_ids,
 )
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
-from pathfinder.domain.strategy.combine_naming import combine_display_name
 from pathfinder.domain.strategy.constraints import Constraint
+from pathfinder.domain.strategy.step_rationale import (
+    AnalysisRationale,
+    SearchRationale,
+    StepRationale,
+)
 
 CriterionRole = Literal["seed", "filter", "transform", "exclude"]
 MIN_COMBINE_INPUTS = 2
-
-# Swapping a combine's operands mirrors the operator that is not symmetric.
-_MIRRORED_OPERATORS = {
-    CombineOp.INTERSECT: CombineOp.INTERSECT,
-    CombineOp.UNION: CombineOp.UNION,
-    CombineOp.MINUS: CombineOp.RMINUS,
-    CombineOp.RMINUS: CombineOp.MINUS,
-    CombineOp.LONLY: CombineOp.RONLY,
-    CombineOp.RONLY: CombineOp.LONLY,
-}
 
 
 class OpenSlot(UnboundParameter):
@@ -145,6 +136,8 @@ class Criterion(CamelModel):
     analysis: AnalysisBinding | None = None
     # The dataset whose analysis workflow realizes this criterion, while it waits.
     needs_analysis_on: str | None = None
+    # Why the criterion runs its search, recorded when FRAME binds it.
+    rationale: SearchRationale | None = None
 
     @property
     def bound(self) -> bool:
@@ -166,6 +159,13 @@ class Criterion(CamelModel):
     def title(self) -> str:
         """The name the step carries: what runs, else the researcher's words."""
         return self.search_display_name or self.text[:60]
+
+    @property
+    def step_rationale(self) -> StepRationale | None:
+        """Why the step runs what it runs: its analysis, else the search choice."""
+        if self.analysis is not None:
+            return AnalysisRationale.of(self.analysis)
+        return self.rationale
 
 
 class OperationalSpec(CamelModel):
@@ -199,20 +199,6 @@ class OperationalSpec(CamelModel):
         return all(c.bound and not c.open_params for c in built)
 
 
-class _Operand(NamedTuple):
-    """A built combine input, and the saved strategy it stands for."""
-
-    step: StrategyStepNode
-    saved: SavedStrategyRef | None
-
-
-class SpecTree(NamedTuple):
-    """The tree a spec converts to, and the step each criterion became."""
-
-    root: StrategyStepNode
-    step_id_by_criterion: dict[str, str]
-
-
 def pending_analyses(spec: OperationalSpec | None) -> list[Criterion]:
     """Every criterion waiting for the Lead's EDA tools, in spec order."""
     if spec is None:
@@ -232,260 +218,3 @@ def _named_by(node: StructureNode) -> set[str]:
     for child in node.inputs:
         own |= _named_by(child)
     return own
-
-
-class FoldedSpec(CamelModel):
-    """The spec the fold produced, and the options it could not place."""
-
-    model_config = ConfigDict(frozen=True)
-
-    spec: OperationalSpec
-    unplaced: tuple[str, ...] = ()
-
-
-def stated_wire_values(spec: OperationalSpec | None) -> dict[str, dict[str, str]]:
-    """The wire values each criterion of a spec states, by criterion id."""
-    if spec is None:
-        return {}
-    return {
-        criterion.id: {
-            name: to_wire(value) for name, value in criterion.resolved_params.items()
-        }
-        for criterion in spec.criteria
-    }
-
-
-def fold_option_criteria(
-    spec: OperationalSpec,
-    *,
-    live_step_ids: Collection[str] = (),
-    answered_values: Mapping[str, Mapping[str, str]] | None = None,
-) -> FoldedSpec:
-    """Move an option onto the step that runs its search.
-
-    A criterion the structure leaves out states its values on the criterion that
-    names the same search; one no single criterion carries is reported unplaced.
-    A criterion the strategy holds a step for runs that step, so it is never an
-    option however the structure reads. ``answered_values`` are the values the
-    strategy already answers to, which is how a value the carrier only
-    inherited is told from one this pass stated for it.
-    """
-    answered = answered_values or {}
-    named = structure_criteria(spec.structure)
-    answers_to_a_step = named | frozenset(live_step_ids)
-    if all(c.id in answers_to_a_step for c in spec.criteria):
-        return FoldedSpec(spec=spec)
-    folded = spec.model_copy(deep=True)
-    # An analysis states its own document, so it carries no option and is none.
-    carriers = [c for c in folded.criteria if c.id in named and c.analysis is None]
-    absorbed: set[str] = set()
-    unplaced: list[str] = []
-    for option in folded.criteria:
-        if (
-            option.id in answers_to_a_step
-            or not option.search_name
-            or option.open_params
-            or option.analysis is not None
-        ):
-            continue
-        runs_it = [c for c in carriers if c.search_name == option.search_name]
-        if len(runs_it) != 1 or not _carry_the_option(
-            runs_it[0], option, answered.get(runs_it[0].id, {})
-        ):
-            unplaced.append(option.id)
-            continue
-        absorbed.add(option.id)
-    if not absorbed:
-        return FoldedSpec(spec=spec, unplaced=tuple(unplaced))
-    folded.criteria = [c for c in folded.criteria if c.id not in absorbed]
-    return FoldedSpec(spec=folded, unplaced=tuple(unplaced))
-
-
-def carried_values(carrier: Criterion) -> dict[str, str]:
-    """The wire values a fold has already carried onto this criterion."""
-    return {a.param_name: a.value for a in carrier.assumptions if a.carried_from}
-
-
-def _carry_the_option(
-    carrier: Criterion, option: Criterion, answered: Mapping[str, str]
-) -> bool:
-    """Give the carrier the values the option states, and report that it can.
-
-    A value the option defaulted or the carrier's own text states does not
-    move, and a value contradicting one the fold carried moves nothing at all.
-    A value the carrier only holds because the strategy answers to it is the
-    strategy's, and the option is what the request says about it.
-    """
-    carried = carried_values(carrier)
-    assumed = {a.param_name for a in carrier.assumptions if not a.carried_from}
-    defaulted = set(option.defaulted_params)
-    stated: dict[str, ParamValue] = {}
-    for name, value in option.resolved_params.items():
-        if name in defaulted:
-            continue
-        if name in carried:
-            if carried[name] != to_wire(value):
-                return False
-            continue
-        held = name in carrier.resolved_params and name not in carrier.defaulted_params
-        if held and name not in assumed:
-            current = to_wire(carrier.resolved_params[name])
-            if current == to_wire(value) or answered.get(name) != current:
-                continue
-        stated[name] = value
-    carrier.resolved_params.update(stated)
-    carrier.defaulted_params = sorted(set(carrier.defaulted_params) - set(stated))
-    # The option replaces the assumption it overrides, so one value has one
-    # reason on the ledger.
-    carrier.assumptions = [
-        *(a for a in carrier.assumptions if a.param_name not in stated),
-        *(
-            AssumedValue(
-                param_name=name,
-                value=to_wire(value),
-                reason=option.text,
-                carried_from=option.id,
-            )
-            for name, value in stated.items()
-        ),
-    ]
-    return True
-
-
-def build_step_tree(spec: OperationalSpec) -> SpecTree:
-    """Convert the spec and report the step id it minted for each criterion."""
-    if spec.structure is None:
-        msg = "spec has no structure"
-        raise ValueError(msg)
-    by_id = {c.id: c for c in spec.criteria}
-    minted: dict[str, str] = {}
-    return SpecTree(
-        root=_node_to_step(spec.structure.root, by_id, minted),
-        step_id_by_criterion=minted,
-    )
-
-
-def renumber_criteria(
-    spec: OperationalSpec, step_id_by_criterion: dict[str, str]
-) -> OperationalSpec:
-    """Re-key the spec on the step ids a build produced.
-
-    A criterion and the step it built are then the same address, so a later
-    edit changes that step rather than rebuilding the strategy around it.
-    """
-    renumbered = spec.model_copy(deep=True)
-    for criterion in renumbered.criteria:
-        criterion.id = step_id_by_criterion.get(criterion.id, criterion.id)
-    for slot in renumbered.open_slots:
-        slot.criterion_id = step_id_by_criterion.get(
-            slot.criterion_id, slot.criterion_id
-        )
-    if renumbered.structure is not None:
-        _renumber_structure(renumbered.structure.root, step_id_by_criterion)
-    return renumbered
-
-
-def _renumber_structure(node: StructureNode, mapping: dict[str, str]) -> None:
-    if node.criterion_id is not None:
-        node.criterion_id = mapping.get(node.criterion_id, node.criterion_id)
-    for child in node.inputs:
-        _renumber_structure(child, mapping)
-
-
-def _bound_criterion(
-    node: StructureNode, by_id: dict[str, Criterion], label: str
-) -> Criterion:
-    crit = by_id.get(node.criterion_id or "")
-    if crit is None or not crit.bound:
-        msg = f"{label} {node.criterion_id!r} is missing or unbound"
-        raise ValueError(msg)
-    return crit
-
-
-def _node_to_step(
-    node: StructureNode, by_id: dict[str, Criterion], minted: dict[str, str]
-) -> StrategyStepNode:
-    if node.kind == "leaf":
-        crit = _bound_criterion(node, by_id, "criterion")
-        if crit.saved_strategy_ref is not None:
-            saved_step = clone_with_fresh_ids(crit.saved_strategy_ref.subtree)
-            minted[crit.id] = saved_step.id
-            return saved_step
-        step = StrategyStepNode(
-            search_name=crit.search_name,
-            parameters=crit.step_parameters,
-            display_name=crit.title,
-        )
-        minted[crit.id] = step.id
-        return step
-    if node.kind == "transform":
-        crit = _bound_criterion(node, by_id, "transform criterion")
-        if not node.inputs:
-            msg = f"transform criterion {node.criterion_id!r} has no input step"
-            raise ValueError(msg)
-        step = StrategyStepNode(
-            search_name=crit.search_name,
-            parameters=crit.step_parameters,
-            display_name=crit.title,
-            primary_input=_node_to_step(node.inputs[0], by_id, minted),
-        )
-        minted[crit.id] = step.id
-        return step
-    # Combining n criteria takes n-1 nodes. A spec that emits one per criterion
-    # carries a spare with nothing to combine against, and one operand is that
-    # operand.
-    if len(node.inputs) == 1:
-        return _node_to_step(node.inputs[0], by_id, minted)
-    if node.operator is None or len(node.inputs) < MIN_COMBINE_INPUTS:
-        msg = "combine node needs an operator and at least two inputs"
-        raise ValueError(msg)
-    combined = _combine(
-        _node_to_operand(node.inputs[0], by_id, minted),
-        _node_to_operand(node.inputs[1], by_id, minted),
-        node.operator,
-    )
-    for extra in node.inputs[2:]:
-        combined = _combine(
-            combined, _node_to_operand(extra, by_id, minted), node.operator
-        )
-    return combined.step
-
-
-def _node_to_operand(
-    node: StructureNode, by_id: dict[str, Criterion], minted: dict[str, str]
-) -> _Operand:
-    """One side of a combine, and the saved strategy it stands for."""
-    saved = None
-    if node.kind == "leaf":
-        crit = by_id.get(node.criterion_id or "")
-        saved = crit.saved_strategy_ref if crit is not None else None
-    return _Operand(step=_node_to_step(node, by_id, minted), saved=saved)
-
-
-def _combine(left: _Operand, right: _Operand, operator: CombineOp) -> _Operand:
-    """Join two operands, with any saved strategy on the secondary side.
-
-    WDK marks the SECONDARY input of a combine as the collapsed saved
-    strategy, so an operand that names one moves there and the operator
-    mirrors to keep the question the same.
-    """
-    if left.saved is not None and right.saved is None:
-        mirrored = _MIRRORED_OPERATORS.get(operator)
-        if mirrored is None:
-            msg = (
-                f"{operator.value} cannot take a saved strategy on its left "
-                f"input; put the saved strategy on the right"
-            )
-            raise ValueError(msg)
-        left, right, operator = right, left, mirrored
-    saved = right.saved
-    step = StrategyStepNode(
-        search_name=COMBINE_SEARCH_NAME,
-        operator=operator,
-        display_name=combine_display_name(operator),
-        primary_input=left.step,
-        secondary_input=right.step,
-        expanded_strategy_id=saved.wdk_strategy_id if saved is not None else None,
-        expanded_name=saved.name if saved is not None else None,
-    )
-    return _Operand(step=step, saved=None)

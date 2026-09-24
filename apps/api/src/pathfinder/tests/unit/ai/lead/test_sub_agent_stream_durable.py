@@ -28,7 +28,7 @@ from pathfinder.ai.graph._lead_turn import resolve_turn_resumption
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead import sub_agent_stream, sub_agent_tools
+from pathfinder.ai.lead import evidence_card, sub_agent_stream, sub_agent_tools
 from pathfinder.ai.lead.lead_agent import LEAD_MODEL, LeadAgent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
@@ -64,8 +64,14 @@ _LEAD_FINAL: dict[str, Any] = {
     "nextState": "await_user",
     "strategyChanged": False,
 }
-_RESULT_A: dict[str, Any] = {"positiveIntersection": 3, "positiveControlsCount": 3}
-_RESULT_B: dict[str, Any] = {"positiveIntersection": 1, "positiveControlsCount": 2}
+_RESULT_A: dict[str, Any] = {
+    "positiveRecoveredIds": ["PF3D7_0100100", "PF3D7_0100200", "PF3D7_0100300"],
+    "positiveMissedIds": [],
+}
+_RESULT_B: dict[str, Any] = {
+    "positiveRecoveredIds": ["PF3D7_0200100"],
+    "positiveMissedIds": ["PF3D7_0200200"],
+}
 
 _PEEK_CALLS: list[int] = []
 
@@ -104,6 +110,7 @@ def writer(monkeypatch: pytest.MonkeyPatch) -> ChunkCollector:
     captured = ChunkCollector()
     monkeypatch.setattr(sub_agent_stream, "get_stream_writer", lambda: captured)
     monkeypatch.setattr(decorator, "get_stream_writer", lambda: captured)
+    monkeypatch.setattr(evidence_card, "get_stream_writer", lambda: captured)
     return captured
 
 

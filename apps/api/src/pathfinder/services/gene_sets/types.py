@@ -12,7 +12,6 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.wdk import GeneSetWdkContext
-from veupathdb_mcp.wdk.enrichment import EnrichmentResult
 
 GeneSetSource = Literal["strategy", "paste", "upload", "derived", "saved"]
 
@@ -60,17 +59,9 @@ class GeneSet:
     search_name: str | None = None
     record_type: str | None = None
     parameters: dict[str, ParamValue] | None = None
-    parent_set_ids: list[str] = field(default_factory=list)
-    operation: str | None = None  # "intersect" | "union" | "minus"
     step_count: int = 1
     vdi_id: str | None = None
     """The VEuPathDB user dataset this set was published to, when it was."""
-    enrichment_results: list[EnrichmentResult] = field(default_factory=list)
-    """Enrichment the researcher has already run on this set.
-
-    Computing it is a slow WDK round trip; not storing it meant reopening the
-    workbench threw the analysis away and it had to be paid for again.
-    """
 
     def take_wdk_context(self, ctx: GeneSetWdkContext, *, step_count: int) -> None:
         """Adopt a resolved WDK context whole.

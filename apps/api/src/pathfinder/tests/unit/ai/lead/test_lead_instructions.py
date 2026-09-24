@@ -188,12 +188,11 @@ def test_the_lead_removes_a_step_with_the_delete_tool() -> None:
     assert "Never dispatch a framing or building pass to remove a step" in instructions
 
 
-def test_the_instructions_name_the_four_fields_the_contract_reads() -> None:
+def test_the_instructions_name_the_three_fields_the_contract_reads() -> None:
     instructions = _flat(LEAD_INSTRUCTIONS)
 
     assert "``strategy_changed`` against every write the turn made" in instructions
     assert "``asked_questions``" in instructions
-    assert "``analysed_gene_set_ids``" in instructions
     assert "``sources``" in instructions
     assert "a single correction listing every mismatch" in instructions
 
@@ -266,3 +265,20 @@ def test_a_pending_check_is_reported_and_changes_nothing() -> None:
     flat = _flat(LEAD_INSTRUCTIONS)
     assert "``pending_checks`` listed" in flat
     assert "name each pending step, and change nothing" in flat
+
+
+def test_a_control_result_is_stated_as_the_card_holds_it() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert "Each finished check leaves an evidence card under it" in instructions
+    assert (
+        "State a control count or a control gene id only as a control test of "
+        "this turn filed it"
+    ) in instructions
+
+
+def test_an_enrichment_request_is_answered_with_the_site_link() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert "GO, pathway and word enrichment run on the site, not here." in instructions
+    assert "the site's Analyze results tab runs it" in instructions

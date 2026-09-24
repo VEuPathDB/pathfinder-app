@@ -1,9 +1,6 @@
 """The service handle, response mapping and error mapping every gene-set route uses."""
 
-from typing import cast, get_args
-
 from fastapi import Depends
-from veupathdb_mcp.wdk import SetOperation
 
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets.operations import GeneSetService
@@ -22,10 +19,6 @@ def gene_set_service() -> GeneSetService:
 
 
 def to_response(gs: GeneSet) -> GeneSetResponse:
-    valid_ops = get_args(SetOperation)
-    operation: SetOperation | None = (
-        cast("SetOperation", gs.operation) if gs.operation in valid_ops else None
-    )
     return GeneSetResponse(
         id=gs.id,
         site_id=gs.site_id,
@@ -39,18 +32,11 @@ def to_response(gs: GeneSet) -> GeneSetResponse:
         search_name=gs.search_name,
         record_type=gs.record_type,
         parameters=gs.parameters,
-        parent_set_ids=gs.parent_set_ids,
-        operation=operation,
         created_at=gs.created_at.isoformat(),
         step_count=gs.step_count,
-        enrichment_results=gs.enrichment_results,
         vdi_id=gs.vdi_id,
     )
 
 
 def not_found(exc: KeyError) -> NotFoundError:
     return NotFoundError(title=str(exc))
-
-
-def no_strategy(exc: ValueError) -> NotFoundError:
-    return NotFoundError(title="No WDK strategy", detail=str(exc))

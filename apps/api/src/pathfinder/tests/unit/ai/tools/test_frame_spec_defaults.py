@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic_ai import RunContext
@@ -26,7 +26,10 @@ from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
-from pathfinder.tests.unit.ai.tools.test_frame_spec import no_count
+from pathfinder.tests.unit.ai.tools.test_frame_spec import (
+    no_count,
+    set_criterion_as_read,
+)
 
 
 def _transcript_session() -> StrategySession:
@@ -92,13 +95,14 @@ async def _bind(
     client = MagicMock()
     client.get_search_details = _details
     monkeypatch.setattr(searches, "get_wdk_client", lambda _site: client)
+    monkeypatch.setattr(searches, "list_searches", AsyncMock(return_value=[]))
     monkeypatch.setattr(frame_spec, "fetch_search_details", _catalog_details)
     monkeypatch.setattr(frame_spec, "resolve_params_with_intent", _resolve)
     monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
     monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)
     no_count(monkeypatch)
     return returned(
-        await frame_spec.set_criterion(
+        await set_criterion_as_read(
             _ctx(state),
             criterion_id="expression",
             text="top 10 percent of expression",

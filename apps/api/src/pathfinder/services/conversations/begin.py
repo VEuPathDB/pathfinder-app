@@ -29,9 +29,7 @@ from assistant_core.platform.logging import get_logger
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.persistence.models import ConversationStrategy, ExperimentRow
 from pathfinder.persistence.repositories.conversation import ConversationRepository
-from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.conversations.turns import name_conversation_if_unnamed
 
 logger = get_logger(__name__)
@@ -56,20 +54,8 @@ async def begin_conversation(
     user_id: UUID,
     site_id: str,
     assistant_id: str,
-    experiment_id: str | None = None,
 ) -> BeginResult:
     application_id = calling_application()
-    if experiment_id is not None:
-        experiment = await session.get(ExperimentRow, experiment_id)
-        if (
-            experiment is None
-            or experiment.user_id != user_id
-            or experiment.application_id != application_id
-        ):
-            raise NotFoundError(
-                title="Experiment not found",
-                detail=f"No experiment {experiment_id!r} owned by the current user.",
-            )
     stmt = (
         insert(Conversation)
         .values(
@@ -92,15 +78,6 @@ async def begin_conversation(
     if not is_new:
         existing = await get_visible_conversation(repo, conversation_id, user_id)
         return BeginResult(conversation=existing, is_new=False)
-
-    if experiment_id is not None:
-        session.add(
-            ConversationStrategy(
-                conversation_id=conversation_id,
-                experiment_id=experiment_id,
-            ),
-        )
-        await session.flush()
 
     conversation = await repo.get_by_id(conversation_id)
     if conversation is None:

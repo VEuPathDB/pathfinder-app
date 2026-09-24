@@ -29,10 +29,14 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    build_step_tree,
-    fold_option_criteria,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.spec_fold import (
+    fold_option_criteria,
+)
+from pathfinder.domain.strategy.spec_tree import (
+    build_step_tree,
+)
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID

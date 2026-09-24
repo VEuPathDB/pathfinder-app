@@ -25,6 +25,17 @@ UI display.
    :undoc-members:
    :show-inheritance:
 
+Evidence
+--------
+
+**Purpose:** The evidence card one check leaves: what each control test filed,
+each step's count on the site, and the references each criterion was bound on.
+
+.. automodule:: pathfinder.domain.evidence
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Strategy - Additional Modules
 -----------------------------
 

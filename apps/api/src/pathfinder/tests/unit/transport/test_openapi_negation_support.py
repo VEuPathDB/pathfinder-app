@@ -105,7 +105,7 @@ def test_the_served_spec_names_the_parameter_value_union() -> None:
     )
 
     assert {
-        "POST /api/v1/gene-sets",
+        "POST /api/v1/conversations",
         "POST /api/v1/conversations/step-counts",
     } <= labels
     assert "GET /api/v1/sites" not in labels

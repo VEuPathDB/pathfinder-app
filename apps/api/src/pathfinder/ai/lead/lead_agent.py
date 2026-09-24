@@ -42,15 +42,14 @@ from pathfinder.ai.lead.lead_proposal import propose_changes
 from pathfinder.ai.lead.lead_tools import (
     classify_user_intent,
     clear_strategy,
-    create_workbench_gene_set,
     delete_step,
     export_gene_set,
     get_live_strategy_state,
-    list_workbench_gene_sets,
+    list_gene_sets,
     read_gene_record,
     read_ledger_section,
     remember,
-    run_gene_set_enrichment,
+    save_gene_set,
 )
 from pathfinder.ai.lead.retrieval_toolset import recording_retrievals
 from pathfinder.ai.lead.sub_agent_dispatch import (
@@ -135,9 +134,8 @@ def build_lead_agent() -> LeadAgent:
         tools=[
             Tool(classify_user_intent),
             Tool(remember),
-            Tool(create_workbench_gene_set),
-            Tool(list_workbench_gene_sets),
-            Tool(run_gene_set_enrichment, sequential=True, max_retries=3),
+            Tool(save_gene_set),
+            Tool(list_gene_sets),
             Tool(export_gene_set),
             Tool(read_ledger_section),
             Tool(read_gene_record),

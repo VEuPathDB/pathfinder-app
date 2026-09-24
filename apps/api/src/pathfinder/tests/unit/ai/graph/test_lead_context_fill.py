@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import pytest
 from assistant_core import quota
+from assistant_core.platform.types import PaidBy
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,8 +71,9 @@ def no_quota_writes(monkeypatch: pytest.MonkeyPatch) -> None:
         user_id: Any,
         tokens: int,
         cost_usd: Decimal,
+        paid_by: PaidBy,
     ) -> None:
-        del session, user_id, tokens, cost_usd
+        del session, user_id, tokens, cost_usd, paid_by
 
     monkeypatch.setattr(quota, "accumulate", _accumulate)
 

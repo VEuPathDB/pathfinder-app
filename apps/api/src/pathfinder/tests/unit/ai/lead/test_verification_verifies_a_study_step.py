@@ -27,7 +27,7 @@ from veupathdb.domain.strategy import StepKind, StrategyStep
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead import sub_agent_stream, sub_agent_tools
+from pathfinder.ai.lead import evidence_card, sub_agent_stream, sub_agent_tools
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
@@ -259,6 +259,7 @@ class _Collector:
 def collector(monkeypatch: pytest.MonkeyPatch) -> _Collector:
     captured = _Collector()
     monkeypatch.setattr(sub_agent_stream, "get_stream_writer", lambda: captured)
+    monkeypatch.setattr(evidence_card, "get_stream_writer", lambda: captured)
     return captured
 
 

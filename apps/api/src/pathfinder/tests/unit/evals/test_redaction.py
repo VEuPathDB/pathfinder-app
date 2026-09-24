@@ -55,3 +55,9 @@ def test_assert_redacted_refuses_a_surviving_address() -> None:
 def test_assert_redacted_refuses_a_surviving_credential() -> None:
     with pytest.raises(RedactionFailedError, match="credential"):
         assert_redacted("https://ada:secret@plasmodb.org/x")
+
+
+def test_redacted_text_passes_the_check() -> None:
+    text = "see https://ada:secret@plasmodb.org/x or write to ada@example.org"
+
+    assert assert_redacted(redact_text(text)) is True

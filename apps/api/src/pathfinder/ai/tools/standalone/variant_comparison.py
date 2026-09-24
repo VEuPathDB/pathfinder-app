@@ -12,11 +12,11 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._variant_targets import reject_combine_variants
+from pathfinder.services.evidence.comparisons import run_variant_comparison
 from pathfinder.services.experiment.variant_comparison import (
     VariantComparison,
     VariantSpec,
 )
-from pathfinder.services.workbench.comparisons import run_variant_comparison
 
 _MIN_VARIANTS = 2
 

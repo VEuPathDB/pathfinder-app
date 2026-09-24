@@ -111,7 +111,7 @@ async def test_a_step_added_on_the_site_takes_its_kind_from_the_catalog(
     )
 
     assert edits.reshaped is True
-    assert graph.analysis_kinds == {
+    assert graph.words.analysis_kinds == {
         str(_DESEQ_WDK): StampedKind(
             search_name=DESEQ_SEARCH, kind=AnalysisKind.COMPUTE
         )

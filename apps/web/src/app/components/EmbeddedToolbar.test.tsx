@@ -7,7 +7,7 @@ vi.mock("next/navigation", () => ({
   usePathname: () => pathnameMock,
 }));
 
-import { chatRoot, workbenchRoot } from "@/lib/routes";
+import { chatRoot } from "@/lib/routes";
 import { EmbeddedToolbar } from "./EmbeddedToolbar";
 
 function renderToolbar() {
@@ -20,42 +20,25 @@ describe("EmbeddedToolbar", () => {
     pathnameMock = "/plasmodb/conversation/conv-1";
   });
 
-  it("points the chat link at the site's chat root", () => {
+  it("points the chat link at the site's chat root, and links nothing else", () => {
     renderToolbar();
     expect(screen.getByLabelText("Go to Chat")).toHaveAttribute(
       "href",
       chatRoot("plasmodb"),
     );
-    expect(screen.getByLabelText("Go to Workbench")).toHaveAttribute(
-      "href",
-      workbenchRoot("plasmodb"),
-    );
+    expect(
+      screen.getAllByRole("link").map((link) => link.getAttribute("href")),
+    ).toEqual(["/plasmodb/conversation"]);
   });
 
   it("marks chat as the current page anywhere under the chat root", () => {
     renderToolbar();
     expect(screen.getByLabelText("Go to Chat")).toHaveAttribute("aria-current", "page");
-    expect(screen.getByLabelText("Go to Workbench")).not.toHaveAttribute(
-      "aria-current",
-    );
   });
 
-  it("marks the workbench as the current page under the workbench root", () => {
-    pathnameMock = "/plasmodb/workbench/gs-1";
-    renderToolbar();
-    expect(screen.getByLabelText("Go to Workbench")).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    expect(screen.getByLabelText("Go to Chat")).not.toHaveAttribute("aria-current");
-  });
-
-  it("marks neither as current on another site's chat", () => {
+  it("does not mark chat as current on another site's chat", () => {
     pathnameMock = "/toxodb/conversation/conv-1";
     renderToolbar();
     expect(screen.getByLabelText("Go to Chat")).not.toHaveAttribute("aria-current");
-    expect(screen.getByLabelText("Go to Workbench")).not.toHaveAttribute(
-      "aria-current",
-    );
   });
 });

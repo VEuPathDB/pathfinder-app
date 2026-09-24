@@ -27,6 +27,7 @@ from pathfinder.ai.models.mock.specs import (
     single_spec,
 )
 from pathfinder.ai.tools.standalone._frame_proposals import ParamProposals
+from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
 from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
 from pathfinder.domain.strategy.operational_spec import StructureNode
 
@@ -104,6 +105,24 @@ def test_a_sheet_parameter_the_spec_does_not_value_is_proposed_as_null() -> None
     ]
 
     assert params == {"text_expression": "kinase", "unknown": None}
+
+
+def test_a_proposal_says_why_by_the_first_parameter_it_values() -> None:
+    criterion = go_spec(_PF).criteria[0]
+
+    why = proposal_args(criterion, dict.fromkeys(["go_term", "go_typeahead"]))["why"]
+
+    assert SearchChoice.model_validate(why) == SearchChoice(
+        basis="parameter",
+        term="go_typeahead",
+        reason="sets go_typeahead to the value the request states",
+    )
+
+
+def test_a_proposal_that_values_nothing_gives_no_reason() -> None:
+    criterion = go_spec(_PF).criteria[0]
+
+    assert "why" not in proposal_args(criterion, dict.fromkeys(["go_term"]))
 
 
 def test_a_canned_value_for_a_parameter_the_site_omits_is_never_sent() -> None:

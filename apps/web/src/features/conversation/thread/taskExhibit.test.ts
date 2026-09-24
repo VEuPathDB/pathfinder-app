@@ -101,16 +101,4 @@ describe("what a finished task's row reads off the thread", () => {
     const messages = [assistant("m1", [exhibit("another-task", CALL)])];
     expect(taskResult(messages, TASK)).toEqual({ summary: null, reference: null });
   });
-
-  it("cross-references an enrichment exhibit, which names no call", () => {
-    const messages = [
-      assistant("m1", [
-        { type: "data-enrichment-results", data: { taskId: TASK } },
-      ] as UIMessage["parts"]),
-    ];
-    expect(taskResult(messages, TASK)).toEqual({
-      summary: null,
-      reference: { label: "see Table 1", href: "#table-1" },
-    });
-  });
 });

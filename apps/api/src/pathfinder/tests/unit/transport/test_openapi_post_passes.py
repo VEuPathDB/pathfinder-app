@@ -29,10 +29,14 @@ def test_anchored_components_are_present(spec: dict[str, Any]) -> None:
     schemas = spec["components"]["schemas"]
     assert {
         "ProblemDetail",
-        "Experiment",
+        "EdaNewAnalysis",
         "StreamPartsSchemaIndex",
         "GraphCleared",
     } <= set(schemas)
+
+
+def test_no_route_or_part_publishes_the_experiment(spec: dict[str, Any]) -> None:
+    assert "Experiment" not in spec["components"]["schemas"]
 
 
 def test_the_spec_carries_no_null_values(spec: dict[str, Any]) -> None:

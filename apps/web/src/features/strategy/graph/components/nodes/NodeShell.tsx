@@ -5,7 +5,12 @@ import type { Step } from "@pathfinder/shared";
 import { cn } from "@/lib/utils/cn";
 import { useEntrance } from "@/lib/motion";
 import { STAGGER_DELAY_MS } from "@/features/strategy/graph/motion";
-import { stepSubtitle, stepTitle } from "@/features/strategy/graph/utils/stepTitle";
+import {
+  reasonDetail,
+  stepReason,
+  stepSubtitle,
+  stepTitle,
+} from "@/features/strategy/graph/utils/stepTitle";
 import { CornerDot } from "./CornerDot";
 import { HoverActions } from "./HoverActions";
 import { InlineRename } from "./InlineRename";
@@ -76,6 +81,7 @@ export function NodeShell({
   const name = stepTitle(step, kind);
   const title = name === "" ? "Error" : name;
   const subtitle = stepSubtitle(step, kind);
+  const reason = stepReason(step, kind);
   const isSyncing = snapshot.isBusy;
   const variantSlug = KIND_VAR[kind];
   const surfaceStyle: React.CSSProperties = {
@@ -191,6 +197,15 @@ export function NodeShell({
               data-testid="node-subtitle"
             >
               {subtitle}
+            </div>
+          )}
+          {reason !== "" && step.rationale != null && (
+            <div
+              className="truncate pr-12 text-[11px] leading-tight text-muted-foreground"
+              title={reasonDetail(step.rationale)}
+              data-testid="node-rationale"
+            >
+              why: {reason}
             </div>
           )}
           {children}

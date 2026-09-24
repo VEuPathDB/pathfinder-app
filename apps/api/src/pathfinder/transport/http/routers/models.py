@@ -31,22 +31,6 @@ class ModelListResponse(CamelModel):
 router = APIRouter(prefix="/api/v1", tags=["models"])
 
 
-def _provider_enabled(provider: ModelProvider) -> bool:
-    """Check whether a model provider has its API key configured.
-
-    :param provider: Model provider.
-    :returns: True if the provider is enabled, False otherwise.
-    """
-    settings = get_settings()
-    key_map: dict[ModelProvider, str] = {
-        "openai": settings.openai_api_key,
-        "anthropic": settings.anthropic_api_key,
-        "google": settings.gemini_api_key,
-        "ollama": settings.ollama_base_url,
-    }
-    return bool(key_map.get(provider, ""))
-
-
 def _build_response_entry(entry: ModelEntry) -> ModelCatalogEntryResponse:
     """Overlay live genai-prices on the catalog entry, falling back to catalog values."""
     live = lookup_per_mtok_prices(entry.provider, entry.model_name)
@@ -59,7 +43,7 @@ def _build_response_entry(entry: ModelEntry) -> ModelCatalogEntryResponse:
         payload["output_price"] = live.output
     return ModelCatalogEntryResponse(
         **payload,
-        enabled=_provider_enabled(entry.provider),
+        enabled=entry.provider in get_settings().deployment_providers,
     )
 
 
@@ -69,9 +53,9 @@ async def list_models() -> ModelListResponse:
 
     Prices overlay live ``genai_prices`` snapshot data when available; the
     catalog's hardcoded values act as a fallback for models the upstream
-    library doesn't yet track. Models whose provider has no API key are
-    returned with ``enabled: false`` so the frontend can render them as
-    disabled in the picker.
+    library doesn't yet track. A model whose provider the deployment does not
+    pay for is returned with ``enabled: false``; a researcher's own key is read
+    from ``/api/v1/me/provider-keys``, because this route answers before sign-in.
     """
     settings = get_settings()
     is_mock = settings.pathfinder_chat_provider.strip().lower() == "mock"

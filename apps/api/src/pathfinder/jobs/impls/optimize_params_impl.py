@@ -12,6 +12,11 @@ from pydantic import JsonValue
 from veupathdb.wdk import get_strategy_api
 
 from pathfinder.ai.graph.runtime import Context
+from pathfinder.services.evidence.optimization import (
+    enumerate_variants,
+    run_trial,
+    sweep_plan_for_step,
+)
 from pathfinder.services.export.control_downloads import attach_sweep_download
 from pathfinder.services.parameter_optimization.config import (
     SWEEP_BUDGET,
@@ -21,11 +26,6 @@ from pathfinder.services.parameter_optimization.config import (
     SweepTarget,
     SweepVariantResult,
     SweepVariantSpec,
-)
-from pathfinder.services.workbench.optimization import (
-    enumerate_variants,
-    run_trial,
-    sweep_plan_for_step,
 )
 
 logger = get_logger(__name__)

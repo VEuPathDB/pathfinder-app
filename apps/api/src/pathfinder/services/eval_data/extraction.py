@@ -6,23 +6,26 @@ text already redacted, and a human decides whether it becomes a case.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from uuid import UUID
 
 from assistant_core.persistence.models import Conversation, ConversationEvent
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, ValidationError
+from assistant_core.platform.types import JSONObject
+from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy import StrategyAst
+from veupathdb.domain.strategy import StrategyAst, walk
 
+from pathfinder.domain.strategy.step_rationale import SearchRationale
+from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.evals.extract import (
     EvalExtract,
     ExtractedStrategy,
 )
-from pathfinder.evals.redaction import RedactionFailedError
+from pathfinder.evals.redaction import RedactionFailedError, redact_text
 from pathfinder.evals.scoring import structure_signature
 from pathfinder.persistence.models import (
     ConversationStrategy,
@@ -37,6 +40,7 @@ from pathfinder.services.eval_data.chunk_reader import (
     read_turns,
     read_verification,
 )
+from pathfinder.services.strategies.schemas import step_rationale_of
 
 logger = get_logger(__name__)
 
@@ -120,31 +124,183 @@ async def find_candidates(session: AsyncSession, *, limit: int) -> list[Candidat
     ]
 
 
-def _extracted_strategy(strategy: ConversationStrategyView) -> ExtractedStrategy | None:
-    """The strategy the thread ended with, or None when it built nothing."""
-    if not strategy.strategy_ast:
+def extracted_strategy(
+    *,
+    record_type: str | None,
+    step_count: int,
+    strategy_ast: JSONObject,
+) -> ExtractedStrategy | None:
+    """The strategy a snapshot holds, its texts redacted, or None when it built
+    nothing."""
+    if not strategy_ast:
         return None
     try:
-        ast = StrategyAst.model_validate(strategy.strategy_ast)
+        ast = _redacted(StrategyAst.model_validate(strategy_ast))
     except ValidationError:
-        signature = ""
-    else:
-        signature = structure_signature(ast)
+        return _unparsed_strategy(
+            record_type=record_type, step_count=step_count, strategy_ast=strategy_ast
+        )
+    words = StepWords.of(ast)
+    nodes = [node for root in (ast.root, *ast.detached_roots) for node in walk(root)]
     return ExtractedStrategy(
-        record_type=strategy.record_type,
-        step_count=strategy.step_count,
-        structure=signature,
-        strategy_ast=strategy.strategy_ast,
+        record_type=record_type,
+        step_count=step_count,
+        structure=structure_signature(ast),
+        strategy_ast=ast.model_dump(by_alias=True, mode="json"),
+        rationales={
+            node.id: reason
+            for node in nodes
+            if (reason := step_rationale_of(words, node)) is not None
+        },
     )
 
 
-async def _chunks(session: AsyncSession, conversation_id: UUID) -> list[LoggedChunk]:
-    rows = await session.scalars(
-        select(ConversationEvent)
-        .where(ConversationEvent.conversation_id == conversation_id)
-        .order_by(ConversationEvent.id),
+class _StoredTexts(CamelModel):
+    """The texts a stored strategy carries, read without its tree."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    name: str | None = None
+    description: str | None = None
+    metadata: StepWords | None = None
+
+
+def _unparsed_strategy(
+    *,
+    record_type: str | None,
+    step_count: int,
+    strategy_ast: JSONObject,
+) -> ExtractedStrategy | None:
+    """A stored strategy whose tree does not parse, its texts redacted.
+
+    None when its texts cannot be read either, since nothing unredacted stages.
+    """
+    try:
+        stored = _StoredTexts.model_validate(strategy_ast)
+    except ValidationError:
+        return None
+    words = _redacted_words(stored.metadata or StepWords())
+    texts: JSONObject = {
+        "name": None if stored.name is None else redact_text(stored.name),
+        "description": (
+            None if stored.description is None else redact_text(stored.description)
+        ),
+        "metadata": None
+        if words.empty
+        else words.model_dump(by_alias=True, mode="json"),
+    }
+    return ExtractedStrategy(
+        record_type=record_type,
+        step_count=step_count,
+        strategy_ast=strategy_ast
+        | {key: value for key, value in texts.items() if key in strategy_ast},
     )
+
+
+def _redacted(ast: StrategyAst) -> StrategyAst:
+    """The strategy with every text a researcher or a model wrote redacted."""
+    redacted = _redacted_words(StepWords.of(ast))
+    return ast.model_copy(
+        update={
+            "name": None if ast.name is None else redact_text(ast.name),
+            "description": (
+                None if ast.description is None else redact_text(ast.description)
+            ),
+            "metadata": (
+                None
+                if redacted.empty
+                else redacted.model_dump(by_alias=True, mode="json")
+            ),
+        }
+    )
+
+
+def _redacted_words(words: StepWords) -> StepWords:
+    """The step words with every text a researcher or a model wrote redacted."""
+    return words.model_copy(
+        update={
+            "criterion_texts": {
+                step: redact_text(text) for step, text in words.criterion_texts.items()
+            },
+            # Validated again, so the label derived from the term is redacted too.
+            "rationales": {
+                step: SearchRationale.model_validate(
+                    reason.model_dump(by_alias=True)
+                    | {
+                        "reason": redact_text(reason.reason),
+                        "term": redact_text(reason.term),
+                        "query": redact_text(reason.query),
+                        "sources": [redact_text(s) for s in reason.sources],
+                    }
+                )
+                for step, reason in words.rationales.items()
+            },
+        }
+    )
+
+
+class _ErrorContext(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="ignore")
+
+    error: object = None
+
+
+class _ErrorDetail(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    ctx: _ErrorContext | None = None
+
+
+_ERROR_DETAILS = TypeAdapter(list[_ErrorDetail])
+
+
+def failed_redaction(exc: ValidationError) -> bool:
+    """Whether an extract was refused because a text still carries an identity.
+
+    Pydantic reports the redaction failure its validator raised as the context
+    of the validation error.
+    """
+    return any(
+        isinstance(detail.ctx.error, RedactionFailedError)
+        for detail in _ERROR_DETAILS.validate_python(exc.errors())
+        if detail.ctx is not None
+    )
+
+
+async def logged_chunks(
+    session: AsyncSession,
+    conversation_id: UUID,
+    *,
+    through: int | None = None,
+) -> list[LoggedChunk]:
+    """The thread's log in order, up to and including row ``through``."""
+    query = select(ConversationEvent).where(
+        ConversationEvent.conversation_id == conversation_id
+    )
+    if through is not None:
+        query = query.where(ConversationEvent.id <= through)
+    rows = await session.scalars(query.order_by(ConversationEvent.id))
     return [LoggedChunk.model_validate(row) for row in rows]
+
+
+def extract_from_rows(
+    *,
+    site_id: str,
+    assistant_id: str,
+    rows: Sequence[LoggedChunk],
+    strategy: ExtractedStrategy | None,
+) -> EvalExtract | None:
+    """The logged rows as an extract, or None when they hold no request."""
+    turns = read_turns(rows)
+    if not turns:
+        return None
+    return EvalExtract(
+        site_id=site_id,
+        assistant_id=assistant_id,
+        turns=turns,
+        strategy=strategy,
+        verification=read_verification(rows),
+    )
 
 
 async def build_extract(
@@ -156,19 +312,18 @@ async def build_extract(
     A thread with no verification verdict is not a finished investigation, so
     it is not a case.
     """
-    rows = await _chunks(session, candidate.conversation_id)
-    verification = read_verification(rows)
-    if verification is None:
+    rows = await logged_chunks(session, candidate.conversation_id)
+    if read_verification(rows) is None:
         return None
-    turns = read_turns(rows)
-    if not turns:
-        return None
-    return EvalExtract(
+    return extract_from_rows(
         site_id=candidate.site_id,
         assistant_id=candidate.assistant_id,
-        turns=turns,
-        strategy=_extracted_strategy(candidate.strategy),
-        verification=verification,
+        rows=rows,
+        strategy=extracted_strategy(
+            record_type=candidate.strategy.record_type,
+            step_count=candidate.strategy.step_count,
+            strategy_ast=candidate.strategy.strategy_ast,
+        ),
     )
 
 
@@ -188,7 +343,9 @@ async def extract_eval_candidates(
             considered += 1
             try:
                 extract = await build_extract(session, candidate)
-            except RedactionFailedError:
+            except ValidationError as exc:
+                if not failed_redaction(exc):
+                    raise
                 logger.warning(
                     "eval extraction refused a candidate that failed redaction",
                     site_id=candidate.site_id,
@@ -224,5 +381,9 @@ __all__ = [
     "ExtractionReport",
     "build_extract",
     "extract_eval_candidates",
+    "extract_from_rows",
+    "extracted_strategy",
+    "failed_redaction",
     "find_candidates",
+    "logged_chunks",
 ]

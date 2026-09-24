@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import NamedTuple
 
 from assistant_core.platform.logging import get_logger
@@ -33,6 +32,7 @@ from pathfinder.domain.strategy.spec_edit_guard import (
     new_join_contradiction,
     new_value_contradiction,
 )
+from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.persist import (
@@ -84,7 +84,7 @@ def _replace_graph_contents(
     *,
     sync_state: WDKSyncState,
     description: str | None,
-    criterion_texts: Mapping[str, str],
+    step_words: StepWords,
 ) -> None:
     """Replace the graph with the spec tree, and forget the counts it had.
 
@@ -98,7 +98,7 @@ def _replace_graph_contents(
     graph.steps = flatten_tree(root)
     graph.recompute_roots()
     graph.last_step_id = root.id
-    graph.note_criteria(criterion_texts)
+    graph.note_words(step_words)
     if description is not None:
         graph.description = description
 
@@ -198,7 +198,7 @@ async def build_strategy_from_spec(
         root,
         sync_state=sync_state,
         description=description,
-        criterion_texts=deps.criterion_texts,
+        step_words=deps.step_words,
     )
     # A step the build minted under a new id carries no kind yet, so the
     # catalog says which plugin reads its analysis document.

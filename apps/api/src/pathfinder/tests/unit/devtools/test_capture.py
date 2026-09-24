@@ -396,17 +396,17 @@ def _lead_error(tcid: str, error: str) -> JSONObject:
 
 def test_the_transcript_names_the_calls_the_lead_made_itself(tmp_path: Path) -> None:
     """A turn that dispatches nothing still has its own calls to read."""
-    refusal = durable_call_refusal("run_gene_set_enrichment")
+    refusal = durable_call_refusal("optimize_search_parameters")
     cap = _new(tmp_path)
-    _write(cap, _lead_input("run_gene_set_enrichment", "c1", {"gene_set_id": "gs_1"}))
+    _write(cap, _lead_input("optimize_search_parameters", "c1", {"wdk_step_id": 132}))
     _write(cap, _lead_output("c1", refusal))
 
     cap.flush()
 
     transcript = (tmp_path / "transcript.md").read_text()
-    assert "- [lead] run_gene_set_enrichment" in transcript
+    assert "- [lead] optimize_search_parameters" in transcript
     assert refusal in transcript
-    assert (tmp_path / "tools" / "01-run_gene_set_enrichment.json").exists()
+    assert (tmp_path / "tools" / "01-optimize_search_parameters.json").exists()
 
 
 def test_a_lead_call_that_failed_reads_as_failed(tmp_path: Path) -> None:

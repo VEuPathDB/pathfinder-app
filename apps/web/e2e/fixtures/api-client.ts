@@ -159,7 +159,7 @@ export async function fetchConversationMessages(
  * to prevent cross-site pollution between tests.
  *
  * Uses `page.context().request` so cookies are shared with the browser.
- * Call from `beforeEach` in workbench/gene-set specs for test isolation.
+ * Call from `beforeEach` in specs that assert gene-set counts, for test isolation.
  */
 export async function clearAllGeneSets(
   context: BrowserContext,

@@ -27,9 +27,11 @@ shows the first assertion is not true of any 2769-row payload.
 
 The listing's only structural job is to widen the enum that guards
 `set_criterion`, `get_search_overview` and `get_parameter_options`: every name
-it shows enters `agent_state.catalog_search_names`. A name is what the guard
-reads and what the next call sends, so the second column bought nothing the
-ranked search does not already give with more context.
+it shows enters the `CatalogRead` the listing records on
+`agent_state.catalog_reads`. A name is what the guard reads and what the next
+call sends, so the second column bought nothing the ranked search does not
+already give with more context. The read keeps the display name the site's
+listing carries, off the model's history, for the reason a binding records.
 
 The portal is the size case. Its transcript listing holds 2769 searches:
 574624 characters as `{name, displayName}` rows, about 143656 estimated tokens

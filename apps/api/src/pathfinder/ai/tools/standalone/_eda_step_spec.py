@@ -13,7 +13,6 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    renumber_criteria,
     structure_criteria,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
@@ -23,6 +22,9 @@ from pathfinder.domain.strategy.spec_hydration import (
     spec_from_ast,
 )
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
+from pathfinder.domain.strategy.spec_tree import (
+    renumber_criteria,
+)
 
 
 def criterion_note(ctx: RunContext[LeadDeps], step_id: str) -> str:

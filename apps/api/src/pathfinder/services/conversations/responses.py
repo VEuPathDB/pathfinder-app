@@ -74,7 +74,6 @@ class ConversationResponse(CamelModel):
     estimated_size: int | None = Field(default=None)
     wdk_url: str | None = Field(default=None)
     gene_set_id: str | None = Field(default=None)
-    experiment_id: str | None = Field(default=None)
     dismissed_at: datetime | None = Field(default=None)
     total_tokens: int = Field(default=0)
     total_cost_usd: Decimal = Field(default_factory=lambda: Decimal(0))
@@ -162,7 +161,6 @@ def build_conversation_response(
         wdk_strategy_created_here=strategy.wdk_strategy_created_here,
         wdk_url=wdk_url,
         gene_set_id=strategy.gene_set_id,
-        experiment_id=strategy.experiment_id,
         is_saved=strategy.is_saved,
         created_at=conversation.created_at or datetime.now(UTC),
         updated_at=conversation.updated_at or datetime.now(UTC),
@@ -198,7 +196,6 @@ def build_conversation_summary(
         wdk_strategy_created_here=strategy.wdk_strategy_created_here,
         wdk_url=wdk_url,
         gene_set_id=strategy.gene_set_id,
-        experiment_id=strategy.experiment_id,
         is_saved=strategy.is_saved,
         step_count=strategy.step_count,
         estimated_size=strategy.estimated_size,

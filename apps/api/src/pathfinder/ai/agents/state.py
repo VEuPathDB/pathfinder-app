@@ -1,7 +1,9 @@
 from collections.abc import Collection
 from dataclasses import dataclass, field
+from typing import Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
+from veupathdb import strip_html_tags
 from veupathdb.domain.parameters import ParamValue, VocabOption
 from veupathdb_mcp.catalog import SheetEntry
 
@@ -81,10 +83,49 @@ class PinnedSheet(BaseModel):
         return {entry.name: None for entry in self.entries}
 
 
+class CatalogHit(BaseModel):
+    """One search a catalog read answered, as FRAME saw it, in plain text."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    display_name: str
+    description: str = ""
+    record_type: str = ""
+    # The query's cosine against the search, None when nothing scored it.
+    similarity: float | None = None
+
+    @field_validator("display_name", "description", mode="after")
+    @classmethod
+    def _plain(cls, text: str) -> str:
+        return " ".join(strip_html_tags(text).split())
+
+
+class CatalogRead(BaseModel):
+    """One answer of the catalog in this pass: the call, the query, the hits in order."""
+
+    model_config = ConfigDict(frozen=True)
+
+    tool_call_id: str
+    tool: Literal["search_for_searches", "list_searches", "list_transforms"]
+    query: str = ""
+    record_type: str
+    hits: list[CatalogHit]
+
+    @property
+    def ranked(self) -> bool:
+        """Whether the read ranked its hits against a query."""
+        return self.tool == "search_for_searches"
+
+    def hit(self, name: str) -> CatalogHit | None:
+        return next((h for h in self.hits if h.name == name), None)
+
+
 @dataclass
 class AgentToolState:
     discovered_searches: dict[str, SearchOverview] = field(default_factory=dict)
-    catalog_search_names: set[str] = field(default_factory=set)
+    # Every catalog answer of this pass, oldest first.
+    catalog_reads: list[CatalogRead] = field(default_factory=list)
     read_param_options: set[str] = field(default_factory=set)
     operational_spec_draft: OperationalSpec = field(default_factory=OperationalSpec)
     # The organisms this investigation states. A capped vocabulary renders the
@@ -250,13 +291,19 @@ class AgentToolState:
     def discovered_search_names(self) -> set[str]:
         return set(self.discovered_searches)
 
-    def record_catalog_searches(self, names: list[str]) -> None:
-        """Record search names returned by the catalog (search_for_searches /
-        list_searches) so ``get_search_overview`` can be constrained to names
-        the model has actually seen - never invented ones."""
-        self.catalog_search_names.update(n for n in names if n)
+    def record_catalog_read(self, read: CatalogRead) -> None:
+        """Record what one catalog call answered, so a search tool is held to
+        names the model has seen and a binding is compared with the rest."""
+        self.catalog_reads.append(read)
+
+    def last_read_answering(self, search_name: str) -> CatalogRead | None:
+        """The newest read of this pass whose hits hold the search."""
+        return next(
+            (r for r in reversed(self.catalog_reads) if r.hit(search_name)), None
+        )
 
     def candidate_search_names(self) -> set[str]:
         """Inspectable searches: catalog results plus already-inspected ones
         (re-inspection must not be masked)."""
-        return self.catalog_search_names | set(self.discovered_searches)
+        read = {hit.name for r in self.catalog_reads for hit in r.hits if hit.name}
+        return read | set(self.discovered_searches)

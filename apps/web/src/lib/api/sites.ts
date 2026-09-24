@@ -28,14 +28,14 @@ export async function listSites(): Promise<SiteResponse[]> {
   return await requestJson(SiteListSchema, "/api/v1/sites");
 }
 
-export async function getRecordTypes(siteId: string): Promise<RecordType[]> {
+async function getRecordTypes(siteId: string): Promise<RecordType[]> {
   return await requestJson(
     RecordTypeListSchema,
     `/api/v1/sites/${encodeURIComponent(siteId)}/record-types`,
   );
 }
 
-export async function getSearches(
+async function getSearches(
   siteId: string,
   recordType?: string | null,
 ): Promise<Search[]> {

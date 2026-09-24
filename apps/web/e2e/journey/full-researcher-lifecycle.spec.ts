@@ -1,19 +1,15 @@
 import { test, expect } from "../fixtures/a11y";
-import { clearAllGeneSets } from "../fixtures/api-client";
 import { MOCK_PLAN_PROMPT } from "../fixtures/mock-prompts";
-
-const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
 
 /**
  * Journey: Full Researcher Lifecycle — PlasmoDB (Complete Arc)
  *
  * The most comprehensive journey test. Covers the ENTIRE user lifecycle:
- * Auth → multi-round chat → strategy creation → workbench → gene sets →
- * enrichment with real results → set operations with count verification →
+ * Auth → multi-round chat → strategy creation → the build's gene set →
  * site switching with isolation verification → settings → API verification
  * at every stage.
  *
- * Real WDK API, real Redis, real PostgreSQL. Only the LLM is mocked.
+ * Real WDK API, real PostgreSQL. Only the LLM is mocked.
  */
 test.describe("Full Researcher Lifecycle", () => {
   test("end-to-end research workflow with full output verification", async ({
@@ -23,16 +19,8 @@ test.describe("Full Researcher Lifecycle", () => {
     sitePicker,
     settingsPage,
     page,
-    seedData,
     apiClient,
-    workbenchSidebarPage,
-    workbenchMainPage,
   }) => {
-    const plasmoGenes = seedData.plasmoGenes;
-    const fullCount = plasmoGenes.length;
-    const subsetGenes = plasmoGenes.slice(0, 3);
-    const subsetCount = subsetGenes.length;
-
     // ═══════════════════════════════════════════════════════════════
     // Phase 1: Chat & Strategy (PlasmoDB)
     // ═══════════════════════════════════════════════════════════════
@@ -69,102 +57,25 @@ test.describe("Full Researcher Lifecycle", () => {
     expect(latestStrategy.steps.length).toBeGreaterThan(0);
 
     // ═══════════════════════════════════════════════════════════════
-    // Phase 2: Workbench — Gene Sets with Count Verification
+    // Phase 2: The build's gene set, read back through the API
     // ═══════════════════════════════════════════════════════════════
 
-    // Wait for the turn to fully settle so the auto-built strategy gene set
-    // (imported inline during execute_plan) exists before we clear — otherwise
-    // it lands after clearAllGeneSets and inflates the manual count below.
     await chatPage.expectIdle();
-    await clearAllGeneSets(page.context(), BASE_URL);
-    await workbenchSidebarPage.goto();
-
-    // Add full resistance markers set
-    await workbenchSidebarPage.openAddModal();
-    await page.getByLabel(/name/i).fill("Resistance Markers");
-    await page.getByLabel(/gene ids/i).fill(plasmoGenes.join("\n"));
-    await page.getByRole("button", { name: /add gene set/i }).click();
-    await expect(page.getByRole("dialog")).not.toBeVisible({
-      timeout: 10_000,
-    });
-
-    // Verify exact gene count on card
-    await workbenchSidebarPage.expectSetGeneCount("Resistance Markers", fullCount);
-
-    // Add subset
-    await workbenchSidebarPage.openAddModal();
-    await page.getByLabel(/name/i).fill("Top 3 Markers");
-    await page.getByLabel(/gene ids/i).fill(subsetGenes.join("\n"));
-    await page.getByRole("button", { name: /add gene set/i }).click();
-    await expect(page.getByRole("dialog")).not.toBeVisible({
-      timeout: 10_000,
-    });
-
-    await workbenchSidebarPage.expectSetGeneCount("Top 3 Markers", subsetCount);
-    await workbenchSidebarPage.expectSetCount(2);
-
-    // API verification — both sets with correct counts
-    const setsResp = await apiClient.get("/api/v1/gene-sets?siteId=plasmodb");
-    expect(setsResp.ok()).toBeTruthy();
-    const sets = await setsResp.json();
-    expect(sets.length).toBe(2);
-
-    const fullSet = sets.find(
-      (gs: { name: string }) => gs.name === "Resistance Markers",
-    );
-    expect(fullSet).toBeDefined();
-    expect(fullSet.geneCount).toBe(fullCount);
-    expect(fullSet.geneIds).toHaveLength(fullCount);
-
-    const subSet = sets.find((gs: { name: string }) => gs.name === "Top 3 Markers");
-    expect(subSet).toBeDefined();
-    expect(subSet.geneCount).toBe(subsetCount);
+    const builtResp = await apiClient.get("/api/v1/gene-sets?siteId=plasmodb");
+    expect(builtResp.ok()).toBeTruthy();
+    const builtSets = (await builtResp.json()) as {
+      id: string;
+      source: string;
+      geneCount: number;
+      geneIds: string[];
+    }[];
+    const builtSet = builtSets.find((gs) => gs.source === "strategy");
+    expect(builtSet).toBeDefined();
+    expect(builtSet?.geneCount).toBeGreaterThan(0);
+    expect(builtSet?.geneIds[0]).toMatch(/^PF3D7_/);
 
     // ═══════════════════════════════════════════════════════════════
-    // Phase 3: Activate & Full Enrichment Analysis
-    // ═══════════════════════════════════════════════════════════════
-
-    await workbenchSidebarPage.activateSet("Resistance Markers");
-    await workbenchMainPage.expectActiveSetHeader("Resistance Markers", fullCount);
-
-    // Run enrichment — real WDK enrichment API
-    await workbenchMainPage.runEnrichmentAndVerifyResults();
-
-    // Verify enrichment produced actual GO/pathway data
-    await workbenchMainPage.expectEnrichmentTypeTabs();
-    await workbenchMainPage.expectEnrichmentResultsWithData();
-
-    // ═══════════════════════════════════════════════════════════════
-    // Phase 4: Set Operations with Mathematical Verification
-    // ═══════════════════════════════════════════════════════════════
-
-    // Select both sets
-    await workbenchSidebarPage.selectSet("Resistance Markers");
-    await workbenchSidebarPage.selectSet("Top 3 Markers");
-
-    // Verify compose bar appears with operations
-    await expect(page.getByRole("button", { name: /intersect/i })).toBeVisible({
-      timeout: 10_000,
-    });
-
-    // Intersection: subset is contained in full set, so result = subsetCount
-    await workbenchSidebarPage.expectComposeResultCount(subsetCount);
-    await workbenchSidebarPage.performOperation("intersect");
-    await workbenchSidebarPage.expectSetCount(3);
-
-    // API verification of derived set
-    const derivedResp = await apiClient.get("/api/v1/gene-sets?siteId=plasmodb");
-    const allSets = await derivedResp.json();
-    expect(allSets.length).toBe(3);
-    const derivedSet = allSets.find(
-      (gs: { source: string }) => gs.source === "derived",
-    );
-    expect(derivedSet).toBeDefined();
-    expect(derivedSet.geneCount).toBe(subsetCount);
-    expect(derivedSet.operation).toBe("intersect");
-
-    // ═══════════════════════════════════════════════════════════════
-    // Phase 5: Site Switching — Isolation Verification
+    // Phase 3: Site Switching — Isolation Verification
     // ═══════════════════════════════════════════════════════════════
 
     // Switch to ToxoDB
@@ -180,9 +91,6 @@ test.describe("Full Researcher Lifecycle", () => {
       );
     }
 
-    // Workbench should show empty state (no ToxoDB sets)
-    await workbenchSidebarPage.goto();
-
     // API confirms no ToxoDB gene sets
     const toxoResp = await apiClient.get("/api/v1/gene-sets?siteId=toxodb");
     expect(toxoResp.ok()).toBeTruthy();
@@ -190,7 +98,7 @@ test.describe("Full Researcher Lifecycle", () => {
     expect(toxoSets.length).toBe(0);
 
     // ═══════════════════════════════════════════════════════════════
-    // Phase 6: Return to PlasmoDB & Settings
+    // Phase 4: Return to PlasmoDB & Settings
     // ═══════════════════════════════════════════════════════════════
 
     await sitePicker.selectSite("plasmodb");
@@ -203,7 +111,7 @@ test.describe("Full Researcher Lifecycle", () => {
     await settingsPage.close();
 
     // ═══════════════════════════════════════════════════════════════
-    // Phase 7: Final Chat & Conversation Persistence
+    // Phase 5: Final Chat & Conversation Persistence
     // ═══════════════════════════════════════════════════════════════
 
     // The sidebar lists one site's conversations, and this journey's live on
@@ -220,13 +128,10 @@ test.describe("Full Researcher Lifecycle", () => {
     await chatPage.expectAssistantMessage(/\[mock\].*findings/i);
     await chatPage.expectIdle();
 
-    // API verification — manually created PlasmoDB gene sets still intact
-    // (auto-build may add extra strategy-sourced sets, so check by name)
+    // API verification: the build's gene set is still intact.
     const finalResp = await apiClient.get("/api/v1/gene-sets?siteId=plasmodb");
-    const finalSets = (await finalResp.json()) as { name: string; source: string }[];
-    expect(finalSets.length).toBeGreaterThanOrEqual(3);
-    expect(finalSets.find((gs) => gs.name === "Resistance Markers")).toBeDefined();
-    expect(finalSets.find((gs) => gs.name === "Top 3 Markers")).toBeDefined();
-    expect(finalSets.find((gs) => gs.source === "derived")).toBeDefined();
+    const finalSets = (await finalResp.json()) as { id: string; geneCount: number }[];
+    const finalSet = finalSets.find((gs) => gs.id === builtSet?.id);
+    expect(finalSet?.geneCount).toBe(builtSet?.geneCount);
   });
 });

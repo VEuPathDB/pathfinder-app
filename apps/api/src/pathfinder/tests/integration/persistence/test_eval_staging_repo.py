@@ -240,3 +240,110 @@ async def test_the_database_refuses_a_promoted_row_that_still_names_a_user(
         )
         with pytest.raises(IntegrityError, match="linkage_ends_at_promotion"):
             await session.commit()
+
+
+async def test_a_rated_message_stages_beside_the_thread_s_own_row(
+    repo: EvalStagingRepository,
+    seeded: tuple[UUID, UUID],
+) -> None:
+    user_id, conversation_id = seeded
+    await repo.stage(
+        user_id=user_id, conversation_id=conversation_id, extract=_extract()
+    )
+    first, second = uuid4(), uuid4()
+
+    rated = [
+        await repo.stage(
+            user_id=user_id,
+            conversation_id=conversation_id,
+            extract=_extract(request),
+            rated_message_id=message_id,
+        )
+        for request, message_id in (
+            ("find proteases", first),
+            ("find kinesins", second),
+        )
+    ]
+    again = await repo.stage(
+        user_id=user_id,
+        conversation_id=conversation_id,
+        extract=_extract("find something else"),
+        rated_message_id=first,
+    )
+
+    assert None not in rated
+    assert again is None
+    staged = await repo.list_staged()
+    assert sorted(str(row.rated_message_id) for row in staged) == sorted(
+        ["None", str(first), str(second)]
+    )
+
+
+async def test_a_rated_stage_of_known_content_marks_the_thread_s_row(
+    repo: EvalStagingRepository,
+    seeded: tuple[UUID, UUID],
+) -> None:
+    """The dislike is kept on the row extraction already queued for that content."""
+    user_id, conversation_id = seeded
+    staged = await repo.stage(
+        user_id=user_id, conversation_id=conversation_id, extract=_extract()
+    )
+    message_id = uuid4()
+
+    marked = await repo.stage(
+        user_id=user_id,
+        conversation_id=conversation_id,
+        extract=_extract(),
+        rated_message_id=message_id,
+    )
+
+    assert staged is not None
+    assert marked == staged
+    row = await repo.get(staged)
+    assert row is not None
+    assert row.rated_message_id == message_id
+
+
+async def test_unstaging_a_rated_message_removes_only_its_staged_row(
+    repo: EvalStagingRepository,
+    seeded: tuple[UUID, UUID],
+) -> None:
+    user_id, conversation_id = seeded
+    thread_row = await repo.stage(
+        user_id=user_id, conversation_id=conversation_id, extract=_extract()
+    )
+    message_id = uuid4()
+    await repo.stage(
+        user_id=user_id,
+        conversation_id=conversation_id,
+        extract=_extract("find proteases"),
+        rated_message_id=message_id,
+    )
+
+    removed = await repo.unstage_rated(message_id)
+
+    assert removed == 1
+    assert [row.id for row in await repo.list_staged()] == [thread_row]
+
+
+async def test_promotion_ends_the_rated_message_handle(
+    repo: EvalStagingRepository,
+    seeded: tuple[UUID, UUID],
+) -> None:
+    user_id, conversation_id = seeded
+    message_id = uuid4()
+    staged = await repo.stage(
+        user_id=user_id,
+        conversation_id=conversation_id,
+        extract=_extract(),
+        rated_message_id=message_id,
+    )
+    assert staged is not None
+
+    await repo.promote(staging_id=staged, corpus_name="a-disliked-case")
+
+    row = await repo.get(staged)
+    assert row is not None
+    assert row.rated_message_id is None
+    assert row.status == "promoted"
+    assert await repo.unstage_rated(message_id) == 0

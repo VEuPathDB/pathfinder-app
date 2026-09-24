@@ -43,16 +43,14 @@ User-Facing Pages
       strategy graph and the EDA analysis as sibling routes. Uses
       ``POST /api/v1/chat``.
 
-   .. grid-item-card:: Workbench
+   .. grid-item-card:: Gene Sets
       :class-card: sd-border-success
 
-      ``/<siteId>/workbench``. Gene set management, enrichment, distributions
-      and cross-validation, backed by the experiment endpoints.
-      See :doc:`gene_sets`.
+      Gene sets a build saves, the ``/import`` and ``/export`` slash commands,
+      and publication to VEuPathDB. See :doc:`gene_sets`.
 
-The **experiment endpoints** (``/api/v1/experiments/...``) are the evaluation
-engine the workbench consumes: control-set evaluation, classification metrics,
-cross-validation and enrichment. See :doc:`experiments`.
+The **evaluation engine** scores a search against control genes for the
+scored comparison and the control tests. See :doc:`experiments`.
 
 How One Chat Turn Runs
 ----------------------
@@ -119,8 +117,8 @@ is a tool the Lead calls, not a node it hands control to.
        agent that mutates the graph.
      - ``build_strategy``, ``edit_strategy``, ``recover_failed_steps``
    * - **VERIFY**
-     - Control tests, parameter optimization, enrichment, variant comparison
-       and export.
+     - Control tests, parameter optimization, variant comparison, export and
+       the evidence card.
      - ``verify_strategy``, ``compare_search_variants``
 
 Between calls the Lead reads
@@ -165,8 +163,8 @@ protocol's own text, reasoning and tool parts, PathFinder emits typed
    * - ``data-background-task-started`` / ``data-task-progress`` /
        ``data-task-completed``
      - A durable tool's lifecycle
-   * - ``data-enrichment-results``
-     - What VERIFY established
+   * - ``data-evidence-card``
+     - What one check established, read from its control tests and the site
    * - ``data-eda.analysis-state`` / ``data-eda.subset-preview`` /
        ``data-eda.viz``
      - The EDA analysis, its subset and its figure

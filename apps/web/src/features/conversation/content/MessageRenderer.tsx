@@ -16,6 +16,7 @@ import { Check, Copy, Pencil, X } from "lucide-react";
 
 import { BranchMessageAction } from "./BranchMessageAction";
 import { EditComposerBranchOrRevert } from "./EditComposerSend";
+import { RateMessageActions } from "./RateMessageActions";
 import { RegenerateAction } from "./RegenerateAction";
 import { motion } from "motion/react";
 import { toast } from "sonner";
@@ -255,6 +256,7 @@ export function AssistantMessage() {
               <RegenerateAction />
             </ActionBarPrimitive.Reload>
             <BranchMessageAction />
+            <RateMessageActions />
           </MessageActions>
         </ActionBarPrimitive.Root>
       </Message>

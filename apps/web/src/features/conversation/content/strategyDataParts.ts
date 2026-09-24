@@ -1,5 +1,5 @@
 import { DataControlTestResults } from "./parts/DataControlTestResults";
-import { DataEnrichmentResults } from "./parts/DataEnrichmentResults";
+import { DataEvidenceCard } from "./parts/DataEvidenceCard";
 import { DataGeneSet } from "./parts/DataGeneSet";
 import { DataGraphCleared } from "./parts/DataGraphCleared";
 import { DataGraphSnapshot } from "./parts/DataGraphSnapshot";
@@ -10,11 +10,11 @@ import { DataVariantComparison } from "./parts/DataVariantComparison";
 import { noRender } from "./coreDataParts";
 import type { DataPartComponentMap } from "./dataPartComponentMap";
 
-/** Parts of the strategy product: graph, strategy, gene sets, experiments. */
+/** Parts of the strategy product: graph, strategy, gene sets, controls, comparisons. */
 export type StrategyDataPartKind =
   | "data-ledger-update"
-  | "data-enrichment-results"
   | "data-control-test-results"
+  | "data-evidence-card"
   | "data-strategy-link"
   | "data-strategy-meta"
   | "data-graph-snapshot"
@@ -26,8 +26,8 @@ export type StrategyDataPartKind =
 
 export const strategyDataPartComponents: DataPartComponentMap<StrategyDataPartKind> = {
   "data-ledger-update": noRender,
-  "data-enrichment-results": DataEnrichmentResults,
   "data-control-test-results": DataControlTestResults,
+  "data-evidence-card": DataEvidenceCard,
   "data-strategy-link": DataStrategyLink,
   "data-strategy-meta": DataStrategyMeta,
   "data-graph-snapshot": DataGraphSnapshot,

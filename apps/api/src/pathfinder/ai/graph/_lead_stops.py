@@ -20,6 +20,8 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import UnansweredStage
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.catalog import get_model_entry
+from pathfinder.domain.provider_keys import PROVIDER_NAMES
+from pathfinder.platform.model_keys import turn_refusals
 
 
 def guard_stopped_on(
@@ -173,11 +175,31 @@ def _what_to_do_next(
     )
 
 
+def _refused_key_prose() -> str | None:
+    """The reply for a turn a provider stopped by refusing the researcher's key.
+
+    The key is the thing to change, so the reply names it and no model.
+    """
+    names = [PROVIDER_NAMES[provider] for provider in turn_refusals()]
+    if not names:
+        return None
+    refused = " and ".join(names)
+    keys = " and ".join(f"your {name} key" for name in names)
+    return (
+        f"I stopped this turn: {refused} refused the key you added, so nothing "
+        f"more ran on it. Replace or remove {keys} in Settings, under Provider "
+        "keys, then send the message again."
+    )
+
+
 def fallback_prose(
     capture: _LeadRunCapture,
     unanswered: UnansweredStage | None,
 ) -> str:
     """What the user reads when the run ended with no reply of its own."""
+    refused = _refused_key_prose()
+    if capture.run_error and refused is not None:
+        return refused
     if capture.run_error:
         return (
             "I stopped this turn on an error I could not recover from: "

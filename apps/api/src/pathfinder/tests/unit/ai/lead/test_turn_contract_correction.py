@@ -17,15 +17,12 @@ from pathfinder.ai.lead.turn_contract import (
 )
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
-    ANALYSED_RUN,
     ASKING_REPLY,
     CLEAN_REPLY,
     CONTROL_SET_CLAIM,
-    ENRICHMENT_REPLY,
-    FAILED_RUN,
     WITH_CODE,
     control_source_deps,
-    enrichment_deps,
+    control_test_deps,
     framing_deps,
     off_topic_deps,
     reading_deps,
@@ -98,12 +95,12 @@ class TestTheOneCorrection:
         assert names == ["hold_the_turn_contract"]
 
     def test_the_refusal_reaches_the_model_once_and_the_turn_answers(self) -> None:
-        deps = enrichment_deps(FAILED_RUN, ANALYSED_RUN)
-        script = _scripted_answer(ENRICHMENT_REPLY)
+        deps = control_test_deps()
+        script = _scripted_answer("The strategy recovered 8 of 10 positive controls.")
 
         result = asyncio.run(
             build_lead_agent().run(
-                "Run GO enrichment on my gametocyte set.",
+                "How well does it recover my controls?",
                 deps=deps,
                 model=script.model(),
             ),
@@ -111,7 +108,7 @@ class TestTheOneCorrection:
 
         assert isinstance(result.output, LeadResponse)
         assert len(script.retries) == 1
-        assert "gs-other" in script.retries[0]
+        assert "7 of 10 positive controls returned" in script.retries[0]
 
     def test_a_claimed_control_set_is_re_asked_once_and_the_turn_answers(self) -> None:
         script = _scripted_answer(CONTROL_SET_CLAIM)

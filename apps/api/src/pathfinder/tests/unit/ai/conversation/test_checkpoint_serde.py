@@ -86,24 +86,24 @@ def _pending_durable_call() -> PendingDurableCall:
         phase="verification",
         tool_call_id="call_verify_strategy",
         tool_name="verify_strategy",
-        tool_args={"reason": "enrich the built set"},
+        tool_args={"reason": "test the built step against the controls"},
         prior_messages_json='[{"kind":"request","parts":[]}]',
         durable_calls=[
             DurableCall(
-                tool_call_id="call_run_gene_set_enrichment",
-                tool_name="run_gene_set_enrichment",
-                args={"gene_set_id": "gs-1"},
+                tool_call_id="call_run_control_tests_on_step",
+                tool_name="run_control_tests_on_step",
+                args={"wdk_step_id": 440299573},
                 task_id=UUID("0c6100d2-0000-4000-8000-000000000001"),
-                durable_tool_name="geneset_enrichment",
+                durable_tool_name="run_control_tests_on_step",
             ),
         ],
         sub_agent=SubAgentApprovalPending(
             role="verification",
             approvals=[
                 SubAgentApprovalCall(
-                    tool_call_id="call_run_gene_set_enrichment",
-                    tool_name="run_gene_set_enrichment",
-                    args={"gene_set_id": "gs-1"},
+                    tool_call_id="call_run_control_tests_on_step",
+                    tool_name="run_control_tests_on_step",
+                    args={"wdk_step_id": 440299573},
                 ),
             ],
             messages_json='[{"kind":"response","parts":[]}]',

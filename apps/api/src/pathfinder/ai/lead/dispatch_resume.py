@@ -39,10 +39,6 @@ class _FrameArgs(_ReasonArgs):
     expected_criteria: int = 3
 
 
-class _VerifyArgs(_ReasonArgs):
-    enrichment_requested: bool = False
-
-
 type SubAgentOutcome = (
     FrameResult | RecoveryDelta | VerificationDelta | EditDelta | SubAgentApprovalWait
 )
@@ -59,12 +55,10 @@ async def resume_sub_agent(
     args = dict(approval.tool_args)
     match approval.tool_name:
         case "verify_strategy":
-            verify_args = _VerifyArgs.model_validate(args)
             return await run_verification(
                 deps=deps,
                 parent_tool_call_id=call_id,
-                reason=verify_args.reason,
-                enrichment_requested=verify_args.enrichment_requested,
+                reason=_ReasonArgs.model_validate(args).reason,
                 resume=resume,
             )
         case "recover_failed_steps":

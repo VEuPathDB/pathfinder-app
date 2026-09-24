@@ -57,7 +57,7 @@ def test_a_completed_task_pins_the_task_line() -> None:
     briefing = compose_turn_briefing(
         ThreadActivity(
             finished_tasks=[
-                FinishedTask(tool_name="run_gene_set_enrichment", failed=False),
+                FinishedTask(tool_name="run_control_tests_on_step", failed=False),
                 FinishedTask(tool_name="run_eda_compute", failed=True),
             ],
         ),
@@ -65,7 +65,7 @@ def test_a_completed_task_pins_the_task_line() -> None:
     )
 
     rendered = briefing.render()
-    assert "run_gene_set_enrichment finished" in rendered
+    assert "run_control_tests_on_step finished" in rendered
     assert "run_eda_compute failed" in rendered
 
 

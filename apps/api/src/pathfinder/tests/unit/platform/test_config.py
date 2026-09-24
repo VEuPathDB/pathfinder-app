@@ -1,9 +1,11 @@
+import base64
 from pathlib import Path
 
 import pytest
 from pydantic_settings import SettingsConfigDict
 
 from pathfinder.platform.config import Settings, TomlConfigSettingsSource
+from pathfinder.platform.provider_key_cipher import ProviderKeyCipher
 
 
 class _EnvOnlySettings(Settings):
@@ -22,6 +24,7 @@ def make_settings(**overrides: object) -> Settings:
         "anthropic_api_key": "",
         "gemini_api_key": "",
         "ollama_base_url": "",
+        "provider_key_encryption_key": "",
         "langfuse_host": "",
         "langfuse_public_key": "",
         "langfuse_secret_key": "",
@@ -261,3 +264,56 @@ def test_a_blank_toml_value_leaves_the_field_default_standing(
     values = TomlConfigSettingsSource(Settings, config)()
 
     assert values == {"log_level": "DEBUG", "api_port": 9001}
+
+
+def test_the_deployment_pays_for_each_provider_it_holds_a_key_for() -> None:
+    settings = make_settings(
+        pathfinder_chat_provider="default",
+        anthropic_api_key="deployment-anthropic",
+        ollama_base_url="http://ollama:11434/v1",
+    )
+
+    assert settings.deployment_providers == frozenset({"anthropic", "ollama"})
+    assert settings.has_llm_configuration is True
+
+
+def test_the_mock_deployment_answers_for_every_provider() -> None:
+    assert make_settings().deployment_providers == frozenset(
+        {"openai", "anthropic", "google", "ollama", "mock"}
+    )
+
+
+def test_a_provider_key_secret_that_is_not_32_bytes_fails_startup() -> None:
+    short = base64.urlsafe_b64encode(bytes(16)).decode()
+
+    with pytest.raises(ValueError, match="PROVIDER_KEY_ENCRYPTION_KEY"):
+        make_settings(provider_key_encryption_key=short)
+
+
+def test_a_provider_key_secret_that_is_not_base64_fails_startup() -> None:
+    with pytest.raises(ValueError, match="PROVIDER_KEY_ENCRYPTION_KEY"):
+        make_settings(provider_key_encryption_key="not base64 at all!")
+
+
+def test_no_provider_key_secret_turns_personal_keys_off() -> None:
+    settings = make_settings()
+
+    assert (settings.provider_key_encryption_key, settings.provider_key_cipher) == (
+        "",
+        None,
+    )
+
+
+def test_a_32_byte_provider_key_secret_builds_the_cipher() -> None:
+    secret = bytes(range(32))
+    encoded = base64.urlsafe_b64encode(secret).decode()
+
+    cipher = make_settings(provider_key_encryption_key=encoded).provider_key_cipher
+
+    assert cipher == ProviderKeyCipher(secret=secret)
+
+
+def test_the_provider_key_secret_never_prints() -> None:
+    encoded = base64.urlsafe_b64encode(bytes(range(32))).decode()
+
+    assert repr(make_settings(provider_key_encryption_key=encoded)).count(encoded) == 0

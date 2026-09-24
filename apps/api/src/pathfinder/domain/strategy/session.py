@@ -45,35 +45,27 @@ class StrategyGraph:
         self.roots: set[str] = set()
         self.history: list[StrategyHistoryEntry] = []
         self.last_step_id: str | None = None
-        # The researcher's words each step stands for, keyed by step id.
-        self.criterion_texts: dict[str, str] = {}
-        # Which plugin reads the analysis document of each EDA step.
-        self.analysis_kinds: dict[str, StampedKind] = {}
+        # The researcher's words, the search choice and the analysis kind of
+        # each step, keyed by step id.
+        self.words = StepWords()
         # The searches whose catalog read failed. Each turn builds its own graph,
         # so this holds for one turn, and it is never stored.
         self.unreadable_searches: set[str] = set()
 
-    def note_criteria(self, texts: Mapping[str, str]) -> None:
+    def note_words(self, newer: StepWords) -> None:
         """Take the words for the steps the graph holds, and forget the rest."""
-        merged = {**self.criterion_texts, **texts}
-        self.criterion_texts = {
-            sid: text for sid, text in merged.items() if sid in self.steps
-        }
+        self.words = self.words.noted(newer, self.steps)
 
     def analysis_kind_of(self, step_id: str) -> AnalysisKind | None:
         """The step's kind, when it was read for the search the step runs now."""
-        stamped = self.analysis_kinds.get(step_id)
         step = self.steps.get(step_id)
-        if stamped is None or step is None:
+        if step is None:
             return None
-        return stamped.for_search(step.search_name)
+        return self.words.kind_of(step_id, step.search_name)
 
     def note_analysis_kinds(self, kinds: Mapping[str, StampedKind]) -> None:
         """Take the kinds for the steps the graph holds, and forget the rest."""
-        merged = {**self.analysis_kinds, **kinds}
-        self.analysis_kinds = {
-            sid: kind for sid, kind in merged.items() if sid in self.steps
-        }
+        self.note_words(StepWords(analysis_kinds=dict(kinds)))
 
     def primary_root_id(self) -> str | None:
         """Return the root of the main strategy tree.
@@ -136,14 +128,7 @@ class StrategyGraph:
             if sync_state.wdk_push_errors:
                 wdk_push_errors = dict(sync_state.wdk_push_errors)
 
-        words = StepWords(
-            criterion_texts={
-                s: t for s, t in self.criterion_texts.items() if s in self.steps
-            },
-            analysis_kinds={
-                s: k for s, k in self.analysis_kinds.items() if s in self.steps
-            },
-        )
+        words = self.words.noted(StepWords(), self.steps)
         return StrategyAst(
             record_type=self.record_type or "",
             root=root,
@@ -151,9 +136,7 @@ class StrategyGraph:
             name=self.name,
             description=self.description or None,
             metadata=(
-                words.model_dump(by_alias=True, mode="json")
-                if words.criterion_texts or words.analysis_kinds
-                else None
+                None if words.empty else words.model_dump(by_alias=True, mode="json")
             ),
             step_counts=step_counts,
             wdk_step_ids=wdk_step_ids,

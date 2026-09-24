@@ -73,8 +73,10 @@ Procedure:
    c. READ the pinned sheet. Its `name` fields are the ONLY parameter names that exist
       for this search. Its `params_template` is the exact `params` object to send back:
       copy it and replace each null with a value or leave null; do not rename keys.
-   d. `set_criterion(criterion_id, text, search_name, role, params)` again, with that
-      object -- a value or null for EVERY parameter on that sheet:
+   d. `set_criterion(criterion_id, text, search_name, role, params, why)` again, with that
+      object -- a value or null for EVERY parameter on that sheet -- and `why`: the basis,
+      the term that decides it, and one line of reason holding the term. The tool checks
+      the basis against the catalog answer and the values, and records what it was chosen over:
       - copy vocabulary values EXACTLY from the sheet (a tree parent like "Plasmodium"
         selects all its children); lists for multi-pick; a filter parameter takes
         "<facet>=<v1>,<v2>" or null;

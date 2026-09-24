@@ -90,3 +90,37 @@ describe("FrameDetail analysis criteria", () => {
     expect(screen.getByText(words)).toBeInTheDocument();
   });
 });
+
+describe("FrameDetail search reasons", () => {
+  it("says why a framed criterion runs its search before anything is built", () => {
+    render(
+      <FrameDetail
+        frame={frameWith(
+          {},
+          {
+            rationale: {
+              kind: "search",
+              searchName: "GenesByMolecularFunction",
+              basis: "parameter",
+              term: "GO Term",
+              reason: "sets GO Term to protein kinase activity",
+              toolCallId: "call_1",
+              short: "sets GO Term",
+            },
+          },
+        )}
+      />,
+    );
+
+    expect(screen.getByTestId("criterion-why").textContent).toBe("why: sets GO Term");
+  });
+
+  it("says nothing for a criterion that records no reason", () => {
+    render(<FrameDetail frame={frameWith({})} />);
+
+    expect([
+      screen.getByText("kinases").tagName,
+      screen.queryByTestId("criterion-why"),
+    ]).toEqual(["P", null]);
+  });
+});

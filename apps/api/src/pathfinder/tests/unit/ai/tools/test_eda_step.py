@@ -306,7 +306,7 @@ def test_the_commit_context_carries_the_threads_original_request(
     """A later turn pushes under the request the thread answers, not its own."""
     lead_ctx.deps.state.domain.original_request = "genes up under heat shock"
 
-    context = eda_step._strategy_context(lead_ctx, None)
+    context = eda_step._strategy_context(lead_ctx, None, {})
 
     assert lead_ctx.deps.state.user_prompt == "export the febrile subset"
     assert context.user_prompt == "genes up under heat shock"
@@ -327,7 +327,7 @@ def test_the_commit_context_carries_the_criteria_the_spec_states(
 
     spec = lead_ctx.deps.state.domain.operational_spec
 
-    context = eda_step._strategy_context(lead_ctx, spec)
+    context = eda_step._strategy_context(lead_ctx, spec, {})
 
     assert context.stated_criteria == frozenset({"step_a", "step_b"})
     assert context.stated_structure == _TWO_STEP_STRUCTURE
@@ -336,7 +336,7 @@ def test_the_commit_context_carries_the_criteria_the_spec_states(
 def test_a_thread_that_framed_no_spec_states_no_criteria(
     lead_ctx: RunContext[LeadDeps],
 ) -> None:
-    assert eda_step._strategy_context(lead_ctx, None).stated_criteria == frozenset()
+    assert eda_step._strategy_context(lead_ctx, None, {}).stated_criteria == frozenset()
 
 
 def _lead_ctx_over(root: StrategyStepNode) -> RunContext[LeadDeps]:

@@ -8,9 +8,11 @@ import { SeedingSettings } from "./settings/SeedingSettings";
 import { MemorySettings } from "./settings/MemorySettings";
 import { ModelSettings } from "./settings/ModelSettings";
 import { PrivacySettings } from "./settings/PrivacySettings";
+import { ProviderKeySettings } from "./settings/ProviderKeySettings";
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: "model", label: "Model" },
+  { id: "keys", label: "Provider keys" },
   { id: "data", label: "Data" },
   { id: "memory", label: "Memory" },
   { id: "privacy", label: "Privacy" },
@@ -62,6 +64,7 @@ export function SettingsPage({
       {/* Tab content - scrollable */}
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {tab === "model" && <ModelSettings />}
+        {tab === "keys" && <ProviderKeySettings />}
         {tab === "data" && <DataSettings siteId={siteId} />}
         {tab === "memory" && <MemorySettings />}
         {tab === "privacy" && <PrivacySettings />}

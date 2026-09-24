@@ -1,3 +1,6 @@
+import logging
+
+import pytest
 from assistant_core.platform.types import JSONObject
 from fastapi import HTTPException
 from fastapi.exceptions import RequestValidationError
@@ -147,6 +150,40 @@ async def test_request_validation_handler_returns_problem_json() -> None:
     assert body["code"] == "VALIDATION_ERROR"
     errors = TypeAdapter(list[JSONObject]).validate_python(body["errors"])
     assert errors[0]["msg"] == "Field required"
+
+
+async def test_a_value_that_failed_validation_is_neither_logged_nor_echoed(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A refused body may be a secret, so the error keeps its place and reason only."""
+    secret = "sk-proj-too-short"
+    exc = RequestValidationError(
+        [
+            {
+                "type": "string_too_short",
+                "loc": ("body", "key"),
+                "msg": "String should have at least 20 characters",
+                "input": secret,
+                "ctx": {"min_length": 20},
+            }
+        ]
+    )
+
+    with caplog.at_level(logging.WARNING):
+        resp = await request_validation_handler(_request(), exc)
+
+    assert secret not in bytes(resp.body).decode()
+    errors = TypeAdapter(list[JSONObject]).validate_python(_body(resp)["errors"])
+    assert errors == [
+        {
+            "type": "string_too_short",
+            "loc": ["body", "key"],
+            "msg": "String should have at least 20 characters",
+        }
+    ]
+    logged = " ".join(str(record.msg) for record in caplog.records)
+    assert "Request validation failed" in logged
+    assert secret not in logged
 
 
 async def test_rate_limit_handler_returns_problem_json() -> None:

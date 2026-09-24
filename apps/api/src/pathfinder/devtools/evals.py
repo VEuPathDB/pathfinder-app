@@ -47,6 +47,13 @@ def _staging() -> EvalStagingRepository:
     return EvalStagingRepository(session_factory=async_session_factory)
 
 
+def _origin(rated_message_id: UUID | None, turn_count: int) -> str:
+    """How the row was staged: the thread's extraction, or a disliked turn."""
+    if rated_message_id is None:
+        return "extracted"
+    return f"disliked turn {turn_count}"
+
+
 async def _list_staged() -> int:
     rows = await _staging().list_staged()
     if not rows:
@@ -56,8 +63,10 @@ async def _list_staged() -> int:
         extract = staged_extract(row)
         first = extract.turns[0].request if extract.turns else ""
         built = "built" if extract.strategy is not None else "no build"
+        origin = _origin(row.rated_message_id, len(extract.turns))
         print(
-            f"{row.id}  {row.site_id:12} {row.assistant_id:12} {built:9} {first[:60]}"
+            f"{row.id}  {row.site_id:12} {row.assistant_id:12} {built:9} "
+            f"{origin:18} {first[:60]}"
         )
     print(f"{len(rows)} staged candidate(s)")
     return 0
@@ -73,6 +82,7 @@ async def _show(staging_id: UUID) -> int:
     print(f"site       : {row.site_id}")
     print(f"assistant  : {row.assistant_id}")
     print(f"staged at  : {row.staged_at.isoformat()}")
+    print(f"origin     : {_origin(row.rated_message_id, len(extract.turns))}")
     for index, turn in enumerate(extract.turns, 1):
         print(f"\n--- turn {index} request ---\n{turn.request}")
         if turn.reply:
@@ -83,8 +93,11 @@ async def _show(staging_id: UUID) -> int:
     if extract.verification is not None:
         print(f"verified   : {extract.verification.passed}")
         print(f"reason     : {extract.verification.reason}")
+        evidence = extract.verification.evidence
+        if evidence is not None:
+            print(f"evidence   : {evidence.model_dump_json(indent=2, by_alias=True)}")
     print("\nsuggested expectation:")
-    print(default_expectation(extract).model_dump_json(indent=2, by_alias=True))
+    print(default_expectation(row).model_dump_json(indent=2, by_alias=True))
     return 0
 
 
@@ -195,7 +208,8 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="JSON",
         help=(
             "the expectation as JSON, e.g. '{\"buildsStrategy\": false}'; "
-            "defaults to what the recorded run did, which `show` prints"
+            "defaults to what the recorded run did, which `show` prints; "
+            "a disliked turn has no default and requires it"
         ),
     )
     promote.add_argument("--note", default="", help="curator note")

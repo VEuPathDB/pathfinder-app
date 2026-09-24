@@ -1,5 +1,121 @@
 # Log
 
+## 2026-09-24
+
+* **A message is liked or disliked, and the product learns from it.** Every
+  assistant message carries a like and a dislike control in its action bar
+  (`RateMessageActions.tsx`); the user bar carries none. The rating is a row in
+  `message_ratings` (migration `2026_09_24_0001`), one per message per user,
+  the latest wins, written through `PUT` and `DELETE
+  /api/v1/conversations/{id}/messages/{message_id}/rating` and read back with
+  the thread through `GET /api/v1/conversations/{id}/ratings`. A dislike takes
+  the cases the message wrote out of the store and keeps their values on the
+  row, a like pins them, a clear puts them back unpinned, and every later
+  auto-write consults the standing rating, so a second turn that reaches a
+  disliked case writes nothing and one that reaches a liked case writes it
+  pinned. A dislike stages one eval case, the thread cut at that message with
+  the strategy in force then, beside the thread's own extraction row
+  (`eval_staged_cases.rated_message_id`, two partial unique indexes, the
+  promotion constraint), and its promotion needs an explicit expectation. The
+  server reports each rating as `product.message_rated` with the turn's trace
+  id, tokens and cost. The brief left the backlog. See
+  [a rating is a fact about one message](decisions/a-rating-is-a-fact-about-one-message.md).
+
+* **A criterion says why its search was chosen.** On the GPI-anchor request the
+  reply said "Exported Protein is the nearest" and nothing recorded why, or over
+  what. Every catalog read of a FRAME pass is now recorded whole (hits in order,
+  with their similarity and the call id), `set_criterion(why=...)` checks a
+  typed basis against that read and the values it binds and writes the
+  searches it was chosen over, and the record rides `StepWords` to the canvas
+  (`why:` under the subtitle), the step editor's results section, the rail, the
+  ledger's `WHY` line, `addedSearches` and the out-of-budget reply.
+  `unnamed_search` (now `ai/lead/search_reasons.py`) also refuses, once, a
+  reply that names an added search without the reason's term in the same
+  paragraph or list item. An analysis step's reason is its document's compute,
+  derived and never stored, so it survives a WDK re-import that a search
+  step's reason does not. The case memory records the basis and the searches
+  passed over; the eval extract carries the reasons and now redacts the
+  researcher's stored words, which it staged unredacted before. The brief left
+  the backlog. See
+  [a criterion says why its search was chosen](decisions/a-criterion-says-why-its-search-was-chosen.md).
+
+* **A researcher brings their own provider key.** Settings has a Provider keys
+  tab: a key is checked with one short generation request to its provider,
+  sealed with AES-256-GCM under `PROVIDER_KEY_ENCRYPTION_KEY` with the row as
+  associated data (`user_provider_keys`, migration `2026_09_24_0002`), and
+  listed by its last four characters only; a deployment with no key secret
+  refuses a key with a 403, not the 503 the design named, because the refusal
+  stands until an operator sets the secret. The worker opens the keys by user id
+  when a turn starts, for the chat turn and the completion turn alike; a live
+  key pays for every model of its provider, a refused or unreadable key refuses
+  the turn (409 at dispatch, a typed turn failure in the worker) and is never
+  replaced by the deployment's key, and a provider nobody pays for is a 422.
+  Every usage row names its payer; the allowance caps the deployment's spend
+  and stops only a turn that draws on it, and the quota pill shows the bare
+  own-key spend when a key is set. Every model a turn resolves, keyed or not,
+  and the injection judge, now raise a provider error with its status and no
+  body, so the masked key tail OpenAI echoes reaches no chunk, log or span; the
+  validation handler no longer logs or echoes a refused value; a stage's
+  running and stopped spend is priced on the researcher's pick; and the
+  providers the deployment pays for are read from one setting. Two cards
+  joined the backlog: the title and the compactor are unmetered, and only the
+  invalid-key refusals were recorded. The brief left the backlog. See
+  [a researcher's key is sealed and read in the worker](decisions/a-researchers-key-is-sealed-and-read-in-the-worker.md).
+
+
+* **VERIFY shows its evidence, and the workbench yields to the site.** Every
+  finished check emits one `data-evidence-card` (`domain/evidence.py`,
+  assembled by `ai/lead/evidence_card.py` right after the digest is recorded,
+  never on a parked dispatch): the control tests the turn ran with every id
+  each one filed (`TurnMarkers.control_tests`, read from the durable answer by
+  `control_results_answered` and from the inline search test by the tool), the
+  one-sided hypergeometric p of positives among the returned controls, each
+  step's recorded count beside the count one `GET /strategies/{id}` reads at
+  the check (`services/strategies/site_counts.py`; `siteRead` says whether the
+  read ran, was not answered, or had no strategy on the site, and a missing
+  count is `null`, never 0), the references FRAME cited per criterion
+  (`SearchRationale.sources`, a DOI linked to doi.org and a PMID to PubMed),
+  the step link and the ledger's verdict with its pending checks. The card is
+  kept as the thread's last (`StrategyDomainState.last_evidence_card`), and it backs a
+  claim only while the strategy holds the revision it checked. The thread (`DataEvidenceCard`) and the rail's Checking tab
+  draw one body (`EvidenceCardBody`), and the rail marks a card whose revision
+  the strategy has left. `unbacked_evidence` (`ai/lead/evidence_claims.py`)
+  refuses a reply once that states a control count or a control gene id that
+  neither this message's control results (control tests, each scored
+  comparison variant and each sweep setting) nor the last card holds; a count
+  names controls ("positive controls", "negatives") and is read from the list
+  its clause's verb names. An output validator holds VERIFY's digest the same
+  way, once per check. The eval extract records the last card, redacted. The
+  readers of the control payload moved to `veupathdb-mcp` 0.2.0a25's complete
+  lists (`recoveredIds`/`missedIds`, `admittedIds`/`excludedIds`), which also
+  fills the true-negative list the old sample never carried, and a sweep trial
+  now carries its two lists.
+
+  Removed, each because the site offers it on the step or the strategy: GO,
+  pathway and word enrichment (step analyses; the card links the step page),
+  with `POST /gene-sets/{id}/enrich`, the durable `geneset_enrichment` tool,
+  `add_step_analysis`, the `substituted_analysis` rule and
+  `analysed_gene_set_ids`, `EnrichmentResultsChunk` and
+  `gene_sets.enrichment_results`; set operations, compare and the overlap grid
+  (combine steps); the result table and the distributions (the step's report
+  and column reporters); paste, upload, gene search and retake (the Gene ID
+  search, site search, the live strategy); the experiment lab routes, the
+  control-set routes and the three site gene routes, which lost their only
+  caller. Kept, because the site has none: control sets and control tests,
+  parameter optimization, the two comparisons (`run_experiment` now only
+  evaluates), the statistic, gene sets as a store with list, export, import,
+  delete and VDI publication, the latter two now actions on the thread's
+  gene-set figure. The web workbench feature and its pages went, and
+  `/{site}/workbench` answers the app's 404. The seed stream moved to
+  `POST /api/v1/seed`, `services/workbench/` is `services/evidence/`, and the
+  tools are `save_gene_set` and `list_gene_sets`. Migration `2026_09_24_0003`
+  drops `gene_sets.{parent_set_ids,operation,enrichment_results}`,
+  `experiments.{gene_set_id,batch_id,benchmark_id}` with their indexes and
+  `conversation_strategies.experiment_id`. A deployment drains the queued
+  `durable:geneset_enrichment` jobs before the worker without the tool starts
+  (`deploy/cedar/README.md`). The brief left the backlog. See
+  [VERIFY shows its evidence](decisions/verify-shows-its-evidence.md).
+
 ## 2026-09-23
 
 * **An EDA analysis is a criterion of the spec.** On vectorbase (v0.2.0a12,

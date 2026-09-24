@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 from pydantic_ai import RunContext
 
 from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.turn_records import CreatedControlSet, EnrichmentRun
+from pathfinder.ai.graph.turn_records import CreatedControlSet
 from pathfinder.ai.lead.derive import derive_ledger
+from pathfinder.ai.lead.evidence_claims import backing_results
 from pathfinder.ai.lead.intent_gate import (
     tools_the_turn_offers,
     turn_builds,
@@ -20,6 +19,7 @@ from pathfinder.ai.lead.ledger_sections import BuildSection, VerificationSection
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
+from pathfinder.domain.evidence import ControlTestEvidence
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import Criterion, pending_analyses
 from pathfinder.domain.strategy.spec_diff import SpecDiff
@@ -46,8 +46,6 @@ class TurnRecord(CamelModel):
     turn_builds: bool
     framed: bool
     off_topic: bool
-    analysed: EnrichmentRun | None
-    substituted: list[EnrichmentRun]
     last_phase_stop: PhaseStop | None
     refused_dispatches: tuple[str, ...]
     build_section: BuildSection
@@ -57,6 +55,8 @@ class TurnRecord(CamelModel):
     created_control_sets: tuple[CreatedControlSet, ...]
     created_gene_sets: tuple[CreatedGeneSet, ...]
     added_searches: tuple[AddedSearch, ...] = ()
+    # The control results a reply may cite: this turn's and the last check's.
+    control_results: tuple[ControlTestEvidence, ...] = ()
     answered_a_card: bool = False
     # The reply is the text beside a card, and the card asks its question.
     ends_on_a_card: bool = False
@@ -82,25 +82,6 @@ def _pending_eda_criterion(deps: LeadDeps) -> Criterion | None:
     )
 
 
-def _analysis_and_what_it_replaced(
-    runs: Sequence[EnrichmentRun],
-) -> tuple[EnrichmentRun | None, list[EnrichmentRun]]:
-    """The enrichment this turn ran, and the failures it was reached around.
-
-    Only a failure recorded before the run that succeeded, on another set, is
-    a substitution.
-    """
-    ran_at = max((i for i, run in enumerate(runs) if run.succeeded), default=-1)
-    if ran_at < 0:
-        return None, []
-    analysed = runs[ran_at]
-    return analysed, [
-        run
-        for run in runs[:ran_at]
-        if not run.succeeded and run.gene_set_id != analysed.gene_set_id
-    ]
-
-
 def _refused_dispatches(ctx: RunContext[LeadDeps]) -> tuple[str, ...]:
     """The dispatch tools this run refused and never ran again.
 
@@ -116,7 +97,6 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
     """Everything the contract reads about the turn this reply answers."""
     deps = ctx.deps
     markers = deps.state.turn_markers
-    analysed, substituted = _analysis_and_what_it_replaced(markers.enrichment_runs)
     ledger = derive_ledger(deps.state, deps.intent)
     return TurnRecord(
         changed_strategy=markers.changed_strategy,
@@ -126,8 +106,6 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         turn_builds=turn_builds(deps),
         framed=markers.framed,
         off_topic=turn_is_off_topic(deps),
-        analysed=analysed,
-        substituted=substituted,
         last_phase_stop=deps.last_phase_stop,
         refused_dispatches=_refused_dispatches(ctx),
         build_section=ledger.build,
@@ -137,5 +115,9 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         created_control_sets=tuple(markers.created_control_sets),
         created_gene_sets=tuple(markers.created_gene_sets),
         added_searches=tuple(markers.added_searches),
+        control_results=backing_results(
+            (run.evidence for run in markers.control_tests),
+            deps.state.domain.card_of_the_strategy(),
+        ),
         answered_a_card=markers.consulted or markers.accepted_proposal,
     )

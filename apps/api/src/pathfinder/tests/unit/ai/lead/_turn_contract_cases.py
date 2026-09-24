@@ -2,19 +2,20 @@
 
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.graph.turn_records import CreatedControlSet, EnrichmentRun
+from pathfinder.ai.graph.turn_records import ControlTestRun, CreatedControlSet
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.reply_claims import CitedSource
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse, LeadTurnState, reconcile
 from pathfinder.ai.lead.turn_record import turn_record
+from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
@@ -44,10 +45,6 @@ CLEAN_REPLY = (
 ASKING_REPLY = (
     "The spec needs one value: which gametocyte RNA-seq study should the "
     "expression filter read? I recommend the 3D7 one."
-)
-ENRICHMENT_REPLY = (
-    "Completed the GO enrichment (155 genes analyzed). The top terms are "
-    "protein export and host cell remodeling."
 )
 EDA_PROSE = "The piggyBac score could not be mapped to a searchable gene field."
 CONTROL_SET_CLAIM = (
@@ -95,17 +92,6 @@ AN_ESSAY = "A linked list is a chain of nodes. " * 20
 
 DATASET = "DS_70dd50fed7"
 CRITERION = "essential in blood stages"
-FAILED_RUN = EnrichmentRun(
-    task_id=UUID("0c6100d2-0000-4000-8000-0000000000a1"),
-    gene_set_id="gs-requested",
-    succeeded=False,
-)
-ANALYSED_RUN = EnrichmentRun(
-    task_id=UUID("0c6100d2-0000-4000-8000-0000000000a2"),
-    gene_set_id="gs-other",
-    gene_set_name="WDK Strategy 214617320",
-    succeeded=True,
-)
 
 
 def reply(
@@ -114,7 +100,6 @@ def reply(
     changed: bool = False,
     next_state: LeadTurnState = "await_user",
     questions: list[OpenQuestion] | None = None,
-    analysed: list[str] | None = None,
     sources: list[CitedSource] | None = None,
 ) -> LeadResponse:
     return LeadResponse(
@@ -122,7 +107,6 @@ def reply(
         next_state=next_state,
         strategy_changed=changed,
         asked_questions=list(questions or []),
-        analysed_gene_set_ids=list(analysed or []),
         sources=list(sources or []),
     )
 
@@ -162,14 +146,34 @@ def framing_deps() -> LeadDeps:
     return deps
 
 
-def enrichment_deps(*runs: EnrichmentRun) -> LeadDeps:
+def control_test_deps() -> LeadDeps:
+    """A turn that read a control test of 7 recovered of 10 positives."""
     deps = lead_deps(
         pipeline_state(
-            user_prompt="Run GO enrichment on my gametocyte set.",
+            user_prompt="How well does it recover my controls?",
             user_message_id=uuid4(),
         ),
     )
-    deps.state.turn_markers.enrichment_runs = list(runs)
+    deps.state.turn_markers.intent_classified = True
+    deps.state.turn_markers.record_control_tests(
+        [
+            ControlTestRun(
+                tool_call_id="call_controls",
+                evidence=ControlTestEvidence(
+                    tested_label="Kinases",
+                    wdk_step_id=440299573,
+                    positive=ControlSetEvidence(
+                        returned=[f"PF3D7_{n:07d}" for n in range(1133400, 1133407)],
+                        not_returned=[
+                            "PF3D7_0102600",
+                            "PF3D7_0213400",
+                            "PF3D7_0303900",
+                        ],
+                    ),
+                ),
+            )
+        ]
+    )
     return deps
 
 

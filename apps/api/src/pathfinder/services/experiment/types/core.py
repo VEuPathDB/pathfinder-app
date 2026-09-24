@@ -1,23 +1,10 @@
-"""Core type aliases and Literal types for the Experiment Lab."""
+"""Core type aliases and Literal types for experiment runs."""
 
 from typing import Literal
-
-type Classification = Literal["TP", "FP", "FN", "TN"]
-
-ExperimentMode = Literal["single", "multi-step", "import"]
 
 ParameterType = Literal["numeric", "integer", "categorical"]
 
 ExperimentStatus = Literal["pending", "running", "completed", "error", "cancelled"]
-
-ExperimentProgressPhase = Literal[
-    "started",
-    "evaluating",
-    "cross_validating",
-    "enriching",
-    "completed",
-    "error",
-]
 
 OptimizationObjective = Literal[
     "f1",

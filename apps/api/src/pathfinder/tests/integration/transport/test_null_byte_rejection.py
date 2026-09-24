@@ -25,7 +25,6 @@ async def test_site_id_valid_value_is_accepted(
 
 
 _NULL_BYTE_QUERY_CASES = [
-    ("/api/v1/control-sets", {"tags": "\x00", "siteId": "plasmodb"}),
     ("/api/v1/gene-sets", {"search": "\x00", "siteId": "plasmodb"}),
     ("/api/v1/conversations", {"search": "\x00"}),
 ]
@@ -50,22 +49,21 @@ async def test_null_byte_in_any_query_param_returns_422(
 
 _NULL_BYTE_BODY_CASES = [
     (
-        "/api/v1/control-sets",
+        "/api/v1/gene-sets/import",
         {
             "name": "a" + chr(0) + "b",
             "siteId": "plasmodb",
-            "recordType": "gene",
-            "positiveIds": ["PF3D7_0100100"],
-            "negativeIds": [],
+            "rawText": "PF3D7_0100100",
         },
     ),
     (
-        "/api/v1/gene-sets",
+        "/api/v1/conversations/step-counts",
         {
-            "name": "a" + chr(0) + "b",
             "siteId": "plasmodb",
-            "recordType": "gene",
-            "geneIds": ["PF3D7_0100100"],
+            "strategyAst": {
+                "recordType": "gene" + chr(0),
+                "root": {"searchName": "GenesByTaxon"},
+            },
         },
     ),
 ]
@@ -98,12 +96,11 @@ async def test_escaped_backslash_before_u0000_is_not_rejected(
     type.
     """
     response = await authed_client.post(
-        "/api/v1/gene-sets",
+        "/api/v1/gene-sets/import",
         json={
             "name": "path" + chr(92) + chr(92) + "u0000",
             "siteId": "plasmodb",
-            "recordType": "gene",
-            "geneIds": ["PF3D7_0100100"],
+            "rawText": "PF3D7_0100100",
         },
     )
     assert response.status_code != 422, response.text

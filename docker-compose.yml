@@ -18,6 +18,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      PROVIDER_KEY_ENCRYPTION_KEY: ${PROVIDER_KEY_ENCRYPTION_KEY:-}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-anthropic}
       DEFAULT_TIER: ${DEFAULT_TIER:-balanced}
@@ -104,6 +105,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      PROVIDER_KEY_ENCRYPTION_KEY: ${PROVIDER_KEY_ENCRYPTION_KEY:-}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-anthropic}
       DEFAULT_TIER: ${DEFAULT_TIER:-balanced}
@@ -165,7 +167,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a24
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a25
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -241,7 +243,7 @@ services:
       searxng:
         condition: service_started
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a24
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a25
       target: research
     restart: unless-stopped
     mem_limit: 512m

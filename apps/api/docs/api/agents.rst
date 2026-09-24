@@ -28,7 +28,7 @@ so a phase is a tool invocation rather than a node in a fixed graph.
      - Called by the Lead once a spec exists
    * - **VERIFY**
      - Test, analyse and export the result
-     - Control tests, optimization, enrichment, export
+     - Control tests, optimization, export, the evidence card
      - Called by the Lead after a build
 
 Lead Agent
@@ -113,8 +113,9 @@ VERIFY Agent
 ------------
 
 **Purpose:** Test the built strategy: control tests, parameter optimization,
-enrichment, variant comparison, and export. Its digest is what the Lead reads
-to decide whether the turn succeeded.
+variant comparison, and export. Its digest is what the Lead reads to decide
+whether the turn succeeded, and every finished check leaves an evidence card
+(:py:mod:`pathfinder.domain.evidence`) read from its control tests and the site.
 
 **Key function:** :py:func:`build_verification_agent`
 

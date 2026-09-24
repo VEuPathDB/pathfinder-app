@@ -6,7 +6,11 @@ from typing import Literal, Self
 from assistant_core.platform.pydantic_base import CamelModel, RoundedFloat
 from pydantic import ConfigDict, Field, model_validator
 from veupathdb.domain.parameters import ParamKind, ParamValue
-from veupathdb_mcp.controls import ControlValueFormat
+from veupathdb_mcp.controls import (
+    ControlValueFormat,
+    NegativeControls,
+    PositiveControls,
+)
 
 from pathfinder.services.experiment.types import (
     OptimizationObjective,
@@ -100,6 +104,9 @@ class SweepVariantResult(CamelModel):
     estimated_size: int | None = None
     positive_hits: int | None = None
     negative_hits: int | None = None
+    # Each control the trial was given, filed by whether the setting returned it.
+    positive: PositiveControls | None = None
+    negative: NegativeControls | None = None
     error: str | None = None
 
 

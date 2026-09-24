@@ -86,4 +86,27 @@ describe("SearchNode", () => {
     render(<SearchNode {...defaultProps(step)} />);
     expect(screen.getByTestId("flow-handle-source-right")).toBeTruthy();
   });
+
+  it("grows by one line when the step says why it runs its search", () => {
+    const plain = render(<SearchNode {...defaultProps(makeStep())} />);
+    const plainHeight = screen.getByTestId("rf-node-s1").style.height;
+    plain.unmount();
+    const reasoned = makeStep({
+      rationale: {
+        kind: "search",
+        searchName: "GenesByTaxon",
+        basis: "parameter",
+        term: "Organism",
+        reason: "sets Organism to Plasmodium",
+        toolCallId: "call_1",
+        short: "sets Organism",
+      },
+    });
+    render(<SearchNode {...defaultProps(reasoned)} />);
+
+    expect([plainHeight, screen.getByTestId("rf-node-s1").style.height]).toEqual([
+      "80px",
+      "96px",
+    ]);
+  });
 });

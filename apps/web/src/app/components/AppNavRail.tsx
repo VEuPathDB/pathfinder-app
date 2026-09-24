@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Bookmark,
   Brain,
-  Layers,
   MessageCircle,
   PanelLeft,
   Settings,
@@ -49,14 +48,13 @@ interface AppNavRailProps {
 }
 
 interface NavSpec {
-  slug: "conversation" | "workbench" | "saved";
+  slug: "conversation" | "saved";
   icon: LucideIcon;
   label: string;
 }
 
 const NAV: NavSpec[] = [
   { slug: "conversation", icon: MessageCircle, label: "Chat" },
-  { slug: "workbench", icon: Layers, label: "Workbench" },
   { slug: "saved", icon: Bookmark, label: "Saved strategies" },
 ];
 

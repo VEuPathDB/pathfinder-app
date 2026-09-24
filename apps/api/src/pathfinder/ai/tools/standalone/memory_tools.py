@@ -95,8 +95,8 @@ async def remember(
     """Store an explicit memory for this user.
 
     Use for biological facts the user has taught you or preferences they've
-    stated. It stores a note and nothing else: a gene set the user wants in
-    their workbench is created with ``create_workbench_gene_set``.
+    stated. It stores a note and nothing else: a gene set the user wants to
+    keep is saved with ``save_gene_set``.
 
     A preference is keyed by its name, so stating one again replaces what the
     user said before. The reply says whether it stored a new memory or updated

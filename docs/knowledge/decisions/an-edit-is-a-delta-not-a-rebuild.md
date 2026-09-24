@@ -124,7 +124,7 @@ refusal. A criterion the graph holds a step FOR is never an option, whatever the
 structure says: `fold_option_criteria` takes the live step ids, so a step the
 structure has not caught up with is refused by the shape rule rather than
 described to the model as a value to fold and drop.
-`operational_spec.py::fold_option_criteria` is what puts its stated
+`spec_fold.py::fold_option_criteria` is what puts its stated
 values on that step: the build folds the spec before it mints the tree, and the
 edit folds both sides before it measures the difference, because WDK holds an
 option as a value in the search's own parameters. A value the carrier's own text

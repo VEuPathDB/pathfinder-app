@@ -5,8 +5,14 @@ description: features/analysis moved inside features/workbench and the merged fe
 tags: [workbench, architecture, import-linter, boundaries, frontend, split]
 generated: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-05T00:00:00Z }
-status: stable
+status: superseded
 ---
+
+> Superseded in v0.2.0a15: the workbench feature and its pages are gone
+> ([VERIFY shows its evidence](verify-shows-its-evidence.md)). `FEATURE_ENTRYPOINTS`
+> and rule 6 left `check-boundaries.mjs` with the only feature that published entry
+> paths. The backend facade stays as `services/evidence/`, and contract five no
+> longer names `services.gene_sets.enrichment`.
 
 # The question
 
@@ -49,7 +55,7 @@ belongs in the entry-path map instead. The checker's core is a
 `checkSource(source, path)` function with its own `node --test` suite, run by
 pre-commit and CI beside the check itself.
 
-`pathfinder/services/workbench/` is the backend's entry, and it holds functions
+`pathfinder/services/evidence/` is the backend's entry, and it holds functions
 with bodies, never `from X import Y` lines. That is the shape
 [the WDK service layer](the-wdk-service-layer-holds-functions-not-re-exports.md)
 already chose, and the reason the no-re-export rule does not block it. A result
@@ -58,10 +64,10 @@ a type is a re-export.
 
 Import-linter contract 8 (the fifth contract in the file) is
 `source_modules = ["pathfinder.ai", "pathfinder.jobs"]`, direct-only, forbidding
-the six modules whose behaviour the facade owns:
+the modules whose behaviour the facade owns:
 `services.control_sets`, `services.experiment.control_sourcing`,
-`services.experiment.store`, `services.gene_sets.enrichment`,
-`services.gene_sets.store`, `services.parameter_optimization.sweep`.
+`services.gene_sets.enrichment`, `services.gene_sets.store`,
+`services.parameter_optimization.sweep`, `services.parameter_optimization.tunable`.
 
 Two consequences the facade forced:
 

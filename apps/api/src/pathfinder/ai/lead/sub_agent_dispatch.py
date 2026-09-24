@@ -47,17 +47,21 @@ from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
-    build_step_tree,
-    fold_option_criteria,
-    renumber_criteria,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.spec_fold import (
+    fold_option_criteria,
+)
 from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
-from pathfinder.domain.strategy.step_words import added_searches, criterion_texts
+from pathfinder.domain.strategy.spec_tree import (
+    build_step_tree,
+    renumber_criteria,
+)
+from pathfinder.domain.strategy.step_words import added_searches, step_words
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
@@ -99,7 +103,7 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
     agent_deps = agent_deps_for(deps)
     context = replace(
         agent_deps.to_strategy_context(),
-        criterion_texts=criterion_texts(spec, built.step_id_by_criterion),
+        step_words=step_words(spec, built.step_id_by_criterion),
     )
     try:
         outcome: BuildOutcome = await build_strategy_from_spec(

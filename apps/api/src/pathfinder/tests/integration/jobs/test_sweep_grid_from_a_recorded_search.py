@@ -17,10 +17,10 @@ from veupathdb.testing import FIXTURE_ROOT
 from veupathdb.wdk import WDKSearchConfig, WDKSearchResponse, WDKStep
 from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 from veupathdb_mcp.controls import (
-    ControlSetData,
     ControlTargetData,
     ControlTestResult,
     IntersectionConfig,
+    PositiveControls,
 )
 
 from pathfinder.ai.graph.runtime import Context
@@ -80,11 +80,9 @@ def recorded_search(monkeypatch: pytest.MonkeyPatch) -> list[IntersectionConfig]
                 search_name=config.target_search_name,
                 estimated_size=1200,
             ),
-            positive=ControlSetData(
-                controls_count=len(found),
-                intersection_count=len(found),
-                recall=1.0,
-            ),
+            positive=PositiveControls(recovered_ids=found, missed_ids=[])
+            if found
+            else None,
         )
 
     async def no_export(result_json: dict[str, Any], search_name: str) -> None:

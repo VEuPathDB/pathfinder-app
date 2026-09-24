@@ -28,9 +28,10 @@ from pathfinder.ai.lead import lead_tools
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone import workbench
+from pathfinder.ai.tools.standalone import gene_sets
 from pathfinder.ai.tools.toolsets import verification
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.services.conversations.message_ratings import TurnMemories
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.tests._support.database import no_database
 from pathfinder.tests._support.run_context import run_context_for
@@ -43,7 +44,7 @@ SET_NAME = "gametocyte candidates"
 @pytest.fixture
 def saved(monkeypatch: pytest.MonkeyPatch) -> list[GeneSet]:
     kept: list[GeneSet] = []
-    monkeypatch.setattr(workbench, "save_gene_set", kept.append)
+    monkeypatch.setattr(gene_sets, "store_gene_set", kept.append)
     return kept
 
 
@@ -66,7 +67,7 @@ def _verification_save() -> Any:
     while isinstance(toolset, WrapperToolset):
         toolset = toolset.wrapped
     assert isinstance(toolset, FunctionToolset)
-    return toolset.tools["create_workbench_gene_set"].function
+    return toolset.tools["save_gene_set"].function
 
 
 async def test_a_save_through_the_leads_wrapper_records_the_set(
@@ -74,7 +75,7 @@ async def test_a_save_through_the_leads_wrapper_records_the_set(
 ) -> None:
     deps = _deps()
 
-    await lead_tools.create_workbench_gene_set(
+    await lead_tools.save_gene_set(
         run_context_for(deps, "call_save"),
         name=SET_NAME,
         gene_ids=GENE_IDS,
@@ -111,7 +112,7 @@ async def test_a_save_through_the_leads_wrapper_reaches_the_turn_record(
     """The turn contract reads this record, and it outlives a durable park."""
     deps = _deps()
 
-    await lead_tools.create_workbench_gene_set(
+    await lead_tools.save_gene_set(
         run_context_for(deps, "call_save"),
         name=SET_NAME,
         gene_ids=GENE_IDS,
@@ -142,7 +143,7 @@ async def test_a_save_through_verifications_toolset_reaches_the_turn_record(
 
 
 async def _one_note(deps: LeadDeps) -> MemoryValue:
-    await lead_tools.create_workbench_gene_set(
+    await lead_tools.save_gene_set(
         run_context_for(deps, "call_save"),
         name=SET_NAME,
         gene_ids=GENE_IDS,
@@ -214,17 +215,17 @@ async def test_a_written_note_leaves_the_created_list(
     async def _no_candidates(_state: PipelineState) -> list[Any]:
         return []
 
-    async def _wrote(**kwargs: Any) -> int:
-        del kwargs
+    async def _wrote(turn: TurnMemories, **kwargs: Any) -> int:
+        del turn, kwargs
         return 1
 
     monkeypatch.setattr(nodes, "write_turn_message", _nothing)
     monkeypatch.setattr(nodes, "collect_turn_memory_candidates", _no_candidates)
-    monkeypatch.setattr(nodes, "auto_write_memories", _wrote)
+    monkeypatch.setattr(nodes, "write_turn_memories", _wrote)
     monkeypatch.setattr(nodes, "TombstoneRepository", _NoTombstones)
     monkeypatch.setattr(nodes, "compact_scratchpad", _nothing)
     deps = _deps()
-    await lead_tools.create_workbench_gene_set(
+    await lead_tools.save_gene_set(
         run_context_for(deps, "call_save"), name=SET_NAME, gene_ids=GENE_IDS
     )
     state = PipelineState(

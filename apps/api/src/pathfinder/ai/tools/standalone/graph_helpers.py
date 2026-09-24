@@ -21,7 +21,7 @@ from pathfinder.domain.strategy.explain import explain_operation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_status import step_status
 from pathfinder.domain.strategy.types import SyncStateProtocol
-from pathfinder.services.strategies.schemas import StepResponse
+from pathfinder.services.strategies.schemas import StepResponse, step_rationale_of
 
 # ---------------------------------------------------------------------------
 # Strategy naming
@@ -110,7 +110,8 @@ def build_step_response(
             combine_name(step.display_name, step.search_name, step.operator)
             or step.display_label
         ),
-        criterion_text=graph.criterion_texts.get(step.id) if graph else None,
+        criterion_text=graph.words.criterion_texts.get(step.id) if graph else None,
+        rationale=step_rationale_of(graph.words, step) if graph else None,
         search_name=step.search_name,
         record_type=record_type,
         parameters=step.parameters or None,

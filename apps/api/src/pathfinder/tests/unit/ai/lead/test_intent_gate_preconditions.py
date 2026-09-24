@@ -146,7 +146,7 @@ def test_a_classified_build_turn_reaches_frame_and_build() -> None:
     assert {"frame_problem", "build_strategy"} <= offered
 
 
-_SAVED_SET_TOOLS = frozenset({"run_gene_set_enrichment", "export_gene_set"})
+_SAVED_SET_TOOLS = frozenset({"list_gene_sets", "export_gene_set"})
 
 
 def test_a_saved_set_is_served_on_a_building_turn() -> None:

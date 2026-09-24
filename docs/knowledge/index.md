@@ -27,7 +27,7 @@ This is not a replacement for `CLAUDE.md` (rules an agent must follow every sess
 ## EDA
 
 - [EDA](eda/) - how PathFinder adopts VEuPathDB's Exploratory Data Analysis platform: the two seams and the layer placement
-- [Integration concept](eda/pathfinder-integration-concept.md) - the two seams, the workbench-style tab, and how models get EDA knowledge
+- [Integration concept](eda/pathfinder-integration-concept.md) - the two seams, an EDA tab of its own, and how models get EDA knowledge
 - [Architecture fit](eda/pathfinder-architecture-fit.md) - where every EDA concern lands in the layer model, the durable-tool mapping piece by piece, the MCP/SDK placement, and the SSOT for the analysis spec
 
 What EDA itself is, and every wire fact these two stand on, is the client library's bundle at `veupathdb-py: docs/knowledge/eda/`.

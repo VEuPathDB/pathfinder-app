@@ -19,17 +19,17 @@ interface SeriousViolation {
  * that runs after every test. Fails the test if any axe-core violation
  * with impact "serious" or "critical" is reported.
  *
- * Use this fixture instead of the base `test` for every journey and
- * cross-feature spec — the journeys exercise the breadth of the UI so
- * an a11y audit at end-of-test catches real regressions.
+ * Use this fixture instead of the base `test` for every journey spec: the
+ * journeys exercise the breadth of the UI, so an a11y audit at end-of-test
+ * catches real regressions.
  */
 export const test = baseTest.extend({
   page: async ({ page }, use, testInfo) => {
     // Run with reduced motion so entrance animations don't leave text at
     // transient sub-contrast opacity when the post-test audit fires.
     await page.emulateMedia({ reducedMotion: "reduce" });
-    // Journey/cross-feature specs are serial and gene-set heavy; start each
-    // from a clean slate so set-count assertions aren't polluted by leftovers.
+    // Journey specs are serial and read gene-set lists; start each from a
+    // clean slate so set assertions are not polluted by leftovers.
     await clearAllGeneSets(page.context(), BASE_URL);
     await use(page);
     if (testInfo.status === "skipped") return;

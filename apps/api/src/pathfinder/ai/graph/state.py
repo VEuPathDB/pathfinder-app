@@ -24,6 +24,7 @@ from pathfinder.domain.eda_thread import (
     EdaAnalysisFacts,
     OpenEdaAnalysis,
 )
+from pathfinder.domain.evidence import EvidenceCard
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
 )
@@ -39,9 +40,11 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
-    renumber_criteria,
 )
 from pathfinder.domain.strategy.revision import strategy_revision
+from pathfinder.domain.strategy.spec_tree import (
+    renumber_criteria,
+)
 from pathfinder.domain.strategy.staleness import StaleBuild
 
 PhaseName = Literal[
@@ -168,6 +171,9 @@ class StrategyDomainState(BaseModel):
     # The revision of the strategy the digest judged. The digest is the verdict
     # only while the strategy holds that revision.
     verified_revision: str = ""
+    # The evidence card of the thread's last check. A later message restates
+    # its control results from it while the strategy holds the revision it checked.
+    last_evidence_card: EvidenceCard | None = None
     last_build_outcome: BuildOutcome | None = None
     # Recomputed at the start of every Lead turn by comparing the live
     # strategy against ``last_build_outcome``. Never persisted: an edit that
@@ -360,6 +366,13 @@ class StrategyDomainState(BaseModel):
         if self.verified_revision != strategy_revision(self.answered_graph):
             return None
         return self.verification_digest
+
+    def card_of_the_strategy(self) -> EvidenceCard | None:
+        """The card of the last check, while the strategy is the one it checked."""
+        card = self.last_evidence_card
+        if card is None or card.revision != strategy_revision(self.answered_graph):
+            return None
+        return card
 
     def record_zero_results(self, outcome: BuildOutcome) -> None:
         """Add each search this build emptied, once per search."""

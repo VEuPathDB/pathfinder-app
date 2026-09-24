@@ -19,13 +19,24 @@ const QUOTA = {
   totalTokens: 123456,
   percent: 12.5,
   resetsAt: "2026-10-01T00:00:00Z",
+  ownKeyUsd: "0",
+  ownKeyTokens: 0,
+  ownKeyProviders: [] as string[],
 };
 
+const OWN_KEY_QUOTA = {
+  ...QUOTA,
+  ownKeyUsd: "3.40",
+  ownKeyTokens: 1_200_000,
+  ownKeyProviders: ["openai"],
+};
+
+let answered: typeof QUOTA = QUOTA;
 const quotaReads: string[] = [];
 const server = setupServer(
   http.get("http://localhost:3000/api/v1/me/quota", ({ request }) => {
     quotaReads.push(request.url);
-    return HttpResponse.json(QUOTA);
+    return HttpResponse.json(answered);
   }),
 );
 
@@ -33,7 +44,8 @@ beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-function renderPill(signedIn = true) {
+function renderPill(signedIn = true, quota: typeof QUOTA = QUOTA) {
+  answered = quota;
   quotaReads.length = 0;
   const { queryClient, Wrapper } = createTestWrapper();
   queryClient.setQueryData(authStatusOptions(SITE).queryKey, {
@@ -64,6 +76,31 @@ describe("QuotaPill", () => {
       ).toBeGreaterThan(0),
     );
     expect(screen.getAllByText(/123\.5K tokens · resets/).length).toBeGreaterThan(0);
+  });
+
+  it("shows the bare spend on the researcher's keys, with no limit and no bar", async () => {
+    renderPill(true, OWN_KEY_QUOTA);
+    const pill = await screen.findByLabelText("Spend on your keys");
+
+    expect(pill).toHaveTextContent("$3.40");
+    expect(pill.textContent).not.toContain("/");
+    expect(screen.queryByTestId("quota-bar")).toBeNull();
+
+    fireEvent.focus(pill);
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(
+          "On your keys this month: $3.40, 1.2M tokens. PathFinder allowance: $1.25 of $10.00. Resets Oct 1.",
+        ).length,
+      ).toBeGreaterThan(0),
+    );
+  });
+
+  it("draws the bar under the allowance when no own key is set", async () => {
+    renderPill();
+    await screen.findByLabelText("Monthly quota");
+
+    expect(screen.getByTestId("quota-bar")).toBeInTheDocument();
   });
 
   it("asks for no quota while the reader is signed out", async () => {

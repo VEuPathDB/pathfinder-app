@@ -29,9 +29,10 @@ from pathfinder.ai.lead.sub_agent_tools import (
     SubAgentCallUsage,
     SubAgentRunUsage,
     apply_agent_state,
-    phase_default_model_id,
+    phase_model_id,
 )
 from pathfinder.ai.models.catalog import context_window_for
+from pathfinder.platform.model_keys import turn_paid_by
 
 __all__ = [
     "ContextMeter",
@@ -44,6 +45,8 @@ __all__ = [
 
 def run_usage(
     event: AgentRunResultEvent[Any],
+    deps: LeadDeps,
+    role: PhaseRole,
     parent_tool_call_id: str,
 ) -> SubAgentRunUsage:
     """What one finished sub-agent run spent, as the dispatch records it."""
@@ -54,6 +57,7 @@ def run_usage(
         provider_name=response.provider_name,
         provider_url=response.provider_url,
         parent_tool_call_id=parent_tool_call_id,
+        paid_by=turn_paid_by(phase_model_id(deps.runtime, role)),
     )
 
 
@@ -66,9 +70,9 @@ def record_stopped_usage(
     """Record usage for a run that ended without a result event.
 
     A stop yields no result, so the turn's totals would otherwise drop the
-    run's tokens.
+    run's tokens. The run is priced on the model the stage ran.
     """
-    model_id = phase_default_model_id(role)
+    model_id = phase_model_id(deps.runtime, role)
     provider, _, model = model_id.partition(":")
     deps.record_sub_agent_usage(
         SubAgentRunUsage(
@@ -77,13 +81,14 @@ def record_stopped_usage(
             provider_name=provider or None,
             provider_url=None,
             parent_tool_call_id=parent_tool_call_id,
+            paid_by=turn_paid_by(model_id),
         ),
     )
 
 
 @dataclass
 class ContextMeter:
-    """The cumulative input tokens already reported for one dispatch.
+    """The model one dispatch runs, and the input tokens already reported for it.
 
     ``RunUsage.input_tokens`` accumulates over a run, so one request's input
     size is the delta between two readings. One request answers every one of
@@ -91,6 +96,7 @@ class ContextMeter:
     instead of reporting 0. A drop reads as 0.
     """
 
+    model_id: str
     seen_input: int = 0
     last_size: int = 0
 
@@ -114,8 +120,9 @@ def emit_running_usage(
     baseline: SubAgentCallUsage,
 ) -> None:
     """Push the dispatch's running tokens/cost and context fill after each
-    inner tool call. ``baseline`` is what its earlier passes spent."""
-    model_id = phase_default_model_id(role)
+    inner tool call, priced on the model the meter reads. ``baseline`` is what
+    its earlier passes spent."""
+    model_id = meter.model_id
     provider, _, model = model_id.partition(":")
     cost = baseline.cost + cost_for_run(
         usage=usage,

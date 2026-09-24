@@ -56,7 +56,7 @@ def test_a_loaded_strategy_holds_the_words_it_stored() -> None:
     )
 
     assert session.graph is not None
-    assert session.graph.criterion_texts == {"step_a": _WORDS}
+    assert session.graph.words.criterion_texts == {"step_a": _WORDS}
 
 
 def test_a_stored_step_answers_with_its_title_and_its_words() -> None:
@@ -72,7 +72,7 @@ def test_a_stored_step_answers_with_its_title_and_its_words() -> None:
 
 def test_a_live_step_answers_with_its_words() -> None:
     graph = _graph_of("step_a")
-    graph.note_criteria({"step_a": _WORDS})
+    graph.note_words(StepWords(criterion_texts={"step_a": _WORDS}))
 
     response = build_step_response(graph, graph.steps["step_a"])
 
@@ -95,27 +95,29 @@ def test_a_step_no_criterion_stated_carries_no_words() -> None:
 
 def test_a_build_takes_the_words_for_the_steps_it_writes() -> None:
     graph = StrategyGraph("g1", "GPI", "plasmodb")
-    graph.note_criteria({"step_old": "old words"})
+    graph.note_words(StepWords(criterion_texts={"step_old": "old words"}))
 
     spec_build._replace_graph_contents(
         graph,
         _leaf("step_new"),
         sync_state=WDKSyncState(),
         description=None,
-        criterion_texts={"step_new": _WORDS, "c_unbuilt": "never built"},
+        step_words=StepWords(
+            criterion_texts={"step_new": _WORDS, "c_unbuilt": "never built"}
+        ),
     )
 
-    assert graph.criterion_texts == {"step_new": _WORDS}
+    assert graph.words.criterion_texts == {"step_new": _WORDS}
 
 
 def test_a_rolled_back_batch_puts_the_words_back() -> None:
     graph = _graph_of("step_a")
-    graph.note_criteria({"step_a": _WORDS})
+    graph.note_words(StepWords(criterion_texts={"step_a": _WORDS}))
     entry = graph_labels(graph)
     old = graph.to_strategy_ast()
 
-    graph.note_criteria({"step_a": "a batch that is refused"})
+    graph.note_words(StepWords(criterion_texts={"step_a": "a batch that is refused"}))
     restore_graph(graph, old, entry)
 
-    assert graph.criterion_texts == {"step_a": _WORDS}
+    assert graph.words.criterion_texts == {"step_a": _WORDS}
     assert graph.steps["step_a"].kind is StepKind.SEARCH

@@ -79,7 +79,6 @@ FRAME_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
 }
 
 EXECUTION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
-    "add_step_analysis",
     "add_step_filter",
     "add_step_report",
     "apply_operations",
@@ -100,26 +99,20 @@ EXECUTION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
 
 VERIFICATION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "check_study_step",
-    "create_workbench_gene_set",
     "export_gene_set",
     "get_ai_expression_summary",
-    "get_confidence_scores",
     "get_download_url",
-    "get_enrichment_results",
     "get_estimated_size",
-    "get_evaluation_summary",
-    "get_experiment_config",
-    "get_result_gene_lists",
     "get_sample_records",
     "get_strategy",
-    "list_workbench_gene_sets",
+    "list_gene_sets",
     "lookup_gene_records",
     "remember",
     "request_search_inspection",
     "resolve_gene_ids_to_records",
     "run_control_tests_on_search",
     "run_control_tests_on_step",
-    "run_gene_set_enrichment",
+    "save_gene_set",
     "search_memory",
     "think",
 }

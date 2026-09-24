@@ -29,7 +29,7 @@ from pathfinder.domain.strategy.stated_shape import (
     SlotWrite,
     overwritten_slot,
 )
-from pathfinder.domain.strategy.step_words import StampedKind
+from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.services.strategies.batch_refusal import (
     entry_state,
     refusal_after_the_batch,
@@ -104,8 +104,7 @@ class GraphLabels(BaseModel):
     name: str
     description: str | None = None
     last_step_id: str | None = None
-    criterion_texts: dict[str, str] = Field(default_factory=dict)
-    analysis_kinds: dict[str, StampedKind] = Field(default_factory=dict)
+    words: StepWords = Field(default_factory=StepWords)
 
 
 def graph_labels(graph: StrategyGraph) -> GraphLabels:
@@ -114,8 +113,7 @@ def graph_labels(graph: StrategyGraph) -> GraphLabels:
         name=graph.name,
         description=graph.description,
         last_step_id=graph.last_step_id,
-        criterion_texts=dict(graph.criterion_texts),
-        analysis_kinds=dict(graph.analysis_kinds),
+        words=graph.words,
     )
 
 
@@ -140,8 +138,7 @@ def restore_graph(
     graph.name = entry.name
     graph.description = entry.description
     graph.last_step_id = entry.last_step_id
-    graph.criterion_texts = dict(entry.criterion_texts)
-    graph.analysis_kinds = dict(entry.analysis_kinds)
+    graph.words = entry.words
 
 
 def _the_tree_the_batch_leaves(
@@ -223,8 +220,7 @@ async def apply_operations_and_commit(
         raise
     renamed = bool(graph.name) and graph.name != entry_labels.name
     name_the_combines(graph.steps.values())
-    graph.note_criteria(deps.criterion_texts)
-    graph.note_analysis_kinds(deps.analysis_kinds)
+    graph.note_words(deps.step_words)
 
     refusal = refusal_after_the_batch(
         deps=deps,

@@ -2,20 +2,12 @@
 
 from fastapi import APIRouter
 
-from . import confidence, crud, enrichment, experiments, operations, records, vdi
+from . import crud, vdi
 
 _PREFIX = "/api/v1/gene-sets"
 
 router = APIRouter(tags=["gene-sets"])
 
 # Include order is the order the published spec lists these paths in.
-for _sub in (
-    crud.router,
-    operations.router,
-    enrichment.router,
-    records.router,
-    experiments.router,
-    confidence.router,
-    vdi.router,
-):
+for _sub in (crud.router, vdi.router):
     router.include_router(_sub, prefix=_PREFIX)

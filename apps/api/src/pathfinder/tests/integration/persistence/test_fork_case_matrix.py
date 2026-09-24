@@ -31,7 +31,6 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import (
     ConversationStrategy,
-    ExperimentRow,
     GeneSetRow,
 )
 from pathfinder.platform.config import get_settings
@@ -522,12 +521,11 @@ async def test_f7_a_study_service_refusal_leaves_the_branch_unbound(
     assert parent.analysis_id == "a1b2c3d4"
 
 
-# F8: library rows stay the user's; a branch owns its gene set, shares the
-# experiment it reads.
+# F8: library rows stay the user's; a branch owns its gene set.
 
 
-async def _seed_gene_set_and_experiment(user_id: UUID) -> tuple[str, str]:
-    gene_set_id, experiment_id = str(uuid4())[:50], str(uuid4())[:50]
+async def _seed_gene_set(user_id: UUID) -> str:
+    gene_set_id = str(uuid4())[:50]
     async with db.async_session_factory() as session:
         session.add(
             GeneSetRow(
@@ -541,35 +539,20 @@ async def _seed_gene_set_and_experiment(user_id: UUID) -> tuple[str, str]:
                 step_count=3,
             ),
         )
-        session.add(
-            ExperimentRow(
-                id=experiment_id,
-                site_id="plasmodb",
-                user_id=user_id,
-                name="gametocyte panel",
-                status="complete",
-            ),
-        )
         await session.commit()
-    return gene_set_id, experiment_id
+    return gene_set_id
 
 
-async def _link_library_rows(
-    conversation_id: UUID,
-    *,
-    gene_set_id: str,
-    experiment_id: str,
-) -> None:
+async def _link_gene_set(conversation_id: UUID, *, gene_set_id: str) -> None:
     async with db.async_session_factory() as session:
         row = await session.get(ConversationStrategy, conversation_id)
         assert row is not None
         row.gene_set_id = gene_set_id
         row.gene_set_auto_imported = True
-        row.experiment_id = experiment_id
         await session.commit()
 
 
-async def test_f8_a_branch_owns_its_gene_set_and_keeps_reading_the_experiment(
+async def test_f8_a_branch_owns_its_gene_set(
     patch_app_db_engine: None,
     db_cleaner: None,
     monkeypatch: pytest.MonkeyPatch,
@@ -580,12 +563,8 @@ async def test_f8_a_branch_owns_its_gene_set_and_keeps_reading_the_experiment(
     install_fake_push(monkeypatch)
     user_id = await seed_user()
     thread = await four_turn_thread(user_id)
-    gene_set_id, experiment_id = await _seed_gene_set_and_experiment(user_id)
-    await _link_library_rows(
-        thread.conversation_id,
-        gene_set_id=gene_set_id,
-        experiment_id=experiment_id,
-    )
+    gene_set_id = await _seed_gene_set(user_id)
+    await _link_gene_set(thread.conversation_id, gene_set_id=gene_set_id)
 
     fork_id = await _fork(
         source_conversation_id=thread.conversation_id,
@@ -599,7 +578,6 @@ async def test_f8_a_branch_owns_its_gene_set_and_keeps_reading_the_experiment(
     assert parent is not None
     assert branch.gene_set_id is None
     assert branch.gene_set_auto_imported is False
-    assert branch.experiment_id == experiment_id
     assert parent.gene_set_id == gene_set_id
     assert parent.gene_set_auto_imported is True
 

@@ -14,6 +14,7 @@ from uuid import UUID, uuid4
 import pytest
 from assistant_core import quota
 from assistant_core.platform.db import DBSessionFactory
+from assistant_core.platform.types import PaidBy
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -92,8 +93,10 @@ def _charged_capture() -> _LeadRunCapture:
     return capture
 
 
-def _recording_quota(monkeypatch: pytest.MonkeyPatch) -> list[tuple[int, Decimal]]:
-    billed: list[tuple[int, Decimal]] = []
+def _recording_quota(
+    monkeypatch: pytest.MonkeyPatch,
+) -> list[tuple[PaidBy, int, Decimal]]:
+    billed: list[tuple[PaidBy, int, Decimal]] = []
 
     async def accumulate(
         session: AsyncSession,
@@ -101,9 +104,10 @@ def _recording_quota(monkeypatch: pytest.MonkeyPatch) -> list[tuple[int, Decimal
         user_id: UUID | None,
         tokens: int,
         cost_usd: Decimal,
+        paid_by: PaidBy,
     ) -> None:
         del session, user_id
-        billed.append((tokens, cost_usd))
+        billed.append((paid_by, tokens, cost_usd))
 
     monkeypatch.setattr(quota, "accumulate", accumulate)
     return billed
@@ -122,7 +126,7 @@ async def test_the_usage_event_the_quota_and_the_checkpoint_agree(
     delta = _build_state_delta(state=state, deps=deps, capture=capture, memories=[])
 
     assert (shown_tokens, shown) == (510, "1.125")
-    assert billed == [(_SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)]
+    assert billed == [(PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)]
     assert delta["turn_total_cost_usd"] == _TURN_COST
     assert delta["turn_total_tokens"] == 510
 
@@ -138,7 +142,7 @@ async def test_a_refused_quota_write_bills_nothing_and_keeps_the_turn_total(
     state = _state()
     deps = _deps(state)
     capture = _charged_capture()
-    attempted: list[tuple[int, Decimal]] = []
+    attempted: list[tuple[PaidBy, int, Decimal]] = []
 
     async def refuse(
         session: AsyncSession,
@@ -146,9 +150,10 @@ async def test_a_refused_quota_write_bills_nothing_and_keeps_the_turn_total(
         user_id: UUID | None,
         tokens: int,
         cost_usd: Decimal,
+        paid_by: PaidBy,
     ) -> None:
         del session, user_id
-        attempted.append((tokens, cost_usd))
+        attempted.append((paid_by, tokens, cost_usd))
         statement = "insert into usage_quota"
         raise OperationalError(statement, {}, Exception("no connection"))
 
@@ -157,7 +162,9 @@ async def test_a_refused_quota_write_bills_nothing_and_keeps_the_turn_total(
     await _persist_residual_quota(deps.runtime, state, capture)
     delta = _build_state_delta(state=state, deps=deps, capture=capture, memories=[])
 
-    assert attempted == [(_SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)]
+    assert attempted == [
+        (PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)
+    ]
     assert capture.billed_outside_the_lead == SpendOutsideTheLead()
     assert capture.charged_cost == _LEAD_COST
     assert capture.tool_cost == _CHARGE
@@ -182,7 +189,9 @@ async def test_a_commit_the_database_refuses_ends_the_write_and_not_the_turn(
     await _persist_residual_quota(deps.runtime, state, capture)
     delta = _build_state_delta(state=state, deps=deps, capture=capture, memories=[])
 
-    assert attempted == [(_SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)]
+    assert attempted == [
+        (PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)
+    ]
     assert capture.billed_outside_the_lead == SpendOutsideTheLead()
     assert capture.charged_cost == _LEAD_COST
     assert delta["turn_total_cost_usd"] == _TURN_COST
@@ -200,5 +209,5 @@ async def test_one_search_is_billed_to_the_quota_once(
     await _persist_residual_quota(deps.runtime, state, capture)
     await _persist_residual_quota(deps.runtime, state, capture)
 
-    assert billed == [(_SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)]
+    assert billed == [(PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)]
     assert capture.spend_outside_the_lead() == capture.billed_outside_the_lead

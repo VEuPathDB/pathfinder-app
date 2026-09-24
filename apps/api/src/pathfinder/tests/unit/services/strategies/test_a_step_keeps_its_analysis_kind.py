@@ -94,7 +94,7 @@ def test_a_loaded_strategy_holds_the_kinds_it_stored() -> None:
     )
 
     assert session.graph is not None
-    assert session.graph.analysis_kinds == {
+    assert session.graph.words.analysis_kinds == {
         "step_a": StampedKind(search_name=DESEQ_SEARCH, kind=AnalysisKind.COMPUTE)
     }
 
@@ -112,7 +112,7 @@ def test_a_rolled_back_batch_puts_the_kinds_back() -> None:
     )
     restore_graph(graph, old, entry)
 
-    assert graph.analysis_kinds == {
+    assert graph.words.analysis_kinds == {
         "step_a": StampedKind(search_name=DESEQ_SEARCH, kind=AnalysisKind.COMPUTE)
     }
 

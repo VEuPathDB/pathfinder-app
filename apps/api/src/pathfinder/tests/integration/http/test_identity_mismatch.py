@@ -139,9 +139,8 @@ class TestARouteRefusesTheSecondAccount:
         self,
         mismatched: httpx.AsyncClient,
     ) -> None:
-        response = await mismatched.post(
-            f"/api/v1/gene-sets/{uuid4()}/enrich",
-            json={"enrichmentTypes": ["go_function"]},
+        response = await mismatched.get(
+            f"/api/v1/gene-sets/{uuid4()}/vdi-publication",
         )
 
         _assert_identity_mismatch(response)
@@ -193,9 +192,8 @@ class TestRefreshRelinksTheSessionToTheTokensAccount:
 
         async with client_for(app, relinked_user_id) as client:
             client.headers[WDK_AUTH_HEADER] = another_veupathdb_account
-            response = await client.post(
-                f"/api/v1/gene-sets/{uuid4()}/enrich",
-                json={"enrichmentTypes": ["go_function"]},
+            response = await client.get(
+                f"/api/v1/gene-sets/{uuid4()}/vdi-publication",
             )
 
         assert response.status_code == _NOT_FOUND, response.text

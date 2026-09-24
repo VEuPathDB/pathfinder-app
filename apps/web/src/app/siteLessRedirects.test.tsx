@@ -10,10 +10,8 @@ vi.mock("next/navigation", () => ({
   redirect: (url: string) => redirectMock(url),
 }));
 
-import { chatRoot, workbenchGeneSetUrl, workbenchRoot } from "@/lib/routes";
+import { chatRoot } from "@/lib/routes";
 import BareConversationPage from "./conversation/page";
-import BareWorkbenchItemPage from "./workbench/[id]/page";
-import BareWorkbenchPage from "./workbench/page";
 
 function site(over: Partial<SiteResponse>): SiteResponse {
   return {
@@ -73,32 +71,13 @@ describe("site-less entry points", () => {
     expect(redirectMock.mock.calls).toEqual([["/toxodb/conversation"]]);
   });
 
-  it("sends a site-less workbench path to the first available site", async () => {
-    answerWith([PORTAL_DOWN, site({ id: "plasmodb" })]);
-
-    await BareWorkbenchPage();
-
-    expect(redirectMock.mock.calls).toEqual([[workbenchRoot("plasmodb")]]);
-  });
-
-  it("keeps the gene set id when it sends a site-less workbench item to an available site", async () => {
-    answerWith([PORTAL_DOWN, site({ id: "plasmodb" })]);
-
-    await BareWorkbenchItemPage({ params: Promise.resolve({ id: "gs-42" }) });
-
-    expect(redirectMock.mock.calls).toEqual([
-      [workbenchGeneSetUrl("plasmodb", "gs-42")],
-    ]);
-    expect(redirectMock).toHaveBeenCalledWith("/plasmodb/workbench/gs-42");
-  });
-
   it("shows the not-ready screen instead of redirecting when no site answers", async () => {
     answerWith([
       PORTAL_DOWN,
       site({ id: "toxodb", available: false, unavailableReason: "ConnectError" }),
     ]);
 
-    render(await BareWorkbenchPage());
+    render(await BareConversationPage());
 
     expect(redirectMock).not.toHaveBeenCalled();
     expect(screen.getByText(/no database is responding/i)).toBeInTheDocument();

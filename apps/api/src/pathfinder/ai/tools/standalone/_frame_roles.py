@@ -7,6 +7,7 @@ from veupathdb.wdk import WDKSearch
 from veupathdb_mcp import tool_payloads
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone.catalog import record_a_listing
 from pathfinder.domain.strategy.operational_spec import CriterionRole
 
 
@@ -38,7 +39,7 @@ async def refuse_a_role_the_search_cannot_take(
         )
         offered = sorted(listing.name for listing in listings)
         # A name the refusal offers is a name the model has seen.
-        ctx.deps.agent_state.record_catalog_searches(offered)
+        record_a_listing(ctx, "list_transforms", record_type, listings)
         msg = (
             f"{search_name} takes no input step, so it cannot be a transform. "
             f'Bind it with role="filter" or role="seed", or name one of the '

@@ -46,33 +46,11 @@ GATED: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/conversations/{conversation_id:uuid}/insert-saved"),
         # The researcher's own strategies on one site.
         ("GET", "/api/v1/sites/{siteId}/strategies"),
-        # Gene sets: the routes that materialize or read a WDK dataset.
-        ("POST", "/api/v1/gene-sets"),
-        ("POST", "/api/v1/gene-sets/{gene_set_id}/retake"),
-        ("POST", "/api/v1/gene-sets/{gene_set_id}/enrich"),
-        ("GET", "/api/v1/gene-sets/{gene_set_id}/results/attributes"),
-        ("GET", "/api/v1/gene-sets/{gene_set_id}/results/records"),
-        (
-            "GET",
-            "/api/v1/gene-sets/{gene_set_id}/results/distributions/{attribute_name}",
-        ),
-        ("POST", "/api/v1/gene-sets/{gene_set_id}/results/record"),
         # Publishing a set writes a dataset into the researcher's own account.
         ("POST", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
         ("GET", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
-        # Experiments: the routes that run or read a WDK strategy.
-        ("POST", "/api/v1/experiments"),
-        ("POST", "/api/v1/experiments/batch"),
-        ("POST", "/api/v1/experiments/benchmark"),
-        ("POST", "/api/v1/experiments/seed"),
-        ("POST", "/api/v1/experiments/{experiment_id}/threshold-sweep"),
-        ("GET", "/api/v1/experiments/{experiment_id}/results/attributes"),
-        ("GET", "/api/v1/experiments/{experiment_id}/results/records"),
-        (
-            "GET",
-            "/api/v1/experiments/{experiment_id}/results/distributions/{attribute_name}",
-        ),
-        ("POST", "/api/v1/experiments/{experiment_id}/results/record"),
+        # The demo seed builds strategies in the researcher's own account.
+        ("POST", "/api/v1/seed"),
         # EDA: every route reads the caller's own EDA account, and resolving
         # the analysis user goes through WDK.
         ("GET", "/api/v1/eda/studies"),
@@ -105,9 +83,6 @@ UNGATED_BUT_REACHES_WDK: dict[tuple[str, str], str] = {
         "/api/v1/sites/{siteId}/record-types",
     ): "User-independent catalog read.",
     ("GET", "/api/v1/sites/{siteId}/searches"): "User-independent catalog read.",
-    ("GET", "/api/v1/sites/{siteId}/organisms"): "User-independent vocabulary read.",
-    ("GET", "/api/v1/sites/{siteId}/genes/search"): "User-independent answer read.",
-    ("POST", "/api/v1/sites/{siteId}/genes/resolve"): "User-independent answer read.",
     (
         "POST",
         "/api/v1/sites/{siteId}/searches/{recordType}/{searchName}/validate",

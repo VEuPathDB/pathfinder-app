@@ -233,12 +233,12 @@ async def test_a_stored_step_with_no_kind_is_stamped_once_at_the_turn_entry(
     """A strategy stored before kinds existed reads the catalog, then carries it."""
     thread = _thread(monkeypatch, _carried())
     read = serve_the_catalog(monkeypatch)
-    assert thread.graph.analysis_kinds == {}
+    assert thread.graph.words.analysis_kinds == {}
 
     await thread.next_turn()
     await thread.next_turn()
 
-    assert thread.graph.analysis_kinds == {
+    assert thread.graph.words.analysis_kinds == {
         _EXPORTED: StampedKind(search_name=COMPUTE_QUERY, kind=AnalysisKind.COMPUTE)
     }
     assert read == [COMPUTE_QUERY]

@@ -5,8 +5,14 @@ description: A gene list given by value becomes a temporary WDK dataset and runs
 tags: [wdk-alignment, enrichment, services, mcp]
 generated: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
-status: stable
+status: superseded
 ---
+
+> Superseded in v0.2.0a15: PathFinder runs no enrichment. GO, pathway and word
+> enrichment are analyses the site runs on a step, from the link on the evidence card
+> ([VERIFY shows its evidence](verify-shows-its-evidence.md)). The by-value path stays
+> in `veupathdb-mcp` (`veupathdb_mcp/wdk/enrichment/`), and
+> `services/enrichment/stats.py` now serves the card's hypergeometric row only.
 
 # What was decided
 
@@ -22,7 +28,7 @@ from, because a wrong column name yields an empty column rather than an error
 
 # Rejected: computing the over-representation in process
 
-`services/enrichment/stats.py:hypergeometric_log_sf` is exact and already serves
+`services/enrichment/stats.py:hypergeometric_log_sf` is exact and then served
 `run_custom_enrichment`, so a second enrichment could have been written over it.
 It would answer with a different background than the site's own pages.
 

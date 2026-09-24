@@ -25,12 +25,14 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    build_step_tree,
-    renumber_criteria,
 )
 from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_diff import CriterionChange
+from pathfinder.domain.strategy.spec_tree import (
+    build_step_tree,
+    renumber_criteria,
+)
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 

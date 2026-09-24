@@ -22,7 +22,7 @@ from pathfinder.domain.strategy.operations.resolutions import (
     why_the_graph_refuses_the_delete,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.step_words import StampedKind
+from pathfinder.domain.strategy.step_words import StampedKind, StepWords
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
@@ -205,7 +205,7 @@ async def apply_operation(
             strategy_session=session,
             conversation_id=conversation_id,
             locked_session=locked,
-            analysis_kinds=analysis_kinds or {},
+            step_words=StepWords(analysis_kinds=dict(analysis_kinds or {})),
         )
         commit = await apply_and_commit(deps=ctx, op=op)
         refuse_a_push_the_site_turned_down(commit.failures)

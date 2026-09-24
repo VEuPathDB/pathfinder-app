@@ -6,7 +6,9 @@ intersection counts returned by :func:`run_positive_negative_controls`.
 
 import math
 
-from veupathdb_mcp.controls import ControlSetData, ControlTargetData, ControlTestResult
+from veupathdb_mcp.controls import (
+    ControlTestResult,
+)
 
 from pathfinder.services.experiment.types import (
     ConfusionMatrix,
@@ -92,61 +94,6 @@ def compute_metrics(
         total_positives=tp + fn,
         total_negatives=tn + fp,
     )
-
-
-def evaluate_gene_ids_against_controls(
-    *,
-    gene_ids: list[str],
-    positive_controls: list[str],
-    negative_controls: list[str],
-    site_id: str = "",
-    record_type: str = "",
-) -> ControlTestResult:
-    """Evaluate a gene set against controls using pure set intersection.
-
-    No WDK calls -- the gene set already has its results.  Returns a
-    :class:`ControlTestResult` that :func:`metrics_from_control_result` and
-    :func:`extract_and_hydrate_genes` consume.
-    """
-    gene_set = set(gene_ids)
-    pos = [s.strip() for s in positive_controls if s.strip()]
-    neg = [s.strip() for s in negative_controls if s.strip()]
-
-    result = ControlTestResult(
-        site_id=site_id,
-        record_type=record_type,
-        target=ControlTargetData(
-            search_name="__gene_set__",
-            estimated_size=len(gene_ids),
-        ),
-    )
-
-    if pos:
-        pos_hits = [g for g in pos if g in gene_set]
-        pos_missing = [g for g in pos if g not in gene_set]
-        result.positive = ControlSetData(
-            controls_count=len(pos),
-            intersection_count=len(pos_hits),
-            intersection_ids=pos_hits,
-            intersection_ids_sample=pos_hits[:50],
-            target_estimated_size=len(gene_ids),
-            missing_ids_sample=pos_missing[:50],
-            recall=len(pos_hits) / len(pos) if pos else None,
-        )
-
-    if neg:
-        neg_hits = [g for g in neg if g in gene_set]
-        result.negative = ControlSetData(
-            controls_count=len(neg),
-            intersection_count=len(neg_hits),
-            intersection_ids=neg_hits,
-            intersection_ids_sample=neg_hits[:50],
-            target_estimated_size=len(gene_ids),
-            unexpected_hits_sample=neg_hits[:50],
-            false_positive_rate=len(neg_hits) / len(neg) if neg else None,
-        )
-
-    return result
 
 
 def metrics_from_control_result(result: ControlTestResult) -> ExperimentMetrics:

@@ -21,7 +21,7 @@ interface SeedCompleteFrame extends SeedFrame {
   error: string | null;
 }
 
-/** The typed frames of one `/api/v1/experiments/seed` stream. */
+/** The typed frames of one `/api/v1/seed` stream. */
 function seedFrames(body: string): SeedFrame[] {
   return body
     .split("\n")
@@ -30,12 +30,11 @@ function seedFrames(body: string): SeedFrame[] {
 }
 
 /**
- * Feature: User data purge — verified against real PostgreSQL + Redis.
+ * Feature: User data purge, verified against real PostgreSQL.
  *
  * Tests that DELETE /api/v1/user/data clears ALL data:
  * - strategies (active + dismissed) across all sites
  * - gene sets across all sites
- * - Redis streams
  * - WDK strategies (best-effort)
  */
 test.describe("User Data Purge", () => {
@@ -43,28 +42,18 @@ test.describe("User Data Purge", () => {
     chatPage,
     apiClient,
     sitePicker,
-    workbenchSidebarPage,
     page,
-    seedData,
   }) => {
-    // Create data on plasmodb
+    // Create data on plasmodb: a conversation and a gene set saved from it.
     await chatPage.goto();
     await sitePicker.selectSite("plasmodb");
     await chatPage.newChat("plasmodb");
     await chatPage.send("test message for plasmodb");
     await chatPage.expectAssistantMessage(/\[mock\]/);
-
-    // Add a gene set on plasmodb (site-explicit — bare /workbench would
-    // redirect to the default site and create the set on the wrong one).
-    await page.goto("/plasmodb/workbench");
-    await expect(page.getByRole("heading", { name: /gene sets/i })).toBeVisible();
-    await workbenchSidebarPage.openAddModal();
-    await page.getByLabel(/name/i).fill("Plasmo Genes");
-    await page
-      .getByLabel(/gene ids/i)
-      .fill(seedData.plasmoGenes.slice(0, 2).join("\n"));
-    await page.getByRole("button", { name: /add gene set/i }).click();
-    await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 10_000 });
+    await chatPage.expectIdle();
+    await chatPage.send("Save PF3D7_0709000 and PF3D7_1133400 as a gene set");
+    await expect(page.getByTestId("data-gene-set")).toBeVisible({ timeout: 90_000 });
+    await chatPage.expectIdle();
 
     // Verify data exists
     const beforeStrategies = await apiClient.get(
@@ -139,7 +128,7 @@ test.describe("User Data Purge", () => {
     const allSiteIds = sites.map((s) => s.id);
 
     // Seed all databases — creates strategies + control sets across all sites.
-    const seedResp = await apiClient.post("/api/v1/experiments/seed", {
+    const seedResp = await apiClient.post("/api/v1/seed", {
       headers: { Accept: "text/event-stream" },
       timeout: 300_000,
     });

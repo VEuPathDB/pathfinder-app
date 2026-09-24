@@ -3,8 +3,8 @@ import { test, expect } from "../fixtures/test";
 /**
  * Feature: Phase 2a/2b chat flows — exploratory variant comparison, the
  * consult_user design-question gate, and attaching a gene-ID file to seed a
- * control set. Only the LLM is mocked; variant runs + gene-ID resolution hit
- * real WDK, and the control set is verified through the REST API.
+ * control set. Only the LLM is mocked; variant runs and gene-ID resolution hit
+ * real WDK.
  */
 test.describe("Experiment chat flows", () => {
   test.describe.configure({ mode: "serial" });
@@ -35,9 +35,8 @@ test.describe("Experiment chat flows", () => {
     await chatPage.expectIdle();
   });
 
-  test("attaching a gene-ID file seeds a control set", async ({
+  test("attaching a gene-ID file builds a control set from its ids", async ({
     chatPage,
-    apiClient,
   }) => {
     const csv = ["geneId,product", "PF3D7_0709000,CRT", "PF3D7_1133400,AMA1"].join(
       "\n",
@@ -47,15 +46,10 @@ test.describe("Experiment chat flows", () => {
     await chatPage.expectAssistantMessage(/control set/i, { timeout: 90_000 });
     await chatPage.expectIdle();
 
-    // The control set was persisted with the resolved positive IDs.
-    const resp = await apiClient.get("/api/v1/control-sets?siteId=plasmodb");
-    expect(resp.ok()).toBeTruthy();
-    const sets = (await resp.json()) as Array<{
-      name: string;
-      positiveIds: string[];
-    }>;
-    const uploaded = sets.find((s) => s.name === "Controls from controls.csv");
-    expect(uploaded).toBeTruthy();
-    expect(uploaded?.positiveIds).toContain("PF3D7_0709000");
+    // The turn's trace names the call that stored the set.
+    const reply = chatPage.assistantReply(/control set/i);
+    await expect(
+      reply.getByTestId("trace-row").filter({ hasText: "Build control set" }),
+    ).toHaveCount(1);
   });
 });

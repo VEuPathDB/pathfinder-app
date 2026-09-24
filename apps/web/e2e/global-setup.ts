@@ -6,7 +6,7 @@ import type { APIRequestContext } from "@playwright/test";
  * a route's module graph and renders it cold on the first request, so the
  * first spec to reach one pays a cost that has nothing to do with what it
  * asserts. The cost is per pattern, not per parameter value, so one site and
- * one id cover every conversation and workbench route.
+ * one id cover every conversation route.
  */
 const ID = "00000000-0000-0000-0000-000000000001";
 const SITE = "plasmodb";
@@ -14,15 +14,11 @@ const SITE = "plasmodb";
 const ROUTES = [
   "/",
   "/conversation",
-  "/workbench",
-  `/workbench/${ID}`,
   `/${SITE}/conversation`,
   `/${SITE}/conversation/${ID}`,
   `/${SITE}/conversation/${ID}/strategy`,
   `/${SITE}/conversation/${ID}/strategy/step/${ID}`,
   `/${SITE}/conversation/${ID}/eda`,
-  `/${SITE}/workbench`,
-  `/${SITE}/workbench/${ID}`,
   `/${SITE}/saved`,
 ];
 

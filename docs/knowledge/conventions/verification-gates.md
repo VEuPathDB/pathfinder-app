@@ -66,7 +66,7 @@ project environment: an older interpreter on `PATH` reports every PEP 758, PEP
 2. Services never import transport or AI.
 3. Persistence never imports services, transport or AI.
 4. The science never imports an assistant's composition root.
-5. The agent and the jobs reach the workbench only through its facade.
+5. The agent and the jobs reach the evidence producers only through its facade.
 6. The application imports no private module of an installed distribution.
 
 The sixth names each library's `_*` modules one by one, because a forbidden

@@ -1,11 +1,6 @@
-"""WDK strategy materialization for experiments.
-
-Creates, persists, and cleans up WDK strategies from experiment configs,
-including step tree materialization for multi-step and import modes.
-"""
+"""WDK strategy materialization: a step tree as WDK steps."""
 
 from assistant_core.platform.logging import get_logger
-from assistant_core.platform.types import JSONObject
 from veupathdb.domain.strategy import (
     DEFAULT_COMBINE_OPERATOR,
     ColocationParams,
@@ -13,7 +8,6 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     walk,
 )
-from veupathdb.errors import ValidationError
 from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
@@ -21,11 +15,6 @@ from veupathdb.wdk import (
     WDKSearchConfig,
     WDKStepTree,
     encode_params,
-    get_strategy_api,
-)
-
-from pathfinder.services.experiment.types import (
-    ExperimentConfig,
 )
 
 logger = get_logger(__name__)
@@ -124,105 +113,3 @@ async def _materialize_step(
     )
     step_id = step.id
     return WDKStepTree(step_id=step_id)
-
-
-async def _persist_experiment_strategy(
-    config: ExperimentConfig,
-    experiment_id: str,
-    *,
-    override_tree: StrategyStepNode | None = None,
-) -> JSONObject:
-    """Create a persisted WDK strategy for result exploration.
-
-    Handles all experiment modes:
-
-    * **single**: one search step.
-    * **multi-step**: recursively materialise the ``step_tree``.
-    * **import**: duplicate the step tree from an existing WDK strategy.
-
-    :param config: Experiment configuration.
-    :param experiment_id: Unique experiment identifier.
-    :param override_tree: If provided, materialise this tree instead of the
-        config's ``step_tree`` (used after tree optimisation).
-    :returns: Dict with ``strategy_id`` and ``step_id``.
-    """
-    api = get_strategy_api(config.site_id)
-    mode = config.mode or "single"
-
-    if mode == "import" and config.source_strategy_id and override_tree is None:
-        return await _persist_import_strategy(api, config, experiment_id)
-
-    effective_tree = override_tree or config.step_tree
-    if mode in ("multi-step", "import") and effective_tree is not None:
-        root_tree = await _materialize_step_tree(
-            api, effective_tree, config.record_type
-        )
-    else:
-        step_payload = await api.create_step(
-            NewStepSpec(
-                search_name=config.search_name,
-                search_config=WDKSearchConfig(
-                    parameters=encode_params(config.parameters)
-                ),
-                custom_name=f"Experiment: {config.name}",
-            ),
-            record_type=config.record_type,
-        )
-        step_id = step_payload.id
-        root_tree = WDKStepTree(step_id=step_id)
-
-    created = await api.create_strategy(
-        step_tree=root_tree,
-        name=f"exp:{experiment_id}",
-        description=f"Persisted strategy for experiment {config.name}",
-        is_internal=True,
-    )
-    strategy_id = created.id
-
-    logger.info(
-        "Persisted WDK strategy for experiment",
-        experiment_id=experiment_id,
-        strategy_id=strategy_id,
-        step_id=root_tree.step_id,
-    )
-    return {"strategy_id": strategy_id, "step_id": root_tree.step_id}
-
-
-async def _persist_import_strategy(
-    api: StrategyAPI,
-    config: ExperimentConfig,
-    experiment_id: str,
-) -> JSONObject:
-    """Import an existing WDK strategy by duplicating its step tree.
-
-    Uses the WDK ``duplicated-step-tree`` endpoint to copy the source
-    strategy's step tree into a new set of unattached steps.
-
-    :param api: Strategy API instance.
-    :param config: Experiment configuration (must have ``source_strategy_id``).
-    :param experiment_id: Unique experiment identifier.
-    :returns: Dict with ``strategy_id`` and ``step_id``.
-    """
-    if not config.source_strategy_id:
-        msg = "source_strategy_id is required for import mode"
-        raise ValidationError(detail=msg)
-    source_id = int(config.source_strategy_id)
-
-    dup_tree = await api.get_duplicated_step_tree(source_id)
-
-    # The duplicated tree already carries real WDK step ids.
-    created = await api.create_strategy(
-        step_tree=dup_tree,
-        name=f"exp:{experiment_id}",
-        description=f"Imported strategy for experiment {config.name}",
-        is_internal=True,
-    )
-    strategy_id = created.id
-
-    logger.info(
-        "Persisted imported WDK strategy for experiment",
-        experiment_id=experiment_id,
-        strategy_id=strategy_id,
-        step_id=dup_tree.step_id,
-    )
-    return {"strategy_id": strategy_id, "step_id": dup_tree.step_id}

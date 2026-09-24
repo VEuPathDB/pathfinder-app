@@ -77,7 +77,7 @@ async def test_an_unread_compute_step_is_read_and_answers_its_cut(
     assert (check.thresholds.significance_threshold, check.method) == (0.05, "DESeq")
     assert read == [COMPUTE_QUERY]
     assert session.graph is not None
-    assert session.graph.analysis_kinds == {
+    assert session.graph.words.analysis_kinds == {
         "step_de": StampedKind(search_name=COMPUTE_QUERY, kind=AnalysisKind.COMPUTE)
     }
 

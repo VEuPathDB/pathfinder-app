@@ -208,15 +208,9 @@ export the result into the strategy as a WDK step.
 Gene Sets and Export
 --------------------
 
-**Purpose:** Read and write workbench gene sets, and export a strategy, a gene
-set or an experiment result.
+**Purpose:** Save and list gene sets, and export a strategy or a gene set.
 
-.. automodule:: pathfinder.ai.tools.standalone.workbench
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.ai.tools.standalone.workbench_read
+.. automodule:: pathfinder.ai.tools.standalone.gene_sets
    :members:
    :undoc-members:
    :show-inheritance:

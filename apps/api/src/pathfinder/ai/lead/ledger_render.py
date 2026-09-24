@@ -82,6 +82,9 @@ def _render_criterion(crit: Criterion) -> list[str]:
     ]
     if crit.analysis is not None:
         out.append(f"    selects: {crit.analysis.words}")
+    reason = crit.step_rationale
+    if reason is not None:
+        out.append(f"    WHY {reason.line()}")
     out.extend(f"    {name}={value!r}" for name, value in crit.resolved_params.items())
     out.extend(f"    OPEN {s.param_name}: {s.question}" for s in crit.open_params)
     out.extend(

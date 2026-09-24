@@ -7,7 +7,7 @@ matrix case. The requests themselves live in ``_authz_matrix_cases``.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, get_args
 from uuid import UUID
@@ -54,38 +54,19 @@ CONVERSATION = Resource(
         }
     ),
 )
-EXPERIMENT = Resource(
-    "experiment",
-    frozenset(
-        {
-            "experiment_id",
-            "experimentId",
-            "experiment_ids",
-            "experimentIds",
-            "parent_experiment_id",
-            "parentExperimentId",
-        }
-    ),
-)
 GENE_SET = Resource(
     "gene set",
     frozenset(
         {
             "gene_set_id",
             "geneSetId",
-            "gene_set_ids",
-            "geneSetIds",
-            "set_a_id",
-            "setAId",
-            "set_b_id",
-            "setBId",
         }
     ),
 )
 CONTROL_SET = Resource("control set", frozenset({"control_set_id", "controlSetId"}))
 MEMORY = Resource("memory", prefix="/api/v1/memories")
 
-RESOURCES = (CONVERSATION, EXPERIMENT, GENE_SET, CONTROL_SET, MEMORY)
+RESOURCES = (CONVERSATION, GENE_SET, CONTROL_SET, MEMORY)
 
 # Routes that carry a resource key but read or write no instance of it.
 NOT_RESOURCE_SCOPED: dict[tuple[str, str, str], str] = {
@@ -95,56 +76,6 @@ NOT_RESOURCE_SCOPED: dict[tuple[str, str, str], str] = {
         "/api/v1/feedback/actions",
     ): "Langfuse telemetry: the id is an analytics label, and the route reads "
     "and writes no PathFinder-owned resource.",
-    (
-        CONTROL_SET.name,
-        "POST",
-        "/api/v1/experiments",
-    ): "controlSetId is provenance on the experiment config. The controls come "
-    "from the request body, and no code path loads the control set by that id.",
-    (
-        CONTROL_SET.name,
-        "POST",
-        "/api/v1/experiments/batch",
-    ): "Same provenance-only controlSetId, reached through the nested base config.",
-    (
-        CONTROL_SET.name,
-        "POST",
-        "/api/v1/experiments/benchmark",
-    ): "Same provenance-only controlSetId, in the nested base config and in each "
-    "control set entry.",
-    (
-        EXPERIMENT.name,
-        "POST",
-        "/api/v1/experiments",
-    ): "parentExperimentId is provenance on the experiment config. Nothing loads "
-    "an experiment by it; it is only stored and serialized.",
-    (
-        EXPERIMENT.name,
-        "POST",
-        "/api/v1/experiments/batch",
-    ): "Same provenance-only parentExperimentId, in the nested base config.",
-    (
-        EXPERIMENT.name,
-        "POST",
-        "/api/v1/experiments/benchmark",
-    ): "Same provenance-only parentExperimentId, in the nested base config.",
-}
-
-# Routes whose owner request is answered by WDK, which VEuPathDB serves to
-# registered users only. Their owner contrast carries the test account's token.
-WDK_BACKED: dict[tuple[str, str], str] = {
-    (
-        "POST",
-        "/api/v1/experiments/{experiment_id}/results/record",
-    ): "the record comes from WDK",
-    (
-        "POST",
-        "/api/v1/gene-sets/{gene_set_id}/enrich",
-    ): "the enrichment runs on WDK",
-    (
-        "POST",
-        "/api/v1/gene-sets/{gene_set_id}/results/record",
-    ): "the record comes from WDK",
 }
 
 
@@ -202,7 +133,7 @@ class Owned:
     unclaimed_conversation_id: UUID
     note_id: str
     message_id: UUID
-    experiment_ids: tuple[str, str]
+    reply_id: UUID
     gene_set_ids: tuple[str, str]
     control_set_id: UUID
     memory_key: str
@@ -285,15 +216,6 @@ def stale_exclusions(app: FastAPI) -> list[str]:
         if excluded is None or not _is_scoped(excluded, by_name[resource_name]):
             stale.append(f"{resource_name} {method} {path} ({reason})")
     return stale
-
-
-def wdk_backed_indexes(blueprints: Sequence[Case]) -> tuple[int, ...]:
-    """Positions in ``blueprints`` whose owner request is answered by WDK."""
-    return tuple(
-        index
-        for index, case in enumerate(blueprints)
-        if (case.method, case.route) in WDK_BACKED
-    )
 
 
 async def status_for(client: httpx.AsyncClient, case: Case) -> int:

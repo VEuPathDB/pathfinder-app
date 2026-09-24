@@ -4,7 +4,8 @@ Next.js UI for PathFinder. It provides:
 
 - **Chat interface**: a durable, resumable thread that renders the agent's reply, its tool trace, its figures and its background tasks
 - **Strategy graph editing**: visual strategy builder with node/edge operations, combine steps, and parameter editing
-- **EDA and workbench**: exploratory subsetting and visualization, gene set management, enrichment and cross-validation panels
+- **EDA**: exploratory subsetting and visualization of study data
+- **Evidence in the thread**: control tests, comparisons and gene-set figures, each with its own actions (a gene set can be published to VEuPathDB or deleted)
 
 ### Project structure
 
@@ -14,7 +15,6 @@ src/
     [siteId]/                   #   Every user-facing route is site-scoped
       (app)/conversation/       #     Thread, and its strategy / EDA panes
       (app)/saved/              #     Saved strategies
-      workbench/                #     Workbench, and one page per workbench id
     api/v1/chat/                #   The one hand-written proxy route (chat POST)
     api/telemetry/              #   Browser telemetry sink
     components/                 #   App-level shell components
@@ -49,20 +49,16 @@ src/
       parameters/               #     Parameter coercion and spec helpers
       validation/               #     Save validation, formatting, zero-result advisor
       services/ hooks/ page/
-    workbench/                  #   Multi-panel analysis over gene sets and experiments
-      analysis/                 #     Enrichment, distribution and validation panels
-      api/                      #     Its entry points: geneSets, controlSets, streaming
   lib/                          # Shared, not feature-specific
     api/                        #   http.ts (base request + Zod validation), client.ts,
-                                #     conversations.ts, strategy.ts, sites.ts, errors.ts,
-                                #     veupathdb-auth.ts
+                                #     conversations.ts, strategy.ts, sites.ts, geneSets.ts,
+                                #     errors.ts, veupathdb-auth.ts
     query/                      #   React Query client, keys, hooks, invalidation, test helpers
     components/                 #   Shared shells (QueryBoundary, Modal, spinners, charts)
     color/ config/ eda/ errors/ hooks/ markdown/ models/ parameters/ sse/ telemetry/ types/ utils/
   state/                        # Global state (Zustand stores)
     useSessionStore.ts          #   Chat session state
     useSettingsStore.ts         #   User preferences
-    useWorkbenchStore.ts        #   Workbench panels and context
     useRightRailStore.ts        #   Right rail selection
     useAuthGateStore.ts         #   Login gate
     eda.ts                      #   EDA analysis state
@@ -116,7 +112,7 @@ live in `components/ui/` (shadcn, the `components.json` target). Per-site themin
 `features/sites/siteTheme.ts`.
 
 **Real API + test-only mock LLM for E2E**: Playwright tests call live VEuPathDB APIs for gene
-searches, enrichment and catalog browsing. Only the LLM chat call is mocked, and only through the
+searches, strategy builds and catalog browsing. Only the LLM chat call is mocked, and only through the
 dedicated test profile (`PATHFINDER_CHAT_PROVIDER=mock`). Worker isolation uses
 `/dev/login?user_id=worker-{N}` so parallel workers do not interfere. VEuPathDB refuses guest
 service calls, so every worker also carries the registered account's token in its

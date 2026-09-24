@@ -1,9 +1,14 @@
-"""The four control-test gene lists, including a control set that read no ids."""
+"""The four control-test gene lists read the ids each control set filed."""
 
 from __future__ import annotations
 
 import pytest
-from veupathdb_mcp.controls import ControlSetData, ControlTargetData, ControlTestResult
+from veupathdb_mcp.controls import (
+    ControlTargetData,
+    ControlTestResult,
+    NegativeControls,
+    PositiveControls,
+)
 from veupathdb_mcp.gene_lookup import GeneResolveResult
 
 from pathfinder.services.experiment import helpers
@@ -20,7 +25,7 @@ def _no_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _result(
-    positive: ControlSetData | None = None, negative: ControlSetData | None = None
+    positive: PositiveControls | None = None, negative: NegativeControls | None = None
 ) -> ControlTestResult:
     return ControlTestResult(
         site_id="plasmodb",
@@ -31,25 +36,18 @@ def _result(
     )
 
 
-async def test_the_four_lists_read_the_identifiers_each_control_set_carries() -> None:
+async def test_the_four_lists_read_the_identifiers_each_control_set_filed() -> None:
     result = _result(
-        positive=ControlSetData(
-            controls_count=3,
-            intersection_count=2,
-            intersection_ids=["PF3D7_0100100", "PF3D7_0100200"],
-            missing_ids_sample=["PF3D7_0100300"],
+        positive=PositiveControls(
+            recovered_ids=["PF3D7_0100100", "PF3D7_0100200"],
+            missed_ids=["PF3D7_0100300"],
         ),
-        negative=ControlSetData(
-            controls_count=2,
-            intersection_count=1,
-            intersection_ids=["PF3D7_0200100"],
-            missing_ids_sample=["PF3D7_0200200"],
+        negative=NegativeControls(
+            admitted_ids=["PF3D7_0200100"], excluded_ids=["PF3D7_0200200"]
         ),
     )
 
-    tp, fn, fp, tn = await extract_and_hydrate_genes(
-        site_id="plasmodb", result=result, negative_controls=None
-    )
+    tp, fn, fp, tn = await extract_and_hydrate_genes(site_id="plasmodb", result=result)
 
     assert [g.id for g in tp] == ["PF3D7_0100100", "PF3D7_0100200"]
     assert [g.id for g in fn] == ["PF3D7_0100300"]
@@ -57,39 +55,14 @@ async def test_the_four_lists_read_the_identifiers_each_control_set_carries() ->
     assert [g.id for g in tn] == ["PF3D7_0200200"]
 
 
-async def test_a_control_set_that_read_no_ids_names_no_gene() -> None:
-    """Over the answer-page limit a control set carries a count and no ids.
-
-    One of the two negative controls was hit, so a list of both as true
-    negatives would contradict the count the same result carries.
-    """
+async def test_a_kind_the_test_was_not_given_names_no_gene() -> None:
     result = _result(
-        negative=ControlSetData(controls_count=2, intersection_count=1),
+        positive=PositiveControls(recovered_ids=["PF3D7_0100100"], missed_ids=[]),
     )
 
-    _tp, _fn, fp, tn = await extract_and_hydrate_genes(
-        site_id="plasmodb",
-        result=result,
-        negative_controls=["PF3D7_0200100", "PF3D7_0200200"],
-    )
+    tp, fn, fp, tn = await extract_and_hydrate_genes(site_id="plasmodb", result=result)
 
-    assert [g.id for g in fp] == []
-    assert [g.id for g in tn] == []
-
-
-async def test_the_true_negatives_fall_back_to_the_controls_the_step_missed() -> None:
-    result = _result(
-        negative=ControlSetData(
-            controls_count=2,
-            intersection_count=1,
-            intersection_ids=["PF3D7_0200100"],
-        ),
-    )
-
-    _tp, _fn, _fp, tn = await extract_and_hydrate_genes(
-        site_id="plasmodb",
-        result=result,
-        negative_controls=["PF3D7_0200100", "PF3D7_0200200"],
-    )
-
-    assert [g.id for g in tn] == ["PF3D7_0200200"]
+    assert [g.id for g in tp] == ["PF3D7_0100100"]
+    assert fn == []
+    assert fp == []
+    assert tn == []

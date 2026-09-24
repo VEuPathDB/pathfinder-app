@@ -76,38 +76,3 @@ async def test_a_resolved_gene_set_is_still_created(
     )
 
     assert gs.gene_ids == ["PF3D7_0100100", "PF3D7_0100200"]
-
-
-async def test_a_set_operation_may_still_yield_an_empty_result(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """An empty intersection IS the answer the user asked for - never blocked."""
-    _stub_resolve(monkeypatch, ["PF3D7_0100100"])
-    store = GeneSetStore()
-    svc = GeneSetService(store)
-    user_id = uuid4()
-
-    left = await svc.create(
-        user_id=user_id,
-        name="left",
-        site_id="plasmodb",
-        gene_ids=["PF3D7_0100100"],
-        source="paste",
-    )
-    right = await svc.create(
-        user_id=user_id,
-        name="right",
-        site_id="plasmodb",
-        gene_ids=["PF3D7_9999999"],
-        source="paste",
-    )
-
-    derived = await svc.perform_set_operation(
-        user_id=user_id,
-        set_a_id=left.id,
-        set_b_id=right.id,
-        operation="intersect",
-        name="no overlap",
-    )
-
-    assert derived.gene_ids == []

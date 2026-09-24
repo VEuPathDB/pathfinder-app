@@ -12,8 +12,9 @@ from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 from pathfinder.domain.strategy.step_words import AddedSearch
 
 _ADDED_SEARCHES = (
-    "The search each step this turn added runs, by its name on the site, and "
-    "the words it stands for. The reply names every one of them."
+    "The search each step this turn added runs, by its name on the site, the "
+    "words it stands for, and why it was chosen over the searches the catalog "
+    "answered. The reply names every one and gives its reason beside the name."
 )
 
 

@@ -107,6 +107,11 @@ a partial push.
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: pathfinder.services.strategies.site_counts
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. automodule:: pathfinder.services.strategies.sync_state
    :members:
    :undoc-members:

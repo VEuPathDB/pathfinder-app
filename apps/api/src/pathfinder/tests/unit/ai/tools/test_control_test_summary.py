@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 from pydantic_ai import RunContext
 from veupathdb_mcp.controls import (
-    ControlSetData,
     ControlTestResult,
     IntersectionConfig,
+    PositiveControls,
 )
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
@@ -20,10 +20,10 @@ from pathfinder.services.experiment.published_names import PublishedNames
 def test_the_summary_carries_recall_precision_mcc_and_the_knobs() -> None:
     counts = _ControlCounts.model_validate(
         {
-            "positiveIntersection": 8,
-            "positiveControlsCount": 10,
-            "negativeIntersection": 2,
-            "negativeControlsCount": 10,
+            "positiveRecoveredIds": [f"P{index}" for index in range(8)],
+            "positiveMissedIds": ["P8", "P9"],
+            "negativeAdmittedIds": ["N0", "N1"],
+            "negativeExcludedIds": [f"N{index}" for index in range(2, 10)],
             "tunableParameters": ["organism", "scope"],
         }
     )
@@ -39,8 +39,8 @@ def test_a_positive_only_test_reports_recall_alone() -> None:
     """No negative ran, so precision 1.00 and MCC 0.00 are not measurements."""
     counts = _ControlCounts.model_validate(
         {
-            "positiveIntersection": 3,
-            "positiveControlsCount": 5,
+            "positiveRecoveredIds": ["P0", "P1", "P2"],
+            "positiveMissedIds": ["P3", "P4"],
             "tunableParameters": [],
         }
     )
@@ -70,10 +70,10 @@ async def test_a_standalone_search_test_names_the_searchs_knobs(
         negative_controls: list[str] | None = None,
     ) -> ControlTestResult:
         del config, negative_controls
+        controls = positive_controls or []
         return ControlTestResult(
-            positive=ControlSetData(
-                controls_count=len(positive_controls or []),
-                intersection_count=1,
+            positive=PositiveControls(
+                recovered_ids=controls[:1], missed_ids=controls[1:]
             ),
         )
 

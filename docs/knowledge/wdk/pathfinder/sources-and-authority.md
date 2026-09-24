@@ -39,11 +39,11 @@ and it runs a site model neither of these two runs:
 
 # A test that would break is not a test that checks
 
-The live end-to-end test at
-`apps/api/src/pathfinder/tests/integration/strategies/test_wdk_verification.py::test_go_process_enrichment_returns_real_kinase_terms`
-would fail if the enrichment form defaults stopped being sent. It is still not evidence
-for that rule: it asserts nothing about parameters, it is gated on `live_wdk` credentials
-so it does not run in CI, and it would fail for a hundred unrelated reasons.
+A live end-to-end run of an analysis would fail if the form defaults stopped being sent.
+It is still not evidence for that rule: it asserts nothing about parameters, it is gated
+on `live_wdk` credentials so it does not run in CI, and it fails for many unrelated
+reasons. PathFinder runs no analysis of its own since the site took GO, pathway and word
+enrichment back ([VERIFY shows its evidence](../../decisions/verify-shows-its-evidence.md)).
 
 The defaults themselves are the tool server's: `veupathdb-mcp:
 src/veupathdb_mcp/wdk/params.py` reads the form document and copies every

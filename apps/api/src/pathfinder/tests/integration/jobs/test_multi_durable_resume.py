@@ -21,9 +21,10 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
 from veupathdb_mcp.controls import (
-    ControlSetData,
     ControlTargetData,
     ControlTestResult,
+    NegativeControls,
+    PositiveControls,
 )
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
@@ -95,12 +96,9 @@ def failing_second_step(
             site_id="plasmodb",
             record_type="transcript",
             target=ControlTargetData(step_id=wdk_step_id, estimated_size=132),
-            positive=ControlSetData(
-                controls_count=len(found),
-                intersection_count=len(found),
-                intersection_ids_sample=found,
-                recall=1.0,
-            ),
+            positive=PositiveControls(recovered_ids=found, missed_ids=[])
+            if found
+            else None,
         )
 
     monkeypatch.setattr(control_tests_impl, "run_step_control_tests", _run_step)
@@ -122,13 +120,10 @@ def controls_wire(monkeypatch: pytest.MonkeyPatch) -> None:
             site_id="plasmodb",
             record_type="transcript",
             target=ControlTargetData(step_id=wdk_step_id, estimated_size=132),
-            positive=ControlSetData(
-                controls_count=len(found),
-                intersection_count=len(found),
-                intersection_ids_sample=found,
-                recall=1.0 if found else None,
-            ),
-            negative=ControlSetData(controls_count=len(neg), intersection_count=0)
+            positive=PositiveControls(recovered_ids=found, missed_ids=[])
+            if found
+            else None,
+            negative=NegativeControls(admitted_ids=[], excluded_ids=neg)
             if neg
             else None,
         )

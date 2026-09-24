@@ -13,7 +13,7 @@ from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ResolvedParams
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.tools.standalone import _frame_count, frame_spec
+from pathfinder.ai.tools.standalone import _frame_count
 from pathfinder.domain.strategy.operational_spec import OpenSlot
 from pathfinder.tests.unit.ai.tools.conftest import summary_of
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
@@ -23,6 +23,7 @@ from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     genes_by_text,
     serve_resolution,
     serve_search,
+    set_criterion_as_read,
 )
 
 _GIARDIA: Proposals = {
@@ -205,7 +206,7 @@ async def test_the_trace_line_states_the_count(
     _serve_count(monkeypatch, 3)
     state = AgentToolState()
 
-    returned = await frame_spec.set_criterion(
+    returned = await set_criterion_as_read(
         frame_ctx(state),
         criterion_id="c1",
         text="variant surface proteins",
@@ -214,7 +215,9 @@ async def test_the_trace_line_states_the_count(
     )
 
     chunk = summary_of(returned)
-    assert chunk.data["summary"] == "c1 set to GenesByText, 3 transcripts"
+    assert chunk.data["summary"] == (
+        "c1 set to GenesByText, 3 transcripts, sets text_expression"
+    )
     assert chunk.data["status"] == "ok"
 
 
@@ -226,7 +229,7 @@ async def test_a_binding_that_matches_nothing_says_so(
     _serve_count(monkeypatch, 0)
     state = AgentToolState()
 
-    returned = await frame_spec.set_criterion(
+    returned = await set_criterion_as_read(
         frame_ctx(state),
         criterion_id="c1",
         text="variant surface proteins",
@@ -236,7 +239,8 @@ async def test_a_binding_that_matches_nothing_says_so(
 
     chunk = summary_of(returned)
     assert chunk.data["summary"] == (
-        "c1 set to GenesByText, 0 transcripts; text_search_organism has 2 options"
+        "c1 set to GenesByText, 0 transcripts; text_search_organism has 2 "
+        "options, sets text_expression"
     )
     assert chunk.data["status"] == "empty"
 
@@ -249,7 +253,7 @@ async def test_a_count_that_did_not_arrive_leaves_the_plain_line(
     asked = _serve_count(monkeypatch, None)
     state = AgentToolState()
 
-    returned = await frame_spec.set_criterion(
+    returned = await set_criterion_as_read(
         frame_ctx(state),
         criterion_id="c1",
         text="variant surface proteins",
@@ -258,7 +262,7 @@ async def test_a_count_that_did_not_arrive_leaves_the_plain_line(
     )
 
     chunk = summary_of(returned)
-    assert chunk.data["summary"] == "c1 set to GenesByText"
+    assert chunk.data["summary"] == "c1 set to GenesByText, sets text_expression"
     assert chunk.data["status"] == "ok"
     assert len(asked) == 1, "the count was asked for and did not answer"
 

@@ -9,13 +9,16 @@ from veupathdb.domain.strategy import (
     StepReport,
     StepValidation,
     StrategyAst,
+    StrategyStep,
     StrategyStepNode,
     flatten_tree,
 )
 
 from pathfinder.domain.strategy.combine_naming import combine_name
+from pathfinder.domain.strategy.step_rationale import AnalysisRationale, StepRationale
 from pathfinder.domain.strategy.step_status import StepStatus, step_status
 from pathfinder.domain.strategy.step_words import StepWords
+from pathfinder.services.eda.export import exported_analysis
 
 
 class StepResponse(CamelModel):
@@ -26,6 +29,8 @@ class StepResponse(CamelModel):
     display_name: str | None = None
     # The researcher's words the step stands for; the title names the search.
     criterion_text: str | None = None
+    # Why the step runs what it runs: its analysis's compute, else the search choice.
+    rationale: StepRationale | None = None
     search_name: str | None = None
     record_type: str | None = None
     parameters: dict[str, ParamValue] | None = None
@@ -52,12 +57,24 @@ class StepResponse(CamelModel):
     expanded_name: str | None = None
 
 
+def step_rationale_of(
+    words: StepWords, step: StrategyStep | StrategyStepNode
+) -> StepRationale | None:
+    """Why the step runs what it runs: its analysis document, else the stored choice."""
+    kind = words.kind_of(step.id, step.search_name)
+    binding = exported_analysis(kind, step.parameters)
+    if binding is not None:
+        return AnalysisRationale.of(binding)
+    return words.rationale_of(step.id, step.search_name)
+
+
 def step_response_from_strategy_ast(
     payload: StrategyAst, step: StrategyStepNode
 ) -> StepResponse:
     counts = payload.step_counts or {}
     ids = payload.wdk_step_ids or {}
     validations = payload.step_validations or {}
+    words = StepWords.of(payload)
 
     wdk_step_id = ids.get(step.id)
     if wdk_step_id is None and step.id.isdigit():
@@ -70,7 +87,8 @@ def step_response_from_strategy_ast(
             combine_name(step.display_name, step.search_name, step.operator)
             or step.display_label
         ),
-        criterion_text=StepWords.of(payload).criterion_texts.get(step.id),
+        criterion_text=words.criterion_texts.get(step.id),
+        rationale=step_rationale_of(words, step),
         search_name=step.search_name,
         record_type=payload.record_type,
         parameters=step.parameters,

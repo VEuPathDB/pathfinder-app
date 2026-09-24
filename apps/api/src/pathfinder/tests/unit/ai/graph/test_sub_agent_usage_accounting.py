@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from assistant_core.platform.types import PaidBy
 from pydantic_ai.messages import (
     FunctionToolCallEvent,
     FunctionToolResultEvent,
@@ -43,6 +44,7 @@ def _pass(tokens: int) -> SubAgentRunUsage:
         provider_name=_PROVIDER,
         provider_url=None,
         parent_tool_call_id=_CALL_ID,
+        paid_by=PaidBy.DEPLOYMENT,
     )
 
 
@@ -67,6 +69,7 @@ def test_two_dispatches_keep_their_own_totals() -> None:
         provider_name=_PROVIDER,
         provider_url=None,
         parent_tool_call_id="mock_verify_strategy_cbd25d3576",
+        paid_by=PaidBy.DEPLOYMENT,
     )
 
     absorb_sub_agent_usage(capture, _pass(2441))

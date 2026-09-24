@@ -6,10 +6,11 @@ The scaffolding at the top is shared with the other frame test modules.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import (
     MultiPickValue,
@@ -32,6 +33,7 @@ from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import _frame_count, frame_spec
 from pathfinder.ai.tools.standalone._frame_proposals import DeclaredAssumption
+from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
 from pathfinder.ai.tools.standalone.frame_drop import drop_criterion
 from pathfinder.ai.tools.standalone.frame_spec import (
     SetCriterionResult,
@@ -45,6 +47,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.catalog_builders import ParamsAt
+from pathfinder.tests._support.catalog_reads import listing
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -180,7 +183,45 @@ def serve_search(
     serve_definition(monkeypatch)
     no_validation(monkeypatch)
     no_count(monkeypatch)
+    serve_site_listing(monkeypatch, [])
     return serve_catalog(monkeypatch, catalog or [], properties, **fields)
+
+
+def serve_site_listing(
+    monkeypatch: pytest.MonkeyPatch, rows: list[dict[str, str]]
+) -> None:
+    """The site's searches of the record type, as ``list_searches`` answers."""
+    monkeypatch.setattr(searches, "list_searches", AsyncMock(return_value=rows))
+
+
+def default_why(search_name: str, params: Proposals) -> SearchChoice:
+    """A choice every seeded listing backs: the first value the call sets."""
+    stated = next((name for name, value in params.items() if value is not None), None)
+    if stated is None:
+        return SearchChoice(
+            basis="only_match", term=search_name, reason=f"only {search_name} fits"
+        )
+    return SearchChoice(basis="parameter", term=stated, reason=f"sets {stated}")
+
+
+async def set_criterion_as_read(
+    ctx: RunContext[AgentDeps],
+    *,
+    criterion_id: str,
+    text: str,
+    search_name: str,
+    params: Proposals,
+) -> ToolReturn[SetCriterionResult]:
+    """``set_criterion`` after a listing that names the search, with a reason it backs."""
+    ctx.deps.agent_state.record_catalog_read(listing([search_name]))
+    return await set_criterion(
+        ctx,
+        criterion_id=criterion_id,
+        text=text,
+        search_name=search_name,
+        params=params,
+        why=default_why(search_name, params),
+    )
 
 
 async def bind(
@@ -192,6 +233,8 @@ async def bind(
     text: str = "kinases",
     assumed: list[DeclaredAssumption] | None = None,
 ) -> SetCriterionResult:
+    """Bind after a listing that names the search, with a reason it backs."""
+    state.record_catalog_read(listing([search_name]))
     return returned(
         await set_criterion(
             frame_ctx(state),
@@ -200,6 +243,7 @@ async def bind(
             search_name=search_name,
             params=params,
             assumed=assumed,
+            why=None if params is None else default_why(search_name, params),
         ),
         SetCriterionResult,
     )

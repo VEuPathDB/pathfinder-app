@@ -11,6 +11,7 @@ from pydantic_ai import Agent, RunContext
 from pathfinder.ai.agents._model_resolution import (
     resolve_orchestrator_model_entry,
 )
+from pathfinder.platform.model_keys import keyed_model
 
 _COMPACTOR_INSTRUCTIONS = f"""\
 You are compacting a researcher's working notebook. Merge redundant notes, \
@@ -37,7 +38,7 @@ def build_compactor_agent(
 ) -> Agent[CompactorDeps, CompactionResult]:
     entry = resolve_orchestrator_model_entry(model_id, None)
     agent: Agent[CompactorDeps, CompactionResult] = Agent(
-        entry.id,
+        keyed_model(entry.id),
         deps_type=CompactorDeps,
         output_type=CompactionResult,
         instructions=_COMPACTOR_INSTRUCTIONS,

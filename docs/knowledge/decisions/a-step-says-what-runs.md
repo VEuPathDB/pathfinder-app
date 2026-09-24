@@ -35,16 +35,20 @@ nothing matched it says so. The number changes that sentence and nothing else.
 **A step is titled by its search.** `Criterion.search_display_name` is set by
 `set_criterion`, and a leaf or transform built from a criterion carries it as
 `display_name`, which the push sends as WDK's `customName`. The researcher's
-words ride beside the tree: `StrategyGraph.criterion_texts`, stored in the AST's
+words ride beside the tree: `StrategyGraph.words`, stored in the AST's
 `metadata` as `StepWords`, served as `StepResponse.criterionText`, drawn as the
 node subtitle and in the step editor header. A restated step keeps its name
 unless its search changed, so a researcher's rename survives a value edit.
 
 **A re-import from WDK loses the words.** WDK stores no criterion text.
 `services/strategies/wdk_sync.py::upsert_chat` replaces the stored AST with the
-one `build_snapshot_from_wdk` reads from the site, which carries no `metadata`,
-so a strategy re-imported from WDK holds no `StepWords`: its steps show no
-subtitle, and a step it holds is not one the reply rule asks the reply to name.
+one `build_snapshot_from_wdk` reads from the site, which carries no criterion
+text in its `metadata`, so a strategy re-imported from WDK holds no words: its
+steps show no subtitle, and a step it holds is not one the reply rule asks the
+reply to name. A search step loses the reason its search was chosen the same
+way, and the reply rule asks for no reason it cannot have. An analysis step
+keeps its reason, because it is read from the document the step carries (see
+[a criterion says why its search was chosen](a-criterion-says-why-its-search-was-chosen.md)).
 
 **The reply names what the turn added.** A build and an edit record the searches
 of the steps they added on `TurnMarkers.added_searches` and return them as

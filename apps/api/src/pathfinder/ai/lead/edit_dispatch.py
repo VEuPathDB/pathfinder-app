@@ -51,8 +51,6 @@ from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
-    fold_option_criteria,
-    stated_wire_values,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
@@ -62,6 +60,10 @@ from pathfinder.domain.strategy.spec_diff import (
     CriterionDisposition,
     SpecDiff,
     diff_specs,
+)
+from pathfinder.domain.strategy.spec_fold import (
+    fold_option_criteria,
+    stated_wire_values,
 )
 from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,

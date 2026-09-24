@@ -50,7 +50,7 @@ that builds.
   reusable control set.
 - ``list_control_sets`` -- The user's saved control sets for this site.
 - ``read_gene_ids_from_gene_set`` / ``read_gene_ids_from_strategy``
-  -- Read the gene IDs of a workbench gene set or another conversation, to use
+  -- Read the gene IDs of a saved gene set or another conversation, to use
   as positive or negative controls. Neither saves a control set.
 
 FRAME
@@ -125,22 +125,10 @@ sweep that runs for minutes.
 - ``optimize_search_parameters`` -- Optimize parameters against control gene
   lists. Durable, requires approval.
 
-**Experiment reads**
-
-- ``get_evaluation_summary`` -- Classification metrics and confusion counts.
-- ``get_enrichment_results`` -- GO term, pathway and word enrichment.
-- ``get_confidence_scores`` -- Cross-validation confidence scores.
-- ``get_step_contributions`` -- Per-step recall and FPR deltas.
-- ``get_experiment_config`` -- Configuration, status and WDK ids.
-- ``get_ensemble_analysis`` -- Full ensemble step analysis.
-- ``get_result_gene_lists`` -- Gene IDs for one classification category.
-
 **Gene sets and export**
 
-- ``create_workbench_gene_set`` -- Create a gene set in the workbench.
-- ``run_gene_set_enrichment`` -- Enrichment on a gene set. Durable, and
-  offered only when the turn's delta warrants it.
-- ``list_workbench_gene_sets`` -- Gene sets in the workbench.
+- ``save_gene_set`` -- Save a gene set from a step or from a list of ids.
+- ``list_gene_sets`` -- The gene sets the user saved on this site.
 - ``export_gene_set`` -- Export a gene set as CSV or TXT.
 - ``lookup_gene_records`` / ``resolve_gene_ids_to_records`` -- Genes by text,
   and known IDs to full records.
@@ -182,8 +170,8 @@ Two mechanics change how a call ends.
   ``optimize_search_parameters`` are declared ``requires_approval=True``. The
   SDK emits a ``tool-approval-request`` chunk and the turn waits for the
   user's answer.
-- **Durable.** ``run_control_tests_on_step``, ``optimize_search_parameters``,
-  ``run_gene_set_enrichment`` and ``run_eda_compute`` are wrapped with
+- **Durable.** ``run_control_tests_on_step``, ``optimize_search_parameters``
+  and ``run_eda_compute`` are wrapped with
   ``@durable_tool``. They defer to the worker and answer on a new turn.
   Each is registered ``sequential=True``: one parked call is checkpointed per
   turn, so a batch that fired two of them would leave the second unanswered.

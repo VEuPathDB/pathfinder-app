@@ -1,4 +1,4 @@
-"""Four enums the browser names must reach it as named schema components.
+"""The enums the browser names must reach it as named schema components.
 
 An inline ``Literal`` field generates a nested per-field type in the client, so
 the browser hand-writes the union and the two copies drift. Each name below is
@@ -46,14 +46,8 @@ class _Properties(BaseModel):
 _EXPECTED_VALUES: dict[str, list[str]] = {
     "ModelProvider": ["openai", "anthropic", "google", "ollama", "mock"],
     "ReasoningEffort": ["none", "low", "medium", "high"],
-    "Classification": ["TP", "FP", "FN", "TN"],
-    "EnrichmentAnalysisType": [
-        "go_function",
-        "go_component",
-        "go_process",
-        "pathway",
-        "word",
-    ],
+    "Rating": ["like", "dislike"],
+    "SiteRead": ["read", "not_answered", "not_read"],
 }
 
 
@@ -95,19 +89,22 @@ def test_the_enum_carries_its_wire_values(
             {"$ref": "#/components/schemas/ReasoningEffort"},
         ),
         (
-            "ClassifiedRecord",
-            "classification",
+            "MessageRatingRequest",
+            "rating",
             {
-                "anyOf": [
-                    {"$ref": "#/components/schemas/Classification"},
-                    {"type": "null"},
-                ]
+                "$ref": "#/components/schemas/Rating",
+                "description": "The researcher's word on the message.",
             },
         ),
         (
-            "EnrichmentResult",
-            "analysisType",
-            {"$ref": "#/components/schemas/EnrichmentAnalysisType"},
+            "RatedMessage",
+            "rating",
+            {"$ref": "#/components/schemas/Rating"},
+        ),
+        (
+            "EvidenceCard",
+            "siteRead",
+            {"$ref": "#/components/schemas/SiteRead"},
         ),
     ],
 )
@@ -121,11 +118,11 @@ def test_the_field_references_the_component(
     assert fields[field_name] == expected
 
 
-def test_the_enrichment_chunk_carries_typed_results(
+def test_the_evidence_card_carries_typed_control_tests(
     schemas: dict[str, JSONObject],
 ) -> None:
-    chunk = _Properties.model_validate(schemas["EnrichmentResultsChunk"])
-    results = chunk.properties["results"]
+    card = _Properties.model_validate(schemas["EvidenceCard"])
+    controls = card.properties["controls"]
 
-    assert results["type"] == "array"
-    assert results["items"] == {"$ref": "#/components/schemas/EnrichmentResult"}
+    assert controls["type"] == "array"
+    assert controls["items"] == {"$ref": "#/components/schemas/ControlTestEvidence"}

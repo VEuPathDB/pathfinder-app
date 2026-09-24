@@ -16,10 +16,6 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.testing import (
-    NO_CREDENTIALS_REASON,
-    wdk_test_account,
-)
 
 from pathfinder.platform.config import get_settings
 from pathfinder.tests.integration.http._authz_matrix_cases import cases
@@ -28,19 +24,17 @@ from pathfinder.tests.integration.http._authz_matrix_owned import (
     placeholder_owned,
 )
 from pathfinder.tests.integration.http._authz_matrix_support import (
-    EXPERIMENT,
+    GENE_SET,
     NO_OWNER_CONTRAST,
     OWNER_REFUSAL_STATUSES,
     REFUSAL_STATUSES,
     RESOURCES,
-    WDK_BACKED,
     Owned,
     Resource,
     registered_routes,
     scoped_routes,
     stale_exclusions,
     status_for,
-    wdk_backed_indexes,
 )
 from pathfinder.tests.integration.http.conftest import (
     client_for,
@@ -50,29 +44,6 @@ from pathfinder.tests.integration.http.conftest import (
 )
 
 _BLUEPRINTS = cases(placeholder_owned())
-_WDK_BACKED_INDEXES = wdk_backed_indexes(_BLUEPRINTS)
-
-
-def _wdk_backed_id(index: int) -> str:
-    return f"{_BLUEPRINTS[index].method} {_BLUEPRINTS[index].route}"
-
-
-# Each WDK-backed case skips under its own name, so the run reports which
-# owner contrasts did not happen and why.
-_WDK_BACKED_CASES = [
-    pytest.param(
-        index,
-        id=_wdk_backed_id(index),
-        marks=pytest.mark.skipif(
-            not wdk_test_account().is_named,
-            reason=(
-                f"{NO_CREDENTIALS_REASON}; owner case not contrasted: "
-                f"{_wdk_backed_id(index)}"
-            ),
-        ),
-    )
-    for index in _WDK_BACKED_INDEXES
-]
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -97,7 +68,7 @@ async def owned(
 
 
 class _NestedTarget(BaseModel):
-    experiment_id: str
+    gene_set_id: str
 
 
 class _NestedBody(BaseModel):
@@ -129,11 +100,6 @@ def test_every_exclusion_names_a_route_the_matrix_would_otherwise_demand(
         for (method, route), waiver in NO_OWNER_CONTRAST.items()
         if (method, route) not in covered
     ]
-    stale += [
-        f"{method} {route} ({reason})"
-        for (method, route), reason in WDK_BACKED.items()
-        if (method, route) not in covered
-    ]
     assert stale == [], f"authz matrix exclusions that name nothing: {stale}"
 
 
@@ -145,7 +111,7 @@ def test_a_resource_id_behind_a_list_and_an_optional_is_still_classified() -> No
     async def _endpoint(body: _NestedBody) -> None:
         del body
 
-    assert scoped_routes(probe, EXPERIMENT) == {("POST", "/api/v1/probe")}
+    assert scoped_routes(probe, GENE_SET) == {("POST", "/api/v1/probe")}
 
 
 @pytest.mark.parametrize("resource", RESOURCES, ids=lambda r: r.name)
@@ -258,8 +224,6 @@ async def test_the_owner_is_not_refused_by_any_route(
 
     A refusal here means the non-owner's refusal proves nothing. Every case
     gets its own resources, so a case that deletes cannot disturb the next.
-    The cases WDK answers are contrasted by
-    :func:`test_the_owner_is_not_refused_by_a_wdk_backed_route`.
     """
     del patch_app_db_engine, in_memory_jobs, signed_in_to_veupathdb
 
@@ -267,7 +231,7 @@ async def test_the_owner_is_not_refused_by_any_route(
     contrasted = 0
     for index, blueprint in enumerate(_BLUEPRINTS):
         key = (blueprint.method, blueprint.route)
-        if key in NO_OWNER_CONTRAST or key in WDK_BACKED:
+        if key in NO_OWNER_CONTRAST:
             continue
         fresh = await create_owned(db_session, app_memory_store)
         case = cases(fresh)[index]
@@ -277,38 +241,11 @@ async def test_the_owner_is_not_refused_by_any_route(
         if status in OWNER_REFUSAL_STATUSES:
             offenders.append(f"{case.method} {case.url} -> {status}")
 
-    expected = len(_BLUEPRINTS) - len(NO_OWNER_CONTRAST) - len(_WDK_BACKED_INDEXES)
+    expected = len(_BLUEPRINTS) - len(NO_OWNER_CONTRAST)
     assert contrasted == expected, (
         f"the owner contrast ran {contrasted} of {len(_BLUEPRINTS)} cases"
     )
     assert offenders == [], (
         "routes that answered 404 to their own owner, so the non-owner 404 "
         "proves nothing: " + "; ".join(offenders)
-    )
-
-
-@pytest.mark.parametrize("index", _WDK_BACKED_CASES)
-async def test_the_owner_is_not_refused_by_a_wdk_backed_route(
-    app: FastAPI,
-    patch_app_db_engine: None,
-    owned: Owned,
-    in_memory_jobs: InMemoryConnector,
-    require_wdk_creds: str,
-    index: int,
-) -> None:
-    """The owner contrast for a route whose answer comes from WDK.
-
-    VEuPathDB serves the WDK service to registered users only, so the request
-    carries the test account's token, or the case skips under its own name.
-    """
-    del patch_app_db_engine, in_memory_jobs
-    case = cases(owned)[index]
-    async with client_for(
-        ends_at_first_frame(app), owned.user_id, wdk_token=require_wdk_creds
-    ) as client:
-        status = await status_for(client, case)
-
-    assert status not in OWNER_REFUSAL_STATUSES, (
-        f"{case.method} {case.url} -> {status}: the route refused its own "
-        "owner, so the non-owner refusal proves nothing"
     )

@@ -28,9 +28,11 @@ const BOTH_SETS: ControlTestResults = {
     missedIds: ["PF3D7_0102000"],
   },
   negative: {
-    controlsCount: 1,
-    intersectionCount: 0,
-    falsePositiveRate: 0,
+    controlsCount: 4,
+    intersectionCount: 1,
+    falsePositiveRate: 0.25,
+    hitIds: ["PF3D7_1133400"],
+    missedIds: ["PF3D7_0709000", "PF3D7_0523000", "PF3D7_1343700"],
   },
 };
 
@@ -57,8 +59,8 @@ describe("DataControlTestResults", () => {
     inThread(BOTH_SETS, <DataControlTestResults data={BOTH_SETS} />);
     expect(screen.getByTestId("figure-caption").textContent).toBe(
       "Table 1. Control tests on Genes by Molecular Weight: target 132 records, " +
-        "2 of 3 positive controls recovered (recall 0.67), 0 of 1 negative " +
-        "controls returned (false-positive rate 0.00).",
+        "2 of 3 positive controls recovered (recall 0.67), 1 of 4 negative " +
+        "controls returned (false-positive rate 0.25).",
     );
   });
 
@@ -107,7 +109,7 @@ describe("DataControlTestResults", () => {
     const positive = screen.getAllByRole("row")[1];
     expect(positive?.textContent).toBe("Positive32Recall0.67");
     const negative = screen.getAllByRole("row")[2];
-    expect(negative?.textContent).toBe("Negative10False-positive rate0.00");
+    expect(negative?.textContent).toBe("Negative41False-positive rate0.25");
   });
 
   it("reads the tested step, its size and every criterion it ran", () => {
@@ -142,13 +144,28 @@ describe("DataControlTestResults", () => {
     ).toBeInTheDocument();
   });
 
-  it("leaves a count with no ids as a plain number", () => {
+  it("offers the ids behind each count of the negative set, excluded ones included", () => {
     inThread(BOTH_SETS, <DataControlTestResults data={BOTH_SETS} />);
 
-    const negative = screen.getAllByRole("row")[2];
-    expect(negative?.textContent).toBe("Negative10False-positive rate0.00");
     expect(
-      screen.queryByRole("button", { name: /negative controls, click to copy/ }),
+      screen.getByRole("button", {
+        name: "4 negative controls, click to copy the ids",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "1 negative controls the target returned, click to copy the ids",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves a count with no ids as a plain number", () => {
+    inThread(POSITIVES_ONLY, <DataControlTestResults data={POSITIVES_ONLY} />);
+
+    const positive = screen.getAllByRole("row")[1];
+    expect(positive?.textContent).toBe("Positive10Recall0.00");
+    expect(
+      screen.queryByRole("button", { name: /positive controls, click to copy/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -159,7 +176,18 @@ describe("DataControlTestResults", () => {
     expect(screen.getByText("PF3D7_1222600, PF3D7_1031000")).toBeInTheDocument();
     expect(screen.getByText("Positives missed:")).toBeInTheDocument();
     expect(screen.getByText("PF3D7_0102000")).toBeInTheDocument();
-    expect(screen.queryByText("Negatives returned:")).not.toBeInTheDocument();
+    expect(screen.getByText("Negatives returned:")).toBeInTheDocument();
+    expect(screen.getByText("PF3D7_1133400")).toBeInTheDocument();
+    expect(screen.getByText("Negatives excluded:")).toBeInTheDocument();
+    expect(
+      screen.getByText("PF3D7_0709000, PF3D7_0523000, PF3D7_1343700"),
+    ).toBeInTheDocument();
+  });
+
+  it("lists no excluded negatives for a run that tested no negative set", () => {
+    inThread(POSITIVES_ONLY, <DataControlTestResults data={POSITIVES_ONLY} />);
+
+    expect(screen.queryByText("Negatives excluded:")).not.toBeInTheDocument();
   });
 
   it("counts the ids it does not list", () => {
@@ -179,7 +207,12 @@ describe("DataControlTestResults", () => {
     const mono = [...view.container.querySelectorAll(".font-mono")].map(
       (node) => node.textContent,
     );
-    expect(mono).toEqual(["PF3D7_1222600, PF3D7_1031000", "PF3D7_0102000"]);
+    expect(mono).toEqual([
+      "PF3D7_1222600, PF3D7_1031000",
+      "PF3D7_0102000",
+      "PF3D7_1133400",
+      "PF3D7_0709000, PF3D7_0523000, PF3D7_1343700",
+    ]);
   });
 
   it("carries no JSON", () => {

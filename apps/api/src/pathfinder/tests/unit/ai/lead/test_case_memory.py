@@ -23,6 +23,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.domain.strategy.step_rationale import ComparedSearch, SearchRationale
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 from pathfinder.tests.unit.domain.strategy._analysis import WORDS, analysed
 
@@ -166,6 +167,46 @@ def test_an_analysis_criterion_is_recorded_by_its_words() -> None:
         "params": {},
         "analysis": WORDS,
     }
+
+
+def _reasoned(reason: str) -> PipelineState:
+    """A verified build whose one criterion records why it runs its search."""
+    state = _state(outcome=_outcome(142))
+    answered = _spec()
+    answered.criteria[0].rationale = SearchRationale(
+        search_name="GenesByGoTerm",
+        basis="parameter",
+        term="GO Term",
+        reason=reason,
+        similarity=0.71,
+        compared=[
+            ComparedSearch(name="GenesByText", display_name="Text", similarity=0.52),
+            ComparedSearch(name="GenesByInterproDomain", display_name="InterPro"),
+        ],
+        tool_call_id="call_go",
+    )
+    state.domain.answered_spec = answered
+    return state
+
+
+def test_a_case_records_why_each_search_was_chosen_without_its_words() -> None:
+    rows = _criteria_rows(
+        collect_case_candidates(_reasoned("sets GO Term to kinase activity"))[0][
+            0
+        ].content
+    )
+
+    assert (rows[0]["because"], rows[0]["chosen_over"]) == (
+        "parameter: GO Term",
+        ["GenesByText", "GenesByInterproDomain"],
+    )
+
+
+def test_two_wordings_of_one_reason_write_one_case() -> None:
+    first = collect_case_candidates(_reasoned("sets GO Term to kinase activity"))
+    second = collect_case_candidates(_reasoned("its GO Term holds protein kinase"))
+
+    assert first[0][1] == second[0][1]
 
 
 def test_a_recovered_zero_step_leaves_a_recovery_case() -> None:

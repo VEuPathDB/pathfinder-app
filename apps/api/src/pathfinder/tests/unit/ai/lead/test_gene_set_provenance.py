@@ -15,8 +15,8 @@ from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
-from pathfinder.ai.tools.standalone import workbench
-from pathfinder.ai.tools.standalone.workbench_models import GeneSetCreatedResponse
+from pathfinder.ai.tools.standalone import gene_sets
+from pathfinder.ai.tools.standalone.gene_set_models import GeneSetCreatedResponse
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.sync_state import ensure_sync_state
@@ -44,7 +44,7 @@ VISIBLE_LEAF_PARAMS = {"text_expression": StringValue(value="secreted")}
 @pytest.fixture
 def saved(monkeypatch: pytest.MonkeyPatch) -> list[GeneSet]:
     kept: list[GeneSet] = []
-    monkeypatch.setattr(workbench, "save_gene_set", kept.append)
+    monkeypatch.setattr(gene_sets, "store_gene_set", kept.append)
     return kept
 
 
@@ -56,7 +56,7 @@ def reads(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, int]]:
         seen.append((site_id, step_id))
         return list(STEP_GENES)
 
-    monkeypatch.setattr(workbench, "step_gene_ids", _read)
+    monkeypatch.setattr(gene_sets, "step_gene_ids", _read)
 
     async def _visible(
         site_id: str, *, record_type: str, search_name: str
@@ -64,7 +64,7 @@ def reads(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, int]]:
         del site_id, record_type, search_name
         return frozenset({"text_expression"})
 
-    monkeypatch.setattr(workbench, "visible_parameter_names", _visible)
+    monkeypatch.setattr(gene_sets, "visible_parameter_names", _visible)
     return seen
 
 
@@ -133,7 +133,7 @@ async def _save(
     step_id: str | None = None,
     gene_ids: list[str] | None = None,
 ) -> GeneSetCreatedResponse:
-    result = await workbench.create_workbench_gene_set(
+    result = await gene_sets.save_gene_set(
         run_context_for(deps, "call_save"),
         name=SET_NAME,
         step_id=step_id,
@@ -280,7 +280,7 @@ async def test_a_step_that_returns_no_genes_is_refused(
         del site_id, step_id
         return []
 
-    monkeypatch.setattr(workbench, "step_gene_ids", _empty)
+    monkeypatch.setattr(gene_sets, "step_gene_ids", _empty)
     deps = _deps(_leaf_session())
 
     with pytest.raises(ModelRetry) as raised:
@@ -315,7 +315,7 @@ async def test_a_search_the_catalog_cannot_read_still_saves_the_set(
             title="Search definition could not be read", detail=search_name
         )
 
-    monkeypatch.setattr(workbench, "visible_parameter_names", _unreadable)
+    monkeypatch.setattr(gene_sets, "visible_parameter_names", _unreadable)
 
     await _save(_deps(_leaf_session()), step_id=LEAF_STEP_ID)
 

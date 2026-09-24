@@ -39,7 +39,6 @@ async def build_worker_runtime_context(
         strategy_session=strategy_session,
         db_session_factory=async_session_factory,
         cancel_event=asyncio.Event(),
-        experiment_id=strategy.experiment_id,
         memory_store=memory_store,
     )
 

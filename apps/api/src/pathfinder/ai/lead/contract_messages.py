@@ -8,7 +8,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.turn_records import CreatedControlSet, EnrichmentRun
+from pathfinder.ai.graph.turn_records import CreatedControlSet
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import Criterion
@@ -47,25 +47,9 @@ def off_topic_essay_message(max_chars: int) -> str:
         f"This turn asks for something PathFinder does not do, and your reply "
         f"answers it. Write the redirect instead: two sentences, under "
         f"{max_chars} characters, naming what PathFinder does - strategies on "
-        f"the VEuPathDB databases, enrichment, EDA, exports - and inviting the "
+        f"the VEuPathDB databases, EDA, exports - and inviting the "
         f"user to rephrase. No code block, no draft, no answer to what was "
         f"asked."
-    )
-
-
-def analysis_ran_on_another_set_message(
-    analysed: EnrichmentRun,
-    requested: Sequence[EnrichmentRun],
-) -> str:
-    """Why a reply that does not list the gene set an analysis ran on is refused."""
-    named = analysed.gene_set_name or analysed.gene_set_id
-    could_not = ", ".join(run.gene_set_id for run in requested)
-    return (
-        f"This turn's enrichment ran on gene set {analysed.gene_set_id} "
-        f"({named}), and the enrichment it was asked for ({could_not}) did "
-        f"not run, and your reply leaves {analysed.gene_set_id} out of "
-        f"``analysed_gene_set_ids``. Put it there, report the terms under "
-        f"that set, and say that the enrichment on {could_not} did not run."
     )
 
 
@@ -201,7 +185,7 @@ def gene_set_not_saved_message(saved: Sequence[CreatedControlSet]) -> str:
     """Why a reply that reports a gene set this turn never saved is refused."""
     return _mislabelled_save_message(
         "a gene set",
-        "create_workbench_gene_set",
+        "save_gene_set",
         "".join(
             f" This turn saved the control set {created.name!r}."
             for created in saved[:1]
@@ -219,6 +203,43 @@ def unretrieved_source_message(absent: Sequence[str]) -> str:
         f"``read_gene_record`` for a fact about a gene, "
         f"``research_literature_search`` for a paper, ``research_web_search`` "
         f"for a page - and list what came back."
+    )
+
+
+_COPY_THE_CARD = (
+    "Control counts and control gene ids are read from the control tests, the "
+    "scored comparisons and the sweeps this turn ran, and from the evidence "
+    "card of the last check. Copy them; never restate one from memory. When "
+    "none of them holds a control result, report no control result."
+)
+
+
+def unbacked_evidence_message(found: Sequence[str]) -> str:
+    """Why a reply that states a control result no test of this turn holds is refused."""
+    return " ".join(
+        [
+            *found,
+            _COPY_THE_CARD,
+            (
+                "Return the same reply with every control count and control gene id "
+                "taken from the evidence card, or leave out what the card does not hold."
+            ),
+        ]
+    )
+
+
+def unbacked_digest_message(found: Sequence[str]) -> str:
+    """Why a digest that states a control result no test of this turn holds is refused."""
+    return " ".join(
+        [
+            *found,
+            _COPY_THE_CARD,
+            (
+                "Return the same digest with every control count and control gene id "
+                "in ``prose``, ``key_findings`` and ``caveats`` taken from those "
+                "results, or leave out what they do not hold."
+            ),
+        ]
     )
 
 
@@ -260,18 +281,36 @@ def machine_words_message(found: Sequence[str]) -> str:
     )
 
 
-def unnamed_search_message(missing: Sequence[AddedSearch]) -> str:
-    """Why a reply that does not name a search this turn added is refused.
+def unnamed_search_message(
+    missing: Sequence[AddedSearch], unreasoned: Sequence[AddedSearch] = ()
+) -> str:
+    """Why a reply that does not name a search this turn added, or names it
+    without the reason it was chosen, is refused.
 
     The step runs the search, not the words it was chosen for, so a reply in
     the request's words alone can say the strategy holds a filter it lacks.
     """
-    listed = "; ".join(
-        f"{added.search_display_name} (for: {added.criterion_text})"
-        for added in missing
-    )
-    return (
-        f"This turn added steps your reply does not name by the search they "
-        f"run: {listed}. Name each search as written here, and say what it "
-        f"finds; when it is not what the request asked for, say so."
-    )
+    sentences: list[str] = []
+    if missing:
+        listed = "; ".join(
+            f"{added.search_display_name} (for: {added.criterion_text})"
+            for added in missing
+        )
+        sentences.append(
+            f"This turn added steps your reply does not name by the search they "
+            f"run: {listed}. Name each search as written here, and say what it "
+            f"finds; when it is not what the request asked for, say so."
+        )
+    reasoned = [(a, a.rationale) for a in unreasoned if a.rationale is not None]
+    if reasoned:
+        listed = "; ".join(
+            f"{added.search_display_name} (for: {added.criterion_text}) - "
+            f"{rationale.line()}"
+            for added, rationale in reasoned
+        )
+        sentences.append(
+            f"These are named without the reason they were chosen: {listed}. "
+            f"Give each reason beside its name, in the same paragraph or list "
+            f"item, as written here or in your words, keeping the term."
+        )
+    return " ".join(sentences)

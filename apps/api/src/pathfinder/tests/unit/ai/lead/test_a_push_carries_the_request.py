@@ -46,7 +46,7 @@ def test_a_later_turn_carries_the_threads_original_request() -> None:
 def test_an_eda_step_carries_the_request() -> None:
     ctx = run_context_for(lead_deps(pipeline_state(user_prompt=_REQUEST)))
 
-    assert eda_step._strategy_context(ctx, None).user_prompt == _REQUEST
+    assert eda_step._strategy_context(ctx, None, {}).user_prompt == _REQUEST
 
 
 async def test_a_recovery_resync_carries_the_request(

@@ -61,7 +61,9 @@ def test_an_off_topic_turn_still_reports_a_task_that_finished() -> None:
     """The catch-up is windowed on the last answer, so this turn is its
     only chance to name the task."""
     briefing = compose_turn_briefing(
-        ThreadActivity(finished_tasks=[FinishedTask(tool_name="geneset_enrichment")]),
+        ThreadActivity(
+            finished_tasks=[FinishedTask(tool_name="optimize_search_parameters")]
+        ),
         requirements=[],
     )
     pinned = pinned_turn_briefing(
@@ -69,7 +71,7 @@ def test_an_off_topic_turn_still_reports_a_task_that_finished() -> None:
     )
 
     assert pinned is not None
-    assert "geneset_enrichment finished" in pinned
+    assert "optimize_search_parameters finished" in pinned
     assert "two sentences" in pinned
 
 

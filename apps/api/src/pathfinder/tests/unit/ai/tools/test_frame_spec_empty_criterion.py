@@ -7,7 +7,6 @@ from veupathdb.domain.parameters import MultiPickValue, VocabOption
 from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.ai.tools.standalone._frame_count import MAX_LISTED_OPTIONS
 from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
 from pathfinder.tests._support.tool_returns import returned
@@ -19,6 +18,7 @@ from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     param_info,
     serve_resolution,
     serve_search,
+    set_criterion_as_read,
 )
 from pathfinder.tests.unit.ai.tools.test_frame_spec_criterion_count import _serve_count
 
@@ -105,7 +105,7 @@ async def test_a_parameter_with_one_value_offers_no_choice_and_says_nothing(
     serve_search(monkeypatch, single_option)
     _serve_count(monkeypatch, 0)
 
-    call = await frame_spec.set_criterion(
+    call = await set_criterion_as_read(
         frame_ctx(AgentToolState()),
         criterion_id="c1",
         text="curated records",
@@ -115,7 +115,7 @@ async def test_a_parameter_with_one_value_offers_no_choice_and_says_nothing(
 
     assert returned(call, SetCriterionResult).alternatives == []
     assert summary_of(call).data["summary"] == (
-        "c1 set to RecordsBySource, 0 transcripts"
+        "c1 set to RecordsBySource, 0 transcripts, sets source"
     )
 
 
@@ -203,7 +203,7 @@ async def test_a_binding_that_matched_records_gains_nothing(
     serve_search(monkeypatch, versioned)
     _serve_count(monkeypatch, 12)
 
-    call = await frame_spec.set_criterion(
+    call = await set_criterion_as_read(
         frame_ctx(AgentToolState()),
         criterion_id="c1",
         text="records",
@@ -213,7 +213,7 @@ async def test_a_binding_that_matched_records_gains_nothing(
 
     assert returned(call, SetCriterionResult).alternatives == []
     assert summary_of(call).data["summary"] == (
-        "c1 set to RecordsByMethod, 12 transcripts"
+        "c1 set to RecordsByMethod, 12 transcripts, sets method_version"
     )
 
 
@@ -238,7 +238,7 @@ async def test_the_summary_line_says_where_the_choices_are(
     serve_search(monkeypatch, versioned)
     _serve_count(monkeypatch, 0)
 
-    call = await frame_spec.set_criterion(
+    call = await set_criterion_as_read(
         frame_ctx(AgentToolState()),
         criterion_id="c1",
         text="records",
@@ -248,6 +248,7 @@ async def test_the_summary_line_says_where_the_choices_are(
 
     chunk = summary_of(call)
     assert chunk.data["summary"] == (
-        "c1 set to RecordsByMethod, 0 transcripts; method_version has 3 options"
+        "c1 set to RecordsByMethod, 0 transcripts; method_version has 3 options, "
+        "sets method_version"
     )
     assert chunk.data["status"] == "empty"

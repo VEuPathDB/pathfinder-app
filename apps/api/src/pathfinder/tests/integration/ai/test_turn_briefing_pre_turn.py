@@ -208,7 +208,7 @@ async def test_the_hook_briefs_the_turn_on_an_edit_a_task_and_the_analysis(
     await _finish_task(
         conversation_id,
         user_id,
-        tool_name="run_gene_set_enrichment",
+        tool_name="run_control_tests_on_step",
         completed_at=answered_at + timedelta(seconds=1),
     )
     await _bind_analysis(conversation_id, revision=3, shown=1)
@@ -219,7 +219,7 @@ async def test_the_hook_briefs_the_turn_on_an_edit_a_task_and_the_analysis(
 
     rendered = briefed.domain.turn_briefing
     assert "min_expression_percentile 90 -> 75" in rendered
-    assert "run_gene_set_enrichment finished" in rendered
+    assert "run_control_tests_on_step finished" in rendered
     assert "the open analysis (DS_1234) is 2 revisions ahead" in rendered
 
 

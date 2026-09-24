@@ -119,7 +119,11 @@ describe("Figure", () => {
 
   it("draws no numbered caption when the caption is null", () => {
     render(
-      <Figure title="Enrichment" caption={null} exhibit={{ kind: "table", number: 1 }}>
+      <Figure
+        title="Control tests"
+        caption={null}
+        exhibit={{ kind: "table", number: 1 }}
+      >
         <p>body</p>
       </Figure>,
     );
@@ -128,7 +132,7 @@ describe("Figure", () => {
 
   it("draws no caption element when the caption is null", () => {
     render(
-      <Figure title="Enrichment" caption={null}>
+      <Figure title="Control tests" caption={null}>
         <p>body</p>
       </Figure>,
     );
@@ -137,7 +141,7 @@ describe("Figure", () => {
 
   it("draws no divider, no card and no outer margin of its own", () => {
     render(
-      <Figure title="Enrichment" caption="12 terms, 342 genes analyzed">
+      <Figure title="Control tests" caption="2 of 3 positive controls recovered">
         <p>body</p>
       </Figure>,
     );
@@ -148,7 +152,7 @@ describe("Figure", () => {
 
   it("orders the title, the body and the caption", () => {
     const { container } = render(
-      <Figure title="Enrichment" caption="12 terms, 342 genes analyzed">
+      <Figure title="Control tests" caption="2 of 3 positive controls recovered">
         <p data-testid="body">body</p>
       </Figure>,
     );
@@ -163,8 +167,8 @@ describe("Figure", () => {
   it("renders the footer after the caption, inside the figure", () => {
     const { container } = render(
       <Figure
-        title="Enrichment"
-        caption="12 terms, 342 genes analyzed"
+        title="Control tests"
+        caption="2 of 3 positive controls recovered"
         footer={<p data-testid="readout">342 of 5,511 genes</p>}
       >
         <p data-testid="body">body</p>

@@ -62,7 +62,7 @@ export function BranchOrRevertDialog({
                 Delete every message after this point in this chat. Scratchpad notes and
                 pending tasks from those turns are also removed. The strategy goes back
                 to what it was at this message; a later version stays in your VEuPathDB
-                account. Workbench gene sets are kept.
+                account. Saved gene sets are kept.
               </div>
             </div>
           </div>

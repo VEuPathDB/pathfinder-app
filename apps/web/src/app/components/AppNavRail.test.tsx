@@ -92,10 +92,17 @@ describe("AppNavRail section links", () => {
   it("navigates to a section the reader is not in", async () => {
     route.pathname = "/plasmodb/conversation/abc-123";
     draw();
-    const workbench = await screen.findByRole("link", { name: "Workbench" });
-    expect(workbench).not.toHaveAttribute("aria-current");
-    const click = fireEvent.click(workbench);
+    const saved = await screen.findByRole("link", { name: "Saved strategies" });
+    expect(saved).not.toHaveAttribute("aria-current");
+    const click = fireEvent.click(saved);
     expect(click).toBe(true);
+  });
+
+  it("links the chat and the saved strategies, and no workbench", async () => {
+    draw();
+    await screen.findByRole("link", { name: "Chat" });
+    const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
+    expect(hrefs).toEqual(["/plasmodb/conversation", "/plasmodb/saved"]);
   });
 });
 

@@ -1,4 +1,4 @@
-"""Standalone strategy attachment tools (filter, analysis, report) for pydantic-ai migration.
+"""Standalone strategy attachment tools (filter, report) for pydantic-ai migration.
 
 Each function takes ``RunContext[AgentDeps]`` and mirrors the original
 :class:`StrategyAttachmentOps` methods exactly.
@@ -12,7 +12,6 @@ from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.strategy import (
-    StepAnalysis,
     StepFilter,
     StepReport,
     StrategyStep,
@@ -94,48 +93,6 @@ async def add_step_filter(
 
     return _step_updated_return(
         ctx, session, graph, step, f"{filter_name} added to {step_id}"
-    )
-
-
-async def add_step_analysis(
-    ctx: RunContext[AgentDeps],
-    step_id: str,
-    analysis_type: str,
-    parameters: JSONObject | None = None,
-    custom_name: str | None = None,
-    graph_id: str | None = None,
-) -> ToolReturn[StepOkResponse | ToolErrorPayload]:
-    """Attach an analysis configuration to a step.
-
-    Analyses run server-side computations on a step's result set
-    (e.g. GO enrichment, word enrichment, pathway enrichment).
-    Multiple analyses can be attached to the same step.
-
-    Args:
-        step_id: ID of the step to analyze.
-        analysis_type: Analysis plugin name (e.g. 'word-enrichment').
-        parameters: Analysis-specific configuration.
-        custom_name: Human-readable label for this analysis.
-        graph_id: Target graph. Uses the active graph if omitted.
-    """
-    deps = ctx.deps
-    session = deps.strategy_session
-
-    result = get_graph_and_step(session, graph_id, step_id)
-    if isinstance(result, ToolErrorPayload):
-        return _step_missing(ctx, result, step_id)
-    graph, step = result
-
-    step.analyses.append(
-        StepAnalysis(
-            analysis_type=analysis_type,
-            parameters=parameters or {},
-            custom_name=custom_name,
-        )
-    )
-
-    return _step_updated_return(
-        ctx, session, graph, step, f"{analysis_type} added to {step_id}"
     )
 
 

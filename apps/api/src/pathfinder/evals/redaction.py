@@ -15,7 +15,10 @@ EMAIL_PLACEHOLDER = "[redacted-email]"
 CREDENTIAL_PLACEHOLDER = "[redacted-credential]"
 
 _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-_URL_CREDENTIAL = re.compile(r"(?<=://)[^/\s@]+(?=@)")
+# The placeholder is not a credential, so redacted text passes the check.
+_URL_CREDENTIAL = re.compile(
+    rf"(?<=://)(?!{re.escape(CREDENTIAL_PLACEHOLDER)}@)[^/\s@]+(?=@)"
+)
 
 
 class RedactionFailedError(ValueError):

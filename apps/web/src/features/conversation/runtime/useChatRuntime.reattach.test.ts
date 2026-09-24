@@ -105,7 +105,7 @@ const TAIL_AFTER_FIRST_PARK = [
     id: FIRST_TASK,
     data: {
       taskId: FIRST_TASK,
-      toolName: "geneset_enrichment",
+      toolName: "run_control_tests_on_step",
       estimatedDurationSeconds: 60,
     },
   }),

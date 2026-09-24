@@ -4,7 +4,7 @@ import { act, cleanup, render, screen, waitFor, within } from "@testing-library/
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { Strategy } from "@pathfinder/shared";
+import type { Step, Strategy } from "@pathfinder/shared";
 import type {
   getStepRecords,
   getStepRecordsQueryKey,
@@ -71,6 +71,7 @@ interface Props {
   wdkStepId: number | null;
   estimatedSize?: number | null;
   hasUnsavedEdits?: boolean;
+  rationale?: Step["rationale"];
 }
 
 function element(props: Props) {
@@ -82,6 +83,7 @@ function element(props: Props) {
       siteId="plasmodb"
       estimatedSize={props.estimatedSize ?? null}
       hasUnsavedEdits={props.hasUnsavedEdits ?? false}
+      rationale={props.rationale ?? null}
     />
   );
 }
@@ -127,6 +129,27 @@ describe("StepResults", () => {
       "step_1",
       { siteId: "plasmodb", offset: 0, limit: 50 },
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("says why the step runs its search first, even before it is on the site", () => {
+    renderResults({
+      wdkStepId: null,
+      rationale: {
+        kind: "search",
+        searchName: "GenesByExportPrediction",
+        basis: "nearest",
+        term: "GPI anchor",
+        reason: "no search states a GPI anchor; Exported Protein scored nearest",
+        toolCallId: "call_gpi",
+        short: "nearest to GPI anchor",
+      },
+    });
+
+    const section = screen.getByTestId("step-results");
+    expect(section.firstElementChild).toBe(screen.getByTestId("step-rationale"));
+    expect(screen.getByTestId("step-rationale")).toHaveTextContent(
+      "no search states a GPI anchor; Exported Protein scored nearest",
     );
   });
 

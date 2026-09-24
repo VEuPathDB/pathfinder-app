@@ -20,7 +20,7 @@ from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead import sub_agent_stream
+from pathfinder.ai.lead import evidence_card, sub_agent_stream
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentRunUsage
 from pathfinder.domain.strategy.constraints import (
@@ -162,9 +162,10 @@ class ChunkCollector:
 
 @pytest.fixture
 def collector(monkeypatch: pytest.MonkeyPatch) -> ChunkCollector:
-    """A collector installed as the sub-agent stream writer."""
+    """A collector installed as the stream writer of a dispatch and its card."""
     captured = ChunkCollector()
     monkeypatch.setattr(sub_agent_stream, "get_stream_writer", lambda: captured)
+    monkeypatch.setattr(evidence_card, "get_stream_writer", lambda: captured)
     return captured
 
 

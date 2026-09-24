@@ -8,6 +8,8 @@ import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useLi
 import { Modal } from "@/lib/components/Modal";
 import { ProviderIcon } from "@/lib/components/ProviderIcon";
 import { formatCompactClean, formatPrice } from "@/features/settings/format";
+import { useProviderPayers } from "@/lib/hooks/useProviderPayers";
+import { onOwnKey, selectable, type Payers } from "@/lib/models/payers";
 import { PROVIDER_TABS } from "@/lib/models/providerMeta";
 
 type SortKey =
@@ -42,6 +44,7 @@ export function ModelCatalogModal({
   onSelect,
 }: ModelCatalogModalProps) {
   const { data } = useQuery(listModelsQueryOptions());
+  const { payers } = useProviderPayers();
   const catalog = data?.models ?? [];
   const [providerFilter, setProviderFilter] = useState<"all" | ModelProvider>("all");
   const [sortKey, setSortKey] = useState<SortKey>("inputPrice");
@@ -164,6 +167,7 @@ export function ModelCatalogModal({
                 <ModelRow
                   key={model.id}
                   model={model}
+                  payers={payers}
                   {...(onSelect != null ? { onSelect } : {})}
                   onClose={() => onOpenChange(false)}
                 />
@@ -192,14 +196,17 @@ export function ModelCatalogModal({
 
 function ModelRow({
   model,
+  payers,
   onSelect,
   onClose,
 }: {
   model: ModelCatalogEntry;
+  payers: Payers | undefined;
   onSelect?: (modelId: string) => void;
   onClose: () => void;
 }) {
-  const isEnabled = model.enabled ?? true;
+  const isEnabled = selectable(model, payers);
+  const ownKey = onOwnKey(model, payers);
   const supportsReasoning = model.supportsReasoning ?? false;
   const description =
     model.description != null && model.description !== "" ? model.description : "-";
@@ -223,6 +230,11 @@ function ModelRow({
             <div className="font-medium text-foreground">{model.name}</div>
             {supportsReasoning && (
               <span className="text-[10px] text-primary/80">reasoning</span>
+            )}
+            {ownKey && (
+              <span className="ml-1.5 rounded bg-success/15 px-1 text-[10px] text-success">
+                your key
+              </span>
             )}
           </div>
         </div>

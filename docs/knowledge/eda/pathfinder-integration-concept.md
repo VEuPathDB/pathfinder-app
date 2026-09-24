@@ -1,8 +1,8 @@
 ---
 type: Proposal
 title: PathFinder EDA integration concept
-description: The two seams by which PathFinder can adopt EDA, what a workbench-style EDA tab would be, and how models are fed EDA knowledge. Concept and surface map only; no execution plan.
-tags: [eda, pathfinder, integration, proposal, workbench, agents]
+description: The two seams by which PathFinder can adopt EDA, what an EDA tab of its own would be, and how models are fed EDA knowledge. Concept and surface map only; no execution plan.
+tags: [eda, pathfinder, integration, proposal, agents]
 generated: { by: claude-code/fable-5, at: 2026-08-27T00:00:00Z }
 verified: { by: claude-code/fable-5, at: 2026-08-27T00:00:00Z }
 status: accepted
@@ -58,11 +58,11 @@ answer API our services call. What is missing is authoring:
   branches on `response.ok` reads the 202 as success and finds no records.
   The drive-the-compute-first path avoids all of that and is evidence-backed.
 
-## Seam 2: a workbench-style EDA tab (large)
+## Seam 2: an EDA tab of its own (large)
 
 The genomics sites embed EDA as a notebook inside a question form; ClinEpiDB
 ships a full workspace. PathFinder's version of "build the EDA, then use it in
-strategies" is a new frontend feature (a tab beside the workbench) that renders
+strategies" is a new frontend feature (a tab of its own) that renders
 an AI-guided notebook over our own EDA client:
 
 - **Study picker** over `/studies` (759 on PlasmoDB), searchable, in

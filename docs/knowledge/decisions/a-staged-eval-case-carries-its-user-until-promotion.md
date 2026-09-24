@@ -4,7 +4,7 @@ title: A staged eval case carries its user until promotion, and a promoted case 
 description: The two frozen rules - extraction severs user linkage, and an opt-out clears the user's staged items - cannot both hold if a staged row names nobody. The resolution is that the association lives on the queue row and ends at promotion, enforced by a check constraint; the corpus file that survives names a site, an assistant and a random staging id. Storing no linkage at all was rejected because nothing could then be cleared; keeping it after promotion was rejected because the corpus is what ships.
 tags: [ws-v, evals, privacy, persistence, consent]
 generated: { by: claude-code/opus-5, at: 2026-08-23T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-08-23T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
 status: stable
 ---
 
@@ -37,8 +37,13 @@ The rule is a check constraint, not a convention:
 ```
 (status = 'staged'   AND user_id IS NOT NULL AND source_conversation_id IS NOT NULL AND extract IS NOT NULL)
 OR
-(status = 'promoted' AND user_id IS NULL     AND source_conversation_id IS NULL     AND extract IS NULL)
+(status = 'promoted' AND user_id IS NULL     AND source_conversation_id IS NULL     AND extract IS NULL
+                     AND rated_message_id IS NULL)
 ```
+
+`rated_message_id` names the disliked message a row was staged for, so it is a
+handle into the thread and promotion ends it with the others (see
+[a rating is a fact about one message](a-rating-is-a-fact-about-one-message.md)).
 
 A promotion that kept the user cannot be written. The foreign keys cascade, so
 deleting the account removes every staged row of that account without any code
@@ -51,8 +56,10 @@ anyone, so it is a reference into the audit trail and not a handle on a person.
 **Idempotency without a back-reference.** Extraction must not re-queue a case it
 already queued or promoted. The `content_hash` of the redacted extract is what
 survives promotion, and it is unique across the table, so a promoted case cannot
-return. Staged rows additionally carry a unique `source_conversation_id`, so the
-same thread does not queue twice while it waits. This is the shape
+return. Two partial unique indexes keep a thread from queueing twice while it waits:
+one extraction row per `source_conversation_id` among the rows with no
+`rated_message_id`, and one row per `rated_message_id`, so each disliked
+message of a thread stages a case of its own. This is the shape
 `memory_tombstones` already uses to keep a deleted memory from being re-written.
 
 **Redaction is two-stage, and the first stage only removes what is never

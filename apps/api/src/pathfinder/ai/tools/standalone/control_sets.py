@@ -16,7 +16,7 @@ from pydantic_ai.messages import ToolReturn
 from pathfinder.ai.graph.turn_records import CreatedControlSet
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._id_arguments import parse_id_argument
-from pathfinder.services.workbench.control_sets import (
+from pathfinder.services.evidence.control_sets import (
     control_ids_from_saved_gene_set,
     control_ids_from_strategy,
     create_control_set,

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
+from collections.abc import Mapping
 from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
@@ -57,7 +57,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
-from pathfinder.domain.strategy.step_words import criterion_texts
+from pathfinder.domain.strategy.step_words import StampedKind, StepWords, step_words
 from pathfinder.services.eda.binding import ConversationAnalysisView, read_analysis
 from pathfinder.services.eda.compute import NoComputationError, VolcanoThresholds
 from pathfinder.services.eda.direction import selection_sentence
@@ -94,10 +94,17 @@ class EdaStepCreated(EdaExport):
 
 
 def _strategy_context(
-    ctx: RunContext[LeadDeps], spec: OperationalSpec | None
+    ctx: RunContext[LeadDeps],
+    spec: OperationalSpec | None,
+    stamped: Mapping[str, StampedKind],
 ) -> StrategyMutationContext:
-    """The context a write runs under, measured against ``spec``."""
+    """The context a write runs under, measured against ``spec``.
+
+    The export knows which plugin reads its document, so the kind is stored
+    with the step it writes.
+    """
     runtime = ctx.deps.runtime
+    words = StepWords() if spec is None else step_words(spec)
     return StrategyMutationContext(
         site_id=runtime.site_id,
         strategy_session=runtime.strategy_session,
@@ -107,7 +114,7 @@ def _strategy_context(
             frozenset() if spec is None else frozenset(c.id for c in spec.criteria)
         ),
         stated_structure=None if spec is None else spec.structure,
-        criterion_texts={} if spec is None else criterion_texts(spec),
+        step_words=words.model_copy(update={"analysis_kinds": dict(stamped)}),
         stated_values={} if spec is None else spec_stated_values(spec),
         user_prompt=ctx.deps.state.request_the_thread_answers,
     )
@@ -370,12 +377,7 @@ async def create_eda_step(
 
     try:
         result = await apply_operations_and_commit(
-            # The export knows which plugin reads its document, so the kind is
-            # stored with the step it writes.
-            deps=replace(
-                _strategy_context(ctx, stated),
-                analysis_kinds={node.id: plan.stamped},
-            ),
+            deps=_strategy_context(ctx, stated, {node.id: plan.stamped}),
             ops=write.ops,
         )
     except ValidationError as exc:

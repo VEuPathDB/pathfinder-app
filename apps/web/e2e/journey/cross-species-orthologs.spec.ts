@@ -1,104 +1,65 @@
 import { test, expect } from "../fixtures/a11y";
 
+/** The set the mock model saves when a message asks for one "as a gene set". */
+const SAVED_SET = "mock gene set";
+const SAVED_IDS = ["PF3D7_0709000", "PF3D7_1133400"];
+
+interface GeneSetRow {
+  id: string;
+  name: string;
+  siteId: string;
+  geneCount: number;
+}
+
 /**
- * Journey: Cross-Species Ortholog Comparison — PlasmoDB → ToxoDB
+ * Journey: Cross-Species Ortholog Comparison, PlasmoDB then ToxoDB.
  *
- * FULL researcher workflow comparing genes across species. Real WDK API,
- * real Redis, real DB. Only the LLM is mocked.
+ * Real WDK API, real DB. Only the LLM is mocked.
  *
- * Flow: PlasmoDB chat → create gene set → verify API → switch to ToxoDB →
- * chat → create gene set → verify per-site isolation via API → switch back →
- * verify PlasmoDB data persisted → run enrichment on PlasmoDB set.
+ * Flow: PlasmoDB chat, a gene set saved from the chat and read back through
+ * the API, a switch to ToxoDB whose list does not carry it, and a return to
+ * PlasmoDB where the set is intact.
  */
 test.describe("Cross-Species Orthologs Journey", () => {
-  test("build gene sets on two sites, verify isolation and persistence", async ({
+  test("a gene set saved on one site stays on that site", async ({
     chatPage,
     page,
-    seedData,
     apiClient,
     sitePicker,
-    workbenchSidebarPage,
-    workbenchMainPage,
   }) => {
-    const plasmoSiteData = seedData.siteData["plasmodb"];
-    if (plasmoSiteData === undefined) throw new Error("plasmodb seed data missing");
-    const plasmoGenes = plasmoSiteData.geneIds;
-    const toxoSiteData = seedData.siteData["toxodb"];
-    if (toxoSiteData === undefined) throw new Error("toxodb seed data missing");
-    const toxoGenes = toxoSiteData.geneIds;
+    const setsOn = async (siteId: string): Promise<GeneSetRow[]> => {
+      const resp = await apiClient.get(`/api/v1/gene-sets?siteId=${siteId}`);
+      expect(resp.ok()).toBeTruthy();
+      return (await resp.json()) as GeneSetRow[];
+    };
 
-    // ── Setup: Clean stale gene sets for both sites ──────────────
-    const cleanupSites = ["plasmodb", "toxodb"];
-    await Promise.all(
-      cleanupSites.map(async (site) => {
-        const resp = await apiClient.get(`/api/v1/gene-sets?siteId=${site}`);
-        if (resp.ok()) {
-          const stale = (await resp.json()) as { id: string }[];
-          await Promise.all(
-            stale.map((gs) => apiClient.delete(`/api/v1/gene-sets/${gs.id}`)),
-          );
-        }
-      }),
-    );
-
-    // ── Phase 1: PlasmoDB — Chat & Gene Set ──────────────────────
+    // ── Phase 1: PlasmoDB, chat and a saved gene set ─────────────
 
     await chatPage.goto();
     await sitePicker.selectSite("plasmodb");
 
-    // Multi-round chat
     await chatPage.send(
       "I'm comparing drug resistance genes across Plasmodium and Toxoplasma",
     );
     await chatPage.expectAssistantMessage(/\[mock\]/);
     await chatPage.expectIdle();
 
-    await chatPage.send("First let me focus on P. falciparum resistance markers");
-    await chatPage.expectAssistantMessage(/\[mock\].*resistance/i);
+    await chatPage.send(`Save ${SAVED_IDS.join(" and ")} as a gene set`);
+    await expect(page.getByTestId("data-gene-set")).toContainText(SAVED_SET, {
+      timeout: 90_000,
+    });
     await chatPage.expectIdle();
 
-    // Create PlasmoDB gene set
-    await workbenchSidebarPage.goto();
-    await workbenchSidebarPage.openAddModal();
-    await page.getByLabel(/name/i).fill("Plasmo Resistance");
-    await page.getByLabel(/gene ids/i).fill(plasmoGenes.join("\n"));
-    await page.getByRole("button", { name: /add gene set/i }).click();
-    await expect(page.getByRole("dialog")).not.toBeVisible({
-      timeout: 10_000,
-    });
+    const plasmoSets = await setsOn("plasmodb");
+    const saved = plasmoSets.find((gs) => gs.name === SAVED_SET);
+    expect(saved?.siteId).toBe("plasmodb");
+    expect(saved?.geneCount).toBe(SAVED_IDS.length);
 
-    // Verify count and API persistence
-    await workbenchSidebarPage.expectSetGeneCount(
-      "Plasmo Resistance",
-      plasmoGenes.length,
-    );
-
-    const plasmoSetsResp = await apiClient.get("/api/v1/gene-sets?siteId=plasmodb");
-    expect(plasmoSetsResp.ok()).toBeTruthy();
-    const plasmoSets = await plasmoSetsResp.json();
-    expect(plasmoSets.length).toBeGreaterThanOrEqual(1);
-    expect(
-      plasmoSets.find((gs: { name: string }) => gs.name === "Plasmo Resistance"),
-    ).toBeDefined();
-
-    // Activate and verify header
-    await workbenchSidebarPage.activateSet("Plasmo Resistance");
-    await workbenchMainPage.expectActiveSetHeader(
-      "Plasmo Resistance",
-      plasmoGenes.length,
-    );
-
-    // Run enrichment on PlasmoDB set
-    await workbenchMainPage.runEnrichmentAndVerifyResults();
-    await workbenchMainPage.expectEnrichmentResultsWithData();
-
-    // ── Phase 2: Switch to ToxoDB ────────────────────────────────
+    // ── Phase 2: ToxoDB does not carry the PlasmoDB set ──────────
 
     await sitePicker.selectSite("toxodb");
     await sitePicker.expectCurrentSite("toxodb");
 
-    // Chat on ToxoDB (stay on the toxodb route — "/" would redirect to the
-    // default site and create the gene set on the wrong one).
     await page.goto("/toxodb/conversation");
     await chatPage.send(
       "Now looking at T. gondii invasion proteins for cross-species comparison",
@@ -106,78 +67,16 @@ test.describe("Cross-Species Orthologs Journey", () => {
     await chatPage.expectAssistantMessage(/\[mock\]/);
     await chatPage.expectIdle();
 
-    // Clean auto-built ToxoDB gene sets so manual set assertions start from zero.
-    const toxoCleanResp = await apiClient.get("/api/v1/gene-sets?siteId=toxodb");
-    if (toxoCleanResp.ok()) {
-      const toxoStale = (await toxoCleanResp.json()) as { id: string }[];
-      await Promise.all(
-        toxoStale.map((gs) => apiClient.delete(`/api/v1/gene-sets/${gs.id}`)),
-      );
-    }
+    const toxoSets = await setsOn("toxodb");
+    expect(toxoSets.map((gs) => gs.id)).not.toContain(saved?.id);
 
-    // Workbench should be empty — PlasmoDB sets don't leak
-    await workbenchSidebarPage.goto();
-    await workbenchSidebarPage.expectEmptyState();
-
-    // API confirms no ToxoDB sets exist yet
-    const toxoEmptyResp = await apiClient.get("/api/v1/gene-sets?siteId=toxodb");
-    const toxoEmpty = await toxoEmptyResp.json();
-    expect(toxoEmpty.length).toBe(0);
-
-    // Create ToxoDB gene set
-    await workbenchSidebarPage.openAddModal();
-    await page.getByLabel(/name/i).fill("Toxo Invasion");
-    await page.getByLabel(/gene ids/i).fill(toxoGenes.join("\n"));
-    await page.getByRole("button", { name: /add gene set/i }).click();
-    await expect(page.getByRole("dialog")).not.toBeVisible({
-      timeout: 10_000,
-    });
-
-    await workbenchSidebarPage.expectSetGeneCount("Toxo Invasion", toxoGenes.length);
-
-    // API confirms ToxoDB set created
-    const toxoSetsResp = await apiClient.get("/api/v1/gene-sets?siteId=toxodb");
-    const toxoSets = await toxoSetsResp.json();
-    expect(toxoSets.length).toBe(1);
-    expect(toxoSets[0].siteId).toBe("toxodb");
-    expect(toxoSets[0].geneCount).toBe(toxoGenes.length);
-
-    // ── Phase 3: Return to PlasmoDB — Verify Isolation ───────────
+    // ── Phase 3: back on PlasmoDB, the set is intact ─────────────
 
     await sitePicker.selectSite("plasmodb");
     await sitePicker.expectCurrentSite("plasmodb");
 
-    // Remove auto-built gene sets, keeping only the manually created one.
-    const plasmoCleanResp = await apiClient.get("/api/v1/gene-sets?siteId=plasmodb");
-    if (plasmoCleanResp.ok()) {
-      const plasmoAll = (await plasmoCleanResp.json()) as {
-        id: string;
-        name: string;
-      }[];
-      await Promise.all(
-        plasmoAll
-          .filter((gs) => gs.name !== "Plasmo Resistance")
-          .map((gs) => apiClient.delete(`/api/v1/gene-sets/${gs.id}`)),
-      );
-    }
-
-    await workbenchSidebarPage.goto();
-
-    // PlasmoDB set should still exist
-    await workbenchSidebarPage.expectSetCount(1);
-    await workbenchSidebarPage.activateSet("Plasmo Resistance");
-    await workbenchMainPage.expectActiveSetHeader(
-      "Plasmo Resistance",
-      plasmoGenes.length,
-    );
-
-    // API confirms PlasmoDB set still intact
-    const plasmoVerifyResp = await apiClient.get("/api/v1/gene-sets?siteId=plasmodb");
-    const plasmoVerify = await plasmoVerifyResp.json();
-    const resistanceSet = plasmoVerify.find(
-      (gs: { name: string }) => gs.name === "Plasmo Resistance",
-    );
-    expect(resistanceSet).toBeDefined();
-    expect(resistanceSet.geneCount).toBe(plasmoGenes.length);
+    const again = await setsOn("plasmodb");
+    const intact = again.find((gs) => gs.id === saved?.id);
+    expect(intact?.geneCount).toBe(SAVED_IDS.length);
   });
 });

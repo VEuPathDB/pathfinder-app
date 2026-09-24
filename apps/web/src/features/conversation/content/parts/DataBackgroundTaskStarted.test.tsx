@@ -289,7 +289,9 @@ describe("a completed task points at its exhibit", () => {
         {
           id: "m2",
           role: "assistant",
-          parts: [{ type: "text", text: "Enrichment finished." }] as UIMessage["parts"],
+          parts: [
+            { type: "text", text: "Control tests finished." },
+          ] as UIMessage["parts"],
         },
       ],
     });

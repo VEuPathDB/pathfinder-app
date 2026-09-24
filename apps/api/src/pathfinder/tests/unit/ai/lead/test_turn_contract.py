@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
-
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.reply_claims import CitedSource
@@ -15,7 +13,6 @@ from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     AN_ESSAY,
-    ANALYSED_RUN,
     ASKING_REPLY,
     BLAMING_REPLY,
     CLAIMS_A_CHANGE,
@@ -27,8 +24,6 @@ from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     DENIES_A_CONTROL_SET,
     DENIES_A_GENE_SET,
     EDA_PROSE,
-    ENRICHMENT_REPLY,
-    FAILED_RUN,
     GENE_SET_REPLY,
     LISTS_SAVED_CONTROL_SETS,
     LISTS_SAVED_GENE_SETS,
@@ -41,7 +36,6 @@ from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     building_deps,
     control_source_deps,
     eda_deps,
-    enrichment_deps,
     framing_deps,
     kinds,
     off_topic_deps,
@@ -58,15 +52,6 @@ class TestTheRecordTheTurnLeft:
         assert record.build_unverified is False
         assert record.build_outcome is not None
         assert record.build_outcome.root_count == 132
-
-    def test_the_record_names_the_analysed_set_and_what_it_replaced(self) -> None:
-        record = turn_record(
-            run_context_for(enrichment_deps(FAILED_RUN, ANALYSED_RUN)),
-        )
-
-        assert record.analysed is not None
-        assert record.analysed.gene_set_id == "gs-other"
-        assert [run.gene_set_id for run in record.substituted] == ["gs-requested"]
 
     def test_the_record_names_the_criterion_waiting_for_its_analysis(self) -> None:
         record = turn_record(run_context_for(eda_deps()))
@@ -263,58 +248,6 @@ class TestTheUnrecordedQuestionRule:
         assert kinds(framing_deps(), reply(ASKING_REPLY, next_state="complete")) == ([])
 
 
-class TestTheSubstitutedAnalysisRule:
-    def test_a_reply_that_lists_no_analysed_set_is_a_mismatch(self) -> None:
-        mismatches = reconcile(
-            reply(ENRICHMENT_REPLY),
-            turn_record(run_context_for(enrichment_deps(FAILED_RUN, ANALYSED_RUN))),
-        )
-
-        assert [m.kind for m in mismatches] == ["substituted_analysis"]
-        sentence = mismatches[0].sentence
-        assert "gs-other" in sentence
-        assert "WDK Strategy 214617320" in sentence
-        assert "gs-requested" in sentence
-        assert "analysed_gene_set_ids" in sentence
-        assert "by its name and its id" not in sentence
-        assert "names neither" not in sentence
-
-    def test_a_reply_that_lists_the_analysed_set_stands(self) -> None:
-        deps = enrichment_deps(FAILED_RUN, ANALYSED_RUN)
-
-        assert kinds(deps, reply(ENRICHMENT_REPLY, analysed=["gs-other"])) == []
-
-    def test_naming_the_set_in_prose_alone_is_a_mismatch(self) -> None:
-        """The typed field is the record, not the sentence."""
-        deps = enrichment_deps(FAILED_RUN, ANALYSED_RUN)
-        prose = "I ran it on 'WDK Strategy 214617320' (gs-other) instead."
-
-        assert kinds(deps, reply(prose)) == ["substituted_analysis"]
-
-    def test_an_enrichment_that_ran_on_the_set_asked_for_stands(self) -> None:
-        deps = enrichment_deps(
-            FAILED_RUN.model_copy(update={"succeeded": True}),
-        )
-
-        assert kinds(deps, reply(ENRICHMENT_REPLY)) == []
-
-    def test_a_failure_after_a_success_is_not_a_substitution(self) -> None:
-        deps = enrichment_deps(ANALYSED_RUN, FAILED_RUN)
-
-        assert kinds(deps, reply("The enrichment on set A failed.")) == []
-
-    def test_a_turn_with_no_enrichment_stands(self) -> None:
-        assert kinds(enrichment_deps(), reply(ENRICHMENT_REPLY)) == []
-
-    def test_an_earlier_messages_enrichments_do_not_judge_this_reply(self) -> None:
-        """The record belongs to the message it was made under."""
-        deps = enrichment_deps(FAILED_RUN, ANALYSED_RUN)
-        deps.state.user_message_id = uuid4()
-        prose = "The strategy searched Plasmodium falciparum 3D7."
-
-        assert kinds(deps, reply(prose)) == []
-
-
 class TestTheControlSetAReplyClaims:
     """A durable artifact the reply names is one the turn wrote."""
 
@@ -363,7 +296,7 @@ class TestTheGeneSetAReplyClaims:
 
         assert [m.kind for m in mismatches] == ["unwritten_gene_set"]
         sentence = mismatches[0].sentence
-        assert "create_workbench_gene_set" in sentence
+        assert "save_gene_set" in sentence
         assert "rhoptry controls" in sentence
 
     def test_the_gene_set_the_turn_saved_stands(self) -> None:

@@ -1,10 +1,7 @@
 import { test as base } from "@playwright/test";
 import { type ApiClient, CSRF_HEADERS, createApiClient } from "./api-client";
-import { type SeedData, fetchSeedData } from "./seed";
 import { ChatPage } from "../pages/chat.page";
 import { SidebarPage } from "../pages/sidebar.page";
-import { WorkbenchSidebarPage } from "../pages/workbench-sidebar.page";
-import { WorkbenchMainPage } from "../pages/workbench-main.page";
 import { GraphPage } from "../pages/graph.page";
 import { SitePickerComponent } from "../pages/site-picker.page";
 import { SettingsPage } from "../pages/settings.page";
@@ -17,8 +14,6 @@ type TestFixtures = {
   _autoCleanup: void;
   chatPage: ChatPage;
   sidebarPage: SidebarPage;
-  workbenchSidebarPage: WorkbenchSidebarPage;
-  workbenchMainPage: WorkbenchMainPage;
   graphPage: GraphPage;
   sitePicker: SitePickerComponent;
   settingsPage: SettingsPage;
@@ -27,7 +22,6 @@ type TestFixtures = {
 
 /** Worker-scoped fixtures (shared across tests in a worker). */
 type WorkerFixtures = {
-  seedData: SeedData;
   workerStorageState: string;
 };
 
@@ -148,14 +142,6 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
    */
   storageState: ({ workerStorageState }, use) => use(workerStorageState),
 
-  seedData: [
-    async ({}, use) => {
-      const data = await fetchSeedData(BASE_URL);
-      await use(data);
-    },
-    { scope: "worker" },
-  ],
-
   // ── Test-scoped: auto-cleanup ─────────────────────────────────
 
   /** Clear gene sets, strategies, and dismissed strategies before each test. */
@@ -227,14 +213,6 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
   sidebarPage: async ({ page }, use) => {
     await use(new SidebarPage(page));
-  },
-
-  workbenchSidebarPage: async ({ page }, use) => {
-    await use(new WorkbenchSidebarPage(page));
-  },
-
-  workbenchMainPage: async ({ page }, use) => {
-    await use(new WorkbenchMainPage(page));
   },
 
   graphPage: async ({ page }, use) => {

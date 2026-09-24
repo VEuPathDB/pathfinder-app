@@ -25,6 +25,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ForbiddenError, ScreeningUnavailableError
+from pathfinder.platform.model_keys import deployment_model
 
 logger = get_logger(__name__)
 
@@ -64,11 +65,12 @@ def _scripted_judge_model() -> FunctionModel:
     return FunctionModel(respond, model_name="mock:injection-judge")
 
 
-def _judge_model() -> Model | str:
+def _judge_model() -> Model:
+    """The judge always runs on the deployment's key, and its errors carry no body."""
     settings = get_settings()
     if settings.pathfinder_chat_provider.strip().lower() == "mock":
         return _scripted_judge_model()
-    return settings.input_screening_model
+    return deployment_model(settings.input_screening_model)
 
 
 @lru_cache(maxsize=1)

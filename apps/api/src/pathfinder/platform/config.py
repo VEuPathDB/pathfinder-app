@@ -1,10 +1,12 @@
 """Application configuration using pydantic-settings."""
 
+import base64
+import binascii
 import tomllib
 from functools import cached_property, lru_cache
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Literal, get_origin
+from typing import Literal, get_args, get_origin
 
 from assistant_core.platform.config import RuntimeSettings, use_settings_source
 from assistant_core.platform.pydantic_base import computed
@@ -24,6 +26,7 @@ from veupathdb_mcp.embeddings import EmbeddingSettings, use_embedding_settings_s
 from veupathdb_mcp.settings import McpSettings, use_mcp_settings_source
 
 from pathfinder.platform.identity import INTERNAL_STRATEGY_NAME_PREFIX
+from pathfinder.platform.provider_key_cipher import SECRET_BYTES, ProviderKeyCipher
 
 _API_DIR = Path(__file__).resolve().parents[3]  # apps/api/
 _REPO_ROOT = _API_DIR.parents[1]  # repo root
@@ -102,6 +105,10 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
 
     anthropic_api_key: str = Field(default="", repr=False)
     gemini_api_key: str = Field(default="", repr=False)
+
+    # Base64url of 32 random bytes. Researchers' provider keys are sealed under
+    # it; empty means this deployment accepts no personal key.
+    provider_key_encryption_key: str = Field(default="", repr=False)
 
     # Ollama (local models via OpenAI-compatible API)
     ollama_base_url: str = ""
@@ -201,15 +208,53 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         """Check if running in development mode."""
         return self.api_env == "development"
 
+    def deployment_credential(self, provider: ModelProvider) -> str:
+        """The key, or for ollama the base url, the deployment reaches a provider by."""
+        match provider:
+            case "openai":
+                return self.openai_api_key
+            case "anthropic":
+                return self.anthropic_api_key
+            case "google":
+                return self.gemini_api_key
+            case "ollama":
+                return self.ollama_base_url
+            case "mock":
+                return ""
+
+    @property
+    def deployment_providers(self) -> frozenset[ModelProvider]:
+        """The providers this deployment pays for.
+
+        The mock answers for every provider, so a mock deployment pays for all.
+        """
+        every: tuple[ModelProvider, ...] = get_args(ModelProvider.__value__)
+        if self.pathfinder_chat_provider.strip().lower() == "mock":
+            return frozenset(every)
+        return frozenset(p for p in every if self.deployment_credential(p).strip())
+
     @property
     def has_llm_configuration(self) -> bool:
-        """Check whether at least one non-mock model backend is configured."""
-        return bool(
-            self.openai_api_key.strip()
-            or self.anthropic_api_key.strip()
-            or self.gemini_api_key.strip()
-            or self.ollama_base_url.strip()
-        )
+        """Check whether at least one model backend is configured."""
+        return bool(self.deployment_providers)
+
+    @property
+    def provider_key_cipher(self) -> ProviderKeyCipher | None:
+        """The seal for researchers' keys, or None when the deployment takes none."""
+        encoded = self.provider_key_encryption_key.strip()
+        if not encoded:
+            return None
+        try:
+            secret = base64.urlsafe_b64decode(encoded.encode())
+        except binascii.Error, ValueError:
+            secret = b""
+        if len(secret) != SECRET_BYTES:
+            msg = (
+                "PROVIDER_KEY_ENCRYPTION_KEY must be the base64url encoding of "
+                f"{SECRET_BYTES} random bytes."
+            )
+            raise ValueError(msg)
+        return ProviderKeyCipher(secret=secret)
 
     def _validate_required_settings(self) -> None:
         missing: list[str] = []
@@ -290,6 +335,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         self._validate_chat_provider()
         self._validate_service_tokens()
         self._validate_langfuse_settings()
+        _ = self.provider_key_cipher
 
     @classmethod
     def settings_customise_sources(

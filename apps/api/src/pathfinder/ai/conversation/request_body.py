@@ -39,7 +39,7 @@ class ChatRequestBody(CamelModel):
 
     The shape matches ``@ai-sdk/react``'s ``useChat`` submit payload
     (``trigger``, ``id``, ``messages``) with PathFinder-scoped fields
-    (``conversationId``, ``siteId``, ``mode``, ``experimentId``) layered on
+    (``conversationId``, ``siteId``, ``mode``) layered on
     via ``body`` on the client transport. The authenticated user UUID still
     comes from the ``pathfinder-auth`` cookie. ``messages`` uses pydantic-ai's
     ``UIMessage`` so deferred-tool approval-responded parts deserialize into
@@ -58,7 +58,6 @@ class ChatRequestBody(CamelModel):
     assistant_id: str | None = None
     site_id: str = Field(default="", max_length=50)
     mode: str = "strategy"
-    experiment_id: str | None = None
     # A role no installed assistant runs a model for is refused here, so the
     # runtime downstream only ever sees a role some preset names.
     phase_models: dict[str, str] = Field(default_factory=dict)

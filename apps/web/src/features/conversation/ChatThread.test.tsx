@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 vi.mock("next/navigation", () => ({
   usePathname: () => "/veupathdb/conversation/c1",
   useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 import { server } from "../../../vitest.msw-setup";

@@ -54,7 +54,7 @@ def spec_from_ast(
     """
     seed_id = _deepest_primary_leaf(ast.root).id
     criteria: list[Criterion] = []
-    words = StepWords.of(ast).criterion_texts
+    words = StepWords.of(ast)
     structure = _structure_of(ast.root, _Reading(seed_id, criteria, words, analyses))
     return OperationalSpec(
         goal=goal,
@@ -185,7 +185,7 @@ class _Reading(NamedTuple):
 
     seed_id: str
     criteria: list[Criterion]
-    words: Mapping[str, str]
+    words: StepWords
     analyses: Analyses
 
 
@@ -197,13 +197,14 @@ def _structure_of(node: StrategyStepNode, reading: _Reading) -> StructureNode:
     stated = Criterion(
         id=node.id,
         text=(
-            reading.words.get(node.id)
+            reading.words.criterion_texts.get(node.id)
             or node.display_name
             or f"{node.search_name} step"
         ),
         search_name=node.search_name,
         role=_role_of(node.id, kind, reading.seed_id),
         resolved_params=dict(node.parameters),
+        rationale=reading.words.rationale_of(node.id, node.search_name),
     )
     binding = reading.analyses.get(node.id)
     if binding is not None:
@@ -281,6 +282,7 @@ def criterion_analysing(
             "open_params": [],
             "assumptions": [],
             "alternatives": [],
+            "rationale": None,
         }
     )
 

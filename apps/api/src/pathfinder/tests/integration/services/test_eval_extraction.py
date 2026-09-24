@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -14,8 +15,14 @@ from pydantic_ai.ui.vercel_ai.response_types import TextDeltaChunk
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
-from pathfinder.ai.graph.stream_events import ledger_update_event
+from pathfinder.ai.graph.stream_events import evidence_card_event, ledger_update_event
 from pathfinder.ai.lead.ledger_sections import VerificationSection
+from pathfinder.domain.evidence import (
+    ControlSetEvidence,
+    ControlTestEvidence,
+    EvidenceCard,
+    EvidenceVerdict,
+)
 from pathfinder.evals.case import ExpectedOutcome
 from pathfinder.evals.store import load_case
 from pathfinder.persistence.models import ConversationStrategy, User
@@ -161,6 +168,51 @@ async def test_a_finished_thread_is_staged(
     assert extract.strategy.structure == "(GenesByText INTERSECT GenesByTaxon)"
     assert extract.verification is not None
     assert extract.verification.success
+
+
+async def test_the_staged_verdict_carries_the_threads_evidence_card(
+    consenting_user: UUID,
+    session_maker: async_sessionmaker[AsyncSession],
+    staging: EvalStagingRepository,
+) -> None:
+    card = EvidenceCard(
+        check_id="call_verify",
+        revision="rev-1",
+        site_id="plasmodb",
+        checked_at=datetime(2026, 9, 24, 9, 30, tzinfo=UTC),
+        wdk_strategy_id=300125410,
+        strategy_url=(
+            "https://plasmodb.org/plasmo/app/workspace/strategies/300125410/440299573"
+        ),
+        site_read="read",
+        steps=[],
+        controls=[
+            ControlTestEvidence(
+                tested_label="Kinases",
+                wdk_step_id=440299573,
+                positive=ControlSetEvidence(
+                    returned=["PF3D7_0102600"], not_returned=["PF3D7_1133400"]
+                ),
+            )
+        ],
+        citations=[],
+        verdict=EvidenceVerdict(supported=True),
+    )
+    conversation_id = await _seed_thread(session_maker, user_id=consenting_user)
+    async with session_maker() as session:
+        session.add(
+            ConversationEvent(
+                conversation_id=conversation_id,
+                chunk=evidence_card_event(card).model_dump(by_alias=True, mode="json"),
+            )
+        )
+        await session.commit()
+
+    await extract_eval_candidates()
+
+    extract = staged_extract((await staging.list_staged())[0])
+    assert extract.verification is not None
+    assert extract.verification.evidence == card
 
 
 async def test_a_thread_with_no_verdict_is_not_staged(
@@ -375,11 +427,40 @@ async def test_the_default_expectation_repeats_the_recorded_run(
 ) -> None:
     await _seed_thread(session_maker, user_id=consenting_user)
     await extract_eval_candidates()
-    extract = staged_extract((await staging.list_staged())[0])
 
-    expectation = default_expectation(extract)
+    expectation = default_expectation((await staging.list_staged())[0])
 
     assert expectation.builds_strategy
     assert expectation.structure == "(GenesByText INTERSECT GenesByTaxon)"
     assert expectation.step_count == 3
     assert expectation.verified is True
+
+
+async def test_a_strategy_that_does_not_parse_does_not_stop_the_pass(
+    consenting_user: UUID,
+    session_maker: async_sessionmaker[AsyncSession],
+    staging: EvalStagingRepository,
+) -> None:
+    """Its texts are redacted, it stages, and the thread beside it stages too."""
+    unparsed = await _seed_thread(session_maker, user_id=consenting_user)
+    await _seed_thread(session_maker, user_id=consenting_user, request="find proteases")
+    async with session_maker() as session:
+        row = await session.get(ConversationStrategy, unparsed)
+        assert row is not None
+        row.strategy_ast = {
+            "recordType": "transcript",
+            "description": "send the list to ada@example.org",
+            "root": {"id": "step_a"},
+        }
+        await session.commit()
+
+    report = await extract_eval_candidates()
+
+    assert (report.considered, report.staged) == (2, 2)
+    by_thread = {
+        staged.source_conversation_id: staged_extract(staged)
+        for staged in await staging.list_staged()
+    }
+    strategy = by_thread[unparsed].strategy
+    assert strategy is not None
+    assert strategy.strategy_ast["description"] == "send the list to [redacted-email]"

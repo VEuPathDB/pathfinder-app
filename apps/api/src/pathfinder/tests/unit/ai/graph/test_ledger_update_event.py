@@ -1,11 +1,9 @@
-"""The ledger chunk carries every key its serialization schema requires."""
+"""The ledger and evidence chunks carry every key their schemas require."""
 
-from uuid import UUID
-
-from veupathdb_mcp.wdk.enrichment import EnrichmentResult, EnrichmentTerm
+from datetime import UTC, datetime
 
 from pathfinder.ai.graph.stream_events import (
-    enrichment_results_event,
+    evidence_card_event,
     ledger_update_event,
 )
 from pathfinder.ai.lead.ledger import InvestigationLedger
@@ -14,7 +12,7 @@ from pathfinder.ai.lead.ledger_sections import (
     FrameSection,
     VerificationSection,
 )
-from pathfinder.ai.stream_part_payloads import EnrichmentResultsChunk
+from pathfinder.domain.evidence import EvidenceCard, EvidenceVerdict
 
 
 def _required_keys(model: type[InvestigationLedger]) -> frozenset[str]:
@@ -90,41 +88,25 @@ def test_ledger_chunk_sections_carry_every_required_key() -> None:
         assert required <= frozenset(payload), field
 
 
-_GO_RESULT = EnrichmentResult(
-    analysis_type="go_function",
-    terms=[
-        EnrichmentTerm(
-            term_id="GO:0004672",
-            term_name="protein kinase activity",
-            gene_count=87,
-            background_count=5412,
-            fold_enrichment=3.48,
-            odds_ratio=3.61,
-            p_value=3.4e-13,
-            fdr=1.1e-10,
-            bonferroni=2.2e-10,
-        )
-    ],
-    total_genes_analyzed=87,
-    background_size=5412,
-)
-
-
-def test_enrichment_chunk_matches_its_payload_model() -> None:
-    task_id = UUID("d7e0c4a0-0000-4000-8000-000000000000")
-    chunk = enrichment_results_event(
-        EnrichmentResultsChunk(
-            task_id=str(task_id),
-            tool_call_id="call_1",
-            gene_set_id="gs_1",
-            gene_set_name="kinases",
-            gene_count=87,
-            results=[_GO_RESULT],
-        )
+def test_evidence_card_chunk_matches_its_payload_model() -> None:
+    card = EvidenceCard(
+        check_id="call_verify",
+        revision="rev-1",
+        site_id="plasmodb",
+        checked_at=datetime(2026, 9, 24, 9, 30, tzinfo=UTC),
+        site_read="not_answered",
+        steps=[],
+        controls=[],
+        citations=[],
+        verdict=EvidenceVerdict(supported=True),
     )
+
+    chunk = evidence_card_event(card)
+
+    assert chunk.type == "data-evidence-card"
     assert isinstance(chunk.data, dict)
     required = frozenset(
-        EnrichmentResultsChunk.model_json_schema(mode="serialization")["required"]
+        EvidenceCard.model_json_schema(mode="serialization")["required"]
     )
     assert required <= frozenset(chunk.data)
-    assert chunk.data["taskId"] == "d7e0c4a0-0000-4000-8000-000000000000"
+    assert chunk.data["checkId"] == "call_verify"

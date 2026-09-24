@@ -284,6 +284,7 @@ export function EditorContent({
           siteId={siteId}
           estimatedSize={footerProps.count}
           hasUnsavedEdits={footerProps.changeCount > 0}
+          rationale={step.rationale ?? null}
         />
       </div>
       <EditorFooter {...footerProps} />

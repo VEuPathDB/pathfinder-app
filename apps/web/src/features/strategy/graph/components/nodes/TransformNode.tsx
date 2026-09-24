@@ -2,11 +2,14 @@
 
 import { Handle, Position } from "@xyflow/react";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
+import { stepReason } from "@/features/strategy/graph/utils/stepTitle";
 import { NodeShell } from "./NodeShell";
 import type { StepNodeProps } from "./types";
 
 const TRANSFORM_NODE_WIDTH = 184;
 const TRANSFORM_NODE_HEIGHT = 80;
+// A step that says why it runs its search draws one more line.
+const TRANSFORM_NODE_HEIGHT_WITH_REASON = 96;
 
 const CHEVRON_CLIP =
   "polygon(0% 0%, calc(100% - 14px) 0%, 100% 50%, calc(100% - 14px) 100%, 0% 100%)";
@@ -35,7 +38,11 @@ export function TransformNode(props: StepNodeProps) {
       isUnsaved={isUnsaved}
       isOrphan={isOrphan}
       width={TRANSFORM_NODE_WIDTH}
-      height={TRANSFORM_NODE_HEIGHT}
+      height={
+        stepReason(step, "transform") === ""
+          ? TRANSFORM_NODE_HEIGHT
+          : TRANSFORM_NODE_HEIGHT_WITH_REASON
+      }
       snapshot={snapshot}
       enterDelayIndex={enterDelayIndex}
       onOpenDetails={onOpenDetails}

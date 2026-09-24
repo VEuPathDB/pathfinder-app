@@ -81,7 +81,8 @@ def _criteria_rows(spec: OperationalSpec) -> list[dict[str, object]]:
 
 
 def _criterion_row(criterion: Criterion) -> dict[str, object]:
-    """One criterion as the case records it; an analysis by what it selects."""
+    """One criterion as the case records it; an analysis by what it selects,
+    and a chosen search by the basis it was chosen on."""
     row: dict[str, object] = {
         "text": criterion.text,
         "search_name": criterion.search_name,
@@ -90,6 +91,10 @@ def _criterion_row(criterion: Criterion) -> dict[str, object]:
     }
     if criterion.analysis is not None:
         row["analysis"] = criterion.analysis.words
+    # The free-text reason and the scores stay out, so a rewording is one case.
+    if criterion.rationale is not None:
+        row["because"] = f"{criterion.rationale.basis}: {criterion.rationale.term}"
+        row["chosen_over"] = [c.name for c in criterion.rationale.compared]
     return row
 
 

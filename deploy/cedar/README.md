@@ -89,6 +89,17 @@ units are only started. The postgres volume and the catalog volume are not touch
 queue first.** The job names do not change, so an in-flight job reaches the new
 worker and fails on its keyword arguments.
 
+**v0.2.0a15 removes the `geneset_enrichment` durable tool.** A job of it that is
+still queued reaches a worker with no body for it. Before the bump, check that none
+is waiting or running, and wait until the count is 0:
+
+```bash
+podman exec pathfinder-db psql -U postgres -d pathfinder -c \
+  "SELECT status, count(*) FROM procrastinate_jobs
+   WHERE queue_name = 'verification' AND task_name = 'durable:geneset_enrichment'
+     AND status IN ('todo', 'doing') GROUP BY status;"
+```
+
 To go back, run the installer again with the previous tag.
 
 ## Logs and state

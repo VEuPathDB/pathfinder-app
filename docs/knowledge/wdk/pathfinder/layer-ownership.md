@@ -29,7 +29,7 @@ external package. Run them with `cd apps/api && uv run lint-imports`.
 | Services never import transport or AI | `pathfinder.services` | `transport`, `ai`, `pydantic_ai` | **no** |
 | Persistence never imports services, transport, or AI | `pathfinder.persistence` | `services`, `transport`, `ai` | **no** |
 | The science never imports an assistant's composition root | `ai`, `persistence`, `services` | `assistants` | **no** |
-| The agent and the jobs reach the workbench only through its facade | `ai`, `jobs` | the six service modules the facade owns | **no** |
+| The agent and the jobs reach the evidence producers only through its facade | `ai`, `jobs` | the service modules the facade owns | **no** |
 | The application imports no private module of an installed distribution | `pathfinder` | the named `_*` modules of the three libraries | **no** |
 
 **Three contracts left this file rather than being relaxed.** Domain purity and

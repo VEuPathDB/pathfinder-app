@@ -1,1 +1,1 @@
-"""Experiment Lab services for ML evaluation of VEuPathDB searches."""
+"""Scoring a search against positive and negative controls, and the demo seed."""

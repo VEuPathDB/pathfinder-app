@@ -15,7 +15,6 @@ const INTERNAL = /\b(EDA|WDK|FRAME|BUILD|VERIFY|Frame|Ledger|Lead|sub-agent)\b/;
  * `apps/api/src/pathfinder/tests/unit/ai/tools/test_tool_summaries.py::_registered`.
  */
 const REGISTERED = [
-  "add_step_analysis",
   "add_step_filter",
   "add_step_report",
   "apply_operations",
@@ -28,7 +27,6 @@ const REGISTERED = [
   "compare_variants_scored",
   "consult_user",
   "create_eda_step",
-  "create_workbench_gene_set",
   "delete_note",
   "delete_step",
   "describe_eda_study",
@@ -38,28 +36,22 @@ const REGISTERED = [
   "export_gene_set",
   "frame_problem",
   "get_ai_expression_summary",
-  "get_confidence_scores",
   "get_download_url",
-  "get_enrichment_results",
-  "get_ensemble_analysis",
   "get_estimated_size",
-  "get_evaluation_summary",
-  "get_experiment_config",
   "get_live_strategy_state",
   "get_parameter_options",
   "get_record_types",
-  "get_result_gene_lists",
   "get_sample_records",
   "get_search_overview",
-  "get_step_contributions",
   "get_strategy",
   "insert_saved_strategy",
   "list_control_sets",
   "list_notes",
+  "list_saved_strategies",
   "list_searches",
   "list_transforms",
   "list_veupathdb_sites",
-  "list_workbench_gene_sets",
+  "list_gene_sets",
   "lookup_gene_records",
   "lookup_phyletic_codes",
   "note",
@@ -83,7 +75,7 @@ const REGISTERED = [
   "check_study_step",
   "run_control_tests_on_step",
   "run_eda_compute",
-  "run_gene_set_enrichment",
+  "save_gene_set",
   "search_eda_studies",
   "search_example_plans",
   "search_for_searches",
@@ -125,9 +117,9 @@ describe("humanizeToolName", () => {
     expect(humanizeToolName("consult_user")).toBe("Ask the user");
   });
 
-  it("names the enrichment job by the tool name its task puts on the wire", () => {
-    expect(humanizeToolName("geneset_enrichment")).toBe("Gene set enrichment");
-    expect(humanizeToolName("run_gene_set_enrichment")).toBe("Gene-set enrichment");
+  it("names the two gene-set tools by what they do", () => {
+    expect(humanizeToolName("save_gene_set")).toBe("Save gene set");
+    expect(humanizeToolName("list_gene_sets")).toBe("List gene sets");
   });
 
   it("names the two control reads by what they return", () => {
@@ -142,6 +134,11 @@ describe("humanizeToolName", () => {
   it("never falls back for a name the backend registers", () => {
     const unmapped = REGISTERED.filter((name) => TOOL_LABELS[name] === undefined);
     expect(unmapped).toEqual([]);
+  });
+
+  it("labels no name the backend does not register", () => {
+    const stale = Object.keys(TOOL_LABELS).filter((name) => !REGISTERED.includes(name));
+    expect(stale).toEqual([]);
   });
 
   it("lists no label that names an internal word", () => {

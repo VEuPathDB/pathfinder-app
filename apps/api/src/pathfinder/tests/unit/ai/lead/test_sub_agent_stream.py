@@ -41,10 +41,13 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 
 _WIRE_PHASES = frozenset({"frame", "build", "verification"})
 _CALL_ID = "sa_1"
+_MODEL = "openai:gpt-5.6-luna"
+_UNKNOWN_MODEL = "nosuchprovider:nosuchmodel"
+_NOTHING = SubAgentCallUsage()
 
 
 def test_context_meter_reports_each_request_input_delta() -> None:
-    meter = ContextMeter()
+    meter = ContextMeter(model_id=_MODEL)
     usage = RunUsage(input_tokens=1000)
 
     assert meter.last_request_input(usage) == 1000
@@ -55,7 +58,7 @@ def test_context_meter_reports_each_request_input_delta() -> None:
 
 def test_context_meter_floors_a_reset_at_zero() -> None:
     """A history reset lowers the cumulative count; the bar reads zero."""
-    meter = ContextMeter()
+    meter = ContextMeter(model_id=_MODEL)
     usage = RunUsage(input_tokens=5000)
     meter.last_request_input(usage)
 
@@ -65,7 +68,7 @@ def test_context_meter_floors_a_reset_at_zero() -> None:
 
 def test_context_meter_repeats_the_size_across_one_requests_emissions() -> None:
     """Parallel tool calls emit twice for one request; the bar must not drop."""
-    meter = ContextMeter()
+    meter = ContextMeter(model_id=_MODEL)
     usage = RunUsage(input_tokens=1000)
 
     assert meter.last_request_input(usage) == 1000
@@ -77,15 +80,15 @@ def test_context_meter_repeats_the_size_across_one_requests_emissions() -> None:
 
 def test_running_emission_carries_the_last_request_and_the_window() -> None:
     collector = ChunkCollector()
-    meter = ContextMeter()
+    meter = ContextMeter(model_id=_MODEL)
     usage = RunUsage(input_tokens=1000, output_tokens=10)
 
     emit_running_usage(
-        collector, "frame", "call_frame_1", usage, meter, baseline=SubAgentCallUsage()
+        collector, "frame", "call_frame_1", usage, meter, baseline=_NOTHING
     )
     usage.input_tokens = 2500
     emit_running_usage(
-        collector, "frame", "call_frame_1", usage, meter, baseline=SubAgentCallUsage()
+        collector, "frame", "call_frame_1", usage, meter, baseline=_NOTHING
     )
 
     first, second = collector.data_of("data-sub-agent-call")
@@ -97,22 +100,16 @@ def test_running_emission_carries_the_last_request_and_the_window() -> None:
     assert second["contextWindow"] == entry.context_size
 
 
-def test_a_continued_pass_adds_to_what_the_dispatch_already_spent(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_a_continued_pass_adds_to_what_the_dispatch_already_spent() -> None:
     """The card reads the dispatch, not the pass that is running right now."""
     collector = ChunkCollector()
-    monkeypatch.setattr(
-        "pathfinder.ai.lead.sub_agent_progress.phase_default_model_id",
-        lambda role: "nosuchprovider:nosuchmodel",
-    )
 
     emit_running_usage(
         collector,
         "frame",
         _CALL_ID,
         RunUsage(input_tokens=54),
-        ContextMeter(),
+        ContextMeter(model_id=_UNKNOWN_MODEL),
         baseline=SubAgentCallUsage(tokens=2441, cost=Decimal("0.00841")),
     )
 
@@ -121,19 +118,15 @@ def test_a_continued_pass_adds_to_what_the_dispatch_already_spent(
     assert payload["costUsd"] == "0.00841"
 
 
-def test_unknown_model_reports_no_window(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_unknown_model_reports_no_window() -> None:
     collector = ChunkCollector()
-    monkeypatch.setattr(
-        "pathfinder.ai.lead.sub_agent_progress.phase_default_model_id",
-        lambda role: "nosuchprovider:nosuchmodel",
-    )
 
     emit_running_usage(
         collector,
         "frame",
         "call_frame_1",
         RunUsage(input_tokens=900),
-        ContextMeter(),
+        ContextMeter(model_id=_UNKNOWN_MODEL),
         baseline=SubAgentCallUsage(),
     )
 
@@ -183,7 +176,7 @@ def test_one_call_id_carries_one_phase_name(
         role,
         _CALL_ID,
         RunUsage(),
-        ContextMeter(),
+        ContextMeter(model_id=_MODEL),
         baseline=SubAgentCallUsage(),
     )
     handle_sub_agent_event(

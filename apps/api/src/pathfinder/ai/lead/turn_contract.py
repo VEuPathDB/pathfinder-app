@@ -11,8 +11,8 @@ from pydantic import ConfigDict, Field
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
 
+from pathfinder.ai.graph.turn_records import normalized_reference
 from pathfinder.ai.lead.contract_messages import (
-    analysis_ran_on_another_set_message,
     blamed_the_site_message,
     claimed_change_message,
     claimed_frame_message,
@@ -21,14 +21,15 @@ from pathfinder.ai.lead.contract_messages import (
     gene_set_not_saved_message,
     machine_words_message,
     off_topic_essay_message,
+    unbacked_evidence_message,
     unfinished_work_message,
-    unnamed_search_message,
     unrecorded_offer_message,
     unrecorded_question_message,
     unreported_change_message,
     unretrieved_source_message,
     unverified_build_message,
 )
+from pathfinder.ai.lead.evidence_claims import control_claims, unbacked_claims
 from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.reply_claims import (
     CLAIMED_A_FRAME,
@@ -38,9 +39,8 @@ from pathfinder.ai.lead.reply_claims import (
     claims,
     ends_with_a_question,
     machine_words,
-    names_the_phrase,
-    normalized_reference,
 )
+from pathfinder.ai.lead.search_reasons import unnamed_search
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
 from pathfinder.domain.strategy.constraints import OpenQuestion
@@ -90,15 +90,6 @@ class LeadResponse(CamelModel):
             "turn has to ask again."
         ),
     )
-    analysed_gene_set_ids: list[str] = Field(
-        default_factory=list,
-        max_length=8,
-        description=(
-            "The id of every gene set whose enrichment this reply reports on. "
-            "An analysis that ran on a set other than the one the request "
-            "named is reported under the id it actually ran on."
-        ),
-    )
     sources: list[CitedSource] = Field(
         default_factory=list,
         max_length=20,
@@ -122,10 +113,10 @@ MismatchKind = Literal[
     "unrecorded_question",
     "unfinished_work",
     "machine_words",
-    "substituted_analysis",
     "off_topic_essay",
     "unretrieved_source",
     "unnamed_search",
+    "unbacked_evidence",
 ]
 
 
@@ -251,19 +242,6 @@ def _work_did_not_run(record: TurnRecord) -> bool:
     )
 
 
-def _substituted_analysis(report: LeadResponse, record: TurnRecord) -> str | None:
-    """An analysis reached around a failure is reported under its own set.
-
-    The text beside a card has no ``analysed_gene_set_ids`` to list the set in.
-    """
-    analysed = record.analysed
-    if analysed is None or not record.substituted or record.ends_on_a_card:
-        return None
-    if analysed.gene_set_id in report.analysed_gene_set_ids:
-        return None
-    return analysis_ran_on_another_set_message(analysed, record.substituted)
-
-
 def _off_topic_essay(report: LeadResponse, record: TurnRecord) -> str | None:
     """An out-of-scope turn reaches no tool, so the prose is the only cost."""
     if not record.off_topic:
@@ -289,13 +267,14 @@ def _unretrieved_source(report: LeadResponse, record: TurnRecord) -> str | None:
 
 
 def _unnamed_search(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A step this turn added is named in the reply by the search it runs."""
-    missing = [
-        added
-        for added in record.added_searches
-        if not names_the_phrase(report.prose, added.search_display_name)
-    ]
-    return unnamed_search_message(missing) if missing else None
+    """A step this turn added is named by its search, beside its reason."""
+    return unnamed_search(report.prose, record.added_searches)
+
+
+def _unbacked_evidence(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A control result the reply states is one this turn or its last check holds."""
+    found = unbacked_claims(control_claims(report.prose), record.control_results)
+    return unbacked_evidence_message(found) if found else None
 
 
 _RULES: tuple[
@@ -311,10 +290,10 @@ _RULES: tuple[
     ("unrecorded_question", _unrecorded_question),
     ("unfinished_work", _unfinished_work),
     ("machine_words", _machine_words),
-    ("substituted_analysis", _substituted_analysis),
     ("off_topic_essay", _off_topic_essay),
     ("unretrieved_source", _unretrieved_source),
     ("unnamed_search", _unnamed_search),
+    ("unbacked_evidence", _unbacked_evidence),
 )
 
 

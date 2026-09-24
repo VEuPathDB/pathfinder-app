@@ -202,9 +202,18 @@ def sheet_call_args(crit: CriterionSpec) -> dict[str, Any]:
 
 
 def proposal_args(crit: CriterionSpec, sheet: dict[str, str | None]) -> dict[str, Any]:
-    """The binding call: one entry per sheet parameter, valued or null."""
+    """The binding call: one entry per sheet parameter, valued or null, and why
+    the search runs it: the first parameter it values, in sheet order."""
     args = sheet_call_args(crit)
-    args["params"] = {name: crit.values.get(name) for name in sheet}
+    params = {name: crit.values.get(name) for name in sheet}
+    args["params"] = params
+    stated = next((name for name, value in params.items() if value is not None), None)
+    if stated is not None:
+        args["why"] = {
+            "basis": "parameter",
+            "term": stated,
+            "reason": f"sets {stated} to the value the request states",
+        }
     return args
 
 

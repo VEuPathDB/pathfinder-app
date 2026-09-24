@@ -28,8 +28,9 @@ from pathfinder.assistants.site_help.organisms import (
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
+from pathfinder.platform.model_keys import keyed_model
 from pathfinder.platform.refusals import agent_capabilities
-from pathfinder.platform.tiers import resolve_phase_tier_config
+from pathfinder.platform.tiers import PhaseTierConfig, resolve_phase_tier_config
 
 SITE_HELP_MODEL = "openai:gpt-5.6-luna"
 
@@ -177,37 +178,45 @@ async def describe_site(
     )
 
 
-def turn_model() -> tuple[Model | str, ModelSettings | None]:
-    """The model this turn runs under, and the settings that go with it.
-
-    The mock provider swaps the whole model, so the turn makes no request.
-    Otherwise the user's pick for this role wins over the configured tier,
-    which wins over the model this module names.
-    """
+def _tier() -> PhaseTierConfig | None:
     settings = get_settings()
-    if settings.pathfinder_chat_provider.strip().lower() == "mock":
-        return build_site_help_mock(), None
-    tier = resolve_phase_tier_config(
+    return resolve_phase_tier_config(
         SITE_HELP_ASSISTANT_ID,
         settings.default_provider,
         settings.default_tier,
         SITE_HELP_ASSISTANT_ID,
     )
-    overrides = phase_overrides_ctx.get()
-    model_id = overrides.models.get(SITE_HELP_ASSISTANT_ID) or (
+
+
+def turn_model_id() -> str:
+    """The model this turn's role names: the user's pick, the tier, then the
+    model this module names."""
+    tier = _tier()
+    return phase_overrides_ctx.get().models.get(SITE_HELP_ASSISTANT_ID) or (
         SITE_HELP_MODEL if tier is None else tier.model_id
     )
-    effort = overrides.reasoning.get(SITE_HELP_ASSISTANT_ID) or (
+
+
+def turn_model() -> tuple[Model | str, ModelSettings | None]:
+    """The model this turn runs under, and the settings that go with it.
+
+    The mock provider swaps the whole model, so the turn makes no request.
+    """
+    if get_settings().pathfinder_chat_provider.strip().lower() == "mock":
+        return build_site_help_mock(), None
+    tier = _tier()
+    model_id = turn_model_id()
+    effort = phase_overrides_ctx.get().reasoning.get(SITE_HELP_ASSISTANT_ID) or (
         None if tier is None else tier.reasoning_effort
     )
     return model_id, build_model_settings(model_id, thinking=effort)
 
 
 def build_site_help_agent() -> SiteHelpAgent:
-    """A site-help agent for one turn."""
+    """A site-help agent for one turn, on the key that pays for its model."""
     model, model_settings = turn_model()
     return Agent(
-        model,
+        keyed_model(model),
         model_settings=model_settings,
         output_type=str,
         deps_type=SiteHelpDeps,
@@ -234,5 +243,6 @@ __all__ = [
     "describe_site",
     "list_veupathdb_sites",
     "turn_model",
+    "turn_model_id",
     "turn_tool_sources",
 ]

@@ -71,6 +71,7 @@ def criterion_rebound(
             "open_params": [],
             "assumptions": [],
             "alternatives": [],
+            "rationale": None,
         }
     )
 

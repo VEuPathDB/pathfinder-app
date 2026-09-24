@@ -1,7 +1,8 @@
 """Agent tools for catalog discovery: record types, searches, categories,
 transforms, phyletic codes, and example public strategies."""
 
-from typing import cast
+from collections.abc import Sequence
+from typing import Literal, cast
 
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.platform.logging import get_logger
@@ -13,7 +14,9 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb.errors import VEuPathDBError
 from veupathdb_mcp import ToolErrorPayload, catalog, tool_payloads
 from veupathdb_mcp.catalog import UNIVERSAL_SEARCHES, SearchMatch, VagueSearchQueryError
+from veupathdb_mcp.tool_payloads import SearchListing, TransformListing
 
+from pathfinder.ai.agents.state import CatalogHit, CatalogRead
 from pathfinder.ai.graph.runtime import AgentDeps
 
 logger = get_logger(__name__)
@@ -105,22 +108,32 @@ async def search_for_searches(
             ctx=ctx,
             status="warn",
         )
-    results: list[JSONObject] = cast("list[JSONObject]", [m.to_dict() for m in matches])
     note = _ranking_note(matches, ctx.deps.site_id, query)
-
     # The reader's number is what the query ranked, not the universal searches
     # every result list carries.
-    found = len(results)
-
-    seen = {str(r["name"]) for r in results}
-    results.extend(
-        cast("JSONObject", u.to_dict())
-        for u in UNIVERSAL_SEARCHES
-        if u.name not in seen
+    found = len(matches)
+    seen = {m.name for m in matches}
+    answered = [*matches, *(u for u in UNIVERSAL_SEARCHES if u.name not in seen)]
+    results: list[JSONObject] = cast(
+        "list[JSONObject]", [m.to_dict() for m in answered]
     )
-
-    ctx.deps.agent_state.record_catalog_searches(
-        [str(r["name"]) for r in results if "name" in r]
+    ctx.deps.agent_state.record_catalog_read(
+        CatalogRead(
+            tool_call_id=ctx.tool_call_id or "",
+            tool="search_for_searches",
+            query=query,
+            record_type=record_type,
+            hits=[
+                CatalogHit(
+                    name=m.name,
+                    display_name=m.display_name,
+                    description=m.description,
+                    record_type=m.record_type,
+                    similarity=m.semantic_similarity,
+                )
+                for m in answered
+            ],
+        )
     )
     if note is not None:
         results.insert(0, {"note": note})
@@ -194,6 +207,28 @@ async def browse_search_categories(
     )
 
 
+def record_a_listing(
+    ctx: RunContext[AgentDeps],
+    tool: Literal["list_searches", "list_transforms"],
+    record_type: str,
+    listed: Sequence[SearchListing | TransformListing],
+) -> None:
+    """Record a listing the model was shown, in its order and with no scores."""
+    ctx.deps.agent_state.record_catalog_read(
+        CatalogRead(
+            tool_call_id=ctx.tool_call_id or "",
+            tool=tool,
+            record_type=record_type,
+            hits=[
+                CatalogHit.model_validate(
+                    listing.model_dump() | {"record_type": record_type}
+                )
+                for listing in listed
+            ],
+        )
+    )
+
+
 async def list_searches(
     ctx: RunContext[AgentDeps],
     record_type: str = "transcript",
@@ -209,8 +244,9 @@ async def list_searches(
         record_type: Record type. Defaults to 'transcript' (gene searches).
     """
     listings = await tool_payloads.list_search_listings(ctx.deps.site_id, record_type)
-    names = [listing.name for listing in listings if listing.name]
-    ctx.deps.agent_state.record_catalog_searches(names)
+    shown = [listing for listing in listings if listing.name]
+    record_a_listing(ctx, "list_searches", record_type, shown)
+    names = [listing.name for listing in shown]
     return with_summary(
         names,
         f"{len(names)} searches on {record_type}",
@@ -234,9 +270,7 @@ async def list_transforms(
     transforms = await tool_payloads.list_transform_listings(
         ctx.deps.site_id, record_type
     )
-    ctx.deps.agent_state.record_catalog_searches(
-        [transform.name for transform in transforms]
-    )
+    record_a_listing(ctx, "list_transforms", record_type, transforms)
     return with_summary(
         [transform.model_dump(by_alias=True) for transform in transforms],
         f"{len(transforms)} transforms on {record_type}",

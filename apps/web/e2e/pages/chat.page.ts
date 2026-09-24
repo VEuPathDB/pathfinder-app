@@ -33,8 +33,8 @@ export class ChatPage {
   async goto() {
     await this.page.goto("/");
     // The app holds a "Starting up..." gate until the readiness probe
-    // answers, and that probe lags while the API serves long enrichment
-    // calls from concurrently running specs.
+    // answers, and that probe lags while the API serves long WDK calls from
+    // concurrently running specs.
     await expect(this.composer).toBeVisible({ timeout: 60_000 });
   }
 

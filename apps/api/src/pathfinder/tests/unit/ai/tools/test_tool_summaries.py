@@ -31,7 +31,6 @@ from pathfinder.ai.tools.standalone import (
     experiment,
     optimization,
     strategy_edits,
-    workbench,
 )
 from pathfinder.assistants.site_help.agent import build_site_help_agent
 from pathfinder.tests.unit.ai.tools.conftest import summary_chunks
@@ -61,13 +60,12 @@ _SHARED_BODIES: dict[str, Callable[..., Any]] = {
     "delete_step": strategy_edits.delete_the_step
 }
 
-# The four durable tools never run their own body: the summary is built from
+# The three durable tools never run their own body: the summary is built from
 # the resumed payload instead, so it is driven rather than read.
 _DURABLE_BUILDERS: dict[str, Callable[[Any, UUID, str | None], list[BaseChunk]]] = {
     "run_control_tests_on_step": experiment._control_test_chunks_from_result,
     "optimize_search_parameters": optimization._sweep_chunks_from_result,
     "run_eda_compute": eda_compute._compute_chunks_from_result,
-    "run_gene_set_enrichment": workbench._enrichment_chunks_from_result,
 }
 
 
@@ -279,7 +277,7 @@ def _literal_text(node: ast.expr) -> str:
 def test_every_registered_tool_emits_a_summary() -> None:
     registered = _registered()
     every = _every_implementation()
-    assert len(registered) >= 80, "the enumeration lost a surface"
+    assert len(registered) >= 75, "the enumeration lost a surface"
     assert len(every) > len(registered), "a name on two functions is checked twice"
     missing: list[str] = []
     for name, fn in every:
@@ -299,8 +297,8 @@ def test_every_registered_tool_emits_a_summary() -> None:
 # One result per durable tool, in the shape its worker returns.
 _RESUMED: dict[str, dict[str, Any]] = {
     "run_control_tests_on_step": {
-        "positiveIntersection": 8,
-        "positiveControlsCount": 10,
+        "positiveRecoveredIds": [f"PF3D7_{index:07d}" for index in range(8)],
+        "positiveMissedIds": ["PF3D7_0000008", "PF3D7_0000009"],
     },
     "optimize_search_parameters": {
         "variants": [{}, {}],
@@ -312,10 +310,6 @@ _RESUMED: dict[str, dict[str, Any]] = {
         "retainedUp": 900,
         "retainedDown": 643,
         "comparison": {"groupA": ["normal"], "groupB": ["febrile"]},
-    },
-    "run_gene_set_enrichment": {
-        "totalSignificantTerms": 12,
-        "analysisTypesRun": ["go_process", "pathway"],
     },
 }
 

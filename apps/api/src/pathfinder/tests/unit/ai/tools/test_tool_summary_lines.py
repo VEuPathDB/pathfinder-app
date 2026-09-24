@@ -31,7 +31,6 @@ from pathfinder.ai.tools.standalone import (
     gene,
     memory_tools,
     strategy_graph,
-    workbench,
 )
 from pathfinder.ai.tools.standalone.catalog import search_for_searches
 from pathfinder.domain.eda_parts import EdaAnalysisState
@@ -209,18 +208,6 @@ class TestASilentZeroReportsEmpty:
             "5,511 genes tested, 900 higher in febrile and 643 higher in normal"
         )
 
-    def test_run_gene_set_enrichment(self) -> None:
-        chunks = workbench._enrichment_chunks_from_result(
-            {"status": "success", "result": {"analysisTypesRun": ["pathway"]}},
-            uuid4(),
-            "call_1",
-        )
-        assert (
-            summary_chunks(chunks)[0].data["summary"]
-            == "0 enriched terms across 1 analyses"
-        )
-        assert summary_chunks(chunks)[0].data["status"] == "empty"
-
 
 class TestThePinnedStrings:
     """The lines the recorded turn carries, written where the numbers are."""
@@ -299,8 +286,10 @@ class TestThePinnedStrings:
             {
                 "status": "success",
                 "result": {
-                    "positiveIntersection": 8,
-                    "positiveControlsCount": 10,
+                    "positiveRecoveredIds": [
+                        f"PF3D7_{index:07d}" for index in range(8)
+                    ],
+                    "positiveMissedIds": ["PF3D7_0000008", "PF3D7_0000009"],
                 },
             },
             uuid4(),

@@ -5,8 +5,12 @@ description: The wire protocol ships an empty request-extension table, so the on
 tags: [protocol, chat, transport, assistant-platform]
 generated: { by: claude-code/opus-5, at: 2026-09-09T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-09T00:00:00Z }
-status: stable
+status: superseded
 ---
+
+> Superseded: the experiment lab went, and with it every reader of
+> `experimentId`. `ChatRequestBody` now accepts only the core table's fields, and
+> the gate in `test_request_body.py` asserts that the body is exactly that table.
 
 # What was decided
 

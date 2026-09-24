@@ -40,10 +40,13 @@ is invisible to another and a tombstone blocks re-writing only in the
 application that wrote it.
 
 **The monthly cap stays per user; attribution is per application.**
-`accumulate` writes the row of the calling application, and `get_current` sums
-every application of that user for the period. A user cannot double their
-budget by using a second assistant, and the operator can still read what each
-assistant cost.
+`accumulate` writes the row of the calling application and of the payer, and
+`get_current` sums the deployment-paid rows of every application of that user
+for the period; spend on the user's own provider key is recorded beside it and
+capped by nothing
+([a researcher's key is sealed and read in the worker](a-researchers-key-is-sealed-and-read-in-the-worker.md)).
+A user cannot double their budget by using a second assistant, and the
+operator can still read what each assistant cost.
 
 # What was rejected
 

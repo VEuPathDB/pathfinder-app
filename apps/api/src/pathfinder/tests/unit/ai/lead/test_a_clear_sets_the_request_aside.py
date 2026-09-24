@@ -99,7 +99,7 @@ async def test_the_passes_after_a_clear_read_this_message_alone() -> None:
 
     assert framing_goal(deps.state) == _NEW
     assert agent_deps_for(deps).user_prompt == _NEW
-    assert verification_scope(deps, enrichment_requested=False).request == _NEW
+    assert verification_scope(deps, check_id="call_verify").request == _NEW
 
 
 async def test_a_budget_stop_after_a_clear_cites_no_cleared_link() -> None:

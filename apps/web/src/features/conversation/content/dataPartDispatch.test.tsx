@@ -22,6 +22,7 @@ import { coreDataPartComponents } from "./coreDataParts";
 import { edaDataPartComponents } from "./edaDataParts";
 import { strategyDataPartComponents } from "./strategyDataParts";
 import { dataPartComponents } from "./contentComponents";
+import { EVIDENCE_CARD } from "./parts/evidenceCardFixture";
 
 const toastError = vi.hoisted(() => vi.fn());
 vi.mock("sonner", () => ({
@@ -173,6 +174,13 @@ describe("message dispatch", () => {
       />,
     );
     expect(screen.getByTestId("data-strategy-link")).toBeInTheDocument();
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("renders the evidence card of a check through the merged map", () => {
+    render(<Thread content={[{ type: "data-evidence-card", data: EVIDENCE_CARD }]} />);
+    expect(screen.getByTestId("data-evidence-card")).toBeInTheDocument();
+    expect(screen.getByTestId("evidence-verdict").textContent).toBe("Supported");
     expect(toastError).not.toHaveBeenCalled();
   });
 

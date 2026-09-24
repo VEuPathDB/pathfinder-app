@@ -10,15 +10,54 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
+from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._id_arguments import parse_id_argument
 from pathfinder.ai.tools.standalone._variant_targets import reject_combine_variants
+from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
+from pathfinder.services.evidence.comparisons import run_scored_comparison
+from pathfinder.services.evidence.control_sets import get_control_set
 from pathfinder.services.experiment.scored_comparison import ScoredComparison
 from pathfinder.services.experiment.variant_comparison import VariantSpec
-from pathfinder.services.workbench.comparisons import run_scored_comparison
-from pathfinder.services.workbench.control_sets import get_control_set
 
 _MIN_VARIANTS = 2
+
+
+def _filed(controls: list[str], hits: set[str]) -> ControlSetEvidence | None:
+    """The controls a variant returned and the rest, or None with no control."""
+    ids = list(dict.fromkeys(controls))
+    if not ids:
+        return None
+    return ControlSetEvidence(
+        returned=[gene for gene in ids if gene in hits],
+        not_returned=[gene for gene in ids if gene not in hits],
+    )
+
+
+def _scored_runs(
+    comparison: ScoredComparison,
+    *,
+    positives: list[str],
+    negatives: list[str],
+    tool_call_id: str,
+) -> list[ControlTestRun]:
+    """One control result per variant the comparison scored."""
+    runs: list[ControlTestRun] = []
+    for variant in comparison.variants:
+        hits = set(variant.control_hits)
+        positive, negative = _filed(positives, hits), _filed(negatives, hits)
+        if variant.error is not None or (positive is None and negative is None):
+            continue
+        runs.append(
+            ControlTestRun(
+                tool_call_id=f"{tool_call_id}:{variant.label}",
+                origin="scored_comparison",
+                evidence=ControlTestEvidence(
+                    tested_label=variant.label, positive=positive, negative=negative
+                ),
+            )
+        )
+    return runs
 
 
 def _membership(comparison: ScoredComparison) -> str:
@@ -90,6 +129,14 @@ async def compare_variants_scored(
         positive_controls=control_set.positive_ids,
         negative_controls=control_set.negative_ids,
         objective=objective,
+    )
+    ctx.deps.state.turn_markers.record_control_tests(
+        _scored_runs(
+            result,
+            positives=control_set.positive_ids,
+            negatives=control_set.negative_ids,
+            tool_call_id=ctx.tool_call_id or "",
+        )
     )
     chunk = DataChunk(
         type="data-scored-comparison",

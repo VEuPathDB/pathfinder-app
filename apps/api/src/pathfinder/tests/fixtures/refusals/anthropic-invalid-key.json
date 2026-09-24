@@ -1,0 +1,14 @@
+{
+  "provider": "anthropic",
+  "model": "anthropic:claude-haiku-4-5",
+  "status": 401,
+  "body": {
+    "type": "error",
+    "error": {
+      "type": "authentication_error",
+      "message": "API key is invalid."
+    },
+    "request_id": null
+  },
+  "recorded_at": "2026-09-24T07:09:29.505050Z"
+}

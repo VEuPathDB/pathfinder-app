@@ -78,10 +78,9 @@ function GeneIds({ ids }: { ids: readonly string[] }): ReactElement {
   );
 }
 
-/** Which ids stand behind a set's own size. A negative set's misses are the
- * ids the target correctly left out, and no control test samples those. */
-function setIds(set: ControlSetSummary, kind: "positive" | "negative"): string[] {
-  if (kind === "negative") return [];
+/** The ids behind a set's own size: the controls the target returned and the
+ * ones it left out. */
+function setIds(set: ControlSetSummary): string[] {
   return [...(set.hitIds ?? []), ...(set.missedIds ?? [])];
 }
 
@@ -96,7 +95,7 @@ function controlRow(set: ControlSetSummary, kind: "positive" | "negative"): Exhi
       <CountOfIds
         key="controls"
         count={set.controlsCount}
-        ids={setIds(set, kind)}
+        ids={setIds(set)}
         noun={controls}
       />,
       <CountOfIds
@@ -124,6 +123,7 @@ function notes(data: ControlTestResults): ExhibitNote[] {
   const recovered = data.positive?.hitIds ?? [];
   const missed = data.positive?.missedIds ?? [];
   const unexpected = data.negative?.hitIds ?? [];
+  const excluded = data.negative?.missedIds ?? [];
   if (recovered.length > 0) {
     built.push({
       key: "recovered",
@@ -143,6 +143,13 @@ function notes(data: ControlTestResults): ExhibitNote[] {
       key: "unexpected",
       label: "Negatives returned:",
       body: <GeneIds ids={unexpected} />,
+    });
+  }
+  if (excluded.length > 0) {
+    built.push({
+      key: "excluded",
+      label: "Negatives excluded:",
+      body: <GeneIds ids={excluded} />,
     });
   }
   return built;

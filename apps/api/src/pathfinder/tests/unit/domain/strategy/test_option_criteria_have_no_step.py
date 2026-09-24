@@ -19,14 +19,18 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    build_step_tree,
-    fold_option_criteria,
-    renumber_criteria,
     structure_criteria,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_diff import diff_specs
+from pathfinder.domain.strategy.spec_fold import (
+    fold_option_criteria,
+)
 from pathfinder.domain.strategy.spec_to_operations import operations_for
+from pathfinder.domain.strategy.spec_tree import (
+    build_step_tree,
+    renumber_criteria,
+)
 from pathfinder.domain.strategy.stated_shape import (
     criteria_with_steps,
     stated_shape,

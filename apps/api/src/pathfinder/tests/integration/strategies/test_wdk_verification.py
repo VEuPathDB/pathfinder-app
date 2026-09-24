@@ -9,9 +9,7 @@ from veupathdb.domain.parameters import (
 from veupathdb.domain.strategy import StrategyStepNode
 from veupathdb.wdk import get_results_api
 from veupathdb_mcp.controls import run_step_control_tests
-from veupathdb_mcp.wdk.enrichment import EnrichmentService
 
-from pathfinder.platform.identity import ENRICHMENT_STRATEGY_NAME
 from pathfinder.tests.integration.strategies.conftest import BuildAndRead, RoundTrip
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
@@ -52,40 +50,6 @@ async def _step_ids(rt: RoundTrip) -> tuple[int, set[str]]:
     step = next(iter(rt.decoded.wdk_step_ids.values()))
     answer = await get_results_api("plasmodb").get_step_preview(step, limit=50000)
     return step, {r.display_name for r in answer.records}
-
-
-async def test_go_process_enrichment_returns_real_kinase_terms(
-    wdk_builder: BuildAndRead,
-) -> None:
-    rt = await wdk_builder(_text_leaf("kinase"))
-    assert rt.decoded.wdk_step_ids
-    wdk_step_id = next(iter(rt.decoded.wdk_step_ids.values()))
-
-    results, errors = await EnrichmentService(
-        strategy_name=ENRICHMENT_STRATEGY_NAME
-    ).run_batch(
-        site_id="plasmodb",
-        analysis_types=["go_process"],
-        step_id=wdk_step_id,
-        search_name="GenesByText",
-        record_type="transcript",
-        parameters=dict(_text_leaf("kinase").parameters),
-    )
-
-    assert errors == [], errors
-    assert len(results) == 1
-    go = results[0]
-    assert go.analysis_type == "go_process"
-    assert go.total_genes_analyzed >= 100
-    assert len(go.terms) >= 5
-    for term in go.terms:
-        assert term.term_id.startswith("GO:")
-        assert term.term_name
-        assert term.p_value is not None
-        assert 0.0 <= term.p_value <= 1.0
-        assert all(g.startswith("PF3D7") for g in term.genes)
-    # The kinase set enriches strongly for phosphorylation.
-    assert any("phosphorylat" in t.term_name.lower() for t in go.terms)
 
 
 async def test_control_tests_recall_and_fpr_on_curated_kinase_set(
