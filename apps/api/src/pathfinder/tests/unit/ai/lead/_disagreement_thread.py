@@ -60,6 +60,7 @@ from pathfinder.domain.strategy.spec_diff import (
 from pathfinder.domain.strategy.spec_reconciliation import spec_the_strategy_holds
 from pathfinder.domain.strategy.stated_shape import criteria_with_steps, stated_shape
 from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.tests._support.analysis_catalog import serve_the_catalog
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._disagreement_facts import StepFacts, graph_facts
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -241,6 +242,7 @@ class DisagreementThread:
         async def _persisted(**_kwargs: object) -> None:
             return None
 
+        serve_the_catalog(monkeypatch)
         monkeypatch.setattr(edit_dispatch, "apply_operations_and_commit", _commit)
         monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _p: None)
         monkeypatch.setattr(pre_turn, "sheet_params_for_searches", _sheets)
@@ -375,7 +377,7 @@ class DisagreementThread:
             result = await run_frame(
                 deps=self.deps,
                 parent_tool_call_id="t1",
-                work_order=frame_work_order("frame it", self.deps.state),
+                work_order=frame_work_order("frame it", self.deps),
             )
         except ModelRetry as refusal:
             self.assert_invariants()

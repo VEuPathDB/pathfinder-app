@@ -13,7 +13,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 
-from pathfinder.ai.graph.state import CreatedControlSet
+from pathfinder.ai.graph.turn_records import CreatedControlSet
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._id_arguments import parse_id_argument
 from pathfinder.services.workbench.control_sets import (

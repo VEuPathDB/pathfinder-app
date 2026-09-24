@@ -117,6 +117,17 @@ states another; a value the carrier states of its own does not, because two
 statements in one pass are a contradiction the carrier wins
 (`operational_spec.py::_carry_the_option`).
 
+**An analysis criterion states meaning, and the graph holds its document.** An
+exported EDA step is a criterion whose `analysis` binding says what it selects
+and whose `resolved_params` is empty
+([an EDA analysis is a criterion of the spec](an-eda-analysis-is-a-criterion-of-the-spec.md)).
+The replay reads a moved analysis step through `services/eda/export.py::exported_analysis`
+into a fresh binding; `outside_changes` still compares the
+two trees, document against document, so no spec value is compared to a graph
+value. A criterion that waits for its analysis has no step, so
+`the_strategy_now_answers_to` records the spec without it and the plan keeps
+it, the way a plan may run ahead of the strategy.
+
 A thread that has recorded no answer takes one: the spec its last dispatch
 found when the plan runs ahead of it, otherwise the plan, in both cases without
 the criteria its structure names and the strategy holds no step for. Nothing is
@@ -183,6 +194,7 @@ a resumed turn like any other.
 `services/strategies/site_changes.py`,
 `domain/strategy/spec_hydration.py::spec_stating_the_live_tree`,
 `ai/lead/edit_dispatch.py`,
+`domain/strategy/analysis_binding.py`,
 `domain/strategy/constraints.py::read_combination`,
 `ai/lead/intent.py::unstated_operator_refusal`,
 `tests/unit/domain/strategy/test_combination_operator_is_stated.py`,

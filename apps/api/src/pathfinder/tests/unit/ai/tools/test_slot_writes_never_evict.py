@@ -11,7 +11,7 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp, StrategyStepNode
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.graph.state import TurnMarkers
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.ai.tools.standalone.strategy import apply_operations
@@ -25,13 +25,13 @@ from pathfinder.domain.strategy.operations import (
 from pathfinder.domain.strategy.operations.types import AttachIntoSlot, AttachNewRoot
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.stated_shape import stated_shape
-from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+from pathfinder.tests._support.eda_step_doubles import (
     bound,
     read_detail,
     wire_gene_count,
 )
+from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import (
     StubAPI,
@@ -146,7 +146,8 @@ class TestAnEdaExportIntoASlot:
         stated = run_ctx.deps.state.domain.operational_spec
         assert stated is not None
         assert [c.id for c in stated.criteria] == ["step_k1", exported]
-        assert stated.criteria[1].text == "berghei subset"
+        assert stated.criteria[1].analysis is not None
+        assert stated.criteria[1].text == stated.criteria[1].analysis.words
 
 
 def _batch_strategy() -> StrategyStepNode:

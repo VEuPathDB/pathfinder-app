@@ -54,6 +54,14 @@ appear only where the user typed them or where a link needs them.
   It also refuses a summary that interpolates a name ending in `dataset_id`,
   `entity_id`, `variable_id`, `study_id` or `wdk_strategy_id`; a `step_id` is
   the researcher's own step and stays.
+- The study modules (`ai/tools/standalone/eda_*.py` and `_eda_*.py`,
+  `services/eda/*.py`, `services/strategies/_wdk_step_calls.py`) carry a
+  stricter check on every `title=`/`detail=` text, the locals it interpolates
+  included: no snake_case name (a tool or a parameter), no `DS_`/`ENT_`/`VAR_`
+  /`STUDY_`/`EDAUD_` prefix, and no interpolated name with one of the id
+  suffixes above. A refusal that both readers see carries two sentences built
+  from the same facts: `detail` for the researcher and `retry` for the model,
+  which alone may name a tool or an id (`NoGeneSubsetError`).
 - `pathfinder.ai.agents.vocabulary.USER_FACING_VOCABULARY` is the rule's one
   text. The Lead and all three sub-agents append it through
   `with_vocabulary()`, so the digest prose, the spec summary and the result

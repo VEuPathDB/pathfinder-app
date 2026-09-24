@@ -92,8 +92,7 @@ async def propose_changes(ctx: RunContext[LeadDeps], proposal: Proposal) -> Edit
     deps.state.turn_markers.accepted_proposal = True
     deps.state.domain.declined_proposal = None
     brief = accepted_brief(deps.state, tool_call_id, proposal)
-    graph = deps.runtime.strategy_session.get_graph(None)
-    if graph is None or not graph.steps:
+    if not deps.step_count:
         raise ModelRetry(nothing_to_edit_message(brief))
     _edit_card(deps, tool_call_id, "started", proposal.question)
     try:

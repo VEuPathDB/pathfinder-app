@@ -22,9 +22,7 @@ from pathfinder.services.strategies.sync_state import WDKSyncState
 logger = get_logger(__name__)
 
 
-def _refuse_an_empty_eda_analysis(
-    search_name: str, str_params: Mapping[str, str]
-) -> None:
+def _refuse_an_empty_eda_analysis(str_params: Mapping[str, str]) -> None:
     """A step that names the analysis parameter and leaves it empty is refused.
 
     An empty analysis document states no subset, so the search answers every
@@ -34,11 +32,11 @@ def _refuse_an_empty_eda_analysis(
     if spec is None or spec.strip():
         return
     raise ValidationError(
-        title="EDA-backed step without an analysis",
+        title="A step without an analysis",
         detail=(
-            f"{search_name} carries {EDA_ANALYSIS_SPEC_PARAM} with no value. "
-            f"The analysis document is written by the EDA tools and exported "
-            f"by create_eda_step, so the step needs that export."
+            "This step carries an empty analysis, so it would answer every "
+            "record of the study; it was not sent to the site. Export the step "
+            "again from an analysis that holds a filter or a comparison."
         ),
     )
 
@@ -52,7 +50,7 @@ async def _push_leaf_step(
 ) -> int:
     """Push a leaf step to WDK. Returns the WDK step ID."""
     refuse_a_set_operation(step.id, search_name)
-    _refuse_an_empty_eda_analysis(search_name, str_params)
+    _refuse_an_empty_eda_analysis(str_params)
     wdk_result = await api.create_step(
         NewStepSpec(
             search_name=search_name,
@@ -184,7 +182,7 @@ async def _put_search_config(
     """Write the step's parameters and weight over the ones WDK holds."""
     refuse_a_set_operation(step.id, wdk_search_name(step))
     str_params: dict[str, str] = encode_params(step.parameters)
-    _refuse_an_empty_eda_analysis(wdk_search_name(step), str_params)
+    _refuse_an_empty_eda_analysis(str_params)
 
     # A weight the graph does not hold stays whatever the site holds.
     config = WDKSearchConfig(parameters=str_params)

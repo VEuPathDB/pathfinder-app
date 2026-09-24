@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pydantic_ai import RunContext
 
-from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
@@ -13,17 +12,20 @@ from pathfinder.ai.lead.dispatch_context import (
     framing_goal,
     record_the_spec_the_dispatch_found,
     refuse_and_restore,
+    the_edit_the_strategy_owes,
 )
 from pathfinder.ai.lead.dispatch_messages import (
-    ContinuationReason,
+    answered_question_work_order,
+    budget_stop_work_order,
+    earlier_turn_work_order,
     frame_bound_nothing_result,
     frame_claimed_more_than_it_bound,
-    frame_continuation_work_order,
     frame_result_from_draft,
     questions_that_bind_to_nothing,
     undeclared_spec_changes,
 )
 from pathfinder.ai.lead.edit_messages import edit_continuation_work_order
+from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.phase_stop import PhaseStopReason
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
@@ -40,25 +42,24 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.spec_diff import diff_specs
 
 
-def frame_work_order(reason: str, state: PipelineState) -> str:
+def frame_work_order(reason: str, deps: LeadDeps) -> str:
     """The order FRAME runs, naming the whole request the turn answers.
 
-    A draft that holds bound criteria and no built strategy is work an earlier
-    pass left, so the order continues it instead of framing the goal again.
+    A draft that holds bound criteria and no strategy on the site is work an
+    earlier pass left, so the order continues it instead of framing the goal
+    again.
     """
-    domain = state.domain
-    spec = domain.operational_spec
-    if spec is not None and _bound_count(spec) and domain.last_build_outcome is None:
-        answered = state.turn_markers.answered_questions
-        return frame_continuation_work_order(
-            spec,
-            spec.goal or framing_goal(state),
-            ContinuationReason.ANSWERED_QUESTION
-            if answered
-            else ContinuationReason.EARLIER_TURN,
-            answered=answered,
-            message=state.user_prompt,
-            brief=reason,
+    state = deps.state
+    spec = state.domain.operational_spec
+    if spec is not None and _continues_the_draft(deps, spec):
+        goal = spec.goal or framing_goal(state)
+        answered = state.turn_markers.answered
+        if answered is None:
+            return earlier_turn_work_order(
+                spec, goal, message=state.user_prompt, brief=reason
+            )
+        return answered_question_work_order(
+            spec, goal, answered.questions, answer=answered.answer, brief=reason
         )
     return (
         f"FRAME work order: {reason}\n"
@@ -68,8 +69,25 @@ def frame_work_order(reason: str, state: PipelineState) -> str:
     )
 
 
-def _bound_count(spec: OperationalSpec | None) -> int:
-    return sum(1 for c in spec.criteria if c.bound) if spec is not None else 0
+def _bound_count(spec: OperationalSpec) -> int:
+    return sum(1 for c in spec.criteria if c.bound)
+
+
+def _continues_the_draft(deps: LeadDeps, spec: OperationalSpec) -> bool:
+    """Whether a pass over this spec continues it rather than framing afresh.
+
+    A new request sets the draft aside, except after a card answered a
+    question that a pass under the same request asked.
+    """
+    if not _bound_count(spec) or deps.step_count > 0:
+        return False
+    answered = deps.state.turn_markers.answered
+    if answered is not None and answered.on_card:
+        return True
+    intent = deps.intent
+    return (
+        intent is None or intent.classification is not IntentClassification.NEW_STRATEGY
+    )
 
 
 def _continue_the_stopped_pass(
@@ -89,20 +107,28 @@ def _continue_the_stopped_pass(
     return _bound_count(draft) > bound_before
 
 
-def _continuation_work_order(deps: LeadDeps) -> str:
+def _continuation_work_order(
+    deps: LeadDeps, work_order: str, draft: OperationalSpec
+) -> str:
     """What the continuing pass is asked to do, in the shape the turn owes.
 
-    A turn that started from a strategy owes a disposition per criterion, so
-    its continuation is an edit work order.
+    A pass that continued the draft runs its own order again, so the answer it
+    resolves reaches the retry. An edit of a strategy that holds steps owes a
+    disposition per criterion, so its continuation is an edit work order.
     """
     before = deps.state.domain.spec_before_dispatch
-    if before is not None and before.criteria:
-        return edit_continuation_work_order(before, deps.state.user_prompt)
-    return frame_continuation_work_order(
-        deps.state.domain.operational_spec,
-        deps.state.user_prompt,
-        ContinuationReason.BUDGET_STOP,
-    )
+    if before is not None and _continues_the_draft(deps, before):
+        return work_order
+    if before is not None and before.criteria and deps.step_count > 0:
+        answered, pending = the_edit_the_strategy_owes(deps.state, before)
+        return edit_continuation_work_order(
+            before,
+            deps.state.user_prompt,
+            pending=pending,
+            answered=answered,
+            answer=deps.state.turn_markers.answered,
+        )
+    return budget_stop_work_order(draft, deps.state.user_prompt)
 
 
 async def run_frame(
@@ -171,12 +197,16 @@ async def _run_frame(
             return await _run_frame(
                 deps=deps,
                 parent_tool_call_id=parent_tool_call_id,
-                work_order=_continuation_work_order(deps),
+                work_order=_continuation_work_order(
+                    deps, work_order, agent_deps.agent_state.operational_spec_draft
+                ),
                 expected_criteria=expected_criteria,
             )
         return frame_result_from_draft(deps.state.domain.operational_spec)
     draft = agent_deps.agent_state.operational_spec_draft
-    if delta.disposition == "spec_ready" and not any(c.bound for c in draft.criteria):
+    if delta.disposition == "spec_ready" and not any(
+        c.bound or c.pending_analysis for c in draft.criteria
+    ):
         if deps.empty_frame_reported:
             return frame_bound_nothing_result()
         deps.empty_frame_reported = True
@@ -225,13 +255,13 @@ async def frame_problem(
     sized below what the thread already states, so a count below the evidence
     is raised to it.
 
-    Available once per turn, while the thread has no strategy to change with
-    ``edit_strategy`` and no empty build waiting on the user."""
+    Available once per turn, while the strategy holds no step. A strategy
+    that holds one is changed with ``edit_strategy``."""
     tool_call_id = dispatch_call_id(ctx)
     result = await run_frame(
         deps=ctx.deps,
         parent_tool_call_id=tool_call_id,
-        work_order=frame_work_order(reason, ctx.deps.state),
+        work_order=frame_work_order(reason, ctx.deps),
         expected_criteria=expected_criteria,
     )
     if isinstance(result, SubAgentApprovalWait):

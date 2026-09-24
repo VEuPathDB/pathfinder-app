@@ -9,16 +9,18 @@ from assistant_core.platform.types import JSONObject
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode
-from veupathdb.eda import EdaAnalysisDetail
+from veupathdb.eda import EdaAnalysisDetail, EdaNewAnalysis
 from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
+from pathfinder.domain.strategy.analysis_binding import AnalysisBinding, AnalysisKind
 from pathfinder.domain.strategy.operations import AddLeafOp
 from pathfinder.domain.strategy.operations.types import AttachNewRoot
+from pathfinder.domain.strategy.step_words import StampedKind
 from pathfinder.services.conversations.service import ConversationService
 from pathfinder.services.eda.binding import open_analysis_or_conflict
 from pathfinder.services.eda.compute import VolcanoThresholds, analysis_comparison
 from pathfinder.services.eda.direction import direction_sentence
-from pathfinder.services.eda.export import eda_step_request
+from pathfinder.services.eda.export import analysis_binding, eda_step_request
 from pathfinder.services.eda.gene_subset import refuse_a_subset_that_selects_no_genes
 
 
@@ -29,10 +31,22 @@ def eda_search_name(*, is_compute_backed: bool) -> str:
 
 @dataclass(frozen=True, slots=True)
 class EdaStepPlan:
-    """The step one export produces, and which of the two exports it is."""
+    """The step one export produces, which of the two exports it is, and what
+    it selects."""
 
     node: StrategyStepNode
     is_compute_backed: bool
+    binding: AnalysisBinding
+
+    @property
+    def stamped(self) -> StampedKind:
+        """The plugin that reads the step's document: the export decides it."""
+        return StampedKind(
+            search_name=self.node.search_name,
+            kind=AnalysisKind.COMPUTE
+            if self.is_compute_backed
+            else AnalysisKind.SUBSET,
+        )
 
 
 def eda_step_node(
@@ -40,11 +54,11 @@ def eda_step_node(
     *,
     dataset_id: str,
     thresholds: VolcanoThresholds | None = None,
-    search_name: str | None = None,
 ) -> EdaStepPlan:
     """The step this analysis exports. Thresholds select the compute export.
 
-    A compute export is named by the genes its direction keeps.
+    Each export runs the generic search of its kind. A compute export is named
+    by the genes its direction keeps.
     """
     is_compute_backed = thresholds is not None
     request = eda_step_request(
@@ -61,7 +75,7 @@ def eda_step_node(
         ),
     )
     node = StrategyStepNode(
-        search_name=search_name or eda_search_name(is_compute_backed=is_compute_backed),
+        search_name=eda_search_name(is_compute_backed=is_compute_backed),
         parameters={
             name: StringValue(value=value)
             for name, value in request.wdk_parameters().items()
@@ -74,7 +88,14 @@ def eda_step_node(
             )
         ),
     )
-    return EdaStepPlan(node=node, is_compute_backed=is_compute_backed)
+    spec = EdaNewAnalysis.model_validate_json(request.eda_analysis_spec)
+    binding = analysis_binding(
+        dataset_id,
+        spec,
+        node.parameters,
+        reads_a_volcano=is_compute_backed,
+    )
+    return EdaStepPlan(node=node, is_compute_backed=is_compute_backed, binding=binding)
 
 
 async def export_analysis_step(
@@ -105,5 +126,6 @@ async def export_analysis_step(
         user_id,
         site_id=binding.site_id,
         op=AddLeafOp(step=plan.node, attach=AttachNewRoot()),
+        analysis_kinds={plan.node.id: plan.stamped},
     )
     return refreshed.model_dump(by_alias=True, mode="json")

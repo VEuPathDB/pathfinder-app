@@ -7,29 +7,35 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.eda import EdaAnalysisDetail
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
-    analysis_detail,
-    bound,
+from pathfinder.tests._support.eda_step_doubles import (
+    DE_GENES,
+    de_analysis,
+    de_study,
+    gene_filter,
     pushing_commit,
     recording_commit,
+    sample_filter,
+    wire_analysis,
     wire_gene_count,
 )
+from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 
 KEPT_UP = "Genes higher in 18h pbm, 36h pbm than in 24h pbm"
 
 
-async def _pbm_detail(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
-    del analysis_id
-    return analysis_detail(
-        with_computation=True, group_a=["24h pbm"], group_b=["18h pbm", "36h pbm"]
-    )
+# A comparison of one reference group against two groups, and a gene filter,
+# so the same analysis holds a compute export and a subset export.
+_PBM = de_analysis(
+    filters=[sample_filter(), gene_filter()],
+    with_computation=True,
+    group_a=["24h pbm"],
+    group_b=["18h pbm", "36h pbm"],
+)
 
 
 def _session() -> StrategySession:
@@ -51,10 +57,9 @@ def lead_ctx(session: StrategySession) -> RunContext[LeadDeps]:
 
 
 def _wire(monkeypatch: pytest.MonkeyPatch, commit: object) -> None:
-    monkeypatch.setattr(eda_step, "bound_analysis", bound)
-    monkeypatch.setattr(eda_step, "read_analysis", _pbm_detail)
+    wire_analysis(monkeypatch, eda_step, _PBM)
     monkeypatch.setattr(eda_step, "apply_operations_and_commit", commit)
-    wire_gene_count(monkeypatch)
+    wire_gene_count(monkeypatch, study=de_study, genes=DE_GENES)
 
 
 async def test_a_caption_naming_only_the_reference_group_is_refused(
@@ -194,4 +199,4 @@ async def test_a_subset_export_states_no_selection(
     answer = await eda_step.create_eda_step(lead_ctx, caption="Any words at all")
 
     assert returned(answer, eda_step.EdaStepCreated).selection is None
-    assert applied[0][0].step.display_name == "berghei subset"
+    assert applied[0][0].step.display_name == "heat shock subset"

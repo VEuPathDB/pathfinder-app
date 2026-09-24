@@ -18,7 +18,7 @@ from veupathdb.wdk import build_wdk_step_tree
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.graph.state import TurnMarkers
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.tools.standalone.conversation import rename_strategy
 from pathfinder.domain.strategy.operations import UpdateStrategyMetaOp
 from pathfinder.services.strategies import naming

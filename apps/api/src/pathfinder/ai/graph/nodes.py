@@ -66,11 +66,15 @@ async def finalize_turn_node(
                 message_id=turn_message_id,
             )
 
+    # A verdict stands while the strategy is the one it judged, so only the
+    # turn that ran the check treats it as this turn's finding.
     notes_written = False
+    checked = state.turn_markers.verification_dispatched
+    verdict = state.turn_verdict if checked else None
     if (
         runtime.context is not None
-        and state.domain.verification_digest is not None
-        and state.domain.verification_digest.success
+        and verdict is not None
+        and verdict.passed
         and runtime.context.memory_store is not None
     ):
         mem_store = MemoryStore(store=runtime.context.memory_store)
@@ -97,7 +101,7 @@ async def finalize_turn_node(
         except (RuntimeError, ValueError, OSError, SQLAlchemyError) as exc:
             logger.warning("auto-write memories failed: %s", exc)
 
-    if runtime.context is not None and state.domain.verification_digest is not None:
+    if runtime.context is not None and verdict is not None:
         try:
             compaction_run = await compact_scratchpad(
                 conversation_id=state.conversation_id,

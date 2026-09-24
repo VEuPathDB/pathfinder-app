@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import type { Strategy } from "@pathfinder/shared";
 
 import { Button } from "@/components/ui/button";
@@ -35,16 +34,20 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
   const canExportRows = analysis?.canExportRows === true;
   const siteId = analysis?.siteId ?? "";
   const computeComplete = Object.values(jobs).some(isEdaJobComplete);
+  // A completed compute exports its volcano cut; a subset alone exports its genes.
+  const holdsSubset = (analysis?.numFilters ?? 0) > 0;
 
   const exportStep = useMutation({
     mutationFn: async (): Promise<ExportOutcome> => {
       const response = await patchConversationEda(conversationId, {
         action: "export-step",
-        thresholds: {
-          effectSizeThreshold: thresholds.effectSizeThreshold,
-          significanceThreshold: thresholds.significanceThreshold,
-          effectDirection: thresholds.direction,
-        },
+        thresholds: computeComplete
+          ? {
+              effectSizeThreshold: thresholds.effectSizeThreshold,
+              significanceThreshold: thresholds.significanceThreshold,
+              effectDirection: thresholds.direction,
+            }
+          : null,
       });
       if (response.analysis !== null) applyAnalysisState(response.analysis);
       const strategy = strategyFromExportedStep(response.step);
@@ -55,7 +58,6 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
     onSuccess: ({ strategy }) => {
       writeStrategy(queryClient, conversationId, strategy);
     },
-    onError: (error) => toast.error(toUserMessage(error, EXPORT_FAILED)),
   });
 
   return (
@@ -63,7 +65,9 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
       <Button
         type="button"
         size="sm"
-        disabled={!computeComplete || !canExportRows || exportStep.isPending}
+        disabled={
+          !(computeComplete || holdsSubset) || !canExportRows || exportStep.isPending
+        }
         onClick={() => exportStep.mutate()}
       >
         Export as step

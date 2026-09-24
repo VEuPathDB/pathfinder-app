@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { EdaComputationDescriptor } from "@pathfinder/shared/generated/types/EdaComputationDescriptor";
+import type { EdaDifferentialExpressionDescriptor } from "@pathfinder/shared/generated/types/EdaDifferentialExpressionDescriptor";
 
 import { Button } from "@/components/ui/button";
 import { patchConversationEda } from "@/features/eda/api";
@@ -21,7 +21,7 @@ class ComputeJobMissingError extends Error {
 
 export interface ComputeProgressProps {
   conversationId: string;
-  computation: EdaComputationDescriptor;
+  computation: EdaDifferentialExpressionDescriptor;
 }
 
 /** Repeating the identical run-compute action is the status poll: the job id
@@ -54,6 +54,7 @@ export function ComputeProgress({ conversationId, computation }: ComputeProgress
     retry: false,
     staleTime: 0,
     gcTime: 0,
+    meta: { shownInline: true },
   });
 
   if (poll.error != null) {

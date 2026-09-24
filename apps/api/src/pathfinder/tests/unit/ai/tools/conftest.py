@@ -20,7 +20,7 @@ from veupathdb_mcp.catalog import search_inspection
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.graph.state import TurnMarkers
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.database import detached_session

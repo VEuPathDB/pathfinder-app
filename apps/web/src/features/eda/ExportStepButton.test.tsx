@@ -24,6 +24,7 @@ import { createTestQueryClient } from "@/lib/query/testing";
 import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
 import { strategyQueryKey } from "@/lib/api/strategy";
 import { useEdaStore } from "@/state/eda";
+import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import { ExportStepButton } from "./ExportStepButton";
 
 const BASE = "http://localhost:3000";
@@ -49,6 +50,14 @@ function analysis(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+// The api's refusal of one sample filter and no computation, as the tab shows it.
+const SAMPLE_ONLY_REFUSAL =
+  "The analysis holds 1 filter on Sample and 0 comparisons, and no filter " +
+  "on pfal3D7 htseq counts. A step holds genes, and a subset of another " +
+  "entity selects no genes, so nothing was written. Run a differential " +
+  "expression comparison and export the genes that pass its cut, or add a " +
+  "filter on pfal3D7 htseq counts.";
 
 const COMPLETED_JOB = {
   jobId: JOB_ID,
@@ -117,10 +126,65 @@ beforeEach(() => {
 });
 
 describe("ExportStepButton", () => {
-  it("is disabled while no compute has completed", () => {
+  it("is disabled while the analysis holds no filter and no completed compute", () => {
     useEdaStore.getState().applyAnalysisState(analysis());
     render(<ExportStepButton conversationId="conv-1" />);
     expect(screen.getByRole("button", { name: "Export as step" })).toBeDisabled();
+  });
+
+  it("exports the subset with no thresholds when no compute has completed", async () => {
+    let body: unknown = null;
+    server.use(
+      http.patch(`${BASE}/api/v1/conversations/conv-1/eda`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({
+          analysis: analysis({ revision: 1, numFilters: 1 }),
+          job: null,
+          step: strategyPayload(),
+        });
+      }),
+    );
+    useEdaStore
+      .getState()
+      .applyAnalysisState(analysis({ numFilters: 1, numComputations: 0 }));
+    render(<ExportStepButton conversationId="conv-1" />);
+    const button = screen.getByRole("button", { name: "Export as step" });
+    expect(button).toBeEnabled();
+    await userEvent.click(button);
+    await waitFor(() => {
+      expect(body).toEqual({ action: "export-step", thresholds: null });
+    });
+  });
+
+  it("shows why a subset that selects no genes wrote no step", async () => {
+    server.use(
+      http.patch(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
+        HttpResponse.json(
+          {
+            type: "about:blank",
+            title: "The subset selects no genes",
+            status: 422,
+            detail: SAMPLE_ONLY_REFUSAL,
+            code: "VALIDATION_ERROR",
+          },
+          {
+            status: 422,
+            headers: { "Content-Type": "application/problem+json" },
+          },
+        ),
+      ),
+    );
+    useEdaStore
+      .getState()
+      .applyAnalysisState(analysis({ numFilters: 1, numComputations: 0 }));
+    render(<ExportStepButton conversationId="conv-1" />);
+    await userEvent.click(screen.getByRole("button", { name: "Export as step" }));
+    expect(await screen.findByTestId("eda-export-error")).toHaveTextContent(
+      SAMPLE_ONLY_REFUSAL,
+    );
+    expect(screen.getAllByText(SAMPLE_ONLY_REFUSAL)).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("eda-export-began-strategy")).toBe(null);
   });
 
   it("is disabled and says why when the analysis cannot export rows", () => {
@@ -286,21 +350,22 @@ describe("ExportStepButton", () => {
     expect(screen.queryByTestId("eda-export-began-strategy")).toBe(null);
   });
 
-  it("reports a failed export instead of pretending a step exists", async () => {
+  it("reports a failed export once, beside the button, and no step", async () => {
     server.use(
       http.patch(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
         HttpResponse.json({ detail: "step creation failed" }, { status: 422 }),
       ),
     );
     readyToExport();
-    render(<ExportStepButton conversationId="conv-1" />);
+    render(<ExportStepButton conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(),
+    });
     await userEvent.click(screen.getByRole("button", { name: "Export as step" }));
     expect(await screen.findByTestId("eda-export-error")).toHaveTextContent(
       "step creation failed",
     );
-    await waitFor(() => {
-      expect(toastError).toHaveBeenCalledWith("step creation failed");
-    });
+    expect(screen.getAllByText("step creation failed")).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
     expect(screen.queryByTestId("eda-export-began-strategy")).toBe(null);
   });
 

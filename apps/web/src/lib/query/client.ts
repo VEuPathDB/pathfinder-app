@@ -5,6 +5,20 @@ import { APIError } from "@/lib/api/http";
 import { AppError } from "@/lib/errors/AppError";
 import { listModelsQueryKey } from "@pathfinder/shared/generated/hooks/useListModels";
 
+/** What a query tells the global error handler about its own error. */
+type AppQueryMeta = {
+  /** The error reaches no handler, the VEuPathDB sign-in prompt included. */
+  silent?: boolean;
+  /** The component shows the error, so only a VEuPathDB account refusal is forwarded. */
+  shownInline?: boolean;
+};
+
+declare module "@tanstack/react-query" {
+  interface Register {
+    queryMeta: AppQueryMeta;
+  }
+}
+
 export interface QueryErrorNotice {
   message: string;
   queryKey: readonly unknown[];
@@ -26,17 +40,14 @@ function extractMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-function isSilent(meta: Record<string, unknown> | undefined): boolean {
-  return meta?.["silent"] === true;
-}
-
 function makeQueryClient(): QueryClient {
   const client = new QueryClient({
     queryCache: new QueryCache({
       onError: (error, query) => {
-        if (isSilent(query.meta)) return;
+        if (query.meta?.silent === true) return;
         // A refusal about the VEuPathDB account is the one 401 the user can act on.
         const actionable = wdkAuthRefusal(error) !== null;
+        if (!actionable && query.meta?.shownInline === true) return;
         if (!actionable && error instanceof APIError && error.status === 401) return;
         const message = extractMessage(error, "Request failed");
         const retry = (): void => {

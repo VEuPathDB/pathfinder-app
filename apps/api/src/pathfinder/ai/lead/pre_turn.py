@@ -15,6 +15,7 @@ from veupathdb.domain.strategy import StrategyAst
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.answered_strategy import (
+    analyses_of,
     live_tree,
     the_changes_written_outside,
     the_strategy_now_answers_to,
@@ -27,12 +28,18 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_hydration import (
+    Analyses,
+    analysis_criteria_stated,
     hidden_params_dropped,
     spec_from_ast,
 )
-from pathfinder.domain.strategy.spec_reconciliation import spec_the_strategy_holds
+from pathfinder.domain.strategy.spec_reconciliation import (
+    spec_the_strategy_holds,
+    spec_without_pending_analyses,
+)
 from pathfinder.domain.strategy.staleness import detect_build_staleness
 from pathfinder.services.conversations.thread_activity import read_thread_activity
+from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.eda.binding import open_analysis_in
 from pathfinder.services.strategies.live_counts import counts_the_site_holds
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
@@ -41,6 +48,7 @@ from pathfinder.services.strategies.site_changes import read_the_site_into_the_t
 __all__ = [
     "attach_open_eda_analysis",
     "attach_turn_briefing",
+    "hydrate_spec_from_the_strategy",
     "pathfinder_pre_turn",
     "refresh_live_strategy_state",
 ]
@@ -130,10 +138,23 @@ async def refresh_live_strategy_state(
         working_state.domain.last_build_outcome,
         live_counts,
     )
+    await _stamp_the_analysis_kinds(context)
     await _answer_what_was_written_outside(working_state, context)
-    await _hydrate_spec_from_the_strategy(working_state, context)
+    await hydrate_spec_from_the_strategy(working_state, context)
+    _state_every_analysis(working_state, context.strategy_session.get_graph(None))
     _record_the_spec_the_turn_started_from(working_state)
     return working_state
+
+
+async def _stamp_the_analysis_kinds(context: Context) -> None:
+    """Give each step that carries an analysis document and no kind its kind.
+
+    A strategy stored before kinds existed, or a step the canvas added, has
+    none; the catalog says which plugin reads it, and the next write stores it.
+    """
+    graph = context.strategy_session.get_graph(None)
+    if graph is not None:
+        await read_the_unread_kinds(site_id=context.site_id, graph=graph)
 
 
 async def _answer_what_was_written_outside(
@@ -190,6 +211,28 @@ def _the_built_part_of(
     return spec_the_strategy_holds(spec, graph.steps)
 
 
+def _state_every_analysis(state: PipelineState, graph: StrategyGraph | None) -> None:
+    """State every exported analysis by its binding, on every spec the turn holds.
+
+    A spec written before a criterion could carry a binding states the step's
+    document as values; once stated, the call changes nothing.
+    """
+    analyses = analyses_of(live_tree(graph))
+    domain = state.domain
+    domain.operational_spec = _stated(domain.operational_spec, analyses)
+    domain.spec_before_turn = _stated(domain.spec_before_turn, analyses)
+    domain.spec_before_dispatch = _stated(domain.spec_before_dispatch, analyses)
+    answered = _stated(domain.answered_spec, analyses)
+    # A drop the statement turns into a waiting criterion has no step to answer.
+    domain.answered_spec = (
+        None if answered is None else spec_without_pending_analyses(answered)
+    )
+
+
+def _stated(spec: OperationalSpec | None, analyses: Analyses) -> OperationalSpec | None:
+    return None if spec is None else analysis_criteria_stated(spec, analyses)
+
+
 def _record_the_spec_the_turn_started_from(state: PipelineState) -> None:
     """Keep the entry spec an edit's dispositions are checked against.
 
@@ -205,13 +248,14 @@ def _record_the_spec_the_turn_started_from(state: PipelineState) -> None:
     )
 
 
-async def _hydrate_spec_from_the_strategy(
+async def hydrate_spec_from_the_strategy(
     state: PipelineState, context: Context
 ) -> None:
     """Describe the live strategy as a spec when no framed spec describes it.
 
-    The graph editor, a saved-strategy import and a checkpoint flush all leave
-    a real strategy behind with nothing that says what it asks. The stored step
+    The graph editor, a saved-strategy import, a checkpoint flush and a step a
+    tool wrote this turn all leave a real strategy behind with nothing that
+    says what it asks. The stored step
     also carries WDK's own parameters, and the criterion states only the ones
     the search's sheet shows.
     """
@@ -224,7 +268,7 @@ async def _hydrate_spec_from_the_strategy(
     ast = graph.to_strategy_ast(sync_state=context.strategy_session.sync_state)
     if ast is None:
         return
-    hydrated = spec_from_ast(ast, goal=state.user_prompt)
+    hydrated = spec_from_ast(ast, goal=state.user_prompt, analyses=analyses_of(ast))
     sheets = await sheet_params_for_searches(
         site_id=context.site_id,
         record_type=ast.record_type,

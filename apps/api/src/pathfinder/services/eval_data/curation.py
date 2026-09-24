@@ -49,7 +49,7 @@ def default_expectation(extract: EvalExtract) -> ExpectedOutcome:
         builds_strategy=strategy is not None,
         structure=None if strategy is None else strategy.structure,
         step_count=None if strategy is None else strategy.step_count,
-        verified=None if verification is None else verification.success,
+        verified=None if verification is None else verification.passed,
     )
 
 

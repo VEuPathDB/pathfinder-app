@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.eda import EdaAnalysisDetail
 from veupathdb_mcp import ToolErrorPayload
 
 from pathfinder.ai.lead.derive import derive_ledger
@@ -18,18 +19,19 @@ from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.platform.errors import ErrorCode
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests._support.eda_doubles import ANALYSIS_ID
-from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
-from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+from pathfinder.tests._support.eda_step_doubles import (
+    DE_DATASET,
     WDK_STRATEGY_ID,
-    bound,
+    de_analysis,
+    phenotype_subset,
     pushing_commit,
-    read_detail,
-    read_detail_with_computation,
     recording_commit,
+    sample_filter,
+    wire_analysis,
     wire_gene_count,
 )
+from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 
 
 @pytest.fixture
@@ -41,9 +43,10 @@ def lead_ctx() -> RunContext[LeadDeps]:
     )
 
 
-def _wire(monkeypatch: pytest.MonkeyPatch, *, read: object, commit: object) -> None:
-    monkeypatch.setattr(eda_step, "bound_analysis", bound)
-    monkeypatch.setattr(eda_step, "read_analysis", read)
+def _wire(
+    monkeypatch: pytest.MonkeyPatch, *, detail: EdaAnalysisDetail, commit: object
+) -> None:
+    wire_analysis(monkeypatch, eda_step, detail)
     wire_gene_count(monkeypatch)
     monkeypatch.setattr(eda_step, "apply_operations_and_commit", commit)
 
@@ -51,7 +54,7 @@ def _wire(monkeypatch: pytest.MonkeyPatch, *, read: object, commit: object) -> N
 async def test_the_step_emits_the_parts_the_workbench_already_listens_to(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
-    _wire(monkeypatch, read=read_detail, commit=recording_commit([]))
+    _wire(monkeypatch, detail=phenotype_subset(), commit=recording_commit([]))
 
     answer = await eda_step.create_eda_step(lead_ctx)
 
@@ -65,7 +68,7 @@ async def test_a_commit_with_a_wdk_url_also_emits_the_strategy_link(
 ) -> None:
     _wire(
         monkeypatch,
-        read=read_detail,
+        detail=phenotype_subset(),
         commit=recording_commit(
             [], wdk_url="https://plasmodb.org/plasmo/app/workspace"
         ),
@@ -101,7 +104,7 @@ async def test_a_step_wdk_refused_is_retried_with_wdks_message(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """A refusal of the values is a retry, not a step the answer calls added."""
-    _wire(monkeypatch, read=read_detail, commit=_refusing_commit(422))
+    _wire(monkeypatch, detail=phenotype_subset(), commit=_refusing_commit(422))
 
     with pytest.raises(ModelRetry) as excinfo:
         await eda_step.create_eda_step(lead_ctx)
@@ -113,7 +116,7 @@ async def test_a_step_the_site_never_took_answers_with_the_error(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """An answer a retry cannot mend is the tool's error, not a success model."""
-    _wire(monkeypatch, read=read_detail, commit=_refusing_commit(None))
+    _wire(monkeypatch, detail=phenotype_subset(), commit=_refusing_commit(None))
 
     answer = await eda_step.create_eda_step(lead_ctx)
 
@@ -129,7 +132,7 @@ async def test_the_export_records_the_build_the_turn_left(
     session = lead_ctx.deps.runtime.strategy_session
     _wire(
         monkeypatch,
-        read=read_detail,
+        detail=phenotype_subset(),
         commit=pushing_commit([], session=session, count=1543),
     )
 
@@ -160,7 +163,7 @@ async def test_the_export_records_what_the_case_remembers(
     session = lead_ctx.deps.runtime.strategy_session
     _wire(
         monkeypatch,
-        read=read_detail_with_computation,
+        detail=de_analysis(filters=[sample_filter()], with_computation=True),
         commit=pushing_commit([], session=session, count=212),
     )
 
@@ -174,7 +177,7 @@ async def test_the_export_records_what_the_case_remembers(
 
     export = lead_ctx.deps.state.turn_markers.eda_export
     assert export is not None
-    assert export.dataset_id == PHENOTYPE_DATASET
+    assert export.dataset_id == DE_DATASET
     assert export.analysis_id == ANALYSIS_ID
     assert export.search_name == "GenesByEdaVizWithCompute"
     result = returned(answer, eda_step.EdaStepCreated)
@@ -192,7 +195,7 @@ async def test_a_zero_count_export_is_recorded_as_a_zero_step(
     session = lead_ctx.deps.runtime.strategy_session
     _wire(
         monkeypatch,
-        read=read_detail,
+        detail=phenotype_subset(),
         commit=pushing_commit([], session=session, count=0),
     )
 
@@ -217,7 +220,7 @@ async def test_a_draft_export_the_site_never_took_records_no_build(
         apply_operation(graph, ops[0])
         return CommitResult(description="added a draft step")
 
-    _wire(monkeypatch, read=read_detail, commit=commit)
+    _wire(monkeypatch, detail=phenotype_subset(), commit=commit)
 
     await eda_step.create_eda_step(lead_ctx)
 

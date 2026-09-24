@@ -38,6 +38,7 @@ from veupathdb.wdk import (
 from veupathdb_mcp.wdk import build_snapshot_from_wdk, canonicalize_synced_parameters
 
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.live_counts import read_the_live_strategy
 from pathfinder.services.strategies.persist import (
@@ -321,6 +322,9 @@ async def _take_the_sites_shape(
     graph.steps.update(placed)
     graph.recompute_roots()
     graph.last_step_id = root.id
+    # A step the site added carries no kind, so the catalog says which plugin
+    # reads its analysis document.
+    await read_the_unread_kinds(site_id=site_id, graph=graph)
     for step_id in arrivals:
         sync_state.wdk_step_ids[step_id] = int(step_id)
     sync_state.wdk_step_tree = live.step_tree

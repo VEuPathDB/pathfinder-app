@@ -2,10 +2,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
+const toastError = vi.fn();
+vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
+
 vi.mock("@/features/settings/api/memories", () => ({
   searchMemories: vi.fn(),
 }));
 
+import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import { searchMemories } from "@/features/settings/api/memories";
 import type { MemoryItem } from "@pathfinder/shared";
 import { MemorySearch } from "./MemorySearch";
@@ -71,5 +75,21 @@ describe("MemorySearch", () => {
       { timeout: 2000 },
     );
     expect(await screen.findByText(/no memories/i)).toBeInTheDocument();
+  });
+
+  it("reports a failed search once, with no toast", async () => {
+    mockedSearch.mockRejectedValue(new Error("memory search failed"));
+    render(<MemorySearch />, { wrapper: appQueryClientWrapper() });
+    fireEvent.change(screen.getByPlaceholderText(/search memories/i), {
+      target: { value: "kinase" },
+    });
+    expect(
+      await screen.findByText(
+        "Search failed: memory search failed",
+        {},
+        { timeout: 2000 },
+      ),
+    ).toBeVisible();
+    expect(toastError).not.toHaveBeenCalled();
   });
 });

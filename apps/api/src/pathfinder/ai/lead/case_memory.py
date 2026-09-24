@@ -14,7 +14,8 @@ from assistant_core.memory.autowrite import MemoryCandidate
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.memory.tombstones import compute_content_hash
 
-from pathfinder.ai.graph.state import PipelineState, ZeroResultStep
+from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.graph.turn_records import ZeroResultStep
 from pathfinder.ai.lead.ledger_sections import render_structure
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -55,7 +56,7 @@ def collect_case_candidates(state: PipelineState) -> list[MemoryCandidate]:
 
 def _goal(state: PipelineState, spec: OperationalSpec | None) -> str:
     if spec is None:
-        return state.domain.original_request or state.user_prompt
+        return state.request_the_thread_answers
     return (
         state.domain.original_request
         or spec.interpreted_goal
@@ -76,15 +77,20 @@ def _params(criterion: Criterion) -> dict[str, str]:
 
 
 def _criteria_rows(spec: OperationalSpec) -> list[dict[str, object]]:
-    return [
-        {
-            "text": criterion.text,
-            "search_name": criterion.search_name,
-            "role": criterion.role,
-            "params": _params(criterion),
-        }
-        for criterion in spec.criteria
-    ]
+    return [_criterion_row(criterion) for criterion in spec.criteria]
+
+
+def _criterion_row(criterion: Criterion) -> dict[str, object]:
+    """One criterion as the case records it; an analysis by what it selects."""
+    row: dict[str, object] = {
+        "text": criterion.text,
+        "search_name": criterion.search_name,
+        "role": criterion.role,
+        "params": _params(criterion),
+    }
+    if criterion.analysis is not None:
+        row["analysis"] = criterion.analysis.words
+    return row
 
 
 def _structure_line(spec: OperationalSpec) -> str:

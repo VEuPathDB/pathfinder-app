@@ -16,7 +16,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 
-from pathfinder.ai.lead.dispatch_messages import build_would_replace_the_strategy
+from pathfinder.ai.lead.build_messages import build_would_replace_the_strategy
 from pathfinder.ai.models.mock import arcs
 
 

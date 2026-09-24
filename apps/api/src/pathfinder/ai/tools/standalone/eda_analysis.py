@@ -36,7 +36,6 @@ from pathfinder.services.eda.authoring import (
     SubsetPreview,
     SubsetRejectedError,
     preview_subset,
-    verified_count,
 )
 from pathfinder.services.eda.binding import (
     ConversationAnalysisView,
@@ -55,7 +54,7 @@ from pathfinder.services.eda.description import (
     permission_facts,
     variable_at,
 )
-from pathfinder.services.eda.gene_subset import gene_subset
+from pathfinder.services.eda.gene_subset import gene_count, gene_subset
 
 
 async def _study(
@@ -276,23 +275,22 @@ async def _gene_sentence(
     site_id: str,
     *,
     study: EdaStudyDetail,
-    dataset_id: str,
-    entity_id: str,
     preview: SubsetPreview,
     filters: Sequence[EdaFilter],
 ) -> str:
-    """What the count of ``entity_id`` means for the genes a step exports."""
+    """What the count of ``entity_id`` means for the genes a step exports.
+
+    A count of the gene entity itself counts rows, so it states genes too.
+    """
     subset = gene_subset(study, filters)
     if subset.gene_entity_id is None:
         return ""
     if not subset.filters_genes:
         return no_gene_subset_sentence(preview, subset=subset)
-    if subset.gene_entity_id == entity_id:
-        return ""
-    genes = await verified_count(
-        site_id, dataset_id=dataset_id, entity_id=subset.gene_entity_id, filters=filters
+    genes = await gene_count(
+        site_id, study=study, entity_id=subset.gene_entity_id, filters=filters
     )
-    return gene_count_sentence(genes)
+    return gene_count_sentence(genes, subset=subset)
 
 
 async def preview_eda_subset(
@@ -363,8 +361,6 @@ async def preview_eda_subset(
     gene_sentence = await _gene_sentence(
         site_id,
         study=study,
-        dataset_id=bound.dataset_id,
-        entity_id=entity_id,
         preview=preview,
         filters=filters,
     )

@@ -52,10 +52,15 @@ export function ResultsTable({ entityRef }: ResultsTableProps) {
 
   const entityKey = `${entityRef.type}|${entityRef.id}`;
 
-  const { data: fetchedAttributes, error: attrQueryError } = useQuery({
+  const {
+    data: fetchedAttributes,
+    error: attrQueryError,
+    refetch: refetchAttributes,
+  } = useQuery({
     queryKey: ["step-attributes", entityKey] as const,
     queryFn: () => getAttributes(entityRef),
     staleTime: 60_000,
+    meta: { shownInline: true },
   });
 
   const attrError = attrQueryError instanceof Error ? attrQueryError.message : null;
@@ -157,7 +162,8 @@ export function ResultsTable({ entityRef }: ResultsTableProps) {
           size="sm"
           className="mt-3"
           onClick={() => {
-            recordsState.refetch();
+            if (attrError != null) void refetchAttributes();
+            else recordsState.refetch();
           }}
         >
           Retry
@@ -168,6 +174,11 @@ export function ResultsTable({ entityRef }: ResultsTableProps) {
 
   return (
     <div className="space-y-3">
+      {displayError != null && (
+        <p role="alert" className="text-sm text-destructive">
+          {displayError}
+        </p>
+      )}
       <ResultsTableHeader
         totalCount={totalCount}
         recordType={fetchedAttributes?.recordType ?? null}

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from assistant_core.conversation.history import HISTORY_PROCESSORS
 from assistant_core.scratchpad.toolset import build_scratchpad_toolset
-from pydantic_ai import Agent, DeferredToolRequests
+from pydantic_ai import Agent, DeferredToolRequests, RunContext
 from pydantic_ai.capabilities import ProcessHistory, Thinking
 
 from pathfinder.ai.agents._instructions import (
@@ -49,8 +49,14 @@ record count. A study step exports an EDA analysis, so its cut lives in its \
 ``eda_analysis_spec`` parameter and no other tool reads it: a compute step \
 answers with its volcano thresholds, a subset step with ``subset_filters``, \
 one sentence per filter. Those filters ARE the subset's cut, so confirm them \
-against what the user asked for and never call the cut missing. Each \
-requested value comes back as a ``constraint_report`` entry.
+against what the user asked for and never call the cut missing. A compute \
+step's ``significance_threshold`` IS its significance filter: a request for \
+significant genes is met by it, so never report that step as lacking one. \
+Each requested value comes back as a ``constraint_report`` entry. \
+``get_strategy`` states each study step by what it selects, under ``analyses``. \
+A step under ``unread_analyses`` is a study step whose analysis the site did \
+not describe: set ``success`` from the other checks and name that step in \
+``caveats`` as a pending check, never as passed or missing.
 
 ### Controls
 - ``run_control_tests_on_step(wdk_step_id, positive_controls?, \
@@ -104,8 +110,10 @@ something to call unverified or to ask for a rebuild over.
 
 ## Your Responsibilities
 
-The intent you verify is the request plus the user-explicit constraints in \
-the ledger. A criterion the spec dropped is not part of the intent, so its \
+The intent you verify is the researcher's request, pinned under its own \
+heading, plus the user-explicit constraints in the ledger. The ledger's intent \
+line is a paraphrase; where it and the request differ, the request decides. \
+A criterion the spec dropped is not part of the intent, so its \
 absence from the strategy is not a failure. A request that names no organism \
 cannot fail on species: records from the organisms the strategy searched are \
 not a wrong-organism finding.
@@ -205,6 +213,14 @@ VERIFICATION_MODEL = "openai:gpt-5.6-luna"
 VerificationAgent = Agent[AgentDeps, VerificationDelta | DeferredToolRequests]
 
 
+def pinned_researcher_request(ctx: RunContext[AgentDeps]) -> str | None:
+    """The request in the researcher's own words, which the verdict answers to."""
+    request = ctx.deps.verification_scope.request.strip()
+    if not request:
+        return None
+    return f"## The researcher's request\n{request}"
+
+
 def build_verification_agent() -> VerificationAgent:
     """A verification agent for one dispatch.
 
@@ -238,6 +254,7 @@ def build_verification_agent() -> VerificationAgent:
     )
     for fn in (
         base_system_prompt,
+        pinned_researcher_request,
         pinned_graph_state,
         pinned_user_memories,
         pinned_scratchpad,

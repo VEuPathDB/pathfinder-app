@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Awaitable, Callable, Iterator
 from typing import Any
 from uuid import UUID, uuid4
 
+import httpx
 import pytest
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
@@ -13,18 +14,7 @@ from sqlalchemy import select
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.parameters import SinglePickValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
-from veupathdb.eda import (
-    EdaAnalysisDescriptor,
-    EdaAnalysisDetail,
-    EdaComparator,
-    EdaComputation,
-    EdaComputationDescriptor,
-    EdaDifferentialExpressionConfig,
-    EdaLabeledRange,
-    EdaStringSetFilter,
-    EdaSubsetDescriptor,
-    EdaVariableSpec,
-)
+from veupathdb.eda import EdaAnalysisDetail
 from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.persistence.models import ConversationStrategy, User
@@ -32,65 +22,24 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.eda import binding
 from pathfinder.services.strategies import commit
 from pathfinder.services.strategies.commit import _WDKCommitOutcome
+from pathfinder.tests._support.eda_step_doubles import DE_DATASET, DE_PERMISSION
 from pathfinder.tests._support.eda_wire import (
+    DE_STUDY,
+    PHENOTYPE_DATASET,
+    PHENOTYPE_STUDY,
     AnalysisStore,
     eda_transport,
+    fixture,
     wire_eda,
 )
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
-    sample_filter,
-)
 
-DATASET = "DS_53f554ec6a"
-STUDY = "STUDY_53f554ec6a"
-_ENTITY = "GENE_PHENOTYPE_DATA_ENTITY"
-_SPECIES = "VAR_035294d0"
-ANALYSIS = "t4fszEJ"
 ROOT = "root"
 
-
-def _computation() -> EdaComputation:
-    return EdaComputation(
-        computation_id="c1",
-        descriptor=EdaComputationDescriptor(
-            configuration=EdaDifferentialExpressionConfig(
-                identifier_variable=EdaVariableSpec(
-                    entity_id=_ENTITY, variable_id="VAR_gene"
-                ),
-                value_variable=EdaVariableSpec(
-                    entity_id=_ENTITY, variable_id="VAR_counts"
-                ),
-                comparator=EdaComparator(
-                    variable=EdaVariableSpec(
-                        entity_id=_ENTITY, variable_id="VAR_state"
-                    ),
-                    group_a=[EdaLabeledRange(label="febrile")],
-                    group_b=[EdaLabeledRange(label="normal")],
-                ),
-            )
-        ),
-    )
-
-
-def _detail(*, with_computation: bool) -> EdaAnalysisDetail:
-    return EdaAnalysisDetail(
-        analysis_id=ANALYSIS,
-        display_name="berghei subset",
-        study_id=DATASET,
-        num_filters=1,
-        descriptor=EdaAnalysisDescriptor(
-            subset=EdaSubsetDescriptor(
-                descriptor=[
-                    EdaStringSetFilter(
-                        entity_id=_ENTITY,
-                        variable_id=_SPECIES,
-                        string_set=["P. berghei"],
-                    )
-                ]
-            ),
-            computations=[_computation()] if with_computation else [],
-        ),
-    )
+# Each recorded study, by the dataset id a binding names.
+_STUDIES = {
+    PHENOTYPE_DATASET: (PHENOTYPE_STUDY, "study_detail_phenotype"),
+    DE_DATASET: (DE_STUDY, "study_detail_de"),
+}
 
 
 def strategy_ast() -> dict[str, Any]:
@@ -104,30 +53,39 @@ def strategy_ast() -> dict[str, Any]:
     return ast.model_dump(by_alias=True, exclude_none=True, mode="json")
 
 
+def _deployment(dataset_id: str, store: AnalysisStore) -> httpx.MockTransport:
+    """The recorded deployment, answering for the study ``dataset_id`` names."""
+    study_id, study_fixture = _STUDIES[dataset_id]
+    recorded = eda_transport(
+        study_id=study_id, study_fixture=study_fixture, store=store
+    )
+    permissions = fixture("permissions")
+    permissions["perDataset"][DE_DATASET] = DE_PERMISSION
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path.endswith("/permissions"):
+            return httpx.Response(200, json=permissions)
+        return recorded.handle_request(request)
+
+    return httpx.MockTransport(handler)
+
+
 @pytest.fixture
 def open_analysis(
     monkeypatch: pytest.MonkeyPatch,
-) -> Iterator[Callable[..., AnalysisStore]]:
-    """Serve the phenotype study and one analysis document over the wire."""
+) -> Iterator[Callable[[UUID, EdaAnalysisDetail], Awaitable[AnalysisStore]]]:
+    """Bind one analysis to a thread and serve its own study over the wire."""
     token = veupathdb_auth_token_ctx.set("t")
 
-    def opened(
-        *, with_computation: bool = False, samples_only: bool = False
-    ) -> AnalysisStore:
-        detail = _detail(with_computation=with_computation)
-        if samples_only:
-            detail = detail.model_copy(
-                update={
-                    "descriptor": EdaAnalysisDescriptor(
-                        subset=EdaSubsetDescriptor(descriptor=[sample_filter()])
-                    )
-                }
-            )
+    async def opened(conversation_id: UUID, detail: EdaAnalysisDetail) -> AnalysisStore:
         store = AnalysisStore(detail=detail)
-        fixture = "study_detail_de" if samples_only else "study_detail_phenotype"
-        wire_eda(
-            monkeypatch,
-            eda_transport(study_id=STUDY, study_fixture=fixture, store=store),
+        wire_eda(monkeypatch, _deployment(detail.study_id, store))
+        await binding.bind_conversation_analysis(
+            conversation_id=conversation_id,
+            site_id="plasmodb",
+            dataset_id=detail.study_id,
+            analysis_id=detail.analysis_id,
         )
         return store
 
@@ -153,7 +111,7 @@ async def thread(
     patch_app_db_engine: None,
     db_cleaner: None,
 ) -> tuple[UUID, UUID]:
-    """A user, a conversation holding one step, and an analysis bound to it."""
+    """A user and a conversation holding one step, with no analysis bound yet."""
     del patch_app_db_engine, db_cleaner
     user_id = uuid4()
     conversation_id = uuid4()
@@ -175,12 +133,6 @@ async def thread(
             )
         )
         await session.commit()
-    await binding.bind_conversation_analysis(
-        conversation_id=conversation_id,
-        site_id="plasmodb",
-        dataset_id=DATASET,
-        analysis_id=ANALYSIS,
-    )
     return conversation_id, user_id
 
 

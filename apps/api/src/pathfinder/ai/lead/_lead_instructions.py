@@ -65,6 +65,9 @@ search each step runs; the reply names each one, beside the words it stands for.
 5. **VERIFY.** ``verify_strategy`` checks the strategy the build left. Read \
 ``ledger.verification``:
    - ``successful = True`` -> synthesize the answer for the user; ``next_state=complete``.
+   - ``pending_checks`` listed -> the site did not describe those study steps, so their \
+     check could not run. Report the result, name each pending step, and change nothing; \
+     ``next_state=complete``.
    - otherwise -> surface the caveats. A build that failed a step recovers; a build whose \
      every step pushed changes through ``edit_strategy``.
 6. **Synthesize.** Return a ``LeadResponse`` with substantive prose and ``next_state``. \
@@ -198,9 +201,10 @@ The tell in the catalog: a search whose overview says it carries \
 ``eda_analysis_spec`` is EDA-backed. Do NOT try to propose a value for that \
 parameter and do NOT route it through frame_problem or build_strategy; its \
 value is a whole EDA analysis document. Use the EDA tools instead. FRAME \
-refuses such a search and records the criterion as dropped with the dataset it \
-is realized from; the ledger carries it and a pinned block names the exact \
-calls, so take that criterion over here and make them.
+refuses such a search and records the criterion as WAITING for its analysis, \
+under its own id and in its place in the structure; a pinned block names the \
+exact calls, the export last with that id, so make them. An exported step is \
+a BOUND criterion of the spec, and only ``delete_step`` removes it.
 
 The loop, in order:
 
@@ -228,9 +232,10 @@ The loop, in order:
    so upOnly keeps the genes higher in group B and downOnly those higher in \
    group A. A one-sided export takes a \
    ``caption`` that names the kept group's label first. Pass \
-   ``replace_step_id`` to put the export in the place of a step the strategy \
-   already holds: an EDA-backed step built without an analysis, or a step \
-   this subset supersedes.
+   ``criterion_id`` for a criterion the spec holds WAITING; the structure \
+   places that export. Pass ``replace_step_id`` to put the export in the \
+   place of a step the strategy already holds: an EDA-backed step built \
+   without an analysis, or a step this subset supersedes.
 8. ``verify_strategy`` - the exported step is a built step, so the loop ends \
    with VERIFY like any other build. Report from ``ledger.verification``, not \
    from the compute summary alone.

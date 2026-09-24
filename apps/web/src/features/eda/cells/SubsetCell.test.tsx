@@ -11,7 +11,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
@@ -29,6 +29,7 @@ const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 
 import { useEdaStore } from "@/state/eda";
+import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import { SubsetCell } from "./SubsetCell";
 
 const BASE = "http://localhost:3000";
@@ -402,13 +403,15 @@ describe("SubsetCell", () => {
     );
   });
 
-  it("says the count is unavailable and rolls the optimistic edit back on failure", async () => {
+  it("says once, beside the filters, that the count is unavailable and rolls the edit back", async () => {
     server.use(
       http.post(`${BASE}/api/v1/eda/count`, () =>
         HttpResponse.json({ detail: "count failed" }, { status: 500 }),
       ),
     );
-    render(<SubsetCell siteId="plasmodb" conversationId="conv-1" />);
+    render(<SubsetCell siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(),
+    });
     await userEvent.click(await screen.findByTestId(`eda-variable-${TEMPERATURE}`));
     await userEvent.click(await screen.findByRole("checkbox", { name: "febrile" }));
     await userEvent.click(screen.getByRole("button", { name: "Apply filter" }));
@@ -418,7 +421,8 @@ describe("SubsetCell", () => {
     await waitFor(() => {
       expect(useEdaStore.getState().localFilters).toBe(null);
     });
-    expect(toastError).toHaveBeenCalledWith("count failed");
+    expect(screen.getAllByText("count failed")).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it("draws a bar chart for a categorical variable and reports the value coverage", async () => {
@@ -500,21 +504,21 @@ describe("SubsetCell", () => {
     expect(screen.queryByTestId("eda-subset-multivalued")).toBe(null);
   });
 
-  it("reports a study whose entity tree cannot be read", async () => {
+  it("reports once a study whose entity tree cannot be read", async () => {
     server.use(
       http.get(`${BASE}/api/v1/eda/studies/DS_e973eadd57`, () =>
         HttpResponse.json({ detail: "study read failed" }, { status: 500 }),
       ),
     );
-    render(<SubsetCell siteId="plasmodb" conversationId="conv-1" />);
+    render(<SubsetCell siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(),
+    });
     expect(await screen.findByTestId("eda-subset-study-error")).toHaveTextContent(
       "study read failed",
     );
     expect(screen.queryByTestId(`eda-entity-${SAMPLE}`)).toBe(null);
-    await waitFor(() => {
-      expect(toastError).toHaveBeenCalledWith("study read failed");
-    });
-    expect(toastError).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByText("study read failed")).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it("names the distribution as unavailable without a second toast", async () => {
@@ -523,12 +527,31 @@ describe("SubsetCell", () => {
         HttpResponse.json({ detail: "distribution failed" }, { status: 500 }),
       ),
     );
-    render(<SubsetCell siteId="plasmodb" conversationId="conv-1" />);
+    render(<SubsetCell siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(),
+    });
     await userEvent.click(await screen.findByTestId(`eda-variable-${TEMPERATURE}`));
     expect(
       await screen.findByTestId("eda-subset-distribution-error"),
     ).toHaveTextContent("distribution unavailable");
-    expect(toastError).toHaveBeenCalledTimes(0);
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("carries the distribution's failure reason on the unavailable marker", async () => {
+    server.use(
+      http.post(`${BASE}/api/v1/eda/distribution`, () =>
+        HttpResponse.json({ detail: "distribution failed" }, { status: 500 }),
+      ),
+    );
+    render(<SubsetCell siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(),
+    });
+    await userEvent.click(await screen.findByTestId(`eda-variable-${TEMPERATURE}`));
+    const marker = await screen.findByTestId("eda-subset-distribution-error");
+    expect(marker).toHaveAttribute("title", "distribution failed");
+    expect(marker).toHaveTextContent(/^distribution unavailable: distribution failed$/);
+    expect(within(marker).getByText(": distribution failed")).toHaveClass("sr-only");
+    expect(marker).toHaveAccessibleName("distribution failed");
   });
 
   it("leaves out a variable the study hides from the variable tree", async () => {

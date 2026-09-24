@@ -45,7 +45,9 @@ def _delta(text: str) -> JSONObject:
     )
 
 
-def _digest(*, success: bool, reason: str) -> VerificationDigest:
+def _digest(
+    *, success: bool, reason: str, pending: tuple[str, ...] = ()
+) -> VerificationDigest:
     return VerificationDigest(
         disposition=PhaseDisposition.DONE
         if success
@@ -54,12 +56,17 @@ def _digest(*, success: bool, reason: str) -> VerificationDigest:
         reason=reason,
         success=success,
         key_findings=["root size holds"],
+        pending_checks=list(pending),
     )
 
 
-def _ledger(*, success: bool, reason: str = "checked") -> JSONObject:
+def _ledger(
+    *, success: bool, reason: str = "checked", pending: tuple[str, ...] = ()
+) -> JSONObject:
     """The ledger chunk, carrying the one section the reader looks at."""
-    section = VerificationSection(digest=_digest(success=success, reason=reason))
+    section = VerificationSection(
+        digest=_digest(success=success, reason=reason, pending=pending)
+    )
     chunk = ledger_update_event(ledger=ledger_with(section))
     return chunk.model_dump(by_alias=True, mode="json", exclude_none=True)
 
@@ -125,6 +132,19 @@ def test_the_last_ledger_wins() -> None:
     assert verdict.success
     assert verdict.reason == "root size holds"
     assert verdict.key_findings == ["root size holds"]
+
+
+def test_the_verdict_keeps_its_pending_checks() -> None:
+    verdict = read_verification(
+        _log(_ledger(success=True, pending=("step_de",))),
+    )
+
+    assert verdict is not None
+    assert (verdict.success, verdict.pending_checks, verdict.passed) == (
+        True,
+        ["step_de"],
+        False,
+    )
 
 
 def test_a_ledger_without_a_digest_is_not_a_verdict() -> None:

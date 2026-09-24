@@ -20,7 +20,7 @@ The turn therefore always ends `data-conversation-title`, `finish`, `done` when
 it names the thread, and `finish`, `done` when it does not.
 
 Until the title arrives, the web client shows the thread's first message, cut
-to 60 characters on a word boundary, as a provisional name
+to 60 code points on a word boundary, as a provisional name
 (`apps/web/src/lib/conversations/provisionalName.ts`) in the sidebar row and the
 strategy canvas; the name the server writes replaces it once it is non-empty.
 

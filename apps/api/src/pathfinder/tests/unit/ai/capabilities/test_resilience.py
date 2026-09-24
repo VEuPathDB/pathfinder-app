@@ -24,7 +24,7 @@ from pathfinder.ai.graph.runtime import (
     AgentDeps,
     ServiceOutageMemory,
 )
-from pathfinder.ai.graph.state import TurnMarkers
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.domain.strategy.session import StrategySession
 
 

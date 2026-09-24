@@ -2,11 +2,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
+const toastError = vi.fn();
+vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
+
 vi.mock("@/features/settings/api/privacy", () => ({
   getPrivacySettings: vi.fn(),
   updatePrivacySettings: vi.fn(),
 }));
 
+import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import {
   getPrivacySettings,
   updatePrivacySettings,
@@ -80,6 +84,17 @@ describe("PrivacySettings", () => {
     render(<PrivacySettings />);
 
     expect(await screen.findByText(/Failed to load privacy settings/i)).toBeVisible();
+  });
+
+  it("reports a failed load once, with no toast", async () => {
+    mockedGet.mockRejectedValue(new Error("privacy read failed"));
+
+    render(<PrivacySettings />, { wrapper: appQueryClientWrapper() });
+
+    expect(
+      await screen.findByText("Failed to load privacy settings: privacy read failed"),
+    ).toBeVisible();
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it("reports a failed save", async () => {

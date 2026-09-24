@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from assistant_core.conversation.stream_parts.agent_topology import (
@@ -32,6 +33,13 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 
 from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.graph.stream_events import ledger_update_event
+from pathfinder.ai.lead.deltas import (
+    EditDelta,
+    ExecuteDelta,
+    FrameResult,
+    RecoveryDelta,
+    VerificationDelta,
+)
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import (
     TOOL_TO_PHASE_ROLE,
@@ -118,44 +126,60 @@ def _summarize_sub_agent_call_args(args: dict[str, Any]) -> str:
     return ""
 
 
-def _summarize_sub_agent_result(result: ToolReturnPart) -> str:
-    """One-line result summary for the SubAgentCallCard 'completed' state."""
-    content = result.content
-    if isinstance(content, BaseModel):
-        return _summarize_delta(content)
-    if isinstance(content, dict):
-        return _summarize_delta_dict(content)
-    return _truncate_summary(str(content))
+def _framed(delta: FrameResult | EditDelta) -> str:
+    if delta.disposition == "needs_user":
+        return count_noun(len(delta.open_questions), "open question")
+    return _truncate_summary(delta.summary or "Framed")
 
 
-def _summarize_delta(delta: BaseModel) -> str:
-    """One line about what a sub-agent's typed delta reports."""
-    return _summarize_delta_dict(delta.model_dump())
-
-
-def _summarize_outcome(outcome: dict[str, Any]) -> str:
-    built = len(outcome.get("pushed_step_ids") or [])
-    failed = len(outcome.get("failed_steps") or [])
+def _built(delta: ExecuteDelta) -> str:
+    outcome = delta.outcome
+    built = len(outcome.pushed_step_ids)
+    failed = len(outcome.failed_steps)
     if failed > 0:
         return f"Built {built}, {failed} failed"
     return f"Built {count_noun(built, 'step')}"
 
 
-def _summarize_delta_dict(data: dict[str, Any]) -> str:
-    """Compact, human-readable one-liner from a sub-agent's typed delta."""
-    if "disposition" in data:
-        disposition = data.get("disposition")
-        if disposition == "needs_user":
-            return count_noun(len(data.get("open_questions") or []), "open question")
-        return _truncate_summary(str(data.get("summary") or "Framed"))
-    if "actions_taken" in data:
-        return count_noun(len(data.get("actions_taken") or []), "recovery action")
-    if "outcome" in data:
-        return _summarize_outcome(data.get("outcome") or {})
-    if "digest" in data:
-        success = (data.get("digest") or {}).get("success", False)
-        return "Verified successfully" if success else "Issues found"
-    return ""
+def _recovered(delta: RecoveryDelta) -> str:
+    return count_noun(len(delta.actions_taken), "recovery action")
+
+
+def _verified(delta: VerificationDelta) -> str:
+    """A pass, a pass with checks pending, or an objection."""
+    digest = delta.digest
+    if digest.passed:
+        return "Verified successfully"
+    if not digest.success:
+        return "Issues found"
+    return f"Passed, {count_noun(len(digest.pending_checks), 'check')} pending"
+
+
+type Summary = Callable[[object], str]
+
+
+def _read_as[M: BaseModel](model: type[M], line: Callable[[M], str]) -> Summary:
+    return lambda content: line(model.model_validate(content))
+
+
+# Each dispatch tool returns one delta type; the card reads it typed.
+_SUMMARY_BY_TOOL: dict[str, Summary] = {
+    "frame_problem": _read_as(FrameResult, _framed),
+    "edit_strategy": _read_as(EditDelta, _framed),
+    "recover_failed_steps": _read_as(RecoveryDelta, _recovered),
+    "verify_strategy": _read_as(VerificationDelta, _verified),
+    "build_strategy": _read_as(ExecuteDelta, _built),
+}
+
+
+def _summarize_sub_agent_result(tool_name: str, result: ToolReturnPart) -> str:
+    """One-line result summary for the SubAgentCallCard 'completed' state.
+
+    A call that did not succeed carries the text that says why, not a delta.
+    """
+    if result.outcome != "success":
+        return _truncate_summary(str(result.content))
+    return _SUMMARY_BY_TOOL[tool_name](result.content)
 
 
 def sub_agent_result_failed(result: ToolReturnPart | RetryPromptPart) -> bool:
@@ -212,7 +236,7 @@ def handle_sub_agent_event(
                 else "retry requested"
             )
         else:
-            summary = _summarize_sub_agent_result(result)
+            summary = _summarize_sub_agent_result(result_tool_name, result)
         failed = sub_agent_result_failed(result)
         spent = sub_agent_usage.get(event.tool_call_id, SubAgentCallUsage())
         emit_chunk(

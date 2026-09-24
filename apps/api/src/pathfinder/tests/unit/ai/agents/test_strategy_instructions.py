@@ -20,14 +20,18 @@ from pathfinder.ai.agents.strategy_instructions import (
     pinned_graph_state,
     pinned_ledger,
 )
+from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
     OperationalSpec,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.step_words import StampedKind
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.eda_step_doubles import DE_DATASET
 from pathfinder.tests.fixtures.builders import add_step_to_graph
+from pathfinder.tests.unit.ai.lead._analysis_thread import document
 
 
 def _ctx(spec: OperationalSpec) -> Any:
@@ -254,6 +258,44 @@ class TestTheRenderedGraph:
         assert rendered is not None
         assert "1,282 genes" not in rendered
         assert "wdk=440432473" in rendered
+
+
+def test_an_analysis_step_reads_as_what_it_selects_beside_a_search_step() -> None:
+    graph = _graph_with_a_combine()
+    add_step_to_graph(
+        graph,
+        StrategyStep(
+            id="d",
+            kind=StepKind.SEARCH,
+            search_name="GenesByEdaVizWithCompute",
+            display_name="Genes higher in 24h than in 18h",
+            parameters={
+                "eda_dataset_id": StringValue(value=DE_DATASET),
+                "eda_analysis_spec": document("18h", 0.05),
+            },
+        ),
+    )
+
+    graph.note_analysis_kinds(
+        {
+            "d": StampedKind(
+                search_name="GenesByEdaVizWithCompute", kind=AnalysisKind.COMPUTE
+            )
+        }
+    )
+
+    rendered = pinned_graph_state(_graph_ctx(_session(graph)))
+
+    assert rendered is not None
+    lines = rendered.splitlines()
+    step = lines.index(
+        'd: GenesByEdaVizWithCompute [leaf] "Genes higher in 24h than in 18h" -> root'
+    )
+    assert lines[step + 1] == (
+        "  selects: Genes higher in 24h than in 18h (DESeq, |effect| >= 1, p <= 0.05)"
+    )
+    assert "text_expression=kinase" in rendered
+    assert '{"' not in rendered
 
 
 def test_the_context_package_is_gone() -> None:

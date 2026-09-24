@@ -13,12 +13,17 @@ from uuid import UUID
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
+from pathfinder.ai.lead.card_contract import CARD_TOOLS
 from pathfinder.tests.integration.chat._helpers import run_one_chat_turn
 
 _REMEMBER_PROMPT = (
     "Please remember for future sessions: I always work with P. falciparum 3D7."
 )
 _CONTEXT_PROMPT = "I'm investigating virulence factors in Leishmania major"
+_CONTEXT_REPLY = (
+    "Good area to be in. I have not built anything yet. Say the word and I "
+    "will put a candidate strategy together for it."
+)
 
 
 def _tool_names(chunks: list[dict[str, Any]]) -> list[str]:
@@ -72,9 +77,10 @@ async def test_a_context_statement_answers_in_prose(
 
     assert "data-sub-agent-call" not in _types(chunks)
     assert "data-graph-snapshot" not in _types(chunks)
+    assert CARD_TOOLS.isdisjoint(_tool_names(chunks))
     text = "".join(
         str(chunk.get("delta", ""))
         for chunk in chunks
         if chunk.get("type") == "text-delta"
     )
-    assert "Want me to" in text
+    assert text == _CONTEXT_REPLY

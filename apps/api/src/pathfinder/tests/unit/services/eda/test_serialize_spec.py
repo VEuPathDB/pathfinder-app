@@ -9,8 +9,8 @@ import pytest
 from veupathdb.eda import (
     EdaComparator,
     EdaComputation,
-    EdaComputationDescriptor,
     EdaDifferentialExpressionConfig,
+    EdaDifferentialExpressionDescriptor,
     EdaLabeledRange,
     EdaStringSetFilter,
     EdaVariableSpec,
@@ -34,8 +34,8 @@ def test_an_analysis_with_no_filter_and_no_computation_has_no_spec() -> None:
     with pytest.raises(EmptyAnalysisError) as refusal:
         serialize_spec(analysis)
     assert refusal.value.detail == (
-        "The analysis on dataset DS_x holds no filter and no computation, so "
-        "it selects no genes and exports no step."
+        "The analysis holds no filter and no computation, so it selects no "
+        "genes and exports no step."
     )
 
 
@@ -85,7 +85,7 @@ def test_a_computation_serializes_with_its_volcano_thresholds() -> None:
         display_name="de",
         computation=EdaComputation(
             computation_id="de1",
-            descriptor=EdaComputationDescriptor(
+            descriptor=EdaDifferentialExpressionDescriptor(
                 configuration=EdaDifferentialExpressionConfig(
                     identifier_variable=EdaVariableSpec(
                         entity_id="ENT_fd574cd6", variable_id="VEUPATHDB_GENE_ID"

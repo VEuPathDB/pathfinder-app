@@ -1,6 +1,5 @@
-"""The Lead's typed reply, the record of the turn it answers - what it wrote
-and what it retrieved - and the reconciliation that holds one against the
-other."""
+"""The Lead's typed reply and the reconciliation that holds it against the
+record of the turn it answers."""
 
 from __future__ import annotations
 
@@ -12,8 +11,6 @@ from pydantic import ConfigDict, Field
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
 
-from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.state import CreatedControlSet, EnrichmentRun
 from pathfinder.ai.lead.contract_messages import (
     analysis_ran_on_another_set_message,
     blamed_the_site_message,
@@ -32,16 +29,7 @@ from pathfinder.ai.lead.contract_messages import (
     unretrieved_source_message,
     unverified_build_message,
 )
-from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.intent_gate import (
-    tools_the_turn_offers,
-    turn_builds,
-    turn_is_off_topic,
-)
 from pathfinder.ai.lead.ledger import blamed_the_site
-from pathfinder.ai.lead.ledger_sections import BuildSection
-from pathfinder.ai.lead.phase_stop import PhaseStop
-from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.reply_claims import (
     CLAIMED_A_FRAME,
     SAVED_A_CONTROL_SET,
@@ -53,15 +41,9 @@ from pathfinder.ai.lead.reply_claims import (
     names_the_phrase,
     normalized_reference,
 )
-from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
 from pathfinder.domain.strategy.constraints import OpenQuestion
-from pathfinder.domain.strategy.operational_spec import (
-    DroppedCriterion,
-    eda_backed_drops,
-)
-from pathfinder.domain.strategy.spec_diff import SpecDiff
-from pathfinder.domain.strategy.step_words import AddedSearch
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -71,14 +53,6 @@ _CODE_FENCE = "```"
 
 CONTRACT_HEADING = "This reply does not match what the turn did:"
 PROSE_MAX_CHARS = 4000
-
-# The tools the Lead calls to do the turn's work. ``build_strategy`` runs no
-# sub-agent, and an accepted proposal runs an edit; both are refused the same
-# way the dispatches are.
-DISPATCH_TOOLS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {
-    "build_strategy",
-    PROPOSAL_TOOL,
-}
 
 
 class LeadResponse(CamelModel):
@@ -137,33 +111,6 @@ class LeadResponse(CamelModel):
     )
 
 
-class TurnRecord(CamelModel):
-    """What this turn did, as the reply must account for it."""
-
-    model_config = ConfigDict(frozen=True)
-
-    changed_strategy: bool
-    build_unverified: bool
-    build_outcome: BuildOutcome | None
-    eda_criterion_pending: DroppedCriterion | None
-    turn_builds: bool
-    framed: bool
-    off_topic: bool
-    analysed: EnrichmentRun | None
-    substituted: list[EnrichmentRun]
-    last_phase_stop: PhaseStop | None
-    refused_dispatches: tuple[str, ...]
-    build_section: BuildSection
-    frame_diff: SpecDiff | None
-    retrieved_sources: tuple[str, ...]
-    created_control_sets: tuple[CreatedControlSet, ...]
-    created_gene_sets: tuple[CreatedGeneSet, ...]
-    added_searches: tuple[AddedSearch, ...] = ()
-    answered_a_card: bool = False
-    # The reply is the text beside a card, and the card asks its question.
-    ends_on_a_card: bool = False
-
-
 MismatchKind = Literal[
     "unverified_build",
     "misreported_change",
@@ -189,84 +136,6 @@ class Mismatch(CamelModel):
 
     kind: MismatchKind
     sentence: str
-
-
-def _pending_eda_criterion(deps: LeadDeps) -> DroppedCriterion | None:
-    """The dropped EDA criterion this turn opened no analysis for, or None.
-
-    An analysis the thread already holds open on that dataset counts: the
-    filters and the export act on it.
-    """
-    opened = set(deps.state.turn_markers.eda_datasets_opened)
-    analysis = deps.state.domain.open_eda_analysis
-    if analysis is not None:
-        opened.add(analysis.dataset_id)
-    return next(
-        (
-            dropped
-            for dropped in eda_backed_drops(deps.state.domain.operational_spec)
-            if dropped.eda_dataset_id not in opened
-        ),
-        None,
-    )
-
-
-def _analysis_and_what_it_replaced(
-    runs: Sequence[EnrichmentRun],
-) -> tuple[EnrichmentRun | None, list[EnrichmentRun]]:
-    """The enrichment this turn ran, and the failures it was reached around.
-
-    Only a failure recorded before the run that succeeded, on another set, is
-    a substitution.
-    """
-    ran_at = max((i for i, run in enumerate(runs) if run.succeeded), default=-1)
-    if ran_at < 0:
-        return None, []
-    analysed = runs[ran_at]
-    return analysed, [
-        run
-        for run in runs[:ran_at]
-        if not run.succeeded and run.gene_set_id != analysed.gene_set_id
-    ]
-
-
-def _refused_dispatches(ctx: RunContext[LeadDeps]) -> tuple[str, ...]:
-    """The dispatch tools this run refused and never ran again.
-
-    The run drops a tool from its retry record as soon as one call of it
-    returns, so what is left is work the turn asked for and never did. A tool
-    this turn never offered is a name the run did not know, not work it owes.
-    """
-    offered = tools_the_turn_offers(ctx.deps, DISPATCH_TOOLS)
-    return tuple(sorted(name for name in ctx.retries if name in offered))
-
-
-def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
-    """Everything the contract reads about the turn this reply answers."""
-    deps = ctx.deps
-    markers = deps.state.turn_markers
-    analysed, substituted = _analysis_and_what_it_replaced(markers.enrichment_runs)
-    ledger = derive_ledger(deps.state, deps.intent)
-    return TurnRecord(
-        changed_strategy=markers.changed_strategy,
-        build_unverified=markers.build_unverified,
-        build_outcome=deps.state.domain.last_build_outcome,
-        eda_criterion_pending=_pending_eda_criterion(deps),
-        turn_builds=turn_builds(deps),
-        framed=markers.framed,
-        off_topic=turn_is_off_topic(deps),
-        analysed=analysed,
-        substituted=substituted,
-        last_phase_stop=deps.last_phase_stop,
-        refused_dispatches=_refused_dispatches(ctx),
-        build_section=ledger.build,
-        frame_diff=ledger.frame.spec_diff(),
-        retrieved_sources=tuple(markers.retrieved_sources),
-        created_control_sets=tuple(markers.created_control_sets),
-        created_gene_sets=tuple(markers.created_gene_sets),
-        added_searches=tuple(markers.added_searches),
-        answered_a_card=markers.consulted or markers.accepted_proposal,
-    )
 
 
 def _unverified_build(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -311,7 +180,7 @@ def _unwritten_gene_set(report: LeadResponse, record: TurnRecord) -> str | None:
 
 
 def _unbuilt_eda_criterion(report: LeadResponse, record: TurnRecord) -> str | None:
-    """Only the EDA tools build a dropped EDA-backed criterion."""
+    """Only the EDA tools build a criterion waiting for its analysis."""
     del report
     if not record.turn_builds or record.eda_criterion_pending is None:
         return None
@@ -320,7 +189,11 @@ def _unbuilt_eda_criterion(report: LeadResponse, record: TurnRecord) -> str | No
 
 def _blamed_the_site(report: LeadResponse, record: TurnRecord) -> str | None:
     """A pass that ran out of calls is this turn's own limit."""
-    blame = blamed_the_site(report.prose, build=record.build_section)
+    blame = blamed_the_site(
+        report.prose,
+        build=record.build_section,
+        verification=record.verification_section,
+    )
     if blame is None:
         return None
     return blamed_the_site_message(blame, record.last_phase_stop)

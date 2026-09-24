@@ -57,9 +57,16 @@ Lead asks in prose.
   `substituted_analysis` is not read. On a mismatch the card is denied with the correction - an
   approval call accepts only an approval or a denial - and the Lead answers again in the same run,
   issuing the card again; the latch is `contract_refused`, shared with the typed reply.
-  `ai/graph/_lead_card_hold.py::CardHold` holds the Lead's text and a new card's call chunks until
-  the card is denied (all dropped) or the run ends (all written), so a refused reply never reaches
-  the thread. A call a resumed run re-announces passes.
+  `ai/graph/_lead_card_hold.py::CardHold` holds the Lead's text and every chunk of each new card
+  of the response until the cards are denied (all dropped, the denials with them) or the run ends
+  (the text, then each card whole, in the order the cards began), so a refused reply never reaches
+  the thread and no card reaches the web in pieces. A call a resumed run re-announces passes.
+- **A card beside another approval.** The chunks of a call that is not a card, such as
+  `delete_step`, pass the hold at once, so that call reaches the thread before the held text. The
+  runtime parks on every approval of one response together, and a card is answered in the same run
+  only when nothing else parks it: a card denied beside `delete_step` leaves the run parked on
+  `delete_step`, with the text and the card dropped, and the Lead reads the correction beside that
+  call's answer when the researcher answers it.
 
 # Why
 
@@ -87,6 +94,11 @@ them, and the contract refuses the prose form everywhere.
 - **Checking the parked turn after the run, in `_lead_turn`.** The run is over by then, so a
   refusal needs a second run started from the parked history, and the approval request is
   already among the run's chunks. The handler runs before either.
+- **Refusing a response that holds a card beside another approval.** It is a second refusal rule
+  the Lead would have to learn, for a shape its instructions give it no reason to produce: a card
+  ends a reply that offers further work, and `delete_step` or `clear_strategy` carries out a
+  removal the researcher asked for. The hold keeps such a response correct: nothing is lost, and
+  the correction is read one answer later.
 - **The note on its own field of the approval.** The note on a yes rides the consult answer part
   the web already sends, and the note on a no rides the denial's reason; no new wire shape was
   added.

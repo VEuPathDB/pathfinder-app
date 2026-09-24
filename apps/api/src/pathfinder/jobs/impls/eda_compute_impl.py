@@ -18,9 +18,10 @@ from veupathdb.domain import validate_compute_config
 from veupathdb.eda import (
     EdaAnalysisDetail,
     EdaComputation,
-    EdaComputationDescriptor,
     EdaComputeJob,
+    EdaDifferentialExpressionComputation,
     EdaDifferentialExpressionConfig,
+    EdaDifferentialExpressionDescriptor,
     EdaFilter,
     EdaPermissionEntry,
     EdaStudyDetail,
@@ -41,7 +42,6 @@ from pathfinder.domain.eda_parts import (
     EdaVolcanoPoint,
 )
 from pathfinder.persistence.models import ConversationAnalysisView
-from pathfinder.services.eda.authoring import apply_computation
 from pathfinder.services.eda.binding import (
     analysis_state,
     bound_conversation_analysis,
@@ -49,6 +49,7 @@ from pathfinder.services.eda.binding import (
     read_analysis,
 )
 from pathfinder.services.eda.catalog import get_study_detail_for_dataset
+from pathfinder.services.eda.comparison import apply_computation
 from pathfinder.services.eda.compute import (
     RUNNING_STATUSES,
     RetainedSummary,
@@ -108,11 +109,12 @@ def _config(
 def _computation(
     job_id: str,
     config: EdaDifferentialExpressionConfig,
-) -> EdaComputation:
-    """The computation the analysis carries, with the volcano the step reads."""
-    return EdaComputation(
+) -> EdaDifferentialExpressionComputation:
+    """The comparison the analysis carries, with the volcano the step reads."""
+    descriptor = EdaDifferentialExpressionDescriptor(configuration=config)
+    computation = EdaComputation(
         computation_id=job_id,
-        descriptor=EdaComputationDescriptor(configuration=config),
+        descriptor=descriptor,
         visualizations=[
             EdaVisualization(
                 visualization_id=job_id,
@@ -124,6 +126,9 @@ def _computation(
                 ),
             ),
         ],
+    )
+    return EdaDifferentialExpressionComputation(
+        computation=computation, descriptor=descriptor
     )
 
 

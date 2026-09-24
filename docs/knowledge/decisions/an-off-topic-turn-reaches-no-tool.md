@@ -4,7 +4,7 @@ title: An off-topic turn reaches no tool
 description: The classification the Lead makes first is what puts a request outside PathFinder's scope, and that turn is offered no tool, is pinned a two-sentence redirect, is refused if it answers anyway, and stops at a token ceiling of its own. A prompt-only redirect, a pre-turn topic classifier and lowering the run's live UsageLimits were rejected.
 tags: [agents, intent, scope, budget]
 generated: { by: claude-code/opus-5, at: 2026-09-13T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-13T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
 status: stable
 ---
 
@@ -42,7 +42,13 @@ BUILD and VERIFY each run with a `RunUsage` of their own under
 `_lead_capture`, not through this ceiling. A turn that reaches it ends with
 `budget_stop_report`: the strategy it holds, the final step's title, count and
 site link from the ledger, the verification verdict and any open question FRAME
-recorded, and then the budget sentence.
+recorded, and then the budget sentence. A build the ledger marks stale cites
+no count and no link, and the report says the recorded count is out of date.
+The report also says what this turn wrote, from its markers: each step it
+added, "This turn changed the strategy and added no step.", or "This turn
+changed nothing." It prints a verdict only while the strategy holds the
+revision a check judged, and otherwise says "The strategy was not verified
+this turn."
 
 **An out-of-scope turn stops at 40000 tokens.** `off_topic_budget_stop` reads
 the `RunUsage` the turn handed the run, once per streamed event, and the turn

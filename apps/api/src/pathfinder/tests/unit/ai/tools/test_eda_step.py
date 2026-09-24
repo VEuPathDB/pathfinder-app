@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 from typing import Any
 
@@ -9,6 +10,7 @@ import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
+from veupathdb.eda import EdaAnalysisDetail
 from veupathdb.errors import ValidationError
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -20,21 +22,27 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.eda.gene_subset import GeneCount
 from pathfinder.services.strategies.commit import CommitResult
-from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET, PHENOTYPE_ENTITY
-from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+from pathfinder.tests._support.eda_step_doubles import (
+    PHENOTYPE_GENES,
     CountedSubset,
-    analysis_detail,
-    bound,
+    de_analysis,
+    phenotype_subset,
     pushing_commit,
-    read_detail,
-    read_detail_with_computation,
     recording_commit,
+    sample_filter,
     unbound,
+    wire_analysis,
     wire_gene_count,
 )
+from pathfinder.tests._support.eda_wire import (
+    PHENOTYPE_DATASET,
+    PHENOTYPE_ENTITY,
+    PHENOTYPE_STUDY,
+)
+from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     combine,
     leaf,
@@ -62,16 +70,19 @@ def lead_ctx() -> RunContext[LeadDeps]:
     )
 
 
+# A comparison of the RNA-Seq study's samples, which a compute export needs.
+_COMPUTED = de_analysis(filters=[sample_filter()], with_computation=True)
+
+
 def _wire(
     monkeypatch: pytest.MonkeyPatch,
     *,
-    read: object,
+    detail: EdaAnalysisDetail,
     commit: object | None = None,
-    genes_selected: int = 3984,
+    genes: GeneCount = PHENOTYPE_GENES,
 ) -> list[CountedSubset]:
-    monkeypatch.setattr(eda_step, "bound_analysis", bound)
-    monkeypatch.setattr(eda_step, "read_analysis", read)
-    counted = wire_gene_count(monkeypatch, count=genes_selected)
+    wire_analysis(monkeypatch, eda_step, detail)
+    counted = wire_gene_count(monkeypatch, genes=genes)
     if commit is not None:
         monkeypatch.setattr(eda_step, "apply_operations_and_commit", commit)
     return counted
@@ -81,7 +92,7 @@ async def test_a_subset_export_uses_the_generic_subset_search(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     applied: list[Any] = []
-    _wire(monkeypatch, read=read_detail, commit=recording_commit(applied))
+    _wire(monkeypatch, detail=phenotype_subset(), commit=recording_commit(applied))
 
     answer = await eda_step.create_eda_step(lead_ctx)
 
@@ -105,7 +116,7 @@ async def test_a_compute_export_uses_the_viz_with_compute_search(
     applied: list[Any] = []
     _wire(
         monkeypatch,
-        read=read_detail_with_computation,
+        detail=_COMPUTED,
         commit=recording_commit(applied),
     )
 
@@ -127,16 +138,36 @@ async def test_a_compute_export_uses_the_viz_with_compute_search(
     assert result.is_compute_backed is True
 
 
-async def test_an_explicit_search_name_wins_over_the_generic_one(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+def test_the_export_takes_no_search_name() -> None:
+    """The export writes the generic search of its kind and no other."""
+    assert "search_name" not in inspect.signature(eda_step.create_eda_step).parameters
+
+
+@pytest.mark.parametrize(
+    ("detail", "significance", "search"),
+    [
+        (_COMPUTED, 0.05, "GenesByEdaVizWithCompute"),
+        (phenotype_subset(), None, "GenesByEdaSubset"),
+    ],
+    ids=["a cut writes the compute search", "no cut writes the subset search"],
+)
+async def test_the_export_writes_the_search_its_cut_decides(
+    monkeypatch: pytest.MonkeyPatch,
+    lead_ctx: RunContext[LeadDeps],
+    detail: EdaAnalysisDetail,
+    significance: float | None,
+    search: str,
 ) -> None:
-    """A per-dataset search already run by the researcher is still exportable."""
     applied: list[Any] = []
-    _wire(monkeypatch, read=read_detail, commit=recording_commit(applied))
+    _wire(monkeypatch, detail=detail, commit=recording_commit(applied))
 
-    await eda_step.create_eda_step(lead_ctx, search_name="GenesByRNASeqDESeq")
+    await eda_step.create_eda_step(
+        lead_ctx,
+        effect_size_threshold=None if significance is None else 1.0,
+        significance_threshold=significance,
+    )
 
-    assert applied[0][0].step.search_name == "GenesByRNASeqDESeq"
+    assert [op.step.search_name for op in applied[0]] == [search]
 
 
 async def test_the_thresholds_are_written_into_the_analysis_not_into_a_parameter(
@@ -146,7 +177,7 @@ async def test_the_thresholds_are_written_into_the_analysis_not_into_a_parameter
     applied: list[Any] = []
     _wire(
         monkeypatch,
-        read=read_detail_with_computation,
+        detail=_COMPUTED,
         commit=recording_commit(applied),
     )
 
@@ -162,7 +193,7 @@ async def test_attaching_into_a_slot_builds_the_slot_attach_point(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     applied: list[Any] = []
-    _wire(monkeypatch, read=read_detail, commit=recording_commit(applied))
+    _wire(monkeypatch, detail=phenotype_subset(), commit=recording_commit(applied))
 
     await eda_step.create_eda_step(lead_ctx, attach_to_step_id="s1", slot="secondary")
 
@@ -176,7 +207,7 @@ async def test_a_step_with_no_attach_point_becomes_a_new_root(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     applied: list[Any] = []
-    _wire(monkeypatch, read=read_detail, commit=recording_commit(applied))
+    _wire(monkeypatch, detail=phenotype_subset(), commit=recording_commit(applied))
 
     await eda_step.create_eda_step(lead_ctx)
 
@@ -187,7 +218,7 @@ async def test_a_compute_export_without_thresholds_raises_a_model_retry(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """The plugin throws unless the volcano carries both thresholds."""
-    _wire(monkeypatch, read=read_detail_with_computation)
+    _wire(monkeypatch, detail=_COMPUTED)
 
     with pytest.raises(ModelRetry) as excinfo:
         await eda_step.create_eda_step(lead_ctx, effect_size_threshold=1.0)
@@ -199,7 +230,7 @@ async def test_a_significance_threshold_alone_raises_a_model_retry(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """The mirror of the pair guard: neither threshold may travel alone."""
-    _wire(monkeypatch, read=read_detail_with_computation)
+    _wire(monkeypatch, detail=_COMPUTED)
 
     with pytest.raises(ModelRetry) as excinfo:
         await eda_step.create_eda_step(lead_ctx, significance_threshold=0.05)
@@ -210,7 +241,7 @@ async def test_a_significance_threshold_alone_raises_a_model_retry(
 async def test_a_compute_export_with_no_computation_names_the_compute_tool(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
-    _wire(monkeypatch, read=read_detail)
+    _wire(monkeypatch, detail=phenotype_subset())
 
     with pytest.raises(ModelRetry) as excinfo:
         await eda_step.create_eda_step(
@@ -234,7 +265,7 @@ async def test_a_step_with_no_open_analysis_raises_a_model_retry(
 async def test_a_slot_without_a_target_step_raises_a_model_retry(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
-    _wire(monkeypatch, read=read_detail)
+    _wire(monkeypatch, detail=phenotype_subset())
 
     with pytest.raises(ModelRetry) as excinfo:
         await eda_step.create_eda_step(lead_ctx, slot="secondary")
@@ -245,7 +276,7 @@ async def test_a_slot_without_a_target_step_raises_a_model_retry(
 async def test_a_target_step_without_a_slot_raises_a_model_retry(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
-    _wire(monkeypatch, read=read_detail)
+    _wire(monkeypatch, detail=phenotype_subset())
 
     with pytest.raises(ModelRetry) as excinfo:
         await eda_step.create_eda_step(lead_ctx, attach_to_step_id="s1")
@@ -257,13 +288,28 @@ async def test_a_session_with_no_graph_fails_loudly(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """A turn always hydrates a graph, so its absence is a wiring fault."""
-    _wire(monkeypatch, read=read_detail)
+    _wire(monkeypatch, detail=phenotype_subset())
     lead_ctx.deps.runtime.strategy_session.graph = None
 
     with pytest.raises(ValidationError) as excinfo:
         await eda_step.create_eda_step(lead_ctx)
 
-    assert "No active strategy graph" in str(excinfo.value)
+    assert excinfo.value.title == "No active strategy graph"
+    assert excinfo.value.detail == (
+        "The conversation holds no strategy to add the step to."
+    )
+
+
+def test_the_commit_context_carries_the_threads_original_request(
+    lead_ctx: RunContext[LeadDeps],
+) -> None:
+    """A later turn pushes under the request the thread answers, not its own."""
+    lead_ctx.deps.state.domain.original_request = "genes up under heat shock"
+
+    context = eda_step._strategy_context(lead_ctx, None)
+
+    assert lead_ctx.deps.state.user_prompt == "export the febrile subset"
+    assert context.user_prompt == "genes up under heat shock"
 
 
 def test_the_commit_context_carries_the_criteria_the_spec_states(
@@ -309,7 +355,7 @@ async def test_the_exported_step_becomes_a_criterion_of_the_spec(
     applied: list[Any] = []
     _wire(
         monkeypatch,
-        read=read_detail,
+        detail=phenotype_subset(),
         commit=pushing_commit(
             applied, session=lead_ctx.deps.runtime.strategy_session, count=132
         ),
@@ -323,9 +369,17 @@ async def test_the_exported_step_becomes_a_criterion_of_the_spec(
     assert [c.id for c in spec.criteria] == [result.step_id]
     criterion = spec.criteria[0]
     assert criterion.search_name == "GenesByEdaSubset"
-    assert criterion.text == "berghei subset"
-    assert set(criterion.resolved_params) == {"eda_dataset_id", "eda_analysis_spec"}
+    assert criterion.analysis is not None
+    assert criterion.text == criterion.analysis.words
+    assert criterion.analysis.words.startswith(
+        "The genes of the analysis 'berghei subset'"
+    )
+    assert criterion.resolved_params == {}
     assert criterion.bound is True
+    assert spec.goal == "febrile genes"
+    assert spec.structure == SpecStructure(
+        root=StructureNode(kind="leaf", criterion_id=result.step_id)
+    )
 
 
 async def test_a_step_outside_the_main_tree_states_no_criterion(
@@ -343,7 +397,7 @@ async def test_a_step_outside_the_main_tree_states_no_criterion(
     applied: list[Any] = []
     _wire(
         monkeypatch,
-        read=read_detail,
+        detail=phenotype_subset(),
         commit=pushing_commit(
             applied, session=ctx.deps.runtime.strategy_session, count=7
         ),
@@ -356,27 +410,6 @@ async def test_a_step_outside_the_main_tree_states_no_criterion(
     assert [c.id for c in spec.criteria] == ["step_k1", "step_k2"]
 
 
-async def test_a_thread_that_framed_no_spec_records_nothing(
-    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
-) -> None:
-    applied: list[Any] = []
-    _wire(
-        monkeypatch,
-        read=read_detail,
-        commit=pushing_commit(
-            applied, session=lead_ctx.deps.runtime.strategy_session, count=132
-        ),
-    )
-
-    answer = await eda_step.create_eda_step(lead_ctx)
-
-    graph = lead_ctx.deps.runtime.strategy_session.get_graph(None)
-    assert graph is not None
-    result = returned(answer, eda_step.EdaStepCreated)
-    assert list(graph.steps) == [result.step_id]
-    assert lead_ctx.deps.state.domain.operational_spec is None
-
-
 async def test_an_export_the_site_did_not_take_still_marks_the_turn(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
@@ -386,7 +419,7 @@ async def test_an_export_the_site_did_not_take_still_marks_the_turn(
         del deps, ops
         return CommitResult(description="added a step")
 
-    _wire(monkeypatch, read=read_detail, commit=unsynced_commit)
+    _wire(monkeypatch, detail=phenotype_subset(), commit=unsynced_commit)
 
     await eda_step.create_eda_step(lead_ctx)
 
@@ -402,7 +435,7 @@ async def test_an_export_the_site_took_records_the_build(
     applied: list[Any] = []
     _wire(
         monkeypatch,
-        read=read_detail,
+        detail=phenotype_subset(),
         commit=pushing_commit(
             applied, session=lead_ctx.deps.runtime.strategy_session, count=132
         ),
@@ -426,18 +459,20 @@ async def test_a_subset_that_selects_no_genes_is_not_exported(
         reason = "no export may reach the commit"
         raise AssertionError(reason)
 
-    counted = _wire(monkeypatch, read=read_detail, commit=commit, genes_selected=0)
+    counted = _wire(
+        monkeypatch,
+        detail=phenotype_subset(),
+        commit=commit,
+        genes=GeneCount(count=0, unfiltered_count=5803),
+    )
 
     with pytest.raises(ModelRetry) as refusal:
         await eda_step.create_eda_step(lead_ctx)
 
-    assert "0 of 5,399 genes" in str(refusal.value)
+    assert "0 of the 5,803 genes on Gene Phenotype Data" in str(refusal.value)
     assert "run_eda_compute" in str(refusal.value)
     assert committed == []
-    assert [(c.dataset_id, c.entity_id) for c in counted] == [
-        (PHENOTYPE_DATASET, PHENOTYPE_ENTITY),
+    assert [(c.study_id, c.entity_id) for c in counted] == [
+        (PHENOTYPE_STUDY, PHENOTYPE_ENTITY),
     ]
-    assert (
-        list(counted[0].filters)
-        == analysis_detail(with_computation=False).descriptor.subset.descriptor
-    )
+    assert list(counted[0].filters) == phenotype_subset().descriptor.subset.descriptor

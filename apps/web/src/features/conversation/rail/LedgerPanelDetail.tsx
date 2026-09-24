@@ -18,22 +18,35 @@ function Markdown({ children }: { children: string }) {
   );
 }
 
+// What runs the criterion: its search, or the analysis it waits for.
+function runsLabel(crit: Criterion): string {
+  if (crit.searchName != null && crit.searchName !== "") return crit.searchName;
+  if (crit.needsAnalysisOn != null) {
+    return `analysis workflow on ${crit.needsAnalysisOn}`;
+  }
+  return "(unbound)";
+}
+
 function CriterionCard({ crit }: { crit: Criterion }) {
   const params = Object.entries(crit.resolvedParams ?? {});
   const defaulted = new Set(crit.defaultedParams ?? []);
+  const selects = crit.analysis?.words;
   return (
     <div className="min-w-0 rounded-md border border-border bg-muted/20 p-2">
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 break-all font-mono text-[11px] font-medium text-foreground">
-          {crit.searchName != null && crit.searchName !== ""
-            ? crit.searchName
-            : "(unbound)"}
+          {runsLabel(crit)}
         </span>
         <StatusPill text={crit.role} />
       </div>
       <p className="mt-1 break-words text-[11px] leading-relaxed text-muted-foreground">
         {crit.text}
       </p>
+      {selects != null && selects !== crit.text && (
+        <p className="mt-1 break-words text-[11px] leading-relaxed text-foreground">
+          {selects}
+        </p>
+      )}
       {params.length > 0 && (
         <div className="mt-1.5 space-y-0.5">
           {params.map(([key, value]) => (
@@ -175,6 +188,7 @@ export function VerificationDetail({
       {digest.prose !== "" && <Markdown>{digest.prose}</Markdown>}
       <MarkdownList label="key findings" items={digest.keyFindings ?? []} />
       <MarkdownList label="caveats" items={digest.caveats ?? []} />
+      <MarkdownList label="pending checks" items={digest.pendingChecks ?? []} />
     </div>
   );
 }

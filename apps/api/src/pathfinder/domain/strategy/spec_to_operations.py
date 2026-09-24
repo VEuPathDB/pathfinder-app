@@ -244,7 +244,7 @@ def _restated_params(
     step holds, less the ones the edit took away and plus the ones it moved.
     """
     if change.rebound_search:
-        return dict(after.resolved_params)
+        return after.step_parameters
     removed = set(change.removed_params)
     live = graph.steps[after.id].parameters
     return {

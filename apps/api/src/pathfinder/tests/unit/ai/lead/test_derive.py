@@ -21,6 +21,12 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
+from pathfinder.tests.unit.domain.strategy._analysis import (
+    DATASET,
+    WORDS,
+    analysed,
+    pending,
+)
 
 
 def _state(**domain: object) -> PipelineState:
@@ -90,6 +96,22 @@ def test_frame_render_section_surfaces_criteria_and_structure() -> None:
     rendered = ledger.render_section("frame")
     assert "GenesByGoTerm" in rendered
     assert "protein kinases" in rendered
+
+
+def test_frame_render_states_an_analysis_by_what_it_selects() -> None:
+    spec = _bound_spec()
+    spec.criteria = [*spec.criteria, analysed(), pending()]
+    rendered = derive_ledger(_state(operational_spec=spec), None).render_section(
+        "frame"
+    )
+
+    lines = rendered.splitlines()
+    assert f"    selects: {WORDS}" in lines
+    assert (
+        f"- `c_24h_vs_36_up` [filter] genes higher at 24 h than at 36 h, "
+        f"significant -> search=(waiting for its analysis on {DATASET}) (conf=0.00)"
+    ) in lines
+    assert "eda_analysis_spec" not in rendered
 
 
 def test_a_realized_zero_is_a_result_and_not_a_recovery() -> None:

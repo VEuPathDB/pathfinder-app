@@ -75,6 +75,19 @@ def test_the_default_expectation_repeats_what_the_run_did() -> None:
     assert expectation.verified is True
 
 
+def test_a_run_with_a_pending_check_defaults_to_not_verified() -> None:
+    """Nobody checked the pending step, so the case may not expect a pass."""
+    extract = _extract().model_copy(
+        update={
+            "verification": ExtractedVerification(
+                success=True, reason="root size holds", pending_checks=["step_de"]
+            )
+        }
+    )
+
+    assert default_expectation(extract).verified is False
+
+
 def test_a_run_that_built_nothing_defaults_to_forbidding_a_build() -> None:
     expectation = default_expectation(_extract(built=False))
 

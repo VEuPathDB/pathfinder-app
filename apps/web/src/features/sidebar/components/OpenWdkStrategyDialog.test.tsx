@@ -7,6 +7,12 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import type { SiteResponse } from "@pathfinder/shared";
+import { toast } from "sonner";
+
+import {
+  appQueryClientWrapper,
+  appTestQueryClient,
+} from "@/app/components/__fixtures__/appQueryClient";
 
 import { sitesOptions } from "@/lib/api/sites";
 import { createSuspenseWrapper } from "@/lib/query/testing";
@@ -230,8 +236,26 @@ describe("the VEuPathDB strategy import dialog", () => {
     renderDialog();
 
     expect(
-      await screen.findByText("Your PlasmoDB strategies could not be read."),
+      await screen.findByText("Your PlasmoDB strategies could not be read: no"),
     ).toBeVisible();
     expect(screen.getByTestId("open-wdk-strategy-input")).toBeEnabled();
+  });
+
+  it("reports a failed listing once, with no toast", async () => {
+    server.use(
+      http.get("http://localhost:3000/api/v1/sites/plasmodb/strategies", () =>
+        HttpResponse.json({ detail: "strategy listing failed" }, { status: 500 }),
+      ),
+    );
+    const client = appTestQueryClient();
+    client.setQueryData(sitesOptions().queryKey, SITES);
+    render(<OpenWdkStrategyDialog open onOpenChange={() => {}} siteId="plasmodb" />, {
+      wrapper: appQueryClientWrapper(client),
+    });
+
+    const line = "Your PlasmoDB strategies could not be read: strategy listing failed";
+    expect(await screen.findByText(line)).toBeVisible();
+    expect(screen.getAllByText(line)).toHaveLength(1);
+    expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
   });
 });

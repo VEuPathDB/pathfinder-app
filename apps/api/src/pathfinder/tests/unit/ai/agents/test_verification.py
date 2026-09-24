@@ -39,3 +39,20 @@ def test_a_study_step_is_never_answered_with_a_rebuild() -> None:
     assert (
         "not something to call unverified or to ask for a rebuild over"
     ) in _normalized(_VERIFICATION_INSTRUCTIONS)
+
+
+def test_a_compute_steps_significance_threshold_is_its_significance_filter() -> None:
+    instructions = _normalized(_VERIFICATION_INSTRUCTIONS)
+
+    assert (
+        "A compute step's ``significance_threshold`` IS its significance filter"
+    ) in instructions
+    assert "``get_strategy`` states each study step by what it selects" in instructions
+
+
+def test_a_study_step_the_site_could_not_read_is_a_pending_check() -> None:
+    assert (
+        "A step under ``unread_analyses`` is a study step whose analysis the site "
+        "did not describe: set ``success`` from the other checks and name that step "
+        "in ``caveats`` as a pending check, never as passed or missing."
+    ) in _normalized(_VERIFICATION_INSTRUCTIONS)

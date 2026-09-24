@@ -1,4 +1,5 @@
-"""``set_criterion`` refuses an EDA-backed search on both of its calls."""
+"""``set_criterion`` never binds an EDA-backed search: the criterion waits for
+the analysis workflow under its own id."""
 
 from __future__ import annotations
 
@@ -19,9 +20,8 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone import frame_spec
-from pathfinder.ai.tools.standalone._frame_eda import EDA_DROP_REASON
 from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult, set_criterion
-from pathfinder.domain.strategy.operational_spec import Criterion, DroppedCriterion
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.tests._support.catalog_builders import serve_search_details
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
@@ -47,45 +47,39 @@ _INVENTED_SPEC = (
     '"fold_change":{"direction":"both","minimum":2},'
     '"adjusted_p_value":{"maximum":0.05}}'
 )
-_EDA_PARAMS: list[WDKParameter] = [
-    WDKStringParam(
-        name=EDA_DATASET_ID_PARAM,
-        display_name=EDA_DATASET_ID_PARAM,
-        allow_empty_value=True,
-        initial_display_value=_DATASET_ID,
-    ),
-    WDKStringParam(
-        name=EDA_ANALYSIS_SPEC_PARAM,
-        display_name=EDA_ANALYSIS_SPEC_PARAM,
-        allow_empty_value=True,
-        initial_display_value="",
-    ),
-]
 
 
-def _eda_response() -> WDKSearchResponse:
+def _eda_params(default: str | None) -> list[WDKParameter]:
+    return [
+        WDKStringParam(
+            name=EDA_DATASET_ID_PARAM,
+            display_name=EDA_DATASET_ID_PARAM,
+            allow_empty_value=True,
+            initial_display_value=default,
+        ),
+        WDKStringParam(
+            name=EDA_ANALYSIS_SPEC_PARAM,
+            display_name=EDA_ANALYSIS_SPEC_PARAM,
+            allow_empty_value=True,
+            initial_display_value="",
+        ),
+    ]
+
+
+def _eda_response(default: str | None) -> WDKSearchResponse:
+    parameters = _eda_params(default)
     return WDKSearchResponse(
         search_data=WDKSearch(
             url_segment=_MUTAGENESIS_SEARCH,
             display_name=_MUTAGENESIS_SEARCH,
             query_name=SUBSET_QUERY,
-            param_names=[p.name for p in _EDA_PARAMS],
-            parameters=_EDA_PARAMS,
+            param_names=[p.name for p in parameters],
+            parameters=parameters,
         ),
         validation=StepValidation.model_validate(
             {"level": "DISPLAYABLE", "isValid": True, "errors": None}
         ),
     )
-
-
-async def _eda_details(
-    ctx: SearchContext, **_kw: object
-) -> tuple[WDKSearchResponse, str]:
-    return _eda_response(), ctx.record_type
-
-
-async def _eda_resolved(_ctx: SearchContext, **_kw: object) -> ResolvedSearch:
-    return ResolvedSearch(response=_eda_response(), values_were_read=True)
 
 
 def _eda_callbacks(_site_id: str, **_kw: object) -> ValidationCallbacks:
@@ -102,154 +96,168 @@ def _eda_callbacks(_site_id: str, **_kw: object) -> ValidationCallbacks:
     )
 
 
-class TestAnEdaBackedSearchIsNeverBound:
+def _serve_the_eda_search(
+    monkeypatch: pytest.MonkeyPatch, *, default: str | None
+) -> None:
+    """The EDA-backed search, whose dataset default is ``default``."""
+    parameters = _eda_params(default)
+    infos = format_param_info_typed(parameters)
+    serve_params(monkeypatch, lambda _context: infos)
+    serve_definition(
+        monkeypatch,
+        parameters,
+        param_names=[p.name for p in parameters],
+        query_name=SUBSET_QUERY,
+    )
+    serve_resolution(
+        monkeypatch,
+        {
+            EDA_DATASET_ID_PARAM: StringValue(value=_DATASET_ID),
+            EDA_ANALYSIS_SPEC_PARAM: StringValue(value=_INVENTED_SPEC),
+        },
+    )
+
+    async def _details(
+        ctx: SearchContext, **_kw: object
+    ) -> tuple[WDKSearchResponse, str]:
+        return _eda_response(default), ctx.record_type
+
+    async def _resolved(_ctx: SearchContext, **_kw: object) -> ResolvedSearch:
+        return ResolvedSearch(response=_eda_response(default), values_were_read=True)
+
+    monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
+    monkeypatch.setattr(frame_spec, "make_validation_callbacks", _eda_callbacks)
+    serve_search_details(monkeypatch, _resolved)
+
+
+async def _sheet(
+    state: AgentToolState,
+    *,
+    criterion_id: str = "c_essential",
+    text: str = "essential in blood stages",
+) -> SetCriterionResult:
+    return returned(
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id=criterion_id,
+            text=text,
+            search_name=_MUTAGENESIS_SEARCH,
+        ),
+        SetCriterionResult,
+    )
+
+
+def _waiting_on(criterion_id: str, text: str, dataset: str) -> Criterion:
+    return Criterion(id=criterion_id, text=text, needs_analysis_on=dataset)
+
+
+def _waiting(criterion_id: str, text: str) -> Criterion:
+    return _waiting_on(criterion_id, text, _DATASET_ID)
+
+
+class TestAnEdaBackedSearchWaitsForItsAnalysis:
     @pytest.fixture(autouse=True)
     def _serve(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        infos = format_param_info_typed(_EDA_PARAMS)
-        serve_params(monkeypatch, lambda _context: infos)
-        serve_definition(
-            monkeypatch,
-            _EDA_PARAMS,
-            param_names=[p.name for p in _EDA_PARAMS],
-            query_name=SUBSET_QUERY,
-        )
-        serve_resolution(
-            monkeypatch,
-            {
-                EDA_DATASET_ID_PARAM: StringValue(value=_DATASET_ID),
-                EDA_ANALYSIS_SPEC_PARAM: StringValue(value=_INVENTED_SPEC),
-            },
-        )
-        monkeypatch.setattr(frame_spec, "fetch_search_details", _eda_details)
-        monkeypatch.setattr(frame_spec, "make_validation_callbacks", _eda_callbacks)
-        serve_search_details(monkeypatch, _eda_resolved)
-
-    async def _sheet(
-        self, state: AgentToolState, text: str = "essential in blood stages"
-    ) -> SetCriterionResult:
-        return returned(
-            await set_criterion(
-                frame_ctx(state),
-                criterion_id="c_essential",
-                text=text,
-                search_name=_MUTAGENESIS_SEARCH,
-            ),
-            SetCriterionResult,
-        )
-
-    async def _bind(self, state: AgentToolState) -> SetCriterionResult:
-        return await bind(
-            state,
-            _MUTAGENESIS_SEARCH,
-            {
-                EDA_DATASET_ID_PARAM: _DATASET_ID,
-                EDA_ANALYSIS_SPEC_PARAM: _INVENTED_SPEC,
-            },
-            criterion_id="c_essential",
-            text="essential in blood stages",
-        )
+        _serve_the_eda_search(monkeypatch, default=_DATASET_ID)
 
     async def test_the_sheet_call_is_refused_and_pins_nothing(self) -> None:
         state = AgentToolState()
 
         with pytest.raises(ModelRetry) as excinfo:
-            await self._sheet(state)
+            await _sheet(state)
 
         message = str(excinfo.value)
         assert _MUTAGENESIS_SEARCH in message
         assert EDA_ANALYSIS_SPEC_PARAM in message
-        assert "recorded as dropped for the Lead" in message
-        assert "Do not call drop_criterion" in message
+        assert f"needing the analysis workflow on dataset {_DATASET_ID}" in message
+        assert "Put c_essential in the structure" in message
+        assert "bind no other search for it" in message
         assert state.open_sheets == {}
 
-    async def test_the_refusal_names_the_dataset_the_search_carries(self) -> None:
-        with pytest.raises(ModelRetry) as excinfo:
-            await self._sheet(AgentToolState())
-
-        assert f"dataset {_DATASET_ID}" in str(excinfo.value)
-
-    async def test_the_refusal_names_the_eda_tools_that_build_the_step(self) -> None:
+    async def test_the_criterion_waits_in_the_draft_under_its_own_id(self) -> None:
         state = AgentToolState()
 
         with pytest.raises(ModelRetry):
-            await self._sheet(state)
+            await _sheet(state)
 
-        reason = state.operational_spec_draft.dropped[0].reason
-        assert "open_eda_analysis" in reason
-        assert "set_eda_filters" in reason
-        assert "preview_eda_subset" in reason
-        assert "create_eda_step" in reason
+        assert state.operational_spec_draft.criteria == [
+            _waiting("c_essential", "essential in blood stages")
+        ]
+        assert state.operational_spec_draft.dropped == []
 
-    async def test_the_refusal_records_the_drop_with_its_dataset(self) -> None:
-        state = AgentToolState()
-
-        with pytest.raises(ModelRetry):
-            await self._sheet(state)
-
-        dropped = state.operational_spec_draft.dropped
-        assert len(dropped) == 1
-        assert dropped[0].text == "essential in blood stages"
-        assert dropped[0].eda_dataset_id == _DATASET_ID
-
-    async def test_a_reworded_retry_on_the_same_id_records_one_drop(self) -> None:
-        """The drop answers the criterion, not the words FRAME chose for it."""
+    async def test_a_reworded_retry_on_the_same_id_states_one_criterion(self) -> None:
         state = AgentToolState()
 
         for text in ("essential in blood stages", "essential in blood stages (MIS)"):
             with pytest.raises(ModelRetry):
-                await self._sheet(state, text=text)
+                await _sheet(state, text=text)
 
-        assert [d.text for d in state.operational_spec_draft.dropped] == [
-            "essential in blood stages"
+        assert state.operational_spec_draft.criteria == [
+            _waiting("c_essential", "essential in blood stages (MIS)")
         ]
 
-    async def test_a_draft_that_already_carries_the_drop_records_no_second(
-        self,
-    ) -> None:
-        """A later framing pass starts from a draft that carries the drop."""
+    async def test_a_second_comparison_on_the_same_dataset_is_its_own(self) -> None:
+        """One dataset answers as many comparisons as the request states."""
         state = AgentToolState()
-        state.operational_spec_draft.dropped.append(
-            DroppedCriterion(
-                text="essential in blood stages",
-                reason=EDA_DROP_REASON,
-                eda_dataset_id=_DATASET_ID,
-            ),
-        )
 
         with pytest.raises(ModelRetry):
-            await self._sheet(state)
-
-        assert len(state.operational_spec_draft.dropped) == 1
-
-    async def test_a_later_pass_that_rewords_the_criterion_records_no_second(
-        self,
-    ) -> None:
-        """One dataset is one analysis and one export, whatever it is called."""
-        state = AgentToolState()
-        state.operational_spec_draft.dropped.append(
-            DroppedCriterion(
-                text="essential in blood stages",
-                reason=EDA_DROP_REASON,
-                eda_dataset_id=_DATASET_ID,
-            ),
-        )
-
+            await _sheet(state, criterion_id="c_24h_vs_18_up", text="24 h over 18 h")
         with pytest.raises(ModelRetry):
-            await self._sheet(state, text="essential in blood stages (piggyBac MIS)")
+            await _sheet(state, criterion_id="c_24h_vs_36_up", text="24 h over 36 h")
 
-        assert [d.text for d in state.operational_spec_draft.dropped] == [
-            "essential in blood stages"
+        assert state.operational_spec_draft.criteria == [
+            _waiting("c_24h_vs_18_up", "24 h over 18 h"),
+            _waiting("c_24h_vs_36_up", "24 h over 36 h"),
         ]
 
     async def test_a_proposed_spec_is_refused_and_binds_nothing(self) -> None:
         state = AgentToolState()
 
         with pytest.raises(ModelRetry) as excinfo:
-            await self._bind(state)
+            await bind(
+                state,
+                _MUTAGENESIS_SEARCH,
+                {
+                    EDA_DATASET_ID_PARAM: _DATASET_ID,
+                    EDA_ANALYSIS_SPEC_PARAM: _INVENTED_SPEC,
+                },
+                criterion_id="c_essential",
+                text="essential in blood stages",
+            )
 
-        assert "recorded as dropped for the Lead" in str(excinfo.value)
+        assert "needing the analysis workflow" in str(excinfo.value)
+        assert [c.bound for c in state.operational_spec_draft.criteria] == [False]
+
+
+class TestASearchThatNamesNoDataset:
+    @pytest.fixture(autouse=True)
+    def _serve(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _serve_the_eda_search(monkeypatch, default=None)
+
+    async def test_the_call_asks_for_the_dataset_and_records_nothing(self) -> None:
+        state = AgentToolState()
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await _sheet(state)
+
+        assert f'params={{"{EDA_DATASET_ID_PARAM}": ' in str(excinfo.value)
         assert state.operational_spec_draft.criteria == []
-        assert len(state.operational_spec_draft.dropped) == 1
+
+    async def test_the_named_dataset_is_the_one_it_waits_on(self) -> None:
+        state = AgentToolState()
+
+        with pytest.raises(ModelRetry):
+            await bind(
+                state,
+                _MUTAGENESIS_SEARCH,
+                {EDA_DATASET_ID_PARAM: _DATASET_ID},
+                criterion_id="c_essential",
+                text="essential in blood stages",
+            )
+
+        assert state.operational_spec_draft.criteria == [
+            _waiting("c_essential", "essential in blood stages")
+        ]
 
 
 class TestAPlainSearchStillOpensItsSheet:
@@ -272,53 +280,39 @@ class TestAPlainSearchStillOpensItsSheet:
         ]
 
 
-class TestADropThatNamesNoDataset:
-    """A search whose definition carries no dataset default still drops."""
+class TestAWaitingCriterionKeepsItsDataset:
+    _ELSEWHERE = "DS_e973eadd57"
 
-    def _dropped(self, text: str) -> DroppedCriterion:
-        return DroppedCriterion(text=text, reason=EDA_DROP_REASON)
+    @pytest.fixture(autouse=True)
+    def _serve(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _serve_the_eda_search(monkeypatch, default=_DATASET_ID)
 
-    def test_two_criteria_with_no_dataset_are_both_recorded(self) -> None:
+    def _state(self, dataset: str) -> AgentToolState:
         state = AgentToolState()
+        state.frame_set_criterion(_waiting_on("c_36", "24 h over 36 h", dataset))
+        return state
 
-        state.frame_record_drop("c_one", self._dropped("blood-stage essentiality"))
-        state.frame_record_drop("c_two", self._dropped("host response signature"))
+    async def test_the_same_dataset_rewords_it_and_it_still_waits(self) -> None:
+        state = self._state(_DATASET_ID)
 
-        assert [d.text for d in state.operational_spec_draft.dropped] == [
-            "blood-stage essentiality",
-            "host response signature",
+        with pytest.raises(ModelRetry):
+            await _sheet(state, criterion_id="c_36", text="24 h over 36 h, up")
+
+        assert state.operational_spec_draft.criteria == [
+            _waiting_on("c_36", "24 h over 36 h, up", _DATASET_ID)
         ]
 
-    def test_a_drop_with_no_dataset_after_an_ordinary_one_is_recorded(self) -> None:
-        state = AgentToolState()
-        state.frame_set_criterion(
-            Criterion(id="c_gone", text="no such search", search_name="")
-        )
-        state.frame_drop_criterion("c_gone", "the search is unavailable")
+    async def test_another_dataset_is_refused_and_the_criterion_keeps_its_own(
+        self,
+    ) -> None:
+        state = self._state(self._ELSEWHERE)
 
-        state.frame_record_drop("c_eda", self._dropped("blood-stage essentiality"))
+        with pytest.raises(ModelRetry) as excinfo:
+            await _sheet(state, criterion_id="c_36", text="24 h over 36 h")
 
-        assert [d.text for d in state.operational_spec_draft.dropped] == [
-            "no such search",
-            "blood-stage essentiality",
+        message = str(excinfo.value)
+        assert f"waits on dataset {self._ELSEWHERE}" in message
+        assert f"runs on dataset {_DATASET_ID}" in message
+        assert state.operational_spec_draft.criteria == [
+            _waiting_on("c_36", "24 h over 36 h", self._ELSEWHERE)
         ]
-
-    def test_two_refusals_on_one_dataset_still_record_once(self) -> None:
-        state = AgentToolState()
-        labelled = DroppedCriterion(
-            text="essential in blood stages",
-            reason=EDA_DROP_REASON,
-            eda_dataset_id=_DATASET_ID,
-        )
-
-        state.frame_record_drop("c_one", labelled)
-        state.frame_record_drop(
-            "c_two",
-            DroppedCriterion(
-                text="essential in blood stages (piggyBac MIS)",
-                reason=EDA_DROP_REASON,
-                eda_dataset_id=_DATASET_ID,
-            ),
-        )
-
-        assert state.operational_spec_draft.dropped == [labelled]

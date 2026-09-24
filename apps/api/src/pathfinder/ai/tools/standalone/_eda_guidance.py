@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pathfinder.services.eda.authoring import SubsetCount, SubsetPreview
-from pathfinder.services.eda.gene_subset import GeneSubset
+from pathfinder.services.eda.authoring import SubsetPreview
+from pathfinder.services.eda.gene_subset import GeneCount, GeneSubset
 
 SHEET_GUIDANCE = (
     "The sheet is pinned under 'Open EDA filter sheet' in your instructions. "
@@ -92,9 +92,11 @@ def no_gene_subset_sentence(preview: SubsetPreview, *, subset: GeneSubset) -> st
     )
 
 
-def gene_count_sentence(genes: SubsetCount) -> str:
-    """The gene count beside a count of another entity."""
+def gene_count_sentence(genes: GeneCount, *, subset: GeneSubset) -> str:
+    """The distinct genes a subset selects, beside a count of rows."""
     return (
-        f"Genes this subset selects: {genes.count:,} of {genes.unfiltered_count:,}. "
-        "A step exports genes, so that is the count a step would hold."
+        f"Genes this subset selects: {genes.count:,} of {genes.unfiltered_count:,}, "
+        f"counted as distinct gene ids on {subset.gene_entity_name}. State this "
+        f"gene count, not a row count, as the genes a step would export; the "
+        f"step's own count comes from the site once it runs."
     )

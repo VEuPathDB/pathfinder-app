@@ -10,8 +10,8 @@ from veupathdb.eda import (
     EdaAnalysisDetail,
     EdaComparator,
     EdaComputation,
-    EdaComputationDescriptor,
     EdaDifferentialExpressionConfig,
+    EdaDifferentialExpressionDescriptor,
     EdaLabeledRange,
     EdaStringSetFilter,
     EdaSubsetDescriptor,
@@ -39,7 +39,7 @@ def _computation(*, visualizations: list[EdaVisualization]) -> EdaComputation:
     return EdaComputation(
         computation_id="c1",
         display_name="DESeq",
-        descriptor=EdaComputationDescriptor(
+        descriptor=EdaDifferentialExpressionDescriptor(
             configuration=EdaDifferentialExpressionConfig(
                 identifier_variable=EdaVariableSpec(
                     entity_id=_ENTITY, variable_id="VAR_gene"
@@ -101,7 +101,10 @@ def test_an_analysis_with_no_filter_and_no_computation_exports_no_step() -> None
     empty = detail.model_copy(update={"descriptor": EdaAnalysisDescriptor()})
     with pytest.raises(EmptyAnalysisError) as refusal:
         eda_step_request(empty, dataset_id=_DATASET)
-    assert _DATASET in str(refusal.value.detail)
+    assert refusal.value.detail == (
+        "The analysis holds no filter and no computation, so it selects no "
+        "genes and exports no step."
+    )
 
 
 def test_a_compute_export_writes_the_requested_thresholds_into_the_volcano() -> None:

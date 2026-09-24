@@ -82,6 +82,7 @@ export function OpenWdkStrategyDialog({
   const listing = useQuery({
     ...listAccountStrategiesQueryOptions(siteId),
     enabled: open && siteId !== "",
+    meta: { shownInline: true },
   });
   const offered = (listing.data ?? []).filter((item) => matches(item, filter));
 
@@ -128,7 +129,7 @@ export function OpenWdkStrategyDialog({
           <StrategyRows
             site={site}
             isPending={listing.isPending}
-            isError={listing.isError}
+            error={listing.error}
             offered={offered}
             pickedId={wdkStrategyId}
             onPick={(id) => setEntry(String(id))}
@@ -181,7 +182,8 @@ export function OpenWdkStrategyDialog({
 interface StrategyRowsProps {
   site: string;
   isPending: boolean;
-  isError: boolean;
+  /** The listing's failure, shown in place of the rows. */
+  error: unknown;
   offered: WdkStrategyListItem[];
   pickedId: number | null;
   onPick: (wdkStrategyId: number) => void;
@@ -190,13 +192,17 @@ interface StrategyRowsProps {
 function StrategyRows({
   site,
   isPending,
-  isError,
+  error,
   offered,
   pickedId,
   onPick,
 }: StrategyRowsProps) {
-  if (isError) {
-    return <RowNotice>Your {site} strategies could not be read.</RowNotice>;
+  if (error != null) {
+    return (
+      <RowNotice>
+        Your {site} strategies could not be read: {toUserMessage(error)}
+      </RowNotice>
+    );
   }
   if (isPending) {
     return <RowNotice>Loading your {site} strategies...</RowNotice>;

@@ -19,12 +19,12 @@ from pathfinder.ai.tools.standalone.strategy import apply_operations
 from pathfinder.domain.strategy.operations import UpdateStepParamsOp
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.strategies import stated_sides
-from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+from pathfinder.tests._support.eda_step_doubles import (
     bound,
     read_detail,
     wire_gene_count,
 )
+from pathfinder.tests._support.run_context import lead_run_context
 
 from ._strategy_edit_stubs import StubAPI, ctx, install_stub_api, leaf, seed
 

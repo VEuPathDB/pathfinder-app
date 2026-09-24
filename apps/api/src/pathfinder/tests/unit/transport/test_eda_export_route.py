@@ -16,10 +16,10 @@ from veupathdb.errors import VEuPathDBError
 
 from pathfinder.platform.error_handlers import veupathdb_error_handler
 from pathfinder.services.eda import gene_subset, steps
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+from pathfinder.tests._support.eda_step_doubles import (
     SAMPLE_ONLY_REFUSAL,
-    analysis_detail,
-    bound,
+    binding_of,
+    de_analysis,
     de_study,
     sample_filter,
 )
@@ -35,8 +35,8 @@ def _app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
 
     async def _opened(*, conversation_id: object) -> tuple[Any, EdaAnalysisDetail]:
         del conversation_id
-        detail = analysis_detail(with_computation=False, filters=[sample_filter()])
-        return await bound(None), detail
+        detail = de_analysis(filters=[sample_filter()])
+        return binding_of(detail), detail
 
     async def _session() -> AsyncGenerator[AsyncSession]:
         yield AsyncSession()

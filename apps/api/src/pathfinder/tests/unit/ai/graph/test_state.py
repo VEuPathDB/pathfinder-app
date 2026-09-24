@@ -316,17 +316,18 @@ def test_a_new_strategy_on_an_empty_thread_starts_the_requirements_over() -> Non
         _requirement(ConstraintKind.ORGANISM, "organism", "Plasmodium falciparum"),
     )
 
+    domain.take_a_new_request(strategy_has_steps=False)
     domain.record_intent(third, request_text=_ABANDONED)
 
     assert [c.requested_value for c in domain.requirements] == ["Plasmodium falciparum"]
     assert domain.original_request == _ABANDONED
 
 
-def test_a_new_strategy_on_a_built_thread_keeps_the_requirements() -> None:
+def test_a_new_strategy_on_a_thread_with_steps_keeps_the_requirements() -> None:
     domain = _threaded((_ASKED, _asked_intent()), (_ANSWERED, _answered_intent()))
-    domain.last_build_outcome = BuildOutcome(pushed_step_ids=["s1"])
     third = _intent(IntentClassification.NEW_STRATEGY)
 
+    domain.take_a_new_request(strategy_has_steps=True)
     domain.record_intent(third, request_text="Also add the RNA-Seq filter.")
 
     assert [c.requested_value for c in domain.requirements] == [

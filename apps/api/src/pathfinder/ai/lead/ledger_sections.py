@@ -241,7 +241,13 @@ class VerificationSection(CamelModel):
 
     @computed
     def successful(self) -> bool:
-        return self.digest is not None and self.digest.success
+        return self.digest is not None and self.digest.passed
+
+    @property
+    def pending_checks(self) -> list[str]:
+        """The steps a passing check could not read, empty after an objection."""
+        digest = self.digest
+        return [] if digest is None or not digest.success else digest.pending_checks
 
 
 def assumption_constraints(spec: OperationalSpec | None) -> list[GroundedConstraint]:

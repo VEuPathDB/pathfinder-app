@@ -46,13 +46,7 @@ export function EdaSpecParam({ spec, name, field }: ParamWidgetProps) {
 
   return (
     <div className="space-y-2">
-      {stored?.ok === true ? (
-        <EdaSpecSummaryView summary={stored.summary} />
-      ) : (
-        <p className="text-xs text-muted-foreground" data-testid="eda-spec-summary">
-          No analysis spec is set.
-        </p>
-      )}
+      <StoredSpecView stored={stored} />
       <Textarea
         id={name}
         name={name}
@@ -73,6 +67,29 @@ export function EdaSpecParam({ spec, name, field }: ParamWidgetProps) {
       )}
     </div>
   );
+}
+
+/** The stored value: no spec, a spec that does not parse, or its summary. */
+function StoredSpecView({
+  stored,
+}: {
+  stored: ReturnType<typeof parseEdaSpec> | null;
+}) {
+  if (stored === null) {
+    return (
+      <p className="text-xs text-muted-foreground" data-testid="eda-spec-summary">
+        No analysis spec is set.
+      </p>
+    );
+  }
+  if (!stored.ok) {
+    return (
+      <p className="text-xs text-destructive" data-testid="eda-spec-summary">
+        The stored analysis spec does not parse. {stored.error}
+      </p>
+    );
+  }
+  return <EdaSpecSummaryView summary={stored.summary} />;
 }
 
 function EdaSpecSummaryView({ summary }: { summary: EdaSpecSummary }) {

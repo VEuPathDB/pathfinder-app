@@ -20,7 +20,7 @@ from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.graph.state import TurnMarkers
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.tools.standalone.conversation import clear_strategy
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.models import (

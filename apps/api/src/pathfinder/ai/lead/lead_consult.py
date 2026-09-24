@@ -79,8 +79,8 @@ async def consult_user(
 
     This pauses the turn: the user answers each question in a carousel
     (options + optional free-text note). Their answers are returned to you
-    here so you can run (or re-run) ``frame_problem`` with them as hard
-    constraints. Ask only the few questions that genuinely change the
+    here so you can run (or re-run) ``frame_problem``, or ``edit_strategy``
+    over a strategy that holds a step, with them as hard constraints. Ask only the few questions that genuinely change the
     answer; pick sensible defaults for everything else and state your
     assumptions in prose. Do NOT ask "submit or request changes?" - the
     approval card already offers both. Background for a question goes in
@@ -103,12 +103,15 @@ async def consult_user(
         state.turn_markers.framed = False
         state.turn_markers.consulted = True
         state.domain.record_requirements(_answer_requirements(answers))
+        state.domain.answer_open_questions(_format_answers(answers), on_card=True)
+    # A strategy that holds a step takes the answers as an edit.
+    tool = "edit_strategy" if ctx.deps.step_count else "frame_problem"
     asked.content = (
         f"Presented {len(questions)} question(s); awaiting the user's answers."
         if not answers
         else (
             f"The user answered your questions: {_format_answers(answers)}. "
-            "Now run frame_problem honoring these as hard constraints."
+            f"Now run {tool} honoring these as hard constraints."
         )
     )
     return asked

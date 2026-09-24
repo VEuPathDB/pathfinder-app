@@ -11,6 +11,7 @@ import { FrameDetail } from "./LedgerPanelDetail";
 
 function frameWith(
   resolvedParams: NonNullable<Criterion["resolvedParams"]>,
+  criterion: Partial<Criterion> = {},
 ): InvestigationLedger["frame"] {
   return {
     present: true,
@@ -31,6 +32,7 @@ function frameWith(
           searchName: "GenesByMolecularFunction",
           role: "seed",
           resolvedParams,
+          ...criterion,
         },
       ],
       dropped: [],
@@ -57,5 +59,34 @@ describe("FrameDetail resolved parameters", () => {
       />,
     );
     expect(screen.getByText("2 to 8")).toBeInTheDocument();
+  });
+});
+
+describe("FrameDetail analysis criteria", () => {
+  it("names the workflow a waiting criterion waits for, not an unbound search", () => {
+    render(
+      <FrameDetail
+        frame={frameWith({}, { searchName: "", needsAnalysisOn: "DS_e973eadd57" })}
+      />,
+    );
+    expect(screen.getByText("analysis workflow on DS_e973eadd57")).toBeInTheDocument();
+    expect(screen.queryByText("(unbound)")).toBeNull();
+  });
+
+  it("states a bound analysis by the genes it selects", () => {
+    const words = "Genes higher in 24h than in 18h (DESeq, |effect| >= 1, p <= 0.05)";
+    render(
+      <FrameDetail
+        frame={frameWith(
+          {},
+          {
+            text: "24 h over 18 h",
+            searchName: "GenesByEdaVizWithCompute",
+            analysis: { datasetId: "DS_e973eadd57", words },
+          },
+        )}
+      />,
+    );
+    expect(screen.getByText(words)).toBeInTheDocument();
   });
 });

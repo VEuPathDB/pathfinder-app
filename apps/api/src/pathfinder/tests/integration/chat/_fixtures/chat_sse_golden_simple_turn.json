@@ -147,6 +147,7 @@
         "grounded": [],
         "unmetCount": 0
       },
+      "declinedProposal": null,
       "frame": {
         "boundCount": 0,
         "contrasts": [],

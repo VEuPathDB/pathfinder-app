@@ -4,7 +4,7 @@ title: The tools that change a strategy are hidden until this turn is classified
 description: A pydantic-ai `PrepareTools` capability drops every tool but the always-on read set until the turn classifies its own message, then drops the building tools unless the classification asks for a build, then drops the phase tools whose precondition the ledger, the live graph and this turn's record do not meet. The instruction-only alternative was rejected because two measured runs already ignored it, and a gate that can dead-end is rejected too: `classify_user_intent` is always on the list, so a misclassified turn is corrected inside the same run.
 tags: [agents, lead, intent, cost]
 generated: { by: claude-code/opus-5, at: 2026-08-30T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-01T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
 status: stable
 ---
 
@@ -36,23 +36,23 @@ earlier message unlocks nothing.
 **Once building**, each phase tool answers for its own precondition
 (`unmet_preconditions`):
 
-- `frame_problem`: gone once a frame dispatch ran this turn, once the
-  classification is `edit_strategy` or `extend_strategy` over criteria that
-  already have steps (that request is `edit_strategy`), and once a build of
-  this turn left a step empty (the answer is the user's, not a re-frame).
-  A `consult_user` call that comes back with answers clears the marker,
-  because those answers are new requirements to frame against.
+- `frame_problem`: gone once a frame dispatch ran this turn, and whenever the
+  live graph holds a step, whatever the classification: a strategy with steps
+  is changed through `edit_strategy`, and an answer to a question asked over it
+  reaches the edit's work order. A `consult_user` call that comes back with
+  answers clears the marker, because those answers are new requirements to
+  frame against.
 - `build_strategy`: gone once the live graph holds a step. The `ModelRetry` in
   the tool stays as the backstop for a graph that changes mid-turn.
-- `verify_strategy`: absent until a build recorded an outcome or the graph
-  holds a step (an EDA export builds a step without a `BuildOutcome`), and
-  absent again once a verification of this turn reported success.
+- `verify_strategy`: absent until the live graph holds a step (a recorded
+  `BuildOutcome` is not a strategy), and absent again once a verification of
+  this turn reported success.
 - `create_eda_step`: absent until `preview_eda_subset` counted the open
   analysis this turn, so an exported count is one that was measured.
 
 Every gated tool's description states its own precondition ("Available
 once ..."), so its absence explains itself. The markers are
-`ai/graph/state.py::TurnMarkers`, keyed by `user_message_id`: a resumed turn
+`ai/graph/turn_records.py::TurnMarkers`, keyed by `user_message_id`: a resumed turn
 (an approval answer, a durable result) carries the same message id and keeps
 what the turn already did, and a new user message starts from an empty record.
 

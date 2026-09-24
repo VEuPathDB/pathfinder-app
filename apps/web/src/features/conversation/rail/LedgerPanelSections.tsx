@@ -171,12 +171,20 @@ export function VerificationSection({
   verification: InvestigationLedger["verification"];
   detail?: boolean;
 }) {
+  const digest = verification.digest;
+  const pending = digest?.success === true ? (digest.pendingChecks ?? []) : [];
   return (
     <LedgerSection title="Verification">
       <LedgerRow label="complete" value={<BoolBadge value={verification.complete} />} />
       <LedgerRow
         label="successful"
-        value={<BoolBadge value={verification.successful} />}
+        value={
+          pending.length > 0 ? (
+            <StatusPill text={`${pending.length} pending`} tone="warn" />
+          ) : (
+            <BoolBadge value={verification.successful} />
+          )
+        }
       />
       {detail && <VerificationDetail verification={verification} />}
     </LedgerSection>

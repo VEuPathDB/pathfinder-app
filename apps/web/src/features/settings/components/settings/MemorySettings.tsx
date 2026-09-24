@@ -27,6 +27,7 @@ export function MemorySettings() {
     queryKey: ["memories", "list", offset] as const,
     queryFn: () => listMemories({ limit: PAGE_SIZE, offset }),
     staleTime: 10_000,
+    meta: { shownInline: true },
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["memories"] });

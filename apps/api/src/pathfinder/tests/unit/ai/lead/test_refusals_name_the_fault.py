@@ -15,9 +15,9 @@ from pathfinder.ai.lead._delete_rules import (
     DeleteSurface,
     refuse_a_delete_the_graph_cannot_place,
 )
+from pathfinder.ai.lead.build_messages import structure_does_not_convert_message
 from pathfinder.ai.lead.dispatch_messages import (
     option_binds_no_step_message,
-    structure_does_not_convert_message,
     undeclared_spec_changes,
 )
 from pathfinder.ai.lead.edit_messages import (

@@ -20,6 +20,7 @@ and needs a VEuPathDB login exactly as the chat debugger does.
 from __future__ import annotations
 
 import datetime
+from collections.abc import Mapping
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -30,7 +31,7 @@ from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
 from veupathdb.domain.strategy import StrategyAst
 
-from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.graph.state import PipelineState
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.devtools.chat import RunArgs, drive_run, resolve_run_assistant
 from pathfinder.evals.case import EvalCase
@@ -52,8 +53,14 @@ HARNESS = "pydantic-evals"
 MOCK_PROVIDER = "mock"
 
 
+def checkpointed_verdict(values: Mapping[str, object]) -> bool | None:
+    """The verdict on the checkpointed strategy, or None when no check judged it."""
+    verdict = PipelineState.model_validate(values).turn_verdict
+    return None if verdict is None else verdict.passed
+
+
 async def _verification_verdict(conversation_id: UUID) -> bool | None:
-    """The verdict the turn checkpointed, or None when it verified nothing."""
+    """The verdict on the thread's strategy, or None when no check judged it."""
     registry = get_assistant_registry()
     spec = await resolve_run_assistant(conversation_id)
     async with lifespan_checkpointer(
@@ -63,9 +70,7 @@ async def _verification_verdict(conversation_id: UUID) -> bool | None:
         graph = spec.build_graph(saver)
         config: RunnableConfig = {"configurable": {"thread_id": str(conversation_id)}}
         snapshot = await graph.aget_state(config)
-    domain = StrategyDomainState.model_validate(snapshot.values.get("domain") or {})
-    digest = domain.verification_digest
-    return None if digest is None else digest.success
+    return checkpointed_verdict(snapshot.values)
 
 
 async def persisted_wdk_step_ids(conversation_id: UUID) -> set[int]:

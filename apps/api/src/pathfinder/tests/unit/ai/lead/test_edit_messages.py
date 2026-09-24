@@ -16,6 +16,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.domain.strategy.spec_diff import SpecDiff
 
 
 def _spec() -> OperationalSpec:
@@ -54,9 +55,16 @@ def _spec() -> OperationalSpec:
     )
 
 
-def _order() -> str:
+def _order_over(spec: OperationalSpec, reason: str, prompt: str) -> str:
+    """The order over a strategy that holds every criterion the spec states."""
     return edit_work_order(
-        "union the two evidence branches", "union those two, then intersect", _spec()
+        reason, prompt, spec, pending=SpecDiff(), answered=spec, answer=None
+    )
+
+
+def _order() -> str:
+    return _order_over(
+        _spec(), "union the two evidence branches", "union those two, then intersect"
     )
 
 
@@ -88,7 +96,7 @@ def test_a_transform_is_printed_with_the_step_it_consumes() -> None:
         )
     )
 
-    lines = edit_work_order("map to orthologs", "map them", spec).splitlines()
+    lines = _order_over(spec, "map to orthologs", "map them").splitlines()
 
     assert "  TRANSFORM [step_orth] P. vivax orthologs" in lines
     assert "    INTERSECT" in lines

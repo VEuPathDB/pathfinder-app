@@ -7,11 +7,8 @@ from uuid import uuid4
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.reply_claims import CitedSource
-from pathfinder.ai.lead.turn_contract import (
-    OFF_TOPIC_REPLY_MAX_CHARS,
-    reconcile,
-    turn_record,
-)
+from pathfinder.ai.lead.turn_contract import OFF_TOPIC_REPLY_MAX_CHARS, reconcile
+from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
@@ -71,12 +68,13 @@ class TestTheRecordTheTurnLeft:
         assert record.analysed.gene_set_id == "gs-other"
         assert [run.gene_set_id for run in record.substituted] == ["gs-requested"]
 
-    def test_the_record_names_the_dropped_eda_criterion(self) -> None:
+    def test_the_record_names_the_criterion_waiting_for_its_analysis(self) -> None:
         record = turn_record(run_context_for(eda_deps()))
 
         assert record.turn_builds is True
         assert record.eda_criterion_pending is not None
-        assert record.eda_criterion_pending.eda_dataset_id == DATASET
+        assert record.eda_criterion_pending.id == "c_essential"
+        assert record.eda_criterion_pending.needs_analysis_on == DATASET
 
     def test_the_record_carries_the_stop_and_the_off_topic_verdict(self) -> None:
         deps = off_topic_deps()
@@ -162,7 +160,7 @@ class TestTheUnbuiltEdaCriterionRule:
         assert "open_eda_analysis" in sentence
         assert "set_eda_filters" in sentence
         assert "preview_eda_subset" in sentence
-        assert "create_eda_step" in sentence
+        assert 'create_eda_step(criterion_id="c_essential")' in sentence
         assert "Never ask the user for an analysis specification" in sentence
 
     def test_a_turn_that_opened_the_analysis_stands(self) -> None:
@@ -185,8 +183,8 @@ class TestTheUnbuiltEdaCriterionRule:
 
         assert kinds(deps, reply(EDA_PROSE)) == ["unbuilt_eda_criterion"]
 
-    def test_a_spec_with_no_eda_drop_stands(self) -> None:
-        assert kinds(eda_deps(dropped=False), reply(EDA_PROSE)) == []
+    def test_a_spec_with_no_waiting_criterion_stands(self) -> None:
+        assert kinds(eda_deps(waiting=False), reply(EDA_PROSE)) == []
 
     def test_a_turn_that_does_not_build_stands(self) -> None:
         deps = eda_deps(classification=IntentClassification.FOLLOW_UP_QUESTION)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from assistant_core.graph.tool_summary import count_noun
 
+from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.ai.lead.ledger_sections import (
     BuildSection,
     ConstraintSection,
@@ -64,13 +65,23 @@ def render_frame_full(section: FrameSection) -> str:
     return "\n".join(parts)
 
 
+def _search_label(crit: Criterion) -> str:
+    if crit.search_name:
+        return crit.search_name
+    if crit.pending_analysis:
+        return f"(waiting for its analysis on {crit.needs_analysis_on})"
+    return "(unbound)"
+
+
 def _render_criterion(crit: Criterion) -> list[str]:
     out = [
         (
             f"- `{crit.id}` [{crit.role}] {crit.text} -> "
-            f"search={crit.search_name or '(unbound)'} (conf={crit.confidence:.2f})"
+            f"search={_search_label(crit)} (conf={crit.confidence:.2f})"
         ),
     ]
+    if crit.analysis is not None:
+        out.append(f"    selects: {crit.analysis.words}")
     out.extend(f"    {name}={value!r}" for name, value in crit.resolved_params.items())
     out.extend(f"    OPEN {s.param_name}: {s.question}" for s in crit.open_params)
     out.extend(
@@ -103,13 +114,24 @@ def render_build_full(section: BuildSection) -> str:
     return "\n".join(parts)
 
 
+def _verdict_line(digest: VerificationDigest) -> str:
+    """Success, or a pass with the checks the site left pending, by step."""
+    pending = digest.pending_checks
+    if not digest.success or not pending:
+        return f"- success: {digest.success}"
+    return (
+        f"- verdict: passed, {count_noun(len(pending), 'check')} pending: "
+        f"{', '.join(pending)}"
+    )
+
+
 def render_verification_full(section: VerificationSection) -> str:
     if section.digest is None:
         return "## Verification\n(not run yet)"
     d = section.digest
     parts = [
         "## Verification (full)",
-        f"- success: {d.success}",
+        _verdict_line(d),
         f"- prose: {d.prose}",
     ]
     if d.key_findings:

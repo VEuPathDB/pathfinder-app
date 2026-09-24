@@ -26,7 +26,7 @@ const DECISION_TEXT = {
   declined: "You said no.",
 } as const;
 
-export function ProposalCardView({
+function ProposalCardView({
   card,
   chat,
 }: {
@@ -52,8 +52,8 @@ export function ProposalCardView({
         aria-label="Proposed changes"
         className="list-disc space-y-1 rounded-md border border-border bg-background/60 py-2.5 pl-7 pr-2.5 text-xs leading-snug text-foreground"
       >
-        {proposal.proposedChanges.map((change) => (
-          <li key={change}>{change}</li>
+        {proposal.proposedChanges.map((change, index) => (
+          <li key={index}>{change}</li>
         ))}
       </ul>
       {card.decision === "pending" ? (

@@ -40,6 +40,7 @@ export function useResultsTableDetail({
       return getRecordDetail(entityRef, recordId);
     },
     enabled,
+    meta: { shownInline: true },
   });
 
   return {

@@ -1,18 +1,17 @@
 """What the Lead is told when a dispatch cannot proceed.
 
 Pure renderings of an ``OperationalSpec`` that a run ran out of budget on, that
-a new pass continues, that is not ready to build, or whose account of an edit
-does not match what changed.
+a new pass continues, or whose account of an edit does not match what changed.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
-from enum import StrEnum
 
 from veupathdb.domain.parameters import to_wire
 
+from pathfinder.ai.agents.criterion_lines import criterion_label, criterion_runs
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import (
@@ -50,40 +49,18 @@ def frame_result_from_draft(spec: OperationalSpec | None) -> FrameResult:
     )
 
 
-class ContinuationReason(StrEnum):
-    """Why a FRAME pass continues a draft instead of framing afresh."""
-
-    BUDGET_STOP = "the previous pass ran out of its tool budget"
-    ANSWERED_QUESTION = (
-        "the previous pass ended with a question the researcher has now answered"
-    )
-    EARLIER_TURN = (
-        "an earlier turn bound the criteria below and no strategy is built from "
-        "them yet"
-    )
+_CONTINUE = "Continue it; this is not a fresh frame."
 
 
-def frame_continuation_work_order(
-    spec: OperationalSpec | None,
-    prompt: str,
-    reason: ContinuationReason,
-    *,
-    answered: Sequence[OpenQuestion] = (),
-    message: str = "",
-    brief: str = "",
-) -> str:
-    """The work order for a pass that continues a draft an earlier pass bound.
+def budget_stop_work_order(spec: OperationalSpec, prompt: str) -> str:
+    """The order for a pass that continues a draft a stopped pass bound.
 
     The bound criteria are printed so the pass spends its calls on the rest
-    instead of paying again for what the earlier pass bound. A pass opened by
-    a new user message also reads the questions that message answers.
+    instead of paying again for what the earlier pass bound.
     """
-    if reason is not ContinuationReason.BUDGET_STOP:
-        return _resumed_work_order(spec, prompt, reason, answered, message, brief)
-    criteria = spec.criteria if spec is not None else []
-    bound = [c for c in criteria if c.bound]
+    bound = [c for c in spec.criteria if c.bound or c.pending_analysis]
     lines = [
-        _continuation_heading(reason),
+        f"FRAME work order: the previous pass ran out of its tool budget. {_CONTINUE}",
         f"User's goal: {prompt}",
         "",
         (
@@ -91,7 +68,7 @@ def frame_continuation_work_order(
             "Do NOT call set_criterion for any of them:"
         ),
         *_bound_lines(bound),
-        *_unbound_lines(criteria),
+        *_unbound_lines(spec.criteria),
         "",
         (
             "Bind what the goal states and the lists above do not cover, set "
@@ -101,19 +78,48 @@ def frame_continuation_work_order(
     return "\n".join(lines)
 
 
-def _continuation_heading(reason: ContinuationReason) -> str:
-    return f"FRAME work order: {reason.value}. Continue it; this is not a fresh frame."
+def answered_question_work_order(
+    spec: OperationalSpec,
+    goal: str,
+    questions: Sequence[OpenQuestion],
+    *,
+    answer: str,
+    brief: str,
+) -> str:
+    """The order for a pass that resolves the answer to its draft's question."""
+    heading = (
+        "FRAME work order: the previous pass ended with a question the "
+        f"researcher has now answered. {_CONTINUE}"
+    )
+    stated = answered_lines(questions, answer)
+    return _resumed_work_order(spec, heading, goal, "answer", stated, brief)
+
+
+def answered_lines(questions: Sequence[OpenQuestion], answer: str) -> list[str]:
+    """Each question an answer closed, then the words of the answer."""
+    return [*(f"Question asked: {q.question}" for q in questions), f"Answer: {answer}"]
+
+
+def earlier_turn_work_order(
+    spec: OperationalSpec, goal: str, *, message: str, brief: str
+) -> str:
+    """The order for a pass that a new message opens over an unbuilt draft."""
+    heading = (
+        "FRAME work order: an earlier turn bound the criteria below and no "
+        f"strategy is built from them yet. {_CONTINUE}"
+    )
+    stated = [f"The user's message: {message}"]
+    return _resumed_work_order(spec, heading, goal, "message", stated, brief)
 
 
 def _bound_lines(bound: Sequence[Criterion]) -> list[str]:
     return [
-        f"- [{c.id}] {c.text[:80]} -> {c.search_name or '(saved strategy)'}"
-        for c in bound
+        f"- [{c.id}] {criterion_label(c, 80)} -> {criterion_runs(c)}" for c in bound
     ]
 
 
 def _unbound_lines(criteria: Sequence[Criterion]) -> list[str]:
-    unbound = [c for c in criteria if not c.bound]
+    unbound = [c for c in criteria if not c.bound and not c.pending_analysis]
     if not unbound:
         return []
     return [
@@ -124,24 +130,26 @@ def _unbound_lines(criteria: Sequence[Criterion]) -> list[str]:
 
 
 def _resumed_work_order(
-    spec: OperationalSpec | None,
+    spec: OperationalSpec,
+    heading: str,
     goal: str,
-    reason: ContinuationReason,
-    answered: Sequence[OpenQuestion],
-    message: str,
+    said: str,
+    stated: Sequence[str],
     brief: str,
 ) -> str:
-    """The continuation a new user message opens over a draft still unbuilt.
+    """The continuation a user's words open over a draft still unbuilt.
 
-    Only the criteria the message concerns move, so a criterion bound and not
+    Only the criteria the words concern move, so a criterion bound and not
     named costs the pass no search and no binding.
     """
-    criteria = spec.criteria if spec is not None else []
-    done = [c for c in criteria if c.bound and not c.open_params]
-    waiting = [c for c in criteria if c.bound and c.open_params]
-    said = "answer" if reason is ContinuationReason.ANSWERED_QUESTION else "message"
+    done = [
+        c
+        for c in spec.criteria
+        if (c.bound or c.pending_analysis) and not c.open_params
+    ]
+    waiting = [c for c in spec.criteria if c.bound and c.open_params]
     lines = [
-        _continuation_heading(reason),
+        heading,
         f"User's goal: {goal}",
         "",
         (
@@ -163,11 +171,9 @@ def _resumed_work_order(
                 ),
             ],
         )
-    lines.extend(_unbound_lines(criteria))
+    lines.extend(_unbound_lines(spec.criteria))
     lines.append("")
-    lines.extend(f"Question asked: {q.question}" for q in answered)
-    label = "Answer" if said == "answer" else "The user's message"
-    lines.append(f"{label}: {message}")
+    lines.extend(stated)
     if brief:
         lines.append(f"The Lead's brief: {brief}")
     lines.extend(
@@ -325,23 +331,6 @@ def undeclared_spec_changes(
     )
 
 
-def build_would_replace_the_strategy(step_count: int) -> str:
-    """Why a build over an existing strategy is refused.
-
-    A build materializes the spec into a new tree, so every WDK step id and
-    every value the researcher set on the canvas goes with the old one.
-    """
-    return (
-        f"This thread already has a strategy of {step_count} steps, and "
-        f"build_strategy replaces it: every WDK step id changes and any value "
-        f"the researcher edited on the canvas is lost. Call edit_strategy to "
-        f"change what this strategy asks, which patches only the steps the "
-        f"request names. If the request really is to throw this strategy away "
-        f"and start over, call clear_strategy, which asks the user to approve "
-        f"the deletion before anything is removed."
-    )
-
-
 def option_binds_no_step_message(spec: OperationalSpec, unplaced: Sequence[str]) -> str:
     """Why a spec whose option no single step carries is refused.
 
@@ -400,58 +389,4 @@ def _contradicted_option(option: Criterion, carrier: Criterion) -> str:
     return (
         f"{option.id} ({option.text[:80]}) states "
         f"{'; '.join(clashes)} on {option.search_name}"
-    )
-
-
-def structure_does_not_convert_message(detail: str) -> str:
-    """Why a bound spec whose structure is not a WDK tree is refused.
-
-    Readiness says every criterion is bound. Only the conversion knows whether
-    the shape over them is a tree VEuPathDB can hold.
-    """
-    return (
-        f"The plan is bound and its structure does not convert into a WDK "
-        f"tree: {detail}. Nothing was built and the strategy is unchanged. "
-        f"Call set_structure with a tree whose every combine names an operator "
-        f"and joins two inputs."
-    )
-
-
-def build_not_ready_message(spec: OperationalSpec | None) -> str:
-    """Why the spec cannot be built, phrased for what the model can do next.
-
-    Open parameter slots are not a retry. Re-running FRAME regenerates the
-    same slots, so telling the model to "call frame_problem first" sends it
-    round a loop it cannot exit -- only the user can answer.
-    """
-    if spec is None or not spec.criteria or spec.structure is None:
-        return (
-            "No OperationalSpec to build yet (no criteria or no structure). "
-            "Call frame_problem first."
-        )
-    if spec.open_slots:
-        slots = "; ".join(
-            f"{slot.param_name}"
-            + (f" -- {slot.question}" if slot.question else "")
-            + (f" (options: {', '.join(slot.options)})" if slot.options else "")
-            for slot in spec.open_slots
-        )
-        return (
-            f"The strategy cannot be built until the user answers "
-            f"{len(spec.open_slots)} open parameter(s): {slots}. "
-            "Do NOT re-frame -- the same slots come back. Ask the user for "
-            "these values in your reply, then build once they answer."
-        )
-    unbound = [c.id for c in spec.criteria if not c.bound]
-    if unbound:
-        return (
-            f"These criteria are not bound to a WDK search: {', '.join(unbound)}. "
-            "Call frame_problem to bind them."
-        )
-    open_params = [
-        f"{c.id}.{slot.param_name}" for c in spec.criteria for slot in c.open_params
-    ]
-    return (
-        f"These criteria still need user-supplied parameters: "
-        f"{', '.join(open_params)}. Ask the user for them, then build."
     )

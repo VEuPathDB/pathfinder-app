@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
 import type { EdaEntityCount } from "@pathfinder/shared";
 import type { EdaFilter } from "@pathfinder/shared/generated/types/EdaFilter";
 import type { EdaVariableResponse } from "@pathfinder/shared/generated/types/EdaVariableResponse";
@@ -76,19 +75,13 @@ export function SubsetCell({
   const detail = useQuery({
     ...edaStudyDetailOptions(siteId, datasetId),
     enabled: datasetId !== "",
+    meta: { shownInline: true },
   });
 
   const tree = buildEntityTree(detail.data?.entities ?? []);
   if (tree !== null && seededRoot !== tree.entityId) {
     setSeededRoot(tree.entityId);
     setExpanded(new Set([tree.entityId]));
-  }
-
-  const [reportedStudy, setReportedStudy] = useState<unknown>(null);
-  if (detail.error != null && reportedStudy !== detail.error) {
-    setReportedStudy(detail.error);
-    const message = toUserMessage(detail.error, STUDY_FAILED);
-    queueMicrotask(() => toast.error(message));
   }
 
   const edit = useMutation({
@@ -121,7 +114,6 @@ export function SubsetCell({
     onError: (error) => {
       setLocalFilters(null);
       setCountError(toUserMessage(error, COUNT_FAILED));
-      toast.error(toUserMessage(error, COUNT_FAILED));
     },
   });
 

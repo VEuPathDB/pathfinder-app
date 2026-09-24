@@ -19,7 +19,7 @@ from veupathdb_mcp import ToolErrorPayload
 from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.graph.state import TurnMarkers
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.tools.standalone.strategy_edits import (
     delete_step,
     insert_saved_strategy,

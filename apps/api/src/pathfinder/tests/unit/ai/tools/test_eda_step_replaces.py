@@ -14,24 +14,22 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
-    DroppedCriterion,
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    eda_backed_drops,
     structure_criteria,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
-from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
-from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+from pathfinder.tests._support.eda_step_doubles import (
     bound,
     read_detail,
     recording_commit,
     wire_gene_count,
 )
+from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
+from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     combine,
     install_stub_api,
@@ -179,8 +177,12 @@ class TestAReplacementThatReachesTheCommit:
         spec = ctx.deps.state.domain.operational_spec
         assert spec is not None
         assert [c.id for c in spec.criteria] == ["step_k1", exported]
-        assert spec.criteria[1].text == "berghei subset"
-        assert spec.criteria[1].search_name == "GenesByEdaSubset"
+        exported_criterion = spec.criteria[1]
+        assert exported_criterion.search_name == "GenesByEdaSubset"
+        assert exported_criterion.analysis is not None
+        assert exported_criterion.analysis.dataset_id == PHENOTYPE_DATASET
+        assert exported_criterion.text == exported_criterion.analysis.words
+        assert exported_criterion.resolved_params == {}
 
 
 async def test_a_refused_replacement_leaves_the_spec_as_it_found_it(
@@ -308,27 +310,6 @@ async def test_replacing_a_combine_names_the_export_where_it_stood(
     assert spec.structure is not None
     assert spec.structure.root.operator is CombineOp.INTERSECT
     assert [c.id for c in spec.criteria] == ["step_k3", exported]
-
-
-async def test_a_replacement_clears_the_drop_it_answers(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    install_stub_api(monkeypatch)
-    ctx = _lead_ctx_over(combine("step_c1", leaf("step_k1"), leaf("step_k2")))
-    spec = _two_kinase_criteria()
-    spec.dropped = [
-        DroppedCriterion(
-            text="essential in blood stages",
-            reason="EDA-backed criterion",
-            eda_dataset_id=PHENOTYPE_DATASET,
-        ),
-    ]
-    ctx.deps.state.domain.operational_spec = spec
-    _wire(monkeypatch)
-
-    await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
-
-    assert eda_backed_drops(ctx.deps.state.domain.operational_spec) == []
 
 
 async def test_replacing_a_step_the_spec_does_not_state_states_the_export(

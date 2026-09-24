@@ -88,7 +88,7 @@ def test_investigation_ledger_carries_no_sub_agent_call_count() -> None:
 
 def _blame(text: str, *, build: BuildSection) -> str:
     """Why the text may not stand, empty when it may."""
-    return blamed_the_site(text, build=build) or ""
+    return blamed_the_site(text, build=build, verification=VerificationSection()) or ""
 
 
 class TestTheSiteBlameMatcher:
@@ -248,11 +248,7 @@ class TestTheSummaryCarriesEveryDropReason:
             dropped=[
                 DroppedCriterion(
                     text="essential in blood stages",
-                    reason=(
-                        "EDA-backed criterion: the Lead builds it with "
-                        "open_eda_analysis."
-                    ),
-                    eda_dataset_id="DS_70dd50fed7",
+                    reason="no search on this site records blood-stage essentiality.",
                 )
             ],
         )
@@ -269,9 +265,10 @@ class TestTheSummaryCarriesEveryDropReason:
     def test_the_reason_reaches_the_summary_beside_its_criterion(self) -> None:
         summary = self._dropped().render_summary()
 
-        assert "essential in blood stages: EDA-backed criterion" in summary
-        assert "open_eda_analysis." in summary
-        assert "(eda dataset DS_70dd50fed7)" in summary
+        assert (
+            "essential in blood stages: no search on this site records "
+            "blood-stage essentiality."
+        ) in summary
 
     def test_a_frame_with_no_drop_adds_no_line(self) -> None:
         summary = _ledger().render_summary()

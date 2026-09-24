@@ -11,8 +11,8 @@ from pathfinder.ai.graph.state import (
     PipelineState,
     StrategyDomainState,
     VerificationDigest,
-    ZeroResultStep,
 )
+from pathfinder.ai.graph.turn_records import ZeroResultStep
 from pathfinder.ai.lead.case_memory import collect_case_candidates
 from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
@@ -24,6 +24,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
+from pathfinder.tests.unit.domain.strategy._analysis import WORDS, analysed
 
 
 def _criteria_rows(content: dict[str, object]) -> list[dict[str, object]]:
@@ -147,6 +148,24 @@ def test_the_case_records_the_spec_the_strategy_answers_to() -> None:
     assert len(candidates) == 1
     rows = _criteria_rows(candidates[0][0].content)
     assert [row["search_name"] for row in rows] == ["GenesByGoTerm"]
+
+
+def test_an_analysis_criterion_is_recorded_by_its_words() -> None:
+    """The case reads as what the step selects, never as its document."""
+    state = _state(outcome=_outcome(142))
+    answered = _spec()
+    answered.criteria.append(analysed())
+    state.domain.answered_spec = answered
+
+    rows = _criteria_rows(collect_case_candidates(state)[0][0].content)
+
+    assert rows[1] == {
+        "text": WORDS,
+        "search_name": "GenesByEdaVizWithCompute",
+        "role": "filter",
+        "params": {},
+        "analysis": WORDS,
+    }
 
 
 def test_a_recovered_zero_step_leaves_a_recovery_case() -> None:

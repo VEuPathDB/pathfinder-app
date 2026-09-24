@@ -293,8 +293,8 @@ jobs:
       - uses: actions/checkout@v4
 
       # Self-contained test env; secret is generated per run, never committed.
-      # This stack builds api, web and worker; compose interpolates the whole
-      # file, so wdk-mcp's pin must have a value even though nothing builds it.
+      # Compose interpolates the whole file, so SEARXNG_SECRET needs a value
+      # even though this stack starts only api, web and worker.
       - name: Prepare e2e env
         run: |
           cat > .env.test <<'EOF'
@@ -306,6 +306,7 @@ jobs:
           DEFAULT_TIER=balanced
           EOF
           printf 'API_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env.test
+          printf 'SEARXNG_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env.test
 
       - name: Build + start the stack (mock provider, test env)
         run: |

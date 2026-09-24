@@ -19,6 +19,7 @@ export function PrivacySettings() {
     queryKey: PRIVACY_QUERY_KEY,
     queryFn: getPrivacySettings,
     retry: false,
+    meta: { shownInline: true },
   });
 
   const setConsent = useMutation({

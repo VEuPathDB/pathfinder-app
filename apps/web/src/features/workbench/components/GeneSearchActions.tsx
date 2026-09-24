@@ -38,6 +38,7 @@ export function GeneSearchActions({
   const handleCreateGeneSet = async () => {
     if (selectedIds.size === 0) return;
     const name = newSetName.trim() || `Search: ${query.trim()}`;
+    onError(null);
     setCreating(true);
     try {
       await createGeneSet({

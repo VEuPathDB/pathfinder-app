@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 
 from assistant_core.graph.tool_summary import count_noun
@@ -74,15 +75,43 @@ _TRANSIENT_BLAME = (
 )
 
 
-def blamed_the_site(text: str, *, build: BuildSection) -> str | None:
+# The words a reply uses for a step the site did not describe.
+_PENDING_WORDING = ("did not describe", "did not say", "could not read", "unreadable")
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+
+
+def _names_the_site(sentence: str) -> bool:
+    return any(term in sentence for term in _SITE_TERMS)
+
+
+def _about_a_pending_step(sentence: str, pending: list[str]) -> bool:
+    return any(step.casefold() in sentence for step in pending) or any(
+        words in sentence for words in _PENDING_WORDING
+    )
+
+
+def blamed_the_site(
+    text: str, *, build: BuildSection, verification: VerificationSection
+) -> str | None:
     """Why this text may not stand over this build, or None.
 
     Text that names VEuPathDB together with a transient state asks the user to
-    wait for the site. It stands only where a WDK call of this turn failed.
+    wait for the site. It stands only where a WDK call failed. A sentence that
+    names the site and a pending step, or says the site did not describe it,
+    is exempt.
     """
     if build.failed_count or build.zero_result_steps:
         return None
-    lowered = text.casefold()
+    pending = verification.pending_checks
+    lowered = " ".join(
+        sentence
+        for sentence in _SENTENCE_END.split(text.casefold())
+        if not (
+            pending
+            and _names_the_site(sentence)
+            and _about_a_pending_step(sentence, pending)
+        )
+    )
     site = next((term for term in _SITE_TERMS if term in lowered), None)
     if site is None:
         return None
@@ -117,9 +146,7 @@ def digest_held_to_the_build(
 
 
 def _drop_line(entry: DroppedCriterion) -> str:
-    """One dropped criterion, with the EDA dataset it is realized from."""
-    dataset = f" (eda dataset {entry.eda_dataset_id})" if entry.eda_dataset_id else ""
-    return f"  - {entry.text}: {entry.reason}{dataset}"
+    return f"  - {entry.text}: {entry.reason}"
 
 
 class InvestigationLedger(CamelModel):
@@ -157,8 +184,10 @@ class InvestigationLedger(CamelModel):
         Counts, derived booleans and the reason of each dropped criterion.
         """
         intent = self.user_intent
+        pending = self.verification.pending_checks
         intent_line = (
-            f"- intent: {intent.classification.value} - {intent.inferred_goal[:120]}"
+            f"- intent: {intent.classification.value}; paraphrase, not the "
+            f"request: {intent.inferred_goal[:120]}"
             if intent is not None
             else "- intent: not classified yet"
         )
@@ -212,6 +241,7 @@ class InvestigationLedger(CamelModel):
                 "## Verification",
                 f"- complete: {self.verification.complete}",
                 f"- successful: {self.verification.successful}",
+                *([f"- pending_checks: {', '.join(pending)}"] if pending else []),
                 "",
                 "## Constraints",
                 f"- blocking: {self.constraints.blocking}",

@@ -6,12 +6,14 @@ from pydantic_ai import RunContext
 
 from pathfinder.ai.graph.runtime import VerificationScope
 from pathfinder.ai.graph.state import FailureCause, VerificationDigest
+from pathfinder.ai.lead.answered_strategy import live_tree
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
     defer_dispatch,
     dispatch_call_id,
+    framing_goal,
 )
 from pathfinder.ai.lead.ledger import (
     build_contradiction,
@@ -26,19 +28,25 @@ from pathfinder.ai.lead.sub_agent_stream import (
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
 from pathfinder.ai.tools.toolsets._dynamic import live_wdk_step_ids
+from pathfinder.domain.strategy.revision import strategy_revision
+from pathfinder.services.eda.analysis_kinds import unread_analyses
 
 
 def verification_scope(
     deps: LeadDeps, *, enrichment_requested: bool
 ) -> VerificationScope:
-    """What this turn changed, as the verification playbook reads it."""
+    """What this turn changed and the request it answers, as VERIFY reads them."""
     diff = derive_ledger(deps.state, deps.intent).frame.spec_diff()
+    request = framing_goal(deps.state)
     if diff is None:
-        return VerificationScope(enrichment_requested=enrichment_requested)
+        return VerificationScope(
+            enrichment_requested=enrichment_requested, request=request
+        )
     return VerificationScope(
         criteria_touched=diff.touched_count(),
         is_edit=True,
         enrichment_requested=enrichment_requested,
+        request=request,
     )
 
 
@@ -74,9 +82,15 @@ async def run_verification(
     if delta is None:
         msg = "Verification sub-agent did not return a VerificationDelta."
         raise TypeError(msg)
-    digest = _digest_the_build_supports(deps, delta.digest)
-    deps.state.domain.verification_digest = digest
-    deps.state.turn_markers.verified = digest.success
+    graph = deps.runtime.strategy_session.get_graph(None)
+    # The pending checks are the strategy's to state, never the checker's.
+    pending = [] if graph is None else unread_analyses(graph)
+    digest = _digest_the_build_supports(
+        deps, delta.digest.model_copy(update={"pending_checks": pending})
+    )
+    judged = live_tree(graph)
+    deps.state.domain.record_verdict(digest, revision=strategy_revision(judged))
+    deps.state.turn_markers.verified = digest.passed
     return VerificationDelta(digest=digest)
 
 

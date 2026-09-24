@@ -5,6 +5,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 import pytest
+from pydantic import BaseModel
 from pydantic_ai.messages import (
     FunctionToolCallEvent,
     FunctionToolResultEvent,
@@ -18,13 +19,20 @@ from pathfinder.ai.graph._lead_events import (
     _SUB_AGENT_TOOL_TO_PHASE,
     handle_sub_agent_event,
 )
-from pathfinder.ai.lead.deltas import RecoveryDelta
+from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
+from pathfinder.ai.lead.deltas import (
+    EditDelta,
+    FrameResult,
+    RecoveryDelta,
+    VerificationDelta,
+)
 from pathfinder.ai.lead.sub_agent_progress import (
     ContextMeter,
     emit_running_usage,
 )
 from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage
 from pathfinder.ai.models.catalog import get_model_entry
+from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,
     lead_deps,
@@ -134,18 +142,24 @@ def test_unknown_model_reports_no_window(monkeypatch: pytest.MonkeyPatch) -> Non
     assert payload["contextTokens"] == 900
 
 
+_PASSED = VerificationDigest(
+    disposition=PhaseDisposition.DONE, prose="61 genes.", reason="ok", success=True
+)
+
+
 @pytest.mark.parametrize(
-    ("tool_name", "role"),
+    ("tool_name", "role", "delta"),
     [
-        ("frame_problem", "frame"),
-        ("edit_strategy", "frame"),
-        ("recover_failed_steps", "execution"),
-        ("verify_strategy", "verification"),
+        ("frame_problem", "frame", FrameResult()),
+        ("edit_strategy", "frame", EditDelta(diff=SpecDiff())),
+        ("recover_failed_steps", "execution", RecoveryDelta()),
+        ("verify_strategy", "verification", VerificationDelta(digest=_PASSED)),
     ],
 )
 def test_one_call_id_carries_one_phase_name(
     tool_name: str,
     role: PhaseRole,
+    delta: BaseModel,
 ) -> None:
     collector = ChunkCollector()
     deps = lead_deps(pipeline_state(user_prompt="recover the failed steps"))
@@ -178,7 +192,7 @@ def test_one_call_id_carries_one_phase_name(
         FunctionToolResultEvent(
             part=ToolReturnPart(
                 tool_name=tool_name,
-                content=RecoveryDelta(),
+                content=delta,
                 tool_call_id=_CALL_ID,
             ),
         ),

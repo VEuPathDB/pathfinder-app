@@ -1,4 +1,4 @@
-"""A dropped EDA-backed criterion is routed to the EDA tools, not to the user."""
+"""A criterion waiting for its analysis is routed to the EDA tools, by its id."""
 
 from __future__ import annotations
 
@@ -24,8 +24,9 @@ from pathfinder.ai.lead.lead_pins import (
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
-    DroppedCriterion,
     OperationalSpec,
+    SpecStructure,
+    StructureNode,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -38,25 +39,32 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 
 _DATASET = "DS_70dd50fed7"
 _CRITERION = "essential in blood stages"
-_REASON = (
-    "EDA-backed criterion: the Lead builds it with open_eda_analysis, "
-    "set_eda_filters, preview_eda_subset and create_eda_step."
-)
 
 
-def _spec(*, dropped: bool = True, kinases: bool = True) -> OperationalSpec:
+def _waiting(criterion_id: str = "c_essential", text: str = _CRITERION) -> Criterion:
+    return Criterion(id=criterion_id, text=text, needs_analysis_on=_DATASET)
+
+
+def _leaf(criterion_id: str) -> StructureNode:
+    return StructureNode(kind="leaf", criterion_id=criterion_id)
+
+
+def _spec(*, waiting: bool = True, kinases: bool = True) -> OperationalSpec:
+    kinase = Criterion(id="step_k1", text="PF00069 kinases", search_name="GenesByText")
+    criteria = [*([kinase] if kinases else []), *([_waiting()] if waiting else [])]
+    leaves = [_leaf(c.id) for c in criteria]
     return OperationalSpec(
         goal="essential kinases",
-        criteria=[
-            Criterion(id="step_k1", text="PF00069 kinases", search_name="GenesByText")
-        ]
-        if kinases
-        else [],
-        dropped=[
-            DroppedCriterion(text=_CRITERION, reason=_REASON, eda_dataset_id=_DATASET),
-        ]
-        if dropped
-        else [],
+        criteria=criteria,
+        structure=SpecStructure(
+            root=(
+                StructureNode(
+                    kind="combine", operator=CombineOp.INTERSECT, inputs=leaves
+                )
+                if len(leaves) > 1
+                else leaves[0]
+            )
+        ),
     )
 
 
@@ -98,7 +106,7 @@ def _deps(
 ) -> LeadDeps:
     deps = lead_deps(
         pipeline_state(
-            user_prompt="replace the unfiltered step with the export",
+            user_prompt="add the essentiality comparison",
             user_message_id=uuid4(),
             domain=StrategyDomainState(operational_spec=spec),
         ),
@@ -115,67 +123,42 @@ class TestTheRouteThePinPrints:
         assert pinned is not None
         return pinned
 
-    def test_the_block_names_the_criterion_the_dataset_and_the_four_calls(
-        self,
-    ) -> None:
+    def test_the_block_names_the_criterion_its_dataset_and_its_id(self) -> None:
         pinned = self._pin(
-            _deps(_session(_eda_leaf("step_af9d7803")), spec=_spec()),
+            _deps(
+                _session(StrategyStepNode(id="step_k1", search_name="GenesByText")),
+                spec=_spec(),
+            ),
         )
 
         assert f"## Build the EDA criterion: {_CRITERION}" in pinned
         assert f'open_eda_analysis(dataset_id="{_DATASET}"' in pinned
         assert "set_eda_filters" in pinned
         assert "preview_eda_subset" in pinned
-        assert "create_eda_step" in pinned
+        assert 'create_eda_step(criterion_id="c_essential")' in pinned
         assert "Never ask the user for an analysis specification" in pinned
 
-    def test_a_step_on_the_dataset_is_named_as_the_one_to_replace(self) -> None:
-        pinned = self._pin(
-            _deps(_session(_eda_leaf("step_af9d7803")), spec=_spec()),
-        )
-
-        assert 'create_eda_step(replace_step_id="step_af9d7803")' in pinned
-
-    def test_an_export_outside_the_strategy_is_named_apart(self) -> None:
-        """A detached export is on the canvas and not in the tree."""
-        session = _session(
-            _eda_leaf("step_k1"), _eda_leaf("step_af9d7803"), combined=True
-        )
-        graph = session.graph
-        assert graph is not None
-        graph.steps.update(flatten_tree(_eda_leaf("step_da5a2302")))
-        graph.recompute_roots()
-
-        pinned = self._pin(_deps(session, spec=_spec()))
-
-        assert 'create_eda_step(replace_step_id="step_af9d7803")' in pinned
-        assert "stand outside the strategy: ['step_da5a2302']" in pinned
-
-    def test_a_free_combine_slot_is_named_when_no_step_reads_the_dataset(self) -> None:
-        session = _session()
-        graph = session.graph
-        assert graph is not None
-        graph.steps = flatten_tree(
-            StrategyStepNode(
-                id="step_c1",
-                search_name="__combine__",
+    def test_two_waiting_criteria_on_one_dataset_are_each_routed(self) -> None:
+        """One dataset holds as many comparisons as the request states."""
+        spec = _spec(kinases=False)
+        spec.criteria.append(_waiting("c_24h_vs_36_up", "higher at 24 h than 36 h"))
+        spec.structure = SpecStructure(
+            root=StructureNode(
+                kind="combine",
                 operator=CombineOp.INTERSECT,
-                primary_input=StrategyStepNode(id="step_k1", search_name="GenesByText"),
-            ),
+                inputs=[_leaf("c_essential"), _leaf("c_24h_vs_36_up")],
+            )
         )
-        graph.recompute_roots()
 
-        pinned = self._pin(_deps(session, spec=_spec()))
+        blocks = eda_route_blocks(run_context_for(_deps(_session(), spec=spec)))
 
-        assert (
-            'create_eda_step(attach_to_step_id="step_c1", slot="secondary")' in pinned
-        )
+        assert len(blocks) == 2
+        assert 'create_eda_step(criterion_id="c_essential")' in blocks[0]
+        assert 'create_eda_step(criterion_id="c_24h_vs_36_up")' in blocks[1]
 
     def test_a_criterion_with_no_step_is_built_before_the_export(self) -> None:
         """The export joins a strategy, so the strategy is built first."""
-        pinned = self._pin(
-            _deps(_session(_eda_leaf("step_af9d7803")), spec=_spec()),
-        )
+        pinned = self._pin(_deps(_session(), spec=_spec()))
 
         assert (
             "0. build_strategy for the remaining criteria (['step_k1']) so the "
@@ -183,61 +166,11 @@ class TestTheRouteThePinPrints:
         ) in pinned
 
     def test_a_spec_whose_criteria_all_have_steps_asks_for_no_build(self) -> None:
-        session = _session(
-            StrategyStepNode(id="step_k1", search_name="GenesByText"),
-            _eda_leaf("step_af9d7803"),
-            combined=True,
-        )
+        session = _session(StrategyStepNode(id="step_k1", search_name="GenesByText"))
 
         pinned = self._pin(_deps(session, spec=_spec()))
 
         assert "build_strategy" not in pinned
-
-    def test_the_root_join_is_named_when_nothing_else_holds_the_export(self) -> None:
-        session = _session(
-            StrategyStepNode(id="step_k1", search_name="GenesByText"),
-            StrategyStepNode(id="step_k2", search_name="GenesByText"),
-            combined=True,
-        )
-
-        pinned = self._pin(_deps(session, spec=_spec(kinases=False)))
-
-        assert 'create_eda_step(combine_with_root="INTERSECT")' in pinned
-        assert "MINUS" in pinned
-
-    def test_a_bare_call_when_there_is_no_strategy_and_nothing_to_build(self) -> None:
-        pinned = self._pin(_deps(_session(), spec=_spec(kinases=False)))
-
-        assert "create_eda_step() - there is no strategy" in pinned
-        assert "combine_with_root" not in pinned
-
-    def test_a_detached_combine_is_not_offered_as_a_free_slot(self) -> None:
-        """An export into a combine outside the strategy lands outside it."""
-        session = _session(
-            StrategyStepNode(id="step_k1", search_name="GenesByText"),
-            StrategyStepNode(id="step_k2", search_name="GenesByText"),
-            combined=True,
-        )
-        graph = session.graph
-        assert graph is not None
-        graph.steps.update(
-            flatten_tree(
-                StrategyStepNode(
-                    id="step_c9",
-                    search_name=COMBINE_SEARCH_NAME,
-                    operator=CombineOp.INTERSECT,
-                    primary_input=StrategyStepNode(
-                        id="step_k3", search_name="GenesByText"
-                    ),
-                ),
-            ),
-        )
-        graph.recompute_roots()
-
-        pinned = self._pin(_deps(session, spec=_spec(kinases=False)))
-
-        assert 'attach_to_step_id="step_c9"' not in pinned
-        assert 'create_eda_step(combine_with_root="INTERSECT")' in pinned
 
     def test_a_turn_that_does_not_build_pins_no_route(self) -> None:
         """The route names tools this turn's classification withholds."""
@@ -250,8 +183,8 @@ class TestTheRouteThePinPrints:
         assert eda_route_blocks(run_context_for(deps)) == []
         assert pinned_turn_briefing(run_context_for(deps)) is None
 
-    def test_a_spec_with_no_eda_drop_pins_no_route(self) -> None:
-        deps = _deps(_session(_eda_leaf("step_af9d7803")), spec=_spec(dropped=False))
+    def test_a_spec_with_no_waiting_criterion_pins_no_route(self) -> None:
+        deps = _deps(_session(_eda_leaf("step_af9d7803")), spec=_spec(waiting=False))
 
         assert eda_route_blocks(run_context_for(deps)) == []
         assert pinned_turn_briefing(run_context_for(deps)) is None

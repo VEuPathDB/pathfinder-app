@@ -23,7 +23,7 @@ export const CONSULT_TOOL_NAME = "consult_user";
 export const PROPOSAL_TOOL_NAME = "propose_changes";
 
 /** The question id a yes on a proposal card is recorded under. */
-export const PROPOSAL_ANSWER_ID = "proposal";
+const PROPOSAL_ANSWER_ID = "proposal";
 
 export function handleConsultSubmit(
   chat: ChatHelpersForApproval,

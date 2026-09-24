@@ -13,15 +13,16 @@ from veupathdb.eda import (
     EdaClient,
     EdaComparator,
     EdaComputation,
-    EdaComputationDescriptor,
+    EdaDifferentialExpressionComputation,
     EdaDifferentialExpressionConfig,
+    EdaDifferentialExpressionDescriptor,
     EdaLabeledRange,
     EdaStringSetFilter,
     EdaVariableSpec,
 )
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
-from pathfinder.services.eda import authoring, catalog
+from pathfinder.services.eda import authoring, catalog, comparison
 from pathfinder.tests._support.eda_wire import wire_eda_client
 
 FIXTURES = FIXTURE_DIR
@@ -290,26 +291,25 @@ def _de_study() -> Any:
     return _fixture("study_detail_de.json")
 
 
-def _de_computation(group_a: str, group_b: str) -> EdaComputation:
-    return EdaComputation(
-        computation_id="de1",
-        descriptor=EdaComputationDescriptor(
-            configuration=EdaDifferentialExpressionConfig(
-                identifier_variable=EdaVariableSpec(
-                    entity_id=_DE_ENTITY, variable_id="VEUPATHDB_GENE_ID"
+def _de_computation(group_a: str, group_b: str) -> EdaDifferentialExpressionComputation:
+    descriptor = EdaDifferentialExpressionDescriptor(
+        configuration=EdaDifferentialExpressionConfig(
+            identifier_variable=EdaVariableSpec(
+                entity_id=_DE_ENTITY, variable_id="VEUPATHDB_GENE_ID"
+            ),
+            value_variable=EdaVariableSpec(entity_id=_DE_ENTITY, variable_id=_DE_VALUE),
+            comparator=EdaComparator(
+                variable=EdaVariableSpec(
+                    entity_id="ENT_8151325d", variable_id="VAR_081ab087"
                 ),
-                value_variable=EdaVariableSpec(
-                    entity_id=_DE_ENTITY, variable_id=_DE_VALUE
-                ),
-                comparator=EdaComparator(
-                    variable=EdaVariableSpec(
-                        entity_id="ENT_8151325d", variable_id="VAR_081ab087"
-                    ),
-                    group_a=[EdaLabeledRange(label=group_a)],
-                    group_b=[EdaLabeledRange(label=group_b)],
-                ),
-            )
-        ),
+                group_a=[EdaLabeledRange(label=group_a)],
+                group_b=[EdaLabeledRange(label=group_b)],
+            ),
+        )
+    )
+    return EdaDifferentialExpressionComputation(
+        computation=EdaComputation(computation_id="de1", descriptor=descriptor),
+        descriptor=descriptor,
     )
 
 
@@ -657,7 +657,7 @@ async def test_patch_subset_refuses_an_invalid_array_before_patching(
     assert "PATCH" not in seen
 
 
-async def test_apply_computation_replaces_the_single_computation(
+async def test_apply_computation_adds_the_comparison_to_an_analysis_with_none(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     seen: list[httpx.Request] = []
@@ -680,7 +680,7 @@ async def test_apply_computation_replaces_the_single_computation(
     client = _wire(monkeypatch, handler)
     token = veupathdb_auth_token_ctx.set("t")
     try:
-        await authoring.apply_computation(
+        await comparison.apply_computation(
             "plasmodb",
             analysis_id="t4fszEJ",
             dataset_id=_DATASET,
@@ -720,7 +720,7 @@ async def test_apply_computation_refuses_a_label_outside_the_vocabulary(
     token = veupathdb_auth_token_ctx.set("t")
     try:
         with pytest.raises(authoring.SubsetRejectedError) as excinfo:
-            await authoring.apply_computation(
+            await comparison.apply_computation(
                 "plasmodb",
                 analysis_id="t4fszEJ",
                 dataset_id=_DATASET,

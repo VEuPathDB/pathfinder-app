@@ -33,6 +33,7 @@ from pathfinder.domain.strategy.spec_edit_guard import (
     new_join_contradiction,
     new_value_contradiction,
 )
+from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
@@ -199,6 +200,9 @@ async def build_strategy_from_spec(
         description=description,
         criterion_texts=deps.criterion_texts,
     )
+    # A step the build minted under a new id carries no kind yet, so the
+    # catalog says which plugin reads its analysis document.
+    await read_the_unread_kinds(site_id=deps.site_id, graph=graph)
 
     await reconcile_sync_state_with_wdk(
         sync_state,

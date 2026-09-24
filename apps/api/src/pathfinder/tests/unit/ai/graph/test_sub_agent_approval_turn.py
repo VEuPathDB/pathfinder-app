@@ -21,6 +21,7 @@ from pathfinder.tests.unit.ai.graph._approval_turn import (
     consult_and_dispatch_model,
     deleted_step_ids,
     drive_lead,
+    holding_a_strategy,
     lead_deps,
     lead_state,
     one_call_model,
@@ -50,7 +51,7 @@ async def test_the_turn_ends_deferred_on_the_sub_agents_approval(
         ),
     )
     state = lead_state()
-    deps = lead_deps(state)
+    deps = holding_a_strategy(lead_deps(state))
 
     with pinned_verification_agent(monkeypatch):
         capture = await drive_lead(state=state, deps=deps, writer=writer)

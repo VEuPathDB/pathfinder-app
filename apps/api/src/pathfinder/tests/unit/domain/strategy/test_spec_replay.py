@@ -92,7 +92,7 @@ def _replayed(
     spec: OperationalSpec, answered: StrategyAst, live: StrategyAst | None
 ) -> OperationalSpec:
     return spec_replaying(
-        spec, outside_changes(answered, live), live, sheet_params=_SHEETS
+        spec, outside_changes(answered, live), live, sheet_params=_SHEETS, analyses={}
     )
 
 

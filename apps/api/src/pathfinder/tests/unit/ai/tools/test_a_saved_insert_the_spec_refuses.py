@@ -10,7 +10,7 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.graph.state import TurnMarkers
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.tools.standalone import strategy_edits
 from pathfinder.ai.tools.standalone.strategy_edits import insert_saved_strategy
 from pathfinder.domain.strategy.operations.apply import ApplyError

@@ -10,13 +10,16 @@ from pydantic_ai.tools import RunContext
 from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyStep
 
+from pathfinder.ai.agents.criterion_lines import criterion_label, criterion_runs
 from pathfinder.ai.agents.param_vocab_render import render_param_vocab
 from pathfinder.ai.agents.pinned_sheets import blocks_within_budget
 from pathfinder.ai.agents.state import PinnedSheet, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.prompts.loader import load_system_prompt
+from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.build_outcome import citable_count
 from pathfinder.domain.strategy.types import SyncStateProtocol
+from pathfinder.services.eda.export import exported_analysis
 
 
 def base_system_prompt(ctx: RunContext[AgentDeps]) -> str:
@@ -110,9 +113,7 @@ def pinned_frame_workspace(ctx: RunContext[AgentDeps]) -> str | None:
     ]
     for c in spec.criteria:
         slots = [s.param_name for s in c.open_params]
-        saved = c.saved_strategy_ref
-        bound_to = c.search_name or (saved.label if saved is not None else "(UNBOUND)")
-        line = f"- [{c.id}] {c.text[:60]} -> {bound_to}"
+        line = f"- [{c.id}] {criterion_label(c, 60)} -> {criterion_runs(c)}"
         if slots:
             line += f" | open: {slots}"
         lines.append(line)
@@ -191,8 +192,15 @@ def _render_step_suffix(
     return ""
 
 
-def _render_step_params(step: StrategyStep) -> str:
-    """Renders the parameters of one step as a single indented line."""
+def _render_step_params(step: StrategyStep, kind: AnalysisKind | None) -> str:
+    """Renders the parameters of one step as a single indented line.
+
+    A step that exports an analysis is rendered by what it selects, never by
+    its document.
+    """
+    binding = exported_analysis(kind, step.parameters)
+    if binding is not None:
+        return f"\n  selects: {binding.words}"
     if not step.parameters:
         return ""
     param_strs: list[str] = []
@@ -223,7 +231,7 @@ def pinned_graph_state(ctx: RunContext[AgentDeps]) -> str | None:
             parts.append(suffix)
         line = " ".join(parts)
         if step.kind.value != "combine":
-            line += _render_step_params(step)
+            line += _render_step_params(step, graph.analysis_kind_of(step_id))
         lines.append(line)
 
     header = f"Current strategy graph ({len(graph.steps)} steps):"

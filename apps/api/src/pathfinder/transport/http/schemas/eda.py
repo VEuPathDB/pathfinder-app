@@ -13,7 +13,7 @@ from pathfinder.domain.eda_parts import (
     EdaComparison,
     EdaEffectDirection,
 )
-from pathfinder.services.eda import EdaComputationDescriptor, EdaFilter
+from pathfinder.services.eda import EdaDifferentialExpressionDescriptor, EdaFilter
 from pathfinder.services.eda.compute import VolcanoThresholds
 
 
@@ -181,7 +181,7 @@ class EdaRunComputeAction(CamelModel):
     """Submit or poll the analysis's compute. Idempotent per input hash."""
 
     action: Literal["run-compute"]
-    computation: EdaComputationDescriptor
+    computation: EdaDifferentialExpressionDescriptor
 
 
 class EdaExportStepAction(CamelModel):

@@ -263,6 +263,7 @@ INSTRUCTION_ORDER = {
     ],
     "verification": [
         "base_system_prompt",
+        "pinned_researcher_request",
         "pinned_graph_state",
         "pinned_user_memories",
         "pinned_scratchpad",

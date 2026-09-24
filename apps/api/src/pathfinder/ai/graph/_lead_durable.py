@@ -24,7 +24,7 @@ from pydantic import BaseModel, ConfigDict, JsonValue
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 
-from pathfinder.ai.graph.state import EnrichmentRun
+from pathfinder.ai.graph.turn_records import EnrichmentRun
 from pathfinder.ai.lead.sub_agent_tools import WIRE_PHASE_BY_ROLE, LeadDeps
 
 _ENRICHMENT_TOOL = "run_gene_set_enrichment"

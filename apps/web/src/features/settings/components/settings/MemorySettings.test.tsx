@@ -4,6 +4,9 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+const toastError = vi.fn();
+vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
+
 vi.mock("@/features/settings/api/memories", () => ({
   listMemories: vi.fn(),
   searchMemories: vi.fn(),
@@ -11,6 +14,7 @@ vi.mock("@/features/settings/api/memories", () => ({
   deleteMemory: vi.fn(),
 }));
 
+import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import {
   deleteMemory,
   editMemory,
@@ -102,6 +106,15 @@ describe("MemorySettings", () => {
     await waitFor(() => {
       expect(screen.getByText(/Failed to load/i)).toBeInTheDocument();
     });
+  });
+
+  it("reports a failed list once, with no toast", async () => {
+    mockedList.mockRejectedValue(new Error("memory list failed"));
+    render(<MemorySettings />, { wrapper: appQueryClientWrapper() });
+    expect(
+      await screen.findByText("Failed to load memories: memory list failed"),
+    ).toBeVisible();
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it("deletes memory on confirmed delete", async () => {

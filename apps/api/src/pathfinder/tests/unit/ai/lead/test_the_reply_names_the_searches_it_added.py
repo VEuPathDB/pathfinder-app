@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import reconcile, turn_record
+from pathfinder.ai.lead.turn_contract import reconcile
+from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.strategy.step_words import AddedSearch
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (

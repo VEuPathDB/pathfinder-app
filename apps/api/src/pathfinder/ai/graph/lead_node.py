@@ -322,6 +322,7 @@ async def _drive_lead_stream(
                 budget_stop_report(
                     derive_ledger(deps.state, deps.intent),
                     deps.runtime.strategy_session,
+                    deps.state.turn_markers,
                     deps.state.domain.open_questions,
                 ),
                 changed=deps.state.turn_markers.changed_strategy,

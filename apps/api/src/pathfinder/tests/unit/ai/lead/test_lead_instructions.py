@@ -166,6 +166,14 @@ def test_an_eda_backed_criterion_never_reaches_the_framing_tools() -> None:
     assert "do NOT route it through frame_problem or build_strategy" in section
 
 
+def test_a_waiting_criterion_is_exported_by_its_id_and_kept_once_bound() -> None:
+    section = _flat(_eda_section())
+
+    assert "records the criterion as WAITING for its analysis" in section
+    assert "``criterion_id`` for a criterion the spec holds WAITING" in section
+    assert "only ``delete_step`` removes it" in section
+
+
 def test_the_user_is_never_asked_for_an_analysis_specification() -> None:
     section = _flat(_eda_section())
 
@@ -244,3 +252,17 @@ def test_an_offer_of_further_work_is_a_proposal_card() -> None:
     assert "Be liberal with proposals" in instructions
     assert "never taken from a bare yes" in instructions
     assert "make the LAST sentence an offer" not in instructions
+
+
+def test_frame_keeps_a_bound_analysis_and_places_a_waiting_one() -> None:
+    instructions = _flat(_FRAME_INSTRUCTIONS)
+
+    assert "never call `set_criterion` or `drop_criterion` on it" in instructions
+    assert "never through a fold-change search" in instructions
+    assert "recorded as WAITING on its dataset" in instructions
+
+
+def test_a_pending_check_is_reported_and_changes_nothing() -> None:
+    flat = _flat(LEAD_INSTRUCTIONS)
+    assert "``pending_checks`` listed" in flat
+    assert "name each pending step, and change nothing" in flat

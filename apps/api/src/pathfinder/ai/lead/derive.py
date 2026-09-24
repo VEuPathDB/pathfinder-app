@@ -198,4 +198,4 @@ def _classify_failure(failure: StepPushFailure) -> RecoveryKind:
 
 
 def _derive_verification_section(state: PipelineState) -> VerificationSection:
-    return VerificationSection(digest=state.domain.verification_digest)
+    return VerificationSection(digest=state.turn_verdict)

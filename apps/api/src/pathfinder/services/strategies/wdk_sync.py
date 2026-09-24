@@ -14,6 +14,7 @@ from veupathdb_mcp.wdk import (
 )
 
 from pathfinder.domain.strategy.combine_naming import given_by_a_researcher
+from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import (
     ConversationRepository,
@@ -26,6 +27,7 @@ from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
 )
 from pathfinder.platform.errors import InternalError
+from pathfinder.services.eda.analysis_kinds import analysis_kinds_of
 from pathfinder.services.strategies.naming import placeholder_strategy_name
 
 logger = get_logger(__name__)
@@ -66,9 +68,15 @@ def plan_needs_detail_fetch(strategy: ConversationStrategyView) -> bool:
 async def fetch_and_convert(
     api: StrategyAPI,
     wdk_id: int,
+    *,
+    site_id: str,
 ) -> tuple[StrategyAst, bool]:
     """Fetches a WDK strategy and converts it to the internal payload. Parameter
-    normalization failures are logged, and the raw values are kept."""
+    normalization failures are logged, and the raw values are kept.
+
+    WDK stores no PathFinder metadata, so each EDA step's analysis kind is read
+    from the site's catalog here.
+    """
     wdk_strategy = await api.get_strategy(wdk_id)
 
     payload, wire_by_step_id = build_snapshot_from_wdk(wdk_strategy)
@@ -81,7 +89,16 @@ async def fetch_and_convert(
             wdk_id=wdk_id,
             error=str(exc),
         )
-
+    nodes = [
+        node for root in (payload.root, *payload.detached_roots) for node in walk(root)
+    ]
+    kinds = await analysis_kinds_of(
+        site_id=site_id, record_type=payload.record_type, nodes=nodes
+    )
+    if kinds:
+        payload.metadata = StepWords(analysis_kinds=kinds).model_dump(
+            by_alias=True, mode="json"
+        )
     return payload, wdk_strategy.is_saved
 
 
@@ -99,7 +116,7 @@ async def sync_to_chat(
     ``created_here`` states whether the caller minted this strategy on
     VEuPathDB just before adopting it.
     """
-    payload, is_saved = await fetch_and_convert(api, wdk_id)
+    payload, is_saved = await fetch_and_convert(api, wdk_id, site_id=site_id)
 
     return await upsert_chat(
         conv_repo=conv_repo,
@@ -208,7 +225,7 @@ async def lazy_fetch_wdk_detail(
 
     try:
         api = get_strategy_api(site_id)
-        payload, is_saved = await fetch_and_convert(api, wdk_id)
+        payload, is_saved = await fetch_and_convert(api, wdk_id, site_id=site_id)
         await conv_repo.update_conversation(
             conversation.id,
             ConversationUpdate(

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 
 import pytest
 from pydantic_ai.usage import RunUsage
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph.state import VerificationDigest
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.lead.ledger_sections import (
@@ -26,9 +27,15 @@ from pathfinder.ai.lead.turn_budget import (
 )
 from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.domain.strategy.staleness import StaleBuild
+from pathfinder.domain.strategy.step_words import AddedSearch
 from pathfinder.platform.config import get_settings
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
+    ADDED,
+    ADDED_LINE,
     BUDGET,
+    CHANGED_NOTHING,
+    NOT_VERIFIED,
     OBJECTION,
     QUESTION,
     SITE_ID,
@@ -36,6 +43,7 @@ from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     STRATEGY_LINE,
     TITLE,
     URL,
+    WORDS,
     built,
     built_session,
     objection,
@@ -139,23 +147,51 @@ def _nothing_built() -> StrategySession:
     return StrategySession(site_id=SITE_ID)
 
 
+def _built_this_turn() -> TurnMarkers:
+    return TurnMarkers(built=True, added_searches=[ADDED])
+
+
+def _report(
+    build: BuildSection,
+    digest: VerificationDigest | None,
+    session: StrategySession,
+    *,
+    turn: TurnMarkers | None = None,
+    questions: Sequence[OpenQuestion] = (),
+) -> str:
+    return budget_stop_report(
+        _ledger(build, digest),
+        session,
+        turn if turn is not None else _built_this_turn(),
+        questions,
+    )
+
+
 def test_a_budget_stop_reports_the_step_the_turn_built() -> None:
-    report = budget_stop_report(
-        _ledger(built(), objection()),
+    report = _report(
+        built(),
+        objection(),
         built_session(),
-        [OpenQuestion(question=QUESTION)],
+        questions=[OpenQuestion(question=QUESTION)],
     )
 
     assert report == "\n\n".join(
-        [STRATEGY_LINE, f"Verification objected: {OBJECTION}", QUESTION, BUDGET]
+        [
+            STRATEGY_LINE,
+            ADDED_LINE,
+            f"Verification objected: {OBJECTION}",
+            QUESTION,
+            BUDGET,
+        ]
     )
 
 
 def test_a_budget_stop_prints_no_internal_name() -> None:
-    report = budget_stop_report(
-        _ledger(built(), objection()),
+    report = _report(
+        built(),
+        objection(),
         built_session(),
-        [OpenQuestion(question=QUESTION)],
+        questions=[OpenQuestion(question=QUESTION)],
     )
 
     assert machine_words(report) == []
@@ -164,31 +200,69 @@ def test_a_budget_stop_prints_no_internal_name() -> None:
 def test_a_budget_stop_reports_a_passed_check() -> None:
     passed = objection().model_copy(update={"success": True})
 
-    report = budget_stop_report(_ledger(built(), passed), built_session(), [])
+    report = _report(built(), passed, built_session())
 
-    assert report == f"{STRATEGY_LINE}\n\nVerification passed.\n\n{BUDGET}"
+    assert report == "\n\n".join(
+        [STRATEGY_LINE, ADDED_LINE, "Verification passed.", BUDGET]
+    )
 
 
-def test_a_budget_stop_before_any_check_names_none() -> None:
-    report = budget_stop_report(_ledger(built(), None), built_session(), [])
+def test_a_budget_stop_before_any_check_says_the_turn_did_not_verify() -> None:
+    report = _report(built(), None, built_session())
 
-    assert report == f"{STRATEGY_LINE}\n\n{BUDGET}"
+    assert report == "\n\n".join([STRATEGY_LINE, ADDED_LINE, NOT_VERIFIED, BUDGET])
 
 
 def test_a_budget_stop_that_built_nothing_says_so() -> None:
-    report = budget_stop_report(_ledger(BuildSection(), None), _nothing_built(), [])
+    report = _report(BuildSection(), None, _nothing_built(), turn=TurnMarkers())
 
-    assert report == f"Nothing was built.\n\n{BUDGET}"
+    assert report == f"Nothing was built.\n\n{CHANGED_NOTHING}\n\n{BUDGET}"
 
 
 def test_a_budget_stop_keeps_frames_question_verbatim() -> None:
-    report = budget_stop_report(
-        _ledger(BuildSection(), None),
+    report = _report(
+        BuildSection(),
+        None,
         _nothing_built(),
-        [OpenQuestion(question=QUESTION)],
+        turn=TurnMarkers(),
+        questions=[OpenQuestion(question=QUESTION)],
     )
 
-    assert report == f"Nothing was built.\n\n{QUESTION}\n\n{BUDGET}"
+    assert report == "\n\n".join(
+        ["Nothing was built.", CHANGED_NOTHING, QUESTION, BUDGET]
+    )
+
+
+def test_a_turn_that_wrote_nothing_says_so_over_an_earlier_build() -> None:
+    report = _report(built(), None, built_session(), turn=TurnMarkers())
+
+    assert report == "\n\n".join([STRATEGY_LINE, CHANGED_NOTHING, NOT_VERIFIED, BUDGET])
+
+
+def test_an_edit_that_added_no_step_says_the_strategy_changed() -> None:
+    report = _report(built(), None, built_session(), turn=TurnMarkers(edited=True))
+
+    assert report == "\n\n".join(
+        [
+            STRATEGY_LINE,
+            "This turn changed the strategy and added no step.",
+            NOT_VERIFIED,
+            BUDGET,
+        ]
+    )
+
+
+def test_every_step_the_turn_added_is_named() -> None:
+    second = AddedSearch(
+        step_id=_SECOND_ROOT, search_display_name="Text", criterion_text="kinases"
+    )
+    turn = TurnMarkers(built=True, added_searches=[ADDED, second])
+
+    report = _report(built(), None, built_session(), turn=turn)
+
+    assert report.split("\n\n")[1] == (
+        f'This turn added 2 steps: "{TITLE}" ({WORDS}); "Text" (kinases).'
+    )
 
 
 def test_an_objection_that_names_a_step_id_is_reported_without_it() -> None:
@@ -196,16 +270,18 @@ def test_an_objection_that_names_a_step_id_is_reported_without_it() -> None:
         update={"prose": f"{STEP} keeps the wrong reference group."}
     )
 
-    report = budget_stop_report(_ledger(built(), naming), built_session(), [])
+    report = _report(built(), naming, built_session())
 
-    assert report == f"{STRATEGY_LINE}\n\nVerification objected.\n\n{BUDGET}"
+    assert report == "\n\n".join(
+        [STRATEGY_LINE, ADDED_LINE, "Verification objected.", BUDGET]
+    )
 
 
 def test_a_budget_stop_before_the_step_reached_the_site_cites_no_count() -> None:
-    report = budget_stop_report(_ledger(BuildSection(), None), built_session(), [])
+    report = _report(BuildSection(), None, built_session())
 
-    assert report == (
-        f'The strategy holds 1 step; the final step is "{TITLE}".\n\n{BUDGET}'
+    assert report.split("\n\n")[0] == (
+        f'The strategy holds 1 step; the final step is "{TITLE}".'
     )
 
 
@@ -217,8 +293,41 @@ def test_a_split_strategy_names_no_final_step() -> None:
     )
     session.graph.recompute_roots()
 
-    report = budget_stop_report(_ledger(built(), None), session, [])
+    report = _report(built(), None, session)
 
-    assert report == (
-        f"The strategy holds 2 steps. It is on VEuPathDB at {URL}.\n\n{BUDGET}"
+    assert report.split("\n\n")[0] == (
+        f"The strategy holds 2 steps. It is on VEuPathDB at {URL}."
+    )
+
+
+def test_a_budget_stop_cites_no_count_the_ledger_marks_out_of_date() -> None:
+    stale = built().model_copy(
+        update={"stale_build": StaleBuild(changed_nodes=[(STEP, 70, 12)])}
+    )
+
+    report = _report(stale, None, built_session())
+
+    assert report.split("\n\n")[0] == (
+        f'The strategy holds 1 step; the final step is "{TITLE}". The strategy '
+        "changed on VEuPathDB after this conversation built it, so the count "
+        "recorded here is out of date."
+    )
+
+
+def test_a_split_strategy_out_of_date_cites_no_link() -> None:
+    session = built_session()
+    assert session.graph is not None
+    session.graph.steps.update(
+        flatten_tree(StrategyStepNode(id=_SECOND_ROOT, search_name="GenesByText"))
+    )
+    session.graph.recompute_roots()
+    stale = built().model_copy(
+        update={"stale_build": StaleBuild(added_nodes=[_SECOND_ROOT])}
+    )
+
+    report = _report(stale, None, session)
+
+    assert report.split("\n\n")[0] == (
+        "The strategy holds 2 steps. The strategy changed on VEuPathDB after this "
+        "conversation built it, so the count recorded here is out of date."
     )

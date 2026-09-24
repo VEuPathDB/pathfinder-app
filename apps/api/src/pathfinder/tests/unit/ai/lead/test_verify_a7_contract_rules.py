@@ -12,7 +12,8 @@ from uuid import uuid4
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import LeadResponse, reconcile, turn_record
+from pathfinder.ai.lead.turn_contract import LeadResponse, reconcile
+from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,

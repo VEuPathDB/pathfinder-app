@@ -39,19 +39,25 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies import spec_build, step_wdk_push
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
-from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.wdk_write_stubs import RecordedPushes, landed_pushes
 
 _SEARCH = "GenesByRNASeqEvidence"
 _DEFAULT_DATASET = "all_rnaseq"
 _TIMECOURSE = "pfal3D7_Gametocyte_Timecourse_rnaSeq"
+_PROMPT = "find genes upregulated in gametocytes"
 
 
 @dataclass
 class _RecordingAPI:
-    """The WDK steps this build creates, with the parameters each was sent."""
+    """The WDK steps this build creates, and the strategy pushes it makes."""
 
     created: list[dict[str, str]] = field(default_factory=list)
+    pushes: RecordedPushes = field(
+        default_factory=lambda: landed_pushes(
+            77, root_step_id=7001, root_count=412, step_count=1
+        )
+    )
     next_id: int = 7000
 
     async def create_step(
@@ -74,25 +80,6 @@ class _RecordingAPI:
         )
 
 
-async def _fake_sync(
-    *,
-    graph: Any,
-    sync_state: Any,
-    site_id: str,
-    strategy_name: str | None = None,
-) -> SyncResult:
-    del graph, sync_state, site_id, strategy_name
-    return SyncResult(
-        wdk_strategy_id=77,
-        wdk_url="http://test",
-        root_step_id=7001,
-        counts={},
-        root_count=412,
-        zero_step_ids=[],
-        step_count=1,
-    )
-
-
 @pytest.fixture
 def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     """Serve the recording API and let every parameter pass validation."""
@@ -110,7 +97,7 @@ def recording_api(monkeypatch: pytest.MonkeyPatch) -> _RecordingAPI:
     monkeypatch.setattr(step_wdk_push, "get_strategy_api", lambda _site_id: api)
     monkeypatch.setattr(spec_build, "validate_parameters", _accept_every_value)
     monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _noop_reconcile)
-    monkeypatch.setattr(spec_build, "sync_strategy_for_site", _fake_sync)
+    monkeypatch.setattr(spec_build, "sync_strategy_for_site", api.pushes.sync)
     return api
 
 
@@ -203,6 +190,7 @@ def _context(
         strategy_session=session,
         conversation_id=conversation_id,
         db_session_factory=session_maker,
+        user_prompt=_PROMPT,
     )
 
 
@@ -224,6 +212,7 @@ async def test_the_pushed_step_carries_the_option_and_the_row_records_it(
     assert recording_api.created == [
         {"organism": '["Pf3D7"]', "dataset": _TIMECOURSE},
     ]
+    assert recording_api.pushes.pushed == [(None, _PROMPT)]
     async with session_maker() as fresh:
         stored = await ConversationRepository(fresh).get_strategy(conversation_id)
     persisted = StrategyAst.model_validate(stored.strategy_ast)

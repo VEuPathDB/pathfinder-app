@@ -44,6 +44,7 @@ class DigestView(CamelModel):
     reason: str = ""
     key_findings: list[str] = Field(default_factory=list)
     caveats: list[str] = Field(default_factory=list)
+    pending_checks: list[str] = Field(default_factory=list)
 
 
 class VerificationView(CamelModel):
@@ -121,6 +122,7 @@ def read_verification(rows: Sequence[LoggedChunk]) -> ExtractedVerification | No
         reason=redact_text(latest.reason),
         key_findings=[redact_text(line) for line in latest.key_findings],
         caveats=[redact_text(line) for line in latest.caveats],
+        pending_checks=latest.pending_checks,
     )
 
 

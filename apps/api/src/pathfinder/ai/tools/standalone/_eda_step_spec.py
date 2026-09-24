@@ -1,23 +1,27 @@
-"""How an exported EDA step is stated in the operational spec."""
+"""How an exported EDA step is stated in the operational spec: by the analysis
+binding it carries, in the place the spec or the strategy gives it."""
 
 from __future__ import annotations
 
 from pydantic_ai import RunContext
-from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyStepNode, subtree_ids
-from veupathdb_mcp.catalog import EDA_DATASET_ID_PARAM
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SpecStructure,
     StructureNode,
+    renumber_criteria,
     structure_criteria,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_edit_guard import contradicted_joins
-from pathfinder.domain.strategy.spec_hydration import spec_from_ast
+from pathfinder.domain.strategy.spec_hydration import (
+    criterion_analysing,
+    spec_from_ast,
+)
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
 
 
@@ -30,47 +34,62 @@ def criterion_note(ctx: RunContext[LeadDeps], step_id: str) -> str:
     return f" ({stated[0]})" if stated else ""
 
 
-def _exported_criterion(node: StrategyStepNode) -> Criterion:
-    """The criterion the exported step answers."""
-    return Criterion(
-        id=node.id,
-        text=node.display_name or "the open EDA analysis",
-        search_name=node.search_name,
-        resolved_params=dict(node.parameters),
-        confidence=1.0,
+def _exported_criterion(node: StrategyStepNode, binding: AnalysisBinding) -> Criterion:
+    """The criterion the exported step is: its binding, in the binding's words."""
+    return criterion_analysing(
+        Criterion(id=node.id, text=binding.words, confidence=1.0),
+        node.search_name,
+        binding,
     )
 
 
-def answered_drop_cleared(spec: OperationalSpec, node: StrategyStepNode) -> None:
-    """Take the criteria this export answers out of the spec's drops.
-
-    A drop states an EDA criterion nothing in the strategy realizes, so only
-    an export the strategy holds answers one.
-    """
-    dataset = node.parameters.get(EDA_DATASET_ID_PARAM)
-    if dataset is None:
-        return
-    exported = to_wire(dataset)
-    spec.dropped = [d for d in spec.dropped if d.eda_dataset_id != exported]
-
-
 def state_the_exported_step(
-    ctx: RunContext[LeadDeps], graph: StrategyGraph, node: StrategyStepNode
+    ctx: RunContext[LeadDeps],
+    graph: StrategyGraph,
+    node: StrategyStepNode,
+    binding: AnalysisBinding,
 ) -> None:
     """State the exported step as a criterion of the spec, in its own place.
 
     A step wired into the main tree is one the strategy states, so a later
     write is measured against it like any other criterion. A step outside that
-    tree is stated by nothing, which is how a detached root is represented.
+    tree is stated by nothing, which is how a detached root is represented. A
+    thread whose spec states no criterion states the tree the export now roots.
     """
-    spec = ctx.deps.state.domain.operational_spec
-    if spec is None:
-        return
+    domain = ctx.deps.state.domain
     root_id = graph.primary_root_id()
     if root_id is None or node.id not in subtree_ids(root_id, graph.steps):
         return
-    answered_drop_cleared(spec, node)
-    ctx.deps.state.domain.record_criterion(_exported_criterion(node))
+    spec = domain.operational_spec
+    ast = graph.to_strategy_ast()
+    if (spec is None or not spec.criteria) and ast is not None:
+        stated_goal = "" if spec is None else spec.goal
+        domain.operational_spec = spec_from_ast(
+            ast,
+            goal=stated_goal or ctx.deps.state.request_the_thread_answers,
+            analyses={node.id: binding},
+        )
+        return
+    domain.record_criterion(_exported_criterion(node, binding))
+
+
+def spec_binding_the_export(
+    spec: OperationalSpec,
+    criterion_id: str,
+    node: StrategyStepNode,
+    binding: AnalysisBinding,
+) -> OperationalSpec:
+    """The spec whose waiting criterion is the exported step, bound by its analysis.
+
+    The criterion keeps the words the framing pass stated it in and takes the
+    step's id, so the structure names the step where it named the criterion.
+    """
+    renumbered = renumber_criteria(spec, {criterion_id: node.id})
+    renumbered.criteria = [
+        criterion_analysing(c, node.search_name, binding) if c.id == node.id else c
+        for c in renumbered.criteria
+    ]
+    return renumbered
 
 
 def structure_the_graph_states(graph: StrategyGraph, goal: str) -> SpecStructure | None:
@@ -108,6 +127,7 @@ def spec_after_the_replacement(
     graph: StrategyGraph,
     node: StrategyStepNode,
     replace_step_id: str,
+    binding: AnalysisBinding,
 ) -> OperationalSpec | None:
     """The spec with the export in the place the replaced steps held.
 
@@ -118,23 +138,21 @@ def spec_after_the_replacement(
     if spec is None:
         return None
     departed = set(subtree_ids(replace_step_id, graph.steps))
+    exported = _exported_criterion(node, binding)
     if replace_step_id in structure_criteria(spec.structure):
-        restated = _restated(spec, node, replace_step_id, departed)
-        answered_drop_cleared(restated, node)
-        return restated
+        return _restated(spec, exported, replace_step_id, departed)
     reconciled = spec_without_steps(spec, departed)
     root_id = graph.primary_root_id()
     if root_id is None or replace_step_id not in subtree_ids(root_id, graph.steps):
         return reconciled
-    answered_drop_cleared(reconciled, node)
     reconciled.criteria = [c for c in reconciled.criteria if c.id != node.id]
-    reconciled.criteria.append(_exported_criterion(node))
+    reconciled.criteria.append(exported)
     return reconciled
 
 
 def _restated(
     spec: OperationalSpec,
-    node: StrategyStepNode,
+    exported: Criterion,
     replace_step_id: str,
     departed: set[str],
 ) -> OperationalSpec:
@@ -142,9 +160,8 @@ def _restated(
     restated = spec.model_copy(deep=True)
     if restated.structure is not None:
         restated.structure = SpecStructure(
-            root=_node_restated(restated.structure.root, replace_step_id, node.id),
+            root=_node_restated(restated.structure.root, replace_step_id, exported.id),
         )
-    exported = _exported_criterion(node)
     restated.criteria = [
         exported if c.id == replace_step_id else c
         for c in restated.criteria

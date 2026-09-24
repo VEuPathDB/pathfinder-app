@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { EdaDifferentialExpressionConfig } from "@pathfinder/shared/generated/types/EdaDifferentialExpressionConfig";
 import type { EdaVariableResponse } from "@pathfinder/shared/generated/types/EdaVariableResponse";
 import type { EdaVariableSpec } from "@pathfinder/shared/generated/types/EdaVariableSpec";
-import { edaComputationDescriptorSchema } from "@pathfinder/shared/generated/zod/edaComputationDescriptorSchema";
+import { edaDifferentialExpressionDescriptorSchema } from "@pathfinder/shared/generated/zod/edaDifferentialExpressionDescriptorSchema";
 
 const P_VALUE_FLOOR = "1e-200";
 export const GENE_ID_VARIABLE = "VEUPATHDB_GENE_ID";
@@ -97,18 +97,22 @@ export function buildDifferentialExpressionConfig(
   };
 }
 
-/** The part of an analysis descriptor that holds its compute. */
+/** The computations of an analysis descriptor, each descriptor unread. */
 const analysisComputationsSchema = z.object({
-  computations: z.array(z.object({ descriptor: edaComputationDescriptorSchema })),
+  computations: z.array(z.object({ descriptor: z.unknown() })),
 });
 
-/** The draft of the compute the analysis already holds, or null when it holds
- * none. The inverse of buildDifferentialExpressionConfig. */
+/** The draft of the comparison the analysis already holds, or null when it
+ * holds none. The comparison is the first complete differential expression.
+ * The inverse of buildDifferentialExpressionConfig. */
 export function computeDraftOf(descriptor: unknown): ComputeConfigDraft | null {
   const parsed = analysisComputationsSchema.safeParse(descriptor);
-  const computation = parsed.success ? parsed.data.computations[0] : undefined;
+  const computations = parsed.success ? parsed.data.computations : [];
+  const computation = computations
+    .map((held) => edaDifferentialExpressionDescriptorSchema.safeParse(held.descriptor))
+    .find((read) => read.success)?.data;
   if (computation === undefined) return null;
-  const config = computation.descriptor.configuration;
+  const config = computation.configuration;
   return {
     identifierEntityId: config.identifierVariable.entityId,
     identifierVariableId: config.identifierVariable.variableId,

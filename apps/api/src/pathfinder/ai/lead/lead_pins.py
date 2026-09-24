@@ -12,10 +12,8 @@ import json
 
 from assistant_core.graph.tool_summary import count_noun
 from pydantic_ai import RunContext
-from veupathdb.domain.parameters import to_wire
-from veupathdb.domain.strategy import StrategyStep, subtree_ids
-from veupathdb_mcp.catalog import EDA_DATASET_ID_PARAM
 
+from pathfinder.ai.agents.criterion_lines import criterion_label, criterion_runs
 from pathfinder.ai.agents.pinned_sheets import blocks_within_budget
 from pathfinder.ai.lead._delete_rules import (
     roots_by_size,
@@ -26,12 +24,11 @@ from pathfinder.ai.lead.intent_gate import turn_builds, turn_is_off_topic
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.strategy.operational_spec import (
-    DroppedCriterion,
+    Criterion,
     OperationalSpec,
-    eda_backed_drops,
+    pending_analyses,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, strategy_root_id
-from pathfinder.domain.strategy.types import SyncStateProtocol
 
 __all__ = [
     "eda_route_blocks",
@@ -117,7 +114,7 @@ def pinned_operational_spec(ctx: RunContext[LeadDeps]) -> str | None:
     ]
     for c in spec.criteria:
         slots = [s.param_name for s in c.open_params]
-        line = f"  - [{c.id}] {c.text[:60]} -> {c.search_name or '(UNBOUND)'}"
+        line = f"  - [{c.id}] {criterion_label(c, 60)} -> {criterion_runs(c)}"
         if slots:
             line += f" | open: {slots}"
         lines.append(line)
@@ -158,102 +155,6 @@ _OFF_TOPIC_REDIRECT = (
 )
 
 
-def _reads_the_dataset(step: StrategyStep, dataset_id: str) -> bool:
-    """Whether this step's search runs on that EDA dataset."""
-    value = step.parameters.get(EDA_DATASET_ID_PARAM)
-    return value is not None and to_wire(value) == dataset_id
-
-
-def _reachable(
-    graph: StrategyGraph | None, sync_state: SyncStateProtocol | None
-) -> set[str]:
-    """The steps the strategy reaches from its root.
-
-    The root the last push named answers when there is one, and the structural
-    root stands in otherwise, which is where the export is placed.
-    """
-    if graph is None:
-        return set()
-    root = strategy_root_id(graph, sync_state) or graph.primary_root_id()
-    return set(subtree_ids(root or "", graph.steps))
-
-
-def _steps_on_the_dataset(
-    graph: StrategyGraph | None, dataset_id: str, reachable: set[str]
-) -> tuple[list[str], list[str]]:
-    """The steps reading this dataset, inside the strategy and outside it."""
-    if graph is None:
-        return [], []
-    found = sorted(
-        step_id
-        for step_id, step in graph.steps.items()
-        if _reads_the_dataset(step, dataset_id)
-    )
-    return (
-        [step_id for step_id in found if step_id in reachable],
-        [step_id for step_id in found if step_id not in reachable],
-    )
-
-
-def _free_slot(
-    graph: StrategyGraph | None, reachable: set[str]
-) -> tuple[str, str] | None:
-    """The first input of a combine of the strategy that holds no step.
-
-    Only a combine the strategy reaches counts: an export into a detached one
-    lands outside the strategy.
-    """
-    if graph is None:
-        return None
-    for step_id in sorted(reachable):
-        step = graph.steps[step_id]
-        if step.operator is None:
-            continue
-        if step.primary_input_id is None:
-            return step_id, "primary"
-        if step.secondary_input_id is None:
-            return step_id, "secondary"
-    return None
-
-
-_JOIN_TAIL = 'use "MINUS" when the criterion excludes genes.'
-
-
-def _export_call(
-    graph: StrategyGraph | None,
-    held: list[str],
-    reachable: set[str],
-    *,
-    pending: bool,
-) -> str:
-    """The create_eda_step call that puts the export where it belongs."""
-    if held:
-        return (
-            f'4. create_eda_step(replace_step_id="{held[0]}") - the strategy '
-            f"holds {held} for this criterion, and the export takes that "
-            f"step's place."
-        )
-    slot = _free_slot(graph, reachable)
-    if slot is not None:
-        return (
-            f'4. create_eda_step(attach_to_step_id="{slot[0]}", '
-            f'slot="{slot[1]}") - that input of the combine is free.'
-        )
-    root = None if graph is None else graph.primary_root_id()
-    if root is not None:
-        return (
-            f'4. create_eda_step(combine_with_root="INTERSECT") - it joins the '
-            f"export to the strategy's root {root}; {_JOIN_TAIL}"
-        )
-    if pending:
-        return (
-            f'4. create_eda_step(combine_with_root="INTERSECT") - once step 0 '
-            f"has built the strategy, this joins the export to its root; "
-            f"{_JOIN_TAIL}"
-        )
-    return "4. create_eda_step() - there is no strategy for the export to join yet."
-
-
 def _criteria_with_no_step(
     spec: OperationalSpec, graph: StrategyGraph | None
 ) -> list[str]:
@@ -262,59 +163,51 @@ def _criteria_with_no_step(
     return [c.id for c in spec.criteria if c.bound and c.id not in steps]
 
 
-def _eda_route_block(
-    graph: StrategyGraph | None,
-    sync_state: SyncStateProtocol | None,
-    dropped: DroppedCriterion,
-    pending: list[str],
-) -> str:
-    """The calls that build one dropped EDA-backed criterion, in order."""
-    dataset = dropped.eda_dataset_id
-    reachable = _reachable(graph, sync_state)
-    held, elsewhere = _steps_on_the_dataset(graph, dataset or "", reachable)
+def _eda_route_block(waiting: Criterion, unbuilt: list[str]) -> str:
+    """The calls that build one criterion waiting for its analysis, in order."""
     lines = [
-        f"## Build the EDA criterion: {dropped.text}",
+        f"## Build the EDA criterion: {waiting.text}",
         (
-            "The framing pass dropped it because its search is EDA-backed, so "
-            "only these calls build it. Make them this turn, in this order:"
+            f"The framing pass placed [{waiting.id}] in the structure, and only "
+            f"the analysis workflow on dataset {waiting.needs_analysis_on} "
+            f"builds it. Make these calls this turn, in this order:"
         ),
     ]
-    if pending:
+    if unbuilt:
         lines.append(
-            f"0. build_strategy for the remaining criteria ({pending}) so the "
+            f"0. build_strategy for the remaining criteria ({unbuilt}) so the "
             f"export has a strategy to join",
         )
     lines.extend(
         [
-            f'1. open_eda_analysis(dataset_id="{dataset}", purpose=...)',
+            (
+                f'1. open_eda_analysis(dataset_id="{waiting.needs_analysis_on}", '
+                f"purpose=...)"
+            ),
             "2. set_eda_filters - once for the sheet, once with the filters array",
-            "3. preview_eda_subset",
-            _export_call(graph, held, reachable, pending=bool(pending)),
+            "3. preview_eda_subset, and run_eda_compute when it compares groups",
+            (
+                f'4. create_eda_step(criterion_id="{waiting.id}") - the structure '
+                f"places the step, so name no other placement."
+            ),
+            (
+                "Never ask the user for an analysis specification, and never "
+                "answer that this criterion cannot be built or mapped."
+            ),
         ],
-    )
-    if elsewhere:
-        lines.append(
-            f"Steps on this dataset that stand outside the strategy: {elsewhere}.",
-        )
-    lines.append(
-        "Never ask the user for an analysis specification, and never answer "
-        "that this criterion cannot be built or mapped.",
     )
     return "\n".join(lines)
 
 
 def eda_route_blocks(ctx: RunContext[LeadDeps]) -> list[str]:
-    """One block per dropped criterion the EDA tools still have to build."""
+    """One block per criterion the EDA tools still have to build."""
     spec = ctx.deps.state.domain.operational_spec
-    dropped = eda_backed_drops(spec)
-    if not dropped or spec is None or not turn_builds(ctx.deps):
+    waiting = pending_analyses(spec)
+    if not waiting or spec is None or not turn_builds(ctx.deps):
         return []
-    session = ctx.deps.runtime.strategy_session
-    graph = session.get_graph(None)
-    pending = _criteria_with_no_step(spec, graph)
-    return [
-        _eda_route_block(graph, session.sync_state, entry, pending) for entry in dropped
-    ]
+    graph = ctx.deps.runtime.strategy_session.get_graph(None)
+    unbuilt = _criteria_with_no_step(spec, graph)
+    return [_eda_route_block(criterion, unbuilt) for criterion in waiting]
 
 
 _WIRE_OR_CLEAR = (

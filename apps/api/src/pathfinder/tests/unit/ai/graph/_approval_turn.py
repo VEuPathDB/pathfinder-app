@@ -21,6 +21,7 @@ from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 from pydantic_ai.toolsets import FunctionToolset
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
@@ -32,7 +33,7 @@ from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
-from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 
 RETIRE_TOOL = "retire_control_set"
@@ -223,6 +224,17 @@ def lead_deps(state: PipelineState) -> LeadDeps:
         runtime=context,
         retrieved_memories=[],
     )
+
+
+def holding_a_strategy(deps: LeadDeps) -> LeadDeps:
+    """The deps of a thread whose strategy holds one step."""
+    graph = StrategyGraph(graph_id="g1", name="3h blood meal", site_id="vectorbase")
+    graph.steps.update(
+        flatten_tree(StrategyStepNode(id="s1", search_name="GenesByText"))
+    )
+    graph.recompute_roots()
+    deps.runtime.strategy_session.graph = graph
+    return deps
 
 
 async def drive_lead(

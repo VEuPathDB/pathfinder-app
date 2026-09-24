@@ -1,3 +1,5 @@
+from pydantic import BaseModel
+from pydantic_ai.messages import ToolReturnPart
 from pydantic_ai.ui.vercel_ai.response_types import (
     ToolInputAvailableChunk,
     ToolInputDeltaChunk,
@@ -6,11 +8,24 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 )
 
 from pathfinder.ai.graph._lead_events import (
-    _summarize_delta_dict,
+    _SUB_AGENT_TOOL_NAMES,
+    _SUMMARY_BY_TOOL,
     _summarize_sub_agent_call_args,
+    _summarize_sub_agent_result,
     _truncate_summary,
     is_suppressed_sub_agent_chunk,
 )
+from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
+from pathfinder.ai.lead.deltas import (
+    EditDelta,
+    ExecuteDelta,
+    FrameResult,
+    RecoveryDelta,
+    VerificationDelta,
+)
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
+from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.spec_diff import SpecDiff
 
 
 def test_truncate_short_text_is_unchanged() -> None:
@@ -50,44 +65,110 @@ def test_summarize_started_args_truncates_long_reason_on_word_boundary() -> None
     assert not out[:-3].endswith(" ")
 
 
-def test_summarize_frame_result_needs_user_counts_questions() -> None:
-    out = _summarize_delta_dict(
-        {"disposition": "needs_user", "open_questions": [1, 2, 3]}
+def _card(tool_name: str, delta: BaseModel) -> str:
+    """The completed card's line for one dispatch that returned this delta."""
+    return _summarize_sub_agent_result(
+        tool_name, ToolReturnPart(tool_name=tool_name, content=delta, tool_call_id="c1")
     )
-    assert out == "3 open questions"
+
+
+def _questions(count: int) -> list[OpenQuestion]:
+    return [
+        OpenQuestion(
+            question=f"Which threshold for criterion {n}?",
+            dimension=ConstraintKind.STATISTICAL_THRESHOLD,
+            recommended_value="0.05",
+        )
+        for n in range(count)
+    ]
+
+
+def _digest(*, success: bool, pending: tuple[str, ...] = ()) -> VerificationDigest:
+    return VerificationDigest(
+        disposition=PhaseDisposition.DONE,
+        prose="61 genes.",
+        reason="counts plausible",
+        success=success,
+        pending_checks=list(pending),
+    )
+
+
+def test_summarize_frame_result_needs_user_counts_questions() -> None:
+    delta = FrameResult(disposition="needs_user", open_questions=_questions(3))
+    assert _card("frame_problem", delta) == "3 open questions"
 
 
 def test_summarize_frame_result_spec_ready_uses_summary() -> None:
-    out = _summarize_delta_dict(
-        {"disposition": "spec_ready", "summary": "Framed 3 criteria"}
+    delta = FrameResult(disposition="spec_ready", summary="Framed 3 criteria")
+    assert _card("frame_problem", delta) == "Framed 3 criteria"
+
+
+def test_summarize_an_edit_that_needs_the_user_counts_questions() -> None:
+    delta = EditDelta(
+        diff=SpecDiff(), disposition="needs_user", open_questions=_questions(1)
     )
-    assert out == "Framed 3 criteria"
+    assert _card("edit_strategy", delta) == "1 open question"
+
+
+def test_summarize_an_applied_edit_with_no_summary_says_framed() -> None:
+    assert _card("edit_strategy", EditDelta(diff=SpecDiff())) == "Framed"
 
 
 def test_summarize_recovery_counts_actions() -> None:
-    assert _summarize_delta_dict({"actions_taken": ["a", "b"]}) == "2 recovery actions"
-    assert _summarize_delta_dict({"actions_taken": ["a"]}) == "1 recovery action"
+    assert _card("recover_failed_steps", RecoveryDelta(actions_taken=["a", "b"])) == (
+        "2 recovery actions"
+    )
+    assert _card("recover_failed_steps", RecoveryDelta(actions_taken=["a"])) == (
+        "1 recovery action"
+    )
 
 
 def test_summarize_outcome_with_failures() -> None:
-    out = _summarize_delta_dict(
-        {"outcome": {"pushed_step_ids": [1, 2], "failed_steps": [3]}}
+    outcome = BuildOutcome(
+        pushed_step_ids=["s1", "s2"],
+        failed_steps=[
+            StepPushFailure(step_id="s3", search_name="GenesByText", error="422")
+        ],
     )
-    assert out == "Built 2, 1 failed"
+    assert _card("build_strategy", ExecuteDelta(outcome=outcome)) == "Built 2, 1 failed"
 
 
 def test_summarize_outcome_all_built() -> None:
-    out = _summarize_delta_dict(
-        {"outcome": {"pushed_step_ids": [1], "failed_steps": []}}
-    )
-    assert out == "Built 1 step"
+    outcome = BuildOutcome(pushed_step_ids=["s1"])
+    assert _card("build_strategy", ExecuteDelta(outcome=outcome)) == "Built 1 step"
 
 
 def test_summarize_verification_digest() -> None:
-    assert (
-        _summarize_delta_dict({"digest": {"success": True}}) == "Verified successfully"
+    lines = {
+        "passed": _card(
+            "verify_strategy", VerificationDelta(digest=_digest(success=True))
+        ),
+        "objected": _card(
+            "verify_strategy", VerificationDelta(digest=_digest(success=False))
+        ),
+    }
+    assert lines == {"passed": "Verified successfully", "objected": "Issues found"}
+
+
+def test_a_pending_check_is_not_verified_successfully() -> None:
+    """The card says what the budget verdict says: a pass with checks pending."""
+    delta = VerificationDelta(digest=_digest(success=True, pending=("step_de",)))
+    assert _card("verify_strategy", delta) == "Passed, 1 check pending"
+
+
+def test_an_objection_with_a_pending_check_is_an_objection() -> None:
+    delta = VerificationDelta(digest=_digest(success=False, pending=("step_de",)))
+    assert _card("verify_strategy", delta) == "Issues found"
+
+
+def test_a_failed_dispatch_shows_its_error_text() -> None:
+    result = ToolReturnPart(
+        tool_name="verify_strategy",
+        content="The run stopped.",
+        tool_call_id="c1",
+        outcome="failed",
     )
-    assert _summarize_delta_dict({"digest": {"success": False}}) == "Issues found"
+    assert _summarize_sub_agent_result("verify_strategy", result) == "The run stopped."
 
 
 def test_suppresses_dispatch_input_start_before_call_event_records_id() -> None:
@@ -139,3 +220,7 @@ def test_input_available_also_classifies_dispatch_by_name() -> None:
     assert is_suppressed_sub_agent_chunk(avail, calls) is True
     output = ToolOutputAvailableChunk(tool_call_id="c3", output=None)
     assert is_suppressed_sub_agent_chunk(output, calls) is True
+
+
+def test_every_dispatch_tool_has_a_card_summary() -> None:
+    assert set(_SUMMARY_BY_TOOL) == set(_SUB_AGENT_TOOL_NAMES)

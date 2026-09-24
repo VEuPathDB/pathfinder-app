@@ -23,8 +23,8 @@ from pathfinder.ai.graph.state import (
     PipelineState,
     StrategyDomainState,
     VerificationDigest,
-    ZeroResultStep,
 )
+from pathfinder.ai.graph.turn_records import ZeroResultStep
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
 from pathfinder.domain.memory import MEMORY_KINDS
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
@@ -77,7 +77,7 @@ def _state(
             ),
         ],
     )
-    return PipelineState(
+    state = PipelineState(
         conversation_id=uuid4(),
         user_id=user_id,
         site_id="plasmodb",
@@ -97,6 +97,8 @@ def _state(
             ),
         ),
     )
+    state.turn_markers.verification_dispatched = True
+    return state
 
 
 def _eda_state(*, user_id: Any) -> PipelineState:
@@ -153,6 +155,7 @@ def _eda_state(*, user_id: Any) -> PipelineState:
         significance_threshold=0.05,
         effect_direction="upAndDown",
     )
+    state.turn_markers.verification_dispatched = True
     return state
 
 

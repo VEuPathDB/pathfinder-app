@@ -20,18 +20,18 @@ from pathfinder.ai.lead.answered_strategy import (
     the_strategy_now_answers_to,
     the_thread_wrote_the_strategy,
 )
+from pathfinder.ai.lead.build_messages import (
+    build_not_ready_message,
+    build_would_replace_the_strategy,
+    structure_does_not_convert_message,
+)
 from pathfinder.ai.lead.deltas import ExecuteDelta, RecoveryDelta
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
     defer_dispatch,
     dispatch_call_id,
 )
-from pathfinder.ai.lead.dispatch_messages import (
-    build_not_ready_message,
-    build_would_replace_the_strategy,
-    option_binds_no_step_message,
-    structure_does_not_convert_message,
-)
+from pathfinder.ai.lead.dispatch_messages import option_binds_no_step_message
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
     SubAgentApprovalWait,
@@ -54,6 +54,9 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.spec_reconciliation import (
+    spec_without_pending_analyses,
+)
 from pathfinder.domain.strategy.step_words import added_searches, criterion_texts
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
@@ -75,9 +78,9 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
     exists. Call ``edit_strategy`` to change a strategy, or ask the user how
     to start over."""
     deps = ctx.deps
-    graph = deps.runtime.strategy_session.get_graph(None)
-    if graph is not None and graph.steps:
-        raise ModelRetry(build_would_replace_the_strategy(len(graph.steps)))
+    steps = deps.step_count
+    if steps:
+        raise ModelRetry(build_would_replace_the_strategy(steps))
     spec = deps.state.domain.operational_spec
     if spec is None or not spec.ready_to_build:
         raise ModelRetry(build_not_ready_message(spec))
@@ -88,7 +91,9 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
         raise ModelRetry(option_binds_no_step_message(folded.spec, folded.unplaced))
     spec = folded.spec
     try:
-        built = build_step_tree(spec)
+        # A criterion waiting for its analysis has no search to mint, so the
+        # EDA tools add its step once the rest is built.
+        built = build_step_tree(spec_without_pending_analyses(spec))
     except ValueError as exc:
         raise ModelRetry(structure_does_not_convert_message(str(exc))) from exc
     agent_deps = agent_deps_for(deps)
@@ -104,15 +109,14 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
         raise ModelRetry(build_departs_from_the_plan_message(str(exc))) from exc
     # A criterion and the step it built become one address, so the next turn's
     # edit changes that step instead of rebuilding the strategy around it.
+    # The build re-keys the criteria without changing what they state, so every
+    # record the turn holds moves to the same addresses and the diff reads kept.
+    deps.state.domain.restate_every_record(
+        built.step_id_by_criterion,
+        lambda held: renumber_criteria(held, built.step_id_by_criterion),
+    )
     renumbered = renumber_criteria(spec, built.step_id_by_criterion)
     deps.state.domain.operational_spec = renumbered
-    # The build re-keys the criteria without changing what they state, so the
-    # turn's entry record moves to the same addresses and the diff reads kept.
-    entry = deps.state.domain.spec_before_turn
-    if entry is not None:
-        deps.state.domain.spec_before_turn = renumber_criteria(
-            entry, built.step_id_by_criterion
-        )
     deps.state.record_build(outcome)
     added = added_searches(renumbered, built.step_id_by_criterion.values())
     deps.state.turn_markers.record_added_searches(added)

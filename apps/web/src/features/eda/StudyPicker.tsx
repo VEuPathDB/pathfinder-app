@@ -25,7 +25,10 @@ interface StudyPickerProps {
 export function StudyPicker({ siteId, conversationId }: StudyPickerProps) {
   const [typed, setTyped] = useState("");
   const [query] = useDebounce(typed, DEBOUNCE_MS);
-  const search = useQuery(edaStudySearchOptions(siteId, query));
+  const search = useQuery({
+    ...edaStudySearchOptions(siteId, query),
+    meta: { shownInline: true },
+  });
   const applyAnalysisState = useEdaStore((s) => s.applyAnalysisState);
 
   const bind = useMutation({
@@ -75,13 +78,6 @@ interface PickerBodyProps {
 }
 
 function PickerBody({ siteId, query, search, onRetry, onPick }: PickerBodyProps) {
-  const [reported, setReported] = useState<unknown>(null);
-  if (search.error != null && reported !== search.error) {
-    setReported(search.error);
-    const message = toUserMessage(search.error, "Study search failed");
-    queueMicrotask(() => toast.error(message));
-  }
-
   if (query.length < MIN_QUERY) {
     return (
       <p className="mt-3 text-xs text-muted-foreground">

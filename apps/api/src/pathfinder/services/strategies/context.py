@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pathfinder.domain.strategy.operational_spec import SpecStructure
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import StatedCriterion
+from pathfinder.domain.strategy.step_words import StampedKind
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,8 @@ class StrategyMutationContext:
     """
     criterion_texts: Mapping[str, str] = field(default_factory=dict)
     """The researcher's words for each step the spec states, keyed by step id."""
+    analysis_kinds: Mapping[str, StampedKind] = field(default_factory=dict)
+    """Which plugin reads the analysis document of each EDA step the batch writes."""
     stated_values: Mapping[str, StatedCriterion] = field(default_factory=dict)
     """The values the spec's criteria state, keyed by criterion id.
 
@@ -44,7 +47,7 @@ class StrategyMutationContext:
     value rides: a parameter patch or a leaf inside a written tree.
     """
     user_prompt: str = ""
-    """The researcher's request this turn. A strategy with no name yet takes it."""
+    """The request the thread answers. A strategy with no name yet takes it."""
     locked_session: AsyncSession | None = None
     """A session that already owns the thread's strategy lock.
 

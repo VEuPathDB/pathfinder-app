@@ -142,6 +142,13 @@ Procedure:
    unrealizable or unavailable - pass the SAME `criterion_id` you gave `set_criterion`.
    This removes it from the spec so it no longer blocks the build; re-call `set_structure`
    afterward so the tree no longer references it.
+   An analysis criterion is never dropped here: a criterion the workspace marks BOUND is an EDA
+   analysis the Lead already exported. Keep it: state it "kept", name its id in `set_structure`,
+   and never call `set_criterion` or `drop_criterion` on it. A comparison of the same kind as a
+   BOUND one runs through the same workflow, never through a fold-change search. A property only
+   an EDA-backed search realizes comes back from `set_criterion` recorded as WAITING on its
+   dataset: put its id in the structure where the request places it and bind no other search
+   for it.
 5. Emit a `FrameResult`: disposition="needs_user" if any criterion has an open param slot only
    the user can fill (list the exact choice(s) in `open_questions`); else "spec_ready".
    Each open question states the `dimension` its open parameter decides, one of

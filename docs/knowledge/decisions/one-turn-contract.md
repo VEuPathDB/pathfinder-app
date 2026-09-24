@@ -9,7 +9,8 @@ status: stable
 
 # What was decided
 
-`ai/lead/turn_contract.py` owns the Lead's reply and the check on it:
+`ai/lead/turn_contract.py` owns the Lead's reply and the check on it, and
+`ai/lead/turn_record.py` owns the record the check reads:
 
 - `LeadResponse` - the typed reply. It carries three fields the runtime reads as claims:
   `strategy_changed`, `asked_questions` and `analysed_gene_set_ids`.

@@ -16,6 +16,8 @@ from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.intent import (
+    ANSWERING_INTENTS,
+    IntentClassification,
     UserIntent,
     already_classified_message,
     unstated_operator_refusal,
@@ -102,15 +104,15 @@ def classify_user_intent(
     followed by "go ahead and build it" is still the answer to them, and
     the request it answers is the one the thread is on. ``new_strategy``
     is for a message that ABANDONS that request and states a different
-    one; the requirements the thread has stated are dropped when you say
-    so, and are kept otherwise.
+    one. On a thread whose strategy holds no step it sets aside the old
+    request, its draft, its requirements and its open questions.
 
     Any other imperative asks for a build. "Run it", "rerun the compute",
     "build the strategy", "add those genes as a step", "create the step" -
     and a bare "yes, do it" that accepts an offer you made - are
-    ``extend_strategy`` when the thread already has a strategy or an open
-    analysis, and ``new_strategy`` when it has neither and answers no
-    question of yours. A retry after a failed task is the same request
+    ``extend_strategy`` when the thread already has a strategy, a framed
+    draft or an open analysis, and ``new_strategy`` when it has none of
+    them and answers no question of yours. A retry after a failed task is the same request
     again, so it keeps the classification that request had. None of them
     is a ``follow_up_question``: that value is for a message that asks you
     to EXPLAIN something the thread already holds. A question whose answer is
@@ -151,21 +153,28 @@ def classify_user_intent(
     one.
     """
     held = ctx.deps.intent
+    state = ctx.deps.state
+    reclassified = state.turn_markers.intent_classified
     if (
-        ctx.deps.state.turn_markers.intent_classified
+        reclassified
         and held is not None
         and held.classification is intent.classification
     ):
         raise ModelRetry(already_classified_message(held.classification))
-    refusal = unstated_operator_refusal(intent, ctx.deps.state.user_prompt)
+    refusal = unstated_operator_refusal(intent, state.user_prompt)
     if refusal is not None:
         raise ModelRetry(refusal)
     ctx.deps.intent = intent
-    ctx.deps.state.turn_markers.intent_classified = True
-    ctx.deps.state.domain.record_intent(
-        intent,
-        request_text=ctx.deps.state.user_prompt,
-    )
+    state.turn_markers.intent_classified = True
+    markers = state.turn_markers
+    # A new request sets the old one aside until this turn frames, consults
+    # or writes; after that, a change of mind keeps the work the turn did.
+    worked = markers.framed or markers.consulted or markers.changed_strategy
+    if not worked and intent.classification is IntentClassification.NEW_STRATEGY:
+        state.domain.take_a_new_request(strategy_has_steps=ctx.deps.step_count > 0)
+    state.domain.record_intent(intent, request_text=state.user_prompt)
+    if intent.classification in ANSWERING_INTENTS:
+        state.domain.answer_the_questions_at_arrival(state.user_prompt)
     return with_summary(
         intent,
         f"Intent: {intent.classification.value}",
@@ -381,11 +390,15 @@ async def clear_strategy(
     """
     inner = inner_context(ctx)
     cleared = await conversation.clear_strategy(inner, confirm=confirm)
-    ctx.deps.state.turn_markers.edited = True
-    # The criteria address the steps the clear removed, so the thread states
-    # no spec after it and the next pass frames from the request alone.
-    ctx.deps.state.domain.operational_spec = None
-    the_strategy_now_answers_to(ctx.deps.state, None, None)
+    state = ctx.deps.state
+    state.turn_markers.edited = True
+    # The cleared strategy's request goes with it. This message's own request
+    # is what the next pass frames.
+    state.domain.set_the_request_aside()
+    intent = ctx.deps.intent
+    if intent is not None and state.turn_markers.intent_classified:
+        state.domain.record_intent(intent, request_text=state.user_prompt)
+    the_strategy_now_answers_to(state, None, None)
     return cleared
 
 

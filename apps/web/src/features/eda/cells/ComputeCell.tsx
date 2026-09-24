@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { EdaComputationDescriptor } from "@pathfinder/shared/generated/types/EdaComputationDescriptor";
+import type { EdaDifferentialExpressionDescriptor } from "@pathfinder/shared/generated/types/EdaDifferentialExpressionDescriptor";
 import type { EdaVariableResponse } from "@pathfinder/shared/generated/types/EdaVariableResponse";
 
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ export function ComputeCell({ siteId, conversationId, descriptor }: ComputeCellP
   const detail = useQuery({
     ...edaStudyDetailOptions(siteId, datasetId),
     enabled: datasetId !== "",
+    meta: { shownInline: true },
   });
 
   const variables = detail.data?.variables ?? [];
@@ -72,7 +73,8 @@ export function ComputeCell({ siteId, conversationId, descriptor }: ComputeCellP
   } | null>(null);
   const draft = edit !== null && edit.seedKey === seedKey ? edit.draft : seed;
 
-  const [submitted, setSubmitted] = useState<EdaComputationDescriptor | null>(null);
+  const [submitted, setSubmitted] =
+    useState<EdaDifferentialExpressionDescriptor | null>(null);
 
   return (
     <CellShell title="Compute" subtitle={null} testId="eda-compute-cell">
@@ -126,7 +128,7 @@ function ComputeForm({
   runnable: boolean;
   values: readonly EdaVariableResponse[];
   comparators: readonly EdaVariableResponse[];
-  submitted: EdaComputationDescriptor | null;
+  submitted: EdaDifferentialExpressionDescriptor | null;
   onChange: (next: ComputeConfigDraft) => void;
   onRun: () => void;
 }) {

@@ -2,17 +2,23 @@ import type { UIMessage } from "ai";
 
 import { DEFAULT_STREAM_NAME } from "@pathfinder/shared";
 
+/** The longest a first message stands in for the title, in code points. */
 const MAX_LENGTH = 60;
+
+/** The characters that separate words in a message. The api states the same set. */
+const SPACES =
+  /[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+/gu;
 
 /** The first message cut to a word boundary, or null when it holds no text. */
 function shortened(message: string): string | null {
-  const text = message.replace(/\s+/g, " ").trim();
+  const text = message.replace(SPACES, " ").replace(/^ | $/g, "");
   if (text === "") return null;
-  if (text.length <= MAX_LENGTH) return text;
-  const head = text.slice(0, MAX_LENGTH + 1);
+  const chars = Array.from(text);
+  if (chars.length <= MAX_LENGTH) return text;
+  const head = chars.slice(0, MAX_LENGTH + 1);
   const boundary = head.lastIndexOf(" ");
-  const cut = boundary > 0 ? head.slice(0, boundary) : text.slice(0, MAX_LENGTH);
-  return `${cut.trimEnd()}...`;
+  const cut = boundary > 0 ? head.slice(0, boundary) : chars.slice(0, MAX_LENGTH);
+  return `${cut.join("")}...`;
 }
 
 /**

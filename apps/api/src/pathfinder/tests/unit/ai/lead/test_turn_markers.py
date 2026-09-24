@@ -9,11 +9,8 @@ from assistant_core.conversation.serde import build_checkpoint_serde
 from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.state import (
-    CreatedControlSet,
-    StrategyDomainState,
-    TurnMarkers,
-)
+from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.graph.turn_records import CreatedControlSet, TurnMarkers
 from pathfinder.ai.lead.lead_tools import clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import conversation

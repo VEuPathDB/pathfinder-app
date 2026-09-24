@@ -25,8 +25,10 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies import commit
 from pathfinder.services.strategies.commit import _WDKCommitOutcome
 from pathfinder.tests._support.eda_wire import (
+    DE_ENTITY_SIZES,
     AnalysisStore,
     eda_transport,
+    fixture,
     wire_eda,
 )
 from pathfinder.tests.integration.http.conftest import (
@@ -124,7 +126,7 @@ def empty_subset_wired(monkeypatch: pytest.MonkeyPatch) -> AnalysisStore:
             study_id=STUDY,
             study_fixture=PHENOTYPE,
             store=store,
-            count=0,
+            filtered_empty=True,
         ),
     )
     return store
@@ -140,7 +142,25 @@ def de_wired(monkeypatch: pytest.MonkeyPatch) -> AnalysisStore:
             study_id=STUDY,
             study_fixture="study_detail_de",
             store=store,
-            count=66132,
+            entity_sizes=DE_ENTITY_SIZES,
+        ),
+    )
+    return store
+
+
+@pytest.fixture
+def site_edited_wired(monkeypatch: pytest.MonkeyPatch) -> AnalysisStore:
+    """The recorded analysis the site's own app edited: a pass beside a comparison."""
+    store = AnalysisStore(
+        detail=EdaAnalysisDetail.model_validate(fixture("analysis_detail_pass_and_de"))
+    )
+    wire_eda(
+        monkeypatch,
+        eda_transport(
+            study_id=STUDY,
+            study_fixture="study_detail_de",
+            store=store,
+            entity_sizes=DE_ENTITY_SIZES,
         ),
     )
     return store

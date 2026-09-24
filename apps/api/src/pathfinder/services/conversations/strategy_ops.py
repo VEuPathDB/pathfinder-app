@@ -5,7 +5,7 @@ conversation's ``PersistedStrategyGraph`` and run a strategy-session
 mutation, distinct from plain conversation CRUD.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -22,6 +22,7 @@ from pathfinder.domain.strategy.operations.resolutions import (
     why_the_graph_refuses_the_delete,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.step_words import StampedKind
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.persistence.repositories.saved_strategy import (
     SavedStrategyRepository,
@@ -172,7 +173,13 @@ async def apply_operation(
     *,
     site_id: str,
     op: GraphOperation,
+    analysis_kinds: Mapping[str, StampedKind] | None = None,
 ) -> ConversationResponse:
+    """Apply one operation under the thread's lock and return the thread.
+
+    ``analysis_kinds`` names the kind of an EDA step the operation writes,
+    when the caller exported it and so knows it.
+    """
     # A thread the caller does not own takes no lock. The state is read again
     # inside the lock, because another writer may have moved it since.
     await get_owned_thread_or_404(repo, conversation_id, user_id)
@@ -198,6 +205,7 @@ async def apply_operation(
             strategy_session=session,
             conversation_id=conversation_id,
             locked_session=locked,
+            analysis_kinds=analysis_kinds or {},
         )
         commit = await apply_and_commit(deps=ctx, op=op)
         refuse_a_push_the_site_turned_down(commit.failures)

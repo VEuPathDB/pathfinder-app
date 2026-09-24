@@ -12,10 +12,15 @@ from veupathdb.eda import EdaPermissionEntry, EdaStudyDetail
 
 from pathfinder.ai.tools.standalone import strategy_graph
 from pathfinder.ai.tools.standalone.strategy_graph import (
+    StrategySummaryResponse,
     StudyStepCheck,
     check_study_step,
+    get_strategy,
 )
+from pathfinder.domain.eda_parts import EdaComparison
+from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.step_words import StampedKind
 from pathfinder.services.eda.catalog import UnknownEdaDatasetError
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.eda_doubles import permission_entry, study_of
@@ -154,6 +159,16 @@ def _session(spec: str, *, search_name: str) -> StrategySession:
         ),
     )
     graph.recompute_roots()
+    graph.note_analysis_kinds(
+        {
+            _STEP_ID: StampedKind(
+                search_name=search_name,
+                kind=AnalysisKind.SUBSET
+                if search_name == "GenesByEdaSubset"
+                else AnalysisKind.COMPUTE,
+            )
+        }
+    )
     session.graph = graph
     session.sync_state = WDKSyncState(step_counts={_STEP_ID: _RECORD_COUNT})
     return session
@@ -202,12 +217,39 @@ class TestAComputeStep:
         assert check.thresholds.significance_threshold == 0.05
         assert check.fold_change_threshold == 2.0
 
-    async def test_the_summary_reads_as_it_did(self) -> None:
+    async def test_the_check_names_the_comparison_its_method_and_its_side(
+        self,
+    ) -> None:
+        check = await _check(_volcano_spec(), search_name="GenesByEdaVizWithCompute")
+
+        assert check.comparison == EdaComparison(
+            group_a=["normal"], group_b=["febrile"]
+        )
+        assert (check.method, check.effect_direction) == ("DESeq", "upAndDown")
+
+    async def test_the_summary_names_the_cut_and_the_comparison(self) -> None:
         summary = await _summary(
             _volcano_spec(), search_name="GenesByEdaVizWithCompute"
         )
 
-        assert summary == "3,984 records at 2-fold and p 0.05"
+        assert summary == (
+            "3,984 records at 2-fold and p 0.05, DESeq: genes that differ "
+            "between normal and febrile"
+        )
+
+    async def test_the_strategy_read_states_the_step_by_what_it_selects(
+        self,
+    ) -> None:
+        session = _session(_volcano_spec(), search_name="GenesByEdaVizWithCompute")
+
+        answer = await get_strategy(agent_run_context(strategy_session=session))
+
+        assert returned(answer, StrategySummaryResponse).analyses == {
+            _STEP_ID: (
+                "Genes that differ between normal and febrile (DESeq, "
+                "|effect| >= 1, p <= 0.05)"
+            )
+        }
 
 
 class TestAComputeStepThatWasAlsoFiltered:
@@ -227,7 +269,10 @@ class TestAComputeStepThatWasAlsoFiltered:
             _volcano_spec(filtered=True), search_name="GenesByEdaVizWithCompute"
         )
 
-        assert summary == "3,984 records at 2-fold and p 0.05, 1 filter"
+        assert summary == (
+            "3,984 records at 2-fold and p 0.05, DESeq: genes that differ "
+            "between normal and febrile, 1 filter"
+        )
 
 
 class TestTwoFilters:

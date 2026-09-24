@@ -15,7 +15,11 @@ from pathfinder.domain.strategy.operational_spec import (
     structure_criteria,
 )
 
-__all__ = ["spec_the_strategy_holds", "spec_without_steps"]
+__all__ = [
+    "spec_the_strategy_holds",
+    "spec_without_pending_analyses",
+    "spec_without_steps",
+]
 
 
 def spec_the_strategy_holds(
@@ -28,6 +32,18 @@ def spec_the_strategy_holds(
     """
     return spec_without_steps(
         spec, structure_criteria(spec.structure) - set(live_step_ids)
+    )
+
+
+def spec_without_pending_analyses(spec: OperationalSpec) -> OperationalSpec:
+    """The spec without the criteria that wait for an analysis to realize them.
+
+    No step answers such a criterion yet, so a plan and a strategy both read
+    the spec without it.
+    """
+    return spec_without_steps(
+        spec,
+        [criterion.id for criterion in spec.criteria if criterion.pending_analysis],
     )
 
 

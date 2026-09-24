@@ -2,7 +2,7 @@
 
 from veupathdb.eda import (
     EdaAnalysisDetail,
-    EdaComputationDescriptor,
+    EdaDifferentialExpressionDescriptor,
     EdaDistributionResponse,
     EdaFilter,
     EdaStudyDetail,
@@ -10,7 +10,7 @@ from veupathdb.eda import (
 
 __all__ = [
     "EdaAnalysisDetail",
-    "EdaComputationDescriptor",
+    "EdaDifferentialExpressionDescriptor",
     "EdaDistributionResponse",
     "EdaFilter",
     "EdaStudyDetail",

@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
 import type { EdaViz } from "@pathfinder/shared";
 
 import { Spinner } from "@/components/ui/spinner";
@@ -61,14 +59,8 @@ export function VizCell({ siteId, conversationId }: VizCellProps) {
     enabled: jobId !== null && datasetId !== "" && analysisId !== "",
     retry: false,
     staleTime: Infinity,
+    meta: { shownInline: true },
   });
-
-  const [reported, setReported] = useState<unknown>(null);
-  if (volcano.error != null && reported !== volcano.error) {
-    setReported(volcano.error);
-    const message = toUserMessage(volcano.error, VIZ_FAILED);
-    queueMicrotask(() => toast.error(message));
-  }
 
   return (
     <CellShell

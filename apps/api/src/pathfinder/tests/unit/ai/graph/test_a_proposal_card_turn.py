@@ -16,7 +16,6 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
-from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.graph._lead_stops import final_reply
@@ -25,13 +24,12 @@ from pathfinder.ai.lead import lead_proposal
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL, DeclinedProposal
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 from pathfinder.tests.unit.ai.graph._approval_turn import (
     LEAD_FINAL,
     Collector,
     drive_lead,
+    holding_a_strategy,
     lead_deps,
     lead_state,
     scripted_model,
@@ -93,17 +91,6 @@ async def _parked_turn(
     capture = await drive_lead(state=state, deps=lead_deps(state), writer=writer)
     assert capture.pending_approval is not None
     return state, capture.pending_approval
-
-
-def _holding_a_strategy(deps: LeadDeps) -> LeadDeps:
-    """The deps of a thread whose strategy holds one step."""
-    graph = StrategyGraph(graph_id="g1", name="3h blood meal", site_id="vectorbase")
-    graph.steps.update(
-        flatten_tree(StrategyStepNode(id="s1", search_name="GenesByText"))
-    )
-    graph.recompute_roots()
-    deps.runtime.strategy_session.graph = graph
-    return deps
 
 
 def _resumed(first: PipelineState, pending: PendingApproval) -> PipelineState:
@@ -170,6 +157,32 @@ async def test_no_ends_the_turn_without_a_model_call(
     assert CHANGES[1] in summary
 
 
+async def test_a_resumed_run_writes_the_card_it_answers_as_it_arrives(
+    writer: Collector,
+    monkeypatch: pytest.MonkeyPatch,
+    edits: list[dict[str, Any]],
+) -> None:
+    calls: list[list[ModelMessage]] = []
+    first, pending = await _parked_turn(monkeypatch, writer, calls)
+    parked_run = len(writer.payloads)
+    state = _resumed(first, pending)
+    state.user_message_id = uuid4()
+    state.user_prompt = "Show me the orthology step instead."
+
+    await drive_lead(state=state, deps=lead_deps(state), writer=writer)
+
+    resumed = [p["chunk"] for p in writer.payloads[parked_run:] if "chunk" in p]
+    assert [c["type"] for c in resumed][:5] == [
+        "data-turn-status",
+        "tool-input-start",
+        "tool-input-available",
+        "tool-output-denied",
+        "start-step",
+    ]
+    assert [c["toolCallId"] for c in resumed[1:4]] == [CALL_ID] * 3
+    assert edits == []
+
+
 async def test_yes_runs_the_cards_edit_and_the_lead_answers_once(
     writer: Collector,
     monkeypatch: pytest.MonkeyPatch,
@@ -192,7 +205,7 @@ async def test_yes_runs_the_cards_edit_and_the_lead_answers_once(
             )
         ],
     }
-    deps = _holding_a_strategy(lead_deps(state))
+    deps = holding_a_strategy(lead_deps(state))
 
     capture = await drive_lead(state=state, deps=deps, writer=writer)
 
@@ -229,7 +242,7 @@ async def test_a_typed_yes_accepts_the_card(
     state = _resumed(first, pending)
     state.user_message_id = uuid4()
     state.user_prompt = "Yes"
-    deps = _holding_a_strategy(lead_deps(state))
+    deps = holding_a_strategy(lead_deps(state))
 
     capture = await drive_lead(state=state, deps=deps, writer=writer)
 

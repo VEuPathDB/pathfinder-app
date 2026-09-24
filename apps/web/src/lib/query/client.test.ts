@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryMeta } from "@tanstack/react-query";
 import { APIError } from "@/lib/api/http";
 import { AppError } from "@/lib/errors/AppError";
 import {
@@ -28,7 +28,7 @@ function setup(): {
 async function runFailingQuery(
   client: QueryClient,
   error: unknown,
-  meta?: Record<string, unknown>,
+  meta?: QueryMeta,
 ): Promise<void> {
   await client
     .fetchQuery({
@@ -95,6 +95,58 @@ describe("global query error handler", () => {
       { silent: true },
     );
     expect(notices).toHaveLength(0);
+  });
+
+  it("drops a WDK_LOGIN_REQUIRED 401 on a silent query", async () => {
+    const { client, notices } = setup();
+    const error = new APIError("VEuPathDB login required.", {
+      status: 401,
+      statusText: "Unauthorized",
+      url: "/api/v1/sites/plasmodb/searches",
+      data: {
+        title: "VEuPathDB login required",
+        status: 401,
+        detail:
+          "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.",
+        code: "WDK_LOGIN_REQUIRED",
+      },
+    });
+    await runFailingQuery(client, error, { silent: true });
+    expect(notices).toHaveLength(0);
+  });
+
+  it("sends no notice for a query whose component shows the error itself", async () => {
+    const { client, notices } = setup();
+    await runFailingQuery(
+      client,
+      new APIError("study read failed", {
+        status: 500,
+        statusText: "Internal Server Error",
+        url: "/api/v1/eda/studies/DS_e973eadd57",
+        data: null,
+      }),
+      { shownInline: true },
+    );
+    expect(notices).toHaveLength(0);
+  });
+
+  it("forwards a WDK_LOGIN_REQUIRED 401 on a query whose component shows the error itself", async () => {
+    const { client, notices } = setup();
+    const error = new APIError("VEuPathDB login required.", {
+      status: 401,
+      statusText: "Unauthorized",
+      url: "/api/v1/eda/viz",
+      data: {
+        title: "VEuPathDB login required",
+        status: 401,
+        detail:
+          "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.",
+        code: "WDK_LOGIN_REQUIRED",
+      },
+    });
+    await runFailingQuery(client, error, { shownInline: true });
+    expect(notices).toHaveLength(1);
+    expect(notices[0]!.error).toBe(error);
   });
 
   it("stays silent for a 401 that is not a VEuPathDB login refusal", async () => {

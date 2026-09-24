@@ -27,9 +27,13 @@ _CLIENT = Path(veupathdb.__file__).parent
 
 _INTERNAL = re.compile(r"\b(EDA|WDK|FRAME|BUILD|VERIFY|sub-agent|ledger)\b")
 
+# A tool or parameter name, or a study, entity or variable id.
+_NAME_OR_ID = re.compile(r"\b[a-z]+(?:_[a-z0-9]+)+\b|\b(?:DS|EDAUD|STUDY|ENT|VAR)_")
+
 _SUMMARY_BUILDERS = frozenset({"with_summary", "summary_chunks"})
 _REFUSALS = frozenset({"ModelRetry", "ToolErrorPayload"})
 _TITLE_KEYWORDS = frozenset({"title", "detail"})
+_RETRY_KEYWORDS = frozenset({"retry"})
 
 _ERROR_SOURCES = ("platform/errors.py",)
 _CLIENT_ERROR_SOURCES = ("eda/errors.py", "errors.py")
@@ -53,11 +57,14 @@ def _sources() -> list[Path]:
     ]
 
 
-def _refusal_sources() -> list[Path]:
+def _eda_sources() -> list[Path]:
+    """Every module that writes a study's refusal, its error or its guidance."""
     return sorted(
         [
             *_PATHFINDER.glob("ai/tools/standalone/eda_*.py"),
+            *_PATHFINDER.glob("ai/tools/standalone/_eda_*.py"),
             *_PATHFINDER.glob("services/eda/*.py"),
+            _PATHFINDER / "services/strategies/_wdk_step_calls.py",
         ]
     )
 
@@ -67,7 +74,7 @@ def _error_sources() -> list[Path]:
         [
             *(_PATHFINDER / name for name in _ERROR_SOURCES),
             *(_CLIENT / name for name in _CLIENT_ERROR_SOURCES),
-            *_PATHFINDER.glob("services/eda/*.py"),
+            *_eda_sources(),
         ]
     )
 
@@ -105,22 +112,34 @@ def _bindings(body: list[ast.AST]) -> dict[str, list[ast.expr]]:
     return found
 
 
-def _texts(expr: ast.expr, bindings: dict[str, list[ast.expr]]) -> list[str]:
-    """The constant parts of one message, with its interpolations removed."""
+def _texts(
+    expr: ast.expr,
+    bindings: dict[str, list[ast.expr]],
+    seen: frozenset[str] = frozenset(),
+) -> list[str]:
+    """The constant parts of one message, and of every local it interpolates."""
     if isinstance(expr, ast.Name):
+        if expr.id in seen:
+            return []
         return [
             text
             for bound in bindings.get(expr.id, [])
-            for text in _texts(bound, bindings)
+            for text in _texts(bound, bindings, seen | {expr.id})
         ]
     if isinstance(expr, ast.Call) and expr.args:
-        return _texts(expr.args[0], bindings)
+        return _texts(expr.args[0], bindings, seen)
     joined = "".join(
         child.value
         for child in ast.walk(expr)
         if isinstance(child, ast.Constant) and isinstance(child.value, str)
     )
-    return [joined] if joined else []
+    interpolated = [
+        text
+        for child in ast.walk(expr)
+        if isinstance(child, ast.FormattedValue) and isinstance(child.value, ast.Name)
+        for text in _texts(child.value, bindings, seen)
+    ]
+    return [joined, *interpolated] if joined else interpolated
 
 
 def _scopes(tree: ast.Module) -> list[ast.AST]:
@@ -165,8 +184,8 @@ def _raised(path: Path) -> list[str]:
     return found
 
 
-def _titles(path: Path) -> list[str]:
-    """Every ``title=`` and ``detail=`` literal one module writes."""
+def _keyword_texts(path: Path, keywords: frozenset[str]) -> list[str]:
+    """Every literal one module passes as one of ``keywords``."""
     tree = ast.parse(path.read_text())
     found: list[str] = []
     for scope in _scopes(tree):
@@ -176,9 +195,30 @@ def _titles(path: Path) -> list[str]:
             if not isinstance(node, ast.Call):
                 continue
             for keyword in node.keywords:
-                if keyword.arg in _TITLE_KEYWORDS:
+                if keyword.arg in keywords:
                     found.extend(_texts(keyword.value, bindings))
     return found
+
+
+def _titles(path: Path) -> list[str]:
+    """Every ``title=`` and ``detail=`` literal one module writes."""
+    return _keyword_texts(path, _TITLE_KEYWORDS)
+
+
+def _interpolated_title_ids(path: Path) -> list[str]:
+    """Every internal id a ``title=`` or ``detail=`` of one module interpolates."""
+    tree = ast.parse(path.read_text())
+    return [
+        f"{path.name}:{node.lineno} {name}"
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        for keyword in node.keywords
+        if keyword.arg in _TITLE_KEYWORDS
+        for child in ast.walk(keyword.value)
+        if isinstance(child, ast.FormattedValue)
+        for name in [_interpolated_name(child.value)]
+        if name.endswith(_INTERNAL_ID_SUFFIXES)
+    ]
 
 
 def _interpolated_name(expr: ast.expr) -> str:
@@ -239,11 +279,29 @@ def test_no_error_title_or_detail_names_an_internal_word() -> None:
 def test_no_study_refusal_names_an_internal_word() -> None:
     lines = [
         line
-        for path in _refusal_sources()
-        for line in [*_messages(path, _REFUSALS, argument=0), *_raised(path)]
+        for path in _eda_sources()
+        for line in [
+            *_messages(path, _REFUSALS, argument=0),
+            *_raised(path),
+            *_keyword_texts(path, _RETRY_KEYWORDS),
+        ]
     ]
     assert len(lines) > 10, "the refusal scan reads nothing"
     assert _offending(lines) == []
+
+
+def test_no_study_error_names_a_tool_or_an_id() -> None:
+    """A title or detail reaches the researcher; a retry alone may name a tool."""
+    lines = [line for path in _eda_sources() for line in _titles(path)]
+    assert len(lines) > 10, "the study error scan reads nothing"
+    assert sorted({line for line in lines if _NAME_OR_ID.search(line)}) == []
+
+
+def test_no_study_error_interpolates_an_id_the_researcher_never_typed() -> None:
+    found = sorted(
+        {line for path in _eda_sources() for line in _interpolated_title_ids(path)}
+    )
+    assert found == []
 
 
 def test_no_summary_writes_an_id_the_researcher_never_typed() -> None:

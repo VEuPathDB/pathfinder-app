@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
@@ -11,10 +12,12 @@ from veupathdb.domain.strategy import CombineOp, flatten_tree
 from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.graph.state import StrategyDomainState, TurnMarkers
+from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead import edit_dispatch
 from pathfinder.ai.lead.deltas import EditDelta, FrameResult
 from pathfinder.ai.lead.edit_dispatch import run_edit
+from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.operational_spec import (
@@ -28,6 +31,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.tests.unit.ai.lead._answered_draft import classify
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 
@@ -66,6 +70,8 @@ async def test_an_edit_on_a_thread_with_no_strategy_keeps_the_framed_spec() -> N
         ),
     )
     deps.state.domain.spec_before_turn = None
+    deps.state.user_message_id = uuid4()
+    classify(deps, IntentClassification.EDIT_STRATEGY)
 
     with pytest.raises(ModelRetry) as excinfo:
         await run_edit(deps=deps, parent_tool_call_id="t1", reason="edit it")

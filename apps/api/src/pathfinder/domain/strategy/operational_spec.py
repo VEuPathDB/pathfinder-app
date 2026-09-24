@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Collection, Mapping
 from typing import Literal, NamedTuple
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 from veupathdb.domain.parameters import ParamValue, UnboundParameter, to_wire
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
@@ -13,6 +13,7 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.combine_naming import combine_display_name
 from pathfinder.domain.strategy.constraints import Constraint
 
@@ -70,8 +71,8 @@ class DroppedCriterion(CamelModel):
 
     text: str
     reason: str
-    # The EDA dataset the criterion is realized from, when its search is
-    # EDA-backed. The Lead builds those with its EDA tools.
+    # The EDA dataset a drop recorded before a criterion could wait for its
+    # analysis. The turn entry restates it as such a criterion.
     eda_dataset_id: str | None = None
 
 
@@ -140,10 +141,26 @@ class Criterion(CamelModel):
     assumptions: list[AssumedValue] = Field(default_factory=list)
     # The choices inside a criterion that matches no record. Empty otherwise.
     alternatives: list[ParameterAlternatives] = Field(default_factory=list)
+    # The exported analysis this criterion is, once the EDA tools bound it.
+    analysis: AnalysisBinding | None = None
+    # The dataset whose analysis workflow realizes this criterion, while it waits.
+    needs_analysis_on: str | None = None
 
     @property
     def bound(self) -> bool:
         return bool(self.search_name) or self.saved_strategy_ref is not None
+
+    @property
+    def pending_analysis(self) -> bool:
+        """Whether the criterion waits for the analysis workflow to realize it."""
+        return self.needs_analysis_on is not None
+
+    @property
+    def step_parameters(self) -> dict[str, ParamValue]:
+        """The parameters the criterion's step carries."""
+        if self.analysis is not None:
+            return dict(self.analysis.step_parameters)
+        return dict(self.resolved_params)
 
     @property
     def title(self) -> str:
@@ -163,11 +180,23 @@ class OperationalSpec(CamelModel):
     open_slots: list[OpenSlot] = Field(default_factory=list)
     constraints: list[Constraint] = Field(default_factory=list)
 
+    @model_validator(mode="after")
+    def _one_criterion_per_id(self) -> OperationalSpec:
+        """A criterion id addresses one criterion, and one step once it is built."""
+        ids = [c.id for c in self.criteria]
+        repeated = sorted({cid for cid in ids if ids.count(cid) > 1})
+        if repeated:
+            msg = f"the spec names criteria {repeated} more than once"
+            raise ValueError(msg)
+        return self
+
     @property
     def ready_to_build(self) -> bool:
-        if not self.criteria or self.structure is None or self.open_slots:
+        """Whether a build has criteria to mint; one awaiting its analysis waits."""
+        built = [c for c in self.criteria if not c.pending_analysis]
+        if not built or self.structure is None or self.open_slots:
             return False
-        return all(c.bound and not c.open_params for c in self.criteria)
+        return all(c.bound and not c.open_params for c in built)
 
 
 class _Operand(NamedTuple):
@@ -184,11 +213,11 @@ class SpecTree(NamedTuple):
     step_id_by_criterion: dict[str, str]
 
 
-def eda_backed_drops(spec: OperationalSpec | None) -> list[DroppedCriterion]:
-    """Every dropped criterion the Lead's EDA tools realize, in drop order."""
+def pending_analyses(spec: OperationalSpec | None) -> list[Criterion]:
+    """Every criterion waiting for the Lead's EDA tools, in spec order."""
     if spec is None:
         return []
-    return [dropped for dropped in spec.dropped if dropped.eda_dataset_id]
+    return [criterion for criterion in spec.criteria if criterion.pending_analysis]
 
 
 def structure_criteria(structure: SpecStructure | None) -> frozenset[str]:
@@ -247,7 +276,8 @@ def fold_option_criteria(
     if all(c.id in answers_to_a_step for c in spec.criteria):
         return FoldedSpec(spec=spec)
     folded = spec.model_copy(deep=True)
-    carriers = [c for c in folded.criteria if c.id in named]
+    # An analysis states its own document, so it carries no option and is none.
+    carriers = [c for c in folded.criteria if c.id in named and c.analysis is None]
     absorbed: set[str] = set()
     unplaced: list[str] = []
     for option in folded.criteria:
@@ -255,6 +285,7 @@ def fold_option_criteria(
             option.id in answers_to_a_step
             or not option.search_name
             or option.open_params
+            or option.analysis is not None
         ):
             continue
         runs_it = [c for c in carriers if c.search_name == option.search_name]
@@ -382,7 +413,7 @@ def _node_to_step(
             return saved_step
         step = StrategyStepNode(
             search_name=crit.search_name,
-            parameters=dict(crit.resolved_params),
+            parameters=crit.step_parameters,
             display_name=crit.title,
         )
         minted[crit.id] = step.id
@@ -394,7 +425,7 @@ def _node_to_step(
             raise ValueError(msg)
         step = StrategyStepNode(
             search_name=crit.search_name,
-            parameters=dict(crit.resolved_params),
+            parameters=crit.step_parameters,
             display_name=crit.title,
             primary_input=_node_to_step(node.inputs[0], by_id, minted),
         )

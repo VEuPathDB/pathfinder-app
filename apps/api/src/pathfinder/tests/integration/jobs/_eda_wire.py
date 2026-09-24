@@ -29,7 +29,12 @@ from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 from pathfinder.jobs.impls import eda_compute_impl
 from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.services.eda import authoring, binding
-from pathfinder.tests._support.eda_wire import AnalysisStore, wire_eda_client
+from pathfinder.tests._support.eda_wire import (
+    DE_ENTITY_SIZES,
+    AnalysisStore,
+    entity_size,
+    wire_eda_client,
+)
 
 FIXTURES = FIXTURE_DIR
 
@@ -37,9 +42,6 @@ STUDY = "STUDY_e973eadd57"
 DATASET = "DS_e973eadd57"
 ANALYSIS = "t4fszEJ"
 JOB = "a" * 32
-
-# Every sample of the study, because the subset names both of its conditions.
-ENTITY_SIZES = {"ENT_8151325d": 12, "ENT_fd574cd6": 66132}
 
 # The recorded slice of the live volcano. The live lane pins 5511 and 1543.
 FIXTURE_ROWS = 201
@@ -124,7 +126,8 @@ def _recorded(path: str) -> httpx.Response | None:
     if path == "/eda/studies":
         return httpx.Response(200, json={"studies": []})
     if path.endswith("/count"):
-        return httpx.Response(200, json={"count": ENTITY_SIZES[path.split("/")[5]]})
+        # The subset names both conditions, so it selects every sample.
+        return entity_size(path, DE_ENTITY_SIZES)
     if path.startswith("/eda/studies/"):
         return httpx.Response(
             200, json=json.loads((FIXTURES / "study_detail_de.json").read_text())

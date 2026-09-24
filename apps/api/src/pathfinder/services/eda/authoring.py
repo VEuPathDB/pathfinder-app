@@ -9,7 +9,6 @@ from assistant_core.platform.types import JSONArray
 from veupathdb.domain import (
     DeclaredRanges,
     entity_by_id,
-    validate_compute_config,
     validate_filters,
     walk_entities,
 )
@@ -66,12 +65,12 @@ def new_analysis(
 class EmptyAnalysisError(ValidationError):
     """The analysis holds no filter and no computation, so no step carries it."""
 
-    def __init__(self, dataset_id: str) -> None:
+    def __init__(self) -> None:
         super().__init__(
             title="Empty analysis",
             detail=(
-                f"The analysis on dataset {dataset_id} holds no filter and no "
-                f"computation, so it selects no genes and exports no step."
+                "The analysis holds no filter and no computation, so it selects "
+                "no genes and exports no step."
             ),
         )
 
@@ -84,7 +83,7 @@ def serialize_spec(analysis: EdaNewAnalysis) -> str:
     """
     descriptor = analysis.descriptor
     if not descriptor.subset.descriptor and not descriptor.computations:
-        raise EmptyAnalysisError(analysis.study_id)
+        raise EmptyAnalysisError
     return analysis.model_dump_json(by_alias=True, exclude_none=True)
 
 
@@ -139,7 +138,9 @@ class SubsetCount:
     unfiltered_count: int
 
 
-def _checked(study: EdaStudyDetail, filters: Sequence[EdaFilter]) -> None:
+def refuse_an_invalid_subset(
+    study: EdaStudyDetail, filters: Sequence[EdaFilter]
+) -> None:
     """Run the pure predicates. An invalid array never reaches the wire."""
     errors = subset_errors(study, filters)
     if errors:
@@ -159,7 +160,7 @@ async def verified_count(
     predicates run first and a bad array is refused.
     """
     entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
-    _checked(study, filters)
+    refuse_an_invalid_subset(study, filters)
     client = get_eda_client(site_id)
     return SubsetCount(
         entity_id=entity_id,
@@ -182,7 +183,7 @@ async def subset_entity_counts(
 
     The predicates run once for the array, not once per entity.
     """
-    _checked(study, filters)
+    refuse_an_invalid_subset(study, filters)
     client = get_eda_client(site_id)
     return [
         EdaEntityCount(
@@ -257,7 +258,7 @@ async def preview_subset(
 ) -> SubsetPreview:
     """The filtered and unfiltered counts, and one variable's histogram."""
     entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
-    _checked(study, filters)
+    refuse_an_invalid_subset(study, filters)
     client = get_eda_client(site_id)
     match entity_by_id(study.root_entity, entity_id):
         case EdaEntity() as entity:
@@ -343,11 +344,13 @@ async def variable_distribution(
         is_multi_valued=facts is not None and facts.is_multi_valued,
     )
     if series is None:
-        raise ValidationError(
-            title="No distribution for this variable",
-            detail=preview.distribution_note
-            or f"Variable {variable_id} carries no distribution on {entity_id}.",
+        detail = (
+            "The study declares no such variable on this entity."
+            if facts is None
+            else f"{facts.display_name} is continuous, and a histogram needs a "
+            "number variable with a declared bin width."
         )
+        raise ValidationError(title="No distribution for this variable", detail=detail)
     return series
 
 
@@ -400,8 +403,8 @@ async def patch_subset(
 ) -> EdaAnalysisDetail:
     """Replace the analysis's subset. The upstream document stays the SSOT."""
     _entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
-    _checked(study, filters)
-    return await _patch(
+    refuse_an_invalid_subset(study, filters)
+    return await patch_analysis(
         site_id,
         analysis_id=analysis_id,
         mutate=lambda current: current.model_copy(
@@ -410,28 +413,7 @@ async def patch_subset(
     )
 
 
-async def apply_computation(
-    site_id: str,
-    *,
-    analysis_id: str,
-    dataset_id: str,
-    computation: EdaComputation,
-) -> EdaAnalysisDetail:
-    """Replace the analysis's single computation, after checking its config."""
-    _entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
-    errors = validate_compute_config(study, computation.descriptor.configuration)
-    if errors:
-        raise SubsetRejectedError(errors)
-    return await _patch(
-        site_id,
-        analysis_id=analysis_id,
-        mutate=lambda current: current.model_copy(
-            update={"computations": [computation]},
-        ),
-    )
-
-
-async def _patch(
+async def patch_analysis(
     site_id: str,
     *,
     analysis_id: str,

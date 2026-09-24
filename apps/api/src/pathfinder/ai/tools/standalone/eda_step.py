@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
@@ -17,13 +18,20 @@ from veupathdb_mcp import ToolErrorPayload
 
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone._eda_step_criterion import (
+    AskedPlacement,
+    WaitingPlacement,
+    export_placement,
+)
 from pathfinder.ai.tools.standalone._eda_step_guard import (
     compared_groups,
-    refuse_a_direction_without_a_volcano,
+    refuse_half_a_cut,
+    volcano_thresholds,
 )
 from pathfinder.ai.tools.standalone._eda_step_spec import (
     restate_the_structure,
     spec_after_the_replacement,
+    spec_binding_the_export,
     state_the_exported_step,
     structure_states_the_graph,
 )
@@ -32,6 +40,7 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     get_graph,
     validation_model_retry,
 )
+from pathfinder.ai.tools.standalone.eda_analysis import bound_analysis
 from pathfinder.ai.tools.standalone.strategy_refusals import (
     operation_refused_message,
     wdk_refused_the_edit,
@@ -42,15 +51,14 @@ from pathfinder.ai.tools.standalone.stream_parts import (
 )
 from pathfinder.domain.eda_parts import EdaEffectDirection
 from pathfinder.domain.eda_thread import EdaExport
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    OperationalSpec,
+)
 from pathfinder.domain.strategy.operations.apply import ApplyError
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
 from pathfinder.domain.strategy.step_words import criterion_texts
-from pathfinder.services.eda.binding import (
-    ConversationAnalysisView,
-    bound_conversation_analysis,
-    read_analysis,
-)
+from pathfinder.services.eda.binding import ConversationAnalysisView, read_analysis
 from pathfinder.services.eda.compute import NoComputationError, VolcanoThresholds
 from pathfinder.services.eda.direction import selection_sentence
 from pathfinder.services.eda.gene_subset import (
@@ -64,6 +72,7 @@ from pathfinder.services.strategies.commit import (
 )
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.graph_outcome import outcome_for_graph
+from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 
 
@@ -84,37 +93,6 @@ class EdaStepCreated(EdaExport):
     selection: str | None = None
 
 
-def _thresholds(
-    analysis: EdaAnalysisDetail,
-    effect_size_threshold: float | None,
-    significance_threshold: float | None,
-    effect_direction: EdaEffectDirection | None,
-) -> VolcanoThresholds | None:
-    """The volcano cut this call names, or None for the subset export."""
-    has_thresholds = (
-        effect_size_threshold is not None and significance_threshold is not None
-    )
-    refuse_a_direction_without_a_volcano(
-        analysis, effect_direction=effect_direction, has_thresholds=has_thresholds
-    )
-    if effect_size_threshold is None or significance_threshold is None:
-        return None
-    return VolcanoThresholds(
-        effect_size_threshold=effect_size_threshold,
-        significance_threshold=significance_threshold,
-        effect_direction=effect_direction or "upAndDown",
-    )
-
-
-async def bound_analysis(
-    ctx: RunContext[LeadDeps],
-) -> ConversationAnalysisView | None:
-    """The analysis this conversation has open, or None."""
-    return await bound_conversation_analysis(
-        conversation_id=ctx.deps.state.conversation_id
-    )
-
-
 def _strategy_context(
     ctx: RunContext[LeadDeps], spec: OperationalSpec | None
 ) -> StrategyMutationContext:
@@ -131,29 +109,8 @@ def _strategy_context(
         stated_structure=None if spec is None else spec.structure,
         criterion_texts={} if spec is None else criterion_texts(spec),
         stated_values={} if spec is None else spec_stated_values(spec),
-        user_prompt=ctx.deps.state.user_prompt,
+        user_prompt=ctx.deps.state.request_the_thread_answers,
     )
-
-
-def _checked_thresholds(
-    effect_size_threshold: float | None,
-    significance_threshold: float | None,
-) -> None:
-    """Both thresholds or neither. The bridge plugin requires both keys."""
-    if effect_size_threshold is not None and significance_threshold is None:
-        msg = (
-            "A volcano export needs significance_threshold as well as "
-            "effect_size_threshold. Send both, or send neither to export the "
-            "whole subset."
-        )
-        raise ModelRetry(msg)
-    if significance_threshold is not None and effect_size_threshold is None:
-        msg = (
-            "A volcano export needs effect_size_threshold as well as "
-            "significance_threshold. Send both, or send neither to export the "
-            "whole subset."
-        )
-        raise ModelRetry(msg)
 
 
 def _record_the_build(ctx: RunContext[LeadDeps], commit: CommitResult) -> None:
@@ -192,6 +149,47 @@ def _landed(
     return f"Step {step_id} added to the strategy"
 
 
+def _the_graph(session: StrategySession) -> StrategyGraph:
+    graph = get_graph(session, None)
+    if graph is None:
+        title = "No active strategy graph"
+        detail = "The conversation holds no strategy to add the step to."
+        raise ValidationError(title=title, detail=detail)
+    return graph
+
+
+def _state_the_export(
+    ctx: RunContext[LeadDeps],
+    graph: StrategyGraph,
+    plan: EdaStepPlan,
+    waiting: WaitingPlacement | None,
+) -> None:
+    """Bind the waiting criterion the export is, or state the step it added."""
+    if waiting is None:
+        state_the_exported_step(ctx, graph, plan.node, plan.binding)
+        return
+    ctx.deps.state.domain.restate_every_record(
+        {waiting.criterion_id: plan.node.id},
+        lambda spec: spec_binding_the_export(
+            spec, waiting.criterion_id, plan.node, plan.binding
+        ),
+    )
+
+
+def _export_metadata(
+    session: StrategySession, graph: StrategyGraph, sync: SyncResult | None
+) -> list[DataChunk]:
+    """The graph snapshot, and the link to the strategy once the site holds it."""
+    metadata: list[DataChunk] = [graph_snapshot_chunk(session, graph)]
+    if sync is not None and sync.wdk_url is not None:
+        metadata.append(
+            strategy_link_chunk(
+                strategy_id=graph.id, url=sync.wdk_url, title=graph.name
+            )
+        )
+    return metadata
+
+
 def _guidance(wdk_strategy_id: int | None, *, is_compute_backed: bool) -> str:
     kind = "the volcano's retained genes" if is_compute_backed else "the subset"
     strategy = (
@@ -210,7 +208,6 @@ async def _planned_export(
     analysis: EdaAnalysisDetail,
     *,
     thresholds: VolcanoThresholds | None,
-    search_name: str | None,
 ) -> EdaStepPlan:
     """The step the analysis exports, once it is known to hold genes."""
     try:
@@ -219,13 +216,12 @@ async def _planned_export(
                 binding.site_id, dataset_id=binding.dataset_id, analysis=analysis
             )
     except NoGeneSubsetError as exc:
-        raise ModelRetry(exc.message) from exc
+        raise ModelRetry(exc.retry) from exc
     try:
         plan = eda_step_node(
             analysis,
             dataset_id=binding.dataset_id,
             thresholds=thresholds,
-            search_name=search_name,
         )
     except NoComputationError as exc:
         msg = (
@@ -239,7 +235,7 @@ async def _planned_export(
 async def create_eda_step(
     ctx: RunContext[LeadDeps],
     *,
-    search_name: str | None = None,
+    criterion_id: str | None = None,
     attach_to_step_id: str | None = None,
     slot: Literal["primary", "secondary"] | None = None,
     replace_step_id: str | None = None,
@@ -277,6 +273,11 @@ async def create_eda_step(
     ``significance_threshold``. Those are the same comparisons the plot uses, so
     the step's count matches the number you told the researcher.
 
+    Set ``criterion_id`` to the id of a criterion the pinned route names as
+    waiting for this analysis: the export becomes that criterion and takes the
+    place the structure gives it, so it travels with no other placement. An
+    export on a dataset a criterion waits on without it is refused.
+
     Leave ``attach_to_step_id`` unset to add the step as a new root. Set it,
     with ``slot``, to wire the step into an existing combine. The slot must be
     free: a slot that already holds a step is refused, because the export would
@@ -306,8 +307,7 @@ async def create_eda_step(
 
     Args:
         ctx: Agent run context.
-        search_name: A specific EDA-backed search to use. Leave unset to use
-            the generic subset or compute search.
+        criterion_id: The waiting criterion this export realizes.
         attach_to_step_id: The combine step to wire this into.
         slot: Which input of that combine to fill. It must be empty.
         replace_step_id: The step this export takes the place of.
@@ -325,27 +325,32 @@ async def create_eda_step(
             "the dataset you want, filter it with set_eda_filters, then export it."
         )
         raise ModelRetry(msg)
-    _checked_thresholds(effect_size_threshold, significance_threshold)
+    refuse_half_a_cut(effect_size_threshold, significance_threshold)
 
     analysis = await read_analysis(binding.site_id, analysis_id=binding.analysis_id)
     direction: EdaEffectDirection = effect_direction or "upAndDown"
-    thresholds = _thresholds(
+    thresholds = volcano_thresholds(
         analysis, effect_size_threshold, significance_threshold, effect_direction
     )
-    plan = await _planned_export(
-        binding, analysis, thresholds=thresholds, search_name=search_name
-    )
+    plan = await _planned_export(binding, analysis, thresholds=thresholds)
     comparison = compared_groups(analysis, thresholds, caption)
     node = plan.node
-    is_compute_backed = plan.is_compute_backed
 
     session = ctx.deps.runtime.strategy_session
-    graph = get_graph(session, None)
-    if graph is None:
-        title = "No active strategy graph"
-        detail = "create_eda_step needs an initialized graph in the session."
-        raise ValidationError(title=title, detail=detail)
+    graph = _the_graph(session)
     root_before = graph.primary_root_id()
+    spec = ctx.deps.state.domain.operational_spec
+    waiting = export_placement(
+        spec,
+        graph,
+        criterion_id,
+        dataset_id=binding.dataset_id,
+        asked=AskedPlacement(
+            attach_to_step_id, slot, replace_step_id, combine_with_root
+        ),
+    )
+    if waiting is not None:
+        combine_with_root = waiting.operator
     write = export_write(
         ctx,
         graph,
@@ -358,14 +363,20 @@ async def create_eda_step(
 
     restate = structure_states_the_graph(ctx, graph)
     stated = (
-        ctx.deps.state.domain.operational_spec
+        spec
         if replace_step_id is None
-        else spec_after_the_replacement(ctx, graph, node, replace_step_id)
+        else spec_after_the_replacement(ctx, graph, node, replace_step_id, plan.binding)
     )
 
     try:
         result = await apply_operations_and_commit(
-            deps=_strategy_context(ctx, stated), ops=write.ops
+            # The export knows which plugin reads its document, so the kind is
+            # stored with the step it writes.
+            deps=replace(
+                _strategy_context(ctx, stated),
+                analysis_kinds={node.id: plan.stamped},
+            ),
+            ops=write.ops,
         )
     except ValidationError as exc:
         raise validation_model_retry(exc, searchName=node.search_name) from exc
@@ -373,7 +384,7 @@ async def create_eda_step(
         msg = operation_refused_message(str(exc), wrote="export")
         raise ModelRetry(msg) from exc
     if replace_step_id is None:
-        state_the_exported_step(ctx, graph, node)
+        _state_the_export(ctx, graph, plan, waiting)
     else:
         ctx.deps.state.domain.operational_spec = stated
     if restate:
@@ -382,28 +393,20 @@ async def create_eda_step(
         ctx.deps.state, ctx.deps.state.domain.operational_spec, graph
     )
     sync = result.sync_result
-    metadata: list[DataChunk] = [graph_snapshot_chunk(session, graph)]
-    if sync is not None and sync.wdk_url is not None:
-        metadata.append(
-            strategy_link_chunk(
-                strategy_id=graph.id,
-                url=sync.wdk_url,
-                title=graph.name,
-            ),
-        )
+    metadata = _export_metadata(session, graph, sync)
     wdk_strategy_id = sync.wdk_strategy_id if sync is not None else None
     created = EdaStepCreated(
         search_name=node.search_name,
         step_id=node.id,
         dataset_id=binding.dataset_id,
         analysis_id=binding.analysis_id,
-        is_compute_backed=is_compute_backed,
+        is_compute_backed=plan.is_compute_backed,
         effect_size_threshold=effect_size_threshold,
         significance_threshold=significance_threshold,
-        effect_direction=direction if is_compute_backed else None,
+        effect_direction=direction if plan.is_compute_backed else None,
         wdk_strategy_id=wdk_strategy_id,
         wdk_url=sync.wdk_url if sync is not None else None,
-        guidance=_guidance(wdk_strategy_id, is_compute_backed=is_compute_backed),
+        guidance=_guidance(wdk_strategy_id, is_compute_backed=plan.is_compute_backed),
         replaced_step_id=replace_step_id,
         dropped_step_ids=list(result.dropped_step_ids),
         combined_with_root=combine_with_root,

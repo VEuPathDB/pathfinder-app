@@ -62,6 +62,7 @@ export function useResultsTableRecords({
     enabled: attributes.length > 0,
     staleTime: 60_000,
     placeholderData: keepPreviousData,
+    meta: { shownInline: true },
   });
 
   const invalidateAndRefetch = () => {

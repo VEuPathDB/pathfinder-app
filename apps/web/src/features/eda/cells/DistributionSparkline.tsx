@@ -7,8 +7,10 @@ import type { EdaVariableResponse } from "@pathfinder/shared/generated/types/Eda
 import { BarChart } from "@/lib/components/charts/BarChart";
 import { HistogramChart } from "@/lib/components/charts/HistogramChart";
 import { edaDistribution } from "@/features/eda/api";
+import { toUserMessage } from "@/lib/api/errors";
 
 const HEIGHT = 96;
+const UNAVAILABLE = "distribution unavailable";
 const SERIES_NAME = "Subset";
 const MULTIVALUED_NOTE =
   "one record can carry several values, so these counts do not add up to the subset size";
@@ -44,15 +46,19 @@ export function DistributionSparkline({
         variableId: variable.variableId,
         filters: [...filters],
       }),
+    meta: { shownInline: true },
   });
 
   if (distribution.error != null) {
+    const reason = toUserMessage(distribution.error, UNAVAILABLE);
     return (
       <p
         data-testid="eda-subset-distribution-error"
+        title={reason}
         className="text-[11px] text-muted-foreground"
       >
-        distribution unavailable
+        {UNAVAILABLE}
+        <span className="sr-only">{`: ${reason}`}</span>
       </p>
     );
   }

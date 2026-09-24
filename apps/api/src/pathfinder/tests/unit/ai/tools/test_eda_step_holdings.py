@@ -3,35 +3,36 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable, Coroutine, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.eda import EdaAnalysisDetail, EdaFilter
+from veupathdb.eda import EdaFilter
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.domain.eda_parts import EdaEffectDirection
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.services.eda import gene_subset
 from pathfinder.services.strategies.commit import CommitResult
-from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+from pathfinder.tests._support.eda_doubles import no_gene_study
+from pathfinder.tests._support.eda_step_doubles import (
     COUNTS_ENTITY,
+    DE_GENES,
+    SAMPLE_ONLY_RETRY,
     CountedSubset,
-    analysis_detail,
-    bound,
+    StudyReader,
+    de_analysis,
     de_study,
     gene_filter,
     recording_commit,
     sample_filter,
+    wire_analysis,
     wire_gene_count,
 )
-
-Read = Callable[..., Coroutine[Any, Any, EdaAnalysisDetail]]
+from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 
 
 @pytest.fixture
@@ -44,28 +45,23 @@ def lead_ctx() -> RunContext[LeadDeps]:
     )
 
 
-def _reading(filters: Sequence[EdaFilter], *, with_computation: bool = False) -> Read:
-    async def read(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
-        del analysis_id
-        return analysis_detail(with_computation=with_computation, filters=filters)
-
-    return read
-
-
 async def _no_commit(**kwargs: object) -> CommitResult:
     reason = f"no export may reach the commit: {sorted(kwargs)}"
     raise AssertionError(reason)
 
 
 def _wire(
-    monkeypatch: pytest.MonkeyPatch, read: Read, commit: object = _no_commit
+    monkeypatch: pytest.MonkeyPatch,
+    filters: Sequence[EdaFilter],
+    *,
+    with_computation: bool = False,
+    commit: object = _no_commit,
+    study: StudyReader = de_study,
 ) -> list[CountedSubset]:
-    monkeypatch.setattr(eda_step, "bound_analysis", bound)
-    monkeypatch.setattr(eda_step, "read_analysis", read)
+    detail = de_analysis(filters=filters, with_computation=with_computation)
+    wire_analysis(monkeypatch, eda_step, detail)
     monkeypatch.setattr(eda_step, "apply_operations_and_commit", commit)
-    counted = wire_gene_count(monkeypatch)
-    monkeypatch.setattr(gene_subset, "get_study_detail_for_dataset", de_study)
-    return counted
+    return wire_gene_count(monkeypatch, study=study, genes=DE_GENES)
 
 
 def _steps(ctx: RunContext[LeadDeps]) -> list[str]:
@@ -78,18 +74,28 @@ async def test_a_sample_subset_with_no_computation_is_refused(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """A subset of samples selects no gene, so it is never a step."""
-    counted = _wire(monkeypatch, _reading([sample_filter(), sample_filter()]))
+    counted = _wire(monkeypatch, [sample_filter()])
+
+    with pytest.raises(ModelRetry) as refusal:
+        await eda_step.create_eda_step(lead_ctx)
+
+    assert str(refusal.value) == SAMPLE_ONLY_RETRY
+    assert _steps(lead_ctx) == []
+    assert counted == []
+
+
+async def test_a_study_with_no_gene_entity_is_refused_and_writes_no_step(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    counted = _wire(monkeypatch, [sample_filter()], study=no_gene_study)
 
     with pytest.raises(ModelRetry) as refusal:
         await eda_step.create_eda_step(lead_ctx)
 
     assert str(refusal.value) == (
-        "The open analysis holds 2 filters on Sample and 0 computations, and no "
-        "filter on the gene entity pfal3D7 htseq counts (ENT_fd574cd6). A step "
-        "exports genes, and a subset of another entity selects no genes, so "
-        "nothing was written. Call run_eda_compute to run the comparison and "
-        "export the genes that pass its thresholds, or call set_eda_filters "
-        "with a filter on pfal3D7 htseq counts."
+        "Study STUDY_53f554ec6a carries no VEUPATHDB_GENE_ID variable, so it "
+        "cannot export a gene list to a strategy step. Nothing was written. "
+        "Report the counts and the distributions instead."
     )
     assert _steps(lead_ctx) == []
     assert counted == []
@@ -99,17 +105,17 @@ async def test_a_sample_subset_with_a_computation_but_no_thresholds_is_refused(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """With no thresholds the export is the subset, and the subset holds no gene."""
-    _wire(monkeypatch, _reading([sample_filter()], with_computation=True))
+    _wire(monkeypatch, [sample_filter()], with_computation=True)
 
     with pytest.raises(ModelRetry) as refusal:
         await eda_step.create_eda_step(lead_ctx)
 
     message = str(refusal.value)
     assert message.startswith(
-        "The open analysis holds 1 filter on Sample and 1 computation, and no "
-        "filter on the gene entity pfal3D7 htseq counts (ENT_fd574cd6)."
+        "The analysis holds 1 filter on Sample and 1 comparison, and no "
+        "filter on pfal3D7 htseq counts."
     )
-    assert "send effect_size_threshold and significance_threshold" in message
+    assert "Send effect_size_threshold and significance_threshold" in message
     assert _steps(lead_ctx) == []
 
 
@@ -117,14 +123,14 @@ async def test_an_analysis_with_no_filter_and_no_computation_is_refused(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """The empty analysis never reaches the graph as a step with an empty spec."""
-    _wire(monkeypatch, _reading([]))
+    _wire(monkeypatch, [])
 
     with pytest.raises(ModelRetry) as refusal:
         await eda_step.create_eda_step(lead_ctx)
 
     assert str(refusal.value).startswith(
-        "The open analysis holds no filter and 0 computations, and no filter on "
-        "the gene entity pfal3D7 htseq counts (ENT_fd574cd6)."
+        "The analysis holds no filter and 0 comparisons, and no filter on "
+        "pfal3D7 htseq counts."
     )
     assert _steps(lead_ctx) == []
 
@@ -135,7 +141,8 @@ async def test_a_sample_subset_with_a_computation_exports_the_volcano(
     applied: list[Any] = []
     _wire(
         monkeypatch,
-        _reading([sample_filter()], with_computation=True),
+        [sample_filter()],
+        with_computation=True,
         commit=recording_commit(applied),
     )
 
@@ -156,7 +163,7 @@ async def test_a_gene_subset_with_no_computation_is_exported(
     applied: list[Any] = []
     counted = _wire(
         monkeypatch,
-        _reading([sample_filter(), gene_filter()]),
+        [sample_filter(), gene_filter()],
         commit=recording_commit(applied),
     )
 
@@ -179,14 +186,14 @@ async def test_a_direction_on_an_analysis_with_no_computation_is_refused(
     direction: EdaEffectDirection,
 ) -> None:
     """A direction selects a side of a comparison, and none has run."""
-    _wire(monkeypatch, _reading([gene_filter()]))
+    _wire(monkeypatch, [gene_filter()])
 
     with pytest.raises(ModelRetry) as refusal:
         await eda_step.create_eda_step(lead_ctx, effect_direction=direction)
 
     assert str(refusal.value) == (
         f'effect_direction="{direction}" selects a side of a comparison, and the '
-        f"open analysis holds 0 computations. Nothing was written. Call "
+        f"open analysis holds 0 comparisons. Nothing was written. Call "
         f"run_eda_compute to run the comparison, then export with "
         f"effect_size_threshold, significance_threshold and effect_direction."
     )
@@ -197,7 +204,7 @@ async def test_a_direction_with_no_thresholds_is_refused(
     monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
 ) -> None:
     """A direction with no volcano cut would export the subset and drop it."""
-    _wire(monkeypatch, _reading([gene_filter()], with_computation=True))
+    _wire(monkeypatch, [gene_filter()], with_computation=True)
 
     with pytest.raises(ModelRetry) as refusal:
         await eda_step.create_eda_step(lead_ctx, effect_direction="upOnly")

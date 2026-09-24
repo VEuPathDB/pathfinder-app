@@ -13,7 +13,7 @@ from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
-from pathfinder.ai.graph.state import TurnMarkers
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
 from pathfinder.domain.strategy.step_words import criterion_texts
@@ -84,6 +84,8 @@ class VerificationScope(CamelModel):
     criteria_touched: int = 0
     is_edit: bool = False
     enrichment_requested: bool = False
+    # The researcher's request, with any clarification, that the verdict answers.
+    request: str = ""
 
     def warrants_enrichment(self) -> bool:
         """Enrichment costs a background job of minutes, so an edit that
@@ -108,7 +110,7 @@ class AgentDeps(AssistantDeps):
     ledger_summary: str = ""
     service_outage: ServiceOutageMemory = Field(default_factory=ServiceOutageMemory)
     experiment_id: str | None = None
-    # The researcher's request this turn, the name of a push with no name yet.
+    # The request the thread answers, the name of a push with no name yet.
     user_prompt: str = ""
     verification_scope: VerificationScope = Field(default_factory=VerificationScope)
 

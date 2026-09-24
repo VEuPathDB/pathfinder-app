@@ -154,6 +154,7 @@ export function StrategyTab({ value, onChange }: StrategyTabProps) {
   const { data, isPending, isError } = useQuery({
     ...listStrategiesQueryOptions({ siteId }),
     enabled: siteId !== "",
+    meta: { shownInline: true },
   });
 
   const options: ComboboxOption[] = (data ?? []).map((conv) => ({

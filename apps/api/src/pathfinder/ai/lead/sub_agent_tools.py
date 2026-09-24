@@ -338,6 +338,12 @@ class LeadDeps:
         """The account this turn acts as."""
         return self.runtime.user_id
 
+    @property
+    def step_count(self) -> int:
+        """How many steps the strategy of this thread holds now."""
+        graph = self.runtime.strategy_session.get_graph(None)
+        return 0 if graph is None else len(graph.steps)
+
 
 def apply_agent_state(deps: LeadDeps, agent_deps: AgentDeps) -> None:
     deps.state.domain.discovered_searches = dict(

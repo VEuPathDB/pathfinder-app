@@ -9,13 +9,18 @@ import {
   describe,
   expect,
   it,
+  vi,
 } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 
+const toastError = vi.fn();
+vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
+
 import { useEdaStore } from "@/state/eda";
+import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import { ComputeCell } from "./ComputeCell";
 
 const BASE = "http://localhost:3000";
@@ -179,6 +184,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 beforeEach(() => {
+  toastError.mockClear();
   useEdaStore.getState().reset();
   useEdaStore.getState().applyAnalysisState(ANALYSIS);
   server.use(
@@ -419,17 +425,21 @@ describe("ComputeCell", () => {
     expect(screen.queryByTestId("eda-compute-progress")).toBe(null);
   });
 
-  it("names a failed study read instead of an empty form", async () => {
+  it("names a failed study read once, instead of an empty form", async () => {
     server.use(
       http.get(`${BASE}/api/v1/eda/studies/DS_e973eadd57`, () =>
         HttpResponse.json({ detail: "study read failed" }, { status: 500 }),
       ),
     );
-    render(<ComputeCell siteId="plasmodb" conversationId="conv-1" />);
+    render(<ComputeCell siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(),
+    });
     expect(await screen.findByTestId("eda-compute-study-error")).toHaveTextContent(
       "study read failed",
     );
     expect(screen.queryByLabelText("Comparator variable")).toBe(null);
+    expect(screen.getAllByText("study read failed")).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it("says a failed job cannot be re-run", async () => {
@@ -490,18 +500,22 @@ describe("ComputeCell", () => {
     );
   });
 
-  it("reports a failed run request", async () => {
+  it("reports a failed run request once, beside the form", async () => {
     server.use(
       http.patch(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
         HttpResponse.json({ detail: "compute rejected" }, { status: 422 }),
       ),
     );
-    render(<ComputeCell siteId="plasmodb" conversationId="conv-1" />);
+    render(<ComputeCell siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(),
+    });
     await fillConfig();
     await userEvent.click(screen.getByRole("button", { name: "Run compute" }));
     expect(await screen.findByTestId("eda-compute-error")).toHaveTextContent(
       "compute rejected",
     );
+    expect(screen.getAllByText("compute rejected")).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it("disables in one group a label the other group holds", async () => {

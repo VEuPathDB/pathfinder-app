@@ -4,10 +4,16 @@ import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/User
 import { consultQuestionSchema } from "@pathfinder/shared/generated/zod/consultQuestionSchema";
 import { proposalSchema } from "@pathfinder/shared/generated/zod/proposalSchema";
 import { userQuestionAnswerSchema } from "@pathfinder/shared/generated/zod/userQuestionAnswerSchema";
-import { getToolName, isToolUIPart, type ToolUIPart, type UIMessage } from "ai";
+import {
+  getToolName,
+  isStaticToolUIPart,
+  isToolUIPart,
+  type ToolUIPart,
+  type UIMessage,
+} from "ai";
 import { z } from "zod";
 
-import { PROPOSAL_TOOL_NAME } from "../../rail/consultActions";
+import { CONSULT_TOOL_NAME, PROPOSAL_TOOL_NAME } from "../../rail/consultActions";
 
 export interface PendingConsult {
   approvalId: string;
@@ -38,35 +44,22 @@ function answersOf(output: unknown): UserQuestionAnswer[] {
   });
 }
 
+export function isConsultCall(part: UIMessage["parts"][number]): part is ToolUIPart {
+  return isStaticToolUIPart(part) && getToolName(part) === CONSULT_TOOL_NAME;
+}
+
 export function findConsultRecap(message: UIMessage): ConsultRecap | null {
   for (const part of message.parts) {
-    if (
-      part.type !== "tool-consult_user" ||
-      !("state" in part) ||
-      part.state !== "output-available"
-    ) {
-      continue;
-    }
-    return {
-      questions: questionsOf("input" in part ? part.input : undefined),
-      answers: answersOf("output" in part ? part.output : undefined),
-    };
+    if (!isConsultCall(part) || part.state !== "output-available") continue;
+    return { questions: questionsOf(part.input), answers: answersOf(part.output) };
   }
   return null;
 }
 
 export function findPendingConsult(message: UIMessage): PendingConsult | null {
   for (const part of message.parts) {
-    if (
-      part.type === "tool-consult_user" &&
-      "state" in part &&
-      part.state === "approval-requested" &&
-      "approval" in part
-    ) {
-      return {
-        approvalId: part.approval.id,
-        questions: questionsOf("input" in part ? part.input : undefined),
-      };
+    if (isConsultCall(part) && part.state === "approval-requested") {
+      return { approvalId: part.approval.id, questions: questionsOf(part.input) };
     }
   }
   return null;

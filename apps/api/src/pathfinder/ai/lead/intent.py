@@ -52,6 +52,24 @@ REQUEST_INTENTS: frozenset[IntentClassification] = frozenset(
     }
 )
 
+ANSWERING_INTENTS: frozenset[IntentClassification] = frozenset(
+    {
+        IntentClassification.CLARIFICATION_RESPONSE,
+        IntentClassification.SLOT_ANSWER,
+        IntentClassification.APPROVAL,
+        IntentClassification.DENIAL,
+        IntentClassification.EXTEND_STRATEGY,
+        IntentClassification.EDIT_STRATEGY,
+    }
+)
+"""The classifications of a message that can answer a question the thread asked.
+
+Any classification in this set, first or later, closes the questions open when
+the message arrived, and never one asked later under the same message. A new
+request answers none: the questions and this message's answer to them go. Over
+a strategy with no step the old request goes too; over steps it stays.
+"""
+
 
 class UserIntent(CamelModel):
     """The Lead's typed parsing of the latest user message.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Mapping
 from enum import StrEnum
 from typing import Literal
 from uuid import UUID
@@ -12,16 +12,16 @@ from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
-from pathfinder.ai.lead.intent import (
-    REQUEST_INTENTS,
-    IntentClassification,
-    UserIntent,
+from pathfinder.ai.graph.turn_records import (
+    AnsweredQuestions,
+    TurnMarkers,
+    ZeroResultStep,
 )
+from pathfinder.ai.lead.intent import REQUEST_INTENTS, UserIntent
 from pathfinder.ai.lead.proposal import DeclinedProposal
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.eda_thread import (
     EdaAnalysisFacts,
-    EdaExport,
     OpenEdaAnalysis,
 )
 from pathfinder.domain.strategy.build_outcome import (
@@ -36,9 +36,13 @@ from pathfinder.domain.strategy.constraints import (
     message_states_constraint,
     standing_recommendations,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    renumber_criteria,
+)
+from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.staleness import StaleBuild
-from pathfinder.domain.strategy.step_words import AddedSearch
 
 PhaseName = Literal[
     "frame",
@@ -108,6 +112,14 @@ class VerificationDigest(CamelModel):
     )
     key_findings: list[str] = Field(default_factory=list, max_length=10)
     caveats: list[str] = Field(default_factory=list, max_length=10)
+    pending_checks: list[str] = Field(
+        default_factory=list,
+        description=(
+            "The study steps whose analysis the site did not describe, so their "
+            "check could not run. The runtime sets it from the strategy and "
+            "replaces anything written here."
+        ),
+    )
     constraint_report: list[ConstraintCheck] = Field(
         default_factory=list, max_length=12
     )
@@ -122,122 +134,10 @@ class VerificationDigest(CamelModel):
         ),
     )
 
-
-class ZeroResultStep(CamelModel):
-    """A search that came back empty on some build of this thread."""
-
-    search_name: str
-    criterion_text: str = ""
-
-
-class EnrichmentRun(CamelModel):
-    """One enrichment a durable task answered, and what it named.
-
-    A run that failed names the set it was asked for; a run that finished
-    names the set the worker reports it analysed.
-    """
-
-    task_id: UUID
-    gene_set_id: str
-    gene_set_name: str = ""
-    succeeded: bool = False
-
-
-class CreatedControlSet(CamelModel):
-    """A control set one turn wrote, as a reply that names it must read."""
-
-    model_config = ConfigDict(frozen=True)
-
-    id: str
-    name: str
-
-
-class TurnMarkers(CamelModel):
-    """What the Lead already did for one user message.
-
-    The record belongs to the message it names. A turn answering a different
-    message starts from an empty one, so nothing an earlier message unlocked
-    is still unlocked.
-    """
-
-    message_id: UUID | None = None
-    intent_classified: bool = False
-    framed: bool = False
-    built: bool = False
-    # A write this turn made outside a build: a clear, or an export the site
-    # did not take.
-    edited: bool = False
-    verified: bool = False
-    verification_dispatched: bool = False
-    # A reply that did not match the turn's record is corrected once.
-    contract_refused: bool = False
-    # The EDA datasets this turn opened an analysis on.
-    eda_datasets_opened: list[str] = Field(default_factory=list)
-    # The EDA cut this turn exported, which the turn's case records.
-    eda_export: EdaExport | None = None
-    # Every enrichment answered under this message, in the order the workers
-    # answered them. A reply reads it to say which set an analysis ran on.
-    enrichment_runs: list[EnrichmentRun] = Field(default_factory=list)
-    # Every url, DOI and PMID this turn's own reads retrieved. A reference the
-    # reply cites is checked against it.
-    retrieved_sources: list[str] = Field(default_factory=list)
-    # The control sets this turn wrote. A reply that claims one is checked
-    # against it.
-    created_control_sets: list[CreatedControlSet] = Field(default_factory=list)
-    # The workbench gene sets this turn saved, checked the same way. The
-    # record belongs here, so a turn resumed after a park still holds it.
-    created_gene_sets: list[CreatedGeneSet] = Field(default_factory=list)
-    # The searches the steps this turn added run. The reply names each one.
-    added_searches: list[AddedSearch] = Field(default_factory=list)
-    # The questions this message answers, as the thread held them before it.
-    answered_questions: list[OpenQuestion] = Field(default_factory=list)
-    # The researcher answered a consult, or accepted a proposal, under this message.
-    consulted: bool = False
-    accepted_proposal: bool = False
-
     @property
-    def changed_strategy(self) -> bool:
-        """Whether this turn wrote to the strategy."""
-        return self.built or self.edited
-
-    @property
-    def build_unverified(self) -> bool:
-        """Whether this turn built and no pass checked the result."""
-        return self.built and not (self.verified or self.verification_dispatched)
-
-    def record_eda_dataset_opened(self, dataset_id: str) -> None:
-        """Record the dataset this turn opened an analysis on, once."""
-        if dataset_id not in self.eda_datasets_opened:
-            self.eda_datasets_opened.append(dataset_id)
-
-    def record_retrieved_source(self, reference: str) -> None:
-        """Record one reference this turn retrieved, once."""
-        if reference and reference not in self.retrieved_sources:
-            self.retrieved_sources.append(reference)
-
-    def record_control_set(self, control_set: CreatedControlSet) -> None:
-        """Record one control set this turn wrote, once."""
-        if control_set.id not in {held.id for held in self.created_control_sets}:
-            self.created_control_sets.append(control_set)
-
-    def record_gene_set(self, gene_set: CreatedGeneSet) -> None:
-        """Record one workbench gene set this turn saved, once."""
-        if gene_set.id not in {held.id for held in self.created_gene_sets}:
-            self.created_gene_sets.append(gene_set)
-
-    def record_added_searches(self, searches: Iterable[AddedSearch]) -> None:
-        """Record each added step once, keyed by its step id."""
-        held = {search.step_id for search in self.added_searches}
-        self.added_searches.extend(s for s in searches if s.step_id not in held)
-
-    def record_enrichment_runs(self, runs: Iterable[EnrichmentRun]) -> None:
-        """Add each answered enrichment once, keyed by its task."""
-        known = {run.task_id for run in self.enrichment_runs}
-        for run in runs:
-            if run.task_id in known:
-                continue
-            known.add(run.task_id)
-            self.enrichment_runs.append(run)
+    def passed(self) -> bool:
+        """True when the check succeeded and no step's check is pending."""
+        return self.success and not self.pending_checks
 
 
 class StrategyDomainState(BaseModel):
@@ -265,6 +165,9 @@ class StrategyDomainState(BaseModel):
     spec_before_dispatch: OperationalSpec | None = None
     discovered_searches: dict[str, SearchOverview] = Field(default_factory=dict)
     verification_digest: VerificationDigest | None = None
+    # The revision of the strategy the digest judged. The digest is the verdict
+    # only while the strategy holds that revision.
+    verified_revision: str = ""
     last_build_outcome: BuildOutcome | None = None
     # Recomputed at the start of every Lead turn by comparing the live
     # strategy against ``last_build_outcome``. Never persisted: an edit that
@@ -300,30 +203,15 @@ class StrategyDomainState(BaseModel):
     # accept it: the offer is made again on a new card.
     declined_proposal: DeclinedProposal | None = None
 
-    @property
-    def has_strategy(self) -> bool:
-        """Whether this thread already describes or holds a strategy."""
-        spec = self.operational_spec
-        return bool(spec and spec.criteria) or self.last_build_outcome is not None
-
-    def continues_the_request(self, intent: UserIntent) -> bool:
-        """Whether this message carries the thread's request on.
-
-        Only a question that names the dimension it decides narrows the match:
-        a message answering one of those, or stating nothing of its own,
-        continues the request. A question that names none could be the one this
-        message answers, and where no question was recorded a thread that ended
-        waiting on the user keeps what it states.
-        """
-        asked = [q for q in self.open_questions if q.decides_a_dimension]
-        if len(asked) != len(self.open_questions):
-            return True
-        if not asked:
-            return self.lead_next_state == "await_user" and bool(self.requirements)
-        dimensions = {question.dimension for question in asked}
-        return not intent.explicit_constraints or any(
-            c.kind in dimensions for c in intent.explicit_constraints
-        )
+    def set_the_request_aside(self) -> None:
+        """Forget the request the thread answered and everything stated for it."""
+        self.operational_spec = None
+        self.requirements = []
+        self.recommendations = []
+        self.open_questions = []
+        self.original_request = ""
+        self.last_build_outcome = None
+        self.stale_build = None
 
     def _attributed(
         self, constraints: Iterable[Constraint], message: str
@@ -357,37 +245,55 @@ class StrategyDomainState(BaseModel):
             )
         return attributed
 
-    def record_intent(self, intent: UserIntent, *, request_text: str) -> None:
-        """Take this turn's requirements and the request they belong to.
+    def take_a_new_request(self, *, strategy_has_steps: bool) -> None:
+        """Drop the questions asked about the request a new one sets aside.
 
-        The questions the thread asked are answered by this message, whatever
-        it answers, so nothing waits on them after it.
+        The answer this message gave them goes too. Over a thread whose
+        strategy holds no step the new request also replaces the old one.
         """
-        if (
-            intent.classification is IntentClassification.NEW_STRATEGY
-            and not self.has_strategy
-            and not self.continues_the_request(intent)
-        ):
-            self.requirements = []
-            self.recommendations = []
-            self.original_request = ""
+        self.open_questions = []
+        self.turn_markers.answered = None
+        if not strategy_has_steps:
+            self.set_the_request_aside()
+
+    def record_intent(self, intent: UserIntent, *, request_text: str) -> None:
+        """Take this turn's requirements and the request they belong to."""
         self.record_requirements(
             self._attributed(intent.explicit_constraints, request_text),
         )
         self.record_recommendations()
-        self.turn_markers.answered_questions.extend(self.open_questions)
-        self.open_questions = []
         if not self.original_request and intent.classification in REQUEST_INTENTS:
             self.original_request = request_text
 
+    def answer_open_questions(self, answer: str, *, on_card: bool = False) -> None:
+        """Close every question open now, whatever the answer says.
+
+        A card answers the questions a pass asked under this same message.
+        """
+        self._answer(self.open_questions, answer, on_card=on_card)
+
+    def answer_the_questions_at_arrival(self, answer: str) -> None:
+        """Close the questions this message found open, and no later one."""
+        arrived = set(self.turn_markers.questions_at_arrival)
+        self._answer([q for q in self.open_questions if q.question in arrived], answer)
+
+    def _answer(
+        self, questions: list[OpenQuestion], answer: str, *, on_card: bool = False
+    ) -> None:
+        # A later answer under the same message replaces the record, because
+        # the draft already holds what the earlier one decided.
+        if not questions:
+            return
+        self.turn_markers.answered = AnsweredQuestions(
+            questions=questions, answer=answer, on_card=on_card
+        )
+        self.open_questions = [q for q in self.open_questions if q not in questions]
+
     def record_questions(self, questions: Iterable[OpenQuestion]) -> None:
         """Add each question the thread has not asked already."""
-        asked = {question.question for question in self.open_questions}
         for question in questions:
-            if question.question in asked:
-                continue
-            asked.add(question.question)
-            self.open_questions.append(question)
+            if question.question not in {q.question for q in self.open_questions}:
+                self.open_questions.append(question)
 
     def record_recommendations(self) -> None:
         """Keep the recommendations the thread's requirements leave standing.
@@ -434,8 +340,26 @@ class StrategyDomainState(BaseModel):
     def markers_for(self, message_id: UUID | None) -> TurnMarkers:
         """This turn's markers. The record rotates on a new user message."""
         if self.turn_markers.message_id != message_id:
-            self.turn_markers = TurnMarkers(message_id=message_id)
+            self.turn_markers = TurnMarkers(
+                message_id=message_id,
+                questions_at_arrival=[q.question for q in self.open_questions],
+            )
         return self.turn_markers
+
+    def record_verdict(self, digest: VerificationDigest, *, revision: str) -> None:
+        """Keep a check's digest with the revision of the strategy it judged."""
+        self.verification_digest = digest
+        self.verified_revision = revision
+
+    def verdict_of_the_strategy(self) -> VerificationDigest | None:
+        """The digest of the last check, while the strategy is the one it judged.
+
+        ``answered_graph`` is the tree the strategy holds after every write of
+        this thread and every refresh, so its revision is the live one.
+        """
+        if self.verified_revision != strategy_revision(self.answered_graph):
+            return None
+        return self.verification_digest
 
     def record_zero_results(self, outcome: BuildOutcome) -> None:
         """Add each search this build emptied, once per search."""
@@ -453,6 +377,35 @@ class StrategyDomainState(BaseModel):
                     criterion_text=text_of.get(node.search_name, ""),
                 ),
             )
+
+    def restate_every_record(
+        self,
+        step_id_by_criterion: Mapping[str, str],
+        restated: Callable[[OperationalSpec], OperationalSpec],
+    ) -> None:
+        """Move every spec the turn holds onto the steps that bound its criteria.
+
+        The plan, the answer and the dispatch record take ``restated``. The
+        turn's entry record is only re-keyed, so the ledger still reads what
+        this turn did to the criteria it entered with.
+        """
+        named = set(step_id_by_criterion)
+
+        def _one(
+            spec: OperationalSpec | None,
+            restate: Callable[[OperationalSpec], OperationalSpec],
+        ) -> OperationalSpec | None:
+            if spec is None or named.isdisjoint(c.id for c in spec.criteria):
+                return spec
+            return restate(spec)
+
+        def _rekeyed(spec: OperationalSpec) -> OperationalSpec:
+            return renumber_criteria(spec, dict(step_id_by_criterion))
+
+        self.operational_spec = _one(self.operational_spec, restated)
+        self.answered_spec = _one(self.answered_spec, restated)
+        self.spec_before_dispatch = _one(self.spec_before_dispatch, restated)
+        self.spec_before_turn = _one(self.spec_before_turn, _rekeyed)
 
     def record_criterion(self, criterion: Criterion) -> None:
         """State one criterion on the framed spec, keyed by the step it names.
@@ -497,9 +450,24 @@ class PipelineState(TurnState):
         """What the Lead already did for the message this turn answers."""
         return self.domain.markers_for(self.user_message_id)
 
+    @property
+    def turn_verdict(self) -> VerificationDigest | None:
+        """The verdict on the strategy as it stands, or None."""
+        return self.domain.verdict_of_the_strategy()
+
+    @property
+    def request_the_thread_answers(self) -> str:
+        """The request the thread answers, or this message when none is recorded."""
+        return self.domain.original_request or self.user_prompt
+
     def record_resync(self, outcome: BuildOutcome) -> None:
-        """Take the counts a sync read, and the searches it found empty."""
+        """Take the counts a sync read, and the searches it found empty.
+
+        The counts are read from the strategy as it stands, so the staleness
+        measured against the earlier build no longer applies.
+        """
         self.domain.last_build_outcome = outcome
+        self.domain.stale_build = None
         self.domain.record_zero_results(outcome)
 
     def record_build(self, outcome: BuildOutcome) -> None:

@@ -16,23 +16,20 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
-    DroppedCriterion,
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    eda_backed_drops,
     structure_criteria,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
-from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
-from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools._eda_step_doubles import (
+from pathfinder.tests._support.eda_step_doubles import (
     bound,
     read_detail,
     wire_gene_count,
 )
+from pathfinder.tests._support.run_context import lead_run_context
+from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     combine,
     install_stub_api,
@@ -312,48 +309,6 @@ class TestCombiningTheExportWithTheRoot:
         assert "step_loose" in message
 
 
-async def test_an_export_clears_the_drop_it_answers(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The criterion the drop states is realized once the export lands."""
-    install_stub_api(monkeypatch)
-    ctx = _lead_ctx_over(leaf("step_k1"))
-    ctx.deps.state.domain.operational_spec = OperationalSpec(
-        goal=_GOAL,
-        criteria=[
-            Criterion(id="step_k1", text="kinase domain", search_name="GenesByTaxon")
-        ],
-        dropped=[
-            DroppedCriterion(
-                text="essential in blood stages",
-                reason="EDA-backed criterion",
-                eda_dataset_id=PHENOTYPE_DATASET,
-            ),
-        ],
-    )
-    _wire(monkeypatch)
-
-    await eda_step.create_eda_step(ctx, combine_with_root=CombineOp.INTERSECT)
-
-    assert eda_backed_drops(ctx.deps.state.domain.operational_spec) == []
-
-
-async def test_a_drop_on_another_dataset_stays(monkeypatch: pytest.MonkeyPatch) -> None:
-    install_stub_api(monkeypatch)
-    ctx = _lead_ctx_over(leaf("step_k1"))
-    other = DroppedCriterion(
-        text="febrile samples", reason="EDA-backed criterion", eda_dataset_id="DS_other"
-    )
-    ctx.deps.state.domain.operational_spec = OperationalSpec(
-        goal=_GOAL, criteria=[], dropped=[other]
-    )
-    _wire(monkeypatch)
-
-    await eda_step.create_eda_step(ctx, combine_with_root=CombineOp.INTERSECT)
-
-    assert eda_backed_drops(ctx.deps.state.domain.operational_spec) == [other]
-
-
 async def test_a_plan_that_rewires_built_steps_is_left_alone(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -398,29 +353,3 @@ async def test_a_plan_that_rewires_built_steps_is_left_alone(
     spec = ctx.deps.state.domain.operational_spec
     assert spec is not None
     assert spec.structure == planned
-
-
-async def test_a_bare_export_beside_the_strategy_keeps_the_drop(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A step the strategy does not reach answers no criterion."""
-    install_stub_api(monkeypatch)
-    ctx = _lead_ctx_over(leaf("step_k1"))
-    outstanding = DroppedCriterion(
-        text="essential in blood stages",
-        reason="EDA-backed criterion",
-        eda_dataset_id=PHENOTYPE_DATASET,
-    )
-    ctx.deps.state.domain.operational_spec = OperationalSpec(
-        goal=_GOAL,
-        criteria=[
-            Criterion(id="step_k1", text="kinase domain", search_name="GenesByTaxon")
-        ],
-        dropped=[outstanding],
-    )
-    _wire(monkeypatch)
-
-    await eda_step.create_eda_step(ctx)
-
-    assert len(_graph(ctx).roots) == 2
-    assert eda_backed_drops(ctx.deps.state.domain.operational_spec) == [outstanding]

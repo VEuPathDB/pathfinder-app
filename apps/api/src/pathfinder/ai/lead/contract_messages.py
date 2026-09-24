@@ -8,10 +8,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.state import CreatedControlSet, EnrichmentRun
+from pathfinder.ai.graph.turn_records import CreatedControlSet, EnrichmentRun
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.operational_spec import DroppedCriterion
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.strategy.step_words import AddedSearch
 
@@ -139,22 +139,24 @@ def claimed_frame_message(diff: SpecDiff) -> str:
     )
 
 
-def eda_criterion_not_built_message(dropped: DroppedCriterion) -> str:
-    """Refuse an answer that leaves an EDA-backed criterion for the user.
+def eda_criterion_not_built_message(waiting: Criterion) -> str:
+    """Refuse an answer that leaves a criterion waiting for its analysis.
 
     Only the EDA tools write the analysis document, so a turn that opened no
     analysis on the criterion's dataset has not tried to build it.
     """
+    dataset = waiting.needs_analysis_on
     return (
-        f"The spec drops {dropped.text!r} because its search is EDA-backed, and "
-        f"this turn opened no EDA analysis on dataset {dropped.eda_dataset_id}. "
-        f"Build it now: open_eda_analysis("
-        f'dataset_id="{dropped.eda_dataset_id}"), then set_eda_filters, then '
-        f"preview_eda_subset, then create_eda_step, with replace_step_id when "
-        f"the strategy already holds a step for this criterion. Never ask the "
-        f"user for an analysis specification, and never answer that the "
-        f"criterion cannot be built or mapped: create_eda_step writes that "
-        f"document from the analysis you filtered."
+        f"The spec holds [{waiting.id}] {waiting.text!r}, which only the "
+        f"analysis workflow builds, and this turn opened no EDA analysis on "
+        f"dataset {dataset}. Build it now: open_eda_analysis("
+        f'dataset_id="{dataset}"), then set_eda_filters, then '
+        f"preview_eda_subset, then create_eda_step("
+        f'criterion_id="{waiting.id}"), which puts the step where the '
+        f"structure places it. Never ask the user for an analysis "
+        f"specification, and never answer that the criterion cannot be built "
+        f"or mapped: create_eda_step writes that document from the analysis "
+        f"you filtered."
     )
 
 

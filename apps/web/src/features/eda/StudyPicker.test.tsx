@@ -20,6 +20,7 @@ const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 
 import { useEdaStore } from "@/state/eda";
+import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import { StudyPicker } from "./StudyPicker";
 
 const BASE = "http://localhost:3000";
@@ -166,21 +167,22 @@ describe("StudyPicker", () => {
     expect(useEdaStore.getState().analysis?.entityCounts[0]?.unfilteredCount).toBe(12);
   });
 
-  it("reports a failed search instead of showing an empty list", async () => {
+  it("reports a failed search once, instead of showing an empty list", async () => {
     server.use(
       http.get(`${BASE}/api/v1/eda/studies`, () =>
         HttpResponse.json({ detail: "upstream is down" }, { status: 502 }),
       ),
     );
-    render(<StudyPicker siteId="plasmodb" conversationId="conv-1" />);
+    render(<StudyPicker siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(),
+    });
     await userEvent.type(screen.getByTestId("eda-study-search"), "heat shock");
     expect(await screen.findByTestId("eda-study-search-error")).toHaveTextContent(
       "upstream is down",
     );
     expect(screen.queryByTestId("eda-study-results")).toBe(null);
-    await waitFor(() => {
-      expect(toastError).toHaveBeenCalledWith("upstream is down");
-    });
+    expect(screen.getAllByText("upstream is down")).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it("lists the studies a Retry finds after the first search failed", async () => {

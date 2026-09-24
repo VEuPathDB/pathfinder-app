@@ -17,31 +17,54 @@ from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.usage import UsageLimits
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.strategy import StrategyStepNode
 
 from pathfinder.ai.graph import _lead_model, lead_node
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph.lead_node import _drive_lead_stream
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead import turn_budget
+from pathfinder.ai.lead import (
+    sub_agent_dispatch,
+    sub_agent_stream,
+    sub_agent_tools,
+    turn_budget,
+)
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.ai.tools.toolsets import verification
+from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.graph._approval_turn import Collector, scripted_model
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
+    ADDED_LINE,
     BUDGET,
     OBJECTION,
-    QUESTION,
+    SEARCH,
+    SITE_ID,
     STRATEGY_LINE,
+    TITLE,
+    WORDS,
     built_outcome,
-    built_session,
+    hold_the_built_step,
     objection,
 )
-from pathfinder.tests.unit.ai.lead.conftest import called_tool_names
+from pathfinder.tests.unit.ai.lead.conftest import (
+    called_tool_names,
+    final_result_part,
+)
 
 _PROMPT = "Write me a Python script that reverses a linked list."
 _ANSWER = "answered"
+_BUILD_PROMPT = "Find Aedes genes up at 24 h against 18 h and 36 h."
 # Small enough that the first scripted response passes it.
 _TINY_OFF_TOPIC_CAP = 5
 
@@ -161,33 +184,110 @@ def test_a_question_about_the_data_keeps_the_whole_turn_budget(
     assert capture.response.prose == _ANSWER
 
 
+def _criterion() -> Criterion:
+    return Criterion(
+        id="c_up",
+        text=WORDS,
+        search_name=SEARCH,
+        search_display_name=TITLE,
+    )
+
+
+def _framed_state() -> PipelineState:
+    """A spec an earlier turn framed, ready for this turn to build."""
+    state = _state()
+    state.user_prompt = _BUILD_PROMPT
+    state.domain.operational_spec = OperationalSpec(
+        goal=_BUILD_PROMPT,
+        criteria=[_criterion()],
+        structure=SpecStructure(root=StructureNode(kind="leaf", criterion_id="c_up")),
+    )
+    return state
+
+
+def _build_then_verify(messages: list[ModelMessage]) -> ToolCallPart:
+    """Classify, build, verify; the budget ends the turn before a reply."""
+    called = called_tool_names(messages)
+    if "classify_user_intent" not in called:
+        return ToolCallPart(
+            tool_name="classify_user_intent",
+            args={
+                "intent": {
+                    "classification": "extend_strategy",
+                    "inferredGoal": "genes up at 24 h",
+                },
+            },
+            tool_call_id="call_classify",
+        )
+    if "build_strategy" not in called:
+        return ToolCallPart(
+            tool_name="build_strategy", args={}, tool_call_id="call_build"
+        )
+    return ToolCallPart(
+        tool_name="verify_strategy",
+        args={"reason": "check the built step"},
+        tool_call_id="call_verify",
+    )
+
+
+def _objecting_verifier() -> FunctionModel:
+    return scripted_model(
+        lambda _messages: final_result_part(
+            {"digest": objection().model_dump(by_alias=True, mode="json")}
+        )
+    )
+
+
+async def _push(
+    *, deps: StrategyMutationContext, root: StrategyStepNode
+) -> BuildOutcome:
+    hold_the_built_step(deps.strategy_session, root.id)
+    return built_outcome(root.id)
+
+
+async def _no_gene_set(**_kwargs: object) -> None:
+    return None
+
+
 def test_a_turn_at_its_whole_budget_reports_what_it_built(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The stop names the built step, the check's verdict and FRAME's question."""
+    """The turn builds one step and sees it objected to, then spends its budget."""
     monkeypatch.setattr(
-        lead_node, "lead_usage_limits", lambda: UsageLimits(request_limit=0)
+        lead_node, "lead_usage_limits", lambda: UsageLimits(request_limit=3)
     )
-    model = _classify_then_answer("new_strategy")
-    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
-    state = _state()
-    state.domain.last_build_outcome = built_outcome()
-    state.domain.verification_digest = objection()
-    state.domain.open_questions = [OpenQuestion(question=QUESTION)]
+    lead_model = scripted_model(_build_then_verify)
+    monkeypatch.setattr(_lead_model, "get_mock_model", lambda: lead_model)
+    monkeypatch.setattr(sub_agent_tools, "get_mock_model", _objecting_verifier)
+    monkeypatch.setattr(sub_agent_dispatch, "build_strategy_from_spec", _push)
+    monkeypatch.setattr(
+        sub_agent_dispatch, "import_gene_set_for_conversation", _no_gene_set
+    )
+    writer = Collector()
+    for module in (sub_agent_dispatch, sub_agent_stream):
+        monkeypatch.setattr(module, "get_stream_writer", lambda: writer)
+    state = _framed_state()
+    session = StrategySession(site_id=SITE_ID)
     capture = _LeadRunCapture()
-    emitted: Any = Collector()
-    asyncio.run(
-        _drive_lead_stream(
-            state=state,
-            agent=build_lead_agent(),
-            deps=_deps(state, built_session()),
-            capture=capture,
-            writer=emitted,
-            message_id=uuid4(),
-        ),
-    )
+    emitted: Any = writer
+    with pinned_sub_agent(
+        monkeypatch,
+        "verification",
+        toolsets=[verification.build_toolset()],
+        instructions="Follow the script.",
+    ):
+        asyncio.run(
+            _drive_lead_stream(
+                state=state,
+                agent=build_lead_agent(),
+                deps=_deps(state, session),
+                capture=capture,
+                writer=emitted,
+                message_id=uuid4(),
+            ),
+        )
 
     assert capture.response is not None
     assert capture.response.prose == "\n\n".join(
-        [STRATEGY_LINE, f"Verification objected: {OBJECTION}", QUESTION, BUDGET]
+        [STRATEGY_LINE, ADDED_LINE, f"Verification objected: {OBJECTION}", BUDGET]
     )

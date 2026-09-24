@@ -13,10 +13,8 @@ from collections.abc import Collection
 from pydantic_ai import RunContext
 from pydantic_ai.tools import ToolDefinition
 
-from pathfinder.ai.graph.state import TurnMarkers
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import BUILDING_INTENTS, IntentClassification
-from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 
@@ -63,14 +61,6 @@ UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
 # instructions state, so the turn writes it and calls nothing.
 OFF_TOPIC_TOOLS: frozenset[str] = frozenset()
 
-# An edit and an extension of criteria that exist go through ``edit_strategy``.
-_EDIT_INTENTS: frozenset[IntentClassification] = frozenset(
-    {
-        IntentClassification.EDIT_STRATEGY,
-        IntentClassification.EXTEND_STRATEGY,
-    }
-)
-
 
 def turn_is_classified(deps: LeadDeps) -> bool:
     """Whether this turn's own message carries a classification."""
@@ -103,32 +93,6 @@ def turn_builds(deps: LeadDeps) -> bool:
     )
 
 
-def _step_count(deps: LeadDeps) -> int:
-    graph = deps.runtime.strategy_session.get_graph(None)
-    return 0 if graph is None else len(graph.steps)
-
-
-def _frame_precondition_fails(
-    deps: LeadDeps,
-    ledger: InvestigationLedger,
-    markers: TurnMarkers,
-    steps: int,
-) -> bool:
-    if markers.framed:
-        return True
-    intent = deps.intent
-    spec = ledger.frame.spec
-    if (
-        intent is not None
-        and intent.classification in _EDIT_INTENTS
-        and spec is not None
-        and spec.criteria
-        and steps
-    ):
-        return True
-    return bool(ledger.build.zero_result_steps) and markers.built
-
-
 def verification_pending(deps: LeadDeps) -> bool:
     """Whether this turn's answer was refused before a check passed.
 
@@ -153,15 +117,16 @@ def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
     """
     markers = deps.state.turn_markers
     ledger = derive_ledger(deps.state, deps.intent)
-    steps = _step_count(deps)
+    steps = deps.step_count
     unmet: set[str] = set()
-    if _frame_precondition_fails(deps, ledger, markers, steps):
+    # A strategy that holds a step is changed by an edit, never framed again.
+    if markers.framed or steps:
         unmet.add("frame_problem")
     if steps:
         unmet.add("build_strategy")
     if not ledger.build.needs_recovery:
         unmet.add("recover_failed_steps")
-    if (ledger.build.outcome is None and not steps) or markers.verified:
+    if not steps or markers.verified:
         unmet.add("verify_strategy")
     if not _subset_was_previewed(deps):
         unmet.add("create_eda_step")

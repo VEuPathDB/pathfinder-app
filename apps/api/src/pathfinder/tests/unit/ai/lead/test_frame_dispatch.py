@@ -24,6 +24,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
     requirement,
+    session_with_one_step,
 )
 
 
@@ -76,7 +77,7 @@ async def test_spec_ready_over_an_empty_draft_is_a_retry(
         await run_frame(
             deps=deps,
             parent_tool_call_id="t1",
-            work_order=frame_work_order("frame it", deps.state),
+            work_order=frame_work_order("frame it", deps),
         )
 
     message = str(excinfo.value)
@@ -113,7 +114,7 @@ async def test_the_questions_frame_cannot_answer_are_recorded(
     await run_frame(
         deps=deps,
         parent_tool_call_id="t1",
-        work_order=frame_work_order("frame it", deps.state),
+        work_order=frame_work_order("frame it", deps),
     )
 
     assert [(q.question, q.dimension) for q in deps.state.domain.open_questions] == [
@@ -132,7 +133,7 @@ async def test_a_pass_that_asks_nothing_records_no_question(
     await run_frame(
         deps=deps,
         parent_tool_call_id="t1",
-        work_order=frame_work_order("frame it", deps.state),
+        work_order=frame_work_order("frame it", deps),
     )
 
     assert deps.state.domain.open_questions == []
@@ -148,7 +149,7 @@ async def test_spec_ready_with_one_bound_criterion_passes(
     result = await run_frame(
         deps=deps,
         parent_tool_call_id="t1",
-        work_order=frame_work_order("frame it", deps.state),
+        work_order=frame_work_order("frame it", deps),
     )
 
     assert result == delta
@@ -165,12 +166,12 @@ async def test_second_empty_result_becomes_needs_user(
         await run_frame(
             deps=deps,
             parent_tool_call_id="t1",
-            work_order=frame_work_order("frame it", deps.state),
+            work_order=frame_work_order("frame it", deps),
         )
     result = await run_frame(
         deps=deps,
         parent_tool_call_id="t2",
-        work_order=frame_work_order("again", deps.state),
+        work_order=frame_work_order("again", deps),
     )
 
     assert isinstance(result, FrameResult)
@@ -199,7 +200,7 @@ async def test_a_pass_that_asks_about_nothing_it_bound_is_a_retry(
         await run_frame(
             deps=deps,
             parent_tool_call_id="t1",
-            work_order=frame_work_order("frame it", deps.state),
+            work_order=frame_work_order("frame it", deps),
         )
 
     assert "set_criterion" in str(excinfo.value)
@@ -217,7 +218,7 @@ async def test_a_needs_user_result_over_an_empty_draft_is_not_a_retry(
     result = await run_frame(
         deps=deps,
         parent_tool_call_id="t1",
-        work_order=frame_work_order("frame it", deps.state),
+        work_order=frame_work_order("frame it", deps),
     )
 
     assert result == delta
@@ -236,7 +237,7 @@ async def test_an_exhausted_budget_still_reports_the_draft(
     result = await run_frame(
         deps=deps,
         parent_tool_call_id="t1",
-        work_order=frame_work_order("frame it", deps.state),
+        work_order=frame_work_order("frame it", deps),
     )
 
     assert isinstance(result, FrameResult)
@@ -269,7 +270,7 @@ async def test_a_declaration_below_the_thread_is_raised_to_it(
     result = await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("re-frame after the clarification", deps.state),
+        work_order=frame_work_order("re-frame after the clarification", deps),
         expected_criteria=3,
     )
 
@@ -286,7 +287,7 @@ async def test_the_requirements_the_thread_states_are_the_floor(
     await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("re-frame after the clarification", deps.state),
+        work_order=frame_work_order("re-frame after the clarification", deps),
         expected_criteria=3,
     )
 
@@ -304,7 +305,7 @@ async def test_a_declaration_above_the_thread_stands(
     await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("operationalize the goal", deps.state),
+        work_order=frame_work_order("operationalize the goal", deps),
         expected_criteria=9,
     )
 
@@ -372,7 +373,7 @@ async def test_a_budget_stop_with_progress_is_dispatched_again(
     result = await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("operationalize the goal", deps.state),
+        work_order=frame_work_order("operationalize the goal", deps),
         expected_criteria=3,
     )
 
@@ -384,7 +385,10 @@ async def test_a_budget_stop_with_progress_is_dispatched_again(
 async def test_an_edit_continues_as_an_edit(
     stopping_dispatches: list[PhaseRun],
 ) -> None:
-    deps = _deps()
+    deps = lead_deps(
+        pipeline_state(user_prompt="find kinases"),
+        strategy_session=session_with_one_step(),
+    )
     entered_with = OperationalSpec(
         goal="find the kinases",
         criteria=[
@@ -397,7 +401,7 @@ async def test_an_edit_continues_as_an_edit(
     await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("change the organism", deps.state),
+        work_order=frame_work_order("change the organism", deps),
         expected_criteria=3,
     )
 
@@ -413,7 +417,7 @@ async def test_the_automatic_retry_runs_once_per_turn(
     await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("operationalize the goal", deps.state),
+        work_order=frame_work_order("operationalize the goal", deps),
         expected_criteria=3,
     )
 
@@ -429,7 +433,7 @@ async def test_a_stop_that_bound_nothing_is_not_dispatched_again(
     result = await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("operationalize the goal", deps.state),
+        work_order=frame_work_order("operationalize the goal", deps),
         expected_criteria=3,
     )
 

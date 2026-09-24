@@ -184,9 +184,7 @@ async def _dispatch(
     if guard is not None:
         agent_deps.tool_repetition_guard = guard
     return await stream_sub_agent(
-        run=PhaseRun(
-            "frame", frame_work_order("bind the criteria", deps.state), declared
-        ),
+        run=PhaseRun("frame", frame_work_order("bind the criteria", deps), declared),
         agent_deps=agent_deps,
         parent_tool_call_id="call_frame_1",
         expected_output_type=FrameResult,
@@ -265,7 +263,7 @@ async def test_budget_stopped_dispatch_records_its_usage(
     await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("operationalize the goal", deps.state),
+        work_order=frame_work_order("operationalize the goal", deps),
     )
 
     assert usage_log, "a budget-stopped dispatch must record its usage"
@@ -300,7 +298,7 @@ async def test_a_refused_pass_hands_the_lead_the_refusals_words() -> None:
     result = await run_frame(
         deps=deps,
         parent_tool_call_id="call_frame_1",
-        work_order=frame_work_order("bind the criteria", deps.state),
+        work_order=frame_work_order("bind the criteria", deps),
     )
 
     assert isinstance(result, FrameResult)

@@ -47,6 +47,12 @@ class ExtractedVerification(CamelModel):
     reason: str = ""
     key_findings: list[str] = Field(default_factory=list)
     caveats: list[str] = Field(default_factory=list)
+    pending_checks: list[str] = Field(default_factory=list)
+
+    @property
+    def passed(self) -> bool:
+        """True when the check succeeded and no step's check is pending."""
+        return self.success and not self.pending_checks
 
 
 class EvalExtract(CamelModel):

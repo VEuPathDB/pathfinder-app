@@ -23,7 +23,7 @@ _SEARCH = (
 )
 _ANALYSIS = '{"studyId":"DS_70dd50fed7","descriptor":{"subset":{"descriptor":[]}}}'
 _WDK_STEP_ID = 440185943
-_REFUSAL = "EDA-backed step without an analysis"
+_REFUSAL = "A step without an analysis"
 
 
 @dataclass
@@ -85,7 +85,7 @@ class TestTheCreateCall:
         assert failure is not None
         assert failure.step_id == "step_eda"
         assert _REFUSAL in failure.error
-        assert "create_eda_step" in failure.error
+        assert "Export the step again from an analysis" in failure.error
         assert api.calls == []
 
     async def test_an_authored_analysis_reaches_the_site(

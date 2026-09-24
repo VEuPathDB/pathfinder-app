@@ -37,6 +37,7 @@ export function MemorySearch({
     queryFn: () => searchMemories(trimmed),
     enabled: trimmed.length > 0,
     staleTime: 10_000,
+    meta: { shownInline: true },
   });
 
   const hits = data?.hits ?? [];

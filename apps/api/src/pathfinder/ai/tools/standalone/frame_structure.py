@@ -12,7 +12,11 @@ from pydantic_ai.messages import ToolReturn
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.domain.strategy.combination_check import first_combination_violation
-from pathfinder.domain.strategy.operational_spec import SpecStructure, StructureNode
+from pathfinder.domain.strategy.operational_spec import (
+    SpecStructure,
+    StructureNode,
+    structure_criteria,
+)
 
 
 class SetStructureResult(CamelModel):
@@ -45,6 +49,30 @@ def _refuse_a_tree_that_breaks_a_stated_combination(
         f"The structure is refused: {breach.message}. Restate the tree so "
         f"those criteria sit under one {breach.required.value} branch, and "
         f"combine that branch with the rest."
+    )
+    raise ModelRetry(msg)
+
+
+def _refuse_a_tree_that_leaves_out_an_analysis(
+    state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """A tree names every analysis criterion, bound or waiting for its analysis.
+
+    Such a criterion is realized by the Lead's EDA tools and never by a search
+    this pass binds, so a tree without it loses the comparison.
+    """
+    named = structure_criteria(proposed)
+    left_out = [
+        c.id
+        for c in state.operational_spec_draft.criteria
+        if (c.analysis is not None or c.pending_analysis) and c.id not in named
+    ]
+    if not left_out:
+        return
+    msg = (
+        f"The structure leaves out {left_out}, which the analysis workflow "
+        f"realizes. Put each of them in the tree where the request places it; "
+        f"no other criterion stands for it."
     )
     raise ModelRetry(msg)
 
@@ -110,6 +138,7 @@ async def set_structure(
     proposed = SpecStructure(root=root)
     _refuse_a_tree_that_breaks_a_stated_combination(ctx.deps.agent_state, proposed)
     _refuse_a_node_the_role_contradicts(ctx.deps.agent_state, proposed)
+    _refuse_a_tree_that_leaves_out_an_analysis(ctx.deps.agent_state, proposed)
     ctx.deps.agent_state.frame_set_structure(proposed)
     combined = _count_criteria(root)
     return with_summary(

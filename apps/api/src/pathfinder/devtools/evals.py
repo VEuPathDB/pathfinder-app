@@ -81,7 +81,7 @@ async def _show(staging_id: UUID) -> int:
         print(f"\nstructure  : {extract.strategy.structure}")
         print(f"steps      : {extract.strategy.step_count}")
     if extract.verification is not None:
-        print(f"verified   : {extract.verification.success}")
+        print(f"verified   : {extract.verification.passed}")
         print(f"reason     : {extract.verification.reason}")
     print("\nsuggested expectation:")
     print(default_expectation(extract).model_dump_json(indent=2, by_alias=True))

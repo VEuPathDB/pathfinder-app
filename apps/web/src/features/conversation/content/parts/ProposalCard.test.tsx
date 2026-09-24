@@ -1,16 +1,32 @@
 /**
  * @vitest-environment jsdom
  */
-import type { UIMessage } from "ai";
-import { beforeEach, describe, expect, it } from "vitest";
+import { useChat } from "@ai-sdk/react";
+import {
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+  type ChatTransport,
+  type UIMessage,
+  type UIMessageChunk,
+} from "ai";
+import { act } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import { useConsultAnswersStore } from "@/state/useConsultAnswersStore";
 
 import { buildChatRequestBody } from "../../runtime/buildRequestBody";
-import type { ChatHelpers } from "../../runtime/chatHelpersContext";
-import { findProposal, type ProposalCardData } from "./consultData";
-import { ProposalCardView } from "./ProposalCard";
+import {
+  ChatHelpersProvider,
+  type ChatHelpers,
+} from "../../runtime/chatHelpersContext";
+import { findProposal } from "./consultData";
+
+vi.mock("@assistant-ui/react", () => ({
+  useAuiState: (select: (s: { message: { id: string } }) => unknown) =>
+    select({ message: { id: "m1" } }),
+}));
+
+import { ProposalCard } from "./ProposalCard";
 
 const CALL_ID = "call_propose_changes";
 const QUESTION =
@@ -46,18 +62,12 @@ function message(part: Part): UIMessage {
   return { id: "m1", role: "assistant", parts: [part] };
 }
 
-function cardOf(part: Part): ProposalCardData {
-  const card = findProposal(message(part), CALL_ID);
-  if (card === null) throw new Error("the message carries no proposal card");
-  return card;
-}
-
 type Response = Parameters<ChatHelpers["addToolApprovalResponse"]>[0];
 
-function chatStub(responses: Response[]): ChatHelpers {
+function chatStub(part: Part, responses: Response[]): ChatHelpers {
   return {
     id: "conv-1",
-    messages: [],
+    messages: [message(part)],
     status: "ready",
     error: undefined,
     setMessages: () => {},
@@ -74,11 +84,41 @@ function chatStub(responses: Response[]): ChatHelpers {
 }
 
 function renderCard(part: Part, responses: Response[] = []): void {
-  render(<ProposalCardView card={cardOf(part)} chat={chatStub(responses)} />);
+  render(
+    <ChatHelpersProvider value={chatStub(part, responses)}>
+      <ProposalCard toolCallId={CALL_ID} />
+    </ChatHelpersProvider>,
+  );
+}
+
+function openTurn(): ChatTransport<UIMessage>["sendMessages"] {
+  return vi.fn(async () => new ReadableStream<UIMessageChunk>());
+}
+
+function LiveThread({
+  sendMessages,
+}: {
+  sendMessages: ChatTransport<UIMessage>["sendMessages"];
+}) {
+  const chat = useChat({
+    id: "conv-1",
+    messages: [message(PENDING)],
+    transport: { sendMessages, reconnectToStream: async () => null },
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+  });
+  return (
+    <ChatHelpersProvider value={chat}>
+      <ProposalCard toolCallId={CALL_ID} />
+    </ChatHelpersProvider>
+  );
 }
 
 beforeEach(() => {
   useConsultAnswersStore.setState({ byApprovalId: {} });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("the proposal card shows the offer", () => {
@@ -92,6 +132,20 @@ describe("the proposal card shows the offer", () => {
     expect(screen.getByRole("button", { name: "Yes" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "No" })).toBeEnabled();
     expect(screen.getByRole("textbox", { name: "Add a note" })).toBeInTheDocument();
+  });
+
+  it("renders two identical changes as two items under distinct keys", () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const change = "Require 1:1:1 syntenic orthologs in all three species";
+    renderCard({
+      ...PENDING,
+      input: { question: QUESTION, proposedChanges: [change, change] },
+    });
+    const changes = within(screen.getByRole("list", { name: "Proposed changes" }))
+      .getAllByRole("listitem")
+      .map((item) => item.textContent);
+    expect(changes).toEqual([change, change]);
+    expect(logged.mock.calls.flat().join(" ")).not.toContain("same key");
   });
 
   it("shows the answer instead of the buttons once the card is declined", () => {
@@ -171,6 +225,41 @@ describe("the researcher's answer reaches the turn", () => {
         ],
       },
     });
+  });
+
+  it("posts No with an empty note as a denial with no reason", () => {
+    const responses: Response[] = [];
+    renderCard(PENDING, responses);
+    fireEvent.click(screen.getByRole("button", { name: "No" }));
+
+    expect(responses).toEqual([{ id: "approval-7", approved: false }]);
+    expect(useConsultAnswersStore.getState().byApprovalId).toEqual({});
+  });
+
+  it("posts Yes with an empty note as an answer whose note is empty", () => {
+    const responses: Response[] = [];
+    renderCard(PENDING, responses);
+    fireEvent.click(screen.getByRole("button", { name: "Yes" }));
+
+    expect(responses).toEqual([{ id: "approval-7", approved: true }]);
+    expect(useConsultAnswersStore.getState().answersFor("approval-7")).toEqual([
+      { questionId: "proposal", prompt: QUESTION, chosenLabels: ["Yes"], note: "" },
+    ]);
+  });
+
+  it("sends one approval and opens one turn on a double click of Yes", async () => {
+    const sendMessages = openTurn();
+    render(<LiveThread sendMessages={sendMessages} />);
+    const yes = screen.getByRole("button", { name: "Yes" });
+
+    fireEvent.click(yes);
+    fireEvent.click(yes);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    expect(sendMessages).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("proposal-decision")).toHaveTextContent("You said yes.");
   });
 
   it("sends no answers with a declined card", () => {

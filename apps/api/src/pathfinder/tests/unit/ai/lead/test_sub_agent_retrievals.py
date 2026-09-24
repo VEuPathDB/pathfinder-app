@@ -86,7 +86,7 @@ async def _dispatch(deps: LeadDeps) -> None:
     await run_frame(
         deps=deps,
         parent_tool_call_id="t1",
-        work_order=frame_work_order("frame it", deps.state),
+        work_order=frame_work_order("frame it", deps),
     )
 
 

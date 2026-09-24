@@ -37,6 +37,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.tests._support.tool_exchange import tool_exchange
 
 _PF = "Plasmodium falciparum 3D7"
@@ -89,7 +90,14 @@ def _edit_order() -> str:
             root=StructureNode(kind="leaf", criterion_id=_CRITERION)
         ),
     )
-    return edit_work_order("swap the organism", "keep the rest", spec)
+    return edit_work_order(
+        "swap the organism",
+        "keep the rest",
+        spec,
+        pending=SpecDiff(),
+        answered=spec,
+        answer=None,
+    )
 
 
 def _oversized_listing() -> list[str]:

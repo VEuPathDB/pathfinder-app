@@ -165,6 +165,7 @@ def test_a_saved_set_is_served_while_a_build_waits_for_its_check() -> None:
     deps = _deps(
         classification=IntentClassification.NEW_STRATEGY,
         domain=StrategyDomainState(last_build_outcome=BuildOutcome()),
+        with_steps=True,
     )
     deps.state.turn_markers.built = True
     deps.state.turn_markers.contract_refused = True
@@ -180,6 +181,7 @@ def test_a_verification_that_ran_and_failed_keeps_the_gate_closed() -> None:
     deps = _deps(
         classification=IntentClassification.NEW_STRATEGY,
         domain=StrategyDomainState(last_build_outcome=BuildOutcome()),
+        with_steps=True,
     )
     deps.state.turn_markers.built = True
     deps.state.turn_markers.contract_refused = True
@@ -297,13 +299,14 @@ def test_verify_is_hidden_until_something_is_built() -> None:
     assert "verify_strategy" not in _offered(deps)
 
 
-def test_verify_is_offered_once_a_build_recorded_an_outcome() -> None:
+def test_verify_is_hidden_for_a_build_outcome_with_no_step() -> None:
+    """A recorded build is no strategy: only a step on the live graph is."""
     deps = _deps(
         classification=IntentClassification.NEW_STRATEGY,
         domain=StrategyDomainState(last_build_outcome=BuildOutcome()),
     )
 
-    assert "verify_strategy" in _offered(deps)
+    assert "verify_strategy" not in _offered(deps)
 
 
 def test_verify_is_offered_for_a_step_exported_without_a_build() -> None:

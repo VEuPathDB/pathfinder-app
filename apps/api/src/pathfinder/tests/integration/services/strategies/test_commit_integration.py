@@ -51,8 +51,10 @@ from pathfinder.services.strategies.commit import (
     apply_operations_and_commit,
 )
 from pathfinder.services.strategies.context import StrategyMutationContext
-from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.wdk_write_stubs import RecordedPushes, landed_pushes
+
+_PROMPT = "find kinases expressed in blood stages"
 
 
 @dataclass
@@ -180,25 +182,6 @@ class _CountingAPI:
         )
 
 
-async def _fake_sync(
-    *,
-    graph: Any,
-    sync_state: Any,
-    site_id: str,
-    strategy_name: str | None = None,
-) -> SyncResult:
-    del graph, sync_state, site_id, strategy_name
-    return SyncResult(
-        wdk_strategy_id=42,
-        wdk_url="http://test",
-        root_step_id=0,
-        counts={},
-        root_count=None,
-        zero_step_ids=[],
-        step_count=0,
-    )
-
-
 def _patch_strategy_api(monkeypatch: pytest.MonkeyPatch, api: _CountingAPI) -> None:
     """Serve ``api`` to the commit path, and let every step count as complete."""
 
@@ -215,10 +198,15 @@ def _patch_strategy_api(monkeypatch: pytest.MonkeyPatch, api: _CountingAPI) -> N
 
 
 @pytest.fixture
-def stub_api(monkeypatch: pytest.MonkeyPatch) -> _CountingAPI:
+def pushes() -> RecordedPushes:
+    return landed_pushes(42)
+
+
+@pytest.fixture
+def stub_api(monkeypatch: pytest.MonkeyPatch, pushes: RecordedPushes) -> _CountingAPI:
     api = _CountingAPI()
     _patch_strategy_api(monkeypatch, api)
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _fake_sync)
+    monkeypatch.setattr(commit, "sync_strategy_for_site", pushes.sync)
     return api
 
 
@@ -328,6 +316,7 @@ def _build_deps(
         strategy_session=session,
         conversation_id=conv_id,
         db_session_factory=db_session_factory,
+        user_prompt=_PROMPT,
     )
 
 
@@ -336,6 +325,7 @@ async def test_delete_collapse_combine_drops_wdk_steps_and_persists_ast(
     session_maker: async_sessionmaker[AsyncSession],
     seed_user: User,
     stub_api: _CountingAPI,
+    pushes: RecordedPushes,
 ) -> None:
     a = _leaf("step_a")
     b = _leaf("step_b")
@@ -364,6 +354,7 @@ async def test_delete_collapse_combine_drops_wdk_steps_and_persists_ast(
 
     assert sorted(result.dropped_step_ids) == ["step_a", "step_c"]
     assert _orphaned(stub_api) == [[100, 300]]
+    assert pushes.pushed == [(None, _PROMPT)]
 
     async with session_maker() as fresh:
         repo = ConversationRepository(fresh)

@@ -8,27 +8,16 @@ from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.state import (
-    CreatedControlSet,
-    EnrichmentRun,
-    StrategyDomainState,
-)
+from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.graph.turn_records import CreatedControlSet, EnrichmentRun
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.reply_claims import CitedSource
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import (
-    LeadResponse,
-    LeadTurnState,
-    reconcile,
-    turn_record,
-)
+from pathfinder.ai.lead.turn_contract import LeadResponse, LeadTurnState, reconcile
+from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import OpenQuestion
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-    DroppedCriterion,
-    OperationalSpec,
-)
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -106,10 +95,6 @@ AN_ESSAY = "A linked list is a chain of nodes. " * 20
 
 DATASET = "DS_70dd50fed7"
 CRITERION = "essential in blood stages"
-_DROP_REASON = (
-    "EDA-backed criterion: the Lead builds it with open_eda_analysis, "
-    "set_eda_filters, preview_eda_subset and create_eda_step."
-)
 FAILED_RUN = EnrichmentRun(
     task_id=UUID("0c6100d2-0000-4000-8000-0000000000a1"),
     gene_set_id="gs-requested",
@@ -225,19 +210,12 @@ def off_topic_deps(
     return deps
 
 
-def _eda_spec(*, dropped: bool = True) -> OperationalSpec:
+def _eda_spec(*, waiting: bool = True) -> OperationalSpec:
+    kinases = Criterion(id="step_k1", text="PF00069 kinases", search_name="GenesByText")
+    essential = Criterion(id="c_essential", text=CRITERION, needs_analysis_on=DATASET)
     return OperationalSpec(
         goal="essential kinases",
-        criteria=[
-            Criterion(id="step_k1", text="PF00069 kinases", search_name="GenesByText"),
-        ],
-        dropped=[
-            DroppedCriterion(
-                text=CRITERION, reason=_DROP_REASON, eda_dataset_id=DATASET
-            ),
-        ]
-        if dropped
-        else [],
+        criteria=[kinases, essential] if waiting else [kinases],
     )
 
 
@@ -259,14 +237,14 @@ def _eda_session() -> StrategySession:
 
 def eda_deps(
     *,
-    dropped: bool = True,
+    waiting: bool = True,
     classification: IntentClassification = IntentClassification.EDIT_STRATEGY,
 ) -> LeadDeps:
     deps = lead_deps(
         pipeline_state(
             user_prompt="replace the unfiltered step with the export",
             user_message_id=uuid4(),
-            domain=StrategyDomainState(operational_spec=_eda_spec(dropped=dropped)),
+            domain=StrategyDomainState(operational_spec=_eda_spec(waiting=waiting)),
         ),
         intent=user_intent(classification),
         strategy_session=_eda_session(),

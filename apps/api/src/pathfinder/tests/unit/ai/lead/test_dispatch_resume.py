@@ -377,7 +377,7 @@ async def test_the_stored_dispatch_arguments_drive_the_re_entry(
         waiting = await run_frame(
             deps=deps,
             parent_tool_call_id="lead_call_frame",
-            work_order=frame_work_order("operationalize the goal", deps.state),
+            work_order=frame_work_order("operationalize the goal", deps),
             expected_criteria=5,
         )
         assert isinstance(waiting, SubAgentApprovalWait)

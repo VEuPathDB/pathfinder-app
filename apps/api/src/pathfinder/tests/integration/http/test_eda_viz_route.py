@@ -17,8 +17,8 @@ from veupathdb.eda import (
     EdaClient,
     EdaComparator,
     EdaComputation,
-    EdaComputationDescriptor,
     EdaDifferentialExpressionConfig,
+    EdaDifferentialExpressionDescriptor,
     EdaLabeledRange,
     EdaVariableSpec,
 )
@@ -48,7 +48,7 @@ def _analysis(*, with_computation: bool) -> EdaAnalysisDetail:
         [
             EdaComputation(
                 computation_id="c1",
-                descriptor=EdaComputationDescriptor(
+                descriptor=EdaDifferentialExpressionDescriptor(
                     configuration=EdaDifferentialExpressionConfig(
                         identifier_variable=EdaVariableSpec(
                             entity_id=ENTITY, variable_id="VAR_gene"

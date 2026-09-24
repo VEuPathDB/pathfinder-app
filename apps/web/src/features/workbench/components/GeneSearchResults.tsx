@@ -96,6 +96,7 @@ function GeneRow({
         type="checkbox"
         checked={selected}
         onChange={onToggle}
+        aria-label={`Select ${gene.geneId}`}
         className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-border"
       />
       <div className="min-w-0 flex-1">

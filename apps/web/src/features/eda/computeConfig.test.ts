@@ -299,6 +299,28 @@ describe("computeDraftOf", () => {
     });
   });
 
+  it("reads the comparison past a pass compute the site's app added", () => {
+    const comparing = descriptorComparing(["24h pbm"], ["18h pbm"]);
+    const edited = {
+      ...comparing,
+      computations: [
+        { computationId: "k3x9q", descriptor: { type: "pass" }, visualizations: [] },
+        ...comparing.computations,
+      ],
+    };
+
+    expect(computeDraftOf(edited)).toEqual({
+      identifierEntityId: "ENT_fd574cd6",
+      identifierVariableId: "VEUPATHDB_GENE_ID",
+      valueVariableId: "SEQUENCE_READ_COUNT_SENSE",
+      comparatorEntityId: "ENT_8151325d",
+      comparatorVariableId: "VAR_timepoint",
+      groupA: ["24h pbm"],
+      groupB: ["18h pbm"],
+      method: "limma",
+    });
+  });
+
   it("is null for an analysis with no compute", () => {
     expect(computeDraftOf({ subset: { descriptor: [] }, computations: [] })).toBe(null);
   });

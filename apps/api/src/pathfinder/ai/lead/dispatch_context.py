@@ -23,6 +23,10 @@ from pathfinder.domain.strategy.constraints import (
     organism_hints_from,
 )
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
+from pathfinder.domain.strategy.spec_reconciliation import (
+    spec_without_pending_analyses,
+)
 
 
 def framing_goal(state: PipelineState) -> str:
@@ -71,7 +75,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
         retrieved_memories=deps.retrieved_memories,
         conversation_id=state.conversation_id,
         db_session_factory=runtime.db_session_factory,
-        user_prompt=state.user_prompt,
+        user_prompt=state.request_the_thread_answers,
     )
 
 
@@ -131,6 +135,21 @@ def record_the_spec_the_dispatch_found(
     found = deps.state.domain.operational_spec
     deps.state.domain.spec_before_dispatch = (
         None if found is None else found.model_copy(deep=True)
+    )
+
+
+def the_edit_the_strategy_owes(
+    state: PipelineState, found: OperationalSpec
+) -> tuple[OperationalSpec, SpecDiff]:
+    """The spec the strategy answers to, and what ``found`` states beyond it.
+
+    A criterion an earlier pass framed and never pushed is the edit's to build,
+    so every pass of the edit is shown it. A criterion waiting for its analysis
+    is the EDA tools' to build, so no push carries it.
+    """
+    answered = state.domain.answered_spec or found
+    return answered, diff_specs(
+        spec_without_pending_analyses(answered), spec_without_pending_analyses(found)
     )
 
 

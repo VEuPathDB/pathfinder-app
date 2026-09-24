@@ -6,7 +6,8 @@ from __future__ import annotations
 import pytest
 
 from pathfinder.ai.lead.reply_claims import ends_with_a_question
-from pathfinder.ai.lead.turn_contract import reconcile, turn_record
+from pathfinder.ai.lead.turn_contract import reconcile
+from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (

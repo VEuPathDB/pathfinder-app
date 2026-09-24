@@ -13,7 +13,7 @@ from pydantic_ai.toolsets import AbstractToolset, WrapperToolset
 from pydantic_ai.toolsets.abstract import ToolsetTool
 from pydantic_core import from_json
 
-from pathfinder.ai.graph.state import TurnMarkers
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, ToolCharge
 
 # The served reads whose answers carry a reference the reply may cite.

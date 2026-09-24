@@ -161,7 +161,11 @@ def test_verify_reads_a_combination_by_its_operator_and_its_arithmetic() -> None
 def test_verify_reads_the_intent_as_the_request_and_the_users_constraints() -> None:
     guidance = " ".join(_VERIFICATION_INSTRUCTIONS.split())
 
-    assert "the request plus the user-explicit constraints" in guidance
+    assert (
+        "The intent you verify is the researcher's request, pinned under its own "
+        "heading, plus the user-explicit constraints in the ledger."
+    ) in guidance
+    assert "where it and the request differ, the request decides" in guidance
     assert "A criterion the spec dropped is not part of the intent" in guidance
     assert "A request that names no organism cannot fail on species" in guidance
 

@@ -13,6 +13,7 @@ from pydantic import Field
 from veupathdb.domain.parameters import to_wire
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 __all__ = ["CriterionChange", "CriterionDisposition", "SpecDiff", "diff_specs"]
@@ -108,6 +109,8 @@ def _change_for(before: Criterion, after: Criterion | None) -> CriterionChange:
             disposition="dropped",
             reason=before.text,
         )
+    if before.analysis is not None or after.analysis is not None:
+        return _analysis_change(before, after)
     before_params = _wire(before)
     after_params = _wire(after)
     rebound = before.search_name != after.search_name
@@ -126,6 +129,24 @@ def _change_for(before: Criterion, after: Criterion | None) -> CriterionChange:
         removed_params=removed,
         rebound_search=rebound,
     )
+
+
+def _analysis_change(before: Criterion, after: Criterion) -> CriterionChange:
+    """An analysis is compared by what it selects, never by its document.
+
+    Each compute replaces the one computation an analysis holds, so two
+    exports share an analysis id, and the document a step carries names none.
+    A binding that selects other genes is restated whole.
+    """
+    if before.search_name == after.search_name and _meaning(before) == _meaning(after):
+        return CriterionChange(criterion_id=before.id, disposition="kept")
+    return CriterionChange(
+        criterion_id=before.id, disposition="changed", rebound_search=True
+    )
+
+
+def _meaning(criterion: Criterion) -> AnalysisBinding | None:
+    return None if criterion.analysis is None else criterion.analysis.meaning()
 
 
 def _wire(criterion: Criterion) -> dict[str, str]:

@@ -26,6 +26,16 @@ def drop_criterion(
     binding. The criterion and its open params are removed (so it no longer
     blocks the build) and recorded in ``dropped`` to surface to the user."""
     state = ctx.deps.agent_state
+    if any(
+        c.id == criterion_id and c.analysis is not None
+        for c in state.operational_spec_draft.criteria
+    ):
+        msg = (
+            f"{criterion_id} is the analysis the Lead exported, and framing never "
+            f"removes it: the Lead removes it with delete_step, which the "
+            f"researcher approves. State it kept and place it in the structure."
+        )
+        raise ModelRetry(msg)
     open_saved = next(
         (
             c

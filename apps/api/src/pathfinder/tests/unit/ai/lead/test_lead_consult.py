@@ -26,6 +26,7 @@ from pathfinder.tests._support.tool_returns import returned, summary_text
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
+    session_with_one_step,
 )
 
 
@@ -217,3 +218,31 @@ def test_the_call_takes_only_questions_and_says_where_context_goes() -> None:
     assert schema["additionalProperties"] is False
     assert tool.description is not None
     assert "question's ``context``" in tool.description
+
+
+@pytest.mark.asyncio
+async def test_answers_over_a_strategy_with_steps_route_to_the_edit() -> None:
+    """A strategy that holds a step is changed by an edit, never framed again."""
+    state = _state()
+    state.pending_approval = PendingApproval(
+        phase="lead", tool_call_id="call_1", tool_name="consult_user"
+    )
+    state.user_question_answers = {
+        "call_1": [
+            UserQuestionAnswer(
+                question_id="q1",
+                prompt="Fold-change threshold?",
+                chosen_labels=["2-fold"],
+            ),
+        ],
+    }
+    ctx = run_context_for(
+        lead_deps(state, strategy_session=session_with_one_step()), "call_1"
+    )
+
+    result = await consult_user(ctx, questions=_QUESTIONS)
+
+    assert summary_text(result) == (
+        'The user answered your questions: "Fold-change threshold?" -> 2-fold. '
+        "Now run edit_strategy honoring these as hard constraints."
+    )

@@ -151,7 +151,7 @@ export function CanvasTopbar({
         <span data-testid="canvas-topbar-step-count">
           {stepCount} {stepCount === 1 ? "step" : "steps"}
         </span>
-        <span aria-hidden>·</span>
+        <span aria-hidden>-</span>
         <SyncStatusPill state={syncState} onRetry={onRetry} />
       </div>
       <div className="ml-auto flex items-center gap-1">

@@ -32,7 +32,7 @@ export interface EdaWorkbenchProps {
 export function EdaWorkbench({ siteId, conversationId }: EdaWorkbenchProps) {
   const queryClient = useQueryClient();
   const options = conversationEdaOptions(conversationId);
-  const bindingQuery = useQuery(options);
+  const bindingQuery = useQuery({ ...options, meta: { shownInline: true } });
   const analysis = useEdaStore((s) => s.analysis);
   const applyAnalysisState = useEdaStore((s) => s.applyAnalysisState);
 
@@ -41,13 +41,6 @@ export function EdaWorkbench({ siteId, conversationId }: EdaWorkbenchProps) {
   if (fetched !== null && hydrated !== fetched) {
     setHydrated(fetched);
     queueMicrotask(() => applyAnalysisState(fetched));
-  }
-
-  const [reported, setReported] = useState<unknown>(null);
-  if (bindingQuery.error != null && reported !== bindingQuery.error) {
-    setReported(bindingQuery.error);
-    const message = toUserMessage(bindingQuery.error, READ_FAILED);
-    queueMicrotask(() => toast.error(message));
   }
 
   const unbind = useMutation({

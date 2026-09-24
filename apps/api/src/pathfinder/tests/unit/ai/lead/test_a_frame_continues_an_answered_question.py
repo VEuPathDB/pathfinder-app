@@ -9,116 +9,68 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from veupathdb.domain.parameters import StringValue
-from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
+from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.graph.turn_records import AnsweredQuestions
 from pathfinder.ai.lead.deltas import FrameResult
-from pathfinder.ai.lead.dispatch_messages import (
-    ContinuationReason,
-    frame_continuation_work_order,
-)
+from pathfinder.ai.lead.dispatch_messages import budget_stop_work_order
 from pathfinder.ai.lead.frame_dispatch import frame_work_order
-from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.ai.lead.lead_tools import classify_user_intent
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-    OpenSlot,
-    OperationalSpec,
-    SpecStructure,
+from pathfinder.ai.lead.intent import IntentClassification
+from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.tests.unit.ai.lead._answered_draft import (
+    ANSWER,
+    BOUND,
+    OPEN,
+    OPEN_PARAM,
+    QUESTION,
+    answering_deps,
+    classify,
+    draft_deps,
+    framed,
 )
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._disagreement_facts import spec_facts
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
+    built_spec,
+    built_tree,
     declared,
-    joined,
     kept,
-    leaf,
     session_holding,
 )
-from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
-
-_BOUND = ["c_signal", "c_stage", "c_conserved", "c_secreted"]
-_OPEN = "c_localised"
-_OPEN_PARAM = "evidence"
-_QUESTION = OpenQuestion(
-    question="No GPI-anchor search is realizable; use signal-peptide evidence?",
-    dimension=ConstraintKind.DATA_TYPE,
-    recommended_value="signal peptide",
+from pathfinder.tests.unit.ai.lead.conftest import (
+    lead_deps,
+    pipeline_state,
+    session_with_one_step,
 )
-_ANSWER = "Go with your recommendation"
 
-
-def _bound(criterion_id: str) -> Criterion:
-    return Criterion(
-        id=criterion_id,
-        text=f"{criterion_id} property",
-        search_name=f"GenesBy_{criterion_id}",
-        resolved_params={"value": StringValue(value=criterion_id)},
-    )
-
-
-def _localised(evidence: str | None) -> Criterion:
-    return Criterion(
-        id=_OPEN,
-        text="localised to the surface",
-        search_name="GenesBySignalPeptide",
-        resolved_params={}
-        if evidence is None
-        else {_OPEN_PARAM: StringValue(value=evidence)},
-        open_params=[]
-        if evidence is not None
-        else [OpenSlot(criterion_id=_OPEN, param_name=_OPEN_PARAM)],
-    )
-
-
-def _framed(evidence: str | None) -> OperationalSpec:
-    """Four bound criteria and the localisation criterion, intersected."""
-    root = leaf(_BOUND[0])
-    for criterion_id in [*_BOUND[1:], _OPEN]:
-        root = joined(CombineOp.INTERSECT, root, leaf(criterion_id))
-    return OperationalSpec(
-        goal="surface vaccine candidates",
-        criteria=[*(_bound(cid) for cid in _BOUND), _localised(evidence)],
-        structure=SpecStructure(root=root),
-    )
-
-
-def _answering_state() -> PipelineState:
-    """The turn after FRAME asked: the question is answered by this message."""
-    state = pipeline_state(
-        user_prompt=_ANSWER,
-        domain=StrategyDomainState(
-            operational_spec=_framed(None), open_questions=[_QUESTION]
-        ),
-    )
-    state.user_message_id = uuid4()
-    _classify(state)
-    return state
-
-
-def _classify(state: PipelineState) -> None:
-    classify_user_intent(
-        run_context_for(lead_deps(state), "t_classify"),
-        UserIntent(
-            classification=IntentClassification.CLARIFICATION_RESPONSE,
-            inferred_goal="use signal-peptide evidence",
-        ),
-    )
+_ASKED_THIS_TURN = OpenQuestion(question="Which life-cycle stage decides c_stage?")
+_FRESH = "Operationalize into criteria"
 
 
 def test_classifying_the_answer_keeps_the_questions_it_answers() -> None:
-    state = _answering_state()
+    state = answering_deps().state
 
     assert state.domain.open_questions == []
-    assert state.turn_markers.answered_questions == [_QUESTION]
+    assert state.turn_markers.answered == AnsweredQuestions(
+        questions=[QUESTION], answer=ANSWER
+    )
+
+
+def test_a_second_classification_keeps_a_question_asked_this_turn_open() -> None:
+    deps = draft_deps("find surface proteins", domain=StrategyDomainState())
+    classify(deps, IntentClassification.NEW_STRATEGY, call_id="c1")
+    deps.state.domain.operational_spec = framed(None)
+    deps.state.domain.record_questions([_ASKED_THIS_TURN])
+
+    classify(deps, IntentClassification.EXTEND_STRATEGY, call_id="c2")
+
+    assert deps.state.domain.open_questions == [_ASKED_THIS_TURN]
+    assert deps.state.turn_markers.answered is None
 
 
 def test_the_order_after_an_answer_lists_the_bound_criteria_and_the_answer() -> None:
-    order = frame_work_order("proceed with signal-peptide evidence", _answering_state())
+    order = frame_work_order("proceed with signal-peptide evidence", answering_deps())
 
     assert order.startswith(
         "FRAME work order: the previous pass ended with a question the "
@@ -128,44 +80,91 @@ def test_the_order_after_an_answer_lists_the_bound_criteria_and_the_answer() -> 
         "4 criteria are bound already. Do NOT call search_for_searches or "
         "set_criterion for any of them unless the answer below names it:"
     ) in order
-    for criterion_id in _BOUND:
+    for criterion_id in BOUND:
         assert f"- [{criterion_id}] {criterion_id} property -> " in order
     assert (
         "These criteria hold open parameters the answer may decide:\n"
-        f"- [{_OPEN}] localised to the surface -> GenesBySignalPeptide "
-        f"(open: {_OPEN_PARAM})"
+        f"- [{OPEN}] localised to the surface -> GenesBySignalPeptide "
+        f"(open: {OPEN_PARAM})"
     ) in order
-    assert f"Question asked: {_QUESTION.question}" in order
-    assert f"Answer: {_ANSWER}" in order
-    assert "Operationalize into criteria" not in order
+    assert f"Question asked: {QUESTION.question}\nAnswer: {ANSWER}\n" in order
+    assert "The Lead's brief: proceed with signal-peptide evidence" in order
+    assert _FRESH not in order
 
 
 def test_a_fresh_thread_gets_the_fresh_order() -> None:
-    state = pipeline_state(user_prompt="find surface proteins")
+    deps = lead_deps(pipeline_state(user_prompt="find surface proteins"))
 
-    order = frame_work_order("operationalize the goal", state)
+    order = frame_work_order("operationalize the goal", deps)
 
     assert order.startswith("FRAME work order: operationalize the goal")
-    assert "Operationalize into criteria" in order
+    assert _FRESH in order
 
 
-def test_a_built_strategy_is_not_briefed_as_a_continuation() -> None:
-    state = _answering_state()
-    state.domain.last_build_outcome = BuildOutcome()
+def test_a_strategy_on_the_site_is_not_briefed_as_a_continuation() -> None:
+    """A draft hydrated from a live strategy has steps and no build outcome."""
+    deps = draft_deps(ANSWER, strategy_session=session_with_one_step())
+    classify(deps)
 
-    order = frame_work_order("re-frame", state)
+    order = frame_work_order("re-frame", deps)
 
-    assert "Operationalize into criteria" in order
+    assert "no strategy is built from them yet" not in order
+    assert _FRESH in order
+
+
+async def test_a_draft_framed_after_a_clear_is_continued(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Clear, frame afresh and ask; the next message answers that draft."""
+    thread = DisagreementThread(
+        monkeypatch, spec=built_spec(), session=session_holding(built_tree())
+    )
+    thread.deps.state.user_message_id = uuid4()
+    classify(thread.deps, IntentClassification.NEW_STRATEGY)
+    await thread.clear()
+    thread.frames(
+        lambda _found: framed(None),
+        declared=[],
+        disposition="needs_user",
+        asks=[QUESTION],
+    )
+    asked = await thread.frame()
+    assert isinstance(asked, FrameResult)
+    await thread.next_turn()
+    thread.deps.state.user_prompt = ANSWER
+    thread.deps.state.user_message_id = uuid4()
+    classify(thread.deps)
+
+    order = frame_work_order("proceed", thread.deps)
+
+    assert order.splitlines()[0] == (
+        "FRAME work order: the previous pass ended with a question the "
+        "researcher has now answered. Continue it; this is not a fresh frame."
+    )
+    assert f"Question asked: {QUESTION.question}\nAnswer: {ANSWER}\n" in order
+    assert all(f"- [{cid}] {cid} property -> " in order for cid in BOUND)
+
+
+def test_a_new_request_over_an_unbuilt_draft_is_framed_afresh() -> None:
+    message = "Forget that. Find transporters on chromosome 5."
+    deps = draft_deps(message)
+    classify(deps, IntentClassification.NEW_STRATEGY)
+
+    order = frame_work_order("frame the new request", deps)
+
+    assert order.startswith("FRAME work order: frame the new request\n")
+    assert _FRESH in order
+    assert "has now answered" not in order
+    assert "Every other bound criterion stays exactly as it is" not in order
 
 
 def test_a_bound_draft_with_no_question_is_continued_from_the_message() -> None:
-    state = pipeline_state(
-        user_prompt="continue",
-        domain=StrategyDomainState(operational_spec=_framed(None)),
+    deps = draft_deps(
+        "continue", domain=StrategyDomainState(operational_spec=framed(None))
     )
-    _classify(state)
+    classify(deps)
 
-    order = frame_work_order("continue the frame", state)
+    order = frame_work_order("continue the frame", deps)
 
     assert order.startswith(
         "FRAME work order: an earlier turn bound the criteria below and no "
@@ -176,9 +175,7 @@ def test_a_bound_draft_with_no_question_is_continued_from_the_message() -> None:
 
 
 def test_the_order_after_a_budget_stop_keeps_its_words() -> None:
-    order = frame_continuation_work_order(
-        _framed(None), "find surface proteins", ContinuationReason.BUDGET_STOP
-    )
+    order = budget_stop_work_order(framed(None), "find surface proteins")
 
     assert order.startswith(
         "FRAME work order: the previous pass ran out of its tool budget. "
@@ -201,21 +198,21 @@ async def test_the_answering_turn_binds_only_the_open_criterion(
         session=session_holding(),
     )
     thread.frames(
-        lambda _found: _framed(None),
+        lambda _found: framed(None),
         declared=[],
         disposition="needs_user",
-        asks=[_QUESTION],
+        asks=[QUESTION],
     )
     asked = await thread.frame()
     assert isinstance(asked, FrameResult)
     assert asked.disposition == "needs_user"
     await thread.next_turn()
-    thread.deps.state.user_prompt = _ANSWER
+    thread.deps.state.user_prompt = ANSWER
     thread.deps.state.user_message_id = uuid4()
-    _classify(thread.deps.state)
+    classify(thread.deps)
     thread.frames(
-        lambda _found: _framed("signal peptide"),
-        declared=[*kept(*_BOUND), *declared("changed", _OPEN)],
+        lambda _found: framed("signal peptide"),
+        declared=[*kept(*BOUND), *declared("changed", OPEN)],
     )
 
     answered = await thread.frame()
@@ -223,14 +220,14 @@ async def test_the_answering_turn_binds_only_the_open_criterion(
     assert isinstance(answered, FrameResult)
     order = thread.work_orders[-1]
     assert "the previous pass ended with a question" in order
-    assert f"Question asked: {_QUESTION.question}" in order
-    assert f"Answer: {_ANSWER}" in order
-    assert all(f"- [{cid}] " in order for cid in _BOUND)
+    assert f"Question asked: {QUESTION.question}" in order
+    assert f"Answer: {ANSWER}" in order
+    assert all(f"- [{cid}] " in order for cid in BOUND)
     assert [c.id for c in thread.workspaces[-1].criteria if c.bound] == [
-        *_BOUND,
-        _OPEN,
+        *BOUND,
+        OPEN,
     ]
     assert spec_facts(thread.spec) == {
-        **{cid: {"value": cid} for cid in _BOUND},
-        _OPEN: {_OPEN_PARAM: "signal peptide"},
+        **{cid: {"value": cid} for cid in BOUND},
+        OPEN: {OPEN_PARAM: "signal peptide"},
     }

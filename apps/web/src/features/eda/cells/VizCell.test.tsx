@@ -28,7 +28,9 @@ vi.mock("@/lib/components/charts/echartsRegistry", () => ({
 const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 
+import { useAuthGateStore } from "@/state/useAuthGateStore";
 import { useEdaStore } from "@/state/eda";
+import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import { VizCell } from "./VizCell";
 
 const BASE = "http://localhost:3000";
@@ -457,7 +459,7 @@ describe("VizCell", () => {
     expect(screen.queryByTestId("eda-viz-loading")).toBe(null);
   });
 
-  it("names a failed volcano read instead of an empty plot", async () => {
+  it("names a failed volcano read once, beside the plot and in no toast", async () => {
     server.use(
       http.post(`${BASE}/api/v1/eda/viz`, () =>
         HttpResponse.json(
@@ -467,14 +469,42 @@ describe("VizCell", () => {
       ),
     );
     useEdaStore.getState().applyJob(COMPLETED_JOB);
-    render(<VizCell siteId="plasmodb" conversationId="conv-1" />);
+    render(<VizCell siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(),
+    });
     expect(await screen.findByTestId("eda-viz-error")).toHaveTextContent(
       "Compute results are not available for the requested job.",
     );
-    await waitFor(() => {
-      expect(toastError).toHaveBeenCalledWith(
-        "Compute results are not available for the requested job.",
-      );
+    expect(
+      screen.getAllByText("Compute results are not available for the requested job."),
+    ).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("asks for a VEuPathDB sign-in when the volcano read is refused for a missing login", async () => {
+    const detail =
+      "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.";
+    server.use(
+      http.post(`${BASE}/api/v1/eda/viz`, () =>
+        HttpResponse.json(
+          {
+            title: "VEuPathDB login required",
+            status: 401,
+            detail,
+            code: "WDK_LOGIN_REQUIRED",
+          },
+          { status: 401 },
+        ),
+      ),
+    );
+    useAuthGateStore.getState().dismissSignIn();
+    useEdaStore.getState().applyJob(COMPLETED_JOB);
+    render(<VizCell siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(),
     });
+    expect(await screen.findByTestId("eda-viz-error")).toHaveTextContent(detail);
+    expect(useAuthGateStore.getState().signInRequired).toBe(true);
+    expect(useAuthGateStore.getState().signInReason).toBe(detail);
+    expect(toastError.mock.calls).toEqual([[detail]]);
   });
 });

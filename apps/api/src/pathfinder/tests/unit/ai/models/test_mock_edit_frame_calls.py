@@ -22,6 +22,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.domain.strategy.spec_diff import SpecDiff
 
 _PV = "Plasmodium vivax P01"
 
@@ -66,7 +67,15 @@ def _spec() -> OperationalSpec:
 
 
 def _order() -> str:
-    return edit_work_order("swap the organism", "keep the rest", _spec())
+    spec = _spec()
+    return edit_work_order(
+        "swap the organism",
+        "keep the rest",
+        spec,
+        pending=SpecDiff(),
+        answered=spec,
+        answer=None,
+    )
 
 
 def _call(

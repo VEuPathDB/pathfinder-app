@@ -24,8 +24,8 @@ from pathfinder.ai.lead.turn_contract import (
     LeadResponse,
     correction_for,
     reconcile,
-    turn_record,
 )
+from pathfinder.ai.lead.turn_record import turn_record
 
 CARD_TOOLS: frozenset[str] = frozenset({"consult_user", PROPOSAL_TOOL})
 

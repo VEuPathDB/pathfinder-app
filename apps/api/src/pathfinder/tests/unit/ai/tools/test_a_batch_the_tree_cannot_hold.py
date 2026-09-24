@@ -16,7 +16,7 @@ from veupathdb.domain.strategy import COMBINE_SEARCH_NAME, CombineOp
 from veupathdb.errors import ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.graph.state import TurnMarkers
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.tools.standalone.strategy import apply_operations
 from pathfinder.ai.tools.toolsets.execution import build_toolset
 from pathfinder.domain.strategy.operations import AddLeafOp

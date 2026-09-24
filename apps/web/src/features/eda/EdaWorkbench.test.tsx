@@ -29,6 +29,7 @@ const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 
 import { useEdaStore } from "@/state/eda";
+import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import { EdaWorkbench } from "./EdaWorkbench";
 
 const BASE = "http://localhost:3000";
@@ -211,20 +212,21 @@ describe("EdaWorkbench", () => {
     expect(useEdaStore.getState().binding?.analysisId).toBe("a-1");
   });
 
-  it("reports a failed binding read rather than showing the picker", async () => {
+  it("reports a failed binding read once, rather than showing the picker", async () => {
     server.use(
       http.get(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
         HttpResponse.json({ detail: "binding read failed" }, { status: 500 }),
       ),
     );
-    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(),
+    });
     expect(await screen.findByTestId("eda-binding-error")).toHaveTextContent(
       "binding read failed",
     );
     expect(screen.queryByTestId("eda-study-picker")).toBe(null);
-    await waitFor(() => {
-      expect(toastError).toHaveBeenCalledWith("binding read failed");
-    });
+    expect(screen.getAllByText("binding read failed")).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it("mounts the subset, compute and viz cells for a bound analysis", async () => {

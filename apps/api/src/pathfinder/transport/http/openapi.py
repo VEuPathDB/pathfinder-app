@@ -11,6 +11,7 @@ from assistant_core.conversation.stream_parts.core_parts import STREAM_PARTS
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
+from veupathdb.eda import EdaNewAnalysis
 
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.platform.errors import ProblemDetail
@@ -48,11 +49,12 @@ def _anchor_components() -> dict[str, Any]:
     """Schemas the generated client needs that no route returns.
 
     The chat stream carries the ``data-*`` payloads; the experiment SSE routes
-    carry :class:`Experiment`. Neither is a JSON response body, so the
-    generator reaches them only here.
+    carry :class:`Experiment`; an EDA step's ``eda_analysis_spec`` parameter
+    holds :class:`EdaNewAnalysis` as a JSON string. None of them is a JSON
+    body, so the generator reaches them only here.
     """
     components: dict[str, Any] = {}
-    for model in (_stream_parts_index(), Experiment):
+    for model in (_stream_parts_index(), Experiment, EdaNewAnalysis):
         schema = model.model_json_schema(
             mode="serialization", ref_template=_SCHEMA_REF_TEMPLATE
         )

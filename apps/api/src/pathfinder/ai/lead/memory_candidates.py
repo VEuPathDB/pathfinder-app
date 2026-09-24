@@ -61,8 +61,9 @@ def collect_memory_candidates(state: PipelineState) -> list[MemoryCandidate]:
         (_build_gene_set_value(state, created), f"gene_set_note:{created.id}")
         for created in domain.created_gene_sets
     )
-    if domain.verification_digest is not None:
-        for idx, entry in enumerate(domain.verification_digest.remember):
+    verdict = state.turn_verdict
+    if verdict is not None:
+        for idx, entry in enumerate(verdict.remember):
             candidates.append(
                 (
                     _build_knowledge_value(state, entry),

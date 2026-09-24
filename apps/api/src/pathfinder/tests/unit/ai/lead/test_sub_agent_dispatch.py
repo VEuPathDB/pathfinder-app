@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import MagicMock
-from uuid import uuid4
 
 import pytest
 from pydantic_ai import RunContext
@@ -264,13 +262,11 @@ def _unconvertible() -> OperationalSpec:
     )
 
 
-def _mock_ctx(spec: OperationalSpec) -> Any:
-    ctx = MagicMock()
-    ctx.deps.state.domain.operational_spec = spec
-    ctx.deps.runtime.user_id = uuid4()
-    # A build only runs where there is no strategy; an existing one is an edit.
-    ctx.deps.runtime.strategy_session.get_graph.return_value = None
-    return ctx
+def _empty_thread_ctx(spec: OperationalSpec) -> RunContext[LeadDeps]:
+    """A thread with no strategy yet, whose spec is ``spec``."""
+    state = pipeline_state(domain=StrategyDomainState(operational_spec=spec))
+    session = StrategySession(site_id="plasmodb")
+    return run_context_for(lead_deps(state, strategy_session=session))
 
 
 class TestTheTurnSurvives:
@@ -279,17 +275,17 @@ class TestTheTurnSurvives:
         assert spec.ready_to_build
 
         with pytest.raises(ModelRetry):
-            await build_strategy(_mock_ctx(spec))
+            await build_strategy(_empty_thread_ctx(spec))
 
     async def test_the_message_names_the_problem(self) -> None:
         with pytest.raises(ModelRetry) as err:
-            await build_strategy(_mock_ctx(_unconvertible()))
+            await build_strategy(_empty_thread_ctx(_unconvertible()))
 
         assert "combine" in str(err.value)
 
     async def test_the_message_says_the_structure_is_at_fault(self) -> None:
         with pytest.raises(ModelRetry) as err:
-            await build_strategy(_mock_ctx(_unconvertible()))
+            await build_strategy(_empty_thread_ctx(_unconvertible()))
 
         assert "structure" in str(err.value).lower()
 

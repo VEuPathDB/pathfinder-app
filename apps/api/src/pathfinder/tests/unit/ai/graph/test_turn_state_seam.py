@@ -56,6 +56,7 @@ DOMAIN_FIELDS = {
     "spec_before_dispatch",
     "discovered_searches",
     "verification_digest",
+    "verified_revision",
     "last_build_outcome",
     "stale_build",
     "created_gene_sets",

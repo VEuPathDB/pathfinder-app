@@ -114,7 +114,7 @@ async def _edit(deps: LeadDeps, order: str = "edit") -> FrameResult | Any:
     return await run_frame(
         deps=deps,
         parent_tool_call_id="t1",
-        work_order=frame_work_order(order, deps.state),
+        work_order=frame_work_order(order, deps),
     )
 
 

@@ -1,20 +1,9 @@
-import { z } from "zod";
-
-import { edaFilterSchema } from "@pathfinder/shared/generated/zod/edaFilterSchema";
+import { edaNewAnalysisSchema } from "@pathfinder/shared/generated/zod/edaNewAnalysisSchema";
 
 import { filterSummary } from "@/lib/eda/filterSummary";
 
 /** The parameter every EDA-backed WDK search declares for its analysis spec. */
 export const EDA_ANALYSIS_SPEC_PARAM = "eda_analysis_spec";
-
-const edaAnalysisSpecSchema = z.object({
-  studyId: z.string().min(1),
-  displayName: z.string().default(""),
-  descriptor: z.object({
-    subset: z.object({ descriptor: z.array(edaFilterSchema) }),
-    computations: z.array(z.unknown()).default([]),
-  }),
-});
 
 export interface EdaSpecSummary {
   displayName: string;
@@ -23,7 +12,7 @@ export interface EdaSpecSummary {
   computationCount: number;
 }
 
-export type EdaSpecParse =
+type EdaSpecParse =
   { ok: true; compact: string; summary: EdaSpecSummary } | { ok: false; error: string };
 
 /** Validate the editor text as an analysis spec, or say what is wrong. */
@@ -35,7 +24,7 @@ export function parseEdaSpec(text: string): EdaSpecParse {
     const reason = err instanceof SyntaxError ? err.message : String(err);
     return { ok: false, error: `Not valid JSON: ${reason}` };
   }
-  const parsed = edaAnalysisSpecSchema.safeParse(raw);
+  const parsed = edaNewAnalysisSchema.safeParse(raw);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     const where = issue?.path.map(String).join(".") ?? "";
@@ -45,16 +34,17 @@ export function parseEdaSpec(text: string): EdaSpecParse {
     };
   }
   const spec = parsed.data;
+  const filters = spec.descriptor?.subset?.descriptor ?? [];
   return {
     ok: true,
     compact: JSON.stringify(raw),
     summary: {
       displayName: spec.displayName,
       studyId: spec.studyId,
-      filters: spec.descriptor.subset.descriptor.map(
+      filters: filters.map(
         (filter) => `${filter.variableId}: ${filterSummary(filter)}`,
       ),
-      computationCount: spec.descriptor.computations.length,
+      computationCount: spec.descriptor?.computations?.length ?? 0,
     },
   };
 }

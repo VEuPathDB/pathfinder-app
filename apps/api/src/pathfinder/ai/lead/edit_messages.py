@@ -6,10 +6,13 @@ pass that cannot see them re-derives them from a sentence.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 
 from veupathdb.domain.parameters import to_wire
 
+from pathfinder.ai.agents.criterion_lines import criterion_label, criterion_runs
+from pathfinder.ai.graph.turn_records import AnsweredQuestions
+from pathfinder.ai.lead.dispatch_messages import answered_lines
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -32,14 +35,14 @@ __all__ = [
 
 
 def pending_lines(
-    pending: SpecDiff, before: OperationalSpec, answered: OperationalSpec | None
+    pending: SpecDiff, before: OperationalSpec, answered: OperationalSpec
 ) -> list[str]:
     """What an earlier pass of this thread stated and no push has applied.
 
     Each line names one criterion the plan and the strategy disagree about, so
     the pass that follows can let it stand or take it back.
     """
-    if not pending.changes or answered is None:
+    if not pending.changes:
         return []
     planned = {c.id: c for c in before.criteria}
     held = {c.id: c for c in answered.criteria}
@@ -96,13 +99,26 @@ def edit_work_order(
     prompt: str,
     before: OperationalSpec,
     *,
-    pending: SpecDiff | None = None,
-    answered: OperationalSpec | None = None,
+    pending: SpecDiff,
+    answered: OperationalSpec,
+    answer: AnsweredQuestions | None,
 ) -> str:
-    """The FRAME work order for an edit, carrying every bound value."""
+    """The FRAME work order for an edit, carrying every bound value.
+
+    A message that answers what an earlier pass asked carries the questions
+    it answers, so the pass reads the answer against them.
+    """
     lines = [
         f"EDIT work order: {reason}",
         f"The user's message: {prompt}",
+        *(
+            [
+                "The message answers what the previous pass asked:",
+                *answered_lines(answer.questions, answer.answer),
+            ]
+            if answer is not None
+            else []
+        ),
         "",
         (
             "This turn EDITS the strategy below; it is not a fresh frame. State a "
@@ -125,14 +141,14 @@ def edit_work_order(
     ]
     for criterion in before.criteria:
         lines.append(
-            f"- [{criterion.id}] {criterion.text[:80]} -> "
-            f"{criterion.search_name or '(UNBOUND)'} ({criterion.role})"
+            f"- [{criterion.id}] {criterion_label(criterion, 80)} -> "
+            f"{criterion_runs(criterion)} ({criterion.role})"
         )
         lines.extend(
             f"    {name}={to_wire(value)}"
             for name, value in criterion.resolved_params.items()
         )
-    lines.extend(pending_lines(pending, before, answered) if pending else [])
+    lines.extend(pending_lines(pending, before, answered))
     lines.extend(
         [
             "",
@@ -156,8 +172,9 @@ def edit_continuation_work_order(
     before: OperationalSpec,
     prompt: str,
     *,
-    pending: SpecDiff | None = None,
-    answered: OperationalSpec | None = None,
+    pending: SpecDiff,
+    answered: OperationalSpec,
+    answer: AnsweredQuestions | None,
 ) -> str:
     """The work order for the pass that continues an edit stopped by its budget.
 
@@ -170,6 +187,7 @@ def edit_continuation_work_order(
         before,
         pending=pending,
         answered=answered,
+        answer=answer,
     )
 
 
@@ -207,11 +225,15 @@ def _criterion_label(criterion_id: str | None, by_id: dict[str, Criterion]) -> s
     return f"[{criterion.id}] {criterion.text[:40]}"
 
 
-def no_strategy_to_edit_message() -> str:
-    return (
-        "edit_strategy needs a strategy to edit, and this thread has none. Call "
-        "frame_problem to operationalize the goal, then build_strategy."
-    )
+def no_strategy_to_edit_message(offered: Collection[str]) -> str:
+    """The refusal of an edit on a thread with no step, naming offered tools."""
+    refusal = "edit_strategy needs a strategy to edit, and this thread has none."
+    if "frame_problem" in offered:
+        return (
+            f"{refusal} Call frame_problem to operationalize the goal, then "
+            "build_strategy."
+        )
+    return f"{refusal} Call build_strategy to build the spec this turn framed."
 
 
 def edit_bound_nothing_message() -> str:

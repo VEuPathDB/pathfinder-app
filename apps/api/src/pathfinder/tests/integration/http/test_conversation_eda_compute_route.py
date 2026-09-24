@@ -10,6 +10,7 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from veupathdb.eda import differential_expression_computations
 from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
@@ -141,9 +142,9 @@ async def test_a_changed_configuration_writes_the_analysis_again(
 
     assert changed.status_code == 200
     assert de_wired.patches == 2
-    computations = de_wired.detail.descriptor.computations
-    assert len(computations) == 1
-    value_variable = computations[0].descriptor.configuration.value_variable
+    [held] = differential_expression_computations(de_wired.detail.descriptor)
+    assert len(de_wired.detail.descriptor.computations) == 1
+    value_variable = held.descriptor.configuration.value_variable
     assert value_variable.variable_id == "SEQUENCE_READ_COUNT_ANTISENSE"
 
 

@@ -23,7 +23,7 @@ from assistant_core.models.scripted import (
     tool_return_parts,
 )
 from pydantic import BaseModel, ConfigDict
-from pydantic_ai.messages import ModelMessage, ToolCallPart
+from pydantic_ai.messages import ModelMessage, ModelRequest, ToolCallPart
 
 from pathfinder.ai.models.mock.arc_args import (
     attached_gene_list,
@@ -147,6 +147,9 @@ _BUILD_REFUSED_MARKER = "build_strategy replaces it"
 # The precondition layer withholds the tool on a thread that has a strategy, so
 # the turn can meet the same refusal as an absence.
 _BUILD_ABSENT_MARKER = "Unknown tool name"
+# The Lead's pinned spec, and the words it holds while nothing is framed.
+_SPEC_PIN = "## Operational Spec"
+_NOTHING_FRAMED = "Not framed yet."
 
 
 def spec_for(text: str, site_id: str) -> SpecPlan:
@@ -192,7 +195,7 @@ def _build_sequence(
     prose: str,
     next_state: LeadTurnState,
     *,
-    classification: str = "new_strategy",
+    classification: str,
 ) -> list[ToolCallPart]:
     return [
         *_build_head(classification),
@@ -224,10 +227,18 @@ def _build_refused(messages: list[ModelMessage]) -> bool:
     )
 
 
+def _build_classification(messages: list[ModelMessage]) -> str:
+    """A build extends the draft the Lead's pinned spec states, else starts one."""
+    requests = [msg for msg in messages if isinstance(msg, ModelRequest)]
+    pinned = (requests[-1].instructions or "") if requests else ""
+    framed = _SPEC_PIN in pinned and _NOTHING_FRAMED not in pinned
+    return "extend_strategy" if framed else "new_strategy"
+
+
 def _lead_sequence(messages: list[ModelMessage]) -> list[ToolCallPart]:
     raw = last_user_text(messages)
     if deferred_tool_resolved(messages, "consult_user"):
-        return _build_branch(messages, raw)
+        return _build_branch(messages, raw, _build_classification(messages))
     if has_any(raw.lower(), _RECALL_MARKERS):
         return _recall_sequence(messages)
     attached = attached_gene_list(joined_user_text(messages))
@@ -403,7 +414,7 @@ def _routed_sequence(messages: list[ModelMessage], raw: str) -> list[ToolCallPar
     if prose is not None:
         return prose
     if has_any(lowered, _ASSENT_MARKERS):
-        return _build_branch(messages, raw, classification="extend_strategy")
+        return _build_branch(messages, raw, "extend_strategy")
     build = (
         _FIX_MARKERS
         + _FEEDBACK_MARKERS
@@ -412,15 +423,12 @@ def _routed_sequence(messages: list[ModelMessage], raw: str) -> list[ToolCallPar
         + _COMBINED_MARKERS
     )
     if has_any(lowered, build):
-        return _build_branch(messages, raw)
+        return _build_branch(messages, raw, _build_classification(messages))
     return [lead_final(f"[mock] {raw}", "await_user")]
 
 
 def _build_branch(
-    messages: list[ModelMessage],
-    raw: str,
-    *,
-    classification: str = "new_strategy",
+    messages: list[ModelMessage], raw: str, classification: str
 ) -> list[ToolCallPart]:
     if _build_refused(messages):
         return _refused_build_sequence(classification)

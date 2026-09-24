@@ -6,9 +6,12 @@ import pytest
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import StringValue
 
-from pathfinder.ai.lead.dispatch_messages import (
+from pathfinder.ai.lead.build_messages import (
     build_not_ready_message,
     build_would_replace_the_strategy,
+)
+from pathfinder.ai.lead.dispatch_messages import (
+    budget_stop_work_order,
     frame_result_from_draft,
     undeclared_spec_changes,
 )
@@ -192,3 +195,25 @@ class TestAnAnsweredOpenSlotIsNotARebinding:
 
         assert "mass_spec" in problem
         assert f"{_OPEN_PARAM}=2" in problem
+
+
+def test_a_continuation_keeps_a_criterion_waiting_for_its_analysis() -> None:
+    """The waiting criterion is recorded work, never a search still to find."""
+    spec = OperationalSpec(
+        goal="24 h over 36 h",
+        criteria=[
+            Criterion(id="c1", text="kinases", search_name="GenesByGoTerm"),
+            Criterion(
+                id="c_36", text="24 h over 36 h", needs_analysis_on="DS_e973eadd57"
+            ),
+        ],
+    )
+
+    lines = budget_stop_work_order(spec, "24 h over 36 h").splitlines()
+
+    assert "- [c1] kinases -> GenesByGoTerm" in lines
+    assert (
+        "- [c_36] 24 h over 36 h -> analysis workflow on dataset DS_e973eadd57, "
+        "WAITING: keep it in the structure; the Lead builds it"
+    ) in lines
+    assert "These criteria are recorded and still need a search:" not in lines

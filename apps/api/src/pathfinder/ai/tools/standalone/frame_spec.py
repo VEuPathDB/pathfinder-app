@@ -36,7 +36,9 @@ from pathfinder.ai.tools.standalone._frame_count import (
     record_and_count_criterion,
 )
 from pathfinder.ai.tools.standalone._frame_eda import (
+    refuse_a_bound_analysis,
     refuse_a_search_the_criterion_cannot_use,
+    refuse_a_waiting_criterion,
 )
 from pathfinder.ai.tools.standalone._frame_proposals import (
     DeclaredAssumption,
@@ -231,7 +233,10 @@ async def set_criterion(
     value from the fresh vocabulary or the same null for each listed parameter,
     and it closes. Re-call the same way once the user answers an open slot."""
     state = ctx.deps.agent_state
+    refuse_a_bound_analysis(state, criterion_id)
+    stated = Criterion(id=criterion_id, text=text, role=role)
     if saved_strategy:
+        refuse_a_waiting_criterion(state, criterion_id)
         refuse_a_transform_on_a_saved_strategy(criterion_id, role)
         match = await bind_saved_criterion(
             ctx,
@@ -260,7 +265,7 @@ async def set_criterion(
             ctx.deps.site_id, record_type, search_name
         )
         await refuse_a_search_the_criterion_cannot_use(
-            ctx, record_type, definition, role, criterion_id, text
+            ctx, record_type, definition, stated, None
         )
         register_search(state, definition, record_type)
         return _criterion_return(
@@ -279,7 +284,7 @@ async def set_criterion(
     search = SearchContext(ctx.deps.site_id, record_type, search_name)
     definition = await _search_definition(search)
     await refuse_a_search_the_criterion_cannot_use(
-        ctx, record_type, definition, role, criterion_id, text
+        ctx, record_type, definition, stated, params
     )
     await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
     fetch_at = _memoized_fetch(ctx.deps.site_id, record_type, search_name)

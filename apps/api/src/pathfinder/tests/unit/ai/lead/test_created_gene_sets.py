@@ -244,6 +244,7 @@ async def test_a_written_note_leaves_the_created_list(
             }
         ),
     )
+    state.turn_markers.verification_dispatched = True
     runtime: Runtime[Context] = Runtime(
         context=Context(
             site_id="plasmodb",

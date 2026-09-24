@@ -63,7 +63,7 @@ export function StepResults({
         queryFn: ({ signal }: { signal: AbortSignal }) =>
           getStepRecords(conversationId, stepId, params, { signal }),
         enabled: pushed,
-        meta: { silent: true },
+        meta: { shownInline: true },
       };
     }),
   });

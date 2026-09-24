@@ -19,6 +19,7 @@ import {
   type PendingConsult,
   findConsultRecap,
   findPendingConsult,
+  isConsultCall,
 } from "./consultData";
 
 interface AnswerState {
@@ -34,10 +35,8 @@ export function ConsultCarousel({ toolCallId }: { toolCallId?: string }) {
   const message = chat.messages.find((m) => m.id === currentId);
   if (message?.role !== "assistant") return null;
   if (toolCallId !== undefined) {
-    const first = message.parts.find((part) => part.type === "tool-consult_user");
-    if (first == null || !("toolCallId" in first) || first.toolCallId !== toolCallId) {
-      return null;
-    }
+    const first = message.parts.find(isConsultCall);
+    if (first?.toolCallId !== toolCallId) return null;
   }
   const pending = findPendingConsult(message);
   if (pending !== null && pending.questions.length > 0) {

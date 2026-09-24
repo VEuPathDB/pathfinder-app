@@ -40,7 +40,6 @@ from pathfinder.services.strategies import (
     sync,
 )
 from pathfinder.services.strategies.insert_saved import ClonedSavedStrategy
-from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.tests._support import wdk_write_stubs
 
 # The push one writer is held inside while the other writer arrives. Local
@@ -142,25 +141,6 @@ async def _no_reconcile(*_args: Any, **_kwargs: Any) -> None:
     return None
 
 
-async def _fake_sync(
-    *,
-    graph: Any,
-    sync_state: Any,
-    site_id: str,
-    strategy_name: str | None = None,
-) -> SyncResult:
-    del graph, sync_state, site_id, strategy_name
-    return SyncResult(
-        wdk_strategy_id=555,
-        wdk_url="http://test",
-        root_step_id=0,
-        counts={},
-        root_count=None,
-        zero_step_ids=[],
-        step_count=0,
-    )
-
-
 @pytest.fixture
 def slow_api(monkeypatch: pytest.MonkeyPatch) -> _SlowAPI:
     api = _SlowAPI()
@@ -173,7 +153,9 @@ def slow_api(monkeypatch: pytest.MonkeyPatch) -> _SlowAPI:
 
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_incomplete)
     monkeypatch.setattr(commit, "reconcile_sync_state_with_wdk", _no_reconcile)
-    monkeypatch.setattr(commit, "sync_strategy_for_site", _fake_sync)
+    monkeypatch.setattr(
+        commit, "sync_strategy_for_site", wdk_write_stubs.landed_pushes(555).sync
+    )
     monkeypatch.setattr(
         stated_sides, "validate_parameters", wdk_write_stubs.accepts_every_value
     )
@@ -374,7 +356,9 @@ def slow_clone(monkeypatch: pytest.MonkeyPatch) -> asyncio.Event:
 
     monkeypatch.setattr(spec_build, "validate_parameters", _passthrough_validation)
     monkeypatch.setattr(spec_build, "reconcile_sync_state_with_wdk", _no_reconcile)
-    monkeypatch.setattr(spec_build, "sync_strategy_for_site", _fake_sync)
+    monkeypatch.setattr(
+        spec_build, "sync_strategy_for_site", wdk_write_stubs.landed_pushes(555).sync
+    )
     return entered
 
 

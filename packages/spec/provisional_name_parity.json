@@ -1,0 +1,55 @@
+{
+  "_doc": "Shared FE/BE parity fixture for the provisional name of an untitled thread. The api's naming.provisional_strategy_name and the web's provisionalName return expected for each prompt. Both suites assert every case.",
+  "cases": [
+    {
+      "name": "plain",
+      "prompt": "find kinases\n in P. falciparum",
+      "expected": "find kinases in P. falciparum"
+    },
+    {
+      "name": "long-cut-on-a-word",
+      "prompt": "  Find genes upregulated in the Anopheles midgut 24 hours after a blood meal versus sugar fed  ",
+      "expected": "Find genes upregulated in the Anopheles midgut 24 hours..."
+    },
+    {
+      "name": "one-70-character-word",
+      "prompt": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "expected": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx..."
+    },
+    {
+      "name": "emoji-at-the-cut",
+      "prompt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\ud83e\uddec rest of the request",
+      "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\ud83e\uddec..."
+    },
+    {
+      "name": "60-code-points-in-61-code-units",
+      "prompt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\ud83e\uddec",
+      "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\ud83e\uddec"
+    },
+    {
+      "name": "bom-led",
+      "prompt": "\ufeff  lead bom",
+      "expected": "lead bom"
+    },
+    {
+      "name": "unicode-spaces",
+      "prompt": "kinases\u00a0in\u3000blood\u2028stage\u2003",
+      "expected": "kinases in blood stage"
+    },
+    {
+      "name": "control-characters-are-not-spaces",
+      "prompt": "genes\u001cup\u0085down\u001f",
+      "expected": "genes\u001cup\u0085down\u001f"
+    },
+    {
+      "name": "empty",
+      "prompt": "",
+      "expected": "New Conversation"
+    },
+    {
+      "name": "spaces-only",
+      "prompt": "\ufeff\u00a0\n\t",
+      "expected": "New Conversation"
+    }
+  ]
+}

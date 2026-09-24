@@ -13,6 +13,7 @@ from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStep
 
 from pathfinder.ai.graph.state import FailureCause, PhaseDisposition
 from pathfinder.ai.lead import sub_agent_tools
+from pathfinder.ai.lead.answered_strategy import live_tree
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
@@ -25,6 +26,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
@@ -169,6 +171,30 @@ async def test_success_over_a_real_build_stands(
     assert delta.digest.disposition is PhaseDisposition.DONE
     assert delta.digest.reason == "Verified successfully"
     assert delta.digest.caveats == []
+
+
+async def test_the_verdict_stands_for_the_revision_it_judged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _session_with_step(
+        "cryptodb",
+        name="Kinases",
+        search_name="GenesByText",
+        count=61,
+        wdk_strategy_id=330558093,
+    )
+    deps = _kinase_deps(session)
+    deps.state.domain.last_build_outcome = BuildOutcome(
+        pushed_step_ids=["s1"], wdk_strategy_id=330558093, root_count=61
+    )
+    judged = live_tree(session.get_graph(None))
+    deps.state.domain.answered_graph = judged
+
+    delta = await _verify(monkeypatch, deps, _BUILD_DIGEST)
+
+    assert deps.state.domain.verified_revision == strategy_revision(judged)
+    assert len(deps.state.domain.verified_revision) == 16
+    assert deps.state.turn_verdict == delta.digest
 
 
 def _combination_requirement() -> Constraint:

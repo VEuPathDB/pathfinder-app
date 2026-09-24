@@ -9,18 +9,27 @@ it is played onto the specs the turn holds.
 from __future__ import annotations
 
 from collections.abc import Collection, Mapping
+from typing import NamedTuple
 
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
+from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.ast_diff import nodes_of
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.outside_changes import OutsideChanges, outside_changes
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.domain.strategy.spec_hydration import Analyses
+from pathfinder.domain.strategy.spec_reconciliation import (
+    spec_without_pending_analyses,
+)
 from pathfinder.domain.strategy.spec_replay import spec_replaying
+from pathfinder.domain.strategy.step_words import StepWords
+from pathfinder.services.eda.export import exported_analysis
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 
 __all__ = [
+    "analyses_of",
     "live_tree",
     "the_changes_written_outside",
     "the_strategy_now_answers_to",
@@ -35,6 +44,26 @@ def live_tree(graph: StrategyGraph | None) -> StrategyAst | None:
     return None if graph is None else graph.to_strategy_ast()
 
 
+def analyses_of(live: StrategyAst | None) -> dict[str, AnalysisBinding]:
+    """The live steps that export an analysis, by step id, read as bindings.
+
+    Each step is read as the kind the stored strategy records for it.
+    """
+    if live is None:
+        return {}
+    words = StepWords.of(live)
+    return {
+        step_id: binding
+        for step_id, node in nodes_of(live).items()
+        if (
+            binding := exported_analysis(
+                words.kind_of(step_id, node.search_name), node.parameters
+            )
+        )
+        is not None
+    }
+
+
 def the_strategy_now_answers_to(
     state: PipelineState,
     spec: OperationalSpec | None,
@@ -43,10 +72,15 @@ def the_strategy_now_answers_to(
     """Record the spec the strategy now answers to, and the tree it holds.
 
     Every path that makes the strategy state what the spec says calls this: a
-    build, a pushed edit, a delete, a clear, an export and a hydration.
+    build, a pushed edit, a delete, a clear, an export and a hydration. A
+    criterion waiting for its analysis has no step, so no strategy answers it.
     """
     domain = state.domain
-    domain.answered_spec = None if spec is None else spec.model_copy(deep=True)
+    domain.answered_spec = (
+        None
+        if spec is None
+        else spec_without_pending_analyses(spec).model_copy(deep=True)
+    )
     domain.answered_graph = live_tree(graph)
 
 
@@ -64,7 +98,10 @@ async def the_changes_written_outside(
     domain = state.domain
     live = live_tree(graph)
     changes = outside_changes(domain.answered_graph, live)
-    sheets = await _sheets_the_replay_reads(site_id, domain, changes, live)
+    reading = _Reading(
+        sheets=await _sheets_the_replay_reads(site_id, domain, changes, live),
+        analyses=analyses_of(live),
+    )
     # A step the answer states and the plan does not is a drop the plan
     # carries, so the plan keeps it out.
     dropped = _the_plan_leaves_out(domain)
@@ -73,15 +110,15 @@ async def the_changes_written_outside(
     # into the record the turn is measured against.
     a_moment = dropped | _every_step_but_the_ones_added_outside(changes, live)
     domain.operational_spec = _replayed(
-        domain.operational_spec, changes, live, sheets, may_leave_out=dropped
+        domain.operational_spec, changes, live, reading, may_leave_out=dropped
     )
     domain.spec_before_turn = _replayed(
-        domain.spec_before_turn, changes, live, sheets, may_leave_out=a_moment
+        domain.spec_before_turn, changes, live, reading, may_leave_out=a_moment
     )
     domain.spec_before_dispatch = _replayed(
-        domain.spec_before_dispatch, changes, live, sheets, may_leave_out=a_moment
+        domain.spec_before_dispatch, changes, live, reading, may_leave_out=a_moment
     )
-    domain.answered_spec = _replayed(domain.answered_spec, changes, live, sheets)
+    domain.answered_spec = _replayed(domain.answered_spec, changes, live, reading)
     domain.answered_graph = live
     return changes
 
@@ -121,27 +158,42 @@ async def the_thread_wrote_the_strategy(
     domain = state.domain
     live = live_tree(graph)
     changes = outside_changes(before, live)
-    sheets = await _sheets_the_replay_reads(site_id, domain, changes, live)
+    reading = _Reading(
+        sheets=await _sheets_the_replay_reads(site_id, domain, changes, live),
+        analyses=analyses_of(live),
+    )
     dropped = _the_plan_leaves_out(domain)
     domain.operational_spec = _replayed(
-        domain.operational_spec, changes, live, sheets, may_leave_out=dropped
+        domain.operational_spec, changes, live, reading, may_leave_out=dropped
     )
-    domain.answered_spec = _replayed(domain.answered_spec, changes, live, sheets)
+    domain.answered_spec = _replayed(domain.answered_spec, changes, live, reading)
     domain.answered_graph = live
+
+
+class _Reading(NamedTuple):
+    """How the replay reads the live steps: their sheets, and their analyses."""
+
+    sheets: Sheets
+    analyses: Analyses
 
 
 def _replayed(
     spec: OperationalSpec | None,
     changes: OutsideChanges,
     live: StrategyAst | None,
-    sheets: Sheets,
+    reading: _Reading,
     *,
     may_leave_out: Collection[str] = (),
 ) -> OperationalSpec | None:
     if spec is None:
         return None
     return spec_replaying(
-        spec, changes, live, sheet_params=sheets, may_leave_out=may_leave_out
+        spec,
+        changes,
+        live,
+        sheet_params=reading.sheets,
+        analyses=reading.analyses,
+        may_leave_out=may_leave_out,
     )
 
 

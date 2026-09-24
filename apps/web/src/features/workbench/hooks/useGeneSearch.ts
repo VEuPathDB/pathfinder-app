@@ -59,6 +59,7 @@ export function useGeneSearch(onSelectionsCleared: () => void): GeneSearchState 
   const [prevClearKey, setPrevClearKey] = useState(clearKey);
   if (clearKey !== prevClearKey) {
     setPrevClearKey(clearKey);
+    setError(null);
     onSelectionsCleared();
   }
 
@@ -86,6 +87,7 @@ export function useGeneSearch(onSelectionsCleared: () => void): GeneSearchState 
       return loaded < total ? loaded : undefined;
     },
     enabled: debouncedQuery.trim().length > 0 && selectedSite !== "",
+    meta: { shownInline: true },
   });
 
   // Derive flat results from pages

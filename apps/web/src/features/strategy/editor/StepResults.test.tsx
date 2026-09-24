@@ -13,6 +13,12 @@ import type { StepRecordsResponse } from "@pathfinder/shared/generated/types/Ste
 import { APIError } from "@/lib/api/http";
 import { writeStrategy } from "@/lib/api/strategy";
 
+import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
+import { useAuthGateStore } from "@/state/useAuthGateStore";
+
+const toastError = vi.fn();
+vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
+
 const mockGetStepRecords = vi.fn<typeof getStepRecords>();
 vi.mock(
   "@pathfinder/shared/generated/hooks/useGetStepRecords",
@@ -186,6 +192,30 @@ describe("StepResults", () => {
     const text = await screen.findByText("PlasmoDB did not respond");
     expect(text.textContent).toBe("PlasmoDB did not respond");
     expect(screen.queryByText("1,234 genes")).toBeNull();
+  });
+
+  it("asks for a VEuPathDB sign-in when the records read is refused for a missing login", async () => {
+    const detail =
+      "VEuPathDB serves registered users only, and this request carried no registered VEuPathDB token.";
+    mockGetStepRecords.mockRejectedValue(apiError(401, "WDK_LOGIN_REQUIRED", detail));
+    useAuthGateStore.getState().dismissSignIn();
+    render(element({ wdkStepId: 22 }), { wrapper: appQueryClientWrapper() });
+
+    expect(await screen.findByText(detail)).toBeVisible();
+    expect(useAuthGateStore.getState().signInRequired).toBe(true);
+    expect(useAuthGateStore.getState().signInReason).toBe(detail);
+    expect(toastError.mock.calls).toEqual([[detail]]);
+  });
+
+  it("reports another failure once, with no toast", async () => {
+    mockGetStepRecords.mockRejectedValue(
+      apiError(503, "SITE_UNAVAILABLE", "PlasmoDB did not respond"),
+    );
+    render(element({ wdkStepId: 22 }), { wrapper: appQueryClientWrapper() });
+
+    expect(await screen.findByText("PlasmoDB did not respond")).toBeVisible();
+    expect(screen.getAllByText("PlasmoDB did not respond")).toHaveLength(1);
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it("shows the step count and three skeleton rows while the first page loads", () => {

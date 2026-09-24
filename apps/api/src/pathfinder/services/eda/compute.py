@@ -10,22 +10,24 @@ from assistant_core.platform.pydantic_base import CamelModel
 from veupathdb.eda import (
     EdaAnalysisDetail,
     EdaComputation,
-    EdaComputationDescriptor,
     EdaComputeJob,
+    EdaDifferentialExpressionComputation,
     EdaDifferentialExpressionConfig,
+    EdaDifferentialExpressionDescriptor,
     EdaError,
     EdaFilter,
     EdaJobStatus,
     VolcanoStatsResponse,
     VolcanoStatsRow,
+    differential_expression_computations,
     get_eda_client,
 )
 
 from pathfinder.domain.eda_parts import EdaComparison, EdaEffectDirection
 from pathfinder.platform.errors import AppError, ErrorCode
-from pathfinder.services.eda.authoring import apply_computation
 from pathfinder.services.eda.binding import read_analysis
 from pathfinder.services.eda.catalog import resolve_dataset
+from pathfinder.services.eda.comparison import apply_computation
 
 _CONFLICT = 409
 
@@ -261,11 +263,11 @@ async def submit_compute(
 
 def _records(
     analysis: EdaAnalysisDetail,
-    computation: EdaComputationDescriptor,
+    computation: EdaDifferentialExpressionDescriptor,
 ) -> bool:
-    """Whether the analysis already carries exactly this compute."""
-    computations = analysis.descriptor.computations
-    return len(computations) == 1 and computations[0].descriptor == computation
+    """Whether the analysis's comparison is already exactly this compute."""
+    computations = differential_expression_computations(analysis.descriptor)
+    return bool(computations) and computations[0].descriptor == computation
 
 
 async def run_analysis_compute(
@@ -273,15 +275,15 @@ async def run_analysis_compute(
     *,
     analysis_id: str,
     dataset_id: str,
-    computation: EdaComputationDescriptor,
+    computation: EdaDifferentialExpressionDescriptor,
 ) -> EdaComputeJob:
     """Record this compute on the analysis, then start the job that answers it.
 
     The analysis document is the SSOT every volcano reads, so a compute it
     does not carry is written there before any job starts, and a
     configuration the study rejects starts none. The identical call repeated
-    is the status poll, and a poll writes nothing. The analysis holds one
-    computation, so the analysis id names it.
+    is the status poll, and a poll writes nothing. The write replaces the
+    analysis's comparison and keeps every other computation.
     """
     entry = await resolve_dataset(site_id, dataset_id)
     analysis = await read_analysis(site_id, analysis_id=analysis_id)
@@ -290,8 +292,11 @@ async def run_analysis_compute(
             site_id,
             analysis_id=analysis_id,
             dataset_id=dataset_id,
-            computation=EdaComputation(
-                computation_id=analysis_id,
+            computation=EdaDifferentialExpressionComputation(
+                computation=EdaComputation(
+                    computation_id=analysis_id,
+                    descriptor=computation,
+                ),
                 descriptor=computation,
             ),
         )
@@ -351,20 +356,23 @@ def comparison_of(config: EdaDifferentialExpressionConfig) -> EdaComparison:
     )
 
 
-def _computation_of(analysis: EdaAnalysisDetail) -> EdaComputation:
-    """The analysis's compute. One that has not run is a conflict."""
-    if not analysis.descriptor.computations:
+def analysis_computation(
+    analysis: EdaAnalysisDetail,
+) -> EdaDifferentialExpressionComputation:
+    """The analysis's first complete differential expression. None is a conflict."""
+    computations = differential_expression_computations(analysis.descriptor)
+    if not computations:
         msg = (
             f"Analysis {analysis.analysis_id} has no comparison yet; run the "
             f"differential expression first."
         )
         raise NoComputationError(msg)
-    return analysis.descriptor.computations[0]
+    return computations[0]
 
 
 def analysis_comparison(analysis: EdaAnalysisDetail) -> EdaComparison:
     """The groups the analysis's compute compares."""
-    return comparison_of(_computation_of(analysis).descriptor.configuration)
+    return comparison_of(analysis_computation(analysis).descriptor.configuration)
 
 
 async def bound_volcano(
@@ -378,7 +386,7 @@ async def bound_volcano(
 
     It never starts a job: a compute that has not run is a conflict.
     """
-    computation = _computation_of(analysis)
+    computation = analysis_computation(analysis)
     entry = await resolve_dataset(site_id, dataset_id)
     statistics = await read_statistics(
         site_id,

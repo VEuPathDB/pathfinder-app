@@ -83,7 +83,7 @@ def _state(*, verified: bool = False) -> PipelineState:
                 success=True,
             ),
         )
-    return PipelineState(
+    state = PipelineState(
         conversation_id=uuid4(),
         user_id=uuid4(),
         site_id="plasmodb",
@@ -91,6 +91,8 @@ def _state(*, verified: bool = False) -> PipelineState:
         user_prompt="which kinases are essential",
         domain=domain,
     )
+    state.turn_markers.verification_dispatched = verified
+    return state
 
 
 @pytest.fixture

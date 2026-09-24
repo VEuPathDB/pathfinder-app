@@ -1,6 +1,7 @@
-"""Every strategy write a turn makes carries the researcher's request of that turn.
+"""Every strategy write a turn makes carries the request the thread answers.
 
-A strategy the thread has not titled yet is pushed under that request.
+A strategy the thread has not titled yet is pushed under that request, the
+same text the web shows for an untitled thread.
 """
 
 from __future__ import annotations
@@ -9,6 +10,7 @@ from typing import Any
 
 import pytest
 
+from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import sub_agent_dispatch
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.tools.standalone import eda_step
@@ -28,6 +30,17 @@ def test_a_sub_agents_writes_carry_the_request() -> None:
     deps = lead_deps(pipeline_state(user_prompt=_REQUEST))
 
     assert agent_deps_for(deps).to_strategy_context().user_prompt == _REQUEST
+
+
+def test_a_later_turn_carries_the_threads_original_request() -> None:
+    state = pipeline_state(
+        user_prompt="Use the 24 hour time point only",
+        domain=StrategyDomainState(original_request=_REQUEST),
+    )
+
+    assert agent_deps_for(lead_deps(state)).to_strategy_context().user_prompt == (
+        _REQUEST
+    )
 
 
 def test_an_eda_step_carries_the_request() -> None:

@@ -41,12 +41,12 @@ _HTSEQ = "ENT_fd574cd6"
 _TEMPERATURE_CONDITION = "VAR_081ab087"
 
 # The filtered and unfiltered size of each entity, keyed by (study, entity).
-# The gene pair is the recorded one; the sample pair is six of twelve samples
-# and the htseq pair is those samples against the study's 5511 genes.
+# The gene pair is the recorded one; the sample pair is the six febrile samples
+# of twelve, and the htseq pair is their rows against 12 samples of 5720 genes.
 _SIZES = {
     (_PHENOTYPE_STUDY, _PHENOTYPE_ENTITY): (4011, 4279),
     (_DE_STUDY, _SAMPLE): (6, 12),
-    (_DE_STUDY, _HTSEQ): (33066, 66132),
+    (_DE_STUDY, _HTSEQ): (34320, 68640),
 }
 
 _PERMISSIONS = {
@@ -188,8 +188,8 @@ async def test_every_entity_of_the_study_is_counted_in_tree_order(
         EdaEntityCount(
             entity_id=_HTSEQ,
             entity_display_name="pfal3D7 htseq counts",
-            count=33066,
-            unfiltered_count=66132,
+            count=34320,
+            unfiltered_count=68640,
         ),
     ]
 

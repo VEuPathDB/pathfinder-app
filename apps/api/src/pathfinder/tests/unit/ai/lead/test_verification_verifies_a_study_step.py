@@ -33,7 +33,9 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
 from pathfinder.ai.tools.standalone.strategy_graph import StudyStepCheck
 from pathfinder.ai.tools.toolsets import verification
+from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.step_words import StampedKind
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.database import no_database
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
@@ -120,6 +122,13 @@ def _session() -> StrategySession:
                 "eda_analysis_spec": StringValue(value=_ANALYSIS_SPEC),
             },
         ),
+    )
+    graph.note_analysis_kinds(
+        {
+            _STEP_ID: StampedKind(
+                search_name="GenesByEdaVizWithCompute", kind=AnalysisKind.COMPUTE
+            )
+        }
     )
     session.add_graph(graph)
     session.sync_state = WDKSyncState(

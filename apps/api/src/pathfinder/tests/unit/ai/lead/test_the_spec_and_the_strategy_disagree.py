@@ -117,9 +117,13 @@ async def test_an_editor_step_beside_an_unbuilt_criterion_is_stated_and_kept(
 def _stating_the_canvas_step() -> Draft:
     def _draft(found: OperationalSpec) -> OperationalSpec:
         found = with_the_proteome(2)(found)
-        found.criteria.append(
-            Criterion(id=CANVAS, text="added in the editor", search_name="GenesByTaxon")
-        )
+        # set_criterion keys a criterion by its id, as the pass does here.
+        found.criteria = [
+            *(c for c in found.criteria if c.id != CANVAS),
+            Criterion(
+                id=CANVAS, text="added in the editor", search_name="GenesByTaxon"
+            ),
+        ]
         found.structure = SpecStructure(
             root=joined(
                 CombineOp.INTERSECT,

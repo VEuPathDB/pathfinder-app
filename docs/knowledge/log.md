@@ -2,6 +2,201 @@
 
 ## 2026-09-23
 
+* **An EDA analysis is a criterion of the spec.** On vectorbase (v0.2.0a12,
+  conversation e328175f) "Find genes significantly upregulated at 24 h post
+  blood meal versus 18 h and 36 h" ran DESeq2 for 24 h vs 18 h (150 genes) and
+  exported `step_2c6dce8d`; for 24 h vs 36 h FRAME framed both comparisons as
+  the dataset's fold-change search (140 and 155 transcripts), `run_edit`
+  refused "the planned strategy holds ['c_24h_vs_18_up', 'c_24h_vs_36_up']
+  where the edited spec states ['c_24h_vs_18_up', 'c_24h_vs_36_up',
+  'step_2c6dce8d']", the re-frame dropped the DESeq2 step, and the turn ended
+  with two fold-change branches and one analysis branch intersecting to 2
+  genes. The exported criterion had carried the analysis document as
+  `resolved_params` and no meaning FRAME could read, and the handoff was a
+  drop keyed on the dataset that the first export cleared. An export now
+  states an `AnalysisBinding` and no parameter; FRAME keeps it BOUND; a
+  comparison only the workflow realizes waits under FRAME's own id with
+  `needs_analysis_on`; `run_edit` plans without it (the replayed turn commits
+  0 operations, where the unpruned plan wrote an `addLeaf` of
+  `c_24h_vs_36_up` with search `''` and an INTERSECT over it); and
+  `create_eda_step(criterion_id="c_24h_vs_36_up")` joins the second DESeq2
+  export at the root INTERSECT, so the strategy holds two
+  `GenesByEdaVizWithCompute` branches, each at DESeq, `upOnly` and p 0.05, and
+  no fold-change search. `exported_thresholds` is replaced by
+  `exported_analysis(kind, parameters)`, which reads a document as the plugin
+  of the step's analysis kind does: `GeneEdaVizWithComputePlugin.findVolcanoComputation`
+  takes the first computation holding a volcano with both thresholds,
+  wherever it stands, and `GeneEdaSubsetPlugin` reads the subset alone, so a
+  subset step binds no cut. WDK picks the plugin by the search's query, so the
+  kind (`compute`, `subset`, `none`) is stored per step in
+  `StrategyAst.metadata` beside the researcher's words: the export stamps its
+  own, an import, a step the site adds and a step a build mints (a rebuild
+  after a clear, a saved strategy's clone) take it from the catalog, a
+  duplicated step copies its source's, and a step with none is stamped at
+  the turn entry. Each stored kind names the search it was read for, and a
+  step that now runs another search reads as having none, so a rebound step
+  is read again, also when VERIFY checks it within the same turn; a step the
+  site cannot describe is listed under `unread_analyses`, the digest carries
+  it as `pending_checks` from the strategy (the verdict reads "passed, N
+  check(s) pending"; `VerificationDigest.passed`, read by the verified marker,
+  the memory gate, the eval verdict, curation and the ledger's `successful`,
+  is False; the rail shows "1 pending" and the VERIFY card "Passed, 1 check
+  pending", read from the typed delta; and a sentence that names the site
+  together with the pending step, or with "did not describe" or "could not
+  read", is not refused as site blame while a busy-site sentence still is, so `TurnRecord`, now
+  in `ai/lead/turn_record.py`, carries the verification section), and a
+  search whose read failed is not asked again that turn. A per-dataset
+  `GenesByRNASeq...DESeq` step therefore reads its cut, and a WGCNA module
+  step reads as no analysis. An export and a build re-key every spec the turn holds that
+  names the criteria they bind. A waiting criterion keeps its dataset, one
+  criterion waits per dataset, and a spec that names one id twice is
+  refused. `create_eda_step` takes no search name, so an export writes
+  one of those two searches and no other. A waiting criterion is bound by the
+  export and by no other search. The binding names no analysis id. The drop de-duplication by dataset
+  and `answered_drop_cleared` are gone; a drop an earlier release recorded on
+  a dataset leaves every record when a live export on that dataset answered
+  it, and otherwise is stated at the turn entry as a criterion waiting at the
+  root. See
+  [an EDA analysis is a criterion of the spec](decisions/an-eda-analysis-is-a-criterion-of-the-spec.md).
+
+* **PathFinder takes `veupathdb-py` 0.1.0a15 and `veupathdb-mcp` 0.2.0a24.**
+  The client release parses an analysis the site's own EDA app edited: its
+  compute and visualization descriptors are unions that keep a `pass` compute,
+  an unfinished differential expression and any plot, where 0.1.0a14 accepted
+  only a complete differential expression with a volcano. Its stored models
+  derive from `EdaStoredModel`, which keeps every key the site wrote, keys the
+  client does not model included. `differential_expression_computations` names
+  an analysis's complete comparisons in order, and `analysis_descriptor_patch`
+  writes a descriptor back with the nodes it read as stored and the nodes it
+  built with their defaults. `veupathdb-mcp` 0.2.0a24 pins that client, so the
+  two tags agree (`apps/api/pyproject.toml`, both compose build contexts).
+
+* **An analysis the site's own EDA app edited reads, exports and computes.**
+  On cedar at 14:12 UTC, `GET /conversations/{id}/eda` answered 500 nine
+  times: the analysis held a `pass` compute with a histogram beside its
+  differential expression, and `veupathdb-py` 0.1.0a14 refused it. The recorded
+  document `analysis_detail_pass_and_de` (study `DS_e973eadd57`, pass compute
+  `k3x9q`, DE compute `m7p2d`) fails that model with
+  `descriptor.computations.0.descriptor.type: Input should be
+  'differentialexpression'` and `descriptor.computations.0.visualizations.0.descriptor.type:
+  Input should be 'volcanoplot'`, beside three missing-field errors. PathFinder
+  takes 0.1.0a15, whose unions keep every compute and plot, and reads the
+  analysis's comparison as its first complete differential expression
+  (`compute.py::analysis_computation`). A compute write replaces that
+  computation or appends one and keeps every other computation as the site
+  stored it, keys PathFinder does not model included (`services/eda/comparison.py`,
+  through the client's `analysis_descriptor_patch`). A compute export lists the
+  comparison first with its volcano as its only visualization, the
+  computation the compute plugin finds and the visualization it reads the cut
+  from, and keeps the volcano's plot settings while it always states
+  `effectDirection` and both thresholds; a subset export keeps the site's
+  order, and the subset plugin reads the subset alone. The reader of a step's
+  cut was `exported_thresholds` then; `exported_analysis` replaced it the same
+  day (above). The direction guard and the gene-subset refusal count comparisons,
+  so the recorded document holds 1, not 2. The tab's compute draft reads the
+  first differential expression past a pass compute. PathFinder writes no
+  display name: the site's type makes it optional and its app shows "Unnamed
+  visualization" for an absent one, where the empty string it sent before
+  showed a blank label. See
+  [an-eda-step-holds-a-compute-or-a-gene-subset](decisions/an-eda-step-holds-a-compute-or-a-gene-subset.md).
+
+* **The strategy picker's error shows once.** The dataset parameter's
+  strategy tab states a failed strategy list inline, and its query now carries
+  `meta: { shownInline: true }`, so the app's query client raises no toast
+  beside it.
+
+* **A new request answers no question, and a re-classification keeps the
+  frame.** Five proofs failed on v0.2.0a14. "Forget that. Find transporters on
+  chromosome 5." over a built strategy was recorded as the answer to FRAME's
+  open question and printed under "Answer:" in the edit order, because
+  `ANSWERING_INTENTS` held `new_strategy`; it no longer does, and a
+  `new_strategy` classification drops the open questions and the answer this
+  message gave them. A re-classification to `new_strategy` after this turn's
+  frame pass wiped that spec while `framed` stayed True, so only
+  `build_strategy` was offered; `classify_user_intent` now calls
+  `StrategyDomainState.take_a_new_request` only while the turn has not framed,
+  consulted or written the strategy, and `record_intent` takes the
+  requirements and the request alone. A re-classification before that work is
+  the classifier correcting itself, so it still sets the old request aside:
+  gated on the first classification, "Forget that. Find transporters on
+  chromosome 5." first read as `follow_up_question` framed from the old goal
+  plus the new message, and over a built step its edit order printed the old
+  question with the new message as its answer. The same gate kept a corrected
+  classifier from answering: "Go with your recommendation" read as
+  `follow_up_question` and then `clarification_response` left FRAME's question
+  open with no answer. `markers_for` now copies the questions open at arrival
+  into `TurnMarkers.questions_at_arrival`, and any answering classification
+  closes exactly those (`answer_the_questions_at_arrival`), so a question
+  asked later in the turn still waits on the next message. With a step `create_eda_step` wrote into an empty strategy
+  and no spec, `frame_problem` and `build_strategy` were hidden and
+  `edit_strategy` refused with "this thread has none. Call frame_problem";
+  `run_edit` now calls `pre_turn.py::hydrate_spec_from_the_strategy` on a fresh
+  dispatch, and the refusal names only the tools `tools_the_turn_offers`
+  returns. After `clear_strategy` the ledger still printed `STALE:` and the
+  budget report said the rebuilt count was out of date; `set_the_request_aside`
+  and `record_resync`, which `record_build` calls, now reset `stale_build`, so
+  a recovery that reads the counts afresh prints no `STALE:` either. `gene_count` ran its two
+  distribution reads under `asyncio.gather`, which left the unfiltered read
+  running after the filtered one failed; it now runs them in an
+  `asyncio.TaskGroup` and re-raises the first error of the group. An edit's
+  budget retry now carries the unpushed changes and the answered spec
+  (`dispatch_context.py::the_edit_the_strategy_owes`), and the mock classifies
+  a build `extend_strategy` when the Lead's pinned spec states a framed draft.
+  See [a-clarification-adds-to-the-request](decisions/a-clarification-adds-to-the-request.md),
+  [a-budget-stop-is-retried-by-the-system](decisions/a-budget-stop-is-retried-by-the-system.md)
+  and [an-eda-step-holds-a-compute-or-a-gene-subset](decisions/an-eda-step-holds-a-compute-or-a-gene-subset.md).
+
+* **A standing verdict is not a later turn's finding.** With the verdict kept
+  for the strategy revision it judged, `finalize_turn` ran the memory
+  auto-write and the scratchpad compaction on every turn while it stood,
+  including a question that ran no check. Both now run only in the turn
+  that dispatched the check. See
+  [the-ledger-outranks-the-verification-digest](decisions/the-ledger-outranks-the-verification-digest.md).
+
+* **A thread has a strategy when its graph holds a step, and a verdict belongs
+  to the revision it judged.** Five proofs failed on v0.2.0a14. A
+  `new_strategy` message over an unbuilt draft ("Forget that. Find
+  transporters on chromosome 5.") was framed with the goal `"surface vaccine
+  candidates in P. falciparum 3D7\n\nThe user then clarified: Forget that.
+  ..."`, FRAME got the five old criteria, and its budget retry was briefed
+  "EDIT work order: the previous pass ran out of its tool budget; continue that
+  edit". After `clear_strategy`, `framing_goal` still led with the cleared
+  request and a budget stop cited the cleared strategy's link. An answer to a
+  question asked over a built strategy was offered `frame_problem`, whose fresh
+  order carried no question, and the edit order carried none either. A
+  `follow_up_question` ("What does a GPI anchor mean here?") closed FRAME's
+  open question, so the answer that followed was framed fresh. After a verified
+  build, "What does PF3D7_1133400 do?" left the rail at `complete=False,
+  successful=False`. Now: a `new_strategy` message over a live graph with no
+  step calls `set_the_request_aside` (spec, requirements, recommendations, open
+  questions, original request, build record); `clear_strategy` calls it too,
+  then records its own message's request again. `continues_the_request` and
+  `has_strategy` are gone. `frame_problem` is never offered while the graph
+  holds a step, `verify_strategy` is offered only then, and
+  `edit_work_order` carries `TurnMarkers.answered`. Only
+  `intent.py::ANSWERING_INTENTS` closed open questions then, on a message's
+  first classification only; the arrival rule recorded above replaced that
+  gate. `record_verdict` stores `verified_revision`, the
+  `strategy_revision` of the live tree the check read, and `turn_verdict`
+  returns the digest while `answered_graph` holds that revision.
+  `PipelineState.request_the_thread_answers` replaces three copies of
+  `original_request or user_prompt`. See
+  [the-ledger-outranks-the-verification-digest](decisions/the-ledger-outranks-the-verification-digest.md),
+  [a-budget-stop-is-retried-by-the-system](decisions/a-budget-stop-is-retried-by-the-system.md),
+  [a-clarification-adds-to-the-request](decisions/a-clarification-adds-to-the-request.md)
+  and [building-is-a-response-to-a-request](decisions/building-is-a-response-to-a-request.md).
+
+* **Every card of a response reaches the web whole.** A response that held two
+  cards wrote the first card's `tool-input-available` and
+  `tool-approval-request` at once and its `tool-input-start` only when the run
+  ended, so the `ai` SDK reset that card, the one the run parks on, to
+  `input-streaming` and it lost its buttons. `CardHold` now holds every chunk of
+  each new card of the response and writes the text, then each card whole, when
+  the run ends; a denial drops the text and every card. A card beside
+  `delete_step` is written after that call, and a card denied beside it leaves
+  the run parked on `delete_step`, the correction read with that answer. See
+  [an-offer-is-a-card-not-prose](decisions/an-offer-is-a-card-not-prose.md).
+
 * **A budget stop reports what the turn built.** On vectorbase a turn built the
   EDA DESeq2 step for 24 h against 18 h and 36 h (`upOnly`, 70 genes, WDK step
   440545693), looped on a verification objection until 80 model calls, and
@@ -12,6 +207,26 @@
   open question FRAME recorded, then the unchanged budget sentence, or "Nothing
   was built." when the graph holds no step. See
   [an-off-topic-turn-reaches-no-tool](decisions/an-off-topic-turn-reaches-no-tool.md).
+
+* **VERIFY reads the request, and a verdict belongs to the revision it judged.** The only
+  request text VERIFY read was the ledger's intent line, the classifier's
+  paraphrase; the vaccine request's "late schizonts or merozoites" was not in
+  its instructions. `run_verification` now fills `VerificationScope.request`
+  with `framing_goal(state)`, the original request plus any clarification, and
+  `pinned_researcher_request` pins it under "The researcher's request";
+  `AgentDeps.user_prompt` keeps its one reader, the push name. The ledger's
+  intent line says it is a paraphrase. The digest was written by one turn and
+  read by every later one, so a budget stop after an edit printed the earlier
+  turn's "Verification passed." and the auto-write took the earlier success as
+  this turn's. `record_verdict` now keeps the digest with `verified_revision`,
+  the revision of the tree the check read, and `PipelineState.turn_verdict`
+  returns it only while the live strategy holds that revision.
+  `budget_stop_report` takes the turn's markers: it names each step the turn
+  added, or says the turn changed the strategy or changed nothing, prints a
+  verdict only for the strategy as it stands, and cites no count and no link
+  over a stale build. See
+  [the-ledger-outranks-the-verification-digest](decisions/the-ledger-outranks-the-verification-digest.md)
+  and [an-off-topic-turn-reaches-no-tool](decisions/an-off-topic-turn-reaches-no-tool.md).
 
 * **An EDA step holds a compute or a gene subset.** On vectorbase a request for
   genes up at 24 h post blood meal filtered 44 samples, previewed "Genes this
@@ -26,6 +241,25 @@
   for an analysis with no filter and no computation; `preview_eda_subset` states
   the counted entity and prints no gene count for a subset that filters no gene.
   See [an-eda-step-holds-a-compute-or-a-gene-subset](decisions/an-eda-step-holds-a-compute-or-a-gene-subset.md).
+
+* **A gene count counts genes, and each reader gets its own refusal.** The
+  refusal and the preview's gene sentence labelled rows of the gene entity as
+  genes: on plasmodb the RNA-Seq counts entity of `DS_e973eadd57` holds 68,640
+  rows, 12 samples of 5,720 genes, and a filter of at least 1000 sense reads
+  keeps 5,114 rows and 842 genes. `gene_subset.gene_count` now reads
+  `numDistinctValues` of `VEUPATHDB_GENE_ID` under the subset and under none,
+  and the preview states it even when it counts the gene entity itself. A study
+  with no gene entity is refused by both exports. `NoGeneSubsetError` carries a
+  `detail` for the researcher (no tool name, no id) and a `retry` for the model;
+  the vocabulary gate now scans every study module's titles and details, the
+  locals they interpolate included, for snake_case names and `ENT_`/`VAR_` ids,
+  which reworded the empty-analysis push refusal, `EmptyAnalysisError` and the
+  histogram refusal. The tab's "Export as step" sends `thresholds: null` for an
+  analysis that holds a filter and no completed compute, so the 422 detail now
+  reaches the tab, and `create_eda_step` pushes under the thread's original
+  request. The test doubles moved to `tests/_support/eda_step_doubles.py` and
+  each analysis names the dataset of the recorded study it filters. See
+  [an-eda-step-holds-a-compute-or-a-gene-subset](decisions/an-eda-step-holds-a-compute-or-a-gene-subset.md).
 
 * **A strategy is pushed under the request until the title lands.** On vectorbase
   a first turn ran 4 min 44 s, and its first push created the WDK strategy as
@@ -102,13 +336,31 @@
   the researcher answered a `needs_user` question got the Lead's fresh brief and
   re-bound every criterion the draft already held (8 `search_for_searches` and
   8 `set_criterion` on plasmodb, about 60 s of a 76 s turn).
-  `classify_user_intent` now moves the thread's open questions into
-  `TurnMarkers.answered_questions`, and `frame_work_order` briefs a pass over a
+  `classify_user_intent` then moved the thread's open questions into
+  `TurnMarkers.answered_questions`, and `frame_work_order` briefed a pass over a
   spec with a bound criterion and no build as a continuation
-  (`ContinuationReason.ANSWERED_QUESTION`, or `EARLIER_TURN` with no question):
+  (`ContinuationReason.ANSWERED_QUESTION`, or `EARLIER_TURN` with no question;
+  both names were replaced by the next bullet):
   the bound criteria under "Do NOT call search_for_searches or set_criterion",
   the question, the answer and the Lead's brief. A built strategy is still
   briefed fresh. See
+  [a-budget-stop-is-retried-by-the-system](decisions/a-budget-stop-is-retried-by-the-system.md).
+
+* **Only an answer continues the frame, and every answer reaches it.** The
+  continuation had four gaps: a second `classify_user_intent` in one turn filed
+  a question FRAME asked between the two calls as answered; a `new_strategy`
+  message over an unbuilt draft was briefed as an answer that keeps the old
+  criteria; a draft framed after `clear_strategy`, which leaves
+  `last_build_outcome`, was briefed fresh, and a spec hydrated from a strategy
+  on the site was told nothing is built; a question answered on a consult card
+  stayed open. `TurnMarkers.answered_questions` became `TurnMarkers.answered`
+  (`AnsweredQuestions`: the questions, the answer's words, `on_card`), written
+  then on a message's first classification and by `consult_user`; the arrival
+  rule, recorded above, replaced the first-classification gate. `frame_work_order(reason, deps)` continues while the live
+  graph holds no step and the message is not `new_strategy`, or after a card
+  answer; a budget retry of a continuation runs the same order again.
+  `ContinuationReason` gave way to `budget_stop_work_order`,
+  `answered_question_work_order` and `earlier_turn_work_order`. See
   [a-budget-stop-is-retried-by-the-system](decisions/a-budget-stop-is-retried-by-the-system.md).
 
 * **A step says what runs.** A request for a property no site search states
@@ -268,8 +520,8 @@
   `decisions/a-volcano-direction-is-stated-by-its-groups.md`.
 
 * **The compute form shows the analysis's compute and takes many labels per group.**
-  `computeDraftOf` (`features/eda/computeConfig.ts`) reads the first computation of the
-  descriptor `GET /conversations/{id}/eda` answers, so a compute the agent ran fills the
+  `computeDraftOf` (`features/eda/computeConfig.ts`) reads the first computation that
+  parses as a complete differential expression in the descriptor `GET /conversations/{id}/eda` answers, so a compute the agent ran fills the
   method, the value variable, the comparator and both groups, and "Run compute" stays
   disabled until the draft differs from it (`isSameComputeDraft`, groups compared as
   sets). "Reference group (A)" and "Comparison group (B)" are checkbox lists written in
@@ -319,8 +571,9 @@
   records one row per gene, and the control tests read through
   `get_step_answer`. `update_step_search_config` now starts from the step's own
   search config, so a parameter patch keeps its filters and, when the graph
-  holds no weight, the site's weight (`_update_existing_step` states the graph's
-  weight when it holds one, 0 included), and it
+  holds no weight, the site's weight (the patch states the graph's weight when
+  it holds one, 0 included; `_update_existing_step` has since become
+  `_put_search_config`), and it
   refuses the write (`DataParsingError`, 500) when the catalog read fails or
   the step lacks a value for an input parameter; creation still tolerates a
   failed catalog read. `variant_comparison` reads an anonymous search report,
@@ -346,6 +599,26 @@
   selected", "Collapse all" and "Expand all" reset the open state. The footer
   names the selection by its smallest cover ("B (all 2)"), from
   `lib/parameters/treeSelection.ts`. The stored value stays leaves only.
+
+* **The api and the web name an untitled thread alike, and read one analysis
+  spec schema.** For 59 "a" then U+1F9EC then " rest", the api named the push
+  "a...a" plus the emoji plus "..." and the web cut a lone surrogate
+  (`\ud83e`); for 59 "a" then U+1F9EC (60 code points, 61 code units) the api
+  kept the text whole and the web cut it; for a BOM then "  lead bom" the api
+  kept the BOM and the web dropped it. `provisional_strategy_name` and
+  `provisionalName` now cut on code points and collapse one stated set of space
+  characters (the ECMAScript `\s` set), and
+  `packages/spec/provisional_name_parity.json` holds ten cases both suites
+  assert. A push is named after the request the thread answers
+  (`state.domain.original_request`, the turn's prompt only when there is none),
+  so a push after a clarification no longer takes the clarification's words.
+  The `eda_analysis_spec` widget validated with a hand-written schema that took
+  a spec with no `displayName` or with `computations: [42]` and refused one
+  with no `descriptor` or with `studyId: ""`, the reverse of `EdaNewAnalysis`.
+  The OpenAPI post pass now anchors `EdaNewAnalysis`, the widget validates with
+  the generated `edaNewAnalysisSchema`, and a stored spec that does not parse
+  shows its error above the editable JSON instead of "No analysis spec is set."
+  See [one-name-for-a-strategy](decisions/one-name-for-a-strategy.md).
 
 ## 2026-09-22
 

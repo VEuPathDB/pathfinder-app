@@ -230,6 +230,36 @@ describe("VerificationSection detail", () => {
     expect(screen.getByText(/product-name search matched 0/)).toBeInTheDocument();
   });
 
+  it("names the study steps whose check is pending", () => {
+    render(
+      <VerificationSection
+        verification={{
+          ...VERIFY_WITH_DIGEST,
+          digest: { ...VERIFY_WITH_DIGEST.digest, pendingChecks: ["step_de"] },
+        }}
+        detail
+      />,
+    );
+    expect(screen.getByText("pending checks")).toBeInTheDocument();
+    expect(screen.getByText("step_de")).toBeInTheDocument();
+  });
+
+  it("shows a pass with a pending check as pending, not as a pass", () => {
+    render(
+      <VerificationSection
+        verification={{
+          ...VERIFY_WITH_DIGEST,
+          successful: false,
+          digest: { ...VERIFY_WITH_DIGEST.digest, pendingChecks: ["step_de"] },
+        }}
+      />,
+    );
+    expect(screen.getByText("1 pending")).toBeInTheDocument();
+    // The one "yes" left is the complete row's.
+    expect(screen.getAllByText("yes")).toHaveLength(1);
+    expect(screen.queryByText("no")).not.toBeInTheDocument();
+  });
+
   it("omits digest prose in summary mode", () => {
     render(<VerificationSection verification={VERIFY_WITH_DIGEST} />);
     expect(screen.queryByText(/61 gametocyte genes/)).not.toBeInTheDocument();

@@ -25,6 +25,7 @@ from pathfinder.ai.lead.dispatch_context import (
     dispatch_call_id,
     record_the_spec_the_dispatch_found,
     refuse_and_restore,
+    the_edit_the_strategy_owes,
 )
 from pathfinder.ai.lead.dispatch_messages import option_binds_no_step_message
 from pathfinder.ai.lead.edit_messages import (
@@ -39,6 +40,8 @@ from pathfinder.ai.lead.edit_messages import (
     wdk_refused_the_written_step_message,
 )
 from pathfinder.ai.lead.frame_dispatch import run_frame
+from pathfinder.ai.lead.intent_gate import tools_the_turn_offers
+from pathfinder.ai.lead.pre_turn import hydrate_spec_from_the_strategy
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
@@ -59,6 +62,9 @@ from pathfinder.domain.strategy.spec_diff import (
     CriterionDisposition,
     SpecDiff,
     diff_specs,
+)
+from pathfinder.domain.strategy.spec_reconciliation import (
+    spec_without_pending_analyses,
 )
 from pathfinder.domain.strategy.spec_to_operations import (
     criteria_the_edit_introduces,
@@ -82,20 +88,23 @@ async def run_edit(
     reason: str,
     resume: SubAgentResume | None = None,
 ) -> EditDelta | SubAgentApprovalWait:
-    """Run the edit and push it, on a fresh dispatch or a resumed one."""
+    """Run the edit and push it, on a fresh dispatch or a resumed one.
+
+    A strategy that holds steps no spec states is edited from the spec those
+    steps describe.
+    """
+    if resume is None:
+        await hydrate_spec_from_the_strategy(deps.state, deps.runtime)
     record_the_spec_the_dispatch_found(deps, resume=resume)
     found = deps.state.domain.spec_before_dispatch
     graph = deps.runtime.strategy_session.get_graph(None)
     if found is None or not found.criteria or graph is None or not graph.steps:
         # Nothing has been written yet, so the refusal restores nothing: a spec
         # this turn framed for a fresh thread must survive a misrouted call.
-        raise ModelRetry(no_strategy_to_edit_message())
+        offered = tools_the_turn_offers(deps, ["frame_problem", "build_strategy"])
+        raise ModelRetry(no_strategy_to_edit_message(offered))
     base_revision = strategy_revision(graph.to_strategy_ast())
-    # The edit is the difference between the spec the strategy answers to and
-    # the one this pass leaves, so a criterion an earlier pass framed and never
-    # pushed is this edit's to build, and this pass is shown it.
-    answered = deps.state.domain.answered_spec or found
-    pending = diff_specs(answered, found)
+    answered, pending = the_edit_the_strategy_owes(deps.state, found)
     frame = await run_frame(
         deps=deps,
         parent_tool_call_id=parent_tool_call_id,
@@ -105,6 +114,7 @@ async def run_edit(
             found,
             pending=pending,
             answered=answered,
+            answer=deps.state.turn_markers.answered,
         ),
         expected_criteria=len(found.criteria),
         resume=resume,
@@ -131,7 +141,10 @@ async def run_edit(
             deps, option_binds_no_step_message(folded_after.spec, folded_after.unplaced)
         )
     after = folded_after.spec
-    diff = diff_specs(before, after)
+    # A criterion waiting for its analysis has no step to write; the EDA tools
+    # add it, so the edit plans without it and the plan keeps it.
+    planned = spec_without_pending_analyses(after)
+    diff = diff_specs(before, planned)
     if frame.disposition != "spec_ready":
         return EditDelta(
             diff=diff,
@@ -145,6 +158,7 @@ async def run_edit(
     return await _push_the_edit(
         deps=deps,
         after=after,
+        planned=planned,
         diff=diff,
         graph=graph,
         base_revision=base_revision,
@@ -155,18 +169,20 @@ async def _push_the_edit(
     *,
     deps: LeadDeps,
     after: OperationalSpec,
+    planned: OperationalSpec,
     diff: SpecDiff,
     graph: StrategyGraph,
     base_revision: str,
 ) -> EditDelta:
+    """Push what ``planned`` states; the thread's plan becomes ``after``."""
     try:
-        ops = operations_for(diff, after=after, graph=graph)
+        ops = operations_for(diff, after=planned, graph=graph)
     except UnsupportedEditError as exc:
         refuse_and_restore(deps, unsupported_edit_message(str(exc)))
     except ApplyError as exc:
         refuse_and_restore(deps, edit_operation_refused_message(str(exc)))
-    introduced = criteria_the_edit_introduces(after=after, graph=graph)
-    added = [c.id for c in after.criteria if c.id in introduced]
+    introduced = criteria_the_edit_introduces(after=planned, graph=graph)
+    added = [c.id for c in planned.criteria if c.id in introduced]
     _refuse_a_delta_the_strategy_disagrees_with(deps, diff, added)
     # A criterion the strategy held no step for is one this edit builds, so it
     # carries no id from the previous turn to preserve.
@@ -195,7 +211,8 @@ async def _push_the_edit(
         refuse_and_restore(deps, edit_operation_refused_message(str(exc)))
     except ValidationError as exc:
         refuse_and_restore(
-            deps, _refused_values_message(exc, diff=diff, after=after, added=introduced)
+            deps,
+            _refused_values_message(exc, diff=diff, after=planned, added=introduced),
         )
     outcome = _outcome_after_edit(agent_deps, commit)
     # The spec the thread carries states the option on the step that runs it,
@@ -205,7 +222,7 @@ async def _push_the_edit(
         deps.state, after, agent_deps.strategy_session.get_graph(None)
     )
     deps.state.record_build(outcome)
-    searches = added_searches(after, added)
+    searches = added_searches(planned, added)
     deps.state.turn_markers.record_added_searches(searches)
     _emit_graph_snapshot(agent_deps)
     # A push VEuPathDB did not take is the answer. The applied-operation line

@@ -7,6 +7,7 @@ gene set auto-import made for the thread carry copies of it.
 from __future__ import annotations
 
 import asyncio
+import re
 from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
@@ -44,7 +45,12 @@ WDK_RENAME_SECONDS = 10
 """The longest a rename waits on WDK."""
 
 PROVISIONAL_NAME_LENGTH = 60
-"""The longest a request stands in for the thread's title."""
+"""The longest a request stands in for the thread's title, in code points."""
+
+_SPACES = re.compile(
+    "[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+"
+)
+"""The characters that separate words in a request. The web states the same set."""
 
 __all__ = [
     "WDK_RENAME_SECONDS",
@@ -89,11 +95,11 @@ def placeholder_strategy_name(wdk_strategy_id: int) -> str:
 
 
 def provisional_strategy_name(prompt: str) -> str:
-    """The request cut on a word at 60 characters, or the placeholder for none.
+    """The request cut on a word at 60 code points, or the placeholder for none.
 
     The web names an untitled thread in its sidebar by the same rule.
     """
-    text = " ".join(prompt.split())
+    text = _SPACES.sub(" ", prompt).strip(" ")
     if not text:
         return DEFAULT_CONVERSATION_NAME
     if len(text) <= PROVISIONAL_NAME_LENGTH:
@@ -101,7 +107,7 @@ def provisional_strategy_name(prompt: str) -> str:
     head = text[: PROVISIONAL_NAME_LENGTH + 1]
     boundary = head.rfind(" ")
     cut = head[:boundary] if boundary > 0 else text[:PROVISIONAL_NAME_LENGTH]
-    return f"{cut.rstrip()}..."
+    return f"{cut}..."
 
 
 def name_for_the_push(graph: StrategyGraph, user_prompt: str) -> str:

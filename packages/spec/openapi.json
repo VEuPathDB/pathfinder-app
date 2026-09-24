@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a13"
+    "version": "0.2.0a14"
   },
   "paths": {
     "/health": {
@@ -10495,6 +10495,7 @@
             "title": "Groupb"
           }
         },
+        "additionalProperties": true,
         "type": "object",
         "required": [
           "variable",
@@ -10527,24 +10528,6 @@
         ],
         "title": "EdaComparison",
         "description": "The labels of the two sample groups one compute compares.\n\n``group_a`` is the reference, so a positive effect size is higher in\n``group_b``."
-      },
-      "EdaComputationDescriptor": {
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "differentialexpression",
-            "title": "Type",
-            "default": "differentialexpression"
-          },
-          "configuration": {
-            "$ref": "#/components/schemas/EdaDifferentialExpressionConfig"
-          }
-        },
-        "type": "object",
-        "required": [
-          "configuration"
-        ],
-        "title": "EdaComputationDescriptor"
       },
       "EdaCountRequest": {
         "properties": {
@@ -10689,6 +10672,7 @@
             "default": "1e-200"
           }
         },
+        "additionalProperties": true,
         "type": "object",
         "required": [
           "identifierVariable",
@@ -10697,6 +10681,26 @@
         ],
         "title": "EdaDifferentialExpressionConfig",
         "description": "The compute's own configuration. There is no collectionVariable here."
+      },
+      "EdaDifferentialExpressionDescriptor": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "differentialexpression",
+            "title": "Type",
+            "default": "differentialexpression"
+          },
+          "configuration": {
+            "$ref": "#/components/schemas/EdaDifferentialExpressionConfig"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "configuration"
+        ],
+        "title": "EdaDifferentialExpressionDescriptor",
+        "description": "A differential-expression compute whose configuration is complete."
       },
       "EdaDistributionRequest": {
         "properties": {
@@ -10991,6 +10995,7 @@
             "title": "Max"
           }
         },
+        "additionalProperties": true,
         "type": "object",
         "required": [
           "label"
@@ -11151,7 +11156,7 @@
             "title": "Action"
           },
           "computation": {
-            "$ref": "#/components/schemas/EdaComputationDescriptor"
+            "$ref": "#/components/schemas/EdaDifferentialExpressionDescriptor"
           }
         },
         "type": "object",
@@ -18881,6 +18886,148 @@
         },
         "type": "array"
       },
+      "AnalysisBinding": {
+        "description": "The genes one exported analysis selects, and the document that selects them.\n\n``step_parameters`` is the step's own document, carried as an opaque value\nlike a saved strategy's subtree.",
+        "properties": {
+          "datasetId": {
+            "title": "Datasetid",
+            "type": "string"
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EdaComparison"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "effectDirection": {
+            "anyOf": [
+              {
+                "enum": [
+                  "upOnly",
+                  "downOnly",
+                  "upAndDown"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effectdirection"
+          },
+          "effectSizeThreshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effectsizethreshold"
+          },
+          "significanceThreshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Significancethreshold"
+          },
+          "subset": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Subset",
+            "type": "array"
+          },
+          "words": {
+            "title": "Words",
+            "type": "string"
+          },
+          "stepParameters": {
+            "additionalProperties": {
+              "discriminator": {
+                "mapping": {
+                  "date": "#/components/schemas/DateValue",
+                  "date-range": "#/components/schemas/DateRangeValue",
+                  "filter": "#/components/schemas/FilterValue",
+                  "input-dataset": "#/components/schemas/InputDatasetValue",
+                  "input-step": "#/components/schemas/InputStepValue",
+                  "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
+                  "number": "#/components/schemas/NumberValue",
+                  "number-range": "#/components/schemas/NumberRangeValue",
+                  "single-pick-vocabulary": "#/components/schemas/SinglePickValue",
+                  "string": "#/components/schemas/StringValue",
+                  "timestamp": "#/components/schemas/TimestampValue"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/StringValue"
+                },
+                {
+                  "$ref": "#/components/schemas/NumberValue"
+                },
+                {
+                  "$ref": "#/components/schemas/NumberRangeValue"
+                },
+                {
+                  "$ref": "#/components/schemas/DateValue"
+                },
+                {
+                  "$ref": "#/components/schemas/DateRangeValue"
+                },
+                {
+                  "$ref": "#/components/schemas/TimestampValue"
+                },
+                {
+                  "$ref": "#/components/schemas/SinglePickValue"
+                },
+                {
+                  "$ref": "#/components/schemas/MultiPickValue"
+                },
+                {
+                  "$ref": "#/components/schemas/FilterValue"
+                },
+                {
+                  "$ref": "#/components/schemas/InputDatasetValue"
+                },
+                {
+                  "$ref": "#/components/schemas/InputStepValue"
+                }
+              ]
+            },
+            "title": "Stepparameters",
+            "type": "object"
+          }
+        },
+        "required": [
+          "datasetId",
+          "words"
+        ],
+        "title": "AnalysisBinding",
+        "type": "object"
+      },
       "AssumedValue": {
         "description": "A value the model chose that the criterion text does not state.\n\nIt is reported as a constraint so the user reads it and can override it.",
         "properties": {
@@ -19655,6 +19802,27 @@
             },
             "title": "Alternatives",
             "type": "array"
+          },
+          "analysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisBinding"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "needsAnalysisOn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Needsanalysison"
           }
         },
         "required": [
@@ -22058,6 +22226,14 @@
             "title": "Caveats",
             "type": "array"
           },
+          "pendingChecks": {
+            "description": "The study steps whose analysis the site did not describe, so their check could not run. The runtime sets it from the strategy and replaces anything written here.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Pendingchecks",
+            "type": "array"
+          },
           "constraintReport": {
             "items": {
               "$ref": "#/components/schemas/ConstraintCheck"
@@ -22430,6 +22606,429 @@
           }
         },
         "title": "StreamPartsSchemaIndex",
+        "type": "object"
+      },
+      "AnalysisDescription": {
+        "type": "string"
+      },
+      "AnalysisDisplayName": {
+        "type": "string"
+      },
+      "EdaAnalysisDescriptor": {
+        "additionalProperties": true,
+        "description": "The whole semantic state. ``derivedVariables`` holds ids, not specs.",
+        "properties": {
+          "subset": {
+            "$ref": "#/components/schemas/EdaSubsetDescriptor"
+          },
+          "computations": {
+            "items": {
+              "$ref": "#/components/schemas/EdaComputation"
+            },
+            "title": "Computations",
+            "type": "array"
+          },
+          "starredVariables": {
+            "items": {
+              "$ref": "#/components/schemas/EdaVariableSpec"
+            },
+            "title": "Starredvariables",
+            "type": "array"
+          },
+          "dataTableConfig": {
+            "$ref": "#/components/schemas/JSONObject"
+          },
+          "derivedVariables": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Derivedvariables",
+            "type": "array"
+          }
+        },
+        "title": "EdaAnalysisDescriptor",
+        "type": "object"
+      },
+      "EdaComputation": {
+        "additionalProperties": true,
+        "properties": {
+          "computationId": {
+            "title": "Computationid",
+            "type": "string"
+          },
+          "displayName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Displayname"
+          },
+          "descriptor": {
+            "$ref": "#/components/schemas/EdaComputeDescriptor"
+          },
+          "visualizations": {
+            "items": {
+              "$ref": "#/components/schemas/EdaVisualization"
+            },
+            "title": "Visualizations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "computationId",
+          "descriptor"
+        ],
+        "title": "EdaComputation",
+        "type": "object"
+      },
+      "EdaComputeDescriptor": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/EdaDifferentialExpressionDescriptor"
+          },
+          {
+            "$ref": "#/components/schemas/EdaPassDescriptor"
+          },
+          {
+            "$ref": "#/components/schemas/EdaOtherComputeDescriptor"
+          }
+        ]
+      },
+      "EdaNumberRange": {
+        "additionalProperties": true,
+        "properties": {
+          "min": {
+            "title": "Min",
+            "type": "number"
+          },
+          "max": {
+            "title": "Max",
+            "type": "number"
+          }
+        },
+        "required": [
+          "min",
+          "max"
+        ],
+        "title": "EdaNumberRange",
+        "type": "object"
+      },
+      "EdaOtherComputeDescriptor": {
+        "additionalProperties": true,
+        "description": "Any other compute plugin, or a DE compute the UI has not finished configuring.",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "configuration": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "EdaOtherComputeDescriptor",
+        "type": "object"
+      },
+      "EdaOtherVisualizationDescriptor": {
+        "additionalProperties": true,
+        "description": "Any other visualization, or a volcano plot without its thresholds.",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "configuration": {
+            "$ref": "#/components/schemas/JsonValue"
+          },
+          "currentPlotFilters": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentplotfilters"
+          },
+          "thumbnail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail"
+          },
+          "applicationContext": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applicationcontext"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "EdaOtherVisualizationDescriptor",
+        "type": "object"
+      },
+      "EdaPassDescriptor": {
+        "additionalProperties": true,
+        "description": "The pass-through compute every plain visualization hangs off. It has no configuration.",
+        "properties": {
+          "type": {
+            "const": "pass",
+            "default": "pass",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "EdaPassDescriptor",
+        "type": "object"
+      },
+      "EdaSubsetDescriptor": {
+        "additionalProperties": true,
+        "properties": {
+          "descriptor": {
+            "items": {
+              "$ref": "#/components/schemas/EdaFilter"
+            },
+            "title": "Descriptor",
+            "type": "array"
+          },
+          "uiSettings": {
+            "$ref": "#/components/schemas/JSONObject"
+          }
+        },
+        "title": "EdaSubsetDescriptor",
+        "type": "object"
+      },
+      "EdaVisualization": {
+        "additionalProperties": true,
+        "properties": {
+          "visualizationId": {
+            "title": "Visualizationid",
+            "type": "string"
+          },
+          "displayName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Displayname"
+          },
+          "descriptor": {
+            "$ref": "#/components/schemas/EdaVisualizationDescriptor"
+          }
+        },
+        "required": [
+          "visualizationId",
+          "descriptor"
+        ],
+        "title": "EdaVisualization",
+        "type": "object"
+      },
+      "EdaVisualizationDescriptor": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/EdaVolcanoDescriptor"
+          },
+          {
+            "$ref": "#/components/schemas/EdaOtherVisualizationDescriptor"
+          }
+        ]
+      },
+      "EdaVolcanoConfiguration": {
+        "additionalProperties": true,
+        "description": "The thresholds the WDK bridge plugin requires, and the plot settings the UI stores.",
+        "properties": {
+          "effectSizeThreshold": {
+            "title": "Effectsizethreshold",
+            "type": "number"
+          },
+          "significanceThreshold": {
+            "title": "Significancethreshold",
+            "type": "number"
+          },
+          "effectDirection": {
+            "default": "upAndDown",
+            "enum": [
+              "upOnly",
+              "downOnly",
+              "upAndDown"
+            ],
+            "title": "Effectdirection",
+            "type": "string"
+          },
+          "markerBodyOpacity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markerbodyopacity"
+          },
+          "independentAxisRange": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EdaNumberRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dependentAxisRange": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EdaNumberRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "effectSizeLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effectsizelabel"
+          }
+        },
+        "required": [
+          "effectSizeThreshold",
+          "significanceThreshold"
+        ],
+        "title": "EdaVolcanoConfiguration",
+        "type": "object"
+      },
+      "EdaVolcanoDescriptor": {
+        "additionalProperties": true,
+        "properties": {
+          "type": {
+            "const": "volcanoplot",
+            "default": "volcanoplot",
+            "title": "Type",
+            "type": "string"
+          },
+          "configuration": {
+            "$ref": "#/components/schemas/EdaVolcanoConfiguration"
+          },
+          "currentPlotFilters": {
+            "items": {
+              "$ref": "#/components/schemas/EdaFilter"
+            },
+            "title": "Currentplotfilters",
+            "type": "array"
+          },
+          "thumbnail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail"
+          },
+          "applicationContext": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applicationcontext"
+          }
+        },
+        "required": [
+          "configuration"
+        ],
+        "title": "EdaVolcanoDescriptor",
+        "type": "object"
+      },
+      "EdaNewAnalysis": {
+        "description": "``studyId`` holds a DATASET id and must equal ``eda_dataset_id``.",
+        "properties": {
+          "studyId": {
+            "title": "Studyid",
+            "type": "string"
+          },
+          "displayName": {
+            "$ref": "#/components/schemas/AnalysisDisplayName"
+          },
+          "description": {
+            "$ref": "#/components/schemas/AnalysisDescription",
+            "default": ""
+          },
+          "isPublic": {
+            "default": false,
+            "title": "Ispublic",
+            "type": "boolean"
+          },
+          "studyVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Studyversion"
+          },
+          "apiVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Apiversion"
+          },
+          "descriptor": {
+            "$ref": "#/components/schemas/EdaAnalysisDescriptor"
+          }
+        },
+        "required": [
+          "studyId",
+          "displayName"
+        ],
+        "title": "EdaNewAnalysis",
         "type": "object"
       }
     },

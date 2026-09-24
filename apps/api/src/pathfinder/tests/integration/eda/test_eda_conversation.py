@@ -69,7 +69,7 @@ from pathfinder.services.eda import authoring, binding, catalog
 from pathfinder.services.eda.binding import bound_conversation_analysis
 from pathfinder.services.strategies import commit
 from pathfinder.services.strategies.commit import _WDKCommitOutcome
-from pathfinder.tests._support.eda_wire import wire_eda_client
+from pathfinder.tests._support.eda_wire import recorded_distribution, wire_eda_client
 from pathfinder.tests._support.step_params import string_param
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
@@ -277,9 +277,7 @@ def _catalog_route(path: str, body: Any) -> httpx.Response | None:
     if path == f"/eda/studies/{_STUDY}/entities/{_ENTITY}/count":
         name = "count_filtered.json" if body["filters"] else "count_unfiltered.json"
         return httpx.Response(200, json=_fixture(name))
-    if path.endswith(f"/variables/{_VARIABLE}/distribution"):
-        return httpx.Response(200, json=_fixture("distribution_categorical.json"))
-    return None
+    return recorded_distribution(path, body, "study_detail_phenotype")
 
 
 def _wire(store: _AnalysesStore) -> httpx.MockTransport:

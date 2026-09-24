@@ -8,10 +8,12 @@ and the bound parameter values, so the spec is derived rather than re-asked.
 from __future__ import annotations
 
 from collections.abc import Collection, Mapping
+from typing import NamedTuple
 
 from veupathdb.domain.parameters import ParamValue
-from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
+from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
 
+from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.ast_diff import nodes_of
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -25,25 +27,35 @@ from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
 from pathfinder.domain.strategy.step_words import StepWords
 
 __all__ = [
+    "analysis_criteria_stated",
+    "criterion_analysing",
     "hidden_params_dropped",
+    "root_join_operator",
     "sheet_bound",
     "spec_from_ast",
     "spec_stating_the_live_tree",
 ]
 
+Analyses = Mapping[str, AnalysisBinding]
+_NO_ANALYSES: Analyses = {}
+_SYMMETRIC = frozenset({CombineOp.INTERSECT, CombineOp.UNION})
 
-def spec_from_ast(ast: StrategyAst, *, goal: str) -> OperationalSpec:
+
+def spec_from_ast(
+    ast: StrategyAst, *, goal: str, analyses: Analyses = _NO_ANALYSES
+) -> OperationalSpec:
     """Reconstruct the spec a strategy would have had.
 
     One criterion per non-combine node, keyed on the node's step id, holding
-    the parameters the node carries. The structure mirrors the tree. The
-    criterion text is the researcher's words the strategy stored for the step,
-    else its label, so no code may derive a value from it.
+    the parameters the node carries. A step ``analyses`` reads as an exported
+    analysis is stated by that binding instead. The structure mirrors the
+    tree. The criterion text is the researcher's words the strategy stored for
+    the step, else its label, so no code may derive a value from it.
     """
     seed_id = _deepest_primary_leaf(ast.root).id
     criteria: list[Criterion] = []
     words = StepWords.of(ast).criterion_texts
-    structure = _structure_of(ast.root, seed_id, criteria, words)
+    structure = _structure_of(ast.root, _Reading(seed_id, criteria, words, analyses))
     return OperationalSpec(
         goal=goal,
         title=ast.name or "",
@@ -58,6 +70,7 @@ def spec_stating_the_live_tree(
     ast: StrategyAst,
     *,
     sheet_params: Mapping[str, Collection[str]],
+    analyses: Analyses = _NO_ANALYSES,
     shape_moved: bool = False,
     may_leave_out: Collection[str] = (),
 ) -> OperationalSpec:
@@ -72,7 +85,7 @@ def spec_stating_the_live_tree(
     answers is re-joined at the plan's root combine when that is where the plan
     put it; any other plan is left alone.
     """
-    derived = spec_from_ast(ast, goal=spec.goal)
+    derived = spec_from_ast(ast, goal=spec.goal, analyses=analyses)
     if derived.structure is None:
         return spec
     nodes = nodes_of(ast)
@@ -114,6 +127,20 @@ def _pending_joined_at_the_root(
     Nothing when the plan puts one of them anywhere else, which is a plan the
     strategy has not reached and the edit refuses with a way forward.
     """
+    hanging = _hanging_at_the_root(structure, pending)
+    if structure is None or hanging is None:
+        return None
+    return StructureNode(
+        kind="combine",
+        operator=structure.root.operator,
+        inputs=[built_root, *hanging],
+    )
+
+
+def _hanging_at_the_root(
+    structure: SpecStructure | None, pending: Collection[str]
+) -> list[StructureNode] | None:
+    """The leaves of these criteria when each is an input of the root combine."""
     if structure is None or structure.root.kind != "combine":
         return None
     hanging = [
@@ -123,11 +150,27 @@ def _pending_joined_at_the_root(
     ]
     if {node.criterion_id for node in hanging} != set(pending):
         return None
-    return StructureNode(
-        kind="combine",
-        operator=structure.root.operator,
-        inputs=[built_root, *hanging],
-    )
+    return hanging
+
+
+def root_join_operator(
+    structure: SpecStructure | None, criterion_id: str
+) -> CombineOp | None:
+    """The operator that joins a step for this leaf to the strategy's root.
+
+    The leaf is an input of the root combine, and the join puts it after the
+    root, so an operator that reads its inputs in order needs the leaf last.
+    None when the structure places the leaf anywhere else.
+    """
+    if structure is None or _hanging_at_the_root(structure, [criterion_id]) is None:
+        return None
+    root = structure.root
+    operator = root.operator
+    if operator is None:
+        return None
+    if operator in _SYMMETRIC or root.inputs[-1].criterion_id == criterion_id:
+        return operator
+    return None
 
 
 def _deepest_primary_leaf(node: StrategyStepNode) -> StrategyStepNode:
@@ -137,25 +180,37 @@ def _deepest_primary_leaf(node: StrategyStepNode) -> StrategyStepNode:
     return node
 
 
-def _structure_of(
-    node: StrategyStepNode,
-    seed_id: str,
-    criteria: list[Criterion],
-    words: Mapping[str, str],
-) -> StructureNode:
+class _Reading(NamedTuple):
+    """What a hydration reads each node against, and the criteria it states."""
+
+    seed_id: str
+    criteria: list[Criterion]
+    words: Mapping[str, str]
+    analyses: Analyses
+
+
+def _structure_of(node: StrategyStepNode, reading: _Reading) -> StructureNode:
     kind = node.infer_kind()
-    inputs = [_structure_of(child, seed_id, criteria, words) for child in node.inputs()]
+    inputs = [_structure_of(child, reading) for child in node.inputs()]
     if kind == "combine":
         return StructureNode(kind="combine", operator=node.operator, inputs=inputs)
-    criteria.append(
-        Criterion(
-            id=node.id,
-            text=words.get(node.id) or node.display_name or f"{node.search_name} step",
-            search_name=node.search_name,
-            role=_role_of(node.id, kind, seed_id),
-            resolved_params=dict(node.parameters),
-        )
+    stated = Criterion(
+        id=node.id,
+        text=(
+            reading.words.get(node.id)
+            or node.display_name
+            or f"{node.search_name} step"
+        ),
+        search_name=node.search_name,
+        role=_role_of(node.id, kind, reading.seed_id),
+        resolved_params=dict(node.parameters),
     )
+    binding = reading.analyses.get(node.id)
+    if binding is not None:
+        stated = criterion_analysing(stated, node.search_name, binding).model_copy(
+            update={"text": binding.words}
+        )
+    reading.criteria.append(stated)
     if kind == "transform":
         return StructureNode(kind="transform", criterion_id=node.id, inputs=inputs)
     return StructureNode(kind="leaf", criterion_id=node.id)
@@ -205,3 +260,81 @@ def sheet_bound(
     if sheet is None:
         return dict(params)
     return {name: value for name, value in params.items() if name in sheet}
+
+
+def criterion_analysing(
+    criterion: Criterion, search_name: str, binding: AnalysisBinding
+) -> Criterion:
+    """The criterion stated by the analysis its step exports, and nothing else.
+
+    The document lives on the binding, so no value of it is a parameter the
+    criterion states, defaults, asks for or explains.
+    """
+    return criterion.model_copy(
+        update={
+            "search_name": search_name,
+            "saved_strategy_ref": None,
+            "analysis": binding,
+            "needs_analysis_on": None,
+            "resolved_params": {},
+            "defaulted_params": [],
+            "open_params": [],
+            "assumptions": [],
+            "alternatives": [],
+        }
+    )
+
+
+def analysis_criteria_stated(
+    spec: OperationalSpec, analyses: Analyses
+) -> OperationalSpec:
+    """The spec with every exported analysis stated by its binding.
+
+    A criterion whose step reads as an export and states no binding gains the
+    one its step reads as. A drop recorded on an analysis dataset leaves when
+    an export on that dataset answered it, and otherwise becomes a criterion
+    waiting for that analysis, joined at the root under INTERSECT, the join
+    such a drop was built at. One criterion waits per dataset, so a second
+    drop on it folds into the first. A spec with neither is returned as is.
+    """
+    unbound = {c.id for c in spec.criteria if c.analysis is None and c.id in analyses}
+    answered = {binding.dataset_id for binding in analyses.values()}
+    carried = [drop for drop in spec.dropped if drop.eda_dataset_id is not None]
+    waiting = [drop for drop in carried if drop.eda_dataset_id not in answered]
+    if not unbound and not carried:
+        return spec
+    stated = spec.model_copy(deep=True)
+    stated.criteria = [
+        criterion_analysing(c, c.search_name, analyses[c.id]) if c.id in unbound else c
+        for c in stated.criteria
+    ]
+    for drop in waiting:
+        criterion = Criterion(
+            id=f"c_{drop.eda_dataset_id}",
+            text=drop.text,
+            needs_analysis_on=drop.eda_dataset_id,
+        )
+        if any(c.id == criterion.id for c in stated.criteria):
+            continue
+        stated.criteria.append(criterion)
+        stated.structure = _joined_at_the_root(stated.structure, criterion.id)
+    stated.dropped = [drop for drop in stated.dropped if drop.eda_dataset_id is None]
+    return stated
+
+
+def _joined_at_the_root(
+    structure: SpecStructure | None, criterion_id: str
+) -> SpecStructure:
+    leaf = StructureNode(kind="leaf", criterion_id=criterion_id)
+    if structure is None:
+        return SpecStructure(root=leaf)
+    root = structure.root
+    if root.kind == "combine" and root.operator is CombineOp.INTERSECT:
+        return SpecStructure(
+            root=root.model_copy(update={"inputs": [*root.inputs, leaf]})
+        )
+    return SpecStructure(
+        root=StructureNode(
+            kind="combine", operator=CombineOp.INTERSECT, inputs=[root, leaf]
+        )
+    )

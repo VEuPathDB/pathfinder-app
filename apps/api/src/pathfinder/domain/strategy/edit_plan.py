@@ -67,7 +67,7 @@ def node_for(criterion: Criterion) -> StrategyStepNode:
     return StrategyStepNode(
         id=criterion.id,
         search_name=criterion.search_name,
-        parameters=dict(criterion.resolved_params),
+        parameters=criterion.step_parameters,
         display_name=criterion.title,
     )
 

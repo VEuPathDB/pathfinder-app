@@ -5,6 +5,8 @@ import { DEFAULT_STREAM_NAME } from "@pathfinder/shared";
 
 import { firstUserMessageText, provisionalName } from "./provisionalName";
 
+import parity from "../../../../../packages/spec/provisional_name_parity.json";
+
 describe("provisionalName", () => {
   it("keeps the conversation name when it has one", () => {
     expect(provisionalName("Kinases in the blood stage", "find kinases")).toBe(
@@ -21,6 +23,10 @@ describe("provisionalName", () => {
     expect(provisionalName("   ", "find kinases\n in P. falciparum")).toBe(
       "find kinases in P. falciparum",
     );
+  });
+
+  it.each(parity.cases)("names $name as the api does", ({ prompt, expected }) => {
+    expect(provisionalName("", prompt)).toBe(expected);
   });
 
   it("falls back to the default name when there is no message", () => {

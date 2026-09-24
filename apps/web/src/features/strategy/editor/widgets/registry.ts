@@ -39,7 +39,7 @@ const DISPLAY_TYPES = {
   STRING: "",
 } as const;
 
-export type WidgetKind =
+type WidgetKind =
   | "treebox"
   | "typeahead"
   | "select"

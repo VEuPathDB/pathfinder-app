@@ -262,6 +262,10 @@ def _apply_duplicate_step(
     parent_info = graph.parent_of(op.source_step_id)
     graph.steps[duplicate.id] = duplicate
     graph.steps[combine.id] = combine
+    # The copy runs the source's search on the source's document.
+    stamped = graph.analysis_kinds.get(source.id)
+    if stamped is not None:
+        graph.note_analysis_kinds({duplicate.id: stamped})
     if parent_info is not None:
         parent, slot = parent_info
         _set_input_slot(parent, slot, combine.id)

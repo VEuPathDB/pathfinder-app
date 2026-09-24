@@ -9,11 +9,9 @@ import math
 from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel, computed
-from pydantic import Field, JsonValue, ValidationError
+from pydantic import Field, JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.parameters import to_wire
-from veupathdb.domain.strategy import StrategyStep
 from veupathdb_mcp import ToolErrorPayload, tool_error
 from veupathdb_mcp.catalog import EdaStepRequest
 
@@ -28,18 +26,29 @@ from pathfinder.ai.tools.standalone.graph_helpers import (
     count_summary,
     serialize_step,
 )
+from pathfinder.domain.eda_parts import EdaComparison, EdaEffectDirection
+from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.build_outcome import citable_count
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph, strategy_root_id
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.platform.errors import ErrorCode
+from pathfinder.services.eda.analysis_kinds import (
+    read_the_unread_kinds,
+    unread_analyses,
+)
 from pathfinder.services.eda.catalog import (
     UnknownEdaDatasetError,
     get_study_detail_for_dataset,
 )
 from pathfinder.services.eda.compute import VolcanoThresholds
 from pathfinder.services.eda.description import display_names, filter_summaries
-from pathfinder.services.eda.export import exported_subset, exported_thresholds
+from pathfinder.services.eda.direction import direction_sentence
+from pathfinder.services.eda.export import (
+    exported_analysis,
+    exported_subset,
+    study_step_request,
+)
 from pathfinder.services.strategies.schemas import StepResponse
 
 logger = get_logger(__name__)
@@ -76,6 +85,10 @@ class StrategySummaryResponse(CamelModel):
     Hashes search names, parameters, operators and tree shape only, so a
     refreshed count never looks like an edit. Empty for no strategy.
     """
+    # What each study step selects, by step id, read from its analysis document.
+    analyses: dict[str, str] = Field(default_factory=dict)
+    # The study steps whose analysis the site did not describe: pending checks.
+    unread_analyses: list[str] = Field(default_factory=list)
 
 
 async def get_strategy(
@@ -104,6 +117,7 @@ async def get_strategy(
 
     sync_state = session.sync_state
     wdk_strategy_id = sync_state.wdk_strategy_id if sync_state else None
+    await read_the_unread_kinds(site_id=deps.site_id, graph=graph)
 
     steps: list[StepResponse] | None = None
     if not summary_only:
@@ -121,6 +135,17 @@ async def get_strategy(
         description=graph.description,
         steps=steps,
         revision=strategy_revision(graph.to_strategy_ast(sync_state=sync_state)),
+        analyses={
+            step_id: binding.words
+            for step_id, step in graph.steps.items()
+            if (
+                binding := exported_analysis(
+                    graph.analysis_kind_of(step_id), step.parameters
+                )
+            )
+            is not None
+        },
+        unread_analyses=unread_analyses(graph),
     )
     if not graph.steps:
         return with_summary(summary, "No strategy yet", ctx=ctx, status="empty")
@@ -143,6 +168,10 @@ class StudyStepCheck(CamelModel):
     dataset_id: str
     record_count: int | None = None
     thresholds: VolcanoThresholds | None = None
+    # The groups a compute step compares, its method, and the side it keeps.
+    comparison: EdaComparison | None = None
+    method: str | None = None
+    effect_direction: EdaEffectDirection | None = None
     # One sentence per subset filter the step carries, in the sheet's words.
     subset_filters: list[str] = Field(default_factory=list)
     checks: list[ConstraintCheck] = Field(default_factory=list)
@@ -190,16 +219,6 @@ def _threshold_checks(
         ),
     )
     return [check for check in found if check is not None]
-
-
-def _study_step_request(step: StrategyStep) -> EdaStepRequest | None:
-    """The two EDA parameters the step carries, or None when it carries none."""
-    try:
-        return EdaStepRequest.model_validate(
-            {name: to_wire(value) for name, value in step.parameters.items()},
-        )
-    except ValidationError:
-        return None
 
 
 async def _subset_filters(site_id: str, request: EdaStepRequest) -> list[str]:
@@ -263,8 +282,26 @@ async def check_study_step(
             ctx=ctx,
             status="warn",
         )
-    request = _study_step_request(step)
-    if request is None:
+    request = study_step_request(step.parameters)
+    if request is not None:
+        await read_the_unread_kinds(site_id=ctx.deps.site_id, graph=graph)
+    kind = graph.analysis_kind_of(step_id)
+    if request is not None and kind is None:
+        return with_summary(
+            tool_error(
+                ErrorCode.VALIDATION_ERROR,
+                f"Step {step_id} carries an EDA analysis, and the site did not "
+                f"say which plugin reads it, so its cut cannot be read now. It "
+                f"is read again on the next turn: set success from the other "
+                f"checks and name this step in caveats as a pending check.",
+                stepId=step_id,
+            ),
+            f"The site did not say how step {step_id} reads its analysis",
+            ctx=ctx,
+            status="warn",
+        )
+    binding = exported_analysis(kind, step.parameters)
+    if request is None or binding is None:
         return with_summary(
             tool_error(
                 ErrorCode.VALIDATION_ERROR,
@@ -278,7 +315,7 @@ async def check_study_step(
         )
     sync_state = session.sync_state
     count = sync_state.step_counts.get(step_id) if sync_state else None
-    thresholds = exported_thresholds(request)
+    thresholds = _cut(binding)
     subset_filters = await _subset_filters(ctx.deps.site_id, request)
     check = StudyStepCheck(
         step_id=step_id,
@@ -286,6 +323,9 @@ async def check_study_step(
         dataset_id=request.eda_dataset_id,
         record_count=count,
         thresholds=thresholds,
+        comparison=binding.comparison,
+        method=binding.method,
+        effect_direction=binding.effect_direction,
         subset_filters=subset_filters,
         checks=(
             []
@@ -305,6 +345,29 @@ async def check_study_step(
     )
 
 
+def _cut(binding: AnalysisBinding) -> VolcanoThresholds | None:
+    """The volcano cut a compute step's binding states, or None for a subset."""
+    if (
+        binding.effect_size_threshold is None
+        or binding.significance_threshold is None
+        or binding.effect_direction is None
+    ):
+        return None
+    return VolcanoThresholds(
+        effect_size_threshold=binding.effect_size_threshold,
+        significance_threshold=binding.significance_threshold,
+        effect_direction=binding.effect_direction,
+    )
+
+
+def _compared(check: StudyStepCheck) -> str:
+    """The method and the genes the compute keeps, or nothing for a subset."""
+    if check.comparison is None or check.effect_direction is None:
+        return ""
+    kept = direction_sentence(check.comparison, check.effect_direction)
+    return f", {check.method}: {kept[0].lower()}{kept[1:]}"
+
+
 def _study_step_summary(check: StudyStepCheck) -> str:
     records = "unknown" if check.record_count is None else f"{check.record_count:,}"
     filters = (
@@ -315,7 +378,7 @@ def _study_step_summary(check: StudyStepCheck) -> str:
     if check.thresholds is not None:
         fold = _number(_fold_change(check.thresholds.effect_size_threshold))
         significance = _number(check.thresholds.significance_threshold)
-        cut = f"{records} records at {fold}-fold and p {significance}"
+        cut = f"{records} records at {fold}-fold and p {significance}{_compared(check)}"
         return cut if not filters else f"{cut}, {filters}"
     if not filters:
         return f"{records} records, whole subset"

@@ -4,6 +4,7 @@ Owns conversation read/write orchestration (repository + WDK sync + response
 shaping) so transport routers stay thin and never import persistence.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from uuid import UUID
 
@@ -26,6 +27,7 @@ from veupathdb.errors import ValidationError, VEuPathDBError
 from veupathdb.wdk import get_strategy_api
 
 from pathfinder.domain.strategy.operations import GraphOperation
+from pathfinder.domain.strategy.step_words import StampedKind
 from pathfinder.persistence.repositories import (
     ConversationRepository,
     ConversationUpdate,
@@ -279,9 +281,15 @@ class ConversationService:
         *,
         site_id: str,
         op: GraphOperation,
+        analysis_kinds: Mapping[str, StampedKind] | None = None,
     ) -> ConversationResponse:
         return await strategy_ops.apply_operation(
-            self._repo, conversation_id, user_id, site_id=site_id, op=op
+            self._repo,
+            conversation_id,
+            user_id,
+            site_id=site_id,
+            op=op,
+            analysis_kinds=analysis_kinds,
         )
 
     async def refresh_counts(

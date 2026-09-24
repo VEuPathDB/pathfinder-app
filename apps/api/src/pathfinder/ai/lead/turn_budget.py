@@ -9,6 +9,7 @@ from assistant_core.graph.tool_summary import count_noun
 from pydantic_ai.usage import RunUsage, UsageLimits
 
 from pathfinder.ai.graph.state import VerificationDigest
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.lead.reply_claims import machine_words
@@ -58,8 +59,18 @@ def _with_link(line: str, url: str | None) -> str:
     return line if url is None else f"{line} It is on VEuPathDB at {url}."
 
 
+_OUT_OF_DATE = (
+    "The strategy changed on VEuPathDB after this conversation built it, so the "
+    "count recorded here is out of date."
+)
+
+
 def _strategy_state(ledger: InvestigationLedger, session: StrategySession) -> str:
-    """What the strategy holds, with the count and link the ledger's build cites."""
+    """What the strategy holds, with the count and link the ledger's build cites.
+
+    A build the ledger marks stale cites neither, because both describe the
+    strategy as it was built and not as the site holds it now.
+    """
     graph = session.graph
     if graph is None or not graph.steps:
         return "Nothing was built."
@@ -67,8 +78,12 @@ def _strategy_state(ledger: InvestigationLedger, session: StrategySession) -> st
     url = ledger.build.wdk_url
     root_id = strategy_root_id(graph, session.sync_state)
     if root_id is None:
+        if ledger.build.stale_build is not None:
+            return f"{held}. {_OUT_OF_DATE}"
         return _with_link(f"{held}.", url)
     title = build_step_response(graph, graph.steps[root_id]).display_name
+    if ledger.build.stale_build is not None:
+        return f'{held}; the final step is "{title}". {_OUT_OF_DATE}'
     count = next(
         (n.count for n in ledger.build.node_results if n.node_id == root_id), None
     )
@@ -81,6 +96,12 @@ def _strategy_state(ledger: InvestigationLedger, session: StrategySession) -> st
 
 def _verdict(digest: VerificationDigest) -> str:
     """The check's verdict, with the first sentence of an objection when it is plain."""
+    if digest.success and digest.pending_checks:
+        pending = digest.pending_checks
+        return (
+            f"Verification passed, {count_noun(len(pending), 'check')} pending: "
+            f"{', '.join(pending)}."
+        )
     if digest.success:
         return "Verification passed."
     first = _SENTENCE_END.split(digest.prose.strip(), maxsplit=1)[0]
@@ -89,16 +110,41 @@ def _verdict(digest: VerificationDigest) -> str:
     return f"Verification objected: {first}"
 
 
+def _this_turn(turn: TurnMarkers) -> str:
+    """What this turn wrote to the strategy, naming each step it added."""
+    added = turn.added_searches
+    if added:
+        named = "; ".join(
+            f'"{step.search_display_name}" ({step.criterion_text})' for step in added
+        )
+        return f"This turn added {count_noun(len(added), 'step')}: {named}."
+    if turn.changed_strategy:
+        return "This turn changed the strategy and added no step."
+    return "This turn changed nothing."
+
+
+def _verification(ledger: InvestigationLedger, session: StrategySession) -> list[str]:
+    """The verdict on the strategy as it stands, or that no check judged it."""
+    digest = ledger.verification.digest
+    if digest is not None:
+        return [_verdict(digest)]
+    graph = session.graph
+    if graph is None or not graph.steps:
+        return []
+    return ["The strategy was not verified this turn."]
+
+
 def budget_stop_report(
     ledger: InvestigationLedger,
     session: StrategySession,
+    turn: TurnMarkers,
     questions: Sequence[OpenQuestion],
 ) -> str:
     """What a turn at its whole budget produced, then the stop itself."""
-    digest = ledger.verification.digest
     parts = [
         _strategy_state(ledger, session),
-        *([_verdict(digest)] if digest is not None else []),
+        _this_turn(turn),
+        *_verification(ledger, session),
         *(q.question for q in questions),
         lead_turn_budget_message(),
     ]
