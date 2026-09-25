@@ -1,0 +1,165 @@
+name: E2E capacity
+
+# Measures which stack shape lets the turn-driving specs run in parallel: one
+# cell per worker concurrency, worker container count and Playwright worker
+# count. Every cell runs the whole suite with `--fully-parallel` forced from
+# the command line, so the config file's serialized projects do not apply.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    name: c${{ matrix.concurrency }} x${{ matrix.containers }} w${{ matrix.workers }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { concurrency: 4, containers: 1, workers: 2 }
+          - { concurrency: 4, containers: 1, workers: 4 }
+          - { concurrency: 4, containers: 1, workers: 8 }
+          - { concurrency: 8, containers: 1, workers: 2 }
+          - { concurrency: 8, containers: 1, workers: 4 }
+          - { concurrency: 8, containers: 1, workers: 8 }
+          - { concurrency: 4, containers: 2, workers: 2 }
+          - { concurrency: 4, containers: 2, workers: 4 }
+          - { concurrency: 4, containers: 2, workers: 8 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Runner shape
+        run: |
+          nproc
+          free -m
+          df -h /
+
+      - name: Prepare e2e env
+        env:
+          CONCURRENCY: ${{ matrix.concurrency }}
+        run: |
+          cat > .env.test <<'EOF'
+          API_ENV=test
+          PATHFINDER_CHAT_PROVIDER=mock
+          NEXT_PUBLIC_API_URL=http://api:8000
+          DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/pathfinder
+          DEFAULT_PROVIDER=anthropic
+          DEFAULT_TIER=balanced
+          EOF
+          printf 'WORKER_CONCURRENCY=%s\n' "$CONCURRENCY" >> .env.test
+          printf 'API_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env.test
+          printf 'SEARXNG_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env.test
+
+      - name: Build + start the stack
+        env:
+          CONTAINERS: ${{ matrix.containers }}
+        run: |
+          docker compose --env-file .env.test \
+            -f docker-compose.yml -f docker-compose.e2e.yml \
+            up -d --build --scale "worker=$CONTAINERS" api web worker
+
+      - name: Wait for API + web
+        run: |
+          ok=
+          for _ in $(seq 1 60); do
+            curl -fsS http://localhost:8000/health/ready >/dev/null 2>&1 && { ok=1; break; }
+            sleep 5
+          done
+          [ -n "$ok" ] || { echo "API not ready"; docker compose --env-file .env.test -f docker-compose.yml -f docker-compose.e2e.yml logs api | tail -80; exit 1; }
+          ok=
+          for _ in $(seq 1 30); do
+            curl -fsS http://localhost:3000/ >/dev/null 2>&1 && { ok=1; break; }
+            sleep 2
+          done
+          [ -n "$ok" ] || { echo "web not ready"; docker compose --env-file .env.test -f docker-compose.yml -f docker-compose.e2e.yml logs web | tail -50; exit 1; }
+
+      - uses: ./.github/actions/setup-web
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: yarn playwright install --with-deps
+
+      # One container-stats line every ten seconds for the whole run, so the
+      # cell records whether the worker or the runner was the ceiling.
+      - name: Start the stats sampler
+        run: |
+          mkdir -p capacity
+          (
+            while true; do
+              docker stats --no-stream --format '{{.Name}} cpu={{.CPUPerc}} mem={{.MemUsage}}' \
+                | sed "s/^/$(date -u +%H:%M:%S) /" >> capacity/stats.log
+              sleep 10
+            done
+          ) &
+          echo $! > capacity/sampler.pid
+
+      - name: Run the whole suite in parallel
+        working-directory: apps/web
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          WDK_TEST_EMAIL: ${{ secrets.WDK_TEST_EMAIL }}
+          WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
+          WORKERS: ${{ matrix.workers }}
+        run: |
+          start=$(date +%s)
+          set +e
+          yarn playwright test --fully-parallel --workers "$WORKERS" --reporter=json > ../../capacity/results.json
+          status=$?
+          set -e
+          end=$(date +%s)
+          printf '%s\n' "$((end - start))" > ../../capacity/seconds
+          printf '%s\n' "$status" > ../../capacity/status
+
+      - name: Stop the stats sampler
+        if: always()
+        run: kill "$(cat capacity/sampler.pid)" || true
+
+      - name: Record the cell
+        if: always()
+        env:
+          CELL: c${{ matrix.concurrency }} x${{ matrix.containers }} w${{ matrix.workers }}
+        run: |
+          stats=$(jq -c '.stats | {expected, unexpected, flaky, skipped}' capacity/results.json)
+          {
+            echo "## $CELL"
+            echo
+            echo "| seconds | exit | expected | unexpected | flaky | skipped |"
+            echo "|---|---|---|---|---|---|"
+            printf '| %s | %s | %s | %s | %s | %s |\n' \
+              "$(cat capacity/seconds)" "$(cat capacity/status)" \
+              "$(jq '.stats.expected' capacity/results.json)" \
+              "$(jq '.stats.unexpected' capacity/results.json)" \
+              "$(jq '.stats.flaky' capacity/results.json)" \
+              "$(jq '.stats.skipped' capacity/results.json)"
+            echo
+            echo "Failed or flaky specs:"
+            echo
+            jq -r '.suites[] | recurse(.suites[]?) | .specs[]? | select(.ok == false or (.tests[].status == "flaky")) | "- \(.file): \(.title)"' capacity/results.json | sort -u
+            echo
+            echo "Peak worker CPU: $(grep worker capacity/stats.log | sed 's/.*cpu=//; s/%.*//' | sort -n | tail -1)%"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "$stats"
+
+      - name: Upload the cell
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capacity-c${{ matrix.concurrency }}-x${{ matrix.containers }}-w${{ matrix.workers }}
+          path: capacity
+          retention-days: 7
+
+      - name: Stack logs on failure
+        if: failure()
+        run: |
+          docker compose --env-file .env.test \
+            -f docker-compose.yml -f docker-compose.e2e.yml \
+            logs --no-color worker | tail -200
+
+      - name: Tear down
+        if: always()
+        run: |
+          docker compose --env-file .env.test \
+            -f docker-compose.yml -f docker-compose.e2e.yml down -v
